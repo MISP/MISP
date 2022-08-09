@@ -5,6 +5,7 @@ import uuid
 import subprocess
 import unittest
 import requests
+import time
 from xml.etree import ElementTree as ET
 from io import BytesIO
 import urllib3  # type: ignore
@@ -796,6 +797,24 @@ class TestComprehensive(unittest.TestCase):
             created_user = check_response(self.admin_misp_connector.add_user(user))
             self.assertTrue(created_user.autoalert, created_user)
             self.admin_misp_connector.delete_user(created_user)
+
+    def test_search_snort_suricata(self):
+        event = create_simple_event()
+        event.add_attribute('ip-src', '8.8.8.8', to_ids=True)
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        self.admin_misp_connector.publish(event, alert=False)
+        time.sleep(6)
+        snort = self._search({'returnFormat': 'snort', 'eventid': event.id})
+        self.assertIsInstance(snort, str)
+        self.assertIn('8.8.8.8', snort)
+
+        suricata = self._search({'returnFormat': 'suricata', 'eventid': event.id})
+        self.assertIsInstance(suricata, str)
+        self.assertIn('8.8.8.8', suricata)
+
+        self.admin_misp_connector.delete_event(event)
 
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)

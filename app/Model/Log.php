@@ -39,11 +39,14 @@ class Log extends AppModel
                     'enrichment',
                     'error',
                     'execute_blueprint',
+                    'execute_workflow',
+                    'exec_module',
                     'export',
                     'fetchEvent',
                     'file_upload',
                     'galaxy',
                     'include_formula',
+                    'load_module',
                     'login',
                     'login_fail',
                     'logout',
@@ -103,6 +106,8 @@ class Log extends AppModel
         'errors' => array('values' => array('warning', 'error', 'version_warning'), 'name' => 'Warnings and errors'),
         'email' => array('values' => array('admin_email'))
     );
+
+    public $actsAs = ['LightPaginator'];
 
     /**
      * Null when not defined, false when not enabled
@@ -202,7 +207,7 @@ class Log extends AppModel
      */
     public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
     {
-        if (in_array($action, ['tag', 'galaxy', 'publish', 'publish_sightings', 'enable'], true) && Configure::read('MISP.log_new_audit')) {
+        if (in_array($action, ['tag', 'galaxy', 'publish', 'publish_sightings', 'enable', 'edit'], true) && Configure::read('MISP.log_new_audit')) {
             return; // Do not store tag changes when new audit is enabled
         }
         if ($user === 'SYSTEM') {

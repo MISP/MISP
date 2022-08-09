@@ -80,6 +80,9 @@
             }
             $url .= '/' . $url_params_values;
         }
+        if (!empty($action['url_suffix'])) {
+            $url .= $action['url_suffix'];
+        }
         if (!empty($action['url_extension'])) {
             $url .= '.' . $action['url_extension'];
         }

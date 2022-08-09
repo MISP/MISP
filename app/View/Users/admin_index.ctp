@@ -23,25 +23,25 @@
                             'class' => 'hidden mass-select',
                             'text' => __('Disable selected users'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '1')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '1', '#UserUserIds')
                         ),
                         array(
                             'class' => 'hidden mass-select',
                             'text' => __('Enable selected users'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '0')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '0', '#UserUserIds')
                         ),
                         array(
                             'class' => 'hidden mass-select',
                             'text' => __('Disable publish emailing'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '0')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '0', '#UserUserIds')
                         ),
                         array(
                             'class' => 'hidden mass-select',
                             'text' => __('Enable publish emailing'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '1')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '1', '#UserUserIds')
                         ),
                     )
                 ),

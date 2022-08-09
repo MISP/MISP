@@ -33,6 +33,8 @@
         this.cancelRequested = false;
         this.backup_parameters = false;
         this.checkbox = false;
+        this.label_node = false;
+        this.timer_node = false;
         this.init();
         return this;
     };
@@ -57,12 +59,25 @@
             this.backup_interval = this.config.interval;
         },
 
+        do: function(arrayParameters) {
+            var that = this;
+            if (arrayParameters !== undefined) {
+                this.backup_parameters = arrayParameters;
+                taskResult = this.task.apply(null, arrayParameters);
+            } else {
+                this.backup_parameters = false;
+                taskResult = this.task();
+            }
+        },
+
         start: function(arrayParameters, immediate) {
             immediate = immediate === undefined ? true  : immediate;
             var that = this;
             if (!this.taskRunning) {
-                if (!this.checkbox.checked) {
-                    this.checkbox.checked = true;
+                if (this.checkbox) {
+                    if (!this.checkbox.checked) {
+                        this.checkbox.checked = true;
+                    }
                 }
                 this.taskRunning = true;
                 if (immediate) {
@@ -102,8 +117,10 @@
 
         stop: function() {
             if (this.taskRunning) {
-                if (this.checkbox.checked) {
-                    this.checkbox.checked = false;
+                if (this.checkbox) {
+                    if (this.checkbox.checked) {
+                        this.checkbox.checked = false;
+                    }
                 }
                 this.taskRunning = false;
                 this._removeAnimation();
@@ -215,6 +232,9 @@
         },
 
         adaptTimeAnimationDuration: function(disabled) {
+            if (!this.timer_node) {
+                return;
+            }
             if (disabled === true) {
                 this.label_node.title = 'Task not scheduled';
             } else {
@@ -225,6 +245,9 @@
         },
 
         animate: function() {
+            if (!this.timer_node) {
+                return;
+            }
             var that = this;
             if (this.config.interval < this.config.animation.noAnimThreshold) {
                 return;
@@ -244,6 +267,9 @@
         },
 
         _removeAnimation: function() {
+            if (!this.timer_node) {
+                return;
+            }
             this.label_node.classList.remove('toggle-switch-animate-execution');
             this.timer_node.classList.remove('toggle-switch-animate-time-remaining');
         },

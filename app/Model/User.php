@@ -269,6 +269,27 @@ class User extends AppModel
             $passwordHasher = new BlowfishConstantPasswordHasher();
             $this->data[$this->alias]['password'] = $passwordHasher->hash($this->data[$this->alias]['password']);
         }
+        $user = $this->data;
+        $action = empty($this->id) ? 'add' : 'edit';
+        $user_id = $action == 'add' ? 0 : $user['User']['id'];
+        $trigger_id = 'user-before-save';
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'User',
+            'action' => $action,
+            'id' => $user_id,
+            'message' => __('The workflow `%s` prevented the saving of user %s', $trigger_id, $user_id),
+        ];
+        if (
+            empty($user['User']['action']) ||
+            (
+                $user['User']['action'] != 'logout' &&
+                $user['User']['action'] != 'login'
+            )
+        ) {
+            $success = $this->executeTrigger($trigger_id, $user['User'], $workflowErrors, $logging);
+            return !empty($success);
+        }
         return true;
     }
 
@@ -276,6 +297,23 @@ class User extends AppModel
     {
         $pubToZmq = $this->pubToZmq('user');
         $kafkaTopic = $this->kafkaTopic('user');
+        $action = empty($created) ? 'edit' : 'add';
+        $user = $this->data;
+        if (
+            empty($user['User']['action']) ||
+            (
+                $user['User']['action'] != 'logout' &&
+                $user['User']['action'] != 'login'
+            )
+        ) {
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'User',
+                'action' => $action,
+                'id' => $user['User']['id'],
+            ];
+            $this->executeTrigger('user-after-save', $user['User'], $workflowErrors, $logging);
+        }
         if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->data)) {
                 $user = $this->data;
@@ -1580,5 +1618,15 @@ class User extends AppModel
             'recursive' => -1,
             'conditions' => array('EventDelegation.org_id' => $user['org_id'])
         ));
+    }
+
+    /**
+     * Generate code that is used in event alert unsubscribe link.
+     * @return string
+     */
+    public function unsubscribeCode(array $user)
+    {
+        $salt = Configure::read('Security.salt');
+        return substr(hash('sha256', "{$user['id']}|$salt"), 0, 8);
     }
 }

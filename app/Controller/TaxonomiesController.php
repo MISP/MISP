@@ -594,4 +594,14 @@ class TaxonomiesController extends AppController
 
         return $taxonomyIds;
     }
+
+
+    public function normalizeCustomTagsToTaxonomyFormat()
+    {
+        $this->request->allowMethod(['post', 'put']);
+        $conversionResult = $this->Taxonomy->normalizeCustomTagsToTaxonomyFormat();
+        $this->Flash->success(__('%s tags successfully converted. %s row updated.', $conversionResult['tag_converted'], $conversionResult['row_updated']));
+        $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+    }
+
 }

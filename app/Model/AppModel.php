@@ -25,6 +25,7 @@ App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('RandomTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('BetterCakeEventManager', 'Tools');
 
 class AppModel extends Model
 {
@@ -46,15 +47,6 @@ class AppModel extends Model
 
     /** @var AttachmentTool|null */
     private $attachmentTool;
-
-    public function __construct($id = false, $table = null, $ds = null)
-    {
-        parent::__construct($id, $table, $ds);
-        $this->findMethods['column'] = true;
-        if (in_array('phar', stream_get_wrappers())) {
-            stream_wrapper_unregister('phar');
-        }
-    }
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
@@ -89,10 +81,11 @@ class AppModel extends Model
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
-        81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false
+        81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
+        87 => false, 88 => false, 89 => false, 90 => false,
     );
 
-    public $advanced_updates_description = array(
+    const ADVANCED_UPDATES_DESCRIPTION = array(
         'seenOnAttributeAndObject' => array(
             'title' => 'First seen/Last seen Attribute table',
             'description' => 'Update the Attribute table to support first_seen and last_seen feature, with a microsecond resolution.',
@@ -105,6 +98,15 @@ class AppModel extends Model
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
         ),
     );
+
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct($id, $table, $ds);
+        $this->findMethods['column'] = true;
+        if (in_array('phar', stream_get_wrappers(), true)) {
+            stream_wrapper_unregister('phar');
+        }
+    }
 
     public function isAcceptedDatabaseError($errorMessage)
     {
@@ -135,8 +137,9 @@ class AppModel extends Model
         switch ($command) {
             case '2.4.20':
                 $dbUpdateSuccess = $this->updateDatabase($command);
-                $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
-                $this->ShadowAttribute->upgradeToProposalCorrelation();
+                //deprecated
+                //$this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
+                //$this->ShadowAttribute->upgradeToProposalCorrelation();
                 break;
             case '2.4.25':
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -225,6 +228,15 @@ class AppModel extends Model
             case 48:
                 $dbUpdateSuccess = $this->__generateCorrelations();
                 break;
+            case 89:
+                $this->__retireOldCorrelationEngine();
+                $dbUpdateSuccess = true;
+                break;
+            case 90:
+                $dbUpdateSuccess = $this->updateDatabase($command);
+                $this->Workflow = Classregistry::init('Workflow');
+                $this->Workflow->enableDefaultModules();
+                break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
                 break;
@@ -274,9 +286,9 @@ class AppModel extends Model
 
         $liveOff = false;
         $exitOnError = false;
-        if (isset($this->advanced_updates_description[$command])) {
-            $liveOff = isset($this->advanced_updates_description[$command]['liveOff']) ? $this->advanced_updates_description[$command]['liveOff'] : $liveOff;
-            $exitOnError = isset($this->advanced_updates_description[$command]['exitOnError']) ? $this->advanced_updates_description[$command]['exitOnError'] : $exitOnError;
+        if (isset(self::ADVANCED_UPDATES_DESCRIPTION[$command])) {
+            $liveOff = isset(self::ADVANCED_UPDATES_DESCRIPTION[$command]['liveOff']) ? self::ADVANCED_UPDATES_DESCRIPTION[$command]['liveOff'] : $liveOff;
+            $exitOnError = isset(self::ADVANCED_UPDATES_DESCRIPTION[$command]['exitOnError']) ? self::ADVANCED_UPDATES_DESCRIPTION[$command]['exitOnError'] : $exitOnError;
         }
 
         $sqlArray = array();
@@ -1684,6 +1696,118 @@ class AppModel extends Model
             case 86:
                 $this->__addIndex('attributes', 'timestamp');
                 break;
+            case 87:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `no_acl_correlations` (
+                    `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `attribute_id` int(10) UNSIGNED NOT NULL,
+                    `1_attribute_id` int(10) UNSIGNED NOT NULL,
+                    `event_id` int(10) UNSIGNED NOT NULL,
+                    `1_event_id` int(10) UNSIGNED NOT NULL,
+                    `value_id` int(10) UNSIGNED NOT NULL,
+                    PRIMARY KEY (`id`),
+                    INDEX `event_id` (`event_id`),
+                    INDEX `1_event_id` (`1_event_id`),
+                    INDEX `attribute_id` (`attribute_id`),
+                    INDEX `1_attribute_id` (`1_attribute_id`),
+                    INDEX `value_id` (`value_id`)
+                  ) ENGINE=InnoDB;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `default_correlations` (
+                    `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `attribute_id` int(10) UNSIGNED NOT NULL,
+                    `object_id` int(10) UNSIGNED NOT NULL,
+                    `event_id` int(10) UNSIGNED NOT NULL,
+                    `org_id` int(10) UNSIGNED NOT NULL,
+                    `distribution` tinyint(4) NOT NULL,
+                    `object_distribution` tinyint(4) NOT NULL,
+                    `event_distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                    `object_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                    `event_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                    `1_attribute_id` int(10) UNSIGNED NOT NULL,
+                    `1_object_id` int(10) UNSIGNED NOT NULL,
+                    `1_event_id` int(10) UNSIGNED NOT NULL,
+                    `1_org_id` int(10) UNSIGNED NOT NULL,
+                    `1_distribution` tinyint(4) NOT NULL,
+                    `1_object_distribution` tinyint(4) NOT NULL,
+                    `1_event_distribution` tinyint(4) NOT NULL,
+                    `1_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                    `1_object_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                    `1_event_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                    `value_id` int(10) UNSIGNED NOT NULL,
+                    PRIMARY KEY (`id`),
+                    INDEX `event_id` (`event_id`),
+                    INDEX `attribute_id` (`attribute_id`),
+                    INDEX `object_id` (`object_id`),
+                    INDEX `org_id` (`org_id`),
+                    INDEX `distribution` (`distribution`),
+                    INDEX `object_distribution` (`object_distribution`),
+                    INDEX `event_distribution` (`event_distribution`),
+                    INDEX `sharing_group_id` (`sharing_group_id`),
+                    INDEX `object_sharing_group_id` (`object_sharing_group_id`),
+                    INDEX `event_sharing_group_id` (`event_sharing_group_id`),
+                    INDEX `1_event_id` (`1_event_id`),
+                    INDEX `1_attribute_id` (`1_attribute_id`),
+                    INDEX `1_object_id` (`1_object_id`),
+                    INDEX `1_org_id` (`1_org_id`),
+                    INDEX `1_distribution` (`1_distribution`),
+                    INDEX `1_object_distribution` (`1_object_distribution`),
+                    INDEX `1_event_distribution` (`1_event_distribution`),
+                    INDEX `1_sharing_group_id` (`1_sharing_group_id`),
+                    INDEX `1_object_sharing_group_id` (`1_object_sharing_group_id`),
+                    INDEX `1_event_sharing_group_id` (`1_event_sharing_group_id`),
+                    INDEX `value_id` (`value_id`)
+                  ) ENGINE=InnoDB;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `correlation_values` (
+                    `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `value` varchar(191) NOT NULL,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `value` (`value`(191))
+                  ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `over_correlating_values` (
+                `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                `value` text,
+                `occurrence` int(10) UNSIGNED NULL,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `value` (`value`(191)),
+                INDEX `occurrence` (`occurrence`)
+                ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 88:
+                $sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_required` tinyint(1) NOT NULL DEFAULT 0;';
+                $sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_key` text COLLATE utf8_bin;';
+                break;
+            case 90:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflows` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                      `name` varchar(191) NOT NULL,
+                      `description` varchar(191) NOT NULL,
+                      `timestamp` int(11) NOT NULL DEFAULT 0,
+                      `enabled` tinyint(1) NOT NULL DEFAULT 0,
+                      `counter` int(11) NOT NULL DEFAULT 0,
+                      `trigger_id` varchar(191) COLLATE utf8_bin NOT NULL,
+                      `debug_enabled` tinyint(1) NOT NULL DEFAULT 0,
+                      `data` text,
+                      PRIMARY KEY (`id`),
+                      INDEX `uuid` (`uuid`),
+                      INDEX `name` (`name`),
+                      INDEX `timestamp` (`timestamp`),
+                      INDEX `trigger_id` (`trigger_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflow_blueprints` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                      `name` varchar(191) NOT NULL,
+                      `description` varchar(191) NOT NULL,
+                      `timestamp` int(11) NOT NULL DEFAULT 0,
+                      `default` tinyint(1) NOT NULL DEFAULT 0,
+                      `data` text,
+                      PRIMARY KEY (`id`),
+                      INDEX `uuid` (`uuid`),
+                      INDEX `name` (`name`),
+                      INDEX `timestamp` (`timestamp`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                    break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1765,7 +1889,7 @@ class AppModel extends Model
         $total_update_count = $sql_update_count + $index_update_count;
         $this->__setUpdateProgress(0, $total_update_count, $command);
         $str_index_array = array();
-        foreach($indexArray as $toIndex) {
+        foreach ($indexArray as $toIndex) {
             $str_index_array[] = __('Indexing %s -> %s', $toIndex[0], $toIndex[1]);
         }
         $this->__setUpdateCmdMessages(array_merge($sqlArray, $str_index_array));
@@ -1773,8 +1897,8 @@ class AppModel extends Model
         $errorCount = 0;
 
         // execute test before update. Exit if it fails
-        if (isset($this->advanced_updates_description[$command]['preUpdate'])) {
-            $function_name = $this->advanced_updates_description[$command]['preUpdate'];
+        if (isset(self::ADVANCED_UPDATES_DESCRIPTION[$command]['preUpdate'])) {
+            $function_name = self::ADVANCED_UPDATES_DESCRIPTION[$command]['preUpdate'];
             try {
                 $this->{$function_name}();
             } catch (Exception $e) {
@@ -1910,10 +2034,15 @@ class AppModel extends Model
         $this->Server->serverSettingsSaveValue('MISP.live', $isLive);
     }
 
-    // check whether the adminSetting should be updated after the update
-    private function __postUpdate($command) {
-        if (isset($this->advanced_updates_description[$command]['record'])) {
-            if($this->advanced_updates_description[$command]['record']) {
+    /**
+     * Check whether the adminSetting should be updated after the update.
+     * @param string $command
+     * @return void
+     */
+    private function __postUpdate($command)
+    {
+        if (isset(self::ADVANCED_UPDATES_DESCRIPTION[$command]['record'])) {
+            if (self::ADVANCED_UPDATES_DESCRIPTION[$command]['record']) {
                 $this->AdminSetting->changeSetting($command, 1);
             }
         }
@@ -2104,7 +2233,7 @@ class AppModel extends Model
                 'fields' => ['id', 'value'],
             ]);
             if (count($db_version) > 1) {
-                // we rgan into a bug where we have more than one db_version entry. This bug happened in some rare circumstances around 2.4.50-2.4.57
+                // we ran into a bug where we have more than one db_version entry. This bug happened in some rare circumstances around 2.4.50-2.4.57
                 foreach ($db_version as $k => $v) {
                     if ($k > 0) {
                         $this->AdminSetting->delete($v['AdminSetting']['id']);
@@ -2822,7 +2951,7 @@ class AppModel extends Model
      *
      * @return false|string
      */
-    protected function checkMIPSCommit()
+    public function checkMIPSCommit()
     {
         static $commit;
         if ($commit === null) {
@@ -3382,5 +3511,134 @@ class AppModel extends Model
         $dataSource = ConnectionManager::getDataSource('default');
         $dataSourceName = $dataSource->config['datasource'];
         return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSourceName === 'Database/MysqlExtended' || $dataSource instanceof Mysql;
+    }
+
+    public function getCorrelationModelName()
+    {
+        if (!empty(Configure::read('MISP.correlation_engine'))) {
+            return Configure::read('MISP.correlation_engine');
+        }
+        return 'Default';
+    }
+
+    public function loadCorrelationModel()
+    {
+        if (!empty(Configure::read('MISP.correlation_engine'))) {
+            return ClassRegistry::init(Configure::read('MISP.correlation_engine'));
+        }
+        return ClassRegistry::init('Correlation');
+    }
+
+    /**
+     * executeTrigger
+     *
+     * @param string $trigger_id
+     * @param array $data Data to be passed to the workflow
+     * @param array $blockingErrors Errors will be appened if any
+     * @param array $logging If the execution failure should be logged
+     * @return boolean If the execution for the blocking path was a success
+     */
+    public function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
+    {
+        if ($this->Workflow === null) {
+            $this->Workflow = ClassRegistry::init('Workflow');
+        }
+        if ($this->isTriggerCallable($trigger_id)) {
+           $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
+           if (!empty($logging) && empty($success)) {
+                $logging['message'] = !empty($logging['message']) ? $logging['message'] : __('Error while executing workflow.');
+                $errorMessage = implode(', ', $blockingErrors);
+                $this->loadLog()->createLogEntry('SYSTEM', $logging['action'], $logging['model'], $logging['id'], $logging['message'], __('Returned message: %s', $errorMessage));
+           }
+           return $success;
+        }
+        return true;
+    }
+
+    public function isTriggerCallable($trigger_id): bool
+    {
+        if ($this->Workflow === null) {
+            $this->Workflow = ClassRegistry::init('Workflow');
+        }
+        return $this->Workflow->checkTriggerEnabled($trigger_id) &&
+            $this->Workflow->checkTriggerListenedTo($trigger_id);
+    }
+
+    public function addPendingLogEntry($logEntry)
+    {
+        $logEntries = Configure::read('pendingLogEntries');
+        $logEntries[] = $logEntry;
+        Configure::write('pendingLogEntries', $logEntries);
+    }
+
+    /**
+     * Use different CakeEventManager to fix memory leak
+     * @return CakeEventManager
+     */
+    public function getEventManager()
+    {
+        if (empty($this->_eventManager)) {
+            $this->_eventManager = new BetterCakeEventManager();
+            $this->_eventManager->attach($this->Behaviors);
+            $this->_eventManager->attach($this);
+        }
+        return $this->_eventManager;
+    }
+
+    private function __retireOldCorrelationEngine($user = null) {
+        if ($user === null) {
+            $user = [
+                'id' => 0,
+                'email' => 'SYSTEM',
+                'Organisation' => [
+                    'name' => 'SYSTEM'
+                ]
+            ];
+        }
+        $this->Correlation = ClassRegistry::init('Correlation');
+        $this->Attribute = ClassRegistry::init('Attribute');
+        if (!Configure::read('MISP.background_jobs')) {
+            $this->Correlation->truncate($user, 'Legacy');
+            $this->Attribute->generateCorrelation();
+        } else {
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'truncate table',
+                $this->Correlation->validEngines['Legacy'],
+                'Job created.'
+            );
+            $this->Correlation->Attribute->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'truncateTable',
+                    0,
+                    'Legacy',
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate correlation',
+                'All attributes',
+                'Job created.'
+            );
+
+            $this->Attribute->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateCorrelation',
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+        }
     }
 }

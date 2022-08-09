@@ -62,9 +62,13 @@ class PubSubTool
         if ($response === null) {
             throw new Exception("No response from status command returned after 5 seconds.");
         }
-        return json_decode(trim($response[1]), true);
+        return JsonTool::decode(trim($response[1]));
     }
 
+    /**
+     * @return bool
+     * @throws ProcessException
+     */
     public function checkIfPythonLibInstalled()
     {
         $script = APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmqtest.py';
@@ -141,6 +145,12 @@ class PubSubTool
             $warninglist['action'] = $action;
         }
         return $this->pushToRedis('data:misp_json_warninglist', $warninglist);
+    }
+
+    public function workflow_push(array $data)
+    {
+        $topic = 'data:misp_json_workflow';
+        return $this->pushToRedis($topic, $data);
     }
 
     /**
@@ -301,7 +311,7 @@ class PubSubTool
 
         $pluginConfig = Configure::read('Plugin');
         foreach ($settings as $key => $setting) {
-            $temp = isset($pluginConfig['ZeroMQ_' . $key]) ? $pluginConfig['ZeroMQ_' . $key] : null;
+            $temp = $pluginConfig['ZeroMQ_' . $key] ?? null;
             if ($temp) {
                 $settings[$key] = $temp;
             }

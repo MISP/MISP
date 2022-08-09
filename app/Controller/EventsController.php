@@ -619,7 +619,7 @@ class EventsController extends AppController
                         if (empty($usersToMatch)) {
                             $nothing = true;
                         } else {
-                            $this->paginate['conditions']['AND'][] = ['Event.user_id' => array_unique($usersToMatch)];
+                            $this->paginate['conditions']['AND'][] = ['Event.user_id' => array_unique($usersToMatch, SORT_REGULAR)];
                         }
                     }
                     break;
@@ -2960,8 +2960,12 @@ class EventsController extends AppController
             $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
             if (!Configure::read('MISP.background_jobs')) {
                 if (!is_array($result)) {
-                    // redirect to the view event page
-                    $message = __('Event published without alerts');
+                    if ($result === true) {
+                        $message = __('Event published without alerts');
+                    } else {
+                        $message = __('Event publishing failed due to a blocking module failing. The reason for the failure: %s', $result);
+                        $errors['Module'] = 'Module failure.';
+                    }
                 } else {
                     $lastResult = array_pop($result);
                     $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
@@ -2969,11 +2973,6 @@ class EventsController extends AppController
                     $message = __('Event published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString);
                 }
             } else {
-                // update the DB to set the published flag
-                // for background jobs, this should be done already
-                $event['Event']['published'] = 1;
-                $event['Event']['publish_timestamp'] = time();
-                $this->Event->save($event, true, ['id', 'published', 'publish_timestamp', 'info']); // info field is required because of SysLogLogableBehavior
                 $message = 'Job queued';
             }
             if ($this->_isRest()) {
@@ -2983,7 +2982,11 @@ class EventsController extends AppController
                     return $this->RestResponse->saveSuccessResponse('Events', 'publish', $event['Event']['id'], false, $message);
                 }
             } else {
-                $this->Flash->success($message);
+                if (!empty($errors)) {
+                    $this->Flash->error($message);
+                } else {
+                    $this->Flash->success($message);
+                }
                 $this->redirect(array('action' => 'view', $event['Event']['id']));
             }
         } else {
@@ -3020,13 +3023,19 @@ class EventsController extends AppController
                     $errors['failed_servers'] = $result;
                     $message = __('Not published given no connection to %s but email sent to all participants.', $resultString);
                 }
+
             } elseif (!is_bool($emailResult)) {
                 // Performs all the actions required to publish an event
                 $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
                 if (!is_array($result)) {
+                    if ($result === true) {
+                        $message = __('Published but no email sent given GnuPG is not configured.');
+                        $errors['GnuPG'] = 'GnuPG not set up.';
+                    } else {
+                        $message = $result;
+                        $errors['Module'] = 'Module failure.';
+                    }
                     // redirect to the view event page
-                    $message = __('Published but no email sent given GnuPG is not configured.');
-                    $errors['GnuPG'] = 'GnuPG not set up.';
                 } else {
                     $lastResult = array_pop($result);
                     $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
@@ -3315,20 +3324,40 @@ class EventsController extends AppController
 
     public function restSearchExport($id = null, $returnFormat = null)
     {
-        if (is_null($returnFormat)) {
-            if (is_numeric($id)) {
-                $idList = [$id];
-            } else {
-                $idList = $this->_jsonDecode($id);
-            }
+        if ($returnFormat === null) {
+            $exportFormats = [
+                'attack' => __('Attack matrix'),
+                'attack-sightings' => __('Attack matrix by sightings'),
+                'context' => __('Aggregated context data'),
+                'context-markdown' => __('Aggregated context data as Markdown'),
+                'csv' => __('CSV'),
+                'hashes' => __('Hashes'),
+                'hosts' => __('Hosts file'),
+                'json' => __('MISP JSON'),
+                'netfilter' => __('Netfilter'),
+                'opendata' => __('Open data'),
+                'openioc' => __('OpenIOC'),
+                'rpz' => __('RPZ'),
+                'snort' => __('Snort rules'),
+                'stix' => __('STIX 1 XML'),
+                'stix-json' => __('STIX 1 JSON'),
+                'stix2' => __('STIX 2'),
+                'suricata' => __('Suricata rules'),
+                'text' => __('Text file'),
+                'xml' => __('MISP XML'),
+                'yara' => __('YARA rules'),
+                'yara-json' => __('YARA rules (JSON)'),
+            ];
+
+            $idList = is_numeric($id) ? [$id] : $this->_jsonDecode($id);
             if (empty($idList)) {
                 throw new NotFoundException(__('Invalid input.'));
             }
             $this->set('idList', $idList);
-            $this->set('exportFormats', array_keys($this->Event->validFormats));
+            $this->set('exportFormats', $exportFormats);
             $this->render('ajax/eventRestSearchExportConfirmationForm');
         } else {
-            $returnFormat = empty($this->Event->validFormats[$returnFormat]) ? 'json' : $returnFormat;
+            $returnFormat = !isset($this->Event->validFormats[$returnFormat]) ? 'json' : $returnFormat;
             $idList = $id;
             if (!is_array($idList)) {
                 if (is_numeric($idList) || Validation::uuid($idList)) {
@@ -3341,19 +3370,17 @@ class EventsController extends AppController
                 throw new NotFoundException(__('Invalid input.'));
             }
             $filters = [
-                'eventid' => $idList
+                'eventid' => $idList,
+                'published' => [true, false], // fetch published and unpublished events
             ];
 
             $elementCounter = 0;
             $renderView = false;
-            $validFormat = $this->Event->validFormats[$returnFormat];
-            $responseType = $validFormat[0];
+            $responseType = $this->Event->validFormats[$returnFormat][0];
             $final = $this->Event->restSearch($this->Auth->user(), $returnFormat, $filters, false, false, $elementCounter, $renderView);
-            if (!empty($renderView) && !empty($final)) {
+            if ($renderView) {
                 $final = json_decode($final->intoString(), true);
-                foreach ($final as $key => $data) {
-                    $this->set($key, $data);
-                }
+                $this->set($final);
                 $this->set('responseType', $responseType);
                 $this->set('returnFormat', $returnFormat);
                 $this->set('renderView', $renderView);
@@ -4097,29 +4124,31 @@ class EventsController extends AppController
 
     public function filterEventIdsForPush()
     {
-        if ($this->request->is('post')) {
-            $incomingIDs = array();
-            $incomingEvents = array();
-            foreach ($this->request->data as $event) {
-                $incomingIDs[] = $event['Event']['uuid'];
-                $incomingEvents[$event['Event']['uuid']] = $event['Event']['timestamp'];
-            }
-            $events = $this->Event->find('all', array(
-                'conditions' => array('Event.uuid' => $incomingIDs),
-                'recursive' => -1,
-                'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked'),
-            ));
-            foreach ($events as $event) {
-                if ($event['Event']['timestamp'] >= $incomingEvents[$event['Event']['uuid']]) {
-                    unset($incomingEvents[$event['Event']['uuid']]);
-                    continue;
-                }
-                if ($event['Event']['locked'] == 0) {
-                    unset($incomingEvents[$event['Event']['uuid']]);
-                }
-            }
-            return $this->RestResponse->viewData(array_keys($incomingEvents), $this->response->type());
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint requires a POST request.'));
         }
+
+        $incomingUuids = [];
+        $incomingEvents = [];
+        foreach ($this->request->data as $event) {
+            $incomingUuids[] = $event['Event']['uuid'];
+            $incomingEvents[$event['Event']['uuid']] = $event['Event']['timestamp'];
+        }
+        $events = $this->Event->find('all', [
+            'conditions' => ['Event.uuid' => $incomingUuids],
+            'recursive' => -1,
+            'fields' => ['Event.uuid', 'Event.timestamp', 'Event.locked'],
+        ]);
+        foreach ($events as $event) {
+            if ($event['Event']['timestamp'] >= $incomingEvents[$event['Event']['uuid']]) {
+                unset($incomingEvents[$event['Event']['uuid']]);
+                continue;
+            }
+            if ($event['Event']['locked'] == 0) {
+                unset($incomingEvents[$event['Event']['uuid']]);
+            }
+        }
+        return $this->RestResponse->viewData(array_keys($incomingEvents), $this->response->type());
     }
 
     public function checkuuid($uuid)
@@ -5105,7 +5134,14 @@ class EventsController extends AppController
         if (!Configure::read('Plugin.' . $type . '_services_enable')) {
             throw new MethodNotAllowedException(__('%s services are not enabled.', $type));
         }
-        $attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id), 'flatten' => 1));
+        $attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), [
+            'conditions' => [
+                'Attribute.id' => $attribute_id
+            ],
+            'flatten' => 1,
+            'includeEventTags' => 1,
+            'contain' => ['Event' => ['fields' => ['distribution', 'sharing_group_id']]],
+        ]);
         if (empty($attribute)) {
             throw new MethodNotAllowedException(__('Attribute not found or you are not authorised to see it.'));
         }
@@ -5166,7 +5202,7 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $result = $this->Module->queryModuleServer($data, false, $type);
+        $result = $this->Module->queryModuleServer($data, false, $type, false, $attribute[0]);
         if (!$result) {
             throw new InternalErrorException(__('%s service not reachable.', $type));
         }
@@ -5212,7 +5248,7 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $result = $this->Module->queryModuleServer($data, false, $type);
+        $result = $this->Module->queryModuleServer($data, false, $type, false, $attribute[0]);
         if (!$result) {
             throw new InternalErrorException(__('%s service not reachable.', $type));
         }

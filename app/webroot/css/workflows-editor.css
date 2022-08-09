@@ -1,0 +1,667 @@
+:root {
+    --topbar-height: 40px;
+}
+
+.root-container {
+    display: flex;
+    height: calc(100vh - 2*42px); /* total space available minus header and footer */
+    margin-top: -20px;
+    flex-direction: column;
+}
+
+.topbar {
+    height: var(--topbar-height);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    z-index: 1;
+    box-shadow: 0px 2px 6px #cecece;
+}
+
+.main-container {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.selection-area {
+    background: rgba(46, 115, 252, 0.11);
+    border: 2px solid rgba(98, 155, 255, 0.81);
+    border-radius: 0.1em;
+}
+
+.sidebar {
+    z-index: 18;
+    box-sizing: border-box;
+    height: 100%;
+    width: var(--editor-sidepanel-width);
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: var(--topbar-height)px;
+}
+
+.side-panel {
+    box-shadow: 2px 0px 6px #cecece;
+    position: relative;
+    border-radius: 5px;
+    margin-top: 12px;
+    padding: 2px;
+    height: calc(100% - 28px);
+}
+
+.side-panel::after {
+    content: ' ';
+    backdrop-filter: blur(3px);
+    width: var(--editor-sidepanel-width);
+    height: 100%;
+    position: absolute;
+    background-color: #ffffff66;
+    z-index: -1;
+    top: 0;
+}
+
+.side-panel #block-tabs {
+    margin-bottom: 10px;
+}
+
+.side-panel #block-tabs i.fas {
+    margin-right: 2px;
+}
+
+.side-panel .workflow-selector-container {
+    display: flex;
+}
+
+.side-panel .workflow-selector-container > select {
+    flex-grow: 1;
+}
+.side-panel .workflow-selector-container > button {
+    margin-left: 0.25em;
+}
+
+.side-panel .chosen-container {
+    margin-left: 0.5em;
+}
+
+.side-panel #block-filter-group {
+    margin: 5px 6px;
+}
+
+.side-panel #block-filter-group .is-misp-module {
+    filter: invert(1);
+    display: inline-block;
+    content: ' ';
+    height: 14px;
+    width: 14px;
+    background: url(/img/misp-modules-bold.png);
+    background-size: 14px;
+    background-repeat: no-repeat;
+}
+
+.side-panel .loading-span {
+    margin-right: 5px;
+    margin-left: 0px;
+    line-height: 20px;
+}
+
+.side-panel .chosen-container.blocks {
+    width: 100%;
+    margin-bottom: 1.25em;
+}
+
+.side-panel #block-tabs {
+    margin-top: 1.25em;
+}
+
+.side-panel .tab-content {
+    height: 100%;
+    overflow: hidden;
+}
+
+.side-panel .tab-pane.active {
+    height: 100%;
+}
+
+.side-panel .block-container {
+    overflow-y: auto;
+    height: calc(100% - 126px);
+}
+
+.sidebar-workflow-block {
+    display: flex;
+    position: relative;
+    width: 300px;
+    background-color: #fff;
+    border-radius: 5px;
+    margin: 0.75em 0.5em;
+    padding: 0.5em 0.25em;
+    transition-property: box-shadow;
+    transition-duration: .1s;
+    box-shadow: 0px 3px 6px 2px #33333333;
+}
+
+.sidebar-workflow-block:hover {
+    box-shadow: 0px 3px 6px 2px #33333355;
+    cursor: pointer;
+}
+
+.sidebar-workflow-blueprints {
+    display: flex;
+    position: relative;
+    width: 300px;
+    background-color: #fff;
+    border-radius: 5px;
+    margin: 0.75em 0.5em;
+    padding: 0.5em 0.75em;
+    transition-property: box-shadow;
+    transition-duration: .1s;
+    box-shadow: 0px 3px 6px 2px #33333333;
+}
+
+.sidebar-workflow-blueprints:hover {
+    box-shadow: 0px 3px 6px 2px #33333355;
+    cursor: pointer;
+}
+
+.sidebar-workflow-blueprints .name {
+    font-size: large
+}
+
+.sidebar-workflow-blueprints .timestamp {
+    margin-left: 2px;
+    font-size: 80%;
+    margin-left: auto;
+}
+
+.sidebar-workflow-block.disabled {
+    cursor: not-allowed !important;
+    filter: blur(1px);
+    background-color: #ffd4d4;
+}
+
+.sidebar-workflow-block.disabled-one-instance {
+    background-color: #ffa5a5;
+}
+
+.sidebar-workflow-block.disabled:hover {
+    box-shadow: 0px 3px 6px 2px #33333355;
+}
+
+.sidebar-workflow-block .misp-module-background {
+    position: absolute;
+    right: 0;
+    height: 100%;
+    margin-top: -5px;
+    z-index: 0;
+    width: 72px;
+    opacity: 0.15;
+    background: url('/img/misp-modules.png');
+    background-size: 72px;
+}
+
+.sidebar-workflow-block > .icon {
+    width: 1.25em;
+    align-items: flex-start;
+    display: flex;
+    font-size: large;
+    padding: 0 0.25em;
+}
+
+.sidebar-workflow-block .block-notification-container {
+    margin-left: auto;
+    vertical-align: middle;
+}
+
+.rightbar {
+    z-index: 18;
+    box-sizing: border-box;
+    max-width: var(--editor-sidepanel-width);
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: var(--topbar-height)px;
+    right: 0;
+}
+
+.right-panel {
+    box-shadow: 0px 3px 7px 0px #00000033;
+    position: relative;
+    margin-top: 12px;
+    margin-right: 6px;
+}
+
+.canvas {
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.canvas-workflow-block {
+    display: flex;
+    width: 300px;
+    background-color: #fff;
+    border-radius: 5px;
+    padding: 0.25em 0.75em;
+    box-shadow: 0px 3px 6px 2px #33333333;
+}
+
+.canvas-workflow-block .is-misp-module {
+    content: ' ';
+    z-index: 0;
+    height: 24px;
+    width: 24px;
+    opacity: 0.75;
+    background: url(/img/misp-modules.png);
+    background-size: 24px;
+    background-repeat: no-repeat;
+}
+
+.canvas-workflow-block br {
+    width: 100%;
+    height: 1px;
+    background-color: #e9e9e9;
+}
+
+.canvas-workflow-block>.icon {
+    width: 1.25em;
+    align-items: flex-start;
+    display: flex;
+    font-size: large;
+    padding: 0 0.25em;
+}
+
+.canvas .modal-backdrop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#drawflow {
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.CodeMirror.cm-s-default {
+    border: 1px solid #ccc;
+}
+
+.dropdown-menu li.disabled a {
+    pointer-events: none;
+}
+
+/* Canvas blocks */
+.default-main-container {
+    display: flex;
+    font-size: large;
+    padding: 0.25em 0;
+    border-bottom: 1px solid #efefef;
+}
+
+.canvas-workflow-block.small .default-main-container-small {
+    display: flex;
+    font-size: large;
+    padding: 0.25em;
+    height: 100%;
+    box-sizing: border-box;
+    align-items: center;
+}
+
+.default-main-container-small .then-else-container {
+    font-size: small;
+    display: flex;
+    flex-direction: column;
+    margin-left: auto;
+    font-family: monospace;
+    margin-top: -1px;
+    margin-right: 2px;
+
+}
+
+.default-main-container .description {
+    user-select: none;
+    margin: 0.25em 0.5em;
+}
+
+.drawflow svg.connection > path.connection-danger {
+    stroke: #e05952;
+}
+.drawflow svg.connection > path.connection-danger:hover {
+    stroke: #bd362f;
+}
+
+.drawflow svg.connection > path.connection-warning {
+    stroke: #f89406;
+}
+.drawflow svg.connection > path.connection-warning:hover {
+    stroke: #e58806;
+}
+
+.drawflow .drawflow-node.disabled .canvas-workflow-block {
+    border: 3px solid #e35651;
+}
+
+/* Custom input/output CSS */
+.drawflow .drawflow-node > .inputs > .input::before {
+    line-height: var(--dfInputHeight);
+    vertical-align: top;
+    text-align: end;
+    right: 20px;
+    position: absolute;
+    white-space: nowrap;
+    width: fit-content;
+    transition-property: right, top;
+    transition-duration: .1s;
+}
+
+.drawflow .drawflow-node > .inputs > .input_1:hover::before {
+    right: 40px;
+    font-weight: bold;
+}
+.drawflow .drawflow-node > .inputs > .input::before {
+    display: none;
+    transform: translateX(calc(50% - 8px));
+    top: -1px;
+    right: 0;
+    padding: 0.25em 0.5em;
+    background-color: #fff;
+    border: 1px solid #cdcdcd;
+    border-radius: 3px;
+}
+
+.drawflow .drawflow-node > .inputs > .input:hover::before {
+    display: block;
+}
+.drawflow .drawflow-node > .inputs > .input::after {
+    color: black;
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -4px;
+    width: 13px;
+    font-size: x-small;
+    text-align: center;
+    transition-property: width,top,font-size;
+    transition-duration: .1s
+}
+.drawflow .drawflow-node > .inputs > .input:hover::after {
+    font-size: larger;
+    width: 20px;
+    top: -1px;
+}
+.drawflow .drawflow-node > .inputs > .input_1 {
+    background-color: #fff;
+}
+.drawflow .drawflow-node > .inputs > .input_1::before {
+    content: 'Input';
+}
+.drawflow .drawflow-node > .inputs > .input_1::after {
+    content: "\f061";
+    font-size: 9px;
+}
+.drawflow .drawflow-node > .inputs > .input_1:hover::after {
+    font-size: 14px;
+}
+
+.drawflow .drawflow-node.block-type-if > .inputs > .input {
+    left: calc(var(--dfInputLeft) - 0.25em);
+}
+
+
+.drawflow .drawflow-node > .outputs > .output::before {
+    line-height: var(--dfOutputHeight);
+    vertical-align: top;
+    text-align: end;
+    top: 0px;
+    right: 20px;
+    position: absolute;
+    white-space: nowrap;
+    width: fit-content;
+    transition-property: right, top;
+    transition-duration: .1s;
+}
+
+.drawflow .drawflow-node > .outputs > .output_1:hover::before {
+    top: 3px;
+    right: 23px;
+    font-weight: bold;
+}
+.drawflow .drawflow-node > .outputs > .output_2:hover::before {
+    top: 3px;
+    right: 23px;
+    font-weight: bold;
+}
+.drawflow .drawflow-node > .outputs > .output_3:hover::before {
+    top: 3px;
+    right: 23px;
+    font-weight: bold;
+}
+.drawflow .drawflow-node > .outputs > .output_4:hover::before {
+    top: 3px;
+    right: 23px;
+    font-weight: bold;
+}
+
+.drawflow .drawflow-node.block-type-default > .outputs > .output::before {
+    display: none;
+    transform: translateX(calc(50% - 8px));
+    right: 0;
+    padding: 0.25em 0.5em;
+    background-color: #fff;
+    border: 1px solid #cdcdcd;
+    border-radius: 3px;
+}
+
+.drawflow .drawflow-node.block-type-default > .outputs > .output:hover::before {
+    display: block;
+}
+.drawflow .drawflow-node.block-type-default > .outputs > .output::after {
+    color: black;
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -4px;
+    width: 14px;
+    font-size: x-small;
+    text-align: center;
+    transition-property: width,top,font-size;
+    transition-duration: .1s
+}
+.drawflow .drawflow-node.block-type-default > .outputs > .output:hover::after {
+    font-size: larger;
+    width: 20px;
+    top: -1px;
+}
+.drawflow .drawflow-node.block-type-default > .outputs > .output_1 {
+    background-color: #fff;
+}
+.drawflow .drawflow-node.block-type-default > .outputs > .output_1::before {
+    content: 'Output';
+    top: -26px;
+}
+.drawflow .drawflow-node.block-type-default > .outputs > .output_1::after {
+    content: "\f061";
+    font-size: 9px;
+}
+.drawflow .drawflow-node.block-type-default > .outputs > .output_1:hover::after {
+    font-size: 14px;
+}
+
+.drawflow .drawflow-node.block-type-trigger {
+    border-left-color: #c97381;
+    border-left-width: 0.25rem;
+    border-left-style: solid;
+    border-right-color: #c97381;
+    border-right-width: 0.25rem;
+    border-right-style: solid;
+}
+
+.drawflow .drawflow-node.block-type-logic,
+.sidebar-workflow-block.block-type-logic {
+    border-left-color: #74c973;
+    border-left-width: 0.25rem;
+    border-left-style: solid;
+    border-right-color: #74c973;
+    border-right-width: 0.25rem;
+    border-right-style: solid;
+}
+
+.drawflow .drawflow-node.block-type-trigger:hover {
+    box-shadow: var(--dfNodeHoverBoxShadowHL) var(--dfNodeHoverBoxShadowVL) var(--dfNodeHoverBoxShadowBR) var(--dfNodeHoverBoxShadowS) #c9738199;
+}
+
+.drawflow .drawflow-node.block-type-logic:hover {
+    box-shadow: var(--dfNodeHoverBoxShadowHL) var(--dfNodeHoverBoxShadowVL) var(--dfNodeHoverBoxShadowBR) var(--dfNodeHoverBoxShadowS) #74c97399;
+}
+
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output::before {
+    display: none;
+    transform: translateX(calc(50% - 8px));
+    right: 0;
+    padding: 0.25em 0.5em;
+    background-color: #fff;
+    border: 1px solid #cdcdcd;
+    border-radius: 3px;
+}
+
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output:hover::before {
+    display: block;
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output::after {
+    color: black;
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -3px;
+    width: 14px;
+    font-size: x-small;
+    text-align: center;
+    transition-property: width,top,font-size;
+    transition-duration: .1s
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output:hover {
+    width: 18px;
+    height: 18px;
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output:hover::after {
+    font-size: larger;
+    width: 18px;
+    top: -1px;
+}
+
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_1 {
+    background-color: #fff;
+    height: 14px;
+    width: 14px;
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_1::before {
+    content: 'Listen to this trigger';
+    top: -26px;
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_1::after {
+    content: "\f024";
+    font-size: 11px;
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_1:hover::after {
+    font-size: 15px;
+}
+
+.drawflow .drawflow-node.block-type-if > .outputs > .output::before {
+    display: none;
+    transform: translateX(calc(50% - 8px));
+    right: 0;
+    padding: 0.25em 0.5em;
+    background-color: #fff;
+    border: 1px solid #cdcdcd;
+    border-radius: 3px;
+}
+.drawflow .drawflow-node.block-type-if > .outputs > .output:hover::before {
+    display: block;
+}
+.drawflow .drawflow-node.block-type-if > .outputs > .output::after {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -4px;
+    width: 12px;
+    font-size: x-small;
+    text-align: center;
+    transition-property: width,top,font-size;
+    transition-duration: .1s
+}
+.drawflow .drawflow-node.block-type-if > .outputs > .output:hover::after {
+    font-size: larger;
+    width: 18px;
+    top: -1px;
+}
+
+.drawflow .drawflow-node.block-type-if > .outputs > .output_1 {
+    background-color: #fff;
+}
+.drawflow .drawflow-node.block-type-if > .outputs > .output_1::before {
+    content: 'Condition satisfied';
+    top: -26px;
+}
+.drawflow .drawflow-node.block-type-if > .outputs > .output_1::after {
+    content: "\f00c";
+}
+.drawflow .drawflow-node.block-type-if > .outputs > .output_2 {
+    background-color: #fff;
+}
+.drawflow .drawflow-node.block-type-if > .outputs > .output_2::before {
+    content: 'Condition not satisfied';
+    top: 26px;
+}
+.drawflow .drawflow-node.block-type-if > .outputs > .output_2::after {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    content: "\f00d"
+}
+
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output::before {
+    display: none;
+    transform: translateX(calc(50% - 8px));
+    right: 0;
+    padding: 0.25em 0.5em;
+    background-color: #fff;
+    border: 1px solid #cdcdcd;
+    border-radius: 3px;
+}
+
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output:hover::before {
+    display: block;
+}
+
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output::after {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -4px;
+    width: 12px;
+    font-size: x-small;
+    text-align: center;
+    transition-property: width, top, font-size;
+    transition-duration: .1s
+}
+
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output:hover::after {
+    font-size: larger;
+    width: 18px;
+    top: -1px;
+}
+
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output_1 {
+    background-color: #fff;
+}
+
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output_1::before {
+    content: 'Concurrent tasks';
+    top: -26px;
+}
+
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output_1::after {
+    content: "\f074";
+}

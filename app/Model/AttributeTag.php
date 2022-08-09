@@ -135,7 +135,7 @@ class AttributeTag extends AppModel
      * @return bool
      * @throws Exception
      */
-    public function attachTagToAttribute($attribute_id, $event_id, $tag_id, $local = false)
+    public function attachTagToAttribute($attribute_id, $event_id, $tag_id, $local = false, &$nothingToChange = false)
     {
         $existingAssociation = $this->hasAny([
             'tag_id' => $tag_id,
@@ -152,11 +152,13 @@ class AttributeTag extends AppModel
             if (!$this->save($data)) {
                 return false;
             }
+        } else {
+            $nothingToChange = true;
         }
         return true;
     }
 
-    public function detachTagFromAttribute($attribute_id, $event_id, $tag_id)
+    public function detachTagFromAttribute($attribute_id, $event_id, $tag_id, &$nothingToChange = false)
     {
         $existingAssociation = $this->find('first', array(
             'recursive' => -1,
@@ -173,6 +175,8 @@ class AttributeTag extends AppModel
             if ($result) {
                 return true;
             }
+        } else {
+            $nothingToChange = true;
         }
         return false;
     }
