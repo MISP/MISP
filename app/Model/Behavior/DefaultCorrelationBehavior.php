@@ -423,7 +423,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         //        ii. Event has a sharing group that the user is accessible to view
         //    b.  Attribute:
         //        i. Attribute has a distribution of 5 (inheritance of the event, for this the event check has to pass anyway)
-        //        ii. Atttibute has a distribution between 1-3 (community only, connected communities, all orgs)
+        //        ii. Attribute has a distribution between 1-3 (community only, connected communities, all orgs)
         //        iii. Attribute has a sharing group that the user is accessible to view
         $primaryEventIds = $this->__filterRelatedEvents($Model, $user, $eventId, $sgids, true);
         $secondaryEventIds = $this->__filterRelatedEvents($Model, $user, $eventId, $sgids, false);
@@ -450,7 +450,6 @@ class DefaultCorrelationBehavior extends ModelBehavior
             'conditions' => [
                 $current . 'event_id' => $eventId
             ],
-            'unique' => true,
         ]);
         $eventIds = [];
         if (empty($user['Role']['perm_site_admin'])) {

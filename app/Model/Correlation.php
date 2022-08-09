@@ -6,6 +6,8 @@ App::uses('AppModel', 'Model');
  * @method saveCorrelations
  * @method runBeforeSaveCorrelation
  * @method fetchRelatedEventIds
+ * @method getFieldRules
+ * @method getContainRules
  */
 class Correlation extends AppModel
 {
@@ -868,32 +870,54 @@ class Correlation extends AppModel
     }
 
     /**
-     * @param array $attribute
+     * @param array $attributes
      * @return array
      */
-    public function setCorrelationExclusion($attribute)
+    public function attachCorrelationExclusion(array $attributes)
     {
         if (!isset($this->__compositeTypes)) {
             $this->__compositeTypes = $this->Attribute->getCompositeTypes();
         }
-        if (in_array($attribute['type'], $this->__compositeTypes, true)) {
-            $values = explode('|', $attribute['value']);
-        } else {
-            $values = [$attribute['value']];
-        }
-        if ($this->__preventExcludedCorrelations($values[0])) {
-            $attribute['correlation_exclusion'] = true;
-        } elseif (!empty($values[1]) && $this->__preventExcludedCorrelations($values[1])) {
-            $attribute['correlation_exclusion'] = true;
+
+        $valuesToCheck = [];
+        foreach ($attributes as &$attribute) {
+            if (in_array($attribute['type'], $this->__compositeTypes, true)) {
+                $values = explode('|', $attribute['value']);
+                $valuesToCheck[$values[0]] = true;
+                $valuesToCheck[$values[1]] = true;
+            } else {
+                $values = [$attribute['value']];
+                $valuesToCheck[$values[0]] = true;
+            }
+
+            if ($this->__preventExcludedCorrelations($values[0])) {
+                $attribute['correlation_exclusion'] = true;
+            } elseif (!empty($values[1]) && $this->__preventExcludedCorrelations($values[1])) {
+                $attribute['correlation_exclusion'] = true;
+            }
         }
 
-        if ($this->OverCorrelatingValue->checkValue($values[0])) {
-            $attribute['over_correlation'] = true;
-        } elseif (!empty($values[1]) && $this->OverCorrelatingValue->checkValue($values[1])) {
-            $attribute['over_correlation'] = true;
+        $overCorrelatingValues = array_flip($this->OverCorrelatingValue->find('column', [
+            'conditions' => ['value' => array_keys($valuesToCheck)],
+            'fields' => ['value'],
+        ]));
+        unset($valuesToCheck);
+
+        foreach ($attributes as &$attribute) {
+            if (in_array($attribute['type'], $this->__compositeTypes, true)) {
+                $values = explode('|', $attribute['value']);
+            } else {
+                $values = [$attribute['value']];
+            }
+
+            if (isset($overCorrelatingValues[$values[0]])) {
+                $attribute['over_correlation'] = true;
+            } elseif (!empty($values[1]) && isset($overCorrelatingValues[$values[1]])) {
+                $attribute['over_correlation'] = true;
+            }
         }
 
-        return $attribute;
+        return $attributes;
     }
 
     public function collectMetrics()
