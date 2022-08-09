@@ -194,7 +194,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
     }
 
     /**
-     * Fetch correalations for given event.
+     * Fetch correlations for given event.
      * @param array $user
      * @param int $eventId
      * @param array $sgids
@@ -254,7 +254,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
     }
 
     /**
-     * @param Model $Model
+     * @param Correlation $Model
      * @param array $user
      * @param int $id Event ID
      * @param array $sgids
@@ -427,49 +427,62 @@ class DefaultCorrelationBehavior extends ModelBehavior
         //        iii. Attribute has a sharing group that the user is accessible to view
         $primaryEventIds = $this->__filterRelatedEvents($Model, $user, $eventId, $sgids, true);
         $secondaryEventIds = $this->__filterRelatedEvents($Model, $user, $eventId, $sgids, false);
-        return array_unique(array_merge($primaryEventIds,$secondaryEventIds));
+        return array_unique(array_merge($primaryEventIds,$secondaryEventIds), SORT_REGULAR);
     }
 
+    /**
+     * @param Model $Model
+     * @param array $user
+     * @param int $eventId
+     * @param array $sgids
+     * @param bool $primary
+     * @return array|int[]
+     */
     private function __filterRelatedEvents(Model $Model, array $user, int $eventId, array $sgids, bool $primary)
     {
         $current = $primary ? '' : '1_';
         $prefix = $primary ? '1_' : '';
-        $correlations = $Model->find('all', [
-            'recursive' => -1,
-            'fields' => [
-                $prefix . 'org_id',
-                $prefix . 'event_id',
-                $prefix . 'event_distribution',
-                $prefix . 'event_sharing_group_id',
-                $prefix . 'object_id',
-                $prefix . 'object_distribution',
-                $prefix . 'object_sharing_group_id',
-                $prefix . 'distribution',
-                $prefix . 'sharing_group_id'
-            ],
+
+        if (empty($user['Role']['perm_site_admin'])) {
+            $correlations = $Model->find('all', [
+                'recursive' => -1,
+                'fields' => [
+                    $prefix . 'org_id',
+                    $prefix . 'event_id',
+                    $prefix . 'event_distribution',
+                    $prefix . 'event_sharing_group_id',
+                    $prefix . 'object_id',
+                    $prefix . 'object_distribution',
+                    $prefix . 'object_sharing_group_id',
+                    $prefix . 'distribution',
+                    $prefix . 'sharing_group_id'
+                ],
+                'conditions' => [
+                    $current . 'event_id' => $eventId
+                ],
+            ]);
+
+            $eventIds = [];
+            foreach ($correlations as $correlation) {
+                $correlation = $correlation['Correlation'];
+                // if we have already added this event as a valid target, no need to check again.
+                if (isset($eventIds[$correlation[$prefix . 'event_id']])) {
+                    continue;
+                }
+                if ($this->checkCorrelationACL($user, $correlation, $sgids, $prefix)) {
+                    $eventIds[$correlation[$prefix . 'event_id']] = true;
+                }
+            }
+            return array_keys($eventIds);
+        }
+
+        return $Model->find('column', [
+            'fields' => [$prefix . 'event_id'],
             'conditions' => [
                 $current . 'event_id' => $eventId
             ],
+            'unique' => true,
         ]);
-        $eventIds = [];
-        if (empty($user['Role']['perm_site_admin'])) {
-            foreach ($correlations as $k => $correlation) {
-                // if we have already added this event as a valid target, no need to check again.
-                if (isset($eventIds[$correlation['Correlation'][$prefix . 'event_id']])) {
-                    continue;
-                }
-                $correlation = $correlation['Correlation'];
-                if (!$this->checkCorrelationACL($user, $correlation, $sgids, $prefix)) {
-                    unset($correlations[$k]);
-                    continue;
-                }
-                $eventIds[$correlation[$prefix . 'event_id']] = true;
-            }
-            return array_keys($eventIds);
-        } else {
-            $eventIds = Hash::extract($correlations, '{n}.Correlation.' . $prefix . 'event_id');
-            return $eventIds;
-        }
     }
 
     /**

@@ -3,11 +3,13 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property Attribute $Attribute
- * @method saveCorrelations
+ * @property Event $Event
+ * @property CorrelationValue $CorrelationValue
+ * @method saveCorrelations(array $correlations)
  * @method runBeforeSaveCorrelation
- * @method fetchRelatedEventIds
+ * @method fetchRelatedEventIds(array $user, int $eventId, array $sgids)
  * @method getFieldRules
- * @method getContainRules
+ * @method getContainRules($filter = null)
  */
 class Correlation extends AppModel
 {

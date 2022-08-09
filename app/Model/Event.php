@@ -608,7 +608,7 @@ class Event extends AppModel
         return $events;
     }
 
-    public function getRelatedEventCount($user, $eventId, $sgids)
+    public function getRelatedEventCount(array $user, $eventId, $sgids)
     {
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
