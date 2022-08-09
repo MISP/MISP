@@ -1325,12 +1325,19 @@ class ExternalStixParser(StixParser):
         else:
             misp_object = self.create_misp_object(attack_pattern)
             if hasattr(attack_pattern, 'external_references'):
+                references = defaultdict(set)
                 for reference in attack_pattern.external_references:
-                    source_name = reference['source_name']
-                    value = reference['external_id'].split('-')[1] if source_name == 'capec' else reference['url']
-                    attribute = deepcopy(stix2misp_mapping.attack_pattern_references_mapping[source_name]) if source_name in stix2misp_mapping.attack_pattern_references_mapping else stix2misp_mapping.references_attribute_mapping
-                    attribute['value'] = value
-                    misp_object.add_attribute(**attribute)
+                    if hasattr(reference, 'url'):
+                        references['references'].add(reference.url)
+                    if hasattr(reference, 'external_id'):
+                        external_id = reference.external_id
+                        references['id'].add(external_id.split('-')[1] if external_id.startswith('CAPEC-') else external_id)
+                if references:
+                    for feature, values in references.items():
+                        for value in values:
+                            attribute = {'value': value}
+                            attribute.update(getattr(stix2misp_mapping, f'attack_pattern_{feature}_attribute'))
+                            misp_object.add_attribute(**attribute)
             self.fill_misp_object(misp_object, attack_pattern, 'attack_pattern_mapping')
             self.misp_event.add_object(**misp_object)
 
