@@ -1601,9 +1601,6 @@ class Attribute extends AppModel
             $attributes = $this->find('all', $query);
             foreach ($attributes as $attribute) {
                 $attribute['Attribute']['event_id'] = $eventId;
-                if ($full) {
-                    $this->Correlation->beforeSaveCorrelation($attribute['Attribute']);
-                }
                 $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full);
             }
             $fetchedAttributes = count($attributes);
