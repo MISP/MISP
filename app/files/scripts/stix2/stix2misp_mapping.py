@@ -193,6 +193,8 @@ single_attribute_fields = ('type', 'value', 'to_ids')
 
 address_family_attribute_mapping = {'type': 'text','object_relation': 'address-family'}
 as_number_attribute_mapping = {'type': 'AS', 'object_relation': 'asn'}
+attack_pattern_id_attribute = {'type': 'text', 'object_relation': 'id'}
+attack_pattern_references_attribute = {'type': 'link', 'object_relation': 'references'}
 description_attribute_mapping = {'type': 'text', 'object_relation': 'description'}
 asn_subnet_attribute_mapping = {'type': 'ip-src', 'object_relation': 'subnet-announced'}
 cc_attribute_mapping = {'type': 'email-dst', 'object_relation': 'cc'}
