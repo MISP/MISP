@@ -1522,6 +1522,8 @@ class Attribute extends AppModel
         $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
         $this->FuzzyCorrelateSsdeep->purge($eventId, $attributeId);
 
+        $this->query('TRUNCATE TABLE over_correlating_values');
+
         // get all attributes..
         if (!$eventId) {
             $eventIds = $this->Event->find('column', [

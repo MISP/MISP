@@ -373,7 +373,7 @@ class Correlation extends AppModel
             $count = count($correlatingAttributes);
             if ($count > $correlationLimit) {
                 // If we have more correlations for the value than the limit, set the block entry and stop the correlation process
-                $this->OverCorrelatingValue->block($cV, $count);
+                $this->OverCorrelatingValue->block($cV);
                 return true;
             } else {
                 // If we have fewer hits than the limit, proceed with the correlation, but first make sure we remove any existing blockers
