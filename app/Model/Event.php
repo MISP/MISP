@@ -7537,15 +7537,21 @@ class Event extends AppModel
     {
         if ($fullEvent) {
             if (empty(Configure::read('Plugin.ZeroMQ_include_attachments'))) {
-                foreach ($fullEvent[0]['Attribute'] as $k => $attribute) {
-                    if (isset($attribute['data'])) {
-                        unset($fullEvent[0]['Attribute'][$k]['data']);
+                if (!empty($fullEvent[0]['Attribute'])) {
+                    foreach ($fullEvent[0]['Attribute'] as $k => $attribute) {
+                        if (isset($attribute['data'])) {
+                            unset($fullEvent[0]['Attribute'][$k]['data']);
+                        }
                     }
                 }
-                foreach ($fullEvent[0]['Object'] as $k => $object) {
-                    foreach ($object['Attribute'] as $k2 => $attribute) {
-                        if (isset($attribute['data'])) {
-                            unset($fullEvent[0]['Object'][$k]['Attribute'][$k2]['data']);
+                if (!empty($fullEvent[0]['Object'])) {
+                    foreach ($fullEvent[0]['Object'] as $k => $object) {
+                        if (!empty($object['Attribute'])) {
+                            foreach ($object['Attribute'] as $k2 => $attribute) {
+                                if (isset($attribute['data'])) {
+                                    unset($fullEvent[0]['Object'][$k]['Attribute'][$k2]['data']);
+                                }
+                            }
                         }
                     }
                 }
