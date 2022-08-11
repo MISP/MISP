@@ -2711,17 +2711,8 @@ class Event extends AppModel
     public function set_filter_value(&$params, $conditions, $options)
     {
         if (!empty($params['value'])) {
-            $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], ['Attribute.value1', 'Attribute.value2']);
-            // Allows searching for ['value1' => [full, part1], 'value2' => [full, part2]]
-            if (is_string($params['value']) && strpos('|', $params['value']) !== false) {
-                $valueParts = explode('|', $params['value'], 2);
-                $convertedFilterVal1 = $this->convert_filters($valueParts[0]);
-                $convertedFilterVal2 = $this->convert_filters($valueParts[1]);
-                $conditionVal1 = $this->generic_add_filter([], $convertedFilterVal1, ['Attribute.value1'])['AND'][0]['OR'];
-                $conditionVal2 = $this->generic_add_filter([], $convertedFilterVal2, ['Attribute.value2'])['AND'][0]['OR'];
-                $conditions['AND'][0]['OR']['OR']['AND'] = [$conditionVal1, $conditionVal2];
-            }
+            $params[$options['filter']] = $this->convert_filters($params['value']);
+            $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
         }
 
         return $conditions;

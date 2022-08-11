@@ -863,12 +863,49 @@ class TestComprehensive(unittest.TestCase):
 
         self.admin_misp_connector.delete_event(event)
 
+    def test_restsearch_composite_attribute(self):
+        event = create_simple_event()
+        attribute_1 = event.add_attribute('ip-src|port', '10.0.0.1|8080')
+        attribute_2 = event.add_attribute('ip-src|port', '10.0.0.2|8080')
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        search_result = self._search_attribute({'value': '10.0.0.1', 'eventid': event.id})
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
+        self.assertEqual(len(search_result['Attribute']), 1)
+
+        search_result = self._search_attribute({'value': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 2)
+
+        search_result = self._search_attribute({'value1': '10.0.0.1', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
+
+        search_result = self._search_attribute({'value1': '10.0.0.2', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_2.uuid)
+
+        search_result = self._search_attribute({'value2': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 2)
+
+        search_result = self._search_attribute({'value1': '10.0.0.1', 'value2': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
+
+        self.admin_misp_connector.delete_event(event)
+
+
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
         check_response(response)
         return response
 
+    def _search_attribute(self, query: dict):
+        response = self.admin_misp_connector._prepare_request('POST', 'attributes/restSearch', data=query)
+        response = self.admin_misp_connector._check_response(response)
+        check_response(response)
+        return response
 
 if __name__ == '__main__':
     unittest.main()

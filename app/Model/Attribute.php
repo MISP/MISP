@@ -3129,6 +3129,8 @@ class Attribute extends AppModel
                 'Attribute' => array(
                     'sharinggroup' => array('function' => 'set_filter_sharing_group'),
                     'value' => array('function' => 'set_filter_value'),
+                    'value1' => array('function' => 'set_filter_simple_attribute'),
+                    'value2' => array('function' => 'set_filter_simple_attribute'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_type'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
