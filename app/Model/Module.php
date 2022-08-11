@@ -213,7 +213,10 @@ class Module extends AppModel
             'action' => 'execute_workflow',
             'id' => 0,
         ];
-        if (empty($triggerData) && $this->Workflow->isTriggerCallable($trigger_id) && !empty($postData['attribute_uuid'])) {
+        if (!$this->Workflow->isTriggerCallable($trigger_id)) {
+            return true;
+        }
+        if (empty($triggerData) && !empty($postData['attribute_uuid'])) {
             $this->User = ClassRegistry::init('User');
             $this->Attribute = ClassRegistry::init('Attribute');
             $user = $this->User->getAuthUser(Configure::read('CurrentUserId'), true);
