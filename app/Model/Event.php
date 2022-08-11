@@ -2982,8 +2982,13 @@ class Event extends AppModel
                 'noEventReports' => true,
                 'noSightings' => true,
                 'metadata' => $metadataOnly,
-            ])[0];
-
+            ]);
+            if (empty($eventForUser)) {
+                $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
+                $this->loadLog()->createLogEntry($senderUser, 'alert', 'User', $user['id'], __('Something went wrong with alerting user #%s about event #%s. Sending was blocked due to insufficient access to the given event.'));
+                continue;
+            }
+            $eventForUser = $eventForUser[0];
             if ($this->User->UserSetting->checkPublishFilter($user, $eventForUser)) {
                 $body = $this->prepareAlertEmail($eventForUser, $user, $oldpublish);
                 $this->User->sendEmail(['User' => $user], $body, false, null);
