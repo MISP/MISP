@@ -818,32 +818,35 @@ class TestComprehensive(unittest.TestCase):
 
     def test_restsearch_composite_attribute(self):
         event = create_simple_event()
-        event.add_attribute('ip-src|port', '10.0.0.1|8080')
+        attribute_1 = event.add_attribute('ip-src|port', '10.0.0.1|8080')
+        attribute_2 = event.add_attribute('ip-src|port', '10.0.0.2|8080')
         event = self.user_misp_connector.add_event(event)
         check_response(event)
 
         self.admin_misp_connector.publish(event, alert=False)
         time.sleep(6)
 
-        attribute = self._search({'value': '10.0.0.1', 'eventid': event.id})
-        self.assertIsInstance(attribute, str)
-        self.assertIn('10.0.0.1|8080', attribute)
+        search_result = self._search_attribute({'value': '10.0.0.1', 'eventid': event.id})
+        self.assertEqual(search_result[0].id, attribute_1.id)
+        self.assertEqual(len(search_result), 1)
 
-        attribute = self._search({'value': '8080', 'eventid': event.id})
-        self.assertIsInstance(attribute, str)
-        self.assertIn('10.0.0.1|8080', attribute)
+        search_result = self._search_attribute({'value': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result), 2)
 
-        attribute = self._search({'value1': '10.0.0.1', 'eventid': event.id})
-        self.assertIsInstance(attribute, str)
-        self.assertIn('10.0.0.1|8080', attribute)
+        search_result = self._search_attribute({'value1': '10.0.0.1', 'eventid': event.id})
+        self.assertEqual(len(search_result), 1)
+        self.assertEqual(search_result[0].id, attribute_1.id)
 
-        attribute = self._search({'value2': '8080', 'eventid': event.id})
-        self.assertIsInstance(attribute, str)
-        self.assertIn('10.0.0.1|8080', attribute)
+        search_result = self._search_attribute({'value1': '10.0.0.2', 'eventid': event.id})
+        self.assertEqual(len(search_result), 1)
+        self.assertEqual(search_result[0].id, attribute_2.id)
 
-        attribute = self._search({'value1': '10.0.0.1', 'value2': '8080', 'eventid': event.id})
-        self.assertIsInstance(attribute, str)
-        self.assertIn('10.0.0.1|8080', attribute)
+        search_result = self._search_attribute({'value2': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result), 2)
+
+        search_result = self._search_attribute({'value1': '10.0.0.1', 'value2': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result), 1)
+        self.assertEqual(search_result[0].id, attribute_1.id)
 
         self.admin_misp_connector.delete_event(event)
 
