@@ -823,30 +823,28 @@ class TestComprehensive(unittest.TestCase):
         event = self.user_misp_connector.add_event(event)
         check_response(event)
 
-        self.admin_misp_connector.publish(event, alert=False)
-        time.sleep(6)
-
         search_result = self._search_attribute({'value': '10.0.0.1', 'eventid': event.id})
-        self.assertEqual(search_result[0].id, attribute_1.id)
-        self.assertEqual(len(search_result), 1)
+        print(attribute_1.uuid)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
+        self.assertEqual(len(search_result['Attribute']), 1)
 
         search_result = self._search_attribute({'value': '8080', 'eventid': event.id})
-        self.assertEqual(len(search_result), 2)
+        self.assertEqual(len(search_result['Attribute']), 2)
 
         search_result = self._search_attribute({'value1': '10.0.0.1', 'eventid': event.id})
-        self.assertEqual(len(search_result), 1)
-        self.assertEqual(search_result[0].id, attribute_1.id)
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
 
         search_result = self._search_attribute({'value1': '10.0.0.2', 'eventid': event.id})
-        self.assertEqual(len(search_result), 1)
-        self.assertEqual(search_result[0].id, attribute_2.id)
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_2.uuid)
 
         search_result = self._search_attribute({'value2': '8080', 'eventid': event.id})
-        self.assertEqual(len(search_result), 2)
+        self.assertEqual(len(search_result['Attribute']), 2)
 
         search_result = self._search_attribute({'value1': '10.0.0.1', 'value2': '8080', 'eventid': event.id})
-        self.assertEqual(len(search_result), 1)
-        self.assertEqual(search_result[0].id, attribute_1.id)
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
 
         self.admin_misp_connector.delete_event(event)
 
