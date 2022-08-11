@@ -91,9 +91,10 @@ class FileAccessTool
     }
 
     /**
-     * @param string $file
-     * @param mixed $content
-     * @param bool $createFolder
+     * @param string $file Path to file
+     * @param mixed $content Content to write into file
+     * @param bool $createFolder True if folder should be created if not exists
+     * @param bool $append True if content should be appended to end of existing file
      * @throws Exception
      */
     public static function writeToFile($file, $content, $createFolder = false, $append = false)

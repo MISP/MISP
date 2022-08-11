@@ -3573,21 +3573,21 @@ class AppModel extends Model
     }
 
     /**
-     * executeTrigger
+     * Execute trigger
      *
-     * @param string $trigger_id
+     * @param string $triggerId
      * @param array $data Data to be passed to the workflow
      * @param array $blockingErrors Errors will be appened if any
      * @param array $logging If the execution failure should be logged
      * @return boolean If the execution for the blocking path was a success
      */
-    public function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
+    protected function executeTrigger($triggerId, array $data = [], array &$blockingErrors = [], array $logging = []): bool
     {
         if ($this->Workflow === null) {
             $this->Workflow = ClassRegistry::init('Workflow');
         }
-        if ($this->isTriggerCallable($trigger_id)) {
-           $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
+        if ($this->isTriggerCallable($triggerId)) {
+           $success = $this->Workflow->executeWorkflowForTriggerRouter($triggerId, $data, $blockingErrors, $logging);
            if (!empty($logging) && empty($success)) {
                 $logging['message'] = !empty($logging['message']) ? $logging['message'] : __('Error while executing workflow.');
                 $errorMessage = implode(', ', $blockingErrors);
@@ -3598,20 +3598,17 @@ class AppModel extends Model
         return true;
     }
 
-    public function isTriggerCallable($trigger_id): bool
+    /**
+     * @param string $triggerId
+     * @return bool
+     */
+    protected function isTriggerCallable($triggerId): bool
     {
         if ($this->Workflow === null) {
             $this->Workflow = ClassRegistry::init('Workflow');
         }
-        return $this->Workflow->checkTriggerEnabled($trigger_id) &&
-            $this->Workflow->checkTriggerListenedTo($trigger_id);
-    }
-
-    public function addPendingLogEntry($logEntry)
-    {
-        $logEntries = Configure::read('pendingLogEntries');
-        $logEntries[] = $logEntry;
-        Configure::write('pendingLogEntries', $logEntries);
+        return $this->Workflow->checkTriggerEnabled($triggerId) &&
+            $this->Workflow->checkTriggerListenedTo($triggerId);
     }
 
     /**
@@ -3628,7 +3625,8 @@ class AppModel extends Model
         return $this->_eventManager;
     }
 
-    private function __retireOldCorrelationEngine($user = null) {
+    private function __retireOldCorrelationEngine($user = null)
+    {
         if ($user === null) {
             $user = [
                 'id' => 0,

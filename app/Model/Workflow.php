@@ -156,11 +156,14 @@ class Workflow extends AppModel
         $this->toggleModules($this->modules_enabled_by_default, true, false);
     }
 
+    /**
+     * @param string $trigger_id
+     * @return bool
+     * @throws WorkflowDuplicatedModuleIDException
+     */
     protected function checkTriggerEnabled($trigger_id)
     {
-        $settingName = sprintf('Plugin.Workflow_triggers_%s', $trigger_id);
-        $module_disabled = empty(Configure::read($settingName));
-        if ($module_disabled) {
+        if (empty(Configure::read("Plugin.Workflow_triggers_$trigger_id"))) {
             return false;
         }
 
@@ -228,7 +231,7 @@ class Workflow extends AppModel
         $redis = $this->setupRedisWithException();
         $workflows = $this->fetchWorkflows();
         $keys = $redis->keys(Workflow::REDIS_KEY_WORKFLOW_NAMESPACE . ':*');
-        $redis->delete($keys);
+        $redis->del($keys);
         foreach ($workflows as $wokflow) {
             $this->updateListeningTriggers($wokflow);
         }
@@ -500,9 +503,8 @@ class Workflow extends AppModel
      */
     private function __runWorkflow(array $workflow, $triggerModule, array $data, $startNodeID, &$blockingErrors=[]): array
     {
-        $this->Log = ClassRegistry::init('Log');
         $message =  __('Started executing workflow for trigger `%s` (%s)', $triggerModule->id, $workflow['Workflow']['id']);
-        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
+        $this->loadLog()->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
         $this->__logToFile($workflow, $message);
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
@@ -524,7 +526,7 @@ class Workflow extends AppModel
         }
         $message =  __('Finished executing workflow for trigger `%s` (%s). Outcome: %s', $triggerModule->id, $workflow['Workflow']['id'], $outcomeText);
 
-        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
+        $this->loadLog()->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
         $this->__logToFile($workflow, $message);
         $this->sendRequestToDebugEndpoint($workflow, [], '/end?outcome=' . $outcomeText, $walkResult);
         return [
@@ -955,8 +957,7 @@ class Workflow extends AppModel
 
     public function logExecutionError($workflow, $message)
     {
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
+        $this->loadLog()->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
         $this->__logToFile($workflow, $message);
     }
 
@@ -976,9 +977,8 @@ class Workflow extends AppModel
 
     private function __logLoadingError($filename, $error)
     {
-        $this->Log = ClassRegistry::init('Log');
         $message = __('Could not load module for file `%s`.', $filename);
-        $this->Log->createLogEntry('SYSTEM', 'load_module', 'Workflow', 0, $message, $error);
+        $this->loadLog()->createLogEntry('SYSTEM', 'load_module', 'Workflow', 0, $message, $error);
     }
 
     /**

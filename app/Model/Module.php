@@ -6,7 +6,7 @@ class Module extends AppModel
 {
     public $useTable = false;
 
-    private $__validTypes = array(
+    const VALID_TYPES = array(
         'Enrichment' => array('hover', 'expansion'),
         'Import' => array('import'),
         'Export' => array('export'),
@@ -203,7 +203,7 @@ class Module extends AppModel
         return "$url:$port";
     }
 
-    private function __prepareAndExectureForTrigger($postData, $triggerData=[]): bool
+    private function __prepareAndExecuteForTrigger($postData, $triggerData=[]): bool
     {
         $this->Workflow = ClassRegistry::init('Workflow');
         $trigger_id = 'enrichment-before-query';
@@ -265,8 +265,8 @@ class Module extends AppModel
      */
     public function queryModuleServer(array $postData, $hover = false, $moduleFamily = 'Enrichment', $throwException = false, $triggerData=[])
     {
-        if ($moduleFamily == 'Enrichment') {
-            $success = $this->__prepareAndExectureForTrigger($postData, $triggerData);
+        if ($moduleFamily === 'Enrichment') {
+            $success = $this->__prepareAndExecuteForTrigger($postData, $triggerData);
             if (!$success) {
                 $trigger_id = 'enrichment-before-query';
                 return __('Trigger `%s` blocked enrichment', $trigger_id);
@@ -349,7 +349,7 @@ class Module extends AppModel
         $result = array();
         if (is_array($modules)) {
             foreach ($modules as $module) {
-                if (array_intersect($this->__validTypes[$moduleFamily], $module['meta']['module-type'])) {
+                if (array_intersect(self::VALID_TYPES[$moduleFamily], $module['meta']['module-type'])) {
                     $moduleSettings = [
                         [
                             'name' => 'enabled',
@@ -370,7 +370,6 @@ class Module extends AppModel
                                     $moduleSettings[] = [
                                         'name' => $name,
                                         'type' => isset($value['type']) ? $value['type'] : 'string',
-                                        'test' => isset($value['test']) ? $value['test'] : null,
                                         'description' => isset($value['description']) ? $value['description'] : null,
                                         'null' => isset($value['null']) ? $value['null'] : null,
                                         'test' => isset($value['test']) ? $value['test'] : null,
