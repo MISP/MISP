@@ -816,12 +816,49 @@ class TestComprehensive(unittest.TestCase):
 
         self.admin_misp_connector.delete_event(event)
 
+    def test_restsearch_composite_attribute(self):
+        event = create_simple_event()
+        event.add_attribute('ip-src|port', '10.0.0.1|8080')
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        self.admin_misp_connector.publish(event, alert=False)
+        time.sleep(6)
+
+        attribute = self._search({'value': '10.0.0.1', 'eventid': event.id})
+        self.assertIsInstance(attribute, str)
+        self.assertIn('10.0.0.1|8080', attribute)
+
+        attribute = self._search({'value': '8080', 'eventid': event.id})
+        self.assertIsInstance(attribute, str)
+        self.assertIn('10.0.0.1|8080', attribute)
+
+        attribute = self._search({'value1': '10.0.0.1', 'eventid': event.id})
+        self.assertIsInstance(attribute, str)
+        self.assertIn('10.0.0.1|8080', attribute)
+
+        attribute = self._search({'value2': '8080', 'eventid': event.id})
+        self.assertIsInstance(attribute, str)
+        self.assertIn('10.0.0.1|8080', attribute)
+
+        attribute = self._search({'value1': '10.0.0.1', 'value2': '8080', 'eventid': event.id})
+        self.assertIsInstance(attribute, str)
+        self.assertIn('10.0.0.1|8080', attribute)
+
+        self.admin_misp_connector.delete_event(event)
+
+
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
         check_response(response)
         return response
 
+    def _search_attribute(self, query: dict):
+        response = self.admin_misp_connector._prepare_request('POST', 'attributes/restSearch', data=query)
+        response = self.admin_misp_connector._check_response(response)
+        check_response(response)
+        return response
 
 if __name__ == '__main__':
     unittest.main()
