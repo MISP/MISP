@@ -82,7 +82,7 @@ class AppModel extends Model
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
-        87 => false, 88 => false, 89 => false, 90 => false, 91 => false
+        87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1831,6 +1831,9 @@ class AppModel extends Model
                       INDEX `timestamp` (`timestamp`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                     break;
+            case 92:
+                $sqlArray[] = "ALTER TABLE users ADD `last_api_access` INT(11) DEFAULT 0;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
