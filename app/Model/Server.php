@@ -3213,7 +3213,7 @@ class Server extends AppModel
     private function getDatabaseIndexes($database, $table)
     {
         $sqlTableIndex = sprintf(
-            "SELECT DISTINCT TABLE_NAME, COLUMN_NAME, NON_UNIQUE FROM information_schema.statistics WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s';",
+            "SELECT DISTINCT TABLE_NAME, COLUMN_NAME, NON_UNIQUE FROM information_schema.statistics WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' ORDER BY COLUMN_NAME;",
             $database,
             $table
         );
