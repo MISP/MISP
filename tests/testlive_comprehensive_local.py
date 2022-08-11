@@ -824,7 +824,6 @@ class TestComprehensive(unittest.TestCase):
         check_response(event)
 
         search_result = self._search_attribute({'value': '10.0.0.1', 'eventid': event.id})
-        print(attribute_1.uuid)
         self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
         self.assertEqual(len(search_result['Attribute']), 1)
 
