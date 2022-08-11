@@ -23,6 +23,11 @@
                                 'url' => $baseurl . '/correlations/overCorrelations/scope:not_over_correlating',
                                 'text' => __('Not over-correlating')
                             ],
+                            [
+                                'type' => 'simple',
+                                'url' => $baseurl . '/correlations/generateOccurrences',
+                                'text' => __('Regenerate occurrence counts')
+                            ]
                         ]
                     ]
                 ]

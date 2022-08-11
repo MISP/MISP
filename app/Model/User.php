@@ -1405,6 +1405,22 @@ class User extends AppModel
     }
 
     /**
+     * Updates `last_api_access` time in database.
+     *
+     * @param array $user
+     * @return array|bool
+     * @throws Exception
+     */
+    public function updateAPIAccessTime(array $user)
+    {
+        if (!isset($user['id'])) {
+            throw new InvalidArgumentException("Invalid user object provided.");
+        }
+        $user['last_api_access'] = time();
+        return $this->save($user, true, array('id', 'last_api_access'));
+    }
+
+    /**
      * Update field in user model and also set `date_modified`
      *
      * @param array $user

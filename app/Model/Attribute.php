@@ -897,7 +897,8 @@ class Attribute extends AppModel
         $defaultMaxSize = $outputFormat === 'webp' ? 400 : 200;
         $maxWidth = $maxWidth ?: $defaultMaxSize;
         $maxHeight = $maxHeight ?: $defaultMaxSize;
-
+        $suffix = null;
+        
         if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
             $thumbnailInRedis = Configure::read('MISP.thumbnail_in_redis');
             if ($thumbnailInRedis) {
@@ -1522,6 +1523,8 @@ class Attribute extends AppModel
         $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
         $this->FuzzyCorrelateSsdeep->purge($eventId, $attributeId);
 
+        $this->query('TRUNCATE TABLE over_correlating_values');
+
         // get all attributes..
         if (!$eventId) {
             $eventIds = $this->Event->find('column', [
@@ -1601,9 +1604,6 @@ class Attribute extends AppModel
             $attributes = $this->find('all', $query);
             foreach ($attributes as $attribute) {
                 $attribute['Attribute']['event_id'] = $eventId;
-                if ($full) {
-                    $this->Correlation->beforeSaveCorrelation($attribute['Attribute']);
-                }
                 $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full);
             }
             $fetchedAttributes = count($attributes);
@@ -3129,6 +3129,8 @@ class Attribute extends AppModel
                 'Attribute' => array(
                     'sharinggroup' => array('function' => 'set_filter_sharing_group'),
                     'value' => array('function' => 'set_filter_value'),
+                    'value1' => array('function' => 'set_filter_simple_attribute'),
+                    'value2' => array('function' => 'set_filter_simple_attribute'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_type'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),

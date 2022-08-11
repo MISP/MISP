@@ -16,8 +16,13 @@ App::uses('JsonTool', 'Tools');
  */
 class AdminShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed', 'SharingGroupBlueprint', 'Correlation');
-    public $tasks = array('ConfigLoad');
+    public $uses = [
+        'Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 
+        'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce',
+        'Role', 'Feed', 'SharingGroupBlueprint', 'Correlation', 'OverCorrelatingValue'
+    ];
+
+    public $tasks = ['ConfigLoad'];
     
     public function getOptionParser()
     {
@@ -107,6 +112,17 @@ class AdminShell extends AppShell
 
         $jobId = $this->args[0];
         $this->Attribute->generateCorrelation($jobId);
+    }
+
+    public function jobGenerateOccurrences()
+    {
+        $this->ConfigLoad->execute();
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate over-correlation occurrences'] . PHP_EOL);
+        }
+
+        $jobId = $this->args[0];
+        $this->OverCorrelatingValue->generateOccurrences($jobId);
     }
 
     public function jobPurgeCorrelation()

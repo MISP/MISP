@@ -24,13 +24,15 @@ key = os.environ["AUTH"]
 urllib3.disable_warnings()
 
 
-def create_simple_event():
+def create_simple_event() -> MISPEvent:
+    event_uuid = str(uuid.uuid4())
     event = MISPEvent()
-    event.info = 'This is a super simple test'
+    event.uuid = event_uuid
+    event.info = 'This is a super simple test ({})'.format(event_uuid.split('-')[0])
     event.distribution = Distribution.your_organisation_only
     event.threat_level_id = ThreatLevel.low
     event.analysis = Analysis.completed
-    event.add_attribute('text', str(uuid.uuid4()))
+    event.add_attribute('text', event_uuid)
     return event
 
 
@@ -512,6 +514,51 @@ class TestComprehensive(unittest.TestCase):
             for event in (first, second, third, four):
                 check_response(self.admin_misp_connector.delete_event(event))
 
+    def test_correlations(self):
+        first = create_simple_event()
+        first.add_attribute("ip-src", "10.0.0.1")
+        first = check_response(self.admin_misp_connector.add_event(first))
+
+        second = create_simple_event()
+        second.add_attribute("ip-src", "10.0.0.1")
+        second = check_response(self.admin_misp_connector.add_event(second))
+
+        # Reload to get event data with related events
+        first = check_response(self.admin_misp_connector.get_event(first))
+
+        try:
+            self.assertEqual(1, len(first.RelatedEvent), first.RelatedEvent)
+            self.assertEqual(1, len(second.RelatedEvent), second.RelatedEvent)
+        except:
+            raise
+        finally:
+            # Delete events
+            for event in (first, second):
+                check_response(self.admin_misp_connector.delete_event(event))
+
+    def test_advanced_correlations(self):
+        with MISPSetting(self.admin_misp_connector, {"MISP.enable_advanced_correlations": True}):
+            first = create_simple_event()
+            first.add_attribute("ip-src", "10.0.0.0/8")
+            first = check_response(self.admin_misp_connector.add_event(first))
+
+            second = create_simple_event()
+            second.add_attribute("ip-src", "10.0.0.1")
+            second = check_response(self.admin_misp_connector.add_event(second))
+
+            # Reload to get event data with related events
+            first = check_response(self.admin_misp_connector.get_event(first))
+
+            try:
+                self.assertEqual(1, len(first.RelatedEvent), first.RelatedEvent)
+                self.assertEqual(1, len(second.RelatedEvent), second.RelatedEvent)
+            except:
+                raise
+            finally:
+                # Delete events
+                for event in (first, second):
+                    check_response(self.admin_misp_connector.delete_event(event))
+
     def test_remove_orphaned_correlations(self):
         result = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', 'servers/removeOrphanedCorrelations'))
         check_response(result)
@@ -816,12 +863,49 @@ class TestComprehensive(unittest.TestCase):
 
         self.admin_misp_connector.delete_event(event)
 
+    def test_restsearch_composite_attribute(self):
+        event = create_simple_event()
+        attribute_1 = event.add_attribute('ip-src|port', '10.0.0.1|8080')
+        attribute_2 = event.add_attribute('ip-src|port', '10.0.0.2|8080')
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        search_result = self._search_attribute({'value': '10.0.0.1', 'eventid': event.id})
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
+        self.assertEqual(len(search_result['Attribute']), 1)
+
+        search_result = self._search_attribute({'value': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 2)
+
+        search_result = self._search_attribute({'value1': '10.0.0.1', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
+
+        search_result = self._search_attribute({'value1': '10.0.0.2', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_2.uuid)
+
+        search_result = self._search_attribute({'value2': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 2)
+
+        search_result = self._search_attribute({'value1': '10.0.0.1', 'value2': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
+
+        self.admin_misp_connector.delete_event(event)
+
+
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
         check_response(response)
         return response
 
+    def _search_attribute(self, query: dict):
+        response = self.admin_misp_connector._prepare_request('POST', 'attributes/restSearch', data=query)
+        response = self.admin_misp_connector._check_response(response)
+        check_response(response)
+        return response
 
 if __name__ == '__main__':
     unittest.main()

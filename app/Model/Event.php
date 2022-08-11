@@ -608,7 +608,7 @@ class Event extends AppModel
         return $events;
     }
 
-    public function getRelatedEventCount($user, $eventId, $sgids)
+    public function getRelatedEventCount(array $user, $eventId, $sgids)
     {
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
@@ -2018,6 +2018,8 @@ class Event extends AppModel
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
                 }
 
+                $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
+
                 // move all object attributes to a temporary container
                 $tempObjectAttributeContainer = array();
                 foreach ($event['Attribute'] as $key => &$attribute) {
@@ -2025,7 +2027,6 @@ class Event extends AppModel
                         unset($event['Attribute'][$key]);
                         continue;
                     }
-                    $attribute = $this->Attribute->Correlation->setCorrelationExclusion($attribute);
                     if ($attribute['category'] === 'Financial fraud') {
                         $attribute = $this->Attribute->attachValidationWarnings($attribute);
                     }
@@ -2710,17 +2711,8 @@ class Event extends AppModel
     public function set_filter_value(&$params, $conditions, $options)
     {
         if (!empty($params['value'])) {
-            $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], ['Attribute.value1', 'Attribute.value2']);
-            // Allows searching for ['value1' => [full, part1], 'value2' => [full, part2]]
-            if (is_string($params['value']) && strpos('|', $params['value']) !== false) {
-                $valueParts = explode('|', $params['value'], 2);
-                $convertedFilterVal1 = $this->convert_filters($valueParts[0]);
-                $convertedFilterVal2 = $this->convert_filters($valueParts[1]);
-                $conditionVal1 = $this->generic_add_filter([], $convertedFilterVal1, ['Attribute.value1'])['AND'][0]['OR'];
-                $conditionVal2 = $this->generic_add_filter([], $convertedFilterVal2, ['Attribute.value2'])['AND'][0]['OR'];
-                $conditions['AND'][0]['OR']['OR']['AND'] = [$conditionVal1, $conditionVal2];
-            }
+            $params[$options['filter']] = $this->convert_filters($params['value']);
+            $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
         }
 
         return $conditions;
@@ -2982,8 +2974,13 @@ class Event extends AppModel
                 'noEventReports' => true,
                 'noSightings' => true,
                 'metadata' => $metadataOnly,
-            ])[0];
-
+            ]);
+            if (empty($eventForUser)) {
+                $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
+                $this->loadLog()->createLogEntry($senderUser, 'alert', 'User', $user['id'], __('Something went wrong with alerting user #%s about event #%s. Sending was blocked due to insufficient access to the given event.'));
+                continue;
+            }
+            $eventForUser = $eventForUser[0];
             if ($this->User->UserSetting->checkPublishFilter($user, $eventForUser)) {
                 $body = $this->prepareAlertEmail($eventForUser, $user, $oldpublish);
                 $this->User->sendEmail(['User' => $user], $body, false, null);

@@ -445,6 +445,7 @@ class UsersController extends AppController
             'expiration',
             'current_login',
             'last_login',
+            'last_api_access',
             'force_logout',
             'date_created',
             'date_modified'
