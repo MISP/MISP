@@ -608,7 +608,7 @@ class Event extends AppModel
         return $events;
     }
 
-    public function getRelatedEventCount($user, $eventId, $sgids)
+    public function getRelatedEventCount(array $user, $eventId, $sgids)
     {
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
@@ -2018,6 +2018,8 @@ class Event extends AppModel
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
                 }
 
+                $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
+
                 // move all object attributes to a temporary container
                 $tempObjectAttributeContainer = array();
                 foreach ($event['Attribute'] as $key => &$attribute) {
@@ -2025,7 +2027,6 @@ class Event extends AppModel
                         unset($event['Attribute'][$key]);
                         continue;
                     }
-                    $attribute = $this->Attribute->Correlation->setCorrelationExclusion($attribute);
                     if ($attribute['category'] === 'Financial fraud') {
                         $attribute = $this->Attribute->attachValidationWarnings($attribute);
                     }
