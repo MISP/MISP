@@ -897,7 +897,8 @@ class Attribute extends AppModel
         $defaultMaxSize = $outputFormat === 'webp' ? 400 : 200;
         $maxWidth = $maxWidth ?: $defaultMaxSize;
         $maxHeight = $maxHeight ?: $defaultMaxSize;
-
+        $suffix = null;
+        
         if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
             $thumbnailInRedis = Configure::read('MISP.thumbnail_in_redis');
             if ($thumbnailInRedis) {
