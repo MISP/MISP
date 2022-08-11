@@ -1010,28 +1010,6 @@
                 "column_type": "int(11)",
                 "column_default": null,
                 "extra": ""
-            },
-            {
-                "column_name": "date",
-                "is_nullable": "NO",
-                "data_type": "date",
-                "character_maximum_length": null,
-                "numeric_precision": null,
-                "collation_name": null,
-                "column_type": "date",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "info",
-                "is_nullable": "NO",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
             }
         ],
         "correlation_exclusions": [
@@ -1094,13 +1072,13 @@
             },
             {
                 "column_name": "value",
-                "is_nullable": "YES",
-                "data_type": "text",
-                "character_maximum_length": "65535",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
-                "column_type": "text",
-                "column_default": "NULL",
+                "column_type": "varchar(191)",
+                "column_default": null,
                 "extra": ""
             }
         ],
@@ -2898,6 +2876,17 @@
                 "extra": "auto_increment"
             },
             {
+                "column_name": "uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8mb3_bin",
+                "column_type": "varchar(255)",
+                "column_default": "''",
+                "extra": ""
+            },
+            {
                 "column_name": "collection_uuid",
                 "is_nullable": "NO",
                 "data_type": "varchar",
@@ -2994,17 +2983,6 @@
                 "collation_name": null,
                 "column_type": "int(11)",
                 "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "uuid",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
-                "column_type": "varchar(255)",
-                "column_default": "''",
                 "extra": ""
             },
             {
@@ -4179,13 +4157,13 @@
             },
             {
                 "column_name": "comment",
-                "is_nullable": "YES",
+                "is_nullable": "NO",
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8mb3_unicode_ci",
                 "column_type": "text",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -4862,13 +4840,13 @@
             },
             {
                 "column_name": "comment",
-                "is_nullable": "NO",
+                "is_nullable": "YES",
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8mb3_unicode_ci",
                 "column_type": "text",
-                "column_default": null,
+                "column_default": "NULL",
                 "extra": ""
             }
         ],
@@ -5080,11 +5058,11 @@
             {
                 "column_name": "body",
                 "is_nullable": "YES",
-                "data_type": "longtext",
-                "character_maximum_length": "4294967295",
+                "data_type": "text",
+                "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8mb3_general_ci",
-                "column_type": "longtext",
+                "column_type": "text",
                 "column_default": "NULL",
                 "extra": ""
             },
@@ -5498,6 +5476,17 @@
                 "extra": ""
             },
             {
+                "column_name": "perm_decaying",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
                 "column_name": "enforce_rate_limit",
                 "is_nullable": "NO",
                 "data_type": "tinyint",
@@ -5516,17 +5505,6 @@
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "perm_decaying",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(1)",
                 "column_default": "0",
                 "extra": ""
             },
@@ -5965,13 +5943,13 @@
             },
             {
                 "column_name": "comment",
-                "is_nullable": "YES",
+                "is_nullable": "NO",
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8mb3_unicode_ci",
                 "column_type": "text",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -6758,6 +6736,30 @@
                 "collation_name": null,
                 "column_type": "int(11)",
                 "column_default": "0",
+                "extra": ""
+            }
+        ],
+        "system_settings": [
+            {
+                "column_name": "setting",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "value",
+                "is_nullable": "NO",
+                "data_type": "blob",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": null,
+                "column_type": "blob",
+                "column_default": null,
                 "extra": ""
             }
         ],
@@ -8166,6 +8168,17 @@
                 "column_type": "text",
                 "column_default": "NULL",
                 "extra": ""
+            },
+            {
+                "column_name": "last_api_access",
+                "is_nullable": "YES",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
             }
         ],
         "user_settings": [
@@ -8590,99 +8603,99 @@
     },
     "indexes": {
         "admin_settings": {
-            "id": true
+            "id": true,
+            "setting": true
         },
         "allowedlist": {
             "id": true
         },
         "attachment_scans": {
+            "attribute_id": false,
             "id": true,
-            "type": false,
-            "attribute_id": false
+            "type": false
         },
         "attributes": {
-            "id": true,
-            "uuid": false,
-            "event_id": false,
-            "sharing_group_id": false,
-            "type": false,
             "category": false,
-            "value1": false,
-            "value2": false,
+            "event_id": false,
+            "first_seen": false,
+            "id": true,
+            "last_seen": false,
             "object_id": false,
             "object_relation": false,
-            "deleted": false,
-            "first_seen": false,
-            "last_seen": false,
-            "timestamp": false
+            "sharing_group_id": false,
+            "timestamp": false,
+            "type": false,
+            "uuid": true,
+            "value1": false,
+            "value2": false
         },
         "attribute_tags": {
-            "id": true,
             "attribute_id": false,
             "event_id": false,
+            "id": true,
             "tag_id": false
         },
         "audit_logs": {
-            "id": true,
             "event_id": false,
+            "id": true,
             "model_id": false
         },
         "auth_keys": {
-            "id": true,
-            "authkey_start": false,
             "authkey_end": false,
+            "authkey_start": false,
             "created": false,
             "expiration": false,
+            "id": true,
             "user_id": false
         },
         "bruteforces": [],
         "cake_sessions": {
-            "id": true,
-            "expires": false
+            "expires": false,
+            "id": true
         },
         "cerebrates": {
             "id": true,
-            "url": false,
-            "org_id": false
+            "org_id": false,
+            "url": false
         },
         "correlations": {
-            "id": true,
-            "event_id": false,
+            "1_attribute_id": false,
             "1_event_id": false,
             "attribute_id": false,
-            "1_attribute_id": false
+            "event_id": false,
+            "id": true
         },
         "correlation_exclusions": {
             "id": true,
-            "value": false
+            "value": true
         },
         "correlation_values": {
             "id": true,
             "value": true
         },
         "cryptographic_keys": {
+            "fingerprint": false,
             "id": true,
-            "uuid": false,
-            "type": false,
             "parent_id": false,
             "parent_type": false,
-            "fingerprint": false
+            "type": false,
+            "uuid": false
         },
         "dashboards": {
             "id": true,
             "name": false,
-            "uuid": false,
-            "user_id": false,
             "restrict_to_org_id": false,
-            "restrict_to_permission_flag": false
+            "restrict_to_permission_flag": false,
+            "user_id": false,
+            "uuid": false
         },
         "decaying_models": {
+            "all_orgs": false,
+            "enabled": false,
             "id": true,
-            "uuid": false,
             "name": false,
             "org_id": false,
-            "enabled": false,
-            "all_orgs": false,
+            "uuid": false,
             "version": false
         },
         "decaying_model_mappings": {
@@ -8695,48 +8708,57 @@
             "1_object_id": false,
             "attribute_id": false,
             "event_id": false,
-            "object_id": false,
             "id": true,
+            "object_id": false,
             "value_id": false
         },
-        "event_blocklists": {
+        "events": {
+            "extends_uuid": false,
             "id": true,
-            "event_uuid": false,
-            "event_orgc": false
+            "info": false,
+            "orgc_id": false,
+            "org_id": false,
+            "sharing_group_id": false,
+            "uuid": true
+        },
+        "event_blocklists": {
+            "event_orgc": false,
+            "event_uuid": true,
+            "id": true
         },
         "event_delegations": {
+            "event_id": false,
             "id": true,
-            "org_id": false,
-            "event_id": false
+            "org_id": false
         },
         "event_graph": {
-            "id": true,
             "event_id": false,
-            "user_id": false,
+            "id": true,
             "org_id": false,
-            "timestamp": false
+            "timestamp": false,
+            "user_id": false
         },
         "event_locks": {
-            "id": true,
             "event_id": false,
-            "user_id": false,
-            "timestamp": false
+            "id": true,
+            "timestamp": false,
+            "user_id": false
         },
         "event_reports": {
+            "event_id": false,
             "id": true,
-            "uuid": true,
             "name": false,
-            "event_id": false
+            "uuid": true
         },
         "event_tags": {
-            "id": true,
             "event_id": false,
+            "id": true,
             "tag_id": false
         },
         "favourite_tags": {
             "id": true,
-            "user_id": false,
-            "tag_id": false
+            "tag_id": false,
+            "user_id": false
         },
         "feeds": {
             "id": true,
@@ -8744,66 +8766,66 @@
             "orgc_id": false
         },
         "fuzzy_correlate_ssdeep": {
-            "id": true,
+            "attribute_id": false,
             "chunk": false,
-            "attribute_id": false
+            "id": true
         },
         "galaxies": {
             "id": true,
             "name": false,
-            "uuid": false,
+            "namespace": false,
             "type": false,
-            "namespace": false
+            "uuid": true
         },
         "galaxy_clusters": {
-            "id": true,
-            "value": false,
+            "collection_uuid": false,
+            "default": false,
+            "extends_uuid": false,
+            "extends_version": false,
             "galaxy_id": false,
-            "version": false,
+            "id": true,
+            "orgc_id": false,
+            "org_id": false,
+            "sharing_group_id": false,
             "tag_name": false,
             "type": false,
             "uuid": false,
-            "collection_uuid": false,
-            "org_id": false,
-            "orgc_id": false,
-            "sharing_group_id": false,
-            "extends_uuid": false,
-            "extends_version": false,
-            "default": false
+            "value": false,
+            "version": false
         },
         "galaxy_cluster_blocklists": {
-            "id": true,
+            "cluster_orgc": false,
             "cluster_uuid": false,
-            "cluster_orgc": false
+            "id": true
         },
         "galaxy_cluster_relations": {
-            "id": true,
+            "default": false,
             "galaxy_cluster_id": false,
+            "galaxy_cluster_uuid": false,
+            "id": true,
             "referenced_galaxy_cluster_id": false,
             "referenced_galaxy_cluster_type": false,
-            "galaxy_cluster_uuid": false,
-            "sharing_group_id": false,
-            "default": false
+            "sharing_group_id": false
         },
         "galaxy_cluster_relation_tags": {
-            "id": true,
             "galaxy_cluster_relation_id": false,
+            "id": true,
             "tag_id": false
         },
         "galaxy_elements": {
+            "galaxy_cluster_id": false,
             "id": true,
             "key": false,
-            "value": false,
-            "galaxy_cluster_id": false
+            "value": false
         },
         "inbox": {
             "id": true,
+            "ip": false,
+            "timestamp": false,
             "title": false,
             "type": false,
-            "uuid": false,
             "user_agent_sha256": false,
-            "ip": false,
-            "timestamp": false
+            "uuid": false
         },
         "jobs": {
             "id": true
@@ -8815,9 +8837,9 @@
             "id": true
         },
         "noticelists": {
+            "geographical_area": false,
             "id": true,
-            "name": false,
-            "geographical_area": false
+            "name": false
         },
         "noticelist_entries": {
             "id": true,
@@ -8829,32 +8851,33 @@
             "type": false
         },
         "no_acl_correlations": {
-            "id": true,
-            "attribute_id": false,
             "1_attribute_id": false,
-            "value_id": false,
+            "1_event_id": false,
+            "attribute_id": false,
             "event_id": false,
-            "1_event_id": false
+            "id": true,
+            "value_id": false
         },
         "objects": {
+            "distribution": false,
+            "event_id": false,
+            "first_seen": false,
             "id": true,
+            "last_seen": false,
+            "meta-category": false,
             "name": false,
+            "sharing_group_id": false,
             "template_uuid": false,
             "template_version": false,
-            "meta-category": false,
-            "event_id": false,
-            "uuid": false,
             "timestamp": false,
-            "distribution": false,
-            "sharing_group_id": false,
-            "first_seen": false,
-            "last_seen": false
+            "uuid": true
         },
         "object_references": {
+            "event_id": false,
             "id": true,
             "object_id": false,
             "referenced_id": false,
-            "event_id": false
+            "uuid": true
         },
         "object_relationships": {
             "id": true,
@@ -8862,11 +8885,11 @@
         },
         "object_templates": {
             "id": true,
-            "user_id": false,
-            "org_id": false,
-            "uuid": false,
+            "meta-category": false,
             "name": false,
-            "meta-category": false
+            "org_id": false,
+            "user_id": false,
+            "uuid": false
         },
         "object_template_elements": {
             "id": true,
@@ -8875,16 +8898,18 @@
         },
         "organisations": {
             "id": true,
-            "uuid": false,
-            "name": false
+            "name": true,
+            "uuid": true
         },
         "org_blocklists": {
-            "id": true
+            "id": true,
+            "org_name": false,
+            "org_uuid": true
         },
         "over_correlating_values": {
             "id": true,
-            "value": true,
-            "occurrence": false
+            "occurrence": false,
+            "value": true
         },
         "posts": {
             "id": true,
@@ -8897,8 +8922,8 @@
         "rest_client_histories": {
             "id": true,
             "org_id": false,
-            "user_id": false,
-            "timestamp": false
+            "timestamp": false,
+            "user_id": false
         },
         "roles": {
             "id": true
@@ -8906,46 +8931,47 @@
         "servers": {
             "id": true,
             "org_id": false,
-            "remote_org_id": false,
-            "priority": false
+            "priority": false,
+            "remote_org_id": false
         },
         "shadow_attributes": {
-            "id": true,
-            "event_id": false,
-            "event_uuid": false,
-            "event_org_id": false,
-            "uuid": false,
-            "old_id": false,
-            "value1": false,
-            "value2": false,
-            "type": false,
             "category": false,
+            "event_id": false,
+            "event_org_id": false,
+            "event_uuid": false,
             "first_seen": false,
-            "last_seen": false
+            "id": true,
+            "last_seen": false,
+            "old_id": false,
+            "type": false,
+            "uuid": false,
+            "value1": false,
+            "value2": false
         },
         "shadow_attribute_correlations": {
-            "id": true,
-            "org_id": false,
+            "1_event_id": false,
+            "1_shadow_attribute_id": false,
             "attribute_id": false,
             "a_sharing_group_id": false,
             "event_id": false,
-            "1_event_id": false,
-            "sharing_group_id": false,
-            "1_shadow_attribute_id": false
+            "id": true,
+            "org_id": false,
+            "sharing_group_id": false
         },
         "sharing_groups": {
             "id": true,
-            "uuid": true,
+            "name": true,
+            "organisation_uuid": false,
             "org_id": false,
             "sync_user_id": false,
-            "organisation_uuid": false
+            "uuid": true
         },
         "sharing_group_blueprints": {
             "id": true,
-            "uuid": false,
             "name": false,
             "org_id": false,
-            "sharing_group_id": false
+            "sharing_group_id": false,
+            "uuid": false
         },
         "sharing_group_orgs": {
             "id": true,
@@ -8958,38 +8984,41 @@
             "sharing_group_id": false
         },
         "sightingdbs": {
+            "host": false,
             "id": true,
             "name": false,
             "owner": false,
-            "host": false,
             "port": false
         },
         "sightingdb_orgs": {
             "id": true,
-            "sightingdb_id": false,
-            "org_id": false
+            "org_id": false,
+            "sightingdb_id": false
         },
         "sightings": {
-            "id": true,
             "attribute_id": false,
             "event_id": false,
+            "id": true,
             "org_id": false,
-            "uuid": false,
             "source": false,
-            "type": false
+            "type": false,
+            "uuid": true
+        },
+        "system_settings": {
+            "setting": true
         },
         "tags": {
             "id": true,
-            "name": false,
+            "name": true,
+            "numerical_value": false,
             "org_id": false,
-            "user_id": false,
-            "numerical_value": false
+            "user_id": false
         },
         "tag_collections": {
             "id": true,
-            "uuid": false,
+            "org_id": false,
             "user_id": false,
-            "org_id": false
+            "uuid": false
         },
         "tag_collection_tags": {
             "id": true,
@@ -9004,13 +9033,13 @@
         },
         "taxonomy_entries": {
             "id": true,
-            "taxonomy_predicate_id": false,
-            "numerical_value": false
+            "numerical_value": false,
+            "taxonomy_predicate_id": false
         },
         "taxonomy_predicates": {
             "id": true,
-            "taxonomy_id": false,
-            "numerical_value": false
+            "numerical_value": false,
+            "taxonomy_id": false
         },
         "templates": {
             "id": true
@@ -9031,26 +9060,26 @@
             "id": true
         },
         "threads": {
-            "id": true,
-            "user_id": false,
             "event_id": false,
+            "id": true,
             "org_id": false,
-            "sharing_group_id": false
+            "sharing_group_id": false,
+            "user_id": false
         },
         "threat_levels": {
             "id": true
         },
         "users": {
+            "email": true,
             "id": true,
-            "sub": true,
-            "email": false,
             "org_id": false,
-            "server_id": false
+            "server_id": false,
+            "sub": true
         },
         "user_settings": {
             "id": true,
-            "user_id": false,
-            "setting": false
+            "setting": false,
+            "user_id": false
         },
         "warninglists": {
             "id": true
@@ -9064,16 +9093,16 @@
         },
         "workflows": {
             "id": true,
-            "uuid": false,
             "name": false,
             "timestamp": false,
-            "trigger_id": false
+            "trigger_id": false,
+            "uuid": false
         },
         "workflow_blueprints": {
             "id": true,
-            "uuid": false,
             "name": false,
-            "timestamp": false
+            "timestamp": false,
+            "uuid": false
         }
     },
     "db_version": "93"
