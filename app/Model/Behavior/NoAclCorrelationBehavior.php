@@ -1,17 +1,14 @@
 <?php
-
 App::uses('AppModel', 'Model');
-App::uses('RandomTool', 'Tools');
 
 /**
  * ACL-less correlation behaviour for end-point instances
  */
 class NoAclCorrelationBehavior extends ModelBehavior
 {
+    const TABLE_NAME = 'no_acl_correlations';
 
-    private $__tableName = 'no_acl_correlations';
-
-    private $__config = [
+    const CONFIG = [
         'AttributeFetcher' => [
             'fields' =>  [
                 'Attribute.event_id',
@@ -31,26 +28,36 @@ class NoAclCorrelationBehavior extends ModelBehavior
         ]
     ];
 
-    public $Correlation = null;
+    /** @var Correlation */
+    public $Correlation;
 
     private $deadlockAvoidance = false;
 
-    public function setup(Model $Model, $settings = []) {
-        $Model->useTable = $this->__tableName;
+    public function setup(Model $Model, $settings = [])
+    {
+        $Model->useTable = self::TABLE_NAME;
         $this->Correlation = $Model;
         $this->deadlockAvoidance = $settings['deadlockAvoidance'];
     }
 
     public function getTableName(Model $Model)
     {
-        return $this->__tableName;
+        return self::TABLE_NAME;
     }
 
-    public function createCorrelationEntry(Model $Model, $value, $a, $b) {
-        $value_id = $this->Correlation->CorrelationValue->getValueId($value);
+    /**
+     * @param Model $Model
+     * @param string $value
+     * @param array $a
+     * @param array $b
+     * @return array|int[]
+     */
+    public function createCorrelationEntry(Model $Model, $value, $a, $b)
+    {
+        $valueId = $this->Correlation->CorrelationValue->getValueId($value);
         if ($this->deadlockAvoidance) {
             return [
-                'value_id' => $value_id,
+                'value_id' => $valueId,
                 '1_event_id' => $a['Event']['id'],
                 '1_attribute_id' => $a['Attribute']['id'],
                 'event_id' => $b['Event']['id'],
@@ -58,7 +65,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
             ];
         } else {
             return [
-                (int) $value_id,
+                (int) $valueId,
                 (int) $a['Event']['id'],
                 (int) $a['Attribute']['id'],
                 (int) $b['Event']['id'],
@@ -67,6 +74,11 @@ class NoAclCorrelationBehavior extends ModelBehavior
         }
     }
 
+    /**
+     * @param Model $Model
+     * @param array $correlations
+     * @return array|bool|bool[]|mixed
+     */
     public function saveCorrelations(Model $Model, $correlations)
     {
         $fields = [
@@ -99,7 +111,8 @@ class NoAclCorrelationBehavior extends ModelBehavior
         }
     }
 
-    public function runBeforeSaveCorrelation(Model $Model, $attribute) {
+    public function runBeforeSaveCorrelation(Model $Model, $attribute)
+    {
         // (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
         // ==> DELETE FROM no_acl_correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id; */
         // first check if it's an update
@@ -120,18 +133,24 @@ class NoAclCorrelationBehavior extends ModelBehavior
     public function getContainRules(Model $Model, $filter = null)
     {
         if (empty($filter)) {
-            return $this->__config['AttributeFetcher']['contain'];
+            return self::CONFIG['AttributeFetcher']['contain'];
         } else {
-            return empty($this->__config['AttributeFetcher']['contain'][$filter]) ? false : $this->__config['AttributeFetcher']['contain'][$filter];
+            return empty(self::CONFIG['AttributeFetcher']['contain'][$filter]) ? false : self::CONFIG['AttributeFetcher']['contain'][$filter];
         }
     }
 
     public function getFieldRules(Model $Model)
     {
-        return $this->__config['AttributeFetcher']['fields'];
+        return self::CONFIG['AttributeFetcher']['fields'];
     }
 
-    private function __collectCorrelations($user, $id, $primary)
+    /**
+     * @param array $user
+     * @param int $eventId
+     * @param bool $primary
+     * @return array
+     */
+    private function __collectCorrelations($user, $eventId, $primary)
     {
         $max_correlations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
         $source = $primary ? '' : '1_';
@@ -144,7 +163,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
             ],
             'conditions' => [
                 'OR' => [
-                    $source . 'event_id' => $id
+                    $source . 'event_id' => $eventId
                 ],
                 'AND' => [
                     [
@@ -170,35 +189,39 @@ class NoAclCorrelationBehavior extends ModelBehavior
         return $correlations;
     }
 
+    /**
+     * @param Model $Model
+     * @param array $user
+     * @param int $id Event ID
+     * @return array
+     */
     public function runGetAttributesRelatedToEvent(Model $Model, $user, $id)
     {
-        $temp_correlations = $this->__collectCorrelations($user, $id, false);
-        $temp_correlations_1 = $this->__collectCorrelations($user, $id, true);
         $correlations = [];
-        $event_ids = [];
-        foreach ($temp_correlations as $temp_correlation) {
+        $eventIds = [];
+        foreach ($this->__collectCorrelations($user, $id, false) as $temp_correlation) {
             $correlations[] = [
                 'id' => $temp_correlation['Correlation']['event_id'],
                 'attribute_id' => $temp_correlation['Correlation']['attribute_id'],
                 'parent_id' => $temp_correlation['Correlation']['1_attribute_id'],
                 'value' => $temp_correlation['CorrelationValue']['value']
             ];
-            $event_ids[$temp_correlation['Correlation']['event_id']] = true;
+            $eventIds[$temp_correlation['Correlation']['event_id']] = true;
         }
-        foreach ($temp_correlations_1 as $temp_correlation) {
+        foreach ($this->__collectCorrelations($user, $id, true) as $temp_correlation) {
             $correlations[] = [
                 'id' => $temp_correlation['Correlation']['1_event_id'],
                 'attribute_id' => $temp_correlation['Correlation']['1_attribute_id'],
                 'parent_id' => $temp_correlation['Correlation']['attribute_id'],
                 'value' => $temp_correlation['CorrelationValue']['value']
             ];
-            $event_ids[$temp_correlation['Correlation']['1_event_id']] = true;
+            $eventIds[$temp_correlation['Correlation']['1_event_id']] = true;
         }
         if (empty($correlations)) {
             return [];
         }
         $conditions = [
-            'Event.id' => array_keys($event_ids)
+            'Event.id' => array_keys($eventIds)
         ];
         $events = $Model->Event->find('all', array(
             'recursive' => -1,
@@ -214,9 +237,9 @@ class NoAclCorrelationBehavior extends ModelBehavior
                 continue;
             }
             $event = $events[$eventId];
-            $correlation['org_id'] = $events[$eventId]['orgc_id'];
-            $correlation['info'] = $events[$eventId]['info'];
-            $correlation['date'] = $events[$eventId]['date'];
+            $correlation['org_id'] = $event['orgc_id'];
+            $correlation['info'] = $event['info'];
+            $correlation['date'] = $event['date'];
             $parentId = $correlation['parent_id'];
             unset($correlation['parent_id']);
             $relatedAttributes[$parentId][] = $correlation;
@@ -320,7 +343,6 @@ class NoAclCorrelationBehavior extends ModelBehavior
         $primaryEventIds = $this->__filterRelatedEvents($Model, $user, $eventId, true);
         $secondaryEventIds = $this->__filterRelatedEvents($Model, $user, $eventId, false);
         return array_unique(array_merge($primaryEventIds,$secondaryEventIds));
-
     }
 
     private function __filterRelatedEvents(Model $Model, array $user, int $eventId, bool $primary)
