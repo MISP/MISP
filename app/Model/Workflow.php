@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('WorkflowGraphTool', 'Tools');
+App::uses('Folder', 'Utility');
 
 class WorkflowDuplicatedModuleIDException extends Exception {}
 class TriggerNotFoundException extends Exception {}
