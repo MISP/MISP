@@ -1008,16 +1008,17 @@ class Feed extends AppModel
             if (!isset($event['Event']['Tag'])) {
                 $event['Event']['Tag'] = array();
             }
-            $found = false;
-            foreach ($event['Event']['Tag'] as $tag) {
-                if (strtolower($tag['name']) === strtolower($feed['Tag']['name'])) {
-                    $found = true;
-                    break;
+
+            $feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable')));
+            if (!empty($feedTag)) {
+                $found = false;
+                foreach ($event['Event']['Tag'] as $tag) {
+                    if (strtolower($tag['name']) === strtolower($feedTag['Tag']['name'])) {
+                        $found = true;
+                        break;
+                    }
                 }
-            }
-            if (!$found) {
-                $feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable')));
-                if (!empty($feedTag)) {
+                if (!$found) {
                     $event['Event']['Tag'][] = $feedTag['Tag'];
                 }
             }
