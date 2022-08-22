@@ -3343,16 +3343,16 @@ class Event extends AppModel
         if (empty($this->eventBlockRule)) {
             return true;
         }
-        if (!empty($rules['tags'])) {
-            if (!is_array($rules['tags'])) {
-                $rules['tags'] = [$rules['tags']];
+        if (!empty($this->eventBlockRule['tags'])) {
+            if (!is_array($this->eventBlockRule['tags'])) {
+                $this->eventBlockRule['tags'] = [$this->eventBlockRule['tags']];
             }
             $eventTags = Hash::extract($event, 'Event.Tag.{n}.name');
             if (empty($eventTags)) {
                 $eventTags = Hash::extract($event, 'Event.EventTag.{n}.Tag.name');
             }
             if (!empty($eventTags)) {
-                foreach ($rules['tags'] as $blockTag) {
+                foreach ($this->eventBlockRule['tags'] as $blockTag) {
                     if (in_array($blockTag, $eventTags)) {
                         return false;
                     }
