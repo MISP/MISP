@@ -190,7 +190,8 @@ class ShadowAttribute extends AppModel
             $this->data['ShadowAttribute']['deleted'] = 0;
         }
         if ($this->data['ShadowAttribute']['deleted']) {
-            $this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
+            // correlations for proposals are deprecated.
+            //$this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
         }
 
         // convert into utc and micro sec
@@ -277,12 +278,15 @@ class ShadowAttribute extends AppModel
                 $result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
             }
         }
+        /*
+         * correlations are deprecated for proposals
         if ((isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) || (isset($this->data['ShadowAttribute']['proposal_to_delete']) && $this->data['ShadowAttribute']['proposal_to_delete'])) {
             // this is a deletion
             // Could be a proposal to delete or flagging a proposal that it was discarded / accepted - either way, we don't want to correlate here for now
         } else {
             $this->__afterSaveCorrelation($this->data['ShadowAttribute']);
         }
+        */
         if (empty($this->data['ShadowAttribute']['deleted'])) {
             $action = $created ? 'add' : 'edit';
             $this->publishKafkaNotification('shadow_attribute', $this->data, $action);
@@ -561,7 +565,7 @@ class ShadowAttribute extends AppModel
         $body = "Hello, \n\n";
         $body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n\n";
         $body .= 'To view the event in question, follow this link: ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
-        $subject =  "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id;
+        $subject =  "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id . ' (uuid: ' . $event['Event']['uuid'] . ')';
         $result = false;
         foreach ($orgMembers as $user) {
             $result = $this->User->sendEmail($user, $body, $body, $subject) or $result;
@@ -722,7 +726,7 @@ class ShadowAttribute extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->Event->SharingGroup->authorizedIds($user);
             $attributeDistribution = array(
                 'Attribute.distribution' => array(1,2,3,5)
             );

@@ -39,8 +39,8 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'user_settings_set'));
 ?>
 <script type="text/javascript">
-    var validSettings = <?php echo json_encode($validSettings); ?>;
-    $(document).ready(function() {
+    var validSettings = <?= json_encode($validSettings); ?>;
+    $(function() {
         loadUserSettingValue();
         changeUserSettingPlaceholder();
         $('#UserSettingSetting').on('change', function() {
@@ -56,11 +56,11 @@
         var user_id = $('#UserSettingUserId').val();
         var setting = $('#UserSettingSetting').val();
         $.ajax({
-            type:"get",
+            type: "get",
             url: baseurl + "/user_settings/getSetting/" + user_id + "/" + setting,
-            success: function (data, textStatus) {
+            success: function (data) {
                 if (data === '[]') {
-                    var data = '';
+                    data = '';
                 } else {
                     data = JSON.parse(data);
                     data = JSON.stringify(data, undefined, 4);
@@ -73,7 +73,7 @@
     function changeUserSettingPlaceholder() {
         var setting = $('#UserSettingSetting').val();
         if (setting in validSettings) {
-            $('#UserSettingValue').attr("placeholder", "Example:\n" + JSON.stringify(validSettings[setting]["placeholder"], undefined, 4));
+            $('#UserSettingValue').attr("placeholder", "Example:\n" + JSON.stringify(validSettings[setting], undefined, 4));
         }
     }
 </script>

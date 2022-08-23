@@ -349,9 +349,10 @@ class TagsController extends AppController
 
     public function showEventTag($id)
     {
+        $user = $this->_closeSession();
         $this->loadModel('Taxonomy');
 
-        $event = $this->Tag->EventTag->Event->fetchSimpleEvent($this->Auth->user(), $id, [
+        $event = $this->Tag->EventTag->Event->fetchSimpleEvent($user, $id, [
             'fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'],
             'contain' => [
                 'EventTag' => array(
@@ -364,24 +365,26 @@ class TagsController extends AppController
             throw new NotFoundException(__('Invalid event.'));
         }
         // Remove galaxy tags
-        $event = $this->Tag->EventTag->Event->massageTags($this->Auth->user(), $event, 'Event', false, true);
+        $event = $this->Tag->removeGalaxyClusterTags($user, $event);
 
         $this->set('tags', $event['EventTag']);
         $this->set('missingTaxonomies', $this->Tag->EventTag->Event->missingTaxonomies($event));
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
         $this->set('tagConflicts', $tagConflicts);
         $this->set('event', $event);
-        $this->layout = 'ajax';
+        $this->set('mayModify', $this->__canModifyEvent($event, $user));
+        $this->layout = false;
         $this->render('/Events/ajax/ajaxTags');
     }
 
     public function showAttributeTag($id)
     {
+        $user = $this->_closeSession();
         $this->helpers[] = 'TextColour';
         $this->loadModel('Attribute');
         $this->loadModel('Taxonomy');
 
-        $attributes = $this->Attribute->fetchAttributes($this->Auth->user(), [
+        $attributes = $this->Attribute->fetchAttributes($user, [
             'conditions' => ['Attribute.id' => $id],
             'includeAllTags' => true,
             'flatten' => true,
@@ -394,7 +397,7 @@ class TagsController extends AppController
         }
         $attribute = $attributes[0];
         // Remove galaxy tags
-        $attribute = $this->Tag->EventTag->Event->massageTags($this->Auth->user(), $attribute, 'Attribute', false, true);
+        $attribute = $this->Tag->removeGalaxyClusterTags($user, $attribute, 'Attribute');
         $attributeTags = $attribute['AttributeTag'];
 
         $this->set('event', ['Event' => $attribute['Event']]);
@@ -402,7 +405,8 @@ class TagsController extends AppController
         $this->set('attributeId', $id);
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attributeTags);
         $this->set('tagConflicts', $tagConflicts);
-        $this->layout = 'ajax';
+        $this->set('mayModify', $this->__canModifyEvent($attribute, $user));
+        $this->layout = false;
         $this->render('/Attributes/ajax/ajaxAttributeTags');
     }
 
@@ -435,7 +439,7 @@ class TagsController extends AppController
                 'conditions' => array('Event.id' => $id)
         ));
         $this->set('event', $event);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('/Events/ajax/ajaxTags');
     }
 
@@ -456,13 +460,11 @@ class TagsController extends AppController
 
     public function selectTaxonomy($id, $scope = 'event')
     {
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
-            throw new NotFoundException('You don\'t have permission to do that.');
-        }
+        $user = $this->_closeSession();
         $localFlag = !empty($this->params['named']['local']) ? '/local:1' : '';
         $items = array();
-        $favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
-        if ($favourites) {
+        $hasFavourites = $this->Tag->FavouriteTag->hasAny(array('FavouriteTag.user_id' => $user['id']));
+        if ($hasFavourites) {
             $items[] = array(
                 'name' => __('Favourite Tags'),
                 'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/favourites/" . h($scope) . $localFlag
@@ -484,11 +486,11 @@ class TagsController extends AppController
         );
 
         $this->loadModel('Taxonomy');
-        $options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
-        foreach ($options as $k => $option) {
+        $taxonomies = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
+        foreach ($taxonomies as $taxonomyId => $name) {
             $items[] = array(
-                'name' => __('Taxonomy Library') . ":" . h($option),
-                'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope . $localFlag)
+                'name' => __('Taxonomy Library') . ":" . h($name),
+                'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/" . h($taxonomyId) . "/" . h($scope) . $localFlag
             );
         }
         $this->set('items', $items);
@@ -502,6 +504,7 @@ class TagsController extends AppController
 
     public function selectTag($id, $taxonomy_id, $scope = 'event', $filterData = '')
     {
+        $user = $this->_closeSession();
         $this->loadModel('Taxonomy');
         $expanded = array();
         $this->set('taxonomy_id', $taxonomy_id);
@@ -527,87 +530,81 @@ class TagsController extends AppController
                     $expanded[$tagCollection['TagCollection']['id']] .= sprintf(' (%s)', $tagList);
                 }
             }
+        } elseif ($taxonomy_id === '0') { // custom tags
+            $temp = $this->Taxonomy->getAllTaxonomyTags(true, $user, true, true, $local_tag);
+            $tags = array();
+            foreach ($temp as $tag) {
+                $tags[$tag['Tag']['id']] = $tag['Tag'];
+            }
+            unset($temp);
+            $expanded = $tags;
+        } elseif ($taxonomy_id === 'favourites') {
+            $tags = array();
+            $conditions = array(
+                'FavouriteTag.user_id' => $user['id'],
+                'Tag.org_id' => array(0, $user['org_id']),
+                'Tag.user_id' => array(0, $user['id']),
+                'Tag.hide_tag' => 0,
+            );
+            if (!$local_tag) {
+                $conditions['Tag.local_only'] = 0;
+            }
+            $favTags = $this->Tag->FavouriteTag->find('all', array(
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'contain' => array('Tag'),
+                'order' => array('Tag.name asc')
+            ));
+            foreach ($favTags as $favTag) {
+                $tags[$favTag['FavouriteTag']['tag_id']] = $favTag['Tag'];
+                $expanded = $tags;
+            }
+        } elseif ($taxonomy_id === 'all') { // all tags
+            $conditions = [
+                'Tag.is_galaxy' => 0,
+                'Tag.hide_tag' => 0,
+            ];
+            if (!$this->_isSiteAdmin()) {
+                $conditions['Tag.org_id'] = array(0, $user['org_id']);
+                $conditions['Tag.user_id'] = array(0, $user['id']);
+            }
+            if (!$local_tag) {
+                $conditions['Tag.local_only'] = 0;
+            }
+            $tags = $this->Tag->find('all', array(
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'order' => array('name asc'),
+                'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
+            ));
+            $tags = array_column(array_column($tags, 'Tag'), null, "id");
+            $expanded = $tags;
         } else {
-            if ($taxonomy_id === '0') {
-                $temp = $this->Taxonomy->getAllTaxonomyTags(true, $this->Auth->user(), true, true, $local_tag);
-                $tags = array();
-                foreach ($temp as $tag) {
-                    $tags[$tag['Tag']['id']] = $tag['Tag'];
-                }
-                unset($temp);
-                $expanded = $tags;
-            } elseif ($taxonomy_id === 'favourites') {
-                $tags = array();
-                $conditions = array(
-                    'FavouriteTag.user_id' => $this->Auth->user('id'),
-                    'Tag.org_id' => array(0, $this->Auth->user('org_id')),
-                    'Tag.user_id' => array(0, $this->Auth->user('id')),
-                    'Tag.hide_tag' => 0,
-                );
-                if (!$local_tag) {
-                    $conditions['Tag.local_only'] = 0;
-                }
-                $favTags = $this->Tag->FavouriteTag->find('all', array(
-                    'conditions' => $conditions,
-                    'recursive' => -1,
-                    'contain' => array('Tag'),
-                    'order' => array('Tag.name asc')
-                ));
-                foreach ($favTags as $favTag) {
-                    $tags[$favTag['FavouriteTag']['tag_id']] = $favTag['Tag'];
-                    $expanded = $tags;
-                }
-            } elseif ($taxonomy_id === 'all') {
-                $conditions = [
-                    'Tag.name NOT LIKE' => 'misp-galaxy:%',
-                    'Tag.hide_tag' => 0,
-                ];
-                if (!$this->_isSiteAdmin()) {
-                    $conditions['Tag.org_id'] = array(0, $this->Auth->user('org_id'));
-                    $conditions['Tag.user_id'] = array(0, $this->Auth->user('id'));
-                }
-                if (!$local_tag) {
-                    $conditions['Tag.local_only'] = 0;
-                }
-                $allTags = $this->Tag->find('all', array(
-                    'conditions' => $conditions,
-                    'recursive' => -1,
-                    'order' => array('name asc'),
-                    'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
-                ));
-                $tags = array();
-                foreach ($allTags as $tag) {
-                    $tags[$tag['Tag']['id']] = $tag['Tag'];
-                }
-                unset($allTags);
-                $expanded = $tags;
-            } else {
-                $taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
-                $tags = array();
-                if (!empty($taxonomies['entries'])) {
-                    $isSiteAdmin = $this->_isSiteAdmin();
-                    foreach ($taxonomies['entries'] as $entry) {
-                        if (!empty($entry['existing_tag']['Tag'])) {
-                            $tag = $entry['existing_tag']['Tag'];
-                            if ($tag['hide_tag']) {
-                                continue; // do not include hidden tags
-                            }
-                            if ($tag['local_only'] && !$local_tag) {
-                                continue; // we skip the local tags for global entries
-                            }
-                            if (!$isSiteAdmin) {
-                                // Skip all tags that this user cannot use for tagging, determined by the org restriction on tags
-                                if ($tag['org_id'] != '0' && $tag['org_id'] != $this->Auth->user('org_id')) {
-                                    continue;
-                                }
-                                if ($tag['user_id'] != '0' && $tag['user_id'] != $this->Auth->user('id')) {
-                                    continue;
-                                }
-                            }
-
-                            $tags[$tag['id']] = $tag;
-                            $expanded[$tag['id']] = $entry['expanded'];
+            $taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
+            $tags = array();
+            if (!empty($taxonomies['entries'])) {
+                $isSiteAdmin = $this->_isSiteAdmin();
+                foreach ($taxonomies['entries'] as $entry) {
+                    if (!empty($entry['existing_tag']['Tag'])) {
+                        $tag = $entry['existing_tag']['Tag'];
+                        if ($tag['hide_tag']) {
+                            continue; // do not include hidden tags
                         }
+                        if ($tag['local_only'] && !$local_tag) {
+                            continue; // we skip the local tags for global entries
+                        }
+                        if (!$isSiteAdmin) {
+                            // Skip all tags that this user cannot use for tagging, determined by the org restriction on tags
+                            if ($tag['org_id'] != '0' && $tag['org_id'] != $user['org_id']) {
+                                continue;
+                            }
+                            if ($tag['user_id'] != '0' && $tag['user_id'] != $user['id']) {
+                                continue;
+                            }
+                        }
+
+                        $tags[$tag['id']] = $tag;
+                        $expanded[$tag['id']] = $entry['expanded'];
                     }
                 }
             }
@@ -626,7 +623,7 @@ class TagsController extends AppController
         $items = array();
         foreach ($tags as $k => $tag) {
             $tagName = $tag['name'];
-            $choice_id = $k;
+            $choice_id = (int)$k;
             if ($taxonomy_id === 'collections') {
                 $choice_id = 'collection_' . $choice_id;
             }
@@ -664,7 +661,7 @@ class TagsController extends AppController
             ),
         ));
         $this->set('local', !empty($this->params['named']['local']));
-        $this->render('ajax/select_tag');
+        $this->render('/Elements/generic_picker');
     }
 
     public function tagStatistics($percentage = false, $keysort = false)
@@ -1003,6 +1000,7 @@ class TagsController extends AppController
 
     public function search($tag = false, $strictTagNameOnly = false, $searchIfTagExists = true)
     {
+        $user = $this->_closeSession();
         if (isset($this->request->data['Tag'])) {
             $this->request->data = $this->request->data['Tag'];
         }
@@ -1022,7 +1020,7 @@ class TagsController extends AppController
                 $tag[$k] = strtolower($t);
                 $conditionsCluster['OR'][] = array('LOWER(GalaxyCluster.value)' => $tag[$k]);
             }
-            foreach ($tag as $k => $t) {
+            foreach ($tag as $t) {
                 $conditionsCluster['OR'][] = array('AND' => array('GalaxyElement.key' => 'synonyms', 'LOWER(GalaxyElement.value) LIKE' => $t));
             }
             $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
@@ -1033,7 +1031,7 @@ class TagsController extends AppController
             foreach ($elements as $element) {
                 $tag[] = strtolower($element['GalaxyCluster']['tag_name']);
             }
-            foreach ($tag as $k => $t) {
+            foreach ($tag as $t) {
                 $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
             }
         } else {
@@ -1067,7 +1065,7 @@ class TagsController extends AppController
                 $tags[$k]['Taxonomy'] = $taxonomy['Taxonomy'];
                 $tags[$k]['TaxonomyPredicate'] = $taxonomy['TaxonomyPredicate'][0];
             }
-            $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name'], $this->Auth->user());
+            $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name'], $user);
             if (!empty($cluster)) {
                 $dataFound = true;
                 $tags[$k]['GalaxyCluster'] = $cluster['GalaxyCluster'];

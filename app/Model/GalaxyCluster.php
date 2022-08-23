@@ -4,7 +4,10 @@ App::uses('TmpFileTool', 'Tools');
 
 /**
  * @property Tag $Tag
+ * @property Galaxy $Galaxy
  * @property GalaxyClusterRelation $GalaxyClusterRelation
+ * @property GalaxyElement $GalaxyElement
+ * @property SharingGroup $SharingGroup
  */
 class GalaxyCluster extends AppModel
 {
@@ -108,10 +111,10 @@ class GalaxyCluster extends AppModel
         if (!isset($cluster['published'])) {
             $cluster['published'] = false;
         }
-        if (!isset($cluster['authors']) || $cluster['authors'] === null) {
+        if (!isset($cluster['authors'])) {
             $cluster['authors'] = '';
         } elseif (is_array($cluster['authors'])) {
-            $cluster['authors'] = json_encode($cluster['authors']);
+            $cluster['authors'] = JsonTool::encode($cluster['authors']);
         }
         return true;
     }
@@ -120,24 +123,24 @@ class GalaxyCluster extends AppModel
     {
         foreach ($results as $k => $result) {
             if (isset($result[$this->alias]['authors'])) {
-                $results[$k][$this->alias]['authors'] = json_decode($results[$k][$this->alias]['authors'], true);
+                $results[$k][$this->alias]['authors'] = json_decode($result[$this->alias]['authors'], true);
             }
-            if (isset($result[$this->alias]['distribution']) && $results[$k][$this->alias]['distribution'] != 4) {
+            if (isset($result[$this->alias]['distribution']) && $result[$this->alias]['distribution'] != 4) {
                 unset($results[$k]['SharingGroup']);
             }
-            if (isset($result[$this->alias]['org_id']) && $results[$k][$this->alias]['org_id'] == 0) {
+            if (isset($result[$this->alias]['org_id']) && $result[$this->alias]['org_id'] == 0) {
                 if (isset($results[$k]['Org'])) {
                     $results[$k]['Org'] = Organisation::GENERIC_MISP_ORGANISATION;
                 }
             }
-            if (isset($result[$this->alias]['orgc_id']) && $results[$k][$this->alias]['orgc_id'] == 0) {
+            if (isset($result[$this->alias]['orgc_id']) && $result[$this->alias]['orgc_id'] == 0) {
                 if (isset($results[$k]['Orgc'])) {
                     $results[$k]['Orgc'] = Organisation::GENERIC_MISP_ORGANISATION;
                 }
             }
 
             if (!empty($result['GalaxyClusterRelation'])) {
-                foreach ($results[$k]['GalaxyClusterRelation'] as $i => $relation) {
+                foreach ($result['GalaxyClusterRelation'] as $i => $relation) {
                     if (isset($relation['distribution']) && $relation['distribution'] != 4) {
                         unset($results[$k]['GalaxyClusterRelation'][$i]['SharingGroup']);
                     }
@@ -625,13 +628,11 @@ class GalaxyCluster extends AppModel
         $elevatedUser = array(
             'Role' => array(
                 'perm_site_admin' => 1,
-                'perm_sync' => 1
+                'perm_sync' => 1,
+                'perm_audit' => 0,
             ),
             'org_id' => $clusterOrgcId['GalaxyCluster']['orgc_id']
         );
-        $elevatedUser['Role']['perm_site_admin'] = 1;
-        $elevatedUser['Role']['perm_sync'] = 1;
-        $elevatedUser['Role']['perm_audit'] = 0;
         $cluster = $this->fetchGalaxyClusters($elevatedUser, array('minimal' => true, 'conditions' => array('id' => $clusterId)), $full=false);
         if (empty($cluster)) {
             return true;
@@ -652,14 +653,10 @@ class GalaxyCluster extends AppModel
             return true;
         }
         $uploaded = false;
-        $failedServers = array();
-        App::uses('SyncTool', 'Tools');
-        foreach ($servers as &$server) {
+        foreach ($servers as $server) {
             if ((!isset($server['Server']['internal']) || !$server['Server']['internal']) && $cluster['GalaxyCluster']['distribution'] < 2) {
                 continue;
             }
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
             $fakeSyncUser = array(
                 'id' => 0,
                 'email' => 'fakeSyncUser@user.test',
@@ -675,14 +672,13 @@ class GalaxyCluster extends AppModel
             );
             $cluster = $this->fetchGalaxyClusters($fakeSyncUser, array('conditions' => array('GalaxyCluster.id' => $clusterId)), $full=true);
             if (empty($cluster)) {
-                return true;
+                continue;
             }
             $cluster = $cluster[0];
-            $result = $this->uploadClusterToServer($cluster, $server, $HttpSocket, $fakeSyncUser);
-            if ($result == 'Success') {
+            $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+            $result = $this->uploadClusterToServer($cluster, $server, $serverSync, $fakeSyncUser);
+            if ($result === 'Success') {
                 $uploaded = true;
-            } else {
-                $failedServers[] = $server;
             }
         }
         return $uploaded;
@@ -1012,10 +1008,9 @@ class GalaxyCluster extends AppModel
 
     public function buildConditions($user)
     {
-        $this->Event = ClassRegistry::init('Event');
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $alias = $this->alias;
             $conditions['AND']['OR'] = array(
                 "${alias}.org_id" => $user['org_id'],
@@ -1122,7 +1117,7 @@ class GalaxyCluster extends AppModel
 
             if (!empty($tagsToFetch)) {
                 $tags = $this->GalaxyClusterRelation->GalaxyClusterRelationTag->Tag->find('all', [
-                    'conditions' => ['id' => array_unique($tagsToFetch)],
+                    'conditions' => ['id' => array_unique($tagsToFetch, SORT_REGULAR)],
                     'recursive' => -1,
                 ]);
                 $tags = array_column(array_column($tags, 'Tag'), null, 'id');
@@ -1670,79 +1665,29 @@ class GalaxyCluster extends AppModel
 
     /**
      * @return string|bool The result of the upload. True if success, a string otherwise
+     * @throws Exception
      */
-    public function uploadClusterToServer($cluster, $server, $HttpSocket, $user)
-    {
-        $this->Server = ClassRegistry::init('Server');
-        $this->Log = ClassRegistry::init('Log');
-        $push = $this->Server->checkVersionCompatibility($server, false);
-        if (empty($push['canPush']) && empty($push['canPushGalaxyCluster'])) {
-            return __('The remote user does not have the permission to manipulate galaxies - the upload of the galaxy clusters has been blocked.');
-        }
-        $updated = null;
-        $newLocation = $newTextBody = '';
-        $result = $this->__executeRestfulGalaxyClusterToServer($cluster, $server, null, $newLocation, $newTextBody, $HttpSocket, $user);
-        if ($result !== true) {
-            return $result;
-        }
-        if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-            $result = $this->__executeRestfulGalaxyClusterToServer($cluster, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket, $user);
-            if ($result !== true) {
-                return $result;
-            }
-        }
-        $uploadFailed = false;
-        try {
-            $json = json_decode($newTextBody, true);
-        } catch (Exception $e) {
-            $uploadFailed = true;
-        }
-        if (!is_array($json) || $uploadFailed) {
-            $this->Log->createLogEntry($user, 'push', 'GalaxyCluster', $cluster['GalaxyCluster']['id'], 'push', $newTextBody);
-        }
-        return 'Success';
-    }
-
-    private function __executeRestfulGalaxyClusterToServer($cluster, $server, $resourceId, &$newLocation, &$newTextBody, $HttpSocket, $user)
-    {
-        $result = $this->restfulGalaxyClusterToServer($cluster, $server, $resourceId, $newLocation, $newTextBody, $HttpSocket);
-        if (is_numeric($result)) {
-            $error = $this->__resolveErrorCode($result, $cluster, $server, $user);
-            if ($error) {
-                return $error . ' Error code: ' . $result;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * @return string|bool|int The result of the upload.
-     */
-    public function restfulGalaxyClusterToServer($cluster, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
+    public function uploadClusterToServer(array $cluster, array $server, ServerSyncTool $serverSync, array $user)
     {
         $cluster = $this->__prepareForPushToServer($cluster, $server);
         if (is_numeric($cluster)) {
             return $cluster;
         }
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $scope = 'galaxies/pushCluster';
-        $uri = $url . '/' . $scope;
-        $clusters = array($cluster);
-        $data = json_encode($clusters);
-        if (!empty(Configure::read('Security.sync_audit'))) {
-            $pushLogEntry = sprintf(
-                "==============================================================\n\n[%s] Pushing Galaxy Cluster #%d to Server #%d:\n\n%s\n\n",
-                date("Y-m-d H:i:s"),
-                $cluster['GalaxyCluster']['id'],
-                $server['Server']['id'],
-                $data
-            );
-            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
+
+        try {
+            if (!$serverSync->isSupported(ServerSyncTool::PERM_SYNC) || $serverSync->isSupported(ServerSyncTool::PERM_GALAXY_EDITOR)) {
+                return __('The remote user does not have the permission to manipulate galaxies - the upload of the galaxy clusters has been blocked.');
+            }
+            $serverSync->pushGalaxyCluster($cluster)->json();
+        } catch (Exception $e) {
+            $title = __('Uploading GalaxyCluster (%s) to Server (%s)', $cluster['GalaxyCluster']['id'], $server['Server']['id']);
+            $this->loadLog()->createLogEntry($user, 'push', 'GalaxyCluster', $cluster['GalaxyCluster']['id'], $title, $e->getMessage());
+
+            $this->logException("Could not push galaxy cluster to remote server {$serverSync->serverId()}", $e);
+            return $e->getMessage();
         }
-        $response = $HttpSocket->post($uri, $data, $request);
-        return $this->__handleRestfulGalaxyClusterToServerResponse($response, $newLocation, $newTextBody);
+
+        return 'Success';
     }
 
     /**
@@ -1750,7 +1695,7 @@ class GalaxyCluster extends AppModel
      *
      * @param  array $cluster
      * @param  array $server
-     * @return array The cluster ready to be pushed
+     * @return array|int The cluster ready to be pushed
      */
     private function __prepareForPushToServer(array $cluster, array $server)
     {
@@ -1771,11 +1716,9 @@ class GalaxyCluster extends AppModel
         }
         $this->Event = ClassRegistry::init('Event');
         if ($this->Event->checkDistributionForPush($cluster, $server, 'GalaxyCluster')) {
-            $cluster = $this->__updateClusterForSync($cluster, $server);
-        } else {
-            return 403;
+            return $this->__updateClusterForSync($cluster, $server);
         }
-        return $cluster;
+        return 403;
     }
 
     /**
@@ -1885,89 +1828,38 @@ class GalaxyCluster extends AppModel
     }
 
     /**
-     * @return string|bool|int The result of the upload.
-     */
-    private function __handleRestfulGalaxyClusterToServerResponse($response, &$newLocation, &$newTextBody)
-    {
-        switch ($response->code) {
-            case '200': // 200 (OK) + entity-action-result
-                if ($response->isOk()) {
-                    $newTextBody = $response->body();
-                    return true;
-                } else {
-                    try {
-                        $jsonArray = json_decode($response->body, true);
-                    } catch (Exception $e) {
-                        return true;
-                    }
-                    return $jsonArray['name'];
-                }
-                // no break
-            case '302': // Found
-                $newLocation = $response->headers['Location'];
-                $newTextBody = $response->body();
-                return true;
-            case '404': // Not Found
-                $newLocation = $response->headers['Location'];
-                $newTextBody = $response->body();
-                return 404;
-            case '405':
-                return 405;
-            case '403': // Not authorised
-                return 403;
-        }
-    }
-
-    private function __resolveErrorCode($code, &$cluster, &$server, $user)
-    {
-        $this->Log = ClassRegistry::init('Log');
-        $error = false;
-        switch ($code) {
-            case 403:
-                return __('The distribution level of the cluster blocks it from being pushed.');
-            case 405:
-                $error = __('The sync user on the remote instance does not have the required privileges to handle this cluster.');
-                break;
-        }
-        if ($error) {
-            $newTextBody = 'Uploading GalaxyCluster (' . $cluster['GalaxyCluster']['id'] . ') to Server (' . $server['Server']['id'] . ')';
-            $newTextBody = __('Uploading GalaxyCluster (%s) to Server (%s)', $cluster['GalaxyCluster']['id'], $server['Server']['id']);
-            $this->Log->createLogEntry($user, 'push', 'GalaxyCluster', $cluster['GalaxyCluster']['id'], 'push', $newTextBody);
-        }
-        return $error;
-    }
-
-    /**
      * pullGalaxyClusters
      *
-     * @param  array $user
-     * @param  array $server
-     * @param  string|int $technique The technique startegy used for pulling
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @param string|int $technique The technique startegy used for pulling
      *      allowed:
      *          - int <event id>                    event containing the clusters to pulled
      *          - string <full>                     pull everything
      *          - string <update>                   pull updates of cluster present locally
      *          - string <pull_relevant_clusters>   pull clusters based on tags present locally
      * @return int The number of pulled clusters
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
      */
-    public function pullGalaxyClusters(array $user, array $server, $technique = 'full')
+    public function pullGalaxyClusters(array $user, ServerSyncTool $serverSync, $technique = 'full')
     {
-        $this->Server = ClassRegistry::init('Server');
-        $compatible = $this->Server->checkVersionCompatibility($server, $user)['supportEditOfGalaxyCluster'];
+        $compatible = $serverSync->isSupported(ServerSyncTool::FEATURE_EDIT_OF_GALAXY_CLUSTER);
         if (!$compatible) {
             return 0;
         }
-        $clusterIds = $this->getClusterIdListBasedOnPullTechnique($user, $technique, $server);
-        $successes = array();
-        $fails = array();
+        $clusterIds = $this->getClusterIdListBasedOnPullTechnique($user, $technique, $serverSync);
+        $successes = 0;
         // now process the $clusterIds to pull each of the events sequentially
         if (!empty($clusterIds)) {
             // download each cluster
-            foreach ($clusterIds as $k => $clusterId) {
-                $this->__pullGalaxyCluster($clusterId, $successes, $fails, $server, $user);
+            foreach ($clusterIds as $clusterId) {
+                if ($this->__pullGalaxyCluster($clusterId, $serverSync, $user)) {
+                    $successes++;
+                }
             }
         }
-        return count($successes);
+        return $successes;
     }
 
     /**
@@ -1975,16 +1867,16 @@ class GalaxyCluster extends AppModel
      *
      * @param  array $user
      * @param  string|int $technique
-     * @param  array $server
+     * @param  ServerSyncTool $serverSync
      * @return array cluster ID list to be pulled
      */
-    private function getClusterIdListBasedOnPullTechnique(array $user, $technique, array $server)
+    private function getClusterIdListBasedOnPullTechnique(array $user, $technique, ServerSyncTool $serverSync)
     {
         $this->Server = ClassRegistry::init('Server');
         try {
             if ("update" === $technique) {
                 $localClustersToUpdate = $this->getElligibleLocalClustersToUpdate($user);
-                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket = null, $onlyUpdateLocalCluster = true, $elligibleClusters = $localClustersToUpdate);
+                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($serverSync, $onlyUpdateLocalCluster = true, $elligibleClusters = $localClustersToUpdate);
             } elseif ("pull_relevant_clusters" === $technique) {
                 // Fetch all local custom cluster tags then fetch their corresponding clusters on the remote end
                 $tagNames = $this->Tag->find('column', array(
@@ -2003,55 +1895,39 @@ class GalaxyCluster extends AppModel
                 }
                 $localClustersToUpdate = $this->getElligibleLocalClustersToUpdate($user);
                 $conditions = array('uuid' => array_keys($clusterUUIDs));
-                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket = null, $onlyUpdateLocalCluster = false, $elligibleClusters = $localClustersToUpdate, $conditions = $conditions);
+                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($serverSync, $onlyUpdateLocalCluster = false, $elligibleClusters = $localClustersToUpdate, $conditions = $conditions);
             } elseif (is_numeric($technique)) {
                 $conditions = array('eventid' => $technique);
-                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket = null, $onlyUpdateLocalCluster = false, $elligibleClusters = array(), $conditions = $conditions);
+                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($serverSync, $onlyUpdateLocalCluster = false, $elligibleClusters = array(), $conditions = $conditions);
             } else {
-                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket = null, $onlyUpdateLocalCluster = false);
+                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($serverSync, $onlyUpdateLocalCluster = false);
             }
         } catch (HttpSocketHttpException $e) {
             if ($e->getCode() === 403) {
                 return array('error' => array(1, null));
             } else {
-                $this->logException("Could not get eligible cluster IDs from server {$server['Server']['id']} for pull.", $e);
+                $this->logException("Could not get eligible cluster IDs from server {$serverSync->serverId()} for pull.", $e);
                 return array('error' => array(2, $e->getMessage()));
             }
         } catch (Exception $e) {
-            $this->logException("Could not get eligible cluster IDs from server {$server['Server']['id']} for pull.", $e);
+            $this->logException("Could not get eligible cluster IDs from server {$serverSync->serverId()} for pull.", $e);
             return array('error' => array(2, $e->getMessage()));
         }
         return $clusterIds;
     }
 
-    private function __pullGalaxyCluster($clusterId, &$successes, &$fails, $server, $user)
+    private function __pullGalaxyCluster($clusterId, ServerSyncTool $serverSync, array $user)
     {
-        $cluster = $this->downloadGalaxyClusterFromServer($clusterId, $server);
-        if (!empty($cluster)) {
-            $cluster = $this->updatePulledClusterBeforeInsert($cluster, $server, $user);
-            $result = $this->captureCluster($user, $cluster, $fromPull=true, $orgId=$server['Server']['org_id']);
-            if ($result['success']) {
-                $successes[] = $clusterId;
-            } else {
-                $fails[$clusterId] = __('Failed because of errors: ') . json_encode($result['errors']);
-            }
-        } else {
-            $fails[$clusterId] = __('failed downloading the galaxy cluster');
+        try {
+            $cluster = $serverSync->fetchGalaxyCluster($clusterId)->json();
+        } catch (Exception $e) {
+            $this->logException("Could not fetch galaxy cluster $clusterId from server {$serverSync->serverId()}", $e);
+            return false;
         }
-        return true;
-    }
 
-    public function downloadGalaxyClusterFromServer($clusterId, $server, $HttpSocket=null)
-    {
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $url . '/galaxy_clusters/view/' . $clusterId;
-        $response = $HttpSocket->get($uri, $data = '', $request);
-        if ($response->isOk()) {
-            return json_decode($response->body, true);
-        }
-        return null;
+        $cluster = $this->updatePulledClusterBeforeInsert($cluster, $serverSync->server(), $user);
+        $result = $this->captureCluster($user, $cluster, $fromPull=true, $orgId=$serverSync->server()['Server']['org_id']);
+        return $result['success'];
     }
 
     private function updatePulledClusterBeforeInsert($cluster, $server, $user)

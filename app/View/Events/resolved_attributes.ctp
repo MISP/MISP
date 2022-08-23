@@ -9,7 +9,6 @@
             echo sprintf('<p class="bold red">%s</p>', $missingTldLists);
         }
     ?>
-    <p></p>
     <?php
         $instanceDefault = 5;
         if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
@@ -22,36 +21,36 @@
         echo $this->Form->create('Attribute', array('url' => $baseurl . '/events/saveFreeText/' . $event['Event']['id'], 'class' => 'mainForm'));
         if ($isSiteAdmin) {
             echo $this->Form->input('force', array(
-                    'checked' => false,
-                    'label' => __('Proposals instead of attributes'),
+                'checked' => false,
+                'label' => __('Proposals instead of attributes'),
             ));
         }
         echo $this->Form->input('JsonObject', array(
-                'label' => false,
-                'type' => 'text',
-                'style' => 'display:none;',
-                'value' => '',
+            'label' => false,
+            'type' => 'text',
+            'style' => 'display:none;',
+            'value' => '',
         ));
         echo $this->Form->input('default_comment', array(
-                'label' => false,
-                'type' => 'text',
-                'style' => 'display:none;',
-                'value' => $importComment,
+            'label' => false,
+            'type' => 'text',
+            'style' => 'display:none;',
+            'value' => $importComment,
         ));
         echo $this->Form->end();
     ?>
     <table class="table table-striped table-hover table-condensed">
         <tr>
-                <th><?php echo __('Value');?></th>
-                <th><?php echo __('Similar Attributes');?></th>
-                <th><?php echo __('Category');?></th>
-                <th><?php echo __('Type');?></th>
-                <th><?php echo __('IDS');?><input type="checkbox" id="checkAllIDS" style="margin-top:0;margin-left:.3em"></th>
-                <th style="text-align:center;"><?php echo __('Disable Correlation');?><input type="checkbox" id="checkAllDC" style="margin-top:0;margin-left:.3em"></th>
-                <th><?php echo __('Distribution');?></th>
-                <th><?php echo __('Comment');?></th>
-                <th><?php echo __('Tags (separated by comma)');?></th>
-                <th><?php echo __('Actions');?></th>
+            <th><?php echo __('Value');?></th>
+            <th><?php echo __('Similar Attributes');?></th>
+            <th><?php echo __('Category');?></th>
+            <th><?php echo __('Type');?></th>
+            <th><?php echo __('IDS');?><input type="checkbox" id="checkAllIDS" style="margin-top:0;margin-left:.3em"></th>
+            <th style="text-align:center;"><?php echo __('Disable Correlation');?><input type="checkbox" id="checkAllDC" style="margin-top:0;margin-left:.3em"></th>
+            <th><?php echo __('Distribution');?></th>
+            <th><?php echo __('Comment');?></th>
+            <th><?php echo __('Tags (separated by comma)');?></th>
+            <th><?php echo __('Actions');?></th>
         </tr>
         <?php
             $options = array();
@@ -60,31 +59,31 @@
         <tr id="row_<?php echo $k; ?>" class="freetext_row">
             <?php
                 echo $this->Form->input('Attribute' . $k . 'Save', array(
-                        'label' => false,
-                        'style' => 'display:none;',
-                        'value' => 1,
+                    'label' => false,
+                    'style' => 'display:none;',
+                    'value' => 1,
                 ));
                 echo $this->Form->input('Attribute' . $k . 'Data', array(
-                        'label' => false,
-                        'type' => 'hidden',
-                        'value' => isset($item['data']) ? $item['data'] : false,
+                    'label' => false,
+                    'type' => 'hidden',
+                    'value' => isset($item['data']) ? $item['data'] : false,
                 ));
                 echo $this->Form->input('Attribute' . $k . 'DataIsHandled', array(
-                        'label' => false,
-                        'type' => 'hidden',
-                        'value' => isset($item['data_is_handled']) ? h($item['data_is_handled']) : false,
+                    'label' => false,
+                    'type' => 'hidden',
+                    'value' => isset($item['data_is_handled']) ? h($item['data_is_handled']) : false,
                 ));
             ?>
             <td>
                 <?php
                     echo $this->Form->input('Attribute' . $k . 'Value', array(
-                            'label' => false,
-                            'value' => $item['value'],
-                            'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;min-width:400px;',
-                            'div' => false
+                        'label' => false,
+                        'value' => $item['value'],
+                        'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;min-width:400px;',
+                        'div' => false
                     ));
                 ?>
-                <input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
+                <input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value="1">
             </td>
             <td class="shortish">
                 <?php
@@ -129,8 +128,8 @@
                             if (isset($item['categories']) && !in_array($category, $item['categories'])) {
                                 continue;
                             }
-                            echo '<option value="' . $category . '" ';
-                            if ($category == $default) echo 'selected="selected"';
+                            echo '<option';
+                            if ($category == $default) echo ' selected="selected"';
                             echo '>' . $category . '</option>';
                         }
                     ?>
@@ -140,33 +139,35 @@
                 <?php
                     $divVisibility = '';
                     $selectVisibility = '';
-                    if (count($item['types']) == 1) {
+                    if (count($item['types']) === 1) {
                         $selectVisibility = 'display:none;';
                     } else {
                         $divVisibility = 'style="display:none;"';
-                        if (!in_array(array_keys($item['types']), $options)) $options[] = array_values($item['types']);
+                        if (!in_array($item['types'], $options)) {
+                            $options[] = $item['types'];
+                        }
                     }
                 ?>
-                <div id = "<?php echo 'Attribute' . $k . 'TypeStatic'; ?>" <?php echo $divVisibility; ?> ><?php echo h($item['default_type']); ?></div>
-                <select id = "<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>'>
+                <div id="<?php echo 'Attribute' . $k . 'TypeStatic'; ?>" <?php echo $divVisibility; ?> ><?php echo h($item['default_type']); ?></div>
+                <select id="<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>'>
                     <?php
                         if (!empty($item['types'])) {
                             foreach ($item['types'] as $type) {
-                                echo '<option value="' . h($type) . '" ';
-                                echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . h($type) . '</option>';
+                                echo '<option';
+                                echo ($type === $item['default_type'] ? ' selected="selected"' : '') . '>' . h($type) . '</option>';
                             }
                         }
                     ?>
                 </select>
             </td>
             <td class="short" style="width:40px;text-align:center;">
-                <input type="checkbox" id="<?php echo 'Attribute' . $k . 'To_ids'; ?>" <?php if ($item['to_ids']) echo 'checked'; ?> class="idsCheckbox" />
+                <input type="checkbox" id="<?php echo 'Attribute' . $k . 'To_ids'; ?>" <?php if ($item['to_ids']) echo 'checked'; ?> class="idsCheckbox">
             </td>
             <td class="short" style="width:40px;text-align:center;">
-                <input type="checkbox" id="<?php echo 'Attribute' . $k . 'Disable_correlation'; ?>" <?php if (isset($item['disable_correlation']) && $item['disable_correlation']) echo 'checked'; ?> class="dcCheckbox" />
+                <input type="checkbox" id="<?php echo 'Attribute' . $k . 'Disable_correlation'; ?>" <?php if (!empty($item['disable_correlation'])) echo 'checked'; ?> class="dcCheckbox">
             </td>
             <td class="short" style="width:40px;text-align:center;">
-                <select id = "<?php echo 'Attribute' . $k . 'Distribution'; ?>" class='distributionToggle' style='padding:0px;height:20px;margin-bottom:0px;'>
+                <select id="<?php echo 'Attribute' . $k . 'Distribution'; ?>" class='distributionToggle' style='padding:0px;height:20px;margin-bottom:0px;'>
                     <?php
                         foreach ($distributions as $distKey => $distValue) {
                             $default = isset($item['distribution']) ? $item['distribution'] : $instanceDefault;
@@ -176,7 +177,7 @@
                     ?>
                 </select>
                 <div style="display:none;">
-                    <select id = "<?php echo 'Attribute' . $k . 'SharingGroupId'; ?>" class='sgToggle' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+                    <select id="<?php echo 'Attribute' . $k . 'SharingGroupId'; ?>" class='sgToggle' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
                         <?php
                             foreach ($sgs as $sgKey => $sgValue) {
                                 echo '<option value="' . h($sgKey) . '">' . h($sgValue) . '</option>';
@@ -186,13 +187,13 @@
                 </div>
             </td>
             <td class="short">
-                <input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . h($item['comment']) . '"'?>/>
+                <input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . h($item['comment']) . '"'?>>
             </td>
             <td class="short">
-                <input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . h(implode(",",$item['tags'])) . '"'?>/>
+                <input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . h(implode(",",$item['tags'])) . '"'?>>
             </td>
             <td class="action short">
-                <span class="fa fa-times useCursorPointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+                <span class="fa fa-times useCursorPointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onclick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
             </td>
         </tr>
     <?php
@@ -209,7 +210,7 @@
     ?>
     </table>
     <span>
-        <button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>');"><?php echo __('Submit %s', $scope);?></button>
+        <button class="btn btn-primary" style="float:left;" onclick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', <?= count($resultArray) ?>);"><?php echo __('Submit %s', $scope);?></button>
         <span style="float:right">
             <?php
                 if (!empty($optionsRearranged)):
@@ -229,7 +230,7 @@
                         $keys = array_keys($optionsRearranged);
                         foreach ($optionsRearranged[$keys[0]] as $toElement):
                     ?>
-                            <option value="<?php echo $toElement; ?>"><?php echo $toElement; ?></option>
+                            <option><?php echo $toElement; ?></option>
                     <?php
                         endforeach;
                     ?>
@@ -244,7 +245,7 @@
     <script>
         var options = <?php echo json_encode($optionsRearranged);?>;
         var typeCategoryMapping = <?php echo json_encode($typeCategoryMapping); ?>;
-        $(document).ready(function() {
+        $(function() {
             popoverStartup();
             $('.typeToggle').on('change', function() {
                 var currentId = $(this).attr('id');
@@ -266,9 +267,10 @@
                     }
                 }
                 */
-                $('#' + currentId).empty();
+                var $categorySelect = $('#' + currentId);
+                $categorySelect.empty();
                 for (var category in currentOptions) {
-                    $('#' + currentId).append($("<option></option>").attr("value", category).text(category));
+                    $categorySelect.append(new Option(category, category));
                 }
             });
         <?php
@@ -276,16 +278,15 @@
         ?>
                 $('#changeFrom').change(function(){
                     changeFreetextImportFrom();
-                });
-                $('#changeFrom').trigger('change');
+                }).trigger('change');
         <?php
             endif;
         ?>
             $('#checkAllIDS').change(function() {
-                $('.idsCheckbox').prop('checked', $('#checkAllIDS').is(':checked'));
+                $('.idsCheckbox').prop('checked', $(this).is(':checked'));
             });
             $('#checkAllDC').change(function() {
-                $('.dcCheckbox').prop('checked', $('#checkAllDC').is(':checked'));
+                $('.dcCheckbox').prop('checked', $(this).is(':checked'));
             });
             $('.distributionToggle').change(function() {
                 if ($(this).val() == 4) {
@@ -296,6 +297,4 @@
             });
         });
     </script>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));

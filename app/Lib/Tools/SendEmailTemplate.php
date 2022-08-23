@@ -10,6 +10,9 @@ class SendEmailTemplate
     /** @var string|null */
     private $referenceId;
 
+    /** @var string */
+    private $listUnsubscribe;
+
     /** @var string|null */
     private $subject;
 
@@ -29,6 +32,18 @@ class SendEmailTemplate
             return $this->referenceId;
         }
         $this->referenceId = $referenceId;
+    }
+
+    /**
+     * @param string|null $listUnsubscribe
+     * @return string|void
+     */
+    public function listUnsubscribe($listUnsubscribe = null)
+    {
+        if ($listUnsubscribe === null) {
+            return $this->listUnsubscribe;
+        }
+        $this->listUnsubscribe = $listUnsubscribe;
     }
 
     /**
@@ -71,14 +86,26 @@ class SendEmailTemplate
 
         $View->viewPath = $View->layoutPath = 'Emails' . DS . 'html';
         try {
-            $html = $View->render($this->viewName);
+            $View->viewPath = $View->layoutPath = 'Emails' . DS . 'html' . DS . 'Custom';
+            $html = $View->render($this->viewName); // Attempt to load a custom template if it exists
         } catch (MissingViewException $e) {
-            $html = null; // HTMl template is optional
+            $View->viewPath = $View->layoutPath = 'Emails' . DS . 'html';
+            try {
+                $html = $View->render($this->viewName);
+            } catch (MissingViewException $e) {
+                $html = null; // HTMl template is optional
+            }
         }
 
-        $View->viewPath = $View->layoutPath = 'Emails' . DS . 'text';
+
         $View->hasRendered = false;
-        $text = $View->render($this->viewName);
+        try {
+            $View->viewPath = $View->layoutPath = 'Emails' . DS . 'text' . DS . 'Custom';
+            $text = $View->render($this->viewName); // Attempt to load a custom template if it exists
+        } catch (MissingViewException $e) {
+            $View->viewPath = $View->layoutPath = 'Emails' . DS . 'text';
+            $text = $View->render($this->viewName);
+        }
 
         // Template can change default subject.
         if ($View->get('subject')) {

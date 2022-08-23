@@ -14,7 +14,7 @@ class QueryTool
     {
         $db = $model->getDataSource();
         $connection = $db->getConnection();
-        if ($db->config['datasource'] === 'Database/Mysql' || $db->config['datasource'] === 'Database/MysqlObserver') {
+        if (in_array($db->config['datasource'], ['Database/Mysql', 'Database/MysqlObserver', 'Database/MysqlExtended'])) {
             $query = $connection->prepare('DELETE FROM ' . $table . ' WHERE ' . $field . ' = :value');
         } elseif ($db->config['datasource'] == 'Database/Postgres' ) {
             $query = $connection->prepare('DELETE FROM "' . $table . '" WHERE "' . $field . '" = :value');

@@ -6,18 +6,30 @@
  *  to fetch it.
  *
  */
-    $data = Hash::extract($row, $field['data_path']);
-    $seed = mt_rand();
-    $checkboxId = 'GenericToggle-' . $seed;
-    $checkboxClass = empty($field['checkbox_class']) ? 'genericCheckbox' : h($field['checkbox_class']);
-    $tempboxId = 'TempBox-' . $seed;
-    echo sprintf(
-        '<input type="checkbox" id="%s" class="%s" %s><span id="%s" class="hidden">',
-        $checkboxId,
-        $checkboxClass,
-        empty($data[0]) ? '' : 'checked',
-        $tempboxId
-    );
+$data = Hash::extract($row, $field['data_path']);
+$seed = mt_rand();
+$checkboxId = 'GenericToggle-' . $seed;
+$checkboxClass = empty($field['checkbox_class']) ? 'genericCheckbox' : h($field['checkbox_class']);
+$tempboxId = 'TempBox-' . $seed;
+
+$params = [];
+if (!empty($data[0])) {
+    $params[] = 'checked';
+}
+if (!empty($field['disabled'])) {
+    $params[] = 'disabled';
+}
+$params = empty($params) ? '' : ' ' . implode(' ', $params);
+
+echo sprintf(
+    '<input type="checkbox" id="%s" class="%s"%s><span id="%s" class="hidden"></span>',
+    $checkboxId,
+    $checkboxClass,
+    $params,
+    $tempboxId
+);
+
+if (empty($field['disabled'])):
 ?>
 <script type="text/javascript">
 $(function() {
@@ -71,3 +83,4 @@ $(function() {
     });
 });
 </script>
+<?php endif; ?>

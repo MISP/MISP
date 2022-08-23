@@ -28,6 +28,21 @@ class Post extends AppModel
             ),
     );
 
+    public function afterSave($created, $options = array())
+    {
+        $post = $this->data;
+        if ($this->isTriggerCallable('post-after-save')) {
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'Post',
+                'action' => $created ? 'add' : 'edit',
+                'id' => $post['Post']['id'],
+            ];
+            $triggerData = $post;
+            $this->executeTrigger('post-after-save', $triggerData, $workflowErrors, $logging);
+        }
+    }
+
     public function sendPostsEmailRouter($user_id, $post_id, $event_id, $title, $message)
     {
         if (Configure::read('MISP.background_jobs')) {

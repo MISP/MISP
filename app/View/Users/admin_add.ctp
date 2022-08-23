@@ -13,7 +13,7 @@
                 $password = false;
             } else {
                 $userType = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-                echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => $userType . ' user'));
+                echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => h($userType) . ' user'));
             }
             echo sprintf(
                 '<div class="clear"></div><div %s>%s</div>',
@@ -81,7 +81,7 @@
     ?>
     <div class="user-edit-checkboxes" style="margin-bottom: 1em">
     <?php
-        $default_publish_alert = Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : true;
+        $default_publish_alert = Configure::read('MISP.default_publish_alert') ?: true;
         echo $this->Form->input('autoalert', array(
             'label' => __('Receive email alerts when events are published'),
             'type' => 'checkbox',

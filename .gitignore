@@ -35,6 +35,8 @@ tools/mkdocs
 /app/tmp/cache/misp_feed*
 /app/files/*
 /app/tmp/cache/feeds/*.cache
+app/Lib/EventWarning/Custom/*
+!app/Lib/EventWarning/Custom/empty
 !/app/files/feed-metadata
 !/app/files/empty
 !/app/files/scripts/
@@ -48,6 +50,8 @@ tools/mkdocs
 !/app/files/misp-objects/*
 !/app/files/misp-decaying-models
 !/app/files/misp-decaying-models/*
+!/app/files/misp-workflow-blueprints
+!/app/files/misp-workflow-blueprints/*
 /app/files/scripts/*.pyc
 /app/files/scripts/*.py~
 /app/files/scripts/__pycache__
@@ -105,3 +109,8 @@ vagrant/.vagrant/
 vagrant/*.log
 /app/Lib/Dashboard/Custom/*
 !/app/Lib/Dashboard/Custom/empty
+/app/View/Emails/html/Custom/*
+!/app/View/Emails/html/Custom/empty
+/app/View/Emails/text/Custom/*
+!/app/View/Emails/text/Custom/empty
+

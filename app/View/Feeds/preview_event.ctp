@@ -36,10 +36,6 @@ $tableData[] = [
     'value' => $distributionText
 ];
 $tableData[] = [
-    'key' => __('Info'),
-    'value' => $event['Event']['info']
-];
-$tableData[] = [
     'key' => __('Published'),
     'class' => $event['Event']['published'] == 0 ? 'background-red bold not-published' : 'published',
     'class_value' => $event['Event']['published'] == 0 ? '' : 'green',
@@ -51,17 +47,12 @@ $tableData[] = [
 ];
 ?>
 <div class="events view">
-    <?php
-        $title = $event['Event']['info'];
-        if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
-    ?>
     <h4 class="visibleDL notPublished" ><?= __('You are currently viewing an event from a feed (%s by %s)', h($feed['Feed']['name']), h($feed['Feed']['provider']));?></h4>
     <div class="row-fluid">
-        <div class="span8">
-            <h2><?php echo nl2br(h($title)); ?></h2>
-            <?= $this->element('genericElements/viewMetaTable', array('table_data' => $tableData)); ?>
-        </div>
-
+    <div class="span8">
+        <h2 class="overflow"><?= nl2br(h($event['Event']['info']), false); ?></h2>
+        <?= $this->element('genericElements/viewMetaTable', array('table_data' => $tableData)); ?>
+    </div>
     <?php if (!empty($event['RelatedEvent'])):?>
     <div class="related span4">
         <h3><?php echo __('Related Events');?></h3>
@@ -91,7 +82,7 @@ $tableData[] = [
     </div>
 </div>
 <?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewEvent', 'id' => $event['Event']['uuid'])); ?>
-<script type="text/javascript">
+<script>
 // tooltips
 $(function () {
     $("th, td, dt, div, span, li").tooltip({

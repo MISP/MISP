@@ -2,7 +2,6 @@
 
 $modules = isset($modules) ? $modules : null;
 $cortex_modules = isset($cortex_modules) ? $cortex_modules : null;
-
 echo '<div class="index">';
 echo $this->element('/genericElements/IndexTable/index_table', [
     'data' => [
@@ -46,7 +45,8 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('Value'),
                 'sort' => 'Attribute.value',
-                'data_path' => 'Attribute.value'
+                'data_path' => 'Attribute',
+                'element' => 'attributeValue',
             ],
             [
                 'name' => __('Tags'),
@@ -293,6 +293,10 @@ echo $this->element('/genericElements/IndexTable/index_table', [
     ]
 ]);
 
+if ($isSearch) {
+    echo "<button class=\"btn\" onclick=\"getPopup(0, 'attributes', 'exportSearch')\">" . __("Export found attributes as&hellip;") . "</button>";
+}
+
 echo '</div>';
 
 // Generate form for adding sighting just once, generation for every attribute is surprisingly too slow
@@ -301,12 +305,12 @@ echo $this->Form->input('id', ['label' => false, 'type' => 'number']);
 echo $this->Form->input('type', ['label' => false]);
 echo $this->Form->end();
 
-$class = $isSearch == 1 ? 'searchAttributes2' : 'listAttributes';
+$class = $isSearch ? 'searchAttributes' : 'listAttributes';
 echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event-collection', 'menuItem' => $class]);
 
 ?>
 
-<script type="text/javascript">
+<script>
     // tooltips
     $(function() {
         $("td, div").tooltip({
@@ -316,37 +320,6 @@ echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event
                 show: 500,
                 hide: 100
             }
-        });
-        $('.screenshot').click(function() {
-            screenshotPopup($(this).attr('src'), $(this).attr('title'));
-        });
-        $('.addGalaxy').click(function() {
-            addGalaxyListener(this);
-        });
-        $('.sightings_advanced_add').click(function() {
-            var selected = [];
-            var object_context = $(this).data('object-context');
-            var object_id = $(this).data('object-id');
-            if (object_id == 'selected') {
-                $(".select_attribute").each(function() {
-                    if ($(this).is(":checked")) {
-                        selected.push($(this).data("id"));
-                    }
-                });
-                object_id = selected.join('|');
-            }
-            url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
-            genericPopup(url, '#popover_box');
-        });
-        $('.correlation-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
-            return false;
-        });
-        $('.toids-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
-            return false;
         });
         popoverStartup();
         $(document).on('click', function(e) {

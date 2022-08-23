@@ -33,6 +33,7 @@ class AuditLog extends AppModel
 
     public $actsAs = [
         'Containable',
+        'LightPaginator'
     ];
 
     /** @var array|null */
@@ -272,7 +273,7 @@ class AuditLog extends AppModel
             if ($title) {
                 $entry .= " -- $title";
             }
-            $this->syslog->write('info', $entry);
+            $this->syslog->write(LOG_INFO, $entry);
         }
         return true;
     }
@@ -318,6 +319,9 @@ class AuditLog extends AppModel
         return $this->user;
     }
 
+    /**
+     * @throws Exception
+     */
     public function insert(array $data)
     {
         try {
@@ -325,7 +329,7 @@ class AuditLog extends AppModel
         } catch (Exception $e) {
             return; // Table is missing when updating, so this is intentional
         }
-        if ($this->save($data) === false) {
+        if ($this->save(['AuditLog' => $data], ['atomic' => false]) === false) {
             throw new Exception($this->validationErrors);
         }
     }
@@ -357,8 +361,7 @@ class AuditLog extends AppModel
             $conditions['org_id'] = $org['id'];
         }
 
-        $dataSource = ConnectionManager::getDataSource('default')->config['datasource'];
-        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $validDates = $this->find('all', [
                 'recursive' => -1,
                 'fields' => ['DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'],
@@ -367,7 +370,7 @@ class AuditLog extends AppModel
                 'order' => ['Date'],
                 'callbacks' => false,
             ]);
-        } elseif ($dataSource === 'Database/Postgres') {
+        } else {
             if (!empty($conditions['org_id'])) {
                 $condOrg = sprintf('WHERE org_id = %s', intval($conditions['org_id']));
             } else {

@@ -173,4 +173,21 @@ class CryptGpgExtended extends Crypt_GPG
 
         return $armored;
     }
+
+    /**
+     * @param mixed $data
+     * @param bool $isFile
+     * @param bool $allowEmpty
+     * @return resource|string|null
+     * @throws Crypt_GPG_FileException
+     * @throws Crypt_GPG_NoDataException
+     */
+    protected function _prepareInput($data, $isFile = false, $allowEmpty = true)
+    {
+        if ($isFile && $data instanceof TmpFileTool) {
+            return $data->resource();
+        }
+
+        return parent::_prepareInput($data, $isFile, $allowEmpty);
+    }
 }

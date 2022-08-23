@@ -23,14 +23,14 @@
           }
           echo '</div>';
         } else {
-          $data = Hash::extract($event, $fieldData);
+          $data = Hash::get($event, $fieldData);
           if ($fieldData === 'Event.analysis') {
-            $data[0] = $analysisLevels[intval($data[0])];
+            $data = $analysisLevels[intval($data)];
           }
           if ($fieldData === 'Event.id') {
-              echo '<span class="blue bold">' . $field . '</span>: <a href="' . $baseurl . '/events/view/' . $data[0] . '">' . h($data[0]) . '</a><br>';
+              echo '<span class="blue bold">' . $field . '</span>: <a href="' . $baseurl . '/events/view/' . $data . '">' . h($data) . '</a><br>';
           } else {
-              echo '<span class="blue bold">' . $field . '</span>: ' . h($data[0]) . '<br>';
+              echo '<span class="blue bold">' . $field . '</span>: ' . h($data) . '<br>';
           }
         }
       }

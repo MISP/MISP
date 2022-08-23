@@ -1,7 +1,7 @@
 <?php
 class ProcessException extends Exception
 {
-    /** @var string */
+    /** @var string|null */
     private $stderr;
 
     /** @var string */
@@ -10,13 +10,14 @@ class ProcessException extends Exception
     /**
      * @param string|array $command
      * @param int $returnCode
-     * @param string $stderr
+     * @param string|null $stderr
      * @param string $stdout
      */
     public function __construct($command, $returnCode, $stderr, $stdout)
     {
         $commandForException = is_array($command) ? implode(' ', $command) : $command;
-        $message = "Command '$commandForException' return error code $returnCode.\nSTDERR: '$stderr'\nSTDOUT: '$stdout'";
+        $stderrToMessage = $stderr === null ? 'Logged to tmp/logs/exec-errors.log' : "'$stderr'";
+        $message = "Command '$commandForException' finished with error code $returnCode.\nSTDERR: $stderrToMessage\nSTDOUT: '$stdout'";
         $this->stderr = $stderr;
         $this->stdout = $stdout;
         parent::__construct($message, $returnCode);
@@ -48,13 +49,13 @@ class ProcessTool
     public static function execute(array $command, $cwd = null, $stderrToFile = false)
     {
         $descriptorSpec = [
-            1 => ["pipe", "w"], // stdout
-            2 => ["pipe", "w"], // stderr
+            1 => ['pipe', 'w'], // stdout
+            2 => ['pipe', 'w'], // stderr
         ];
 
         if ($stderrToFile) {
             self::logMessage('Running command ' . implode(' ', $command));
-            $descriptorSpec[2] = ["file", self::LOG_FILE, 'a'];
+            $descriptorSpec[2] = ['file', self::LOG_FILE, 'a'];
         }
 
         // PHP older than 7.4 do not support proc_open with array, so we need to convert values to string manually

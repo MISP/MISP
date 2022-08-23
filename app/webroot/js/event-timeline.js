@@ -20,7 +20,7 @@ var relationship_type_mapping = {
    'followed-by': 'after',
    'preceding-by': 'before',
 }
-var shortcut_text = "<b>ALT+Mouse_Wheel</b> Zoom IN/OUT"
+var shortcut_text_timeline = "<b>ALT+Mouse_Wheel</b> Zoom IN/OUT"
     + "\n<b>CTRL</b> Multi select"
 var options = {
     template: function (item, element, data) {
@@ -604,7 +604,7 @@ function enable_timeline() {
             $('.timeline-help').popover({
                 container: 'body',
                 title: 'Shortcuts',
-                content: shortcut_text,
+                content: shortcut_text_timeline,
                 placement: 'left',
                 trigger: 'hover',
                 template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content preWarp"></div></div>',

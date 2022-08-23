@@ -10,6 +10,7 @@ require_once 'AppShell.php';
  * @property Job $Job
  * @property Tag $Tag
  * @property Server $Server
+ * @property Correlation $Correlation
  */
 class EventShell extends AppShell
 {
@@ -39,10 +40,16 @@ class EventShell extends AppShell
                     'event_id' => ['help' => __('Event ID'), 'required' => true],
                     'user_id' => ['help' => __('User ID'), 'required' => true],
                 ],
+                'options' => [
+                    'send' => ['help' => __('Send email to given user'), 'boolean' => true],
+                ],
             ],
         ]);
         $parser->addSubcommand('duplicateTags', [
             'help' => __('Show duplicate tags'),
+        ]);
+        $parser->addSubcommand('generateTopCorrelations', [
+            'help' => __('Generate top correlations'),
         ]);
         $parser->addSubcommand('mergeTags', [
             'help' => __('Merge tags'),
@@ -187,8 +194,9 @@ class EventShell extends AppShell
         $this->Job->id = $id;
         $export_type = $this->args[2];
         file_put_contents('/tmp/test', $export_type);
-        $typeData = $this->Event->export_types[$export_type];
-        if (!in_array($export_type, array_keys($this->Event->export_types))) {
+        $exportTypes = $this->Event->exportTypes();
+        $typeData = $exportTypes[$export_type];
+        if (!in_array($export_type, array_keys($exportTypes))) {
             $this->Job->saveField('progress', 100);
             $timeDelta = (time()-$timeStart);
             $this->Job->saveField('message', 'Job Failed due to invalid export format. (in '.$timeDelta.'s)');
@@ -281,7 +289,7 @@ class EventShell extends AppShell
         $userId = $this->args[0];
         $jobId = $this->args[1];
         $eventId = $this->args[2];
-        $oldpublish = $this->args[3];
+        $oldpublish = isset($this->args[3]) ? $this->args[3] : null;
         $user = $this->getUser($userId);
         $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $jobId);
     }
@@ -385,7 +393,7 @@ class EventShell extends AppShell
         // the special cache files containing all events
         $i = 0;
         foreach ($users as $user) {
-            foreach ($this->Event->export_types as $k => $type) {
+            foreach ($this->Event->exportTypes() as $k => $type) {
                 if ($k == 'stix') continue;
                 $this->Job->cache($k, $user['User']);
                 $i++;
@@ -439,7 +447,7 @@ class EventShell extends AppShell
         }
 
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
-        $result = $this->Event->publish_sightings($id, $passAlong, $sightingsUuidsToPush);
+        $result = $this->Event->publishSightings($id, $passAlong, $sightingsUuidsToPush);
 
         $count = count($sightingsUuidsToPush);
         $message = $count === 0 ? "All sightings published" : "$count sightings published";
@@ -602,6 +610,7 @@ class EventShell extends AppShell
     public function testEventNotificationEmail()
     {
         list($eventId, $userId) = $this->args;
+        $send = $this->param('send');
 
         $user = $this->getUser($userId);
         $eventForUser = $this->Event->fetchEvent($user, [
@@ -621,10 +630,16 @@ class EventShell extends AppShell
         App::uses('SendEmail', 'Tools');
         App::uses('GpgTool', 'Tools');
         $sendEmail = new SendEmail(GpgTool::initializeGpg());
-        $sendEmail->setTransport('Debug');
+        if (!$send) {
+            $sendEmail->setTransport('Debug');
+        }
         $result = $sendEmail->sendToUser(['User' => $user], null, $emailTemplate);
 
-        echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
+        if ($send) {
+            var_dump($result);
+        } else {
+            echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
+        }
     }
 
     /**
@@ -643,17 +658,20 @@ class EventShell extends AppShell
 
     public function generateTopCorrelations()
     {
-        $this->ConfigLoad->execute();
-        $jobId = $this->args[0];
-        $job = $this->Job->read(null, $jobId);
-        $job['Job']['progress'] = 1;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Generating top correlations list.');
-        $this->Job->save($job);
-        $result = $this->Correlation->generateTopCorrelations($jobId);
-        $job['Job']['progress'] = 100;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Job done.');
-        $this->Job->save($job);
+        $jobId = $this->args[0] ?? null;
+        if ($jobId) {
+            $job = $this->Job->read(null, $jobId);
+            $job['Job']['progress'] = 1;
+            $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+            $job['Job']['message'] = __('Generating top correlations list.');
+            $this->Job->save($job);
+        }
+        $this->Correlation->generateTopCorrelations($jobId);
+        if ($jobId) {
+            $job['Job']['progress'] = 100;
+            $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+            $job['Job']['message'] = __('Job done.');
+            $this->Job->save($job);
+        }
     }
 }

@@ -96,7 +96,7 @@ class FileAccessTool
      * @param bool $createFolder
      * @throws Exception
      */
-    public static function writeToFile($file, $content, $createFolder = false)
+    public static function writeToFile($file, $content, $createFolder = false, $append = false)
     {
         $dir = dirname($file);
         if ($createFolder && !is_dir($dir)) {
@@ -105,7 +105,7 @@ class FileAccessTool
             }
         }
 
-        if (file_put_contents($file, $content, LOCK_EX) === false) {
+        if (file_put_contents($file, $content, LOCK_EX | (!empty($append) ? FILE_APPEND : 0)) === false) {
             $freeSpace = disk_free_space($dir);
             throw new Exception("An error has occurred while attempt to write to file `$file`. Maybe not enough space? ($freeSpace bytes left)");
         }
@@ -167,5 +167,37 @@ class FileAccessTool
         } else {
             return true;
         }
+    }
+
+    /**
+     * @param array $submittedFile
+     * @param string $alternate
+     * @return string
+     */
+    public static function getTempUploadedFile($submittedFile, $alternate = false)
+    {
+        if ($submittedFile['name'] != '' && $alternate != '') {
+            throw new MethodNotAllowedException(__('Only one import field can be used'));
+        }
+        if ($submittedFile['size'] > 0) {
+            $filename = basename($submittedFile['name']);
+            if (!is_uploaded_file($submittedFile['tmp_name'])) {
+                throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
+            }
+            $file = new File($submittedFile['tmp_name']);
+            $file_content = $file->read();
+            $file->close();
+            if ((isset($submittedFile['error']) && $submittedFile['error'] == 0) ||
+                (!empty($submittedFile['tmp_name']) && $submittedFile['tmp_name'] != '')
+            ) {
+                if (!$file_content) {
+                    throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
+                }
+            }
+            $text = $file_content;
+        } else {
+            $text = $alternate ? $alternate : '';
+        }
+        return $text;
     }
 }

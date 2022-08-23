@@ -1,6 +1,4 @@
 <?php
-  $linkClass = 'white';
-  $currentType = 'Object';
   $tr_class = 'tableHighlightBorderTop borderBlue';
   if ($event['Event']['id'] != $object['event_id']) {
     if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
@@ -12,8 +10,15 @@
   if (!empty($k)) {
     $tr_class .= ' row_' . h($k);
   }
+$quickEdit = function($fieldName) use ($mayModify) {
+    if (!$mayModify) {
+        return ''; // without permission it is not possible to edit object
+    }
+    return " data-edit-field=\"$fieldName\"";
+};
+$objectId = intval($object['id']);
 ?>
-<tr id="Object_<?php echo $object['id']; ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
+<tr id="Object_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0">
   <?php
     if ($mayModify || $extended):
   ?>
@@ -21,16 +26,12 @@
   <?php
     endif;
   ?>
-  <td class="short context hidden">
-    <?php echo h($object['id']); ?>
-  </td>
+  <td class="short context hidden"><?= $objectId ?></td>
   <td class="short context hidden uuid quickSelect"><?php echo h($object['uuid']); ?></td>
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
-  <td class="short">
-    <?php echo date('Y-m-d', $object['timestamp']); ?>
-  </td>
+  <td class="short timestamp"><?= $this->Time->date($object['timestamp']) ?></td>
   <?php
     if ($extended):
   ?>
@@ -51,13 +52,12 @@
         endif;
       endif;
     ?>
-    &nbsp;
   </td>
   <td colspan="<?= $includeRelatedTags ? 6 : 5 ?>">
     <span class="bold"><?php echo __('Object name: ');?></span><?php echo h($object['name']);?>
-    <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_collapsible"></span>
-    <br />
-    <div id="Object_<?php echo $object['id']; ?>_collapsible" class="collapse">
+    <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $objectId ?>_collapsible"></span>
+    <br>
+    <div id="Object_<?= $objectId ?>_collapsible" class="collapse">
         <span class="bold"><?php echo __('UUID');?>: </span><?php echo h($object['uuid']);?><br />
         <span class="bold"><?php echo __('Meta-category: ');?></span><?php echo h($object['meta-category']);?><br />
         <span class="bold"><?php echo __('Description: ');?></span><?php echo h($object['description']);?><br />
@@ -77,21 +77,14 @@
       }
     ?>
   </td>
-  <td class="showspaces bitwider" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
-    <div id="Object_<?php echo $object['id']; ?>_comment_placeholder" class="inline-field-placeholder"></div>
-    <div id="Object_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
-      <?php echo nl2br(h($object['comment'])); ?>&nbsp;
+  <td class="showspaces bitwider"<?= $quickEdit('comment') ?>>
+    <div class="inline-field-solid">
+      <?= nl2br(h($object['comment']), false); ?>
     </div>
   </td>
-  <td colspan="4">&nbsp;
-  </td>
-  <td class="shortish" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
-    <?php
-      $turnRed = '';
-      if ($object['distribution'] == 0) $turnRed = 'style="color:red"';
-    ?>
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class="inline-field-placeholder"></div>
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid">
+  <td colspan="4"></td>
+  <td class="shortish"<?= $quickEdit('distribution') ?>>
+    <div class="inline-field-solid<?= $object['distribution'] == 0 ? ' red' : '' ?>">
       <?php
           if ($object['distribution'] == 4):
       ?>
@@ -100,11 +93,10 @@
           else:
             echo h($shortDist[$object['distribution']]);
           endif;
-      ?>&nbsp;
+      ?>
     </div>
   </td>
-  <td>&nbsp;</td>
-  <td>&nbsp;</td>
+  <td colspan="2"></td>
   <?php
     $paddedFields = array('includeSightingdb', 'includeDecayScore');
     foreach ($paddedFields as $paddedField) {
@@ -118,29 +110,27 @@
       if ($mayModify) {
           if (empty($object['deleted'])) {
             echo sprintf(
-              '<a href="%s/objects/edit/%s" title="%s" aria-label="%s" class="fa fa-edit white useCursorPointer"></a> ',
+              '<a href="%s/objects/edit/%s" title="%s" aria-label="%s" class="fa fa-edit white"></a> ',
               $baseurl,
-              h($object['id']),
+                $objectId,
               __('Edit'),
               __('Edit')
             );
             echo sprintf(
-              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
+              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onclick="%2$s"></span>',
               (empty($event['Event']['publish_timestamp']) ? __('Permanently delete object') : __('Soft delete object')),
               sprintf(
-                'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',
-                empty($event['Event']['publish_timestamp']) ? h($object['id']) . '/true' : h($object['id']),
-                h($event['Event']['id'])
+                'deleteObject(\'objects\', \'delete\', \'%s\');',
+                empty($event['Event']['publish_timestamp']) ? $objectId . '/true' : $objectId
               )
             );
         } else {
             echo sprintf(
-              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
+              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onclick="%2$s"></span>',
               __('Permanently delete object'),
               sprintf(
-                'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',
-                h($object['id']) . '/true',
-                h($event['Event']['id'])
+                'deleteObject(\'objects\', \'delete\', \'%s\');',
+                  $objectId . '/true'
               )
             );
         }
@@ -161,5 +151,5 @@
         'child' => $attrKey == $lastElement ? 'last' : true
       ));
     }
-    echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') .'" onclick="popoverPopup(this, ' . h($object['id']) . ', \'objects\', \'quickFetchTemplateWithValidObjectAttributes\')"></span></td></tr>';
+    echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') .'" data-popover-popup="' . $baseurl . '/objects/quickFetchTemplateWithValidObjectAttributes/' . $objectId .'"></span></td></tr>';
   }

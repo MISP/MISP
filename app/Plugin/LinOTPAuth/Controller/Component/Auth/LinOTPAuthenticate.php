@@ -123,6 +123,13 @@ class LinOTPAuthenticate extends BaseAuthenticate
 
         CakeLog::debug("getUser email: ${email}");
 
+        $linOTP_enabled = Configure::read("LinOTPAuth.enabled");
+        if (is_null($linOTP_enabled)) {
+            $linOTP_enabled = TRUE;
+        }
+        if (!$linOTP_enabled) {
+            return false;
+        }
         $linOTP_baseUrl = rtrim(Configure::read("LinOTPAuth.baseUrl"), "/");
         $linOTP_realm = Configure::read("LinOTPAuth.realm");
         $linOTP_verifyssl = Configure::read("LinOTPAuth.verifyssl");
@@ -131,7 +138,7 @@ class LinOTPAuthenticate extends BaseAuthenticate
         if (!$linOTP_baseUrl || $linOTP_baseUrl === "") {
             CakeLog::error("LinOTP: Please configure baseUrl.");
             if ($mixedauth) {
-                throw new CakeException(__d('cake_dev', 'LinOTP: Missing "baseUrl" configuration - access denied!', 'authenticate()'));
+                throw new ForbiddenException(__('LinOTP: Missing "baseUrl" configuration - access denied!'));
             } else {
                 return false;
             }
@@ -150,7 +157,7 @@ class LinOTPAuthenticate extends BaseAuthenticate
         } else {
             // Enforce OTP token by Authentication Form
             if (!$otp || $otp === "") {
-                throw new CakeException(__d('cake_dev', 'Missing OTP Token.', 'authenticate()'));
+                throw new ForbiddenException(__('Missing OTP Token.'));
             }
 
             $response = $this->_linotp_verify(
@@ -200,7 +207,7 @@ class LinOTPAuthenticate extends BaseAuthenticate
         // Don't fall back to FormAuthenticate in mixedauth mode.
         // This enforces the second factor.
         if ($mixedauth && !self::$user) {
-            throw new CakeException(__d('cake_dev', 'User could not be authenticated by LinOTP.', 'authenticate()'));
+            throw new UnauthorizedException(__('User could not be authenticated by LinOTP.'));
         }
         return self::$user;
     }

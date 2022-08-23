@@ -22,7 +22,7 @@
 #  20210406: Ubuntu 21.04      tested and working. -- sCl
 #  20210406: Ubuntu 20.04.2    tested and working. -- sCl
 #  20210406: Ubuntu 18.04.5    tested and working. -- sCl
-#  20210331: Kali Linux 2021.1 tested and working. -- sCl
+#  20220303: Kali Linux 2022.1 tested and working. -- sCl
 #
 #
 #-------------------------------------------------------------------------------------------------|
@@ -42,7 +42,7 @@
 #
 # To install MISP on Kali copy paste the following to your shell:
 # # wget --no-cache -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
-# NO other version then 2020.x supported, kthxbai.
+# NO other version then 2022.x supported, kthxbai.
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
 #
@@ -421,6 +421,9 @@ installMISPonKali () {
   # Set Base URL - functionLocation('generic/supportFunctions.md')
   setBaseURL
 
+  # Install PHP 7.4 (only php8.1 is available on latest Kali) - functionLocation('supportFunctions.md')
+  installDepsKaliPhp74
+
   # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
   installDepsPhp74
 
@@ -452,9 +455,6 @@ installMISPonKali () {
   debug "Restarting mysql.service"
   sudo systemctl restart mysql.service
 
-  debug "Fixing redis rc script on Kali"
-  fixRedis
-
   debug "git clone, submodule update everything"
   sudo mkdir ${PATH_TO_MISP}
   sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
@@ -468,17 +468,11 @@ installMISPonKali () {
   # Make git ignore filesystem permission differences for submodules
   ${SUDO_WWW} git submodule foreach --recursive git config core.filemode false
 
-  cd ${PATH_TO_MISP}/app/files/scripts
-  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git; done
-  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git; done
-  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git; done
-  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MAECProject/python-maec.git; done
-
   sudo mkdir /var/www/.cache/
 
-  MISP_USER_HOME=$(sudo -Hiu $MISP_USER env | grep HOME |cut -f 2 -d=)
-  sudo mkdir $MISP_USER_HOME/.cache
-  sudo chown $MISP_USER:$MISP_USER $MISP_USER_HOME/.cache
+  MISP_USER_HOME=$(sudo -Hiu ${MISP_USER} env | grep HOME |cut -f 2 -d=)
+  sudo mkdir ${MISP_USER_HOME}/.cache
+  sudo chown ${MISP_USER}:${MISP_USER} ${MISP_USER_HOME}/.cache
   sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
 
   ## Not really needed...
@@ -501,14 +495,13 @@ installMISPonKali () {
   cd ${PATH_TO_MISP}/app/files/scripts/python-stix
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  debug "Install maec"
+  debug "Installing maec"
   cd ${PATH_TO_MISP}/app/files/scripts/python-maec
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  # install STIX2.0 library to support STIX 2.0 export
-  debug "Installing cti-python-stix2"
-  # install STIX2.0 library to support STIX 2.0 export:
-  cd ${PATH_TO_MISP}/cti-python-stix2
+  # Install misp-stix
+  debug "Installing misp-stix"
+  cd ${PATH_TO_MISP}/app/files/scripts/misp-stix
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Installing mixbox"
@@ -536,7 +529,7 @@ installMISPonKali () {
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install zmq
 
   debug "Installing cake"
-  composer
+  composer74
 
   ${SUDO_WWW} cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 
@@ -549,27 +542,27 @@ installMISPonKali () {
   debug "Setting up database"
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     # Kill the anonymous users
-    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'localhost'"
+    sudo mysql -h ${DBHOST} -e "DROP USER IF EXISTS ''@'localhost'"
     # Because our hostname varies we'll use some Bash magic here.
-    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'$(hostname)'"
+    sudo mysql -h ${DBHOST} -e "DROP USER IF EXISTS ''@'$(hostname)'"
     # Kill off the demo database
-    sudo mysql -h $DBHOST -e "DROP DATABASE IF EXISTS test"
+    sudo mysql -h ${DBHOST} -e "DROP DATABASE IF EXISTS test"
     # No root remote logins
-    sudo mysql -h $DBHOST -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+    sudo mysql -h ${DBHOST} -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
     # Make sure that NOBODY can access the server without a password
-    sudo mysqladmin -h $DBHOST -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
+    sudo mysqladmin -h ${DBHOST} -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
     # Make our changes take effect
-    sudo mysql -h $DBHOST -e "FLUSH PRIVILEGES"
+    sudo mysql -h ${DBHOST} -e "FLUSH PRIVILEGES"
 
-    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
-    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBUSER_MISP@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
-    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
-    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
+    sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE DATABASE ${DBNAME};"
+    sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT USAGE ON *.* TO ${DBUSER_MISP}@localhost IDENTIFIED BY '${DBPASSWORD_MISP}';"
+    sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT ALL PRIVILEGES ON ${DBNAME}.* TO '${DBUSER_MISP}'@'localhost';"
+    sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "FLUSH PRIVILEGES;"
 
     enableServices
 
     debug "Populating database"
-    ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+    ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} ${DBNAME}
 
     echo "<?php
   class DATABASE_CONFIG {
@@ -609,7 +602,7 @@ installMISPonKali () {
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
-      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" ${PHP_INI}
   done
 
   debug "Restarting Apache2"
@@ -856,11 +849,12 @@ x86_64-debian-buster
 x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
 x86_64-ubuntu-hirsute
-x86_64-kali-2020.4
-x86_64-kali-2021.1
-x86_64-kali-2021.2
-x86_64-kali-2021.3
+x86_64-ubuntu-jammy
 x86_64-kali-2021.4
+x86_64-kali-2022.1
+x86_64-kali-2022.2
+x86_64-kali-2022.3
+x86_64-kali-2022.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-raspbian-buster
@@ -901,6 +895,12 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   if [[ "${RELEASE}" == "21.04" ]]; then
     echo "Install on Ubuntu 21.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installSupported PHP="7.4" && exit || exit
+  fi
+  if [[ "${RELEASE}" == "22.04" ]]; then
+    echo "Install on Ubuntu 22.04 LTS fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    upgradeToPHP74
     installSupported PHP="7.4" && exit || exit
   fi
   if [[ "${RELEASE}" == "18.10" ]]; then

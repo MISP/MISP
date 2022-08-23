@@ -3,7 +3,7 @@
     "Feed": {
       "name": "CIRCL OSINT Feed",
       "provider": "CIRCL",
-      "url": "https://www.circl.lu/doc/misp/feed-osint/",
+      "url": "https://www.circl.lu/doc/misp/feed-osint",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "3",
@@ -970,8 +970,8 @@
   {
     "Feed": {
       "name": "URLHaus Malware URLs",
-      "provider": "Abuse.ch",
-      "url": "https://urlhaus.abuse.ch/downloads/csv/",
+      "provider": "abuse.ch",
+      "url": "https://urlhaus.abuse.ch/downloads/csv_recent/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "3",
@@ -981,7 +981,7 @@
       "delta_merge": false,
       "publish": false,
       "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"},\"disable_correlation\":\"1\"}",
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": true
@@ -1471,7 +1471,7 @@
     "Feed": {
       "name": "Malware Bazaar",
       "provider": "abuse.ch",
-      "url": "https://bazaar.abuse.ch/export/txt/md5/full/",
+      "url": "https://bazaar.abuse.ch/export/txt/md5/recent/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"url_params\":\"\"}",
       "enabled": false,
       "distribution": "0",
@@ -1522,7 +1522,7 @@
   {
     "Feed": {
       "name": "Threatfox",
-      "provider": "Abuse.ch",
+      "provider": "abuse.ch",
       "url": "https://threatfox.abuse.ch/downloads/misp/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"url_params\":\"\"}",
       "enabled": true,
@@ -1551,7 +1551,7 @@
   {
     "Feed": {
       "name": "MalwareBazaar",
-      "provider": "Abuse.ch",
+      "provider": "abuse.ch",
       "url": "https://bazaar.abuse.ch/downloads/misp/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": false,
@@ -1571,7 +1571,7 @@
   {
     "Feed": {
       "name": "URLhaus",
-      "provider": "Abuse.ch",
+      "provider": "abuse.ch",
       "url": "https://urlhaus.abuse.ch/downloads/misp/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": false,
@@ -1582,7 +1582,7 @@
       "delta_merge": false,
       "publish": false,
       "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"},\"disable_correlation\":\"1\"}",
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": false
@@ -1674,5 +1674,34 @@
       "exportable": true,
       "hide_tag": false
     }
-  } 
+  },
+  {
+    "Feed": {
+        "name": "threatfox indicators of compromise",
+        "provider": "abuse.ch",
+        "url": "https://threatfox.abuse.ch/export/csv/recent/",
+        "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+        "enabled": false,
+        "distribution": "0",
+        "sharing_group_id": "0",
+        "default": false,
+        "source_format": "csv",
+        "fixed_event": true,
+        "delta_merge": false,
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": true,
+        "caching_enabled": true,
+        "force_to_ids": false
+    },
+    "Tag": {
+        "name": "osint:source-type=\"block-or-filter-list\"",
+        "colour": "#004f89",
+        "exportable": true,
+        "hide_tag": false
+    }
+  }
 ]

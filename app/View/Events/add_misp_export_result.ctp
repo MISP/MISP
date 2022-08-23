@@ -2,14 +2,13 @@
     <h2><?php echo __('Add From MISP Export Result');?></h2>
     <table class="table table-striped table-hover table-condensed">
     <tr>
-            <th><?php echo __('Event info');?></th>
-            <th><?php echo __('Result');?></th>
-            <th><?php echo __('Details');?></th>
-
+        <th><?php echo __('Event info');?></th>
+        <th><?php echo __('Result');?></th>
+        <th><?php echo __('Details');?></th>
     </tr>
 <?php
     App::uses('JSONConverterTool', 'Tools');
-    foreach ($results as &$result):
+    foreach ($results as $result):
         if ($result['result'] === false) {
             $status = __('Failed');
         } else {
@@ -28,15 +27,14 @@
         else $result['validationIssues'] = false;
 ?>
         <tr>
-            <td class="short"><?php echo h($result['info']); ?>&nbsp;</td>
-            <td class="short" style="color:<?php echo $colour; ?>"><?php echo h($status); ?>&nbsp;</td>
+            <td class="short"><?php echo h($result['info']); ?></td>
+            <td class="short" style="color:<?php echo $colour; ?>"><?php echo h($status); ?></td>
             <td class="short">
                 <?php
                     if ($result['validationIssues']) echo nl2br(h($result['validationIssues']));
                     echo nl2br(h($text));
-                    if (0 !== ($result['id'])) echo ' <a href="' . $baseurl . '/events/view/' . h($result['id']) . '">' . __('Event ') . h($result['id']) . '</a>';
+                    if (0 !== ($result['id'])) echo ' <a href="' . $baseurl . '/events/view/' . h($result['id']) . '">' . __('Event %s', h($result['id'])) . '</a>';
                 ?>
-                &nbsp;
             </td>
         </tr>
 <?php
@@ -44,6 +42,5 @@
 ?>
     </table>
 </div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'addMISPExport'));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'import_from'));
+
