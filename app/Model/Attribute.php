@@ -2444,12 +2444,20 @@ class Attribute extends AppModel
         return $saveSucces && $this->Event->save($event, true, ['timestamp', 'published']);
     }
 
-    public function attachTagsFromAttributeAndTouch($attribute_id, $event_id, $tags)
+    public function attachTagsFromAttributeAndTouch($attribute_id, $event_id, array $tags, array $user)
     {
         $touchAttribute = false;
         $success = false;
-        foreach ($tags as $tag_id) {
+        $capturedTags = [];
+        foreach ($tags as $tag_name) {
             $nothingToChange = false;
+            $tag_id = $this->Event->captureTagWithCache(
+                [
+                    'name' => $tag_name,
+                ],
+                $user,
+                $capturedTags
+            );
             $saveSuccess = $this->AttributeTag->attachTagToAttribute($attribute_id, $event_id, $tag_id, false, $nothingToChange);
             $success = $success || !empty($saveSuccess);
             $touchAttribute = $touchAttribute || !$nothingToChange;
@@ -2464,8 +2472,14 @@ class Attribute extends AppModel
     {
         $touchAttribute = false;
         $success = false;
-        foreach ($tags as $tag_id) {
+        foreach ($tags as $tag_name) {
             $nothingToChange = false;
+            $tag_id = $this->AttributeTag->Tag->lookupTagIdFromName($tag_name);
+            debug($tag_id);
+            if ($tag_id == -1) {
+                $success = $success || true;
+                continue;
+            }
             $saveSuccess = $this->AttributeTag->detachTagFromAttribute($attribute_id, $event_id, $tag_id, $nothingToChange);
             $success = $success || !empty($saveSuccess);
             $touchAttribute = $touchAttribute || !$nothingToChange;

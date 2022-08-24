@@ -500,13 +500,21 @@ class Event extends AppModel
         return $this->save($event, true, ['timestamp', 'published']);
     }
 
-    public function attachTagsToEventAndTouch($event_id, $tags)
+    public function attachTagsToEventAndTouch($event_id, $tags, array $user)
     {
         $touchEvent = false;
         $success = false;
-        foreach ($tags as $tagId) {
+        $capturedTags = [];
+        foreach ($tags as $tag_name) {
             $nothingToChange = false;
-            $success = $success || $this->EventTag->attachTagToEvent($event_id, ['id' => $tagId], $nothingToChange);
+            $tag_id = $this->captureTagWithCache(
+                [
+                    'name' => $tag_name,
+                ],
+                $user,
+                $capturedTags
+            );
+            $success = $success || $this->EventTag->attachTagToEvent($event_id, ['id' => $tag_id], $nothingToChange);
             $touchEvent = $touchEvent || !$nothingToChange;
         }
         if ($touchEvent) {
@@ -519,9 +527,14 @@ class Event extends AppModel
     {
         $touchEvent = false;
         $success = false;
-        foreach ($tags as $tagId) {
+        foreach ($tags as $tag_name) {
             $nothingToChange = false;
-            $success = $success || $this->EventTag->detachTagFromEvent($event_id, $tagId, $nothingToChange);
+            $tag_id = $this->EventTag->Tag->lookupTagIdFromName($tag_name);
+            if ($tag_id == -1) {
+                $success = $success || true;
+                continue;
+            }
+            $success = $success || $this->EventTag->detachTagFromEvent($event_id, $tag_id, $nothingToChange);
             $touchEvent = $touchEvent || !$nothingToChange;
         }
         if ($touchEvent) {
@@ -3261,7 +3274,7 @@ class Event extends AppModel
      * @return false|int
      * @throws Exception
      */
-    private function captureTagWithCache(array $tag, array $user, array &$capturedTags)
+    public function captureTagWithCache(array $tag, array $user, array &$capturedTags)
     {
         $tagName = $tag['name'];
         if (isset($capturedTags[$tagName])) {
