@@ -5,7 +5,7 @@
 .root-container {
     display: flex;
     height: calc(100vh - 2*42px); /* total space available minus header and footer */
-    margin-top: -20px;
+    margin-top: -8px;
     flex-direction: column;
 }
 
