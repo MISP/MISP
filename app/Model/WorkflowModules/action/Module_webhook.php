@@ -82,7 +82,7 @@ class Module_webhook extends WorkflowBaseActionModule
         return false;
     }
 
-    private function doRequest($url, $contentType, array $data)
+    protected function doRequest($url, $contentType, $data)
     {
         $this->Event = ClassRegistry::init('Event'); // We just need a model to use AppModel functions
         $version = implode('.', $this->Event->checkMISPVersion());
