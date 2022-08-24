@@ -153,6 +153,9 @@ class WorkflowsController extends AppController
         $modules = $this->Workflow->attachNotificationToModules($modules, $workflow);
         $this->loadModel('WorkflowBlueprint');
         $workflowBlueprints = $this->WorkflowBlueprint->find('all');
+        $workflowBlueprints = array_map(function($blueprint) {
+            return $this->WorkflowBlueprint->attachModuleDataToBlueprint($blueprint);
+        }, $workflowBlueprints);
         $this->set('selectedWorkflow', $workflow);
         $this->set('workflowTriggerId', $trigger_id);
         $this->set('modules', $modules);
