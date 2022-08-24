@@ -352,7 +352,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
         return true;
     }
 
-    public function purgeCorrelations(Model $Model, $eventId = null): void
+    public function purgeCorrelations(Model $Model, $eventId = null)
     {
         if (!$eventId) {
             $Model->query('TRUNCATE TABLE no_acl_correlations;');
@@ -368,7 +368,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
         }
     }
 
-    public function purgeByValue(Model $Model, string $value): void
+    public function purgeByValue(Model $Model, string $value)
     {
         $valueIds = $Model->CorrelationValue->find('column', [
             'recursive' => -1,

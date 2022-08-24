@@ -200,4 +200,22 @@ class CorrelationsController extends AppController
             $this->render('ajax/truncate_confirmation');
         }
     }
+
+    public function generateOccurrences()
+    {
+        $this->loadModel('OverCorrelatingValue');
+        $this->OverCorrelatingValue->generateOccurrencesRouter();
+        $message = __('Job queued.');
+        if (Configure::read('MISP.background_jobs')) {
+            $message = __('Job queued.');
+        } else {
+            $message = __('Over-correlations counted successfully.');
+        }
+        if (!$this->_isRest()) {
+            $this->Flash->info($message);
+            $this->redirect(['controller' => 'correlations', 'action' => 'overCorrelations']);
+        } else {
+            return $this->RestResponse->saveSuccessResponse('Correlations', 'generateOccurrences', false, $this->response->type(), $message);
+        }
+    }
 }

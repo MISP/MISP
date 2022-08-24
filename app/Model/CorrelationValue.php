@@ -1,24 +1,21 @@
 <?php
 App::uses('AppModel', 'Model');
-App::uses('RandomTool', 'Tools');
 
 class CorrelationValue extends AppModel
 {
     public $recursive = -1;
 
-    public $actsAs = array(
-        'Containable'
-    );
-
-    public $validate = [
-    ];
-
+    /**
+     * @param string $value
+     * @return int
+     */
     public function getValueId($value)
     {
         // index is 191 long, missing the existing value lookup can lead to a duplicate entry
         $value = mb_substr($value, 0, 191);
         $existingValue = $this->find('first', [
             'recursive' => -1,
+            'fields' => ['id'],
             'conditions' => [
                 'value' => $value
             ]
@@ -31,22 +28,23 @@ class CorrelationValue extends AppModel
             } catch (Exception $e) {
                 $existingValue = $this->find('first', [
                     'recursive' => -1,
+                    'fields' => ['id'],
                     'conditions' => [
                         'value' => $value
                     ]
                 ]);
-                return $existingValue['ExistingValue']['id'];
+                return $existingValue['CorrelationValue']['id'];
             }
         } else {
             return $existingValue['CorrelationValue']['id'];
         }
-        return false;
     }
 
     public function getValue($id)
     {
         $existingValue = $this->find('first', [
             'recursive' => -1,
+            'fields' => ['value'],
             'conditions' => [
                 'id' => $id
             ]

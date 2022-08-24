@@ -1,6 +1,5 @@
 <?php
 App::uses('AppModel', 'Model');
-App::uses('RandomTool', 'Tools');
 
 class OverCorrelatingValue extends AppModel
 {
@@ -10,10 +9,14 @@ class OverCorrelatingValue extends AppModel
         'Containable'
     );
 
-    public $validate = [
-    ];
 
-    public function block($value, $count)
+    /**
+     * @param string $value
+     * @param int $count
+     * @return void
+     * @throws Exception
+     */
+    public function block($value, $count = 0)
     {
         $this->unblock($value);
         $this->create();
@@ -25,15 +28,23 @@ class OverCorrelatingValue extends AppModel
         );
     }
 
+    /**
+     * @param string $value
+     * @return void
+     */
     public function unBlock($value)
     {
         $this->deleteAll(
             [
                 'OverCorrelatingValue.value' => $value
-            ]
+            ],
+            false
         );
     }
 
+    /**
+     * @return int
+     */
     public function getLimit()
     {
         return Configure::check('MISP.correlation_limit') ? Configure::read('MISP.correlation_limit') : 20;
@@ -55,14 +66,57 @@ class OverCorrelatingValue extends AppModel
 
     public function checkValue($value)
     {
-        $hit = $this->find('first', [
-            'recursive' => -1,
-            'conditions' => ['value' => $value],
-            'fields' => ['id']
-        ]);
-        if (empty($hit)) {
-            return false;
+        return $this->hasAny(['value' => $value]);
+    }
+
+    public function generateOccurrencesRouter()
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generateOccurrences',
+                '',
+                'Starting populating the occurrences field for the over correlating values.'
+            );
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateOccurrences',
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+
+            return $jobId;
+        } else {
+            return $this->generateOccurrences();
         }
-        return true;
+    }
+
+    public function generateOccurrences()
+    {
+        $overCorrelations = $this->find('all', [
+            'recursive' => -1
+        ]);
+        $this->Attribute = ClassRegistry::init('Attribute');
+        foreach ($overCorrelations as &$overCorrelation) {
+            $count = $this->Attribute->find('count', [
+                'recursive' => -1,
+                'conditions' => [
+                    'OR' => [
+                        'Attribute.value1' => $overCorrelation['OverCorrelatingValue']['value'],
+                        'Attribute.value2' => $overCorrelation['OverCorrelatingValue']['value']
+                    ]
+                ]
+            ]);
+            $overCorrelation['OverCorrelatingValue']['occurrence'] = $count;
+        }
+        $this->saveMany($overCorrelations);
     }
 }

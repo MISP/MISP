@@ -3213,7 +3213,7 @@ class Server extends AppModel
     private function getDatabaseIndexes($database, $table)
     {
         $sqlTableIndex = sprintf(
-            "SELECT DISTINCT TABLE_NAME, COLUMN_NAME, NON_UNIQUE FROM information_schema.statistics WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s';",
+            "SELECT DISTINCT TABLE_NAME, COLUMN_NAME, NON_UNIQUE FROM information_schema.statistics WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' ORDER BY COLUMN_NAME;",
             $database,
             $table
         );
@@ -5441,6 +5441,13 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true,
+                ),
+                'store_api_access_time' => array(
+                    'level' => 1,
+                    'description' => __('If enabled, MISP will capture the last API access time following a successful authentication using API keys, stored against a user under the last_api_access field.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
                 ),
                 'log_auth' => array(
                     'level' => 1,

@@ -44,6 +44,8 @@ class Event extends AppModel
 
     public $mispVersion = '2.4.0';
 
+    private $__beforeSaveData = null;
+
     public $fieldDescriptions = array(
         'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
         'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
@@ -431,6 +433,7 @@ class Event extends AppModel
         if (empty($this->data['Event']['uuid'])) {
             $this->data['Event']['uuid'] = CakeText::uuid();
         }
+        $this->__beforeSaveData = $this->data['Event'];
         return true;
     }
 
@@ -438,8 +441,21 @@ class Event extends AppModel
     {
         $event = $this->data['Event'];
         if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
-            $this->Attribute->Correlation->updateContainedCorrelations($event, 'event');
+            if (
+                empty($this->__beforeSaveData) ||
+                (
+                    isset($this->__beforeSaveData['distribution']) &&
+                    $event['distribution'] != $this->__beforeSaveData['distribution']
+                ) ||
+                (
+                    isset($this->__beforeSaveData['sharing_group_id']) &&
+                    $event['sharing_group_id'] != $this->__beforeSaveData['sharing_group_id']
+                )
+            ) {
+                $this->Attribute->Correlation->updateContainedCorrelations($event, 'event');
+            }
         }
+        $this->__beforeSaveData = null;
         if (empty($event['unpublishAction']) && empty($event['skip_zmq']) && $this->pubToZmq('event')) {
             $pubSubTool = $this->getPubSubTool();
             $eventForZmq = $this->quickFetchEvent($event['id']);
@@ -621,7 +637,7 @@ class Event extends AppModel
         return $events;
     }
 
-    public function getRelatedEventCount($user, $eventId, $sgids)
+    public function getRelatedEventCount(array $user, $eventId, $sgids)
     {
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
@@ -2031,6 +2047,8 @@ class Event extends AppModel
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
                 }
 
+                $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
+
                 // move all object attributes to a temporary container
                 $tempObjectAttributeContainer = array();
                 foreach ($event['Attribute'] as $key => &$attribute) {
@@ -2038,7 +2056,6 @@ class Event extends AppModel
                         unset($event['Attribute'][$key]);
                         continue;
                     }
-                    $attribute = $this->Attribute->Correlation->setCorrelationExclusion($attribute);
                     if ($attribute['category'] === 'Financial fraud') {
                         $attribute = $this->Attribute->attachValidationWarnings($attribute);
                     }
@@ -2723,17 +2740,8 @@ class Event extends AppModel
     public function set_filter_value(&$params, $conditions, $options)
     {
         if (!empty($params['value'])) {
-            $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], ['Attribute.value1', 'Attribute.value2']);
-            // Allows searching for ['value1' => [full, part1], 'value2' => [full, part2]]
-            if (is_string($params['value']) && strpos('|', $params['value']) !== false) {
-                $valueParts = explode('|', $params['value'], 2);
-                $convertedFilterVal1 = $this->convert_filters($valueParts[0]);
-                $convertedFilterVal2 = $this->convert_filters($valueParts[1]);
-                $conditionVal1 = $this->generic_add_filter([], $convertedFilterVal1, ['Attribute.value1'])['AND'][0]['OR'];
-                $conditionVal2 = $this->generic_add_filter([], $convertedFilterVal2, ['Attribute.value2'])['AND'][0]['OR'];
-                $conditions['AND'][0]['OR']['OR']['AND'] = [$conditionVal1, $conditionVal2];
-            }
+            $params[$options['filter']] = $this->convert_filters($params['value']);
+            $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
         }
 
         return $conditions;
@@ -2995,8 +3003,13 @@ class Event extends AppModel
                 'noEventReports' => true,
                 'noSightings' => true,
                 'metadata' => $metadataOnly,
-            ])[0];
-
+            ]);
+            if (empty($eventForUser)) {
+                $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
+                $this->loadLog()->createLogEntry($senderUser, 'alert', 'User', $user['id'], __('Something went wrong with alerting user #%s about event #%s. Sending was blocked due to insufficient access to the given event.'));
+                continue;
+            }
+            $eventForUser = $eventForUser[0];
             if ($this->User->UserSetting->checkPublishFilter($user, $eventForUser)) {
                 $body = $this->prepareAlertEmail($eventForUser, $user, $oldpublish);
                 $this->User->sendEmail(['User' => $user], $body, false, null);
@@ -3343,16 +3356,16 @@ class Event extends AppModel
         if (empty($this->eventBlockRule)) {
             return true;
         }
-        if (!empty($rules['tags'])) {
-            if (!is_array($rules['tags'])) {
-                $rules['tags'] = [$rules['tags']];
+        if (!empty($this->eventBlockRule['tags'])) {
+            if (!is_array($this->eventBlockRule['tags'])) {
+                $this->eventBlockRule['tags'] = [$this->eventBlockRule['tags']];
             }
             $eventTags = Hash::extract($event, 'Event.Tag.{n}.name');
             if (empty($eventTags)) {
                 $eventTags = Hash::extract($event, 'Event.EventTag.{n}.Tag.name');
             }
             if (!empty($eventTags)) {
-                foreach ($rules['tags'] as $blockTag) {
+                foreach ($this->eventBlockRule['tags'] as $blockTag) {
                     if (in_array($blockTag, $eventTags)) {
                         return false;
                     }
@@ -7550,15 +7563,21 @@ class Event extends AppModel
     {
         if ($fullEvent) {
             if (empty(Configure::read('Plugin.ZeroMQ_include_attachments'))) {
-                foreach ($fullEvent[0]['Attribute'] as $k => $attribute) {
-                    if (isset($attribute['data'])) {
-                        unset($fullEvent[0]['Attribute'][$k]['data']);
+                if (!empty($fullEvent[0]['Attribute'])) {
+                    foreach ($fullEvent[0]['Attribute'] as $k => $attribute) {
+                        if (isset($attribute['data'])) {
+                            unset($fullEvent[0]['Attribute'][$k]['data']);
+                        }
                     }
                 }
-                foreach ($fullEvent[0]['Object'] as $k => $object) {
-                    foreach ($object['Attribute'] as $k2 => $attribute) {
-                        if (isset($attribute['data'])) {
-                            unset($fullEvent[0]['Object'][$k]['Attribute'][$k2]['data']);
+                if (!empty($fullEvent[0]['Object'])) {
+                    foreach ($fullEvent[0]['Object'] as $k => $object) {
+                        if (!empty($object['Attribute'])) {
+                            foreach ($object['Attribute'] as $k2 => $attribute) {
+                                if (isset($attribute['data'])) {
+                                    unset($fullEvent[0]['Object'][$k]['Attribute'][$k2]['data']);
+                                }
+                            }
                         }
                     }
                 }

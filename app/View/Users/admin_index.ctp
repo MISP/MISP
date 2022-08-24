@@ -200,6 +200,14 @@
                         'data_path' => 'User.date_created'
                     ),
                     array(
+                        'name' => __('Last API Access'),
+                        'sort' => 'User.last_api_access',
+                        'element' => 'datetime',
+                        'class' => 'short',
+                        'data_path' => 'User.last_api_access',
+                        'requirement' => !empty(Configure::read('MISP.store_api_access_time')) && Configure::read('MISP.store_api_access_time', false)
+                    ),
+                    array(
                         'name' => (Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : __('External Auth')),
                         'sort' => 'User.external_auth_required',
                         'element' => 'boolean',

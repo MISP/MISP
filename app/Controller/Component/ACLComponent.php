@@ -97,6 +97,7 @@ class ACLComponent extends Component
                 'view' => []
             ],
             'correlations' => [
+                'generateOccurrences' => [],
                 'generateTopCorrelations' => [],
                 'overCorrelations' => [],
                 'switchEngine' => [],
