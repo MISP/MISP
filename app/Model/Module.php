@@ -234,6 +234,11 @@ class Module extends AppModel
             $attributes = $this->Attribute->fetchAttributes($user, $options);
             $triggerData = !empty($attributes) ? $attributes[0] : [];
             $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $postData['attribute_uuid'], $triggerData['Attribute']['event_id'], $postData['module']);
+        } else if (empty($triggerData) && !empty($postData['event_id'])) {
+            $this->Event = ClassRegistry::init('Event');
+            $event = $this->Event->quickFetchEvent($postData['event_id']);
+            $triggerData =$event;
+            $logging['message'] = __('The workflow `%s` prevented event `%s` to query the module `%s`', $trigger_id, $postData['event_id'], $postData['module']);
         } else {
             if (isset($triggerData['Attribute'])) {
                 $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`',
