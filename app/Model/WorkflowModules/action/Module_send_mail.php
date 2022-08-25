@@ -1,8 +1,6 @@
 <?php
 include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
-App::uses('JsonTool', 'Tools');
-
 class Module_send_mail extends WorkflowBaseActionModule
 {
     public $id = 'send-mail';
