@@ -9,6 +9,29 @@ class OverCorrelatingValue extends AppModel
         'Containable'
     );
 
+    public function beforeValidate($options = array())
+    {
+        $this->data['OverCorrelatingValue']['value'] = self::truncate($this->data['OverCorrelatingValue']['value']);
+        return true;
+    }
+
+    public function beforeSave($options = array())
+    {
+        $this->data['OverCorrelatingValue']['value'] = self::truncate($this->data['OverCorrelatingValue']['value']);
+        return true;
+    }
+
+    public static function truncate(string $value): string
+    {
+        return mb_substr($value, 0, 191);
+    }
+
+    public static function truncateValues(array $values): array
+    {
+        return array_map(function(string $value) {
+            return self::truncate($value);
+        }, $values);
+    }
 
     /**
      * @param string $value
@@ -36,7 +59,7 @@ class OverCorrelatingValue extends AppModel
     {
         $this->deleteAll(
             [
-                'OverCorrelatingValue.value' => $value
+                'OverCorrelatingValue.value' => self::truncate($value)
             ],
             false
         );
@@ -66,7 +89,17 @@ class OverCorrelatingValue extends AppModel
 
     public function checkValue($value)
     {
-        return $this->hasAny(['value' => $value]);
+        return $this->hasAny(['value' => self::truncate($value)]);
+    }
+
+    public function findOverCorrelatingValues(array $values_to_check): array
+    {
+        $values_to_check_truncated = array_unique(self::truncateValues($values_to_check));
+        $overCorrelatingValues = $this->find('column', [
+            'conditions' => ['value' => $values_to_check_truncated],
+            'fields' => ['value'],
+        ]);
+        return $overCorrelatingValues;
     }
 
     public function generateOccurrencesRouter()
@@ -110,8 +143,8 @@ class OverCorrelatingValue extends AppModel
                 'recursive' => -1,
                 'conditions' => [
                     'OR' => [
-                        'Attribute.value1' => $overCorrelation['OverCorrelatingValue']['value'],
-                        'Attribute.value2' => $overCorrelation['OverCorrelatingValue']['value']
+                        'Attribute.value1 LIKE' => $overCorrelation['OverCorrelatingValue']['value'] . '%',
+                        'Attribute.value2 LIKE' => $overCorrelation['OverCorrelatingValue']['value'] . '%'
                     ]
                 ]
             ]);
