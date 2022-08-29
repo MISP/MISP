@@ -83,7 +83,7 @@ class AppModel extends Model
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
-        93 => false,
+        93 => false, 94 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1851,6 +1851,13 @@ class AppModel extends Model
                 $this->__dropIndex('default_correlations', '1_event_sharing_group_id');
                 $this->__dropIndex('default_correlations', '1_org_id');
                 break;
+            case 94:
+                $sqlArray[] = "ALTER TABLE `users`
+                        ADD COLUMN `notification_daily`     tinyint(1) NOT NULL DEFAULT 0,
+                        ADD COLUMN `notification_weekly`    tinyint(1) NOT NULL DEFAULT 0,
+                        ADD COLUMN `notification_monthly`   tinyint(1) NOT NULL DEFAULT 0
+                    ;";
+                    break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

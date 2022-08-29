@@ -25,6 +25,7 @@ class UsersController extends AppController
     );
 
     public $toggleableFields = ['disabled', 'autoalert'];
+    private const PERIODIC_USER_SETTING_KEY = 'periodic_notification_filters';
 
     public function beforeFilter()
     {
@@ -74,6 +75,7 @@ class UsersController extends AppController
         } else {
             $this->set('user', $user);
             $this->set('admin_view', false);
+            $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
         }
     }
 
@@ -2759,6 +2761,49 @@ class UsersController extends AppController
             $this->Flash->success($message);
             $this->redirect($this->referer());
         }
+    }
+
+    public function notificationSettings()
+    {
+        $user_id = $this->Auth->user('id');
+        $user = $this->User->find('first', [
+            'recursive' => -1,
+            'conditions' => ['User.id' => $user_id],
+            'contain' => [
+                'UserSetting',
+            ]
+        ]);
+        if (empty($user)) {
+            throw new NotFoundException(__('Invalid user'));
+        }
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $success = $this->User->saveNotificationSettings($user_id, $this->request->data);
+            if (!empty($success)) {
+                $message = __('Notification settings saved');
+                $this->Flash->success($message);
+            } else {
+                $message = __('Notification settings could not be saved');
+                $this->Flash->error($message);
+            }
+            $this->redirect(['action' => 'view', 'me']);
+        }
+        $user['periodic_settings'] = $this->User->extractPeriodicSettingForUser($user);
+        $this->request->data = $user;
+        $this->set('user', $user);
+        $this->loadModel('Attribute');
+        $distributionData = $this->Attribute->fetchDistributionData($this->Auth->user());
+        unset($distributionData['levels'][5]);
+        $this->set('sharingGroups', $distributionData['sgs']);
+        $this->set('distributionLevels', $distributionData['levels']);
+        $this->loadModel('Organisation');
+        $orgs = $this->Organisation->find('list', [
+            'conditions' => ['local' => 1],
+            'fields' => ['id', 'name'],
+            'order' => 'name',
+        ]);
+        $this->set('orgs', $orgs);
+        $this->set('user', $user);
     }
 
     private function __canChangePassword()

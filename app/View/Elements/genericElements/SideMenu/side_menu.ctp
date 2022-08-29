@@ -634,6 +634,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'text' => __('My Settings')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'notification_settings',
+                        'url' => $baseurl . '/users/notificationSettings',
+                        'text' => __('My Notification Settings')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'user_settings_set',
                         'url' => $baseurl . '/user_settings/setSetting',
                         'text' => __('Set Setting')

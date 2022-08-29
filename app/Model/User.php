@@ -18,6 +18,9 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
  */
 class User extends AppModel
 {
+    private const PERIODIC_USER_SETTING_KEY = 'periodic_notification_filters';
+    public const PERIODIC_NOTIFICATIONS = ['notification_daily', 'notification_weekly', 'notification_monthly'];
+
     public $displayField = 'email';
 
     public $validate = array(
@@ -1644,5 +1647,55 @@ class User extends AppModel
     {
         $salt = Configure::read('Security.salt');
         return substr(hash('sha256', "{$user['id']}|$salt"), 0, 8);
+    }
+
+    public function extractPeriodicSettingForUser(array $user): array
+    {
+        $periodic_settings = array_values(array_filter($user['UserSetting'], function ($userSetting) {
+            return $userSetting['setting'] == self::PERIODIC_USER_SETTING_KEY;
+        }));
+        if (!empty($periodic_settings)) {
+            $filter_names = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags'];
+            foreach ($filter_names as $filter_name) {
+                $periodic_settings[$filter_name] = $periodic_settings[0]['value'][$filter_name];
+            }
+        }
+        return $periodic_settings;
+    }
+
+    public function saveNotificationSettings(int $user_id, array $data): bool
+    {
+        $existingUser = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['User.id' => $user_id],
+        ]);
+        if (empty($existingUser)) {
+            return false;
+        }
+        foreach (self::PERIODIC_NOTIFICATIONS as $notification_period) {
+            $existingUser['User'][$notification_period] = $data['User'][$notification_period];
+        }
+        $success = $this->save($existingUser, [
+            'fieldList' => self::PERIODIC_NOTIFICATIONS
+        ]);
+        if ($success) {
+            $periodic_settings = $data['periodic_settings'];
+            $notification_filters = [
+                'orgc_id' => $periodic_settings['orgc_id'] ?? '',
+                'distribution' => $periodic_settings['distribution'] ?? '',
+                'sharing_group_id' => $periodic_settings['distribution'] != 4 ? '' : ($periodic_settings['sharing_group_id'] ?? ''),
+                'event_info' => $periodic_settings['event_info'] ?? '',
+                'tags' => $periodic_settings['tags'] ?? '[]',
+            ];
+            $new_user_setting = [
+                'UserSetting' => [
+                    'user_id' => $existingUser['User']['id'],
+                    'setting' => self::PERIODIC_USER_SETTING_KEY,
+                    'value' => $notification_filters
+                ]
+            ];
+            $success = $this->UserSetting->setSetting($existingUser['User'], $new_user_setting);
+        }
+        return !empty($success);
     }
 }
