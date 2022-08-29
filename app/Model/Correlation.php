@@ -899,10 +899,7 @@ class Correlation extends AppModel
             }
         }
 
-        $overCorrelatingValues = array_flip($this->OverCorrelatingValue->find('column', [
-            'conditions' => ['value' => array_keys($valuesToCheck)],
-            'fields' => ['value'],
-        ]));
+        $overCorrelatingValues = array_flip($this->OverCorrelatingValue->findOverCorrelatingValues(array_keys($valuesToCheck)));
         unset($valuesToCheck);
 
         foreach ($attributes as &$attribute) {
@@ -911,6 +908,7 @@ class Correlation extends AppModel
             } else {
                 $values = [$attribute['value']];
             }
+            $values = $this->OverCorrelatingValue->truncateValues($values);
 
             if (isset($overCorrelatingValues[$values[0]])) {
                 $attribute['over_correlation'] = true;
