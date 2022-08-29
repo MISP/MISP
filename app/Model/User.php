@@ -1698,4 +1698,31 @@ class User extends AppModel
         }
         return !empty($success);
     }
+
+
+    /**
+     * Undocumented function
+     *
+     * @param int $user_id
+     * @param string $period
+     * @return string
+     * @throws NotFoundException
+     * @throws InvalidArgumentException
+     */
+    public function generatePeriodicSummary(int $user_id, string $period): string
+    {
+        $existingUser = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['User.id' => $user_id],
+        ]);
+        if (empty($existingUser)) {
+            throw new NotFoundException(__('Invalid user ID.'));
+        }
+        $allowed_periods = array_map(function($period) {
+            return substr($period, strlen('notification_'));
+        }, self::PERIODIC_NOTIFICATIONS);
+        if (!in_array($period, $allowed_periods)) {
+            throw new InvalidArgumentException(__('Invalid period. Must be one of %s', JsonTool::encode(self::PERIODIC_NOTIFICATIONS)));
+        }
+    }
 }
