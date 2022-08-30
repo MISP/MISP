@@ -1,2 +1,0 @@
-<?php
-debug($summary);

@@ -1649,18 +1649,33 @@ class User extends AppModel
         return substr(hash('sha256', "{$user['id']}|$salt"), 0, 8);
     }
 
-    public function extractPeriodicSettingForUser(array $user): array
+    public function extractPeriodicSettingForUser($user): array
     {
+        $filter_names = ['orgc_id', 'published', 'distribution', 'sharing_group_id', 'event_info', 'tags'];
+        if (is_numeric($user)) {
+            $user = $this->find('first', [
+                'recursive' => -1,
+                'conditions' => ['User.id' => $user],
+                'contain' => [
+                    'UserSetting',
+                ]
+            ]);
+        }
         $periodic_settings = array_values(array_filter($user['UserSetting'], function ($userSetting) {
             return $userSetting['setting'] == self::PERIODIC_USER_SETTING_KEY;
         }));
+        $periodic_settings_indexed = [];
         if (!empty($periodic_settings)) {
-            $filter_names = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags'];
             foreach ($filter_names as $filter_name) {
-                $periodic_settings[$filter_name] = $periodic_settings[0]['value'][$filter_name];
+                $periodic_settings_indexed[$filter_name] = $periodic_settings[0]['value'][$filter_name];
             }
         }
-        return $periodic_settings;
+        return $periodic_settings_indexed;
+    }
+
+    public function getUsablePeriodicSettingForUser($user, $period): array
+    {
+        return $this->__getUsableFilters($this->extractPeriodicSettingForUser($user), $period);
     }
 
     public function saveNotificationSettings(int $user_id, array $data): bool
@@ -1682,6 +1697,7 @@ class User extends AppModel
             $periodic_settings = $data['periodic_settings'];
             $notification_filters = [
                 'orgc_id' => $periodic_settings['orgc_id'] ?? '',
+                'published' => $periodic_settings['published'] ?? '',
                 'distribution' => $periodic_settings['distribution'] ?? '',
                 'sharing_group_id' => $periodic_settings['distribution'] != 4 ? '' : ($periodic_settings['sharing_group_id'] ?? ''),
                 'event_info' => $periodic_settings['event_info'] ?? '',
@@ -1711,18 +1727,102 @@ class User extends AppModel
      */
     public function generatePeriodicSummary(int $user_id, string $period): string
     {
-        $existingUser = $this->find('first', [
-            'recursive' => -1,
-            'conditions' => ['User.id' => $user_id],
-        ]);
-        if (empty($existingUser)) {
-            throw new NotFoundException(__('Invalid user ID.'));
-        }
+        $existingUser = $this->getUserById($user_id);
+        $user = $this->rearrangeToAuthForm($existingUser);
         $allowed_periods = array_map(function($period) {
             return substr($period, strlen('notification_'));
         }, self::PERIODIC_NOTIFICATIONS);
         if (!in_array($period, $allowed_periods)) {
             throw new InvalidArgumentException(__('Invalid period. Must be one of %s', JsonTool::encode(self::PERIODIC_NOTIFICATIONS)));
         }
+        App::import('Tools', 'SendEmail');
+        $emailTemplate = $this->prepareEmailTemplate($period);
+        $filters = $this->getUsablePeriodicSettingForUser($existingUser, $period);
+        $filtersForRestSearch = $filters;
+        $filters['last'] = $this->resolveTimeDelta($filters['last']);
+        $events = $this->__getEventsForFilters($user, $filters);
+        
+        $elementCounter = 0;
+        $renderView = false;
+        $filtersForRestSearch['publish_timestamp'] = $filtersForRestSearch['last'];
+        $filtersForRestSearch['returnFormat'] = 'context';
+        unset($filtersForRestSearch['last']);
+        $final = $this->Event->restSearch($user, 'context', $filtersForRestSearch, false, false, $elementCounter, $renderView);
+        $final = json_decode($final->intoString(), true);
+        $aggregated_context = $this->__renderAggregatedContext($final);
+
+        $emailTemplate->set('baseurl', $this->baseurl);
+        $emailTemplate->set('events', $events);
+        $emailTemplate->set('filters', $filters);
+        $emailTemplate->set('period', $period);
+        $emailTemplate->set('aggregated_context', $aggregated_context);
+        $summary = $emailTemplate->render();
+        return $summary->format() == 'text' ? $summary->text : $summary->html;
+    }
+
+    private function __renderAggregatedContext(array $restSearchOutput): string
+    {
+        $view = new View();
+        $view->autoLayout = false;
+        $view->helpers = ['TextColour'];
+        $view->loadHelpers();
+
+        $view->set($restSearchOutput);
+        $view->set('baseurl', $this->baseurl);
+        $view->viewPath = 'Events' . DS . 'module_views';
+        return $view->render('context_view', false);
+    }
+
+    private function __getUsableFilters(array $period_filters, string $period='daily'): array
+    {
+        $filters = [
+            'last' => $this->__genTimerangeFilter($period),
+        ];
+        if (!empty($period_filters['orgc_id'])) {
+            $filters['orgc_id'] = intval($period_filters['orgc_id']);
+        }
+        if (!empty($period_filters['published'])) {
+            $filters['published'] = true;
+        }
+        if (!empty($period_filters['distribution'])) {
+            $filters['distribution'] = intval($period_filters['distribution']);
+        }
+        if (!empty($period_filters['sharing_group_id'])) {
+            $filters['sharing_group_id'] = intval($period_filters['sharing_group_id']);
+        }
+        if (!empty($period_filters['event_info'])) {
+            $filters['event_info'] = $period_filters['event_info'];
+        }
+        if (!empty($period_filters['tags'])) {
+            $filters['tags'] = JsonTool::decode($period_filters['tags']);
+        }
+        return $filters;
+    }
+
+    private function __genTimerangeFilter(string $period='daily'): string
+    {
+        $timerange = '1d';
+        if ($period == 'weekly') {
+            $timerange = '7d';
+        } else if ($period == 'monthly'){
+            $timerange = '31d';
+        }
+        return $timerange;
+        return $this->resolveTimeDelta($timerange);
+    }
+
+    private function __getEventsForFilters(array $user, array $filters): array
+    {
+        $this->Event = ClassRegistry::init('Event');
+        $events = $this->Event->fetchEvent($user, $filters);
+        return $events;
+    }
+
+    public function prepareEmailTemplate(string $period='daily'): SendEmailTemplate
+    {
+        $subject = sprintf('[%s MISP] %s %s', Configure::read('MISP.org'), Inflector::humanize($period), __('Notification'));
+        $template = new SendEmailTemplate("notification_$period");
+        $template->subject($subject);
+        return $template;
     }
 }

@@ -2806,10 +2806,13 @@ class UsersController extends AppController
         $this->set('user', $user);
     }
 
-    public function viewPeriodicSummary(int $user_id, string $period)
+    public function viewPeriodicSummary(string $period)
     {
-        $summary = $this->User->generatePeriodicSummary($user_id, $period);
+        $summary = $this->User->generatePeriodicSummary($this->Auth->user('id'), $period);
+        $notification_settings = $this->User->getUsablePeriodicSettingForUser($this->Auth->user('id'), $period);
+        $this->set('notification_settings', $notification_settings);
         $this->set('summary', $summary);
+        $this->set('period', $period);
     }
 
     private function __canChangePassword()

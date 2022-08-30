@@ -377,6 +377,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('View delegation requests')
                         ));
                     }
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'viewPeriodicSummary',
+                        'url' => $baseurl . '/users/viewPeriodicSummary/daily',
+                        'text' => __('View periodic summary')
+                    ));
                     echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/events/export',

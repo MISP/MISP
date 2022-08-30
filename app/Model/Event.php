@@ -1618,7 +1618,8 @@ class Event extends AppModel
             'limit',
             'page',
             'order',
-            'protected'
+            'protected',
+            'published',
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -1754,6 +1755,9 @@ class Event extends AppModel
         }
         if ($options['protected']) {
             $conditions['AND'][] = array('Event.protected' => $options['protected']);
+        }
+        if ($options['published']) {
+            $conditions['AND'][] = array('Event.published' => $options['published']);
         }
         if (!empty($options['includeRelatedTags'])) {
             $options['includeGranularCorrelations'] = 1;
