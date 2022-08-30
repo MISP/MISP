@@ -1715,17 +1715,24 @@ class User extends AppModel
         return !empty($success);
     }
 
+    public function getSubscribedUsersForPeriod(string $period): array
+    {
+        return $this->find('all', [
+            'recursive' => -1,
+            'conditions' => ["notification_$period" => true],
+        ]);
+    }
 
     /**
      * Undocumented function
      *
      * @param int $user_id
      * @param string $period
-     * @return string
+     * @return string|SendEmailTemplate
      * @throws NotFoundException
      * @throws InvalidArgumentException
      */
-    public function generatePeriodicSummary(int $user_id, string $period): string
+    public function generatePeriodicSummary(int $user_id, string $period, $rendered=true)
     {
         $existingUser = $this->getUserById($user_id);
         $user = $this->rearrangeToAuthForm($existingUser);
@@ -1756,8 +1763,11 @@ class User extends AppModel
         $emailTemplate->set('filters', $filters);
         $emailTemplate->set('period', $period);
         $emailTemplate->set('aggregated_context', $aggregated_context);
-        $summary = $emailTemplate->render();
-        return $summary->format() == 'text' ? $summary->text : $summary->html;
+        if (!empty($rendered)) {
+            $summary = $emailTemplate->render();
+            return $summary->format() == 'text' ? $summary->text : $summary->html;
+        }
+        return $emailTemplate;
     }
 
     private function __renderAggregatedContext(array $restSearchOutput): string
