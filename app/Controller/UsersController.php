@@ -25,7 +25,6 @@ class UsersController extends AppController
     );
 
     public $toggleableFields = ['disabled', 'autoalert'];
-    private const PERIODIC_USER_SETTING_KEY = 'periodic_notification_filters';
 
     public function beforeFilter()
     {
