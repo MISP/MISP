@@ -28,6 +28,9 @@ $tag_color_mapping = [];
 
 $mitre_attack_techniques = [];
 $mitre_galaxy_tag_prefix = 'misp-galaxy:mitre-attack-pattern="';
+$additional_taxonomy_event_list = [
+    'PAP' => 'PAP:',
+];
 
 foreach ($events as $event) {
     $attribute_number += count($event['Attribute']);
@@ -132,7 +135,7 @@ array_splice($object_types, 10);
 array_splice($all_tag_amount, 10);
 ?>
 
-<h2><?= __('Summary of published Events') ?></h2>
+<h2><?= !empty($filters['published']) ? __('Summary of published Events') : __('Summary of Events') ?></h2>
 <?php if ($this->fetch('prepend-html')): ?>
     <?= $this->fetch('prepend-html') ?>
 <?php endif; ?>
@@ -253,35 +256,43 @@ array_splice($all_tag_amount, 10);
     <?php if ($this->fetch('detailed-summary-events')): ?>
         <?= $this->fetch('detailed-summary-events'); ?>
     <?php else: ?>
-        <h3><?= __('Event list') ?></h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>TLP</th>
-                    <th>PAP</th>
-                    <th><?= __('State') ?></th>
-                    <th>ThreatLevel</th>
-                    <th><?= __('Event Info') ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($events as $event) : ?>
-                    <?php
-                        $workflowTag = findAndBuildTag($event['EventTag'], 'workflow:', $this);
-                        $analysisHtml = !empty($workflowTag) ? $workflowTag : h($analysisLevels[$event['Event']['analysis']]);
-                        $tlpTag = findAndBuildTag($event['EventTag'], 'tlp:', $this);
-                        $tlpHtml = !empty($tlpTag) ? $tlpTag : h($distributionLevels[$event['Event']['distribution']]);
-                    ?>
+        <?php if (!empty($events)): ?>
+            <h3><?= __('Event list') ?></h3>
+            <table>
+                <thead>
                     <tr>
-                        <td><?= $tlpHtml ?></td>
-                        <td><?= findAndBuildTag($event['EventTag'], 'PAP:', $this) ?></td>
-                        <td><?= $analysisHtml ?></td>
-                        <td><?= h($event['ThreatLevel']['name']); ?></td>
-                        <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($event['Event']['uuid'])) ?>"><?= h($event['Event']['info']); ?></a></td>
+                        <th style="padding: 0 0.5em;">TLP</th>
+                        <th style="padding: 0 0.5em;"><?= __('State') ?></th>
+                        <th style="padding: 0 0.5em;"><?= __('Threat Level') ?></th>
+                        <?php foreach ($additional_taxonomy_event_list as $taxonomy_name => $taxonomy_prefix): ?>
+                            <th style="padding: 0 0.5em;"><?= h($taxonomy_name) ?></th>
+                        <?php endforeach; ?>
+                        <th style="padding: 0 0.5em;"><?= __('Event Info') ?></th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php foreach ($events as $event) : ?>
+                        <?php
+                            $workflowTag = findAndBuildTag($event['EventTag'], 'workflow:', $this);
+                            $analysisHtml = !empty($workflowTag) ? $workflowTag : h($analysisLevels[$event['Event']['analysis']]);
+                            $tlpTag = findAndBuildTag($event['EventTag'], 'tlp:', $this);
+                            $tlpHtml = !empty($tlpTag) ? $tlpTag : h($distributionLevels[$event['Event']['distribution']]);
+                        ?>
+                        <tr>
+                            <td><?= $tlpHtml ?></td>
+                            <td><?= $analysisHtml ?></td>
+                            <td><?= h($event['ThreatLevel']['name']); ?></td>
+                            <?php foreach ($additional_taxonomy_event_list as $taxonomy_name => $taxonomy_prefix): ?>
+                                <td><?= findAndBuildTag($event['EventTag'], $taxonomy_prefix, $this) ?></td>
+                            <?php endforeach; ?>
+                            <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($event['Event']['uuid'])) ?>"><?= h($event['Event']['info']); ?></a></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p><?= __('No events.') ?></p>
+        <?php endif; ?>
     <?php endif; ?>
 <?php endif; // detailed-summary-full ?>
 
