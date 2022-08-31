@@ -56,7 +56,7 @@ echo $this->element('genericElements/Form/genericForm', [
             ],
             [
                 'field' => 'periodic_settings.tags',
-                'label' => __('Tag list'),
+                'label' => __('Event Tags'),
                 'type' => 'tagsPicker',
                 'placeholder' => '["tlp:red"]',
             ],

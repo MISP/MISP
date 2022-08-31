@@ -1755,6 +1755,10 @@ class User extends AppModel
         $filtersForRestSearch['returnFormat'] = 'context';
         $filtersForRestSearch['staticHtml'] = true;
         unset($filtersForRestSearch['last']);
+        if (!empty($filtersForRestSearch['tags'])) {
+            $filtersForRestSearch['event_tags'] = $filtersForRestSearch['tags'];
+            unset($filtersForRestSearch['tags']);
+        }
         $final = $this->Event->restSearch($user, 'context', $filtersForRestSearch, false, false, $elementCounter, $renderView);
         $final = json_decode($final->intoString(), true);
         $aggregated_context = $this->__renderAggregatedContext($final);
