@@ -1177,14 +1177,15 @@ class Attribute extends AppModel
 
     public function set_filter_tags(&$params, $conditions, $options)
     {
-        if (empty($params['tags'])) {
+        if (empty($params['tags']) && empty($params['event_tags'])) {
             return $conditions;
         }
         /** @var Tag $tag */
         $tag = ClassRegistry::init('Tag');
-        $params['tags'] = $this->dissectArgs($params['tags']);
+        $tag_key = !empty($params['tags']) ? 'tags' : 'event_tags';
+        $params[$tag_key] = $this->dissectArgs($params[$tag_key]);
         foreach (array(0, 1, 2) as $tag_operator) {
-            $tagArray[$tag_operator] = $tag->fetchTagIdsSimple($params['tags'][$tag_operator]);
+            $tagArray[$tag_operator] = $tag->fetchTagIdsSimple($params[$tag_key][$tag_operator]);
         }
         $temp = array();
         if (!empty($tagArray[0])) {
@@ -1204,19 +1205,21 @@ class Attribute extends AppModel
                     $temp,
                     $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
                 );
-                $subquery_options = array(
-                    'conditions' => array(
-                        'tag_id' => $tagArray[0]
-                    ),
-                    'fields' => array(
-                        $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
-                    )
-                );
-                $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
-                $temp = array_merge(
-                    $temp,
-                    $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
-                );
+                if ($tag_key != 'event_tags') {
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $tagArray[0]
+                        ),
+                        'fields' => array(
+                            $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                        )
+                    );
+                    $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                    $temp = array_merge(
+                        $temp,
+                        $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
+                    );
+                }
             }
         }
         if (!empty($temp)) {
@@ -1269,37 +1272,39 @@ class Attribute extends AppModel
                         $temp[$k]['OR'],
                         $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
                     );
-                    $subquery_options = array(
-                        'conditions' => array(
-                            'tag_id' => $anded_tag
-                        ),
-                        'fields' => array(
-                            $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
-                        )
-                    );
-                    $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
-                    $temp[$k]['OR'] = array_merge(
-                        $temp[$k]['OR'],
-                        $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
-                    );
+                    if ($tag_key != 'event_tags') {
+                        $subquery_options = array(
+                            'conditions' => array(
+                                'tag_id' => $anded_tag
+                            ),
+                            'fields' => array(
+                                $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                            )
+                        );
+                        $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                        $temp[$k]['OR'] = array_merge(
+                            $temp[$k]['OR'],
+                            $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
+                        );
+                    }
                 }
             }
         }
         if (!empty($temp)) {
             $conditions['AND'][] = array('AND' => $temp);
         }
-        $params['tags'] = array();
+        $params[$tag_key] = array();
         if (!empty($tagArray[0]) && empty($options['pop'])) {
-            $params['tags']['OR'] = $tagArray[0];
+            $params[$tag_key]['OR'] = $tagArray[0];
         }
         if (!empty($tagArray[1])) {
-            $params['tags']['NOT'] = $tagArray[1];
+            $params[$tag_key]['NOT'] = $tagArray[1];
         }
         if (!empty($tagArray[2]) && empty($options['pop'])) {
-            $params['tags']['AND'] = $tagArray[2];
+            $params[$tag_key]['AND'] = $tagArray[2];
         }
-        if (empty($params['tags'])) {
-            unset($params['tags']);
+        if (empty($params[$tag_key])) {
+            unset($params[$tag_key]);
         }
         return $conditions;
     }

@@ -1359,6 +1359,7 @@ class Event extends AppModel
                     'eventinfo' => array('function' => 'set_filter_eventinfo'),
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'tags' => array('function' => 'set_filter_tags'),
+                    'event_tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'date' => array('function' => 'set_filter_date', 'pop' => true),
@@ -2682,7 +2683,7 @@ class Event extends AppModel
 
     public function set_filter_tags(&$params, $conditions, $options)
     {
-        if (!empty($params['tags'])) {
+        if (!empty($params['tags']) || !empty($params['event_tags'])) {
             $conditions = $this->Attribute->set_filter_tags($params, $conditions, $options);
         }
         return $conditions;
