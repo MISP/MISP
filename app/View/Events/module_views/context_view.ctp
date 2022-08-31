@@ -69,7 +69,7 @@
     </div>
 
     <h2><?= __('Mitre ATT&CK Matrix') ?></h2>
-    <div id="attackmatrix_div" style="position: relative; border: solid 1px;" class="statistics_attack_matrix">
+    <div style="position: relative;" class="statistics_attack_matrix">
         <?= $this->element('view_galaxy_matrix', $attackData); ?>
     </div>
 </div>
