@@ -146,7 +146,6 @@ foreach($tabs as $tabName => $column):
                 <?php echo empty($static) ? h(ucfirst($name)) : ''; ?>
                 <div class="th-inner" style="flex-direction: column; align-items: flex-start; padding-top: 3px; color: white;">
                     <span><?php echo h(ucfirst($name)); ?></span>
-                    <i style="font-size: smaller;"><?php echo __('(%s items)', isset($column[$co]) ? count($column[$co]) : 0); ?></i>
                 </div>
             </th>
 
