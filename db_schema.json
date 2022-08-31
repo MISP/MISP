@@ -4864,12 +4864,12 @@
             },
             {
                 "column_name": "value",
-                "is_nullable": "YES",
-                "data_type": "text",
-                "character_maximum_length": "65535",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
                 "numeric_precision": null,
-                "collation_name": "utf8mb4_unicode_ci",
-                "column_type": "text",
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(191)",
                 "column_default": "NULL",
                 "extra": ""
             },
@@ -9105,5 +9105,5 @@
             "uuid": false
         }
     },
-    "db_version": "93"
+    "db_version": "94"
 }
