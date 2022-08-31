@@ -17,7 +17,7 @@ echo $this->element('genericElements/Form/genericForm', [
             ],
             [
                 'field' => 'notification_monthly',
-                'label' => __('Subscribe to montly notifications'),
+                'label' => __('Subscribe to monthly notifications'),
                 'default' => 0,
                 'type' => 'checkbox'
             ],

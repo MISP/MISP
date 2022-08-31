@@ -1753,6 +1753,7 @@ class User extends AppModel
         $renderView = false;
         $filtersForRestSearch['publish_timestamp'] = $filtersForRestSearch['last'];
         $filtersForRestSearch['returnFormat'] = 'context';
+        $filtersForRestSearch['staticHtml'] = true;
         unset($filtersForRestSearch['last']);
         $final = $this->Event->restSearch($user, 'context', $filtersForRestSearch, false, false, $elementCounter, $renderView);
         $final = json_decode($final->intoString(), true);
@@ -1763,6 +1764,8 @@ class User extends AppModel
         $emailTemplate->set('filters', $filters);
         $emailTemplate->set('period', $period);
         $emailTemplate->set('aggregated_context', $aggregated_context);
+        $emailTemplate->set('analysisLevels', $this->Event->analysisLevels);
+        $emailTemplate->set('distributionLevels', $this->Event->distributionLevels);
         if (!empty($rendered)) {
             $summary = $emailTemplate->render();
             return $summary->format() == 'text' ? $summary->text : $summary->html;
@@ -1818,7 +1821,6 @@ class User extends AppModel
             $timerange = '31d';
         }
         return $timerange;
-        return $this->resolveTimeDelta($timerange);
     }
 
     private function __getEventsForFilters(array $user, array $filters): array
@@ -1830,7 +1832,7 @@ class User extends AppModel
 
     public function prepareEmailTemplate(string $period='daily'): SendEmailTemplate
     {
-        $subject = sprintf('[%s MISP] %s %s', Configure::read('MISP.org'), Inflector::humanize($period), __('Notification'));
+        $subject = sprintf('[%s MISP] %s %s', Configure::read('MISP.org'), Inflector::humanize($period), __('Notification - %s', (new DateTime())->format('Y-m-d')));
         $template = new SendEmailTemplate("notification_$period");
         $template->subject($subject);
         return $template;

@@ -110,11 +110,26 @@ foreach ($events as $event) {
     }
 }
 
+if (!function_exists('findAndBuildTag')) {
+    function findAndBuildTag($tag_list, $tag_prefix, $that) {
+        foreach ($tag_list as $tag) {
+            if (substr($tag['Tag']['name'], 0, strlen($tag_prefix)) == $tag_prefix) {
+                return $that->element('tag', ['tag' => $tag]);
+            }
+        }
+        return '';
+    }
+}
+
 $unique_tag_number = count(array_keys($all_tag_amount));
 
 arsort($attribute_types);
 arsort($object_types);
 arsort($all_tag_amount);
+
+array_splice($attribute_types, 10);
+array_splice($object_types, 10);
+array_splice($all_tag_amount, 10);
 ?>
 
 <h2><?= __('Summary of published Events') ?></h2>
@@ -171,39 +186,44 @@ arsort($all_tag_amount);
     <?php if ($this->fetch('detailed-summary-mitre-attack')): ?>
         <?= $this->fetch('detailed-summary-mitre-attack'); ?>
     <?php else: ?>
-        <h4><img src="https://localhost:8443/img/mitre-attack-icon.ico" style="height: 1em; vertical-align: text-top;"> <?= __('Mitre Att&ck techniques') ?></h4>
-        <ul>
-            <?php foreach ($mitre_attack_techniques as $technique => $tag) : ?>
-                <li>
-                    <?php
-                        $tag['Tag']['name'] = $technique;
-                        echo $this->element('tag', ['tag' => $tag])
-                    ?>
-                </li>
-            <?php endforeach; ?>
-        </ul>
+        <?php if (!empty($mitre_attack_techniques)): ?>
+            <h4><?= __('Mitre Att&ck techniques') ?></h4>
+            <ul>
+                <?php foreach ($mitre_attack_techniques as $technique => $tag) : ?>
+                    <li>
+                        <?php
+                            $tag['Tag']['name'] = $technique;
+                            echo $this->element('tag', ['tag' => $tag])
+                        ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
     <?php endif; ?>
 
     <?php if ($this->fetch('detailed-summary-type')): ?>
         <?= $this->fetch('detailed-summary-type'); ?>
     <?php else: ?>
-        <h4><?= __('Entity type distribution') ?></h4>
-        <h5><?= __('Attributes') ?></h5>
-        <ul>
-        <?php foreach ($attribute_types as $type => $amount) : ?>
-            <li><strong><?= h($type) ?></strong>: <?= $amount ?></li>
-            <?php endforeach; ?>
-        </ul>
+        <?php if (!empty($attribute_types)): ?>
+            <h4><?= __('Top 10 Attribute types') ?></h4>
+            <ul>
+            <?php foreach ($attribute_types as $type => $amount) : ?>
+                <li><strong><?= h($type) ?></strong>: <?= $amount ?></li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
 
-        <h5><?= __('MISP Objects') ?></h5>
-        <ul>
-        <?php foreach ($object_types as $name => $amount) : ?>
-            <li><strong><?= h($name) ?></strong>: <?= $amount ?></li>
-            <?php endforeach; ?>
-        </ul>
+        <?php if (!empty($object_types)): ?>
+            <h4><?= __('Top 10 MISP Object names') ?></h4>
+            <ul>
+            <?php foreach ($object_types as $name => $amount) : ?>
+                <li><strong><?= h($name) ?></strong>: <?= $amount ?></li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
 
         <?php if (!empty($all_event_report)): ?>
-            <h5><?= __('Event Reports') ?></h5>
+            <h4><?= __('All Event Reports') ?></h4>
             <ul>
             <?php foreach ($all_event_report as $report) : ?>
                 <li>
@@ -219,7 +239,7 @@ arsort($all_tag_amount);
     <?php if ($this->fetch('detailed-summary-tags')): ?>
         <?= $this->fetch('detailed-summary-tags'); ?>
     <?php else: ?>
-        <h4><?= __('Tags distribution') ?></h4>
+        <h4><?= __('Top 10 Tags') ?></h4>
         <ul>
         <?php foreach ($all_tag_amount as $tag_name => $amount) : ?>
             <li>
@@ -235,17 +255,28 @@ arsort($all_tag_amount);
     <?php else: ?>
         <h3><?= __('Event list') ?></h3>
         <table>
+            <thead>
+                <tr>
+                    <th>TLP</th>
+                    <th>PAP</th>
+                    <th><?= __('State') ?></th>
+                    <th>ThreatLevel</th>
+                    <th><?= __('Event Info') ?></th>
+                </tr>
+            </thead>
             <tbody>
                 <?php foreach ($events as $event) : ?>
-                <?php
-                $tlpTag = array_filter($event['EventTag'], function ($event_tag) {
-                    return substr($event_tag['Tag']['name'], 0, 4) === 'tlp:';
-                });
-                $tlpTagHtml = !empty($tlpTag) ? $this->element('tag', ['tag' => $tlpTag[0]]) : '';
-                ?>
+                    <?php
+                        $workflowTag = findAndBuildTag($event['EventTag'], 'workflow:', $this);
+                        $analysisHtml = !empty($workflowTag) ? $workflowTag : h($analysisLevels[$event['Event']['analysis']]);
+                        $tlpTag = findAndBuildTag($event['EventTag'], 'tlp:', $this);
+                        $tlpHtml = !empty($tlpTag) ? $tlpTag : h($distributionLevels[$event['Event']['distribution']]);
+                    ?>
                     <tr>
-                        <td><?= $tlpTagHtml ?></td>
-                        <td>[<?= h($event['ThreatLevel']['name']); ?>]</td>
+                        <td><?= $tlpHtml ?></td>
+                        <td><?= findAndBuildTag($event['EventTag'], 'PAP:', $this) ?></td>
+                        <td><?= $analysisHtml ?></td>
+                        <td><?= h($event['ThreatLevel']['name']); ?></td>
                         <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($event['Event']['uuid'])) ?>"><?= h($event['Event']['info']); ?></a></td>
                     </tr>
                 <?php endforeach; ?>

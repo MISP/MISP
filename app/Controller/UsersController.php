@@ -471,6 +471,7 @@ class UsersController extends AppController
         } else {
             $this->set('urlparams', $urlParams);
             $this->set('passedArgsArray', $passedArgsArray);
+            $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
             $conditions = array();
             if ($this->_isSiteAdmin()) {
                 $users = $this->paginate();

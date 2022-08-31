@@ -2,7 +2,7 @@
     <div class="btn-group">
         <a class="btn <?= $period == 'daily' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/daily' ?>"><?= __('Daily') ?></a>
         <a class="btn <?= $period == 'weekly' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/weekly' ?>"><?= __('Weekly') ?></a>
-        <a class="btn <?= $period == 'monthly' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/monthly' ?>"><?= __('Montly') ?></a>
+        <a class="btn <?= $period == 'monthly' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/monthly' ?>"><?= __('Monthly') ?></a>
     </div>
 
     <h2><?= __('MISP %s summary', h($period)); ?></h2>
