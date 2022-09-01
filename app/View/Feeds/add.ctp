@@ -73,6 +73,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'field' => 'orgc_id',
                 'label' => __('Creator organisation'),
                 'options' => $dropdownData['orgs'],
+                'value' => $this->request->params['action'] === 'add' ? $me['org_id'] : '',
                 'type' => 'dropdown',
                 'div' => ['id' => 'OrgcDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'class' => 'form-control span6'
@@ -80,7 +81,7 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'fixed_event',
                 'label' => __('Target Event'),
-                'options' => ['New Event Each Pull', 'Fixed Event'],
+                'options' => ['Fixed Event', 'New Event Each Pull'],
                 'type' => 'dropdown',
                 'div' => ['id' => 'TargetDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'class' => 'form-control span6'
