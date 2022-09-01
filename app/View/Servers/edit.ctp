@@ -111,6 +111,7 @@
         echo '<div class="input clear"></div>';
         echo $this->Form->input('remove_missing_tags', array(
             'type' => 'checkbox',
+            'label' => __('Remove Missing Attribute Tags'),
         ));
     ?>
     <div class="clear">
@@ -249,7 +250,7 @@ var formInfoValues = {
     'ServerSubmittedCert' : "<?php echo __('You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.');?>",
     'ServerSubmittedClientCert' : "<?php echo __('You can also upload a client certificate file if the instance you are trying to connect requires this.');?>",
     'ServerSelfSigned' : "<?php echo __('Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended).');?>",
-    'ServerRemoveMissingTags': "<?php echo __('Remove any global tags from events on local instance that are not present on an updated event being received from the server. Any custom global tags will be removed, local tags are unaffected as is pushing events (working with Pull event).');?>"
+    'ServerRemoveMissingTags': "<?php echo __('Remove any global tags from attributes on local instance that are not present on an updated event being received from the server. Any missing global tags will be removed, local tags are unaffected as is pushing events (working with Pull event).');?>"
 };
 
 var rules = {
