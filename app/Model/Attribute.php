@@ -2938,7 +2938,7 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false)
+    public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false, $server = null)
     {
         $eventId = $event['Event']['id'];
         $attribute['event_id'] = $eventId;
@@ -3021,11 +3021,14 @@ class Attribute extends AppModel
         }
         if ($user['Role']['perm_tagger']) {
             /*
-                We should uncomment the line below in the future once we have tag soft-delete
+                We should unwrap the line below and remove the server option in the future once we have tag soft-delete
                 A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
                 has a version below x
             */
-            // $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
+            if (isset($server) && isset($server['Server']['remove_missing_tags']) && $server['Server']['remove_missing_tags']) {
+                $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
+            }
+
             if (isset($attribute['Tag'])) {
                 foreach ($attribute['Tag'] as $tag) {
                     $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
