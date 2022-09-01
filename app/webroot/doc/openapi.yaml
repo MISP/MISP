@@ -6198,6 +6198,8 @@ components:
                   - $ref: "#/components/schemas/OrganisationName"
               tags:
                 $ref: "#/components/schemas/TagsRestSearchFilter"
+              event_tags:
+                $ref: "#/components/schemas/TagsRestSearchFilter"
               searchall:
                 description: "Search events by matching any tag names, event descriptions, attribute values or attribute comments"
                 type: string
