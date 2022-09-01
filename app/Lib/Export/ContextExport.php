@@ -35,7 +35,6 @@ class ContextExport
                 $this->__aggregate($attribute, Hash::extract($attribute, 'AttributeTag.{n}.Tag'));
             }
         }
-        $this->__passedOptions = $options;
         $this->__attack_export_tool->handler($data, $options);
         return '';
     }
@@ -47,6 +46,7 @@ class ContextExport
         App::uses('AttackExport', 'Export');
         $this->__attack_export_tool = new AttackExport();
         $this->__attack_export_tool->handler($options);
+        $this->__passedOptions = $options;
 
         return '';
     }
