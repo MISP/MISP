@@ -261,6 +261,7 @@ array_splice($all_tag_amount, 10);
             <table>
                 <thead>
                     <tr>
+                        <th style="padding: 0 0.5em;">Creator Org.</th>
                         <th style="padding: 0 0.5em;">TLP</th>
                         <th style="padding: 0 0.5em;"><?= __('State') ?></th>
                         <th style="padding: 0 0.5em;"><?= __('Threat Level') ?></th>
@@ -279,13 +280,14 @@ array_splice($all_tag_amount, 10);
                             $tlpHtml = !empty($tlpTag) ? $tlpTag : h($distributionLevels[$event['Event']['distribution']]);
                         ?>
                         <tr>
+                            <td><?= h($event['Orgc']['name']) ?></td>
                             <td><?= $tlpHtml ?></td>
                             <td><?= $analysisHtml ?></td>
                             <td><?= h($event['ThreatLevel']['name']); ?></td>
                             <?php foreach ($additional_taxonomy_event_list as $taxonomy_name => $taxonomy_prefix): ?>
                                 <td><?= findAndBuildTag($event['EventTag'], $taxonomy_prefix, $this) ?></td>
                             <?php endforeach; ?>
-                            <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($event['Event']['uuid'])) ?>"><?= h($event['Event']['info']); ?></a></td>
+                            <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($event['Event']['uuid'])) ?>"><?= h($event['Event']['info']) ?></a></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
