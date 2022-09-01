@@ -949,7 +949,14 @@ class ServersController extends AppController
     public function serverSettingsReloadSetting($setting, $id)
     {
         $pathToSetting = explode('.', $setting);
-        if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false || strpos($setting, 'Plugin.Cortex') !== false) {
+        if (
+            strpos($setting, 'Plugin.Enrichment') !== false ||
+            strpos($setting, 'Plugin.Import') !== false ||
+            strpos($setting, 'Plugin.Export') !== false ||
+            strpos($setting, 'Plugin.Cortex') !== false ||
+            strpos($setting, 'Plugin.Action') !== false ||
+            strpos($setting, 'Plugin.Workflow') !== false
+        ) {
             $settingObject = $this->Server->getCurrentServerSettings();
         } else {
             $settingObject = $this->Server->serverSettings;
@@ -997,7 +1004,13 @@ class ServersController extends AppController
         $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
         $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
         $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
-        $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
+        $sessionErrors = array(
+            0 => __('OK'),
+            1 => __('Too many expired sessions in the database, please clear the expired sessions'),
+            2 => __('PHP session handler is using the default file storage. This is not recommended, please use the redis or database storage'),
+            8 => __('Alternative setting used'),
+            9 => __('Test failed')
+        );
         $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
         $backgroundJobsErrors = array(
             0 => __('OK'),
@@ -1060,6 +1073,11 @@ class ServersController extends AppController
         $diagnostic_errors = 0;
         App::uses('File', 'Utility');
         App::uses('Folder', 'Utility');
+        if ($tab === 'correlations') {
+            $this->loadModel('Correlation');
+            $correlation_metrics = $this->Correlation->collectMetrics();
+            $this->set('correlation_metrics', $correlation_metrics);
+        }
         if ($tab === 'files') {
             $files = $this->Server->grabFiles();
             $this->set('files', $files);
@@ -1141,6 +1159,7 @@ class ServersController extends AppController
             // get the DB diagnostics
             $dbDiagnostics = $this->Server->dbSpaceUsage();
             $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
+            $dbConfiguration = $this->Server->dbConfiguration();
 
             $redisInfo = $this->Server->redisInfo();
 
@@ -1149,10 +1168,8 @@ class ServersController extends AppController
                 $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
             }
 
-            // check the size of the session table
-            $sessionCount = 0;
-            $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
-            $this->set('sessionCount', $sessionCount);
+            // get php session diagnostics
+            $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors);
 
             $this->loadModel('AttachmentScan');
             try {
@@ -1163,7 +1180,7 @@ class ServersController extends AppController
 
             $securityAudit = (new SecurityAudit())->run($this->Server);
 
-            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan', 'securityAudit');
+            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'dbConfiguration', 'redisInfo', 'attachmentScan', 'securityAudit');
         } else {
             $view = [];
         }
@@ -1204,6 +1221,7 @@ class ServersController extends AppController
                 'readableFiles' => $readableFiles,
                 'dbDiagnostics' => $dbDiagnostics,
                 'dbSchemaDiagnostics' => $dbSchemaDiagnostics,
+                'dbConfiguration' => $dbConfiguration,
                 'redisInfo' => $redisInfo,
                 'finalSettings' => $dumpResults,
                 'extensions' => $extensions,
@@ -1441,7 +1459,6 @@ class ServersController extends AppController
             }
             $this->set('id', $id);
         }
-
         $setting = $this->Server->getSettingData($settingName);
         if ($setting === false) {
             throw new NotFoundException(__('Setting %s is invalid.', $settingName));
@@ -1913,7 +1930,7 @@ class ServersController extends AppController
         $dbVersion = $this->AdminSetting->getSetting('db_version');
         $updateProgress = $this->Server->getUpdateProgress();
         $updateProgress['db_version'] = $dbVersion;
-        $maxUpdateNumber = max(array_keys($this->Server->db_changes));
+        $maxUpdateNumber = max(array_keys(Server::DB_CHANGES));
         $updateProgress['complete_update_remaining'] = max($maxUpdateNumber - $dbVersion, 0);
         $updateProgress['update_locked'] = $this->Server->isUpdateLocked();
         $updateProgress['lock_remaining_time'] = $this->Server->getLockRemainingTime();
@@ -2199,6 +2216,17 @@ class ServersController extends AppController
             $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
             $this->set('indexes', $dbSchemaDiagnostics['indexes']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
+        }
+    }
+
+    public function dbConfiguration()
+    {
+        $dbConfiguration = $this->Server->dbConfiguration();
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($dbConfiguration, $this->response->type());
+        } else {
+            $this->set('dbConfiguration', $dbConfiguration);
+            $this->render('/Elements/healthElements/db_config_diagnostic');
         }
     }
 

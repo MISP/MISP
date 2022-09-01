@@ -1005,25 +1005,41 @@ class Feed extends AppModel
             }
         }
         if ($feed['Feed']['tag_id']) {
+            if (empty($feed['Tag']['name'])) {
+                $feed_tag = $this->Tag->find('first', [
+                    'conditions' => [
+                        'Tag.id' => $feed['Feed']['tag_id']
+                    ],
+                    'recursive' => -1,
+                    'fields' => ['Tag.name', 'Tag.colour', 'Tag.id']
+                ]);
+                $feed['Tag'] = $feed_tag['Tag'];
+            }
             if (!isset($event['Event']['Tag'])) {
                 $event['Event']['Tag'] = array();
             }
-            $found = false;
-            foreach ($event['Event']['Tag'] as $tag) {
-                if (strtolower($tag['name']) === strtolower($feed['Tag']['name'])) {
-                    $found = true;
-                    break;
+
+            $feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable')));
+            if (!empty($feedTag)) {
+                $found = false;
+                foreach ($event['Event']['Tag'] as $tag) {
+                    if (strtolower($tag['name']) === strtolower($feedTag['Tag']['name'])) {
+                        $found = true;
+                        break;
+                    }
                 }
-            }
-            if (!$found) {
-                $feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable')));
-                if (!empty($feedTag)) {
+                if (!$found) {
                     $event['Event']['Tag'][] = $feedTag['Tag'];
                 }
             }
         }
         if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) {
             return 'blocked';
+        }
+        if (!empty($feed['Feed']['settings'])) {
+            if (!empty($feed['Feed']['settings']['disable_correlation'])) {
+                $event['Event']['disable_correlation'] = (bool) $feed['Feed']['settings']['disable_correlation'];
+            }
         }
         return $event;
     }
@@ -1225,6 +1241,10 @@ class Feed extends AppModel
             if (!empty($feed['Feed']['orgc_id'])) {
                 $orgc_id = $feed['Feed']['orgc_id'];
             }
+            $disableCorrelation = false;
+            if (!empty($feed['Feed']['settings'])) {
+                $disableCorrelation = (bool) $feed['Feed']['settings']['disable_correlation'] ?? false;
+            }
             $event = array(
                 'info' => $feed['Feed']['name'] . ' feed',
                 'analysis' => 2,
@@ -1234,7 +1254,8 @@ class Feed extends AppModel
                 'date' => date('Y-m-d'),
                 'distribution' => $feed['Feed']['distribution'],
                 'sharing_group_id' => $feed['Feed']['sharing_group_id'],
-                'user_id' => $user['id']
+                'user_id' => $user['id'],
+                'disable_correlation' => $disableCorrelation,
             );
             $result = $this->Event->save($event);
             if (!$result) {

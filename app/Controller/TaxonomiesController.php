@@ -270,9 +270,9 @@ class TaxonomiesController extends AppController
             $message = __('Could not update any of the taxonomy libraries');
         } else {
             $flashType = 'success';
-            $message = __('Successfully updated ') . $successes . __(' taxonomy libraries.');
+            $message = __('Successfully updated %s taxonomy libraries.', $successes);
             if ($fails != 0) {
-                $message .= __(' However, could not update ') . $fails . __(' taxonomy libraries.');
+                $message .= __(' However, could not update %s taxonomy libraries.', $fails);
             }
         }
         if ($this->_isRest()) {
@@ -494,7 +494,7 @@ class TaxonomiesController extends AppController
         $this->set('required', !$taxonomy['Taxonomy']['required']);
         $this->set('id', $id);
         $this->autoRender = false;
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/toggle_required');
     }
 
@@ -594,4 +594,14 @@ class TaxonomiesController extends AppController
 
         return $taxonomyIds;
     }
+
+
+    public function normalizeCustomTagsToTaxonomyFormat()
+    {
+        $this->request->allowMethod(['post', 'put']);
+        $conversionResult = $this->Taxonomy->normalizeCustomTagsToTaxonomyFormat();
+        $this->Flash->success(__('%s tags successfully converted. %s row updated.', $conversionResult['tag_converted'], $conversionResult['row_updated']));
+        $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+    }
+
 }

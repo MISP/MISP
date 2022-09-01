@@ -57,13 +57,13 @@
                         'url' => $baseurl . '/tags/index'
                     ),
                     array(
-                        'text' => __('List Tag Collections'),
-                        'url' => $baseurl . '/tag_collections/index'
-                    ),
-                    array(
                         'text' => __('Add Tag'),
                         'url' => $baseurl . '/tags/add',
                         'requirement' => $isAclTagEditor
+                    ),
+                    array(
+                        'text' => __('List Tag Collections'),
+                        'url' => $baseurl . '/tag_collections/index'
                     ),
                     array(
                         'text' => __('List Taxonomies'),
@@ -72,11 +72,6 @@
                     array(
                         'text' => __('List Templates'),
                         'url' => $baseurl . '/templates/index'
-                    ),
-                    array(
-                        'text' => __('Add Template'),
-                        'url' => $baseurl . '/templates/add',
-                        'requirement' => $isAclTemplate
                     ),
                     array(
                         'type' => 'separator'
@@ -428,6 +423,19 @@
                         'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
                     ),
                     array(
+                        'html' => sprintf(
+                            '<span style="display: flex;"><span>%s</span><span class="label label-info" style="margin-left: auto;">%s</span></span>',
+                            __('Workflows'),
+                            __('new')
+                        ),
+                        'url' => $baseurl . '/workflows/triggers',
+                        'requirement' => $isSiteAdmin
+                    ),
+                    array(
+                        'type' => 'separator',
+                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
+                    ),
+                    array(
                         'text' => __('Blocklist Event'),
                         'url' => $baseurl . '/eventBlocklists/add',
                         'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
@@ -458,6 +466,15 @@
                     [
                         'text' => __('Top Correlations'),
                         'url' => $baseurl . '/correlations/top',
+                        'requirement' => $isSiteAdmin
+                    ],
+                    [
+                        'html' => sprintf(
+                            '<span style="display: flex;"><span>%s</span><span class="label label-info" style="margin-left: auto;">%s</span></span>',
+                            __('Over-correlating values'),
+                            __('new')
+                        ),
+                        'url' => $baseurl . '/correlations/overCorrelations',
                         'requirement' => $isSiteAdmin
                     ]
                 )
@@ -544,7 +561,7 @@
         );
     }
 ?>
-<div id="topBar" class="navbar navbar-inverse <?= isset($debugMode) ? $debugMode : 'debugOff' ?>">
+<div id="topBar" class="navbar navbar-inverse <?= isset($debugMode) ? $debugMode : 'debugOff' ?>" style="z-index:100;">
   <div class="navbar-inner">
     <ul class="nav">
         <?php

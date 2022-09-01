@@ -321,7 +321,7 @@ class WarninglistsController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This action is available via AJAX only.'));
         }
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/getToggleField');
     }
 
@@ -360,9 +360,7 @@ class WarninglistsController extends AppController
 
     public function import()
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('This function only accepts POST requests.'));
-        }
+        $this->request->allowMethod(['post']);
 
         if (empty($this->request->data)) {
             throw new BadRequestException(__('No valid data received.'));
@@ -378,11 +376,11 @@ class WarninglistsController extends AppController
             throw new BadRequestException(__('No valid data received: `list` field is not array'));
         }
 
-        $id = $this->Warninglist->import($this->request->data);
-        if (is_int($id)) {
+        try {
+            $id = $this->Warninglist->import($this->request->data);
             return $this->RestResponse->saveSuccessResponse('Warninglist', 'import', $id, false, __('Warninglist imported'));
-        } else {
-            return $this->RestResponse->saveFailResponse('Warninglist', 'import', false, $id);
+        } catch (Exception $e) {
+            return $this->RestResponse->saveFailResponse('Warninglist', 'import', false, $e->getMessage());
         }
     }
 

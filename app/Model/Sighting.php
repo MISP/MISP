@@ -1379,7 +1379,7 @@ class Sighting extends AppModel
 
     private function dateVirtualColumn()
     {
-        if (in_array($this->getDataSource()->config['datasource'], ['Database/Mysql', 'Database/MysqlObserver'], true)) {
+        if ($this->isMysql()) {
             return 'DATE(FROM_UNIXTIME(Sighting.date_sighting))';
         } else {
             return "to_char(date(to_timestamp(Sighting.date_sighting)), 'YYYY-MM-DD')"; // PostgreSQL

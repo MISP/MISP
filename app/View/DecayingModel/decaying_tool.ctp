@@ -167,7 +167,7 @@
 <?php
     echo $this->element('genericElements/assetLoader', array(
         'css' => array('decayingTool'),
-        'js' => array('d3', 'Chart.min', 'decayingTool')
+        'js' => array('d3', 'Chart.min', 'decayingTool', 'jquery-ui.min')
     ));
 ?>
 

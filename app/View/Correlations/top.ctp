@@ -2,7 +2,7 @@
     echo sprintf('<div%s>', empty($ajax) ? ' class="index"' : '');
     echo $this->element('genericElements/IndexTable/index_table', [
         'data' => [
-            'stupid_pagination' => 1,
+            'light_paginator' => 1,
             'data' => $data,
             'top_bar' => [
                 'children' => [
@@ -26,7 +26,7 @@
                     'name' => 'Value',
                     'element' => 'postlink',
                     'data_path' => 'Correlation.value',
-                    'url' => '/attributes/search',
+                    'url' => '/attributes/search/results',
                     'payload_paths' => [
                         'value' => 'Correlation.value'
                     ]
@@ -56,13 +56,8 @@
                     'icon' => 'trash',
                     'title' => __('Add exclusion entry for value'),
                     'complex_requirement' => [
-                        'options' => [
-                            'datapath' => [
-                                'excluded' => 'Correlation.excluded'
-                            ]
-                        ],
-                        'function' => function ($row, $options) {
-                            return (!$options['datapath']['excluded']);
+                        'function' => function (array $row) {
+                            return !$row['Correlation']['excluded'];
                         }
                     ]
                 ]
@@ -73,5 +68,5 @@
     if (empty($ajax)) {
         echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
     }
-?>
+
 

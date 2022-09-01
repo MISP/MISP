@@ -1,8 +1,9 @@
 <?php
-
-$attribute = Hash::extract($row, 'Attribute');
-$event = Hash::extract($row, 'Event');
+$attribute = $row['Attribute'];
+$event = $row['Event'];
 $mayModify = ($isSiteAdmin || ($isAclModify && $event['user_id'] == $me['id'] && $event['org_id'] == $me['org_id']) || ($isAclModifyOrg && $event['orgc_id'] == $me['org_id']));
+
+echo '<div id="attribute_' . intval($attribute['id']) . '_galaxy">';
 echo $this->element('galaxyQuickViewNew', array(
     'mayModify' => $mayModify,
     'isAclTagger' => $isAclTagger,
@@ -11,3 +12,4 @@ echo $this->element('galaxyQuickViewNew', array(
     'target_id' => $attribute['id'],
     'target_type' => 'attribute',
 ));
+echo '</div>';

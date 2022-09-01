@@ -187,21 +187,19 @@ class EventTag extends AppModel
 
     public function getSortedTagList($context = false)
     {
-        $conditions = array();
         $tag_counts = $this->find('all', array(
-                'recursive' => -1,
-                'fields' => array('tag_id', 'count(*)'),
-                'group' => array('tag_id'),
-                'conditions' => $conditions,
-                'contain' => array('Tag.name')
+            'recursive' => -1,
+            'fields' => array('tag_id', 'count(*)'),
+            'group' => array('tag_id'),
+            'contain' => array('Tag.name')
         ));
         $temp = array();
         $tags = array();
         foreach ($tag_counts as $tag_count) {
             $temp[$tag_count['Tag']['name']] = array(
-                    'tag_id' => $tag_count['Tag']['id'],
-                    'eventCount' => $tag_count[0]['count(*)'],
-                    'name' => $tag_count['Tag']['name'],
+                'tag_id' => $tag_count['Tag']['id'],
+                'eventCount' => $tag_count[0]['count(*)'],
+                'name' => $tag_count['Tag']['name'],
             );
             $tags[$tag_count['Tag']['name']] = $tag_count[0]['count(*)'];
         }

@@ -260,7 +260,7 @@ class SharingGroupsController extends AppController
     public function index($passive = false)
     {
         $passive = $passive === 'true';
-        $authorizedSgIds = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
+        $authorizedSgIds = $this->SharingGroup->authorizedIds($this->Auth->user());
         $this->paginate['conditions'][] = array('SharingGroup.id' => $authorizedSgIds);
         $this->paginate['conditions'][] = array('SharingGroup.active' => $passive === true ? 0 : 1);
 

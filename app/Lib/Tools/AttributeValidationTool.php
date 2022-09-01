@@ -407,7 +407,7 @@ class AttributeValidationTool
             case 'dns-soa-email':
             case 'jabber-id':
                 // we don't use the native function to prevent issues with partial email addresses
-                if (preg_match("#^.*\@.*\..*$#i", $value)) {
+                if (preg_match("#^.[^\s]*\@.*\..*$#i", $value)) {
                     return true;
                 }
                 return __('Email address has an invalid format. Please double check the value or select type "other".');

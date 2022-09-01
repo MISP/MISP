@@ -1,4 +1,7 @@
-<?= $this->Html->script('moment.min'); ?>
+<?= $this->element('genericElements/assetLoader', [
+    'js' => ['moment.min'],
+]);
+?>
 <script>
 <?php
     $temp = explode('_', $this->params->controller);

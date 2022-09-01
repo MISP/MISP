@@ -14,7 +14,7 @@
     <button class="btn btn-inverse toggle qet" id="correlationgraph_toggle" data-toggle-type="correlationgraph" data-load-url="<?= $baseurl ?>/events/viewGraph/<?= h($event['Event']['id']) ?>">
         <span class="fas fa-plus" title="<?php echo __('Toggle Correlation graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Correlation graph');?>"></span><?php echo __('Correlation graph');?>
     </button>
-    <button class="btn btn-inverse toggle qet" id="attackmatrix_toggle" data-toggle-type="attackmatrix" data-load-url="<?= $baseurl; ?>/events/viewGalaxyMatrix/<?= h($event['Event']['id']) ?>/mitre-attack/event/1">
+    <button class="btn btn-inverse toggle qet" id="attackmatrix_toggle" data-toggle-type="attackmatrix" data-load-url="<?= $baseurl; ?>/events/viewGalaxyMatrix/<?= h($event['Event']['id']) ?>/mitre-attack/event/1/<?= $extended ? '1' : '0'?>">
         <span class="fas fa-plus" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>"></span><?php echo __('ATT&CK matrix');?>
     </button>
     <button class="btn btn-inverse toggle qet" id="eventreport_toggle" data-toggle-type="eventreport">
@@ -65,13 +65,13 @@
 <div id="discussions_div">
 </div>
 </div>
-<script type="text/javascript">
+<script>
 $(function () {
 <?php
     if (!Configure::check('MISP.disable_event_locks') || !Configure::read('MISP.disable_event_locks')) {
         echo sprintf(
-            "queryEventLock('%s', %s);",
-            h($event['Event']['id']),
+            "queryEventLock(%s, %s);",
+            (int)$event['Event']['id'],
             (int)$event['Event']['timestamp']
         );
     }

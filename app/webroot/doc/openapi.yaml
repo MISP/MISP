@@ -1,6 +1,5 @@
 openapi: 3.0.0
 info:
-  version: 2.4.148
   title: MISP Automation API
   description: |
 
@@ -2823,6 +2822,10 @@ components:
           $ref: "#/components/schemas/LimitSearchFilter"
         value:
           $ref: "#/components/schemas/AttributeValue"
+        value1:
+          $ref: "#/components/schemas/AttributeValue"
+        value2:
+          $ref: "#/components/schemas/AttributeValue"
         type:
           $ref: "#/components/schemas/AttributeType"
         category:
@@ -4521,7 +4524,7 @@ components:
       properties:
         input:
           type: string
-          example: "cd $(git rev-parse --show-toplevel) && git checkout app\/composer.json 2>&1"
+          example: "cd $(git rev-parse --show-toplevel) && git checkout app/composer.json 2>&1"
         output:
           type: array
           items:
@@ -4569,7 +4572,7 @@ components:
     FeedSettings:
       type: string
       nullable: true
-      example: '{"csv":{"value":"","delimiter":""},"common":{"excluderegex":""}}'
+      example: '{"csv":{"value":"","delimiter":""},"common":{"excluderegex":""},"disable_correlation":"1"}'
 
     FeedRules:
       description: "Stringified JSON filter rules."

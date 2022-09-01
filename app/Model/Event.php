@@ -17,6 +17,7 @@ App::uses('ProcessTool', 'Tools');
  * @property ThreatLevel $ThreatLevel
  * @property Sighting $Sighting
  * @property Organisation $Org
+ * @property Organisation $Orgc
  * @property CryptographicKey $CryptographicKey
  */
 class Event extends AppModel
@@ -42,6 +43,8 @@ class Event extends AppModel
     public $displayField = 'id';
 
     public $mispVersion = '2.4.0';
+
+    private $__beforeSaveData = null;
 
     public $fieldDescriptions = array(
         'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
@@ -301,6 +304,9 @@ class Event extends AppModel
 
     private $assetCache = [];
 
+    /** @var array|null */
+    private $eventBlockRule;
+
     public function beforeDelete($cascade = true)
     {
         // blocklist the event UUID if the feature is enabled
@@ -427,6 +433,7 @@ class Event extends AppModel
         if (empty($this->data['Event']['uuid'])) {
             $this->data['Event']['uuid'] = CakeText::uuid();
         }
+        $this->__beforeSaveData = $this->data['Event'];
         return true;
     }
 
@@ -434,17 +441,21 @@ class Event extends AppModel
     {
         $event = $this->data['Event'];
         if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
-            $updateCorrelation = [];
-            if (isset($event['distribution']) && (empty($options['fieldList']) || in_array('distribution', $options['fieldList']))) {
-                $updateCorrelation['Correlation.distribution'] = (int)$event['distribution'];
-            }
-            if (isset($event['sharing_group_id']) && (empty($options['fieldList']) || in_array('sharing_group_id', $options['fieldList']))) {
-                $updateCorrelation['Correlation.sharing_group_id'] = (int)$event['sharing_group_id'];
-            }
-            if (!empty($updateCorrelation)) {
-                $this->Attribute->Correlation->updateAll($updateCorrelation, ['Correlation.event_id' => (int)$event['id']]);
+            if (
+                empty($this->__beforeSaveData) ||
+                (
+                    isset($this->__beforeSaveData['distribution']) &&
+                    $event['distribution'] != $this->__beforeSaveData['distribution']
+                ) ||
+                (
+                    isset($this->__beforeSaveData['sharing_group_id']) &&
+                    $event['sharing_group_id'] != $this->__beforeSaveData['sharing_group_id']
+                )
+            ) {
+                $this->Attribute->Correlation->updateContainedCorrelations($event, 'event');
             }
         }
+        $this->__beforeSaveData = null;
         if (empty($event['unpublishAction']) && empty($event['skip_zmq']) && $this->pubToZmq('event')) {
             $pubSubTool = $this->getPubSubTool();
             $eventForZmq = $this->quickFetchEvent($event['id']);
@@ -454,6 +465,17 @@ class Event extends AppModel
         }
         if (empty($event['unpublishAction']) && empty($event['skip_kafka'])) {
             $this->publishKafkaNotification('event', $this->quickFetchEvent($event['id']), $created ? 'add' : 'edit');
+        }
+        if ($this->isTriggerCallable('event-after-save')) {
+            $event = $this->quickFetchEvent($event['id']);
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'Event',
+                'action' => $created ? 'add' : 'edit',
+                'id' => $event['Event']['id'],
+            ];
+            $triggerData = $event;
+            $this->executeTrigger('event-after-save', $triggerData, $workflowErrors, $logging);
         }
     }
 
@@ -483,6 +505,60 @@ class Event extends AppModel
         return $events;
     }
 
+    public function touch($event_id)
+    {
+        $event = $this->find('first', [
+            'conditions' => ['Event.id' => $event_id],
+            'recursive' => -1,
+        ]);
+        $event['Event']['published'] = 0;
+        $event['Event']['timestamp'] = (new DateTime())->getTimestamp();
+        return $this->save($event, true, ['timestamp', 'published']);
+    }
+
+    public function attachTagsToEventAndTouch($event_id, $tags, array $user)
+    {
+        $touchEvent = false;
+        $success = false;
+        $capturedTags = [];
+        foreach ($tags as $tag_name) {
+            $nothingToChange = false;
+            $tag_id = $this->captureTagWithCache(
+                [
+                    'name' => $tag_name,
+                ],
+                $user,
+                $capturedTags
+            );
+            $success = $success || $this->EventTag->attachTagToEvent($event_id, ['id' => $tag_id], $nothingToChange);
+            $touchEvent = $touchEvent || !$nothingToChange;
+        }
+        if ($touchEvent) {
+           return $this->touch($event_id);
+        }
+        return $success;
+    }
+
+    public function detachTagsFromEventAndTouch($event_id, $tags)
+    {
+        $touchEvent = false;
+        $success = false;
+        foreach ($tags as $tag_name) {
+            $nothingToChange = false;
+            $tag_id = $this->EventTag->Tag->lookupTagIdFromName($tag_name);
+            if ($tag_id == -1) {
+                $success = $success || true;
+                continue;
+            }
+            $success = $success || $this->EventTag->detachTagFromEvent($event_id, $tag_id, $nothingToChange);
+            $touchEvent = $touchEvent || !$nothingToChange;
+        }
+        if ($touchEvent) {
+            return $this->touch($event_id);
+        }
+        return $success;
+    }
+
     /**
      * Gets the logged in user + an array of events, attaches the correlation count to each
      * @param array $user
@@ -491,20 +567,9 @@ class Event extends AppModel
      */
     public function attachCorrelationCountToEvents(array $user, array $events)
     {
-        $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-        if (!isset($sgids) || empty($sgids)) {
-            $sgids = array(-1);
-        }
-        $eventIds = array_column(array_column($events, 'Event'), 'id');
-        $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventIds, $sgids);
-        $this->Attribute->Correlation->virtualFields['count'] = 'count(distinct(Correlation.event_id))';
-        $correlations = $this->Attribute->Correlation->find('list', array(
-            'fields' => array('Correlation.1_event_id', 'Correlation.count'),
-            'conditions' => $conditionsCorrelation,
-            'group' => array('Correlation.1_event_id'),
-        ));
+        $sgids = $this->SharingGroup->authorizedIds($user);
         foreach ($events as &$event) {
-            $event['Event']['correlation_count'] = isset($correlations[$event['Event']['id']]) ? $correlations[$event['Event']['id']] : 0;
+            $event['Event']['correlation_count'] = $this->getRelatedEventCount($user, $event['Event']['id'], $sgids);
         }
         return $events;
     }
@@ -572,61 +637,12 @@ class Event extends AppModel
         return $events;
     }
 
-    private function __buildEventConditionsCorrelation($user, $eventIds, $sgids)
+    public function getRelatedEventCount(array $user, $eventId, $sgids)
     {
-        if (!is_array($eventIds)) {
-            $eventIds = array($eventIds);
+        if (!isset($sgids) || empty($sgids)) {
+            $sgids = array(-1);
         }
-        if (!$user['Role']['perm_site_admin']) {
-            $conditionsCorrelation = array(
-                    'AND' => array(
-                            'Correlation.1_event_id' => $eventIds,
-                            array(
-                                    'OR' => array(
-                                            'Correlation.org_id' => $user['org_id'],
-                                            'AND' => array(
-                                                    array(
-                                                            'OR' => array(
-                                                                    array(
-                                                                            'AND' => array(
-                                                                                    'Correlation.distribution >' => 0,
-                                                                                    'Correlation.distribution <' => 4,
-                                                                            ),
-                                                                    ),
-                                                                    array(
-                                                                            'AND' => array(
-                                                                                    'Correlation.distribution' => 4,
-                                                                                    'Correlation.sharing_group_id' => $sgids
-                                                                            ),
-                                                                    ),
-                                                            ),
-                                                    ),
-                                                    array(
-                                                            'OR' => array(
-                                                                    'Correlation.a_distribution' => 5,
-                                                                    array(
-                                                                            'AND' => array(
-                                                                                    'Correlation.a_distribution >' => 0,
-                                                                                    'Correlation.a_distribution <' => 4,
-                                                                            ),
-                                                                    ),
-                                                                    array(
-                                                                            'AND' => array(
-                                                                                    'Correlation.a_distribution' => 4,
-                                                                                    'Correlation.a_sharing_group_id' => $sgids
-                                                                            ),
-                                                                    ),
-                                                            ),
-                                                    ),
-                                            ),
-                                    ),
-                            ),
-                    ),
-            );
-        } else {
-            $conditionsCorrelation = array('Correlation.1_event_id' => $eventIds);
-        }
-        return $conditionsCorrelation;
+        return count($this->Attribute->Correlation->getRelatedEventIds($user, $eventId, $sgids));
     }
 
     private function getRelatedEvents($user, $eventId, $sgids)
@@ -634,48 +650,31 @@ class Event extends AppModel
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
         }
-        // search the correlation table for the event ids of the related events
-        // Rules:
-        // 1. Event is owned by the user (org_id matches)
-        // 2. User is allowed to see both the event and the org:
-        //    a.  Event:
-        //        i. Event has a distribution between 1-3 (community only, connected communities, all orgs)
-        //        ii. Event has a sharing group that the user is accessible to view
-        //    b.  Attribute:
-        //        i. Attribute has a distribution of 5 (inheritance of the event, for this the event check has to pass anyway)
-        //        ii. Atttibute has a distribution between 1-3 (community only, connected communities, all orgs)
-        //        iii. Attribute has a sharing group that the user is accessible to view
-        $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventId, $sgids);
-        $relatedEventIds = $this->Attribute->Correlation->find('column', array(
-            'fields' => array('Correlation.event_id'),
-            'conditions' => $conditionsCorrelation,
-            'unique' => true,
-        ));
-
+        $relatedEventIds = $this->Attribute->Correlation->getRelatedEventIds($user, $eventId, $sgids);
         if (empty($relatedEventIds)) {
             return [];
         }
-
         // now look up the event data for these attributes
-        $conditions = $this->createEventConditions($user);
-        $conditions['AND'][] = array('Event.id' => $relatedEventIds);
-        $fields = array('id', 'date', 'threat_level_id', 'info', 'published', 'uuid', 'analysis', 'timestamp', 'distribution', 'org_id', 'orgc_id');
-        $orgfields = array('id', 'name', 'uuid');
-        $relatedEvents = $this->find(
+        $relatedEvents =  $this->find(
             'all',
-            array('conditions' => $conditions,
+            [
+                'conditions' => [
+                    'Event.id' => $relatedEventIds
+                ],
                 'recursive' => -1,
-                'order' => 'Event.date DESC',
-                'fields' => $fields,
-                'contain' => array(
-                    'Org' => array(
-                        'fields' => $orgfields
-                    ),
-                    'Orgc' => array(
-                        'fields' => $orgfields
-                    )
-                )
-            )
+                'order' => 'date DESC',
+                'fields' => [
+                    'id', 'date', 'threat_level_id', 'info', 'published', 'uuid', 'analysis', 'timestamp', 'distribution', 'org_id', 'orgc_id'
+                ],
+                'contain' => [
+                    'Org' => [
+                        'fields' => ['id', 'name', 'uuid']
+                    ],
+                    'Orgc' => [
+                        'fields' => ['id', 'name', 'uuid']
+                    ]
+                ]
+            ]
         );
         $fieldsToRearrange = array('Org', 'Orgc');
         foreach ($relatedEvents as $k => $relatedEvent) {
@@ -699,8 +698,8 @@ class Event extends AppModel
     public function getRelatedAttributes(array $user, $id, $shadowAttribute = false, $scope = 'event')
     {
         if ($shadowAttribute) {
-            $parentIdField = '1_shadow_attribute_id';
-            $correlationModelName = 'ShadowAttributeCorrelation';
+            // no longer supported
+            return [];
         } else {
             $parentIdField = '1_attribute_id';
             $correlationModelName = 'Correlation';
@@ -708,102 +707,8 @@ class Event extends AppModel
         if (!isset($this->{$correlationModelName})) {
             $this->{$correlationModelName} = ClassRegistry::init($correlationModelName);
         }
-        if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->cacheSgids($user, true);
-            $conditionsCorrelation = array(
-                'AND' => array(
-                    $correlationModelName . '.1_' . $scope . '_id' => $id,
-                    array(
-                        'OR' => array(
-                            $correlationModelName . '.org_id' => $user['org_id'],
-                            'AND' => array(
-                                array(
-                                    'OR' => array(
-                                        array(
-                                            'AND' => array(
-                                                $correlationModelName . '.distribution >' => 0,
-                                                $correlationModelName . '.distribution <' => 4,
-                                            ),
-                                        ),
-                                        array(
-                                            'AND' => array(
-                                                $correlationModelName . '.distribution' => 4,
-                                                $correlationModelName . '.sharing_group_id' => $sgids
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                                array(
-                                    'OR' => array(
-                                        $correlationModelName . '.a_distribution' => 5,
-                                        array(
-                                            'AND' => array(
-                                                $correlationModelName . '.a_distribution >' => 0,
-                                                $correlationModelName . '.a_distribution <' => 4,
-                                            ),
-                                        ),
-                                        array(
-                                            'AND' => array(
-                                                $correlationModelName . '.a_distribution' => 4,
-                                                $correlationModelName . '.a_sharing_group_id' => $sgids
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        )
-                    )
-
-                )
-            );
-        } else {
-            $conditionsCorrelation = array($correlationModelName . '.1_' . $scope . '_id' => $id);
-        }
-        $max_correlations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
-        $correlations = $this->{$correlationModelName}->find('all', array(
-            'fields' => ['event_id', 'attribute_id', 'value', $parentIdField],
-            'conditions' => $conditionsCorrelation,
-            'recursive' => -1,
-            'order' => false,
-            'limit' => $max_correlations
-        ));
-        if (empty($correlations)) {
-            return array();
-        }
-
-        $correlations = array_column($correlations, $correlationModelName);
-        $eventIds = array_unique(array_column($correlations, 'event_id'));
-
-        $conditions = $this->createEventConditions($user);
-        $conditions['Event.id'] = $eventIds;
-        $events = $this->find('all', array(
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'fields' => ['Event.id', 'Event.orgc_id', 'Event.info', 'Event.date'],
-        ));
-
-        $events = array_column(array_column($events, 'Event'), null, 'id');
-
-        $relatedAttributes = [];
-        foreach ($correlations as $correlation) {
-            // User don't have access to correlated attribute event, skip.
-            $eventId = $correlation['event_id'];
-            if (!isset($events[$eventId])) {
-                continue;
-            }
-
-            $event = $events[$eventId];
-            $current = array(
-                'id' => $eventId,
-                'attribute_id' => $correlation['attribute_id'],
-                'value' => $correlation['value'],
-                'org_id' => $event['orgc_id'],
-                'info' => $event['info'],
-                'date' => $event['date'],
-            );
-            $parentId = $correlation[$parentIdField];
-            $relatedAttributes[$parentId][] = $current;
-        }
+        $sgids = $this->SharingGroup->authorizedIds($user);
+        $relatedAttributes = $this->{$correlationModelName}->getAttributesRelatedToEvent($user, $id, $sgids);
         return $relatedAttributes;
     }
 
@@ -839,12 +744,13 @@ class Event extends AppModel
     /**
      * @param array $event
      * @param array $server
+     * @param ServerSyncTool $serverSync
      * @return false|string
      * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws Exception
      */
-    public function uploadEventToServer(array $event, array $server)
+    public function uploadEventToServer(array $event, array $server, ServerSyncTool $serverSync)
     {
         $this->Server = ClassRegistry::init('Server');
 
@@ -854,8 +760,6 @@ class Event extends AppModel
         if (!$this->checkDistributionForPush($event, $server, 'Event')) {
             return 'The distribution level of this event blocks it from being pushed.';
         }
-
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
 
         $push = $this->Server->checkVersionCompatibility($server, false, $serverSync);
         if (empty($push['canPush'])) {
@@ -1340,7 +1244,7 @@ class Event extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions['AND']['OR'] = [
                 'Event.org_id' => $user['org_id'],
@@ -1465,7 +1369,8 @@ class Event extends AppModel
                     'org' => array('function' => 'set_filter_org', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
                     'published' => array('function' => 'set_filter_published', 'pop' => true),
-                    'threat_level_id' => array('function' => 'set_filter_threat_level_id', 'pop' => true)
+                    'threat_level_id' => array('function' => 'set_filter_threat_level_id', 'pop' => true),
+                    'sharinggroup' => array('function' => 'set_filter_sharing_group')
                 ),
                 'Object' => array(
                     'object_name' => array('function' => 'set_filter_object_name'),
@@ -1482,12 +1387,13 @@ class Event extends AppModel
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
-                    'comment' => array('function' => 'set_filter_comment')
+                    'comment' => array('function' => 'set_filter_comment'),
+                    'sharinggroup' => array('function' => 'set_filter_sharing_group')
                 )
             );
             foreach ($params as $param => $paramData) {
                 foreach ($simple_params as $scope => $simple_param_scoped) {
-                    if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+                    if (isset($simple_param_scoped[$param]) && $paramData !== false) {
                         $options = array(
                             'filter' => $param,
                             'scope' => $scope,
@@ -1770,7 +1676,7 @@ class Event extends AppModel
         $flatten = (bool)$options['flatten'];
 
         // restricting to non-private or same org if the user is not a site-admin.
-        $sgids = $this->cacheSgids($user, $useCache);
+        $sgids = $this->SharingGroup->authorizedIds($user);
         if (!$isSiteAdmin) {
             // if delegations are enabled, check if there is an event that the current user might see because of the request itself
             if (Configure::read('MISP.delegation')) {
@@ -1780,7 +1686,7 @@ class Event extends AppModel
             $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
             $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
             $eventReportCondSelect = '(SELECT events.org_id FROM events WHERE events.id = EventReport.event_id)';
-            if ($this->getDataSource()->config['datasource'] === 'Database/Postgres') {
+            if (!$this->isMysql()) {
                 $schemaName = $this->getDataSource()->config['schema'];
                 $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);
                 $objectCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Object"."event_id")', $schemaName, $schemaName, $schemaName);
@@ -2102,7 +2008,7 @@ class Event extends AppModel
                 if (!empty($options['includeRelatedTags'])) {
                     $event = $this->includeRelatedTags($event, $options);
                 }
-                $event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
+                //$event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
             }
             $shadowAttributeByOldId = [];
             if (!empty($event['ShadowAttribute'])) {
@@ -2140,6 +2046,8 @@ class Event extends AppModel
                 if (!$sharingGroupReferenceOnly) {
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
                 }
+
+                $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
 
                 // move all object attributes to a temporary container
                 $tempObjectAttributeContainer = array();
@@ -2754,7 +2662,7 @@ class Event extends AppModel
 
     public function set_filter_published(&$params, $conditions, $options)
     {
-        if (isset($params['published'])) {
+        if (isset($params['published']) && $params['published'] !== [true, false]) {
             $conditions['AND']['Event.published'] = $params['published'];
         }
         return $conditions;
@@ -2829,32 +2737,14 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_value(&$params, $conditions, $options, $keys = array('Attribute.value1', 'Attribute.value2'))
+    public function set_filter_value(&$params, $conditions, $options)
     {
-        if (!is_array($params['value'])) {
-            $params['value'] = [$params['value']];
+        if (!empty($params['value'])) {
+            $params[$options['filter']] = $this->convert_filters($params['value']);
+            $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
         }
-        $allConditions = [];
-        foreach($params['value'] as $value) {
-            if (!empty($value)) {
-                $valueParts = explode('|', $value, 2);
-                $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-                $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], $keys);
-                // Allows searching for ['value1' => [full, part1], 'value2' => [full, part2]]
-                if (count($valueParts) == 2) {
-                    $convertedFilterVal1 = $this->convert_filters($valueParts[0]);
-                    $convertedFilterVal2 = $this->convert_filters($valueParts[1]);
-                    $conditionVal1 = $this->generic_add_filter([], $convertedFilterVal1, ['Attribute.value1'])['AND'][0]['OR'];
-                    $conditionVal2 = $this->generic_add_filter([], $convertedFilterVal2, ['Attribute.value2'])['AND'][0]['OR'];
-                    $tmpConditions = [
-                        'AND' => [$conditionVal1, $conditionVal2]
-                    ];
-                    $conditions['AND'][0]['OR']['OR']['AND'] = [$conditionVal1, $conditionVal2];
-                }
-            }
-            $allConditions['OR'][] = $conditions;
-        }
-        return $allConditions;
+
+        return $conditions;
     }
 
     public function set_filter_object_name(&$params, $conditions, $options)
@@ -3113,8 +3003,13 @@ class Event extends AppModel
                 'noEventReports' => true,
                 'noSightings' => true,
                 'metadata' => $metadataOnly,
-            ])[0];
-
+            ]);
+            if (empty($eventForUser)) {
+                $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
+                $this->loadLog()->createLogEntry($senderUser, 'alert', 'User', $user['id'], __('Something went wrong with alerting user #%s about event #%s. Sending was blocked due to insufficient access to the given event.'));
+                continue;
+            }
+            $eventForUser = $eventForUser[0];
             if ($this->User->UserSetting->checkPublishFilter($user, $eventForUser)) {
                 $body = $this->prepareAlertEmail($eventForUser, $user, $oldpublish);
                 $this->User->sendEmail(['User' => $user], $body, false, null);
@@ -3141,8 +3036,8 @@ class Event extends AppModel
     {
         if (Configure::read('MISP.extended_alert_subject')) {
             $subject = preg_replace("/\r|\n/", "", $event['Event']['info']);
-            if (strlen($subject) > 58) {
-                $subject = substr($subject, 0, 55) . '... - ';
+            if (mb_strlen($subject) > 58) {
+                $subject = mb_substr($subject, 0, 55) . '... - ';
             } else {
                 $subject .= " - ";
             }
@@ -3169,6 +3064,10 @@ class Event extends AppModel
         $template->set('tlp', $subjMarkingString);
         $template->subject($subject);
         $template->referenceId("event-alert|{$event['Event']['id']}");
+
+        $unsubscribeLink = $this->__getAnnounceBaseurl() . '/users/unsubscribe/' . $this->User->unsubscribeCode($user);
+        $template->set('unsubscribe', $unsubscribeLink);
+        $template->listUnsubscribe($unsubscribeLink);
         return $template;
     }
 
@@ -3388,7 +3287,7 @@ class Event extends AppModel
      * @return false|int
      * @throws Exception
      */
-    private function captureTagWithCache(array $tag, array $user, array &$capturedTags)
+    public function captureTagWithCache(array $tag, array $user, array &$capturedTags)
     {
         $tagName = $tag['name'];
         if (isset($capturedTags[$tagName])) {
@@ -3443,29 +3342,30 @@ class Event extends AppModel
         return $attributes;
     }
 
-    public function checkEventBlockRules($event)
+    /**
+     * @param array $event
+     * @return bool
+     */
+    private function checkEventBlockRules(array $event)
     {
-        if (!isset($this->AdminSetting)) {
+        if (!isset($this->eventBlockRule)) {
             $this->AdminSetting = ClassRegistry::init('AdminSetting');
+            $setting = $this->AdminSetting->getSetting('eventBlockRule');
+            $this->eventBlockRule = $setting ? json_decode($setting, true) : false;
         }
-        $setting = $this->AdminSetting->getSetting('eventBlockRule');
-        if (empty($setting)) {
+        if (empty($this->eventBlockRule)) {
             return true;
         }
-        $rules = json_decode($setting, true);
-        if (empty($rules)) {
-            return true;
-        }
-        if (!empty($rules['tags'])) {
-            if (!is_array($rules['tags'])) {
-                $rules['tags'] = [$rules['tags']];
+        if (!empty($this->eventBlockRule['tags'])) {
+            if (!is_array($this->eventBlockRule['tags'])) {
+                $this->eventBlockRule['tags'] = [$this->eventBlockRule['tags']];
             }
             $eventTags = Hash::extract($event, 'Event.Tag.{n}.name');
             if (empty($eventTags)) {
                 $eventTags = Hash::extract($event, 'Event.EventTag.{n}.Tag.name');
             }
             if (!empty($eventTags)) {
-                foreach ($rules['tags'] as $blockTag) {
+                foreach ($this->eventBlockRule['tags'] as $blockTag) {
                     if (in_array($blockTag, $eventTags)) {
                         return false;
                     }
@@ -3513,40 +3413,25 @@ class Event extends AppModel
             throw new Exception($exception);
         }
         $dataArray = $this->updateXMLArray($dataArray);
+        $eventsToAdd = isset($dataArray['response']['Event'][0]) ? $dataArray['response']['Event'] : [$dataArray['response']['Event']];
         $results = array();
         $validationIssues = array();
-        if (isset($dataArray['response']['Event'][0])) {
-            foreach ($dataArray['response']['Event'] as $event) {
-                $result = array('info' => $event['info']);
-                if ($takeOwnership) {
-                    $event['orgc_id'] = $user['org_id'];
-                    unset($event['Orgc']);
-                }
-                $event = array('Event' => $event);
-                $created_id = 0;
-                $event['Event']['locked'] = 1;
-                $event['Event']['published'] = $publish;
-                $result['result'] = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
-                $result['id'] = $created_id;
-                $result['validationIssues'] = $validationIssues;
-                $results[] = $result;
-            }
-        } else {
-            $temp['Event'] = $dataArray['response']['Event'];
+        foreach ($eventsToAdd as $event) {
             if ($takeOwnership) {
-                $temp['Event']['orgc_id'] = $user['org_id'];
-                unset($temp['Event']['Orgc']);
+                $event['orgc_id'] = $user['org_id'];
+                unset($event['Orgc']);
             }
+            $event = array('Event' => $event);
             $created_id = 0;
-            $temp['Event']['locked'] = 1;
-            $temp['Event']['published'] = $publish;
-            $result = $this->_add($temp, true, $user, '', null, false, null, $created_id, $validationIssues);
-            $results = array(array(
-                'info' => $temp['Event']['info'],
+            $event['Event']['locked'] = 1;
+            $event['Event']['published'] = $publish;
+            $result = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
+            $results[] = [
+                'info' => $event['Event']['info'],
                 'result' => $result,
                 'id' => $created_id,
                 'validationIssues' => $validationIssues,
-            ));
+            ];
         }
         return $results;
     }
@@ -3569,7 +3454,9 @@ class Event extends AppModel
     public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false && isset($data['Event']['uuid'])) {
-            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            if (!isset($this->EventBlocklist)) {
+                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            }
             if ($this->EventBlocklist->isBlocked($data['Event']['uuid'])) {
                 return 'Blocked by blocklist';
             }
@@ -3614,13 +3501,15 @@ class Event extends AppModel
             }
         }
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
-            $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
             if (!isset($data['Event']['Orgc']['uuid'])) {
-                $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $data['Event']['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
+                $orgc = $data['Event']['orgc_id'];
             } else {
-                $orgc = array('Orgc' => array('uuid' => $data['Event']['Orgc']['uuid']));
+                $orgc = $data['Event']['Orgc']['uuid'];
             }
-            if ($this->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgc['Orgc']['uuid']))) {
+            if (!isset($this->OrgBlocklist)) {
+                $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
+            }
+            if ($this->OrgBlocklist->isBlocked($orgc)) {
                 return 'blocked';
             }
         }
@@ -3659,7 +3548,7 @@ class Event extends AppModel
             $existingEvent = $this->find('first', [
                 'conditions' => ['Event.uuid' => $data['Event']['uuid']],
                 'fields' => ['Event.id'],
-                'recursive' => -1.
+                'recursive' => -1,
             ]);
             if ($existingEvent) {
                 // RESTful, set response location header so client can find right URL to edit
@@ -4239,8 +4128,15 @@ class Event extends AppModel
 
         $failedServers = [];
         foreach ($servers as $server) {
+            $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
             try {
-                $this->pushSightingsToServer($server, $event, $sightingsUuidsToPush);
+                try {
+                    if ($serverSync->eventExists($event) === false) {
+                        continue; // skip if event not exists on remote server
+                    }
+                } catch (Exception $e) {}
+
+                $this->pushSightingsToServer($serverSync, $event, $sightingsUuidsToPush);
             } catch (Exception $e) {
                 $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
                 $failedServers[] = $server['Server']['url'];
@@ -4253,25 +4149,16 @@ class Event extends AppModel
     }
 
     /**
-     * @param array $server
+     * @param ServerSyncTool $serverSync
      * @param array $event
      * @param array $sightingsUuidsToPush
      * @throws HttpSocketJsonException
-     * @throws JsonException
      * @throws Exception
      */
-    private function pushSightingsToServer(array $server, array $event, array $sightingsUuidsToPush = [])
+    private function pushSightingsToServer(ServerSyncTool $serverSync, array $event, array $sightingsUuidsToPush = [])
     {
-        App::uses('ServerSyncTool', 'Tools');
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-        try {
-            if ($serverSync->eventExists($event) === false) {
-                return; // skip if event not exists on remote server
-            }
-        } catch (Exception $e) {}
-
         $fakeSyncUser = [
-            'org_id' => $server['Server']['remote_org_id'],
+            'org_id' => $serverSync->server()['Server']['remote_org_id'],
             'Role' => [
                 'perm_site_admin' => 0,
             ],
@@ -4340,8 +4227,6 @@ class Event extends AppModel
         }
         $uploaded = true;
         $failedServers = [];
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
 
         foreach ($servers as $server) {
             if (
@@ -4351,7 +4236,7 @@ class Event extends AppModel
             }
             // Skip servers where the event has come from.
             if ($passAlong != $server['Server']['id']) {
-                $HttpSocket = $syncTool->setupHttpSocket($server);
+                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
                 $params = [
                     'eventid' => $id,
                     'includeAttachments' => true,
@@ -4379,17 +4264,17 @@ class Event extends AppModel
                         'perm_site_admin' => 0
                     )
                 );
-                $this->Server->syncGalaxyClusters($HttpSocket, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
-                $thisUploaded = $this->uploadEventToServer($event, $server);
+                $this->Server->syncGalaxyClusters($serverSync, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
+                $thisUploaded = $this->uploadEventToServer($event, $server, $serverSync);
                 if ($thisUploaded === 'Success') {
                     try {
-                        $this->pushSightingsToServer($server, $event); // push sighting by method that check for duplicates
+                        $this->pushSightingsToServer($serverSync, $event); // push sighting by method that check for duplicates
                     } catch (Exception $e) {
                         $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
                     }
                 }
                 if (isset($this->data['ShadowAttribute'])) {
-                    $this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
+                    $this->Server->syncProposals(null, $server, null, $id, $this);
                 }
                 if (!$thisUploaded) {
                     $uploaded = !$uploaded ? $uploaded : $thisUploaded;
@@ -4462,7 +4347,6 @@ class Event extends AppModel
                 $jobId
             );
         }
-
         return $this->publish($id, $passAlong);
     }
 
@@ -4507,8 +4391,58 @@ class Event extends AppModel
             'recursive' => -1,
             'conditions' => array('Event.id' => $id)
         ));
+        
         if (empty($event)) {
             return false;
+        }
+        $hostOrg = $this->Org->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'id' => Configure::read('MISP.host_org_id')
+            ],
+        ]);
+        if (empty($hostOrg)) {
+            $hostOrg = $this->Org->find('first', [
+                'recursive' => -1,
+                'order' => ['id ASC']
+            ]);
+        }
+        $userForPubSub = [
+            'id' => 0,
+            'org_id' => $hostOrg['Org']['id'],
+            'Role' => ['perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 1],
+            'Organisation' => $hostOrg['Org']
+        ];
+        $allowZMQ = Configure::read('Plugin.ZeroMQ_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
+        $allowKafka = Configure::read('Plugin.Kafka_enable') &&
+            Configure::read('Plugin.Kafka_event_publish_notifications_enable') &&
+            !empty($kafkaTopic);
+        $triggerCallable = $this->isTriggerCallable('event-publish');
+
+        if ($allowZMQ || $allowKafka || $triggerCallable) {
+            $currentUserId = Configure::read('CurrentUserId');
+            $userForWorkflow = $this->User->getAuthUser($currentUserId, true);
+            $userForWorkflow['Role']['perm_site_admin'] = 1;
+            $fullEvent = $this->fetchEvent($userForWorkflow, [
+                'eventid' => $id,
+                'includeAttachments' => 1
+            ]);
+        }
+        if ($triggerCallable) {
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'Event',
+                'action' => 'publish',
+                'id' => $id,
+                'message' => __('Publishing stopped by a blocking workflow.'),
+            ];
+            $success = $this->executeTrigger('event-publish', $fullEvent[0], $workflowErrors, $logging);
+            if (empty($success)) {
+                $errorMessage = implode(', ', $workflowErrors);
+                
+                return $errorMessage;
+            }
         }
         if ($jobId) {
             $this->Behaviors->unload('SysLogLogable.SysLogLogable');
@@ -4522,50 +4456,11 @@ class Event extends AppModel
             $event['Event']['skip_kafka'] = 1;
             $this->save($event, array('fieldList' => $fieldList));
         }
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
-            $hostOrgId = Configure::read('MISP.host_org_id');
-            if (!empty($hostOrgId)) {
-                $hostOrg = $this->Org->find('first', [
-                        'recursive' => -1,
-                        'conditions' => [
-                            'id' => $hostOrgId
-                        ]
-                    ]
-                );
-            }
-            if (empty($hostOrg)) {
-                $hostOrg = $this->Org->find('first', [
-                    'recursive' => -1,
-                    'order' => ['id ASC']
-                ]);
-                $hostOrgId = $hostOrg['Org']['id'];
-            }
-            $user = array('org_id' => $hostOrgId, 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
-            if ($pubToZmq) {
-                $params = array('eventid' => $id);
-                if (Configure::read('Plugin.ZeroMQ_include_attachments')) {
-                    $params['includeAttachments'] = 1;
-                }
-                $fullEvent = $this->fetchEvent($user, $params);
-                if (!empty($fullEvent)) {
-                    $pubSubTool = $this->getPubSubTool();
-                    $pubSubTool->publishEvent($fullEvent[0], 'publish');
-                }
-            }
-            if ($pubToKafka) {
-                $params = array('eventid' => $id);
-                if (Configure::read('Plugin.Kafka_include_attachments')) {
-                    $params['includeAttachments'] = 1;
-                }
-                $fullEvent = $this->fetchEvent($user, $params);
-                if (!empty($fullEvent)) {
-                    $kafkaPubTool = $this->getKafkaPubTool();
-                    $kafkaPubTool->publishJson($kafkaTopic, $fullEvent[0], 'publish');
-                }
-            }
+        if ($allowZMQ) {
+            $this->publishEventToZmq($id, $userForPubSub, $fullEvent);
+        }
+        if ($allowKafka) {
+            $this->publishEventToKafka($id, $userForPubSub, $fullEvent, $kafkaTopic);
         }
         return $this->uploadEventToServersRouter($id, $passAlong);
     }
@@ -4777,30 +4672,6 @@ class Event extends AppModel
         return $xmlArray;
     }
 
-    public function removeOlder(array &$events, $scope = 'events')
-    {
-        $field = $scope === 'sightings' ? 'sighting_timestamp' : 'timestamp';
-        $localEvents = $this->find('all', [
-            'recursive' => -1,
-            'fields' => ['Event.uuid', 'Event.' . $field, 'Event.locked'],
-        ]);
-        $localEvents = array_column(array_column($localEvents, 'Event'), null, 'uuid');
-        foreach ($events as $k => $event) {
-            // remove all events for the sighting sync if the remote is not aware of the new field yet
-            if (!isset($event[$field])) {
-                unset($events[$k]);
-            } else {
-                $uuid = $event['uuid'];
-                if (isset($localEvents[$uuid])
-                      && ($localEvents[$uuid][$field] >= $event[$field]
-                      || ($scope === 'events' && !$localEvents[$uuid]['locked'])))
-                {
-                    unset($events[$k]);
-                }
-            }
-        }
-    }
-
     public function sharingGroupRequired($field)
     {
         if ($this->data[$this->alias]['distribution'] == 4) {
@@ -4837,7 +4708,6 @@ class Event extends AppModel
 
         if ($filterType) {
             $include = true;
-
             /* proposal */
             if ($filterType['proposal'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
@@ -4850,10 +4720,22 @@ class Event extends AppModel
             /* correlation */
             if ($filterType['correlation'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
-            } else if (in_array($attribute['id'], $correlatedAttributes)) { // `include only`
+            } else if (isset($correlatedAttributes[$attribute['id']])) { // `include only`
                 $include = $include && ($filterType['correlation'] == 1);
             } else { // `exclude`
                 $include = $include && ($filterType['correlation'] == 2);
+            }
+
+            if ($filterType['correlationId'] && $include) {
+                $include = false;
+                if (isset($correlatedAttributes[$attribute['id']])) {
+                    foreach ($correlatedAttributes[$attribute['id']] as $correlation) {
+                        if (in_array($correlation['id'], $filterType['correlationId'])) {
+                            $include = true;
+                            break;
+                        }
+                    }
+                }
             }
 
             /* feed */
@@ -4885,11 +4767,11 @@ class Event extends AppModel
 
             /* TypeGroupings */
             if (
-                $filterType['attributeFilter'] != 'all'
-                && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
-                && !in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
+                $filterType['attributeFilter'] !== 'all'
+                && isset(Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']])
+                && !in_array($attribute['type'], Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']], true)
             ) {
-                $include = false;
+                return null;
             }
 
             if ($filterType['warning'] == 0) { // `both`
@@ -4900,7 +4782,7 @@ class Event extends AppModel
                 $include = $include && ($filterType['warning'] == 2);
             }
 
-            if ($filterType['warninglistId']) {
+            if ($filterType['warninglistId'] && $include) {
                 $include = false;
                 if (isset($attribute['warnings'])) {
                     foreach ($attribute['warnings'] as $warning) {
@@ -4930,6 +4812,12 @@ class Event extends AppModel
         return $this->__prepareGenericForView($attribute);
     }
 
+    /**
+     * @param array $proposal
+     * @param array $correlatedShadowAttributes
+     * @param array $filterType
+     * @return array|null
+     */
     private function __prepareProposalForView($proposal, $correlatedShadowAttributes, $filterType = false)
     {
         if ($proposal['proposal_to_delete']) {
@@ -4945,10 +4833,22 @@ class Event extends AppModel
             /* correlation */
             if ($filterType['correlation'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
-            } else if (in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
+            } else if (isset($correlatedShadowAttributes[$proposal['id']])) { // `include only`
                 $include = $include && ($filterType['correlation'] == 1);
             } else { // `exclude`
                 $include = $include && ($filterType['correlation'] == 2);
+            }
+
+            if ($filterType['correlationId'] && $include) {
+                $include = false;
+                if (isset($correlatedShadowAttributes[$proposal['id']])) {
+                    foreach ($correlatedShadowAttributes[$proposal['id']] as $correlation) {
+                        if (in_array($correlation['id'], $filterType['correlationId'])) {
+                            $include = true;
+                            break;
+                        }
+                    }
+                }
             }
 
             /* feed */
@@ -4971,11 +4871,11 @@ class Event extends AppModel
 
             /* TypeGroupings */
             if (
-                $filterType['attributeFilter'] != 'all'
-                && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
-                && !in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
+                $filterType['attributeFilter'] !== 'all'
+                && isset(Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']])
+                && !in_array($proposal['type'], Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']], true)
             ) {
-                $include = false;
+                return null;
             }
 
             /* warning */
@@ -5004,7 +4904,7 @@ class Event extends AppModel
     ) {
         $object['category'] = $object['meta-category'];
 
-        $include = empty($filterType['attributeFilter']) || $filterType['attributeFilter'] == 'object' || $filterType['attributeFilter'] == 'all' || $object['meta-category'] === $filterType['attributeFilter'];
+        $include = empty($filterType['attributeFilter']) || $filterType['attributeFilter'] === 'all' || $filterType['attributeFilter'] === 'object' || $object['meta-category'] === $filterType['attributeFilter'];
 
         if (!$include) {
             return null;
@@ -5036,6 +4936,7 @@ class Event extends AppModel
             || $filterType['feed'] != 0
             || $filterType['server'] != 0
             || $filterType['warninglistId'] !== null
+            || $filterType['correlationId'] !== null
         ) {
             $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData);
             if (!$include) {
@@ -5046,6 +4947,14 @@ class Event extends AppModel
         return $object;
     }
 
+    /**
+     * @param array $object
+     * @param array $filterType
+     * @param array $correlatedAttributes
+     * @param array $correlatedShadowAttributes
+     * @param array $sightingsData
+     * @return bool
+     */
     private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData)
     {
         if (empty($object['Attribute'])) { // reject empty object
@@ -5057,7 +4966,7 @@ class Event extends AppModel
             // pass, do not consider as `both` is selected
         } else if ($filterType['proposal'] == 1 || $filterType['proposal'] == 2) {
             $flagKeep = false;
-            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 proposal
+            foreach ($object['Attribute'] as $attribute) { // check if object contains at least 1 proposal
                 if (!empty($attribute['ShadowAttribute'])) {
                     $flagKeep = ($filterType['proposal'] == 1); // keep if proposal are included
                     break;
@@ -5104,7 +5013,37 @@ class Event extends AppModel
                     foreach ($attribute['warnings'] as $warning) {
                         if (in_array($warning['warninglist_id'], $filterType['warninglistId'])) {
                             $flagKeep = true;
-                            break;
+                            break 2;
+                        }
+                    }
+                }
+            }
+            if (!$flagKeep) {
+                return false;
+            }
+        }
+
+        if ($filterType['correlationId']) {
+            $flagKeep = false;
+            // check if object contains at least one attribute that is correlating with given event ID
+            foreach ($object['Attribute'] as $attribute) {
+                if (isset($correlatedAttributes[$attribute['id']])) {
+                    foreach ($correlatedAttributes[$attribute['id']] as $correlation) {
+                        if (in_array($correlation['id'], $filterType['correlationId'])) {
+                            $flagKeep = true;
+                            break 2;
+                        }
+                    }
+                }
+                if (!empty($attribute['ShadowAttribute'])) {
+                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
+                        if (isset($correlatedShadowAttributes[$shadowAttribute['id']])) {
+                            foreach ($correlatedShadowAttributes[$shadowAttribute['id']] as $correlation) {
+                                if (in_array($correlation['id'], $filterType['correlationId'])) {
+                                    $flagKeep = true;
+                                    break 2;
+                                }
+                            }
                         }
                     }
                 }
@@ -5120,14 +5059,14 @@ class Event extends AppModel
         } else if ($filterType['correlation'] == 1 || $filterType['correlation'] == 2) {
             $flagKeep = false;
             foreach ($object['Attribute'] as $attribute) { // check if object contains at least 1 warning
-                if (in_array($attribute['id'], $correlatedAttributes)) {
+                if (isset($correlatedAttributes[$attribute['id']])) {
                     $flagKeep = ($filterType['correlation'] == 1); // keep if correlations are included
                 } else {
                     $flagKeep = ($filterType['correlation'] == 2); // keep if correlations are excluded
                 }
                 if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
                     foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
-                        if (in_array($shadowAttribute['id'], $correlatedShadowAttributes)) {
+                        if (isset($correlatedShadowAttributes[$shadowAttribute['id']])) {
                             $flagKeep = ($filterType['correlation'] == 1); // keep if correlations are included
                             break;
                         }
@@ -5147,7 +5086,7 @@ class Event extends AppModel
             // pass, do not consider as `both` is selected
         } else if ($filterType['sighting'] == 1 || $filterType['sighting'] == 2) {
             $flagKeep = false;
-            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+            foreach ($object['Attribute'] as $attribute) { // check if object contains at least 1 warning
                 if (isset($sightingsData['data'][$attribute['id']])) {
                     $flagKeep = ($filterType['sighting'] == 1); // keep if server are included
                 } else {
@@ -5175,7 +5114,7 @@ class Event extends AppModel
             // pass, do not consider as `both` is selected
         } else if ($filterType['feed'] == 1 || $filterType['feed'] == 2) {
             $flagKeep = false;
-            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+            foreach ($object['Attribute'] as $attribute) { // check if object contains at least 1 warning
                 if (!empty($attribute['Feed'])) {
                     $flagKeep = ($filterType['feed'] == 1); // keep if feed are included
                 } else {
@@ -5203,7 +5142,7 @@ class Event extends AppModel
             // pass, do not consider as `both` is selected
         } else if ($filterType['server'] == 1 || $filterType['server'] == 2) {
             $flagKeep = false;
-            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+            foreach ($object['Attribute'] as $attribute) { // check if object contains at least 1 warning
                 if (!empty($attribute['Server'])) {
                     $flagKeep = ($filterType['server'] == 1); // keep if server are included
                 } else {
@@ -5228,6 +5167,10 @@ class Event extends AppModel
         return true;
     }
 
+    /**
+     * @param array $object
+     * @return array
+     */
     private function __prepareGenericForView($object)
     {
         if ($this->Attribute->isImage($object)) {
@@ -5279,14 +5222,15 @@ class Event extends AppModel
             'feed' => isset($passedArgs['feed']) ? $passedArgs['feed'] : 0,
             'server' => isset($passedArgs['server']) ? $passedArgs['server'] : 0,
             'warninglistId' => isset($passedArgs['warninglistId']) ? (is_array($passedArgs['warninglistId']) ? $passedArgs['warninglistId'] : [$passedArgs['warninglistId']]) : null,
+            'correlationId' => isset($passedArgs['correlationId']) ? (is_array($passedArgs['correlationId']) ? $passedArgs['correlationId'] : [$passedArgs['correlationId']]) : null,
         );
         // update proposal, correlation and warning accordingly
-        if (in_array($filterType['attributeFilter'], array('proposal', 'correlation', 'warning'))) {
+        if (in_array($filterType['attributeFilter'], array('proposal', 'correlation', 'warning'), true)) {
             $filterType[$filterType['attributeFilter']] = 1;
         }
 
-        $correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
-        $correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
+        $correlatedAttributes = isset($event['RelatedAttribute']) ? $event['RelatedAttribute'] : [];
+        $correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? $event['RelatedShadowAttribute'] : [];
         $objects = array();
 
         if (isset($event['Attribute'])) {
@@ -5409,7 +5353,7 @@ class Event extends AppModel
                                   'Object.event_id' => $event_id,
                                   'Object.deleted' => 0),
             'recursive' => -1,
-            'fields' => array('Object.id', 'Object.uuid', 'Object.name')
+            'fields' => array('Object.id', 'Object.uuid', 'Object.name', 'Object.distribution', 'Object.sharing_group_id')
         ));
         if (!empty($initial_object)) {
             $initial_attributes = $this->Attribute->find('all', array(
@@ -5588,7 +5532,7 @@ class Event extends AppModel
         } else {
             $attribute_type = $attribute['type'];
             if (empty($attribute['category'])) {
-                $attribute['category'] = $this->Attribute->typedefinitions[$attribute_type]['default_category'];
+                $attribute['category'] = $this->Attribute->typeDefinitions[$attribute_type]['default_category'];
             }
         }
         if (!isset($attribute['to_ids'])) {
@@ -5645,22 +5589,6 @@ class Event extends AppModel
             'extension' => $module['mispattributes']['outputFileExtension'],
             'response' => $module['mispattributes']['responseType']
         ];
-    }
-
-    public function cacheSgids($user, $useCache = false)
-    {
-        if ($useCache && isset($this->assetCache['sgids'])) {
-            return $this->assetCache['sgids'];
-        } else {
-            $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-            if (empty($sgids)) {
-                $sgids = array(-1);
-            }
-            if ($useCache) {
-                $this->assetCache['sgids'] = $sgids;
-            }
-            return $sgids;
-        }
     }
 
     public function __cacheSharingGroupData($user, $useCache = false)
@@ -5889,6 +5817,8 @@ class Event extends AppModel
 
     public function enrichmentRouter($options)
     {
+        $result = $this->enrichment($options);
+        return __('#' . $result . ' attributes have been created during the enrichment process.');
         if (Configure::read('MISP.background_jobs')) {
 
             /** @var Job $job */
@@ -5930,10 +5860,30 @@ class Event extends AppModel
                 throw new MethodNotAllowedException(__('%s not set', $option_field));
             }
         }
-        $event = $this->fetchEvent($params['user'], array('eventid' => $params['event_id'], 'includeAttachments' => 1, 'flatten' => 1));
+        $event = [];
+        if (!empty($params['attribute_uuids'])) {
+            $attributes = $this->Attribute->fetchAttributes($params['user'], [
+                'conditions' => [
+                    'Attribute.uuid' => $params['attribute_uuids'],
+                ],
+                'withAttachments' => 1,
+            ]);
+            $event = [
+                [
+                    'Event' => ['id' => $params['event_id']],
+                    'Attribute' => Hash::extract($attributes, '{n}.Attribute')
+                ]
+            ];
+        } else {
+            $event = $this->fetchEvent($params['user'], [
+                'eventid' => $params['event_id'],
+                'includeAttachments' => 1,
+                'flatten' => 1,
+            ]);
+        }
         $this->Module = ClassRegistry::init('Module');
         $enabledModules = $this->Module->getEnabledModules($params['user']);
-        if (empty($enabledModules)) {
+        if (empty($enabledModules) || is_string($enabledModules)) {
             return true;
         }
         $options = array();
@@ -5954,6 +5904,9 @@ class Event extends AppModel
         $event_id = $event[0]['Event']['id'];
         foreach ($event[0]['Attribute'] as $attribute) {
             $object_id = $attribute['object_id'];
+            if ($object_id != '0' && empty($initial_objects[$object_id])) {
+                $initial_objects[$object_id] = $this->fetchInitialObject($event_id, $object_id);
+            }
             foreach ($enabledModules['modules'] as $module) {
                 if (in_array($module['name'], $params['modules'])) {
                     if (in_array($attribute['type'], $module['mispattributes']['input'])) {
@@ -5963,15 +5916,19 @@ class Event extends AppModel
                         }
                         if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] == 'misp_standard') {
                             $data['attribute'] = $attribute;
-                            if ($object_id != '0' && empty($initial_objects[$object_id])) {
-                                $initial_objects[$object_id] = $this->fetchInitialObject($event_id, $object_id);
-                            }
                         } else {
                             $data[$attribute['type']] = $attribute['value'];
                         }
-                        $result = $this->Module->queryModuleServer($data, false, 'Enrichment');
-                        if (!$result) {
+                        if ($object_id != '0' && !empty($initial_objects[$object_id])) {
+                            $attribute['Object'] = $initial_objects[$object_id]['Object'];
+                        }
+                        $triggerData = $event[0];
+                        $triggerData['Attribute'] = [$attribute];
+                        $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false, $triggerData);
+                        if ($result === false) {
                             throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
+                        } else if (!is_array($result)) {
+                            continue 2;
                         }
                         //if (isset($result['error'])) $this->Session->setFlash($result['error']);
                         if (!is_array($result)) {
@@ -7601,5 +7558,58 @@ class Event extends AppModel
                 'description' => __('Click this to download Yara rules generated from all relevant attributes. Rules are returned in a JSON format with information about origin (generated or parsed) and validity.')
             ),
         );
+    }
+
+    private function __prepareEventForPubSub($id, $user, &$fullEvent)
+    {
+        if ($fullEvent) {
+            if (empty(Configure::read('Plugin.ZeroMQ_include_attachments'))) {
+                if (!empty($fullEvent[0]['Attribute'])) {
+                    foreach ($fullEvent[0]['Attribute'] as $k => $attribute) {
+                        if (isset($attribute['data'])) {
+                            unset($fullEvent[0]['Attribute'][$k]['data']);
+                        }
+                    }
+                }
+                if (!empty($fullEvent[0]['Object'])) {
+                    foreach ($fullEvent[0]['Object'] as $k => $object) {
+                        if (!empty($object['Attribute'])) {
+                            foreach ($object['Attribute'] as $k2 => $attribute) {
+                                if (isset($attribute['data'])) {
+                                    unset($fullEvent[0]['Object'][$k]['Attribute'][$k2]['data']);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            $params = [
+                'eventid' => $id
+            ];
+            if (Configure::read('Plugin.ZeroMQ_include_attachments')) {
+                $params['includeAttachments'] = 1;
+            }
+            $fullEvent = $this->fetchEvent($user, $params);
+        }
+        return $fullEvent;
+    }
+
+    public function publishEventToZmq($id, $user, &$fullEvent)
+    {
+        $fullEvent = $this->__prepareEventForPubSub($id, $user, $fullEvent);
+        if (!empty($fullEvent)) {
+            $pubSubTool = $this->getPubSubTool();
+            $pubSubTool->publishEvent($fullEvent[0], 'publish');
+        }
+    }
+
+    public function publishEventToKafka($id, $user, &$fullEvent, $kafkaTopic)
+    {
+        $fullEvent = $this->__prepareEventForPubSub($id, $user, $fullEvent);
+        if (!empty($fullEvent)) {
+            $kafkaPubTool = $this->getKafkaPubTool();
+            $kafkaPubTool->publishJson($kafkaTopic, $fullEvent[0], 'publish');
+        }
     }
 }

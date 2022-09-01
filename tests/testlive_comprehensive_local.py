@@ -4,6 +4,8 @@ import json
 import uuid
 import subprocess
 import unittest
+import requests
+import time
 from xml.etree import ElementTree as ET
 from io import BytesIO
 import urllib3  # type: ignore
@@ -22,13 +24,15 @@ key = os.environ["AUTH"]
 urllib3.disable_warnings()
 
 
-def create_simple_event():
+def create_simple_event() -> MISPEvent:
+    event_uuid = str(uuid.uuid4())
     event = MISPEvent()
-    event.info = 'This is a super simple test'
+    event.uuid = event_uuid
+    event.info = 'This is a super simple test ({})'.format(event_uuid.split('-')[0])
     event.distribution = Distribution.your_organisation_only
     event.threat_level_id = ThreatLevel.low
     event.analysis = Analysis.completed
-    event.add_attribute('text', str(uuid.uuid4()))
+    event.add_attribute('text', event_uuid)
     return event
 
 
@@ -510,6 +514,51 @@ class TestComprehensive(unittest.TestCase):
             for event in (first, second, third, four):
                 check_response(self.admin_misp_connector.delete_event(event))
 
+    def test_correlations(self):
+        first = create_simple_event()
+        first.add_attribute("ip-src", "10.0.0.1")
+        first = check_response(self.admin_misp_connector.add_event(first))
+
+        second = create_simple_event()
+        second.add_attribute("ip-src", "10.0.0.1")
+        second = check_response(self.admin_misp_connector.add_event(second))
+
+        # Reload to get event data with related events
+        first = check_response(self.admin_misp_connector.get_event(first))
+
+        try:
+            self.assertEqual(1, len(first.RelatedEvent), first.RelatedEvent)
+            self.assertEqual(1, len(second.RelatedEvent), second.RelatedEvent)
+        except:
+            raise
+        finally:
+            # Delete events
+            for event in (first, second):
+                check_response(self.admin_misp_connector.delete_event(event))
+
+    def test_advanced_correlations(self):
+        with MISPSetting(self.admin_misp_connector, {"MISP.enable_advanced_correlations": True}):
+            first = create_simple_event()
+            first.add_attribute("ip-src", "10.0.0.0/8")
+            first = check_response(self.admin_misp_connector.add_event(first))
+
+            second = create_simple_event()
+            second.add_attribute("ip-src", "10.0.0.1")
+            second = check_response(self.admin_misp_connector.add_event(second))
+
+            # Reload to get event data with related events
+            first = check_response(self.admin_misp_connector.get_event(first))
+
+            try:
+                self.assertEqual(1, len(first.RelatedEvent), first.RelatedEvent)
+                self.assertEqual(1, len(second.RelatedEvent), second.RelatedEvent)
+            except:
+                raise
+            finally:
+                # Delete events
+                for event in (first, second):
+                    check_response(self.admin_misp_connector.delete_event(event))
+
     def test_remove_orphaned_correlations(self):
         result = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', 'servers/removeOrphanedCorrelations'))
         check_response(result)
@@ -689,6 +738,10 @@ class TestComprehensive(unittest.TestCase):
         wl = request(self.admin_misp_connector, 'POST', 'warninglists/add', data=warninglist)
         check_response(wl)
 
+        exported = request(self.admin_misp_connector, 'GET', f'warninglists/export/{wl["Warninglist"]["id"]}')
+        self.assertIn('name', exported)
+        self.assertEqual('Test', exported['name'])
+
         check_response(self.admin_misp_connector.enable_warninglist(wl["Warninglist"]["id"]))
 
         response = self.admin_misp_connector.values_in_warninglist("1.2.3.4")
@@ -716,7 +769,19 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector.values_in_warninglist("2.3.4.5")
         self.assertEqual(0, len(response))
 
+        # Update by importing
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/import', exported)
+        check_response(response)
+
         response = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{wl["Warninglist"]["id"]}')
+        check_response(response)
+
+        # Create new warninglist by importing under different name
+        exported["name"] = "Test2"
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/import', exported)
+        check_response(response)
+
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{response["id"]}')
         check_response(response)
 
     def test_protected_event(self):
@@ -746,12 +811,101 @@ class TestComprehensive(unittest.TestCase):
         self.assertEqual(200, response.status_code, response)
         response.json()
 
+    def test_etag(self):
+        headers = {
+            'Authorization': self.admin_misp_connector.key,
+            'Accept': 'application/json',
+            'User-Agent': 'PyMISP',
+            'If-None-Match': '',
+        }
+        response = requests.get(self.admin_misp_connector.root_url + '/attributes/describeTypes.json', headers=headers)
+        self.assertEqual(200, response.status_code)
+        self.assertIn('Etag', response.headers)
+        self.assertTrue(len(response.headers['Etag']) > 0, response.headers['Etag'])
+
+        headers['If-None-Match'] = response.headers['Etag']
+        response = requests.get(self.admin_misp_connector.root_url + '/attributes/describeTypes.json', headers=headers)
+        self.assertEqual(304, response.status_code, response.headers)
+
+    def test_event_alert_default_enabled(self):
+        user = MISPUser()
+        user.email = 'testusr_alert_disabled@user.local'
+        user.org_id = self.test_org.id
+
+        created_user = check_response(self.admin_misp_connector.add_user(user))
+        self.assertFalse(created_user.autoalert, created_user)
+        self.admin_misp_connector.delete_user(created_user)
+
+        with MISPSetting(self.admin_misp_connector, {"MISP.default_publish_alert": True}):
+            user = MISPUser()
+            user.email = 'testusr_alert_enabled@user.local'
+            user.org_id = self.test_org.id
+
+            created_user = check_response(self.admin_misp_connector.add_user(user))
+            self.assertTrue(created_user.autoalert, created_user)
+            self.admin_misp_connector.delete_user(created_user)
+
+    def test_search_snort_suricata(self):
+        event = create_simple_event()
+        event.add_attribute('ip-src', '8.8.8.8', to_ids=True)
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        self.admin_misp_connector.publish(event, alert=False)
+        time.sleep(6)
+        snort = self._search({'returnFormat': 'snort', 'eventid': event.id})
+        self.assertIsInstance(snort, str)
+        self.assertIn('8.8.8.8', snort)
+
+        suricata = self._search({'returnFormat': 'suricata', 'eventid': event.id})
+        self.assertIsInstance(suricata, str)
+        self.assertIn('8.8.8.8', suricata)
+
+        self.admin_misp_connector.delete_event(event)
+
+    def test_restsearch_composite_attribute(self):
+        event = create_simple_event()
+        attribute_1 = event.add_attribute('ip-src|port', '10.0.0.1|8080')
+        attribute_2 = event.add_attribute('ip-src|port', '10.0.0.2|8080')
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        search_result = self._search_attribute({'value': '10.0.0.1', 'eventid': event.id})
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
+        self.assertEqual(len(search_result['Attribute']), 1)
+
+        search_result = self._search_attribute({'value': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 2)
+
+        search_result = self._search_attribute({'value1': '10.0.0.1', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
+
+        search_result = self._search_attribute({'value1': '10.0.0.2', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_2.uuid)
+
+        search_result = self._search_attribute({'value2': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 2)
+
+        search_result = self._search_attribute({'value1': '10.0.0.1', 'value2': '8080', 'eventid': event.id})
+        self.assertEqual(len(search_result['Attribute']), 1)
+        self.assertEqual(search_result['Attribute'][0]['uuid'], attribute_1.uuid)
+
+        self.admin_misp_connector.delete_event(event)
+
+
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
         check_response(response)
         return response
 
+    def _search_attribute(self, query: dict):
+        response = self.admin_misp_connector._prepare_request('POST', 'attributes/restSearch', data=query)
+        response = self.admin_misp_connector._check_response(response)
+        check_response(response)
+        return response
 
 if __name__ == '__main__':
     unittest.main()

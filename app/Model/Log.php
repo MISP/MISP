@@ -39,11 +39,14 @@ class Log extends AppModel
                     'enrichment',
                     'error',
                     'execute_blueprint',
+                    'execute_workflow',
+                    'exec_module',
                     'export',
                     'fetchEvent',
                     'file_upload',
                     'galaxy',
                     'include_formula',
+                    'load_module',
                     'login',
                     'login_fail',
                     'logout',
@@ -104,6 +107,8 @@ class Log extends AppModel
         'email' => array('values' => array('admin_email'))
     );
 
+    public $actsAs = ['LightPaginator'];
+
     /**
      * Null when not defined, false when not enabled
      * @var Syslog|null|false
@@ -148,8 +153,6 @@ class Log extends AppModel
 
     public function returnDates($org = 'all')
     {
-        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-        $dataSource = $dataSourceConfig['datasource'];
         $conditions = array();
         $this->Organisation = ClassRegistry::init('Organisation');
         if ($org !== 'all') {
@@ -160,14 +163,14 @@ class Log extends AppModel
             $conditions['org'] = $org['name'];
         }
         $conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
-        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $validDates = $this->find('all', array(
                     'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
                     'conditions' => $conditions,
                     'group' => array('Date'),
                     'order' => array('Date')
             ));
-        } elseif ($dataSource == 'Database/Postgres') {
+        } else {
             // manually generate the query for Postgres
             // cakephp ORM would escape "DATE" datatype in CAST expression
             $condnotinaction = "'" . implode("', '", $conditions['AND']['NOT']['action']) . "'";
@@ -204,7 +207,7 @@ class Log extends AppModel
      */
     public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
     {
-        if (in_array($action, ['tag', 'galaxy', 'publish', 'publish_sightings', 'enable'], true) && Configure::read('MISP.log_new_audit')) {
+        if (in_array($action, ['tag', 'galaxy', 'publish', 'publish_sightings', 'enable', 'edit'], true) && Configure::read('MISP.log_new_audit')) {
             return; // Do not store tag changes when new audit is enabled
         }
         if ($user === 'SYSTEM') {
@@ -399,6 +402,8 @@ class Log extends AppModel
             }
             if (!empty($data['Log']['description'])) {
                 $entry .= " -- {$data['Log']['description']}";
+            } else if (!empty($data['Log']['change'])) {
+                $entry .= " -- " . json_encode($data['Log']['change']);
             }
             $this->syslog->write($action, $entry);
         }

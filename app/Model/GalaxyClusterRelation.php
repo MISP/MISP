@@ -4,6 +4,7 @@ App::uses('AppModel', 'Model');
 /**
  * @property GalaxyClusterRelationTag $GalaxyClusterRelationTag
  * @property GalaxyCluster $TargetCluster
+ * @property SharingGroup $SharingGroup
  */
 class GalaxyClusterRelation extends AppModel
 {
@@ -81,9 +82,8 @@ class GalaxyClusterRelation extends AppModel
     {
         $conditions = [];
         if (!$user['Role']['perm_site_admin']) {
-            $this->Event = ClassRegistry::init('Event');
             $alias = $this->alias;
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $gcOwnerIds = $this->SourceCluster->cacheGalaxyClusterOwnerIDs($user);
             $conditionsRelations['AND']['OR'] = [
                 "${alias}.galaxy_cluster_id" => $gcOwnerIds,

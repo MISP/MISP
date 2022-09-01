@@ -80,8 +80,8 @@ if (!$ajax) {
 }
 ?>
     <script type="text/javascript">
-        var category_type_mapping = <?= json_encode(array_map(function($value) {
-            return array_combine($value['types'], $value['types']);
+        var category_type_mapping = <?= json_encode(array_map(function(array $value) {
+            return $value['types'];
         }, $categoryDefinitions)); ?>;
 
         $('#ShadowAttributeCategory').change(function() {

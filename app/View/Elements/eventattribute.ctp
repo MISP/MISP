@@ -1,27 +1,8 @@
 <?php
-    $urlHere = Router::url(null);
-    $urlHere = explode('/', $urlHere);
-    foreach ($urlHere as $k => $v) {
-        $urlHere[$k] = urlencode($v);
-    }
-    $urlHere = implode('/', $urlHere);
-    $urlHere = $baseurl . $urlHere;
     $mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
     $possibleAction = $mayModify ? 'attribute' : 'shadow_attribute';
-    $all = false;
-    if (isset($this->params->params['paging']['Event']['page'])) {
-        if ($this->params->params['paging']['Event']['page'] == 0) $all = true;
-        $page = $this->params->params['paging']['Event']['page']; // $page is probably unused
-    } else {
-        $page = 0; // $page is probably unused
-    }
+    $all = isset($this->params->params['paging']['Event']['page']) && $this->params->params['paging']['Event']['page'] == 0;
     $fieldCount = 11;
-    $filtered = false;
-    if (isset($passedArgsArray)){
-        if (count($passedArgsArray) > 0) {
-            $filtered = true;
-        }
-    }
 ?>
     <div class="pagination">
         <ul>
@@ -42,7 +23,7 @@
             $paginatorLinks .= $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $paginatorLinks;
         ?>
-        <li class="all <?php if ($all) echo 'disabled'; ?>">
+        <li class="all<?php if ($all) echo ' disabled'; ?>">
             <?php
                 if ($all):
                     echo '<span class="red">' . __('view all') . '</span>';
@@ -62,7 +43,7 @@
         echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'url' => $deleteSelectedUrl));
         echo $this->Form->input('ids_delete', array(
             'type' => 'text',
-            'value' => 'test',
+            'value' => '',
             'style' => 'display:none;',
             'label' => false,
         ));
@@ -88,18 +69,13 @@
         if (!isset($attributeFilter)) $attributeFilter = 'all';
     ?>
 </div>
-<div id="attributeList" class="attributeListContainer">
+<div id="attributeList">
     <?php
-        $target = h($event['Event']['id']);
-        if ($extended) $target .= '/extended:1';
-        echo $this->element('eventattributetoolbar', array(
-            'target' => $target,
+        echo $this->element('eventattributetoolbar', [
             'attributeFilter' => $attributeFilter,
-            'urlHere' => $urlHere,
-            'filtered' => $filtered,
             'mayModify' => $mayModify,
             'possibleAction' => $possibleAction
-        ));
+        ]);
     ?>
     <table class="table table-striped table-condensed">
         <tr>
@@ -165,9 +141,6 @@
                     'mayModify' => $mayModify,
                     'mayChangeCorrelation' => $mayChangeCorrelation,
                     'fieldCount' => $fieldCount,
-                    'includeRelatedTags' => !empty($includeRelatedTags) ? 1 : 0,
-                    'includeDecayingScore' => !empty($includeDecayingScore) ? 1 : 0,
-                    'includeSightingdb' => !empty($includeSightingdb) ? 1 : 0
                 ));
                 if (
                     ($object['objectType'] === 'attribute' && !empty($object['ShadowAttribute'])) ||
@@ -182,13 +155,13 @@
     </table>
     <?php
     // Generate form for adding sighting just once, generation for every attribute is surprisingly too slow
-    echo $this->Form->create('Sighting', ['id' => 'SightingForm', 'url' => $baseurl . '/sightings/add/', 'style' => 'display:none;']);
+    echo $this->Form->create('Sighting', ['id' => 'SightingForm', 'url' => $baseurl . '/sightings/add/', 'style' => 'display:none']);
     echo $this->Form->input('id', ['label' => false, 'type' => 'number']);
     echo $this->Form->input('type', ['label' => false]);
     echo $this->Form->end();
     ?>
 </div>
-    <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all') && !$filtered): ?>
+    <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all') && empty($passedArgsArray)): ?>
         <div class="background-red bold" style="padding: 2px 5px">
             <?php
                 if ($me['org_id'] != $event['Event']['orgc_id']) {
@@ -201,10 +174,15 @@ attributes or the appropriate distribution level. If you think there is a mistak
             ?>
         </div>
     <?php endif;?>
+    <p>
+        <?= $this->Paginator->counter([
+            'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
+        ]); ?>
+    </p>
     <div class="pagination">
         <ul>
         <?= $paginatorLinks ?>
-        <li class="all <?php if ($all) echo 'disabled'; ?>">
+        <li class="all<?php if ($all) echo ' disabled'; ?>">
             <?php
                 if ($all):
                     echo '<span class="red">' . __('view all') . '</span>';
@@ -215,7 +193,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         </li>
         </ul>
     </div>
-<script type="text/javascript">
+<script>
     var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : $baseurl . '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
     var currentPopover = "";
     var ajaxResults = {"hover": [], "persistent": []};
@@ -254,24 +232,8 @@ attributes or the appropriate distribution level. If you think there is a mistak
             attributeListAnyAttributeCheckBoxesChecked();
             attributeListAnyProposalCheckBoxesChecked();
         });
-        $('.screenshot').click(function() {
-            screenshotPopup($(this).attr('src'), $(this).attr('title'));
-        });
-        $('.sightings_advanced_add').click(function() {
-            var selected = [];
-            var object_context = $(this).data('object-context');
-            var object_id = $(this).data('object-id');
-            if (object_id === 'selected') {
-                $(".select_attribute:checked").each(function() {
-                    selected.push($(this).data("id"));
-                });
-                object_id = selected.join('|');
-            }
-            var url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
-            genericPopup(url, '#popover_box');
-        });
     });
     $('.searchFilterButton, #quickFilterButton').click(function() {
-        filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
+        filterAttributes('value');
     });
 </script>

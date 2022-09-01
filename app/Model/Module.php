@@ -10,12 +10,14 @@ class Module extends AppModel
         'Enrichment' => array('hover', 'expansion'),
         'Import' => array('import'),
         'Export' => array('export'),
+        'Action' => array('action'),
         'Cortex' => array('cortex')
     );
 
     private $__typeToFamily = array(
         'Import' => 'Import',
         'Export' => 'Export',
+        'Action' => 'Action',
         'hover' => 'Enrichment',
         'expansion' => 'Enrichment',
         'Cortex' => 'Cortex'
@@ -131,6 +133,8 @@ class Module extends AppModel
                 $output['Import'] = $temp['name'];
             } elseif (isset($temp['meta']['module-type']) && in_array('export', $temp['meta']['module-type'])) {
                 $output['Export'] = $temp['name'];
+            } elseif (isset($temp['meta']['module-type']) && in_array('action', $temp['meta']['module-type'])) {
+                $output['Action'] = $temp['name'];
             } else {
                 foreach ($temp['mispattributes']['input'] as $input) {
                     if (!isset($temp['meta']['module-type']) || (in_array('expansion', $temp['meta']['module-type']) || in_array('cortex', $temp['meta']['module-type']))) {
@@ -199,6 +203,61 @@ class Module extends AppModel
         return "$url:$port";
     }
 
+    private function __prepareAndExecuteTrigger($postData, $triggerData=[]): bool
+    {
+        $this->Workflow = ClassRegistry::init('Workflow');
+        $trigger_id = 'enrichment-before-query';
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'Workflow',
+            'action' => 'execute_workflow',
+            'id' => 0,
+        ];
+        if (!$this->Workflow->isTriggerCallable($trigger_id)) {
+            return true;
+        }
+        if (empty($triggerData) && !empty($postData['attribute_uuid'])) {
+            $this->User = ClassRegistry::init('User');
+            $this->Attribute = ClassRegistry::init('Attribute');
+            $user = $this->User->getAuthUser(Configure::read('CurrentUserId'), true);
+            $options = [
+                'conditions' => [
+                    'Attribute.uuid' => $postData['attribute_uuid'],
+                ],
+                'includeAllTags' => true,
+                'includeAttributeUuid' => true,
+                'flatten' => true,
+                'deleted' => [0, 1],
+                'withAttachments' => true,
+                'contain' => ['Event' => ['fields' => ['distribution', 'sharing_group_id']]],
+            ];
+            $attributes = $this->Attribute->fetchAttributes($user, $options);
+            $triggerData = !empty($attributes) ? $attributes[0] : [];
+            $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $postData['attribute_uuid'], $triggerData['Attribute']['event_id'], $postData['module']);
+        } else if (empty($triggerData) && !empty($postData['event_id'])) {
+            $this->Event = ClassRegistry::init('Event');
+            $event = $this->Event->quickFetchEvent($postData['event_id']);
+            $triggerData =$event;
+            $logging['message'] = __('The workflow `%s` prevented event `%s` to query the module `%s`', $trigger_id, $postData['event_id'], $postData['module']);
+        } else {
+            if (isset($triggerData['Attribute'])) {
+                $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`',
+                    $trigger_id,
+                    $triggerData['Attribute']['id'] ?? $triggerData['Attribute'][0]['id'],
+                    $triggerData['Attribute']['event_id'] ?? $triggerData['Attribute'][0]['event_id'],
+                    $postData['module']
+                );
+            } else {
+                $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $triggerData['Event']['Attribute'][0]['id'], $triggerData['Event']['id'], $postData['module']);
+            }
+        }
+        if (empty($triggerData)) {
+            return false;
+        }
+        $success = $this->executeTrigger($trigger_id, $triggerData, $workflowErrors, $logging);
+        return !empty($success);
+    }
+
     /**
      * Send request to `/query` module endpoint.
      *
@@ -209,8 +268,15 @@ class Module extends AppModel
      * @return array|false
      * @throws JsonException
      */
-    public function queryModuleServer(array $postData, $hover = false, $moduleFamily = 'Enrichment', $throwException = false)
+    public function queryModuleServer(array $postData, $hover = false, $moduleFamily = 'Enrichment', $throwException = false, $triggerData=[], $skipTrigger=false)
     {
+        if ($moduleFamily == 'Enrichment' && empty($skipTrigger)) {
+            $success = $this->__prepareAndExecuteTrigger($postData, $triggerData);
+            if (!$success) {
+                $trigger_id = 'enrichment-before-query';
+                return __('Trigger `%s` blocked enrichment', $trigger_id);
+            }
+        }
         if ($hover) {
             $timeout = Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ?: 5;
         } else {
@@ -290,15 +356,42 @@ class Module extends AppModel
             foreach ($modules as $module) {
                 if (array_intersect($this->__validTypes[$moduleFamily], $module['meta']['module-type'])) {
                     $moduleSettings = [
-                        array('name' => 'enabled', 'type' => 'boolean'),
-                        array('name' => 'restrict', 'type' => 'orgs')
+                        [
+                            'name' => 'enabled',
+                            'type' => 'boolean',
+                            'description' => empty($module['meta']['description']) ? '' : $module['meta']['description']
+                        ]
                     ];
-                    if (isset($module['meta']['config'])) {
-                        foreach ($module['meta']['config'] as $key => $value) {
-                            if (is_string($key)) {
-                                $moduleSettings[] = array('name' => $key, 'type' => 'string', 'description' => $value);
-                            } else {
-                                $moduleSettings[] = array('name' => $value, 'type' => 'string');
+                    if ($moduleFamily !== 'Action') {
+                        $moduleSettings[] = [
+                            'name' => 'restrict',
+                            'type' => 'orgs',
+                            'description' => __('Restrict the use of this module to an organisation.')
+                        ];
+                        if (isset($module['meta']['config'])) {
+                            foreach ($module['meta']['config'] as $key => $value) {
+                                if (is_array($value)) {
+                                    $name = is_string($key) ? $key : $value['name'];
+                                    $moduleSettings[] = [
+                                        'name' => $name,
+                                        'type' => isset($value['type']) ? $value['type'] : 'string',
+                                        'test' => isset($value['test']) ? $value['test'] : null,
+                                        'description' => isset($value['description']) ? $value['description'] : null,
+                                        'null' => isset($value['null']) ? $value['null'] : null,
+                                        'test' => isset($value['test']) ? $value['test'] : null,
+                                        'bigField' => isset($value['bigField']) ? $value['bigField'] : false,
+                                        'cli_only' => isset($value['cli_only']) ? $value['cli_only'] : false,
+                                        'redacted' => isset($value['redacted']) ? $value['redacted'] : false
+                                    ];
+                                } else if (is_string($key)) {
+                                    $moduleSettings[] = [
+                                        'name' => $key,
+                                        'type' => 'string',
+                                        'description' => $value
+                                    ];
+                                } else {
+                                    $moduleSettings[] = array('name' => $value, 'type' => 'string');
+                                }
                             }
                         }
                     }

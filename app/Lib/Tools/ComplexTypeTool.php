@@ -31,14 +31,14 @@ class ComplexTypeTool
         )
     );
 
-    const HEX_HASH_TYPES = array(
-        32 => array('single' => array('md5', 'imphash', 'x509-fingerprint-md5'), 'composite' => array('filename|md5', 'filename|imphash')),
-        40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1', 'cdhash'), 'composite' => array('filename|sha1', 'filename|pehash')),
-        56 => array('single' => array('sha224', 'sha512/224'), 'composite' => array('filename|sha224', 'filename|sha512/224')),
-        64 => array('single' => array('sha256', 'authentihash', 'sha512/256', 'x509-fingerprint-sha256'), 'composite' => array('filename|sha256', 'filename|authentihash', 'filename|sha512/256')),
-        96 => array('single' => array('sha384'), 'composite' => array('filename|sha384')),
-        128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
-    );
+    const HEX_HASH_TYPES = [
+        32 => ['single' => ['md5', 'imphash', 'x509-fingerprint-md5', 'ja3-fingerprint-md5'], 'composite' => ['filename|md5', 'filename|imphash']],
+        40 => ['single' => ['sha1', 'pehash', 'x509-fingerprint-sha1', 'cdhash'], 'composite' => ['filename|sha1', 'filename|pehash']],
+        56 => ['single' => ['sha224', 'sha512/224'], 'composite' => ['filename|sha224', 'filename|sha512/224']],
+        64 => ['single' => ['sha256', 'authentihash', 'sha512/256', 'x509-fingerprint-sha256'], 'composite' => ['filename|sha256', 'filename|authentihash', 'filename|sha512/256']],
+        96 => ['single' => ['sha384'], 'composite' => ['filename|sha384']],
+        128 => ['single' => ['sha512'], 'composite' => ['filename|sha512']],
+    ];
 
     private $__tlds = null;
 

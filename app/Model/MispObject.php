@@ -300,6 +300,31 @@ class MispObject extends AppModel
 
     public function afterSave($created, $options = array())
     {
+        if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
+            $object = $this->data['Object'];
+            $this->Attribute->Correlation->updateContainedCorrelations($object, 'object');
+        }
+        if (!empty($this->data['Object']['deleted']) && !$created) {
+            $attributes_to_delete = $this->Attribute->find('all', [
+                'recursive' => -1,
+                'conditions' => [
+                    'Attribute.object_id' => $this->id,
+                    'Attribute.deleted' => 0
+                ]
+            ]);
+            foreach ($attributes_to_delete as &$attribute_to_delete) {
+                $attribute_to_delete['Attribute']['deleted'] = 1;
+                unset($attribute_to_delete['Attribute']['timestamp']);
+            }
+            $this->Attribute->saveMany($attributes_to_delete);
+        }
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'Object',
+            'action' => $created ? 'add' : 'edit',
+            'id' => $this->data['Object']['id'],
+        ];
+        $this->executeTrigger('object-after-save', $this->data, $workflowErrors, $logging);
         $pubToZmq = $this->pubToZmq('object') && empty($this->data['Object']['skip_zmq']);
         $kafkaTopic = $this->kafkaTopic('object');
         $pubToKafka = $kafkaTopic && empty($this->data['Object']['skip_kafka']);
@@ -359,7 +384,14 @@ class MispObject extends AppModel
         }
     }
 
-    public function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectID, &$duplicateObjectUuid)
+    /**
+     * @param array $object
+     * @param int $eventId
+     * @param int $duplicatedObjectId
+     * @param string $duplicateObjectUuid
+     * @return bool
+     */
+    private function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectId, &$duplicateObjectUuid)
     {
         $newObjectAttributes = array();
         if (isset($object['Object']['Attribute'])) {
@@ -383,7 +415,7 @@ class MispObject extends AppModel
             foreach ($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']] as $previousNewObject) {
                 if ($newObjectAttributeCount === count($previousNewObject)) {
                     if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
-                        $duplicatedObjectID = $previousNewObject['Object']['id'];
+                        $duplicatedObjectId = $previousNewObject['Object']['id'];
                         $duplicateObjectUuid = $previousNewObject['Object']['uuid'];
                         return true;
                     }
@@ -412,7 +444,7 @@ class MispObject extends AppModel
                     $temp[] = sha1($existingAttribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value'], true);
                 }
                 if (empty(array_diff($temp, $newObjectAttributes))) {
-                    $duplicatedObjectID = $existingObject['Object']['id'];
+                    $duplicatedObjectId = $existingObject['Object']['id'];
                     return true;
                 }
             }
@@ -442,11 +474,11 @@ class MispObject extends AppModel
         }
         $object['Object']['event_id'] = $eventId;
         if ($breakOnDuplicate) {
-            $duplicatedObjectID = null;
+            $duplicatedObjectId = null;
             $duplicateObjectUuid = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $dupicateObjectUuid);
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectId, $duplicateObjectUuid);
             if ($duplicate) {
-                return array('value' => array(__('Duplicate object found (id: %s, uuid: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectID, $dupicateObjectUuid)));
+                return array('value' => array(__('Duplicate object found (id: %s, uuid: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectId, $duplicateObjectUuid)));
             }
         }
         $this->create();
@@ -481,7 +513,7 @@ class MispObject extends AppModel
             return [];
         }
 
-        $sgids = $this->Event->cacheSgids($user, true);
+        $sgids = $this->SharingGroup->authorizedIds($user);
         return [
             'AND' => [
                 'OR' => [
@@ -536,7 +568,7 @@ class MispObject extends AppModel
     {
         $attributeConditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $attributeConditions = array(
                 'OR' => array(
                     array(
@@ -971,12 +1003,12 @@ class MispObject extends AppModel
             $object = array('Object' => $object);
         }
         if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
-            $duplicatedObjectID = null;
+            $duplicatedObjectId = null;
             $duplicateObjectUuid = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $duplicateObjectUuid);
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectId, $duplicateObjectUuid);
             if ($duplicate) {
                 $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
-                    __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectID, $dupicateObjectUuid, $eventId),
+                    __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectId, $duplicateObjectUuid, $eventId),
                     'Duplicate object found.'
                 );
                 return true;
@@ -997,6 +1029,9 @@ class MispObject extends AppModel
         $objectId = $this->id;
         if (!empty($object['Object']['Attribute'])) {
             foreach ($object['Object']['Attribute'] as $attribute) {
+                if (!empty($object['Object']['deleted'])) {
+                    $attribute['deleted'] = 1;
+                }
                 $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
             }
         }
@@ -1081,6 +1116,9 @@ class MispObject extends AppModel
         }
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
+                if (!empty($object['deleted'])) {
+                    $attribute['deleted'] = 1;
+                }
                 $result = $this->Attribute->editAttribute($attribute, $event, $user, $object['id'], false, $force);
             }
         }

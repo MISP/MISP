@@ -115,13 +115,15 @@ class Oidc
 
         $this->log($mispUsername, 'Not found in database.');
 
+        $time = time();
         $userData = [
             'email' => $mispUsername,
             'org_id' => $organisationId,
-            'newsread' => time(),
+            'newsread' => $time,
+            'autoalert' => $this->User->defaultPublishAlert(),
             'role_id' => $roleId,
             'change_pw' => 0,
-            'date_created' => time(),
+            'date_created' => $time,
             'sub' => $sub,
         ];
 

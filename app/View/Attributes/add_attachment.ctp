@@ -3,27 +3,33 @@
     <fieldset>
         <legend><?php echo __('Add Attachment(s)'); ?></legend>
         <?php
+            $categoryFormInfo = $this->element('genericElements/Form/formInfo', [
+                'field' => [
+                    'field' => 'category'
+                ],
+                'modelForForm' => 'Attribute',
+                'fieldDesc' => $fieldDesc['category'],
+            ]);
             echo $this->Form->hidden('event_id');
             echo $this->Form->input('category', array(
                 'default' => 'Payload delivery',
-                'label' => __('Category ') . $this->element('formInfo', array('type' => 'category'))
+                'label' => __('Category ') . $categoryFormInfo
             ));
         ?>
-        <div class="input clear"></div>
+        <div class='input clear'></div>
         <?php
-                $initialDistribution = 5;
-                if (Configure::read('MISP.default_attribute_distribution') != null) {
-                    if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-                        $initialDistribution = 5;
-                    } else {
-                        $initialDistribution = Configure::read('MISP.default_attribute_distribution');
-                    }
-                }
-                echo $this->Form->input('distribution', array(
-                        'options' => $distributionLevels,
-                        'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
-                        'selected' => $initialDistribution,
-                ));
+            $distributionFormInfo = $this->element('genericElements/Form/formInfo', [
+                'field' => [
+                    'field' => 'distribution'
+                ],
+                'modelForForm' => 'Attribute',
+                'fieldDesc' => $fieldDesc['distribution'],
+            ]);
+            echo $this->Form->input('distribution', array(
+                'options' => $distributionLevels,
+                'label' => __('Distribution ') . $distributionFormInfo,
+                'selected' => $initialDistribution,
+            ));
             ?>
         <div id="SGContainer" style="display:none;">
             <?php
@@ -59,7 +65,7 @@
         <?php
             echo $this->Form->input('malware', array(
                     'type' => 'checkbox',
-                    'checked' => false,
+                    'checked' => true,
                     'label' => __('Is a malware sample (encrypt and hash)')
             ));
         ?>
@@ -67,7 +73,7 @@
         <?php
             echo $this->Form->input('advanced', array(
                     'type' => 'checkbox',
-                    'checked' => true,
+                    'checked' => false,
                     'disabled' => !$advancedExtractionAvailable,
                     'data-disabled-reason' => !$advancedExtractionAvailable ? __('Advanced extraction is not installed') : '',
                     'div' => array('id' => 'advanced_input', 'style' => 'display:none'),
@@ -80,28 +86,11 @@ echo $this->Form->button(__('Upload'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<?php
-    $event['Event']['id'] = $this->request->data['Attribute']['event_id'];
-    $event['Event']['published'] = $published;
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttachment', 'event' => $event));
-?>
-<script type="text/javascript">
-<?php
-    $formInfoTypes = array('distribution' => 'Distribution', 'category' => 'Category');
-    echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
-    foreach ($formInfoTypes as $formInfoType => $humanisedName) {
-        echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
-        foreach ($info[$formInfoType] as $key => $formInfoData) {
-            echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
-        }
-        echo '}' . PHP_EOL;
-    }
-?>
-
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttachment', 'event' => $event)); ?>
+<script>
 var formZipTypeValues = <?= json_encode($isMalwareSampleCategory) ?>;
 
 $(function() {
-    initPopoverContent('Attribute');
     $('#AttributeCategory').change(function() {
         malwareCheckboxSetter("Attribute");
         $("#AttributeMalware").change();
@@ -115,10 +104,6 @@ $(function() {
         }
     }).change();
 
-    $("#AttributeCategory, #AttributeDistribution").change(function() {
-        initPopoverContent('Attribute');
-    });
-
     $("#AttributeMalware").change(function () {
         if (this.checked) {
             $('#advanced_input').show();
@@ -127,5 +112,4 @@ $(function() {
         }
     }).change();
 });
-
 </script>

@@ -10,6 +10,7 @@ require_once 'AppShell.php';
  * @property Job $Job
  * @property Tag $Tag
  * @property Server $Server
+ * @property Correlation $Correlation
  */
 class EventShell extends AppShell
 {
@@ -39,10 +40,16 @@ class EventShell extends AppShell
                     'event_id' => ['help' => __('Event ID'), 'required' => true],
                     'user_id' => ['help' => __('User ID'), 'required' => true],
                 ],
+                'options' => [
+                    'send' => ['help' => __('Send email to given user'), 'boolean' => true],
+                ],
             ],
         ]);
         $parser->addSubcommand('duplicateTags', [
             'help' => __('Show duplicate tags'),
+        ]);
+        $parser->addSubcommand('generateTopCorrelations', [
+            'help' => __('Generate top correlations'),
         ]);
         $parser->addSubcommand('mergeTags', [
             'help' => __('Merge tags'),
@@ -603,6 +610,7 @@ class EventShell extends AppShell
     public function testEventNotificationEmail()
     {
         list($eventId, $userId) = $this->args;
+        $send = $this->param('send');
 
         $user = $this->getUser($userId);
         $eventForUser = $this->Event->fetchEvent($user, [
@@ -622,10 +630,16 @@ class EventShell extends AppShell
         App::uses('SendEmail', 'Tools');
         App::uses('GpgTool', 'Tools');
         $sendEmail = new SendEmail(GpgTool::initializeGpg());
-        $sendEmail->setTransport('Debug');
+        if (!$send) {
+            $sendEmail->setTransport('Debug');
+        }
         $result = $sendEmail->sendToUser(['User' => $user], null, $emailTemplate);
 
-        echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
+        if ($send) {
+            var_dump($result);
+        } else {
+            echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
+        }
     }
 
     /**
@@ -644,17 +658,20 @@ class EventShell extends AppShell
 
     public function generateTopCorrelations()
     {
-        $this->ConfigLoad->execute();
-        $jobId = $this->args[0];
-        $job = $this->Job->read(null, $jobId);
-        $job['Job']['progress'] = 1;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Generating top correlations list.');
-        $this->Job->save($job);
-        $result = $this->Correlation->generateTopCorrelations($jobId);
-        $job['Job']['progress'] = 100;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Job done.');
-        $this->Job->save($job);
+        $jobId = $this->args[0] ?? null;
+        if ($jobId) {
+            $job = $this->Job->read(null, $jobId);
+            $job['Job']['progress'] = 1;
+            $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+            $job['Job']['message'] = __('Generating top correlations list.');
+            $this->Job->save($job);
+        }
+        $this->Correlation->generateTopCorrelations($jobId);
+        if ($jobId) {
+            $job['Job']['progress'] = 100;
+            $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+            $job['Job']['message'] = __('Job done.');
+            $this->Job->save($job);
+        }
     }
 }

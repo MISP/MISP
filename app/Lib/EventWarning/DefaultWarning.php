@@ -7,7 +7,8 @@ class DefaultWarning
     public $functions = [
         'emptyEventCheck',
         'contextCheck',
-        'tlpDistributionCheck'
+        'tlpDistributionCheck',
+        'taxonomyInconsistenciesCheck'
     ];
 
     function __construct()
@@ -47,6 +48,13 @@ class DefaultWarning
         }
     }
 
+    public function taxonomyInconsistenciesCheck(array $event, array &$warnings)
+    {
+        if (Configure::read('MISP.disable_taxonomy_consistency_checks')) {
+            $warnings[__('Tags')][] = __('Taxonomy consistency checks are disabled in the configuration, set `MISP.disable_taxonomy_consistency_checks` to `false` to enable them.');
+        }
+    }
+
     /**
      * @param string $tagName
      * @return void
@@ -55,7 +63,7 @@ class DefaultWarning
     {
         $lowerTagName = trim(strtolower($tagName));
         if (substr($lowerTagName, 0, 4) === 'tlp:') {
-            if (!in_array($lowerTagName, ['tlp:white', 'tlp:green', 'tlp:amber', 'tlp:red', 'tlp:ex:chr'], true)) {
+            if (!in_array($lowerTagName, ['tlp:white', 'tlp:green', 'tlp:amber', 'tlp:red', 'tlp:ex:chr', 'tlp:clear', 'tlp:amber+strict'], true)) {
                 $warnings['TLP'][] = __('Unknown TLP tag, please refer to the TLP taxonomy as to what is valid, otherwise filtering rules created by your partners may miss your intent.');
             } else if ($lowerTagName !== $tagName) {
                 $warnings['TLP'][] = __('TLP tag with invalid formatting: Make sure that you only use TLP tags from the taxonomy. Custom tags with invalid capitalisation, white spaces or other artifacts will break synchronisation and filtering rules intended for the correct taxonomy derived tags.');
