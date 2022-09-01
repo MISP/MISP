@@ -2345,14 +2345,14 @@ class AppModel extends Model
                     $job = ClassRegistry::init('Job');
                     $jobId = $job->createJob(
                             'SYSTEM',
-                            Job::WORKER_PRIO,
+                            Job::WORKER_UPDATE,
                             'run_updates',
                             'command: ' . implode(',', $updates),
                             'Updating.'
                         );
 
                     $this->getBackgroundJobsTool()->enqueue(
-                        BackgroundJobsTool::PRIO_QUEUE,
+                        BackgroundJobsTool::UPDATE_QUEUE,
                         BackgroundJobsTool::CMD_ADMIN,
                         [
                             'runUpdates',
