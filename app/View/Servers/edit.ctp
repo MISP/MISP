@@ -111,7 +111,7 @@
         echo '<div class="input clear"></div>';
         echo $this->Form->input('remove_missing_tags', array(
             'type' => 'checkbox',
-            'label' => __('Remove Missing Attribute Tags'),
+            'label' => __('Remove Missing Attribute Tags (not recommended)'),
         ));
     ?>
     <div class="clear">
