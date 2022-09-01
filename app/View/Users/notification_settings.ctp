@@ -25,8 +25,10 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'periodic_settings.orgc_id',
                 'label' => __('Creator organisation'),
-                'options' => [0 => ' '] + $orgs,
-                'type' => 'dropdown'
+                'options' => $orgs,
+                'type' => 'dropdown',
+                'multiple' => true,
+                'picker' => true,
             ],
             [
                 'field' => 'periodic_settings.published',
@@ -46,7 +48,8 @@ echo $this->element('genericElements/Form/genericForm', [
                 'label' => __('Sharing Group'),
                 'class' => 'input',
                 'options' => $sharingGroups,
-                'type' => 'dropdown'
+                'type' => 'dropdown',
+                'multiple' => true,
             ],
             [
                 'field' => 'periodic_settings.event_info',

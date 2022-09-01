@@ -1696,10 +1696,10 @@ class User extends AppModel
         if ($success) {
             $periodic_settings = $data['periodic_settings'];
             $notification_filters = [
-                'orgc_id' => $periodic_settings['orgc_id'] ?? '',
+                'orgc_id' => $periodic_settings['orgc_id'] ?? [],
                 'published' => $periodic_settings['published'] ?? '',
                 'distribution' => $periodic_settings['distribution'] ?? '',
-                'sharing_group_id' => $periodic_settings['distribution'] != 4 ? '' : ($periodic_settings['sharing_group_id'] ?? ''),
+                'sharing_group_id' => $periodic_settings['distribution'] != 4 ? '' : ($periodic_settings['sharing_group_id'] ?? []),
                 'event_info' => $periodic_settings['event_info'] ?? '',
                 'tags' => $periodic_settings['tags'] ?? '[]',
             ];
@@ -1796,7 +1796,7 @@ class User extends AppModel
             'last' => $this->__genTimerangeFilter($period),
         ];
         if (!empty($period_filters['orgc_id'])) {
-            $filters['orgc_id'] = intval($period_filters['orgc_id']);
+            $filters['orgc_id'] = $period_filters['orgc_id'];
         }
         if (!empty($period_filters['published'])) {
             $filters['published'] = true;
@@ -1805,7 +1805,7 @@ class User extends AppModel
             $filters['distribution'] = intval($period_filters['distribution']);
         }
         if (!empty($period_filters['sharing_group_id'])) {
-            $filters['sharing_group_id'] = intval($period_filters['sharing_group_id']);
+            $filters['sharing_group_id'] = $period_filters['sharing_group_id'];
         }
         if (!empty($period_filters['event_info'])) {
             $filters['event_info'] = $period_filters['event_info'];
