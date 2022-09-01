@@ -83,7 +83,7 @@ class AppModel extends Model
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
-        93 => false,
+        93 => false, 94 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -243,6 +243,9 @@ class AppModel extends Model
                     "SHOW INDEX FROM default_correlations WHERE Key_name = 'unique_correlation';"
                 );
                 if (empty($existing_index)) {
+                    // If there are duplicate entries, the query creating the `unique_correlation` index will result in an integrity constraint violation.
+                    // The query below cleans up potential duplicates before creating the constraint.
+                    $this->removeDuplicateCorrelationEntries('default_correlations');
                     $this->query(
                         "ALTER TABLE default_correlations
                         ADD CONSTRAINT unique_correlation
@@ -253,6 +256,7 @@ class AppModel extends Model
                     "SHOW INDEX FROM no_acl_correlations WHERE Key_name = 'unique_correlation';"
                 );
                 if (empty($existing_index)) {
+                    $this->removeDuplicateCorrelationEntries('no_acl_correlations');
                     $this->query(
                         "ALTER TABLE no_acl_correlations
                         ADD CONSTRAINT unique_correlation
@@ -1850,6 +1854,10 @@ class AppModel extends Model
                 $this->__dropIndex('default_correlations', '1_object_sharing_group_id');
                 $this->__dropIndex('default_correlations', '1_event_sharing_group_id');
                 $this->__dropIndex('default_correlations', '1_org_id');
+                break;
+            case 94:
+                $sqlArray[] = "UPDATE `over_correlating_values` SET `value` = SUBSTR(`value`, 1, 191);"; // truncate then migrate
+                $sqlArray[] = "ALTER TABLE `over_correlating_values` MODIFY `value` varchar(191) NOT NULL;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -3683,5 +3691,25 @@ class AppModel extends Model
                 $jobId
             );
         }
+    }
+
+    public function removeDuplicateCorrelationEntries($table_name = 'default_correlations')
+    {
+        // If there are duplicate entries, the query creating the `unique_correlation` index will result in an integrity constraint violation.
+        // The query below cleans up potential duplicates before creating the constraint.
+        return $this->query("
+            DELETE FROM `$table_name` WHERE id in (
+                SELECT m_id FROM (
+                    SELECT MAX(corr_a.id) as m_id, CONCAT(corr_a.attribute_id, \" - \", corr_a.1_attribute_id, \" - \", corr_a.value_id) as uniq FROM `$table_name` corr_a
+                    INNER JOIN `$table_name` corr_b on corr_a.attribute_id = corr_b.attribute_id
+                    WHERE
+                        corr_a.attribute_id = corr_b.attribute_id AND
+                        corr_a.1_attribute_id = corr_b.1_attribute_id AND
+                        corr_a.value_id = corr_b.value_id AND
+                        corr_a.id <> corr_b.id
+                    GROUP BY uniq
+                ) as c
+            );
+        ");
     }
 }

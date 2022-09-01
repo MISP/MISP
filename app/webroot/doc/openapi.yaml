@@ -4524,7 +4524,7 @@ components:
       properties:
         input:
           type: string
-          example: "cd $(git rev-parse --show-toplevel) && git checkout app\/composer.json 2>&1"
+          example: "cd $(git rev-parse --show-toplevel) && git checkout app/composer.json 2>&1"
         output:
           type: array
           items:
