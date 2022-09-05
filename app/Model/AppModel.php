@@ -363,14 +363,6 @@ class AppModel extends Model
                 $this->__dropIndex('events', 'uuid');
                 $sqlArray[] = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
                 break;
-            case 'makeObjectUUIDsUnique':
-                $this->__dropIndex('objects', 'uuid');
-                $sqlArray[] = 'ALTER TABLE `objects` ADD UNIQUE (uuid);';
-                break;
-            case 'makeClusterUUIDsUnique':
-                $this->__dropIndex('galaxy_clusters', 'uuid');
-                $sqlArray[] = 'ALTER TABLE `galaxy_clusters` ADD UNIQUE (uuid);';
-                break;
             case 'cleanSessionTable':
                 $sqlArray[] = 'DELETE FROM cake_sessions WHERE expires < ' . time() . ';';
                 $clean = false;
@@ -2201,7 +2193,7 @@ class AppModel extends Model
         return $additionResult;
     }
 
-    public function __checkIndexExists($table, $column_name, $is_unique = false): bool
+    private function __checkIndexExists($table, $column_name, $is_unique = false): bool
     {
         $query = sprintf(
             'SHOW INDEX FROM %s WHERE Column_name = \'%s\' and Non_unique = %s;',
@@ -2844,60 +2836,6 @@ class AppModel extends Model
             }
         }
         return $counter;
-    }
-
-    public function populateNotifications($user, $mode = 'full')
-    {
-        $notifications = array();
-        list($notifications['proposalCount'], $notifications['proposalEventCount']) = $this->_getProposalCount($user, $mode);
-        $notifications['total'] = $notifications['proposalCount'];
-        if (Configure::read('MISP.delegation')) {
-            $notifications['delegationCount'] = $this->_getDelegationCount($user);
-            $notifications['total'] += $notifications['delegationCount'];
-        }
-        return $notifications;
-    }
-
-    // if not using $mode === 'full', simply check if an entry exists. We really don't care about the real count for the top menu.
-    private function _getProposalCount($user, $mode = 'full')
-    {
-        $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
-        $results[0] = $this->ShadowAttribute->find(
-            'count',
-            array(
-                'recursive' => -1,
-                'conditions' => array(
-                        'ShadowAttribute.event_org_id' => $user['org_id'],
-                        'ShadowAttribute.deleted' => 0,
-                )
-            )
-        );
-        if ($mode === 'full') {
-            $results[1] = $this->ShadowAttribute->find(
-                'count',
-                array(
-                    'recursive' => -1,
-                    'conditions' => array(
-                            'ShadowAttribute.event_org_id' => $user['org_id'],
-                            'ShadowAttribute.deleted' => 0,
-                    ),
-                    'fields' => 'distinct event_id'
-                )
-            );
-        } else {
-            $results[1] = $results[0];
-        }
-        return $results;
-    }
-
-    private function _getDelegationCount($user)
-    {
-        $this->EventDelegation = ClassRegistry::init('EventDelegation');
-        $delegations = $this->EventDelegation->find('count', array(
-            'recursive' => -1,
-            'conditions' => array('EventDelegation.org_id' => $user['org_id'])
-        ));
-        return $delegations;
     }
 
     public function checkFilename($filename)
