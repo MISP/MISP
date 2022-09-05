@@ -784,6 +784,7 @@ class ACLComponent extends Component
                 'executeWorkflow'=> [],
                 'debugToggleField'=> [],
                 'massToggleField'=> [],
+                'moduleStatelessExecution'=> [],
             ],
             'workflowBlueprints' => [
                 'add' => [],
