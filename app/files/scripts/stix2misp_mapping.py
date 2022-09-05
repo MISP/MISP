@@ -112,12 +112,17 @@ cybox_to_misp_object = {
     "EmailMessage": "email",
     "NetworkConnection": "network-connection",
     "NetworkSocket": "network-socket",
+    "Observable": "obsevrable",
     "Process": "process",
     "UnixUserAccount": "user-account",
     "UserAccount": "user-account",
     "WindowsUserAccount": "user-account",
     "x509Certificate": "x509",
     "Whois": "whois"
+}
+
+test_mechanisms_mapping = {
+    'yaraTM:YaraTestMechanismType': 'yara'
 }
 
 marking_mapping = {

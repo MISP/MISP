@@ -2,9 +2,15 @@
 
 App::import('Lib', 'SysLog.SysLog');	// Audit, syslogd, extra
 
-class SysLogLogableBehavior extends LogableBehavior {
+class SysLogLogableBehavior extends LogableBehavior
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->defaults['enabled'] = !Configure::read('MISP.log_new_audit');
+    }
 
-	function afterSave(Model $Model, $created, $options = array()) {
+    function afterSave(Model $Model, $created, $options = array()) {
 		if (!$this->settings[$Model->alias]['enabled']) {
 			return true;
 		}
@@ -256,23 +262,36 @@ class SysLogLogableBehavior extends LogableBehavior {
 		$this->Log->save(null, array('validate' => false));
 	}
 
-	function setup(Model $Model, $config = array()) {
-		if (!is_array($config)) {
-			$config = array();
-		}
-		$this->settings[$Model->alias] = array_merge($this->defaults, $config);
-		$this->settings[$Model->alias]['ignore'][] = $Model->primaryKey;
+    function setup(Model $Model, $config = array())
+    {
+        if (!is_array($config)) {
+            $config = array();
+        }
+        $this->settings[$Model->alias] = array_merge($this->defaults, $config);
+        $this->settings[$Model->alias]['ignore'][] = $Model->primaryKey;
 
-		$this->Log = ClassRegistry::init('Log');
-		if ($this->settings[$Model->alias]['userModel'] != $Model->alias) {
-			$this->UserModel = ClassRegistry::init($this->settings[$Model->alias]['userModel']);
-		} else {
-			$this->UserModel = $Model;
-		}
-		$this->schema = $this->Log->schema();
-		App::uses('AuthComponent', 'Controller/Component');
-		$user = AuthComponent::user();
-		if (!empty($user)) $this->user[$this->settings[$Model->alias]['userModel']] = AuthComponent::user();
-		else $this->user['User'] = array('email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'), 'id' => 0);
-	}
+        if (!$this->settings[$Model->alias]['enabled']) {
+            return;
+        }
+
+        $this->Log = ClassRegistry::init('Log');
+        if ($this->settings[$Model->alias]['userModel'] != $Model->alias) {
+            $this->UserModel = ClassRegistry::init($this->settings[$Model->alias]['userModel']);
+        } else {
+            $this->UserModel = $Model;
+        }
+        $this->schema = $this->Log->schema();
+
+        $user = array('email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'), 'id' => 0);
+        $isShell = defined('CAKEPHP_SHELL') && CAKEPHP_SHELL; // do not start session for shell commands
+        if (!$isShell) {
+            App::uses('AuthComponent', 'Controller/Component');
+            $authUser = AuthComponent::user();
+            if (!empty($authUser)) {
+                $user = $authUser;
+            }
+        }
+
+        $this->user['User'] = $user;
+    }
 }

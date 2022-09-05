@@ -1,40 +1,51 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property ObjectTemplate  $ObjectTemplate
+ */
 class ObjectTemplatesController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler', 'Session');
+    public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
-            'limit' => 60,
-            'order' => array(
-                    'Object.id' => 'desc'
-            ),
-            'contain' => array(
-                'Organisation' => array('fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'))
-            ),
-            'recursive' => -1
+        'limit' => 60,
+        'order' => array(
+            'Object.id' => 'desc'
+        ),
+        'contain' => array(
+            'Organisation' => array('fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'))
+        ),
+        'recursive' => -1
     );
 
-    public function objectMetaChoice($event_id) {
-        $metas = $this->ObjectTemplate->find('list', array(
-            'recursive' => -1,
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        if (in_array($this->request->action, ['objectMetaChoice', 'objectChoice'], true)) {
+            $this->Security->doNotGenerateToken = true;
+        }
+    }
+
+    public function objectMetaChoice($eventId)
+    {
+        session_abort();
+
+        $metas = $this->ObjectTemplate->find('column', array(
             'conditions' => array('ObjectTemplate.active' => 1),
-            'fields' => array('meta-category', 'meta-category'),
-            'group' => array('ObjectTemplate.meta-category'),
-            'order' => array('ObjectTemplate.meta-category asc')
+            'fields' => array('ObjectTemplate.meta-category'),
+            'order' => array('ObjectTemplate.meta-category asc'),
+            'unique' => true,
         ));
 
-        $items = array();
-        $items[] = array(
+        $items = [[
             'name' => __('All Objects'),
-            'value' => $this->baseurl . "/ObjectTemplates/objectChoice/" . h($event_id) . "/" . "0"
-        );
-        foreach($metas as $meta) {
+            'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/0"
+        ]];
+        foreach ($metas as $meta) {
             $items[] = array(
                 'name' => $meta,
-                'value' => $this->baseurl . "/ObjectTemplates/objectChoice/" . h($event_id) . "/" . h($meta)
+                'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/$meta",
             );
         }
 
@@ -47,7 +58,8 @@ class ObjectTemplatesController extends AppController
 
     public function objectChoice($event_id, $category=false)
     {
-        $this->ObjectTemplate->populateIfEmpty($this->Auth->user());
+        $user = $this->_closeSession();
+        $this->ObjectTemplate->populateIfEmpty($user);
         $conditions = array('ObjectTemplate.active' => 1);
         if ($category !== false && $category !== "0") {
             $conditions['meta-category'] = $category;
@@ -55,8 +67,7 @@ class ObjectTemplatesController extends AppController
         $templates_raw = $this->ObjectTemplate->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
-            'fields' => array('id', 'meta-category', 'name', 'description', 'org_id'),
-            'contain' => array('Organisation.name'),
+            'fields' => array('id', 'meta-category', 'name', 'description'),
             'order' => array('ObjectTemplate.name asc')
         ));
 
@@ -74,10 +85,9 @@ class ObjectTemplatesController extends AppController
             );
         }
 
-        $fun = 'redirectAddObject';
         $this->set('items', $items);
         $this->set('options', array(
-            'functionName' => $fun,
+            'functionName' => 'redirectAddObject',
             'multiple' => 0,
             'select_options' => array(
                 'additionalData' => array('event_id' => $event_id),
@@ -134,19 +144,20 @@ class ObjectTemplatesController extends AppController
         }
         $this->ObjectTemplate->id = $id;
         if (!$this->ObjectTemplate->exists()) {
-            throw new NotFoundException('Invalid ObjectTemplate');
+            throw new NotFoundException('Invalid Object Template');
         }
         if ($this->ObjectTemplate->delete()) {
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('ObjectTemplates', 'admin_delete', $id, $this->response->type());
             } else {
-                $this->Flash->success(__('ObjectTemplate deleted'));
+                $this->Flash->success(__('Object Template deleted'));
             }
-        }
-        if ($this->_isRest()) {
-            return $this->RestResponse->saveFailResponse('ObjectTemplates', 'admin_delete', $id, $this->ObjectTemplate->validationErrors, $this->response->type());
         } else {
-            $this->Flash->error('ObjectTemplate could not be deleted');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('ObjectTemplates', 'admin_delete', $id, $this->ObjectTemplate->validationErrors, $this->response->type());
+            } else {
+                $this->Flash->error('Object Template could not be deleted');
+            }
         }
         $this->redirect($this->referer());
     }
@@ -157,7 +168,7 @@ class ObjectTemplatesController extends AppController
             'conditions' => array('ObjectTemplateElement.object_template_id' => $id)
         ));
         $this->set('list', $elements);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/view_elements');
     }
 
@@ -292,7 +303,16 @@ class ObjectTemplatesController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This action is available via AJAX only.');
         }
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/getToggleField');
+    }
+
+    public function getRaw($uuidOrName)
+    {
+        $template = $this->ObjectTemplate->getRawFromDisk($uuidOrName);
+        if (empty($template)) {
+            throw new NotFoundException(__('Template not found'));
+        }
+        return $this->RestResponse->viewData($template, $this->response->type());
     }
 }

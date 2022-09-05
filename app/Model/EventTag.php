@@ -3,22 +3,21 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property Event $Event
+ * @property Tag $Tag
  */
 class EventTag extends AppModel
 {
-    public $actsAs = array('Containable');
+    public $actsAs = array('AuditLog', 'Containable');
 
     public $validate = array(
-        'event_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-        ),
-        'tag_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-        ),
+        'event_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
+        'tag_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
     );
 
     public $belongsTo = array(
@@ -30,9 +29,8 @@ class EventTag extends AppModel
     {
         parent::afterSave($created, $options);
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('tag');
+        if ($pubToZmq || $kafkaTopic) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('EventTag.id' => $this->id),
@@ -44,7 +42,7 @@ class EventTag extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->tag_save($tag, 'attached to event');
             }
-            if ($pubToKafka) {
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $tag, 'attached to event');
             }
@@ -54,9 +52,8 @@ class EventTag extends AppModel
     public function beforeDelete($cascade = true)
     {
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('tag');
+        if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->id)) {
                 $tag = $this->find('first', array(
                     'recursive' => -1,
@@ -69,7 +66,7 @@ class EventTag extends AppModel
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->tag_save($tag, 'detached from event');
                 }
-                if ($pubToKafka) {
+                if ($kafkaTopic) {
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $tag, 'detached from event');
                 }
@@ -85,25 +82,29 @@ class EventTag extends AppModel
     public function handleEventTag($event_id, $tag, &$nothingToChange = false)
     {
         if (empty($tag['deleted'])) {
-            $result = $this->attachTagToEvent($event_id, $tag['id'], $nothingToChange);
+            $result = $this->attachTagToEvent($event_id, $tag, $nothingToChange);
         } else {
             $result = $this->detachTagFromEvent($event_id, $tag['id'], $nothingToChange);
         }
         return $result;
     }
 
-    public function attachTagToEvent($event_id, $tag_id, &$nothingToChange = false)
+    /**
+     * @param int $event_id
+     * @param int $tagId
+     * @param bool $nothingToChange
+     * @return bool
+     * @throws Exception
+     */
+    public function attachTagToEvent($event_id, array $tag, &$nothingToChange = false)
     {
-        $existingAssociation = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'tag_id' => $tag_id,
-                'event_id' => $event_id
-            )
-        ));
-        if (empty($existingAssociation)) {
+        $existingAssociation = $this->hasAny([
+            'tag_id' => $tag['id'],
+            'event_id' => $event_id,
+        ]);
+        if (!$existingAssociation) {
             $this->create();
-            if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag_id))) {
+            if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag['id'], 'local' => !empty($tag['local'])))) {
                 return false;
             }
         } else {
@@ -112,17 +113,24 @@ class EventTag extends AppModel
         return true;
     }
 
+    /**
+     * @param int $event_id
+     * @param int $tag_id
+     * @param bool $nothingToChange
+     * @return bool
+     */
     public function detachTagFromEvent($event_id, $tag_id, &$nothingToChange = false)
     {
         $existingAssociation = $this->find('first', array(
             'recursive' => -1,
+            'fields' => ['id'],
             'conditions' => array(
                 'tag_id' => $tag_id,
                 'event_id' => $event_id
             )
         ));
 
-        if (!empty($existingAssociation)) {
+        if ($existingAssociation) {
             $result = $this->delete($existingAssociation['EventTag']['id']);
             if ($result) {
                 return true;
@@ -133,23 +141,65 @@ class EventTag extends AppModel
         return false;
     }
 
+    /**
+     * Find all of the event Ids that belong to the accepted tags and the rejected tags
+     * @param array $accept
+     * @param array $reject
+     * @return array[]
+     */
+    public function fetchEventTagIds(array $accept = array(), array $reject = array())
+    {
+        $acceptIds = array();
+        $rejectIds = array();
+        if (!empty($accept)) {
+            $acceptIds = $this->findEventIdsByTagNames($accept);
+            if (empty($acceptIds)) {
+                $acceptIds = [-1];
+            }
+        }
+        if (!empty($reject)) {
+            $rejectIds = $this->findEventIdsByTagNames($reject);
+        }
+        return array($acceptIds, $rejectIds);
+    }
+
+    /**
+     * @param array $tagIdsOrNames
+     * @return array|int|null
+     */
+    private function findEventIdsByTagNames(array $tagIdsOrNames)
+    {
+        $conditions = [];
+        foreach ($tagIdsOrNames as $tagIdOrName) {
+            if (is_numeric($tagIdOrName)) {
+                $conditions[] = array('Tag.id' => $tagIdOrName);
+            } else {
+                $conditions[] = array('LOWER(Tag.name)' => mb_strtolower($tagIdOrName));
+            }
+        }
+        return $this->find('column', array(
+            'recursive' => -1,
+            'contain' => 'Tag',
+            'conditions' => ['OR' => $conditions],
+            'fields' => ['EventTag.event_id'],
+        ));
+    }
+
     public function getSortedTagList($context = false)
     {
-        $conditions = array();
         $tag_counts = $this->find('all', array(
-                'recursive' => -1,
-                'fields' => array('tag_id', 'count(*)'),
-                'group' => array('tag_id'),
-                'conditions' => $conditions,
-                'contain' => array('Tag.name')
+            'recursive' => -1,
+            'fields' => array('tag_id', 'count(*)'),
+            'group' => array('tag_id'),
+            'contain' => array('Tag.name')
         ));
         $temp = array();
         $tags = array();
         foreach ($tag_counts as $tag_count) {
             $temp[$tag_count['Tag']['name']] = array(
-                    'tag_id' => $tag_count['Tag']['id'],
-                    'eventCount' => $tag_count[0]['count(*)'],
-                    'name' => $tag_count['Tag']['name'],
+                'tag_id' => $tag_count['Tag']['id'],
+                'eventCount' => $tag_count[0]['count(*)'],
+                'name' => $tag_count['Tag']['name'],
             );
             $tags[$tag_count['Tag']['name']] = $tag_count[0]['count(*)'];
         }
@@ -161,29 +211,38 @@ class EventTag extends AppModel
     }
 
     /**
-     * Count number of event that contains given tag for given user. Tag must contains 'EventTag'.
-     *
-     * @param array $tag
+     * @param int $tagId
      * @param array $user
      * @return int
      */
-    public function countForTag(array $tag, array $user)
+    public function countForTag($tagId, array $user)
     {
-        $eventIds = [];
-        foreach ($tag['EventTag'] as $eventTag) {
-            $eventIds[] = $eventTag['event_id'];
-        }
+        $count = $this->countForTags([$tagId], $user);
+        return isset($count[$tagId]) ? (int)$count[$tagId] : 0;
+    }
 
-        if (empty($eventIds)) {
-            return 0;
+    /**
+     * @param array $tagIds
+     * @param array $user
+     * @return array Key is tag ID, value is event count that user can see
+     */
+    public function countForTags(array $tagIds, array $user)
+    {
+        if (empty($tagIds)) {
+            return [];
         }
-
         $conditions = $this->Event->createEventConditions($user);
-        $conditions['Event.id'] = $eventIds;
-        return $this->Event->find('count', array(
+        $conditions['AND']['EventTag.tag_id'] = $tagIds;
+        $this->virtualFields['event_count'] = 'COUNT(EventTag.id)';
+        $counts = $this->find('list', [
             'recursive' => -1,
+            'contain' => ['Event'],
+            'fields' => ['EventTag.tag_id', 'event_count'],
             'conditions' => $conditions,
-        ));
+            'group' => ['EventTag.tag_id'],
+        ]);
+        unset($this->virtualFields['event_count']);
+        return $counts;
     }
 
     public function getTagScores($eventId=0, $allowedTags=array(), $propagateToAttribute=false)

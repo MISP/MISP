@@ -17,6 +17,18 @@ msgstr ""
 msgid "Could not describe table for %s"
 msgstr ""
 
+#: Plugin/LinOTPAuth/Controller/Component/Auth/LinOTPAuthenticate.php:128
+msgid "LinOTP: Missing \"baseUrl\" configuration - access denied!"
+msgstr ""
+
+#: Plugin/LinOTPAuth/Controller/Component/Auth/LinOTPAuthenticate.php:147
+msgid "Missing OTP Token."
+msgstr ""
+
+#: Plugin/LinOTPAuth/Controller/Component/Auth/LinOTPAuthenticate.php:197
+msgid "User could not be authenticated by LinOTP."
+msgstr ""
+
 #: View/Layouts/error.ctp:19
 msgid "CakePHP: the rapid development php framework"
 msgstr ""

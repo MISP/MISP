@@ -7,7 +7,9 @@
             2 => 'success',
             3 => 'info'
         );
-        if ($setting['type'] == 'boolean') $setting['value'] = ($setting['value'] === true ? 'true' : 'false');
+        if ($setting['type'] === 'boolean') {
+            $setting['value'] = $setting['value'] === true ? 'true' : 'false';
+        }
         if (isset($setting['options'])) {
             $setting['value'] = empty($setting['options'][$setting['value']]) ? null : $setting['options'][$setting['value']];
         }
@@ -63,7 +65,7 @@
                 'html' => sprintf(
                     '%s%s',
                     !empty($setting['cli_only']) ? sprintf('<span class="bold">[<span class="red">%s</span>]</span> ', __('CLI only')) : '',
-                    h($setting['description'])
+                    $setting['description']
                 ),
                 'class' => 'live_filter_target'
             ),
@@ -100,4 +102,4 @@
             $columns
         );
     }
-?>
+

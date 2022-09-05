@@ -1,3 +1,4 @@
+<div class="misp-error-container">
 <?php echo __('Missing Database Connection');?>
 <h2><?php echo $name; ?></h2>
 <p class="error">
@@ -8,3 +9,5 @@
 if (Configure::read('debug') > 0 ):
     echo $this->element('exception_stack_trace');
 endif;
+?>
+</div>

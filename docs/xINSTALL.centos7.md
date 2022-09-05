@@ -13,11 +13,11 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 
     ```bash
     # Please check the installer options first to make the best choice for your install
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
     bash /tmp/INSTALL.sh
 
     # This will install MISP Core
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
     bash /tmp/INSTALL.sh -c
     ```
     **The above does NOT work yet**
@@ -153,10 +153,12 @@ ${SUDO_WWW} git clone --branch master --single-branch https://github.com/lief-pr
 ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git
 
 cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
+$SUDO_WWW git config core.filemode false
 # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
 cd ${PATH_TO_MISP}/app/files/scripts/python-stix
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install maec
@@ -174,6 +176,7 @@ sudo yum install devtoolset-7 cmake3 -y
 
 # TODO: Fix static path with PATH_TO_MISP
 cd ${PATH_TO_MISP}/app/files/scripts/lief
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} mkdir build
 cd build
 ${SUDO_WWW} scl enable devtoolset-7 'bash -c "cmake3 \
@@ -194,10 +197,11 @@ ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install lief
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git
 
 cd ${PATH_TO_MISP}/app/files/scripts/mixbox
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-# install STIX2.0 library to support STIX 2.0 export:
-cd ${PATH_TO_MISP}/cti-python-stix2
+# Install misp-stix
+cd ${PATH_TO_MISP}/app/files/scripts/misp-stix
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
@@ -208,8 +212,8 @@ ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 # BROKEN: This needs to be tested on RHEL/CentOS
 ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
 cd /tmp
-[[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
-[[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+[[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
+[[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
 sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
 cd gtcaca
 $SUDO_CMD mkdir -p build
@@ -247,7 +251,7 @@ cd ${PATH_TO_MISP}/app
 #${SUDO_WWW} $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 #${SUDO_WWW} $RUN_PHP "php composer-setup.php"
 #${SUDO_WWW} $RUN_PHP -- php -r "unlink('composer-setup.php');"
-${SUDO_WWW} $RUN_PHP "php composer.phar install"
+${SUDO_WWW} $RUN_PHP "php composer.phar install --no-dev"
 
 sudo yum install php-redis -y
 sudo systemctl restart rh-php72-php-fpm.service
@@ -264,6 +268,8 @@ for key in upload_max_filesize post_max_size max_execution_time max_input_time m
 do
     sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
 done
+sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 sudo systemctl restart rh-php72-php-fpm.service
 
 # To use the scheduler worker for scheduled tasks, do the following:
@@ -573,6 +579,7 @@ sudo chown root:users /usr/local/src
 cd /usr/local/src/
 ${SUDO_WWW} git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
+$SUDO_WWW git config core.filemode false
 # pip install
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
@@ -590,7 +597,9 @@ ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 sudo sed -i -e '$i \sudo -u apache ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
 ```
 
-{!generic/misp-dashboard-centos.md!}
+{!generic/misp-dashboard-rhel.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/MISP_CAKE_init.md!}
 

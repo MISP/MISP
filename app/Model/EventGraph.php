@@ -30,7 +30,7 @@ class EventGraph extends AppModel
 
     public $validate = array(
         'network_json' => array(
-            'rule' => array('isValidJson'),
+            'rule' => 'valueIsJson',
             'message' => 'The provided eventGraph is not a valid json format',
             'required' => true,
         ),
@@ -44,13 +44,17 @@ class EventGraph extends AppModel
         return true;
     }
 
-    public function isValidJson($fields)
+    public function getPictureData($eventGraph)
     {
-        $text = $fields['network_json'];
-        $check = json_decode($text);
-        if ($check === null) {
-            return false;
-        }
-        return true;
+        $b64 = str_replace('data:image/png;base64,', '', $eventGraph['EventGraph']['preview_img']);
+        $imageDecoded = base64_decode($b64);
+        $source = imagecreatefromstring($imageDecoded);
+        imagesavealpha($source, true);
+        ob_start();
+        imagepng($source, null, 9);
+        $imageData = ob_get_contents();
+        ob_end_clean();
+        imagedestroy($source);
+        return $imageData;
     }
 }

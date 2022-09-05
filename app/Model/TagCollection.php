@@ -9,6 +9,7 @@ class TagCollection extends AppModel
     public $displayField = 'name';
 
     public $actsAs = array(
+        'AuditLog',
             'Trim',
             'SysLogLogable.SysLogLogable' => array(
                     'roleModel' => 'Role',
@@ -42,7 +43,13 @@ class TagCollection extends AppModel
                     'rule' => 'isUnique',
                     'message' => 'A similar name already exists.',
             ),
-        )
+        ),
+        'uuid' => array(
+            'uuid' => array(
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ),
+        ),
     );
 
     public function beforeValidate($options = array())
@@ -51,11 +58,13 @@ class TagCollection extends AppModel
         // generate UUID if it doesn't exist
         if (empty($this->data['TagCollection']['uuid'])) {
             $this->data['TagCollection']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['TagCollection']['uuid'] = strtolower($this->data['TagCollection']['uuid']);
         }
         return true;
     }
 
-    public function fetchTagCollection($user, $params = array())
+    public function fetchTagCollection(array $user, $params = array())
     {
         if (empty($user['Role']['perm_site_admin'])) {
             $params['conditions']['AND'][] = array(
@@ -96,8 +105,17 @@ class TagCollection extends AppModel
         return true;
     }
 
-    public function cullBlockedTags($user, $tagCollections)
+    /**
+     * @param array $user
+     * @param array $tagCollections
+     * @return array|
+     */
+    public function cullBlockedTags(array $user, array $tagCollections)
     {
+        if (empty($tagCollections)) {
+            return [];
+        }
+
         $single = false;
         if (!isset($tagCollections[0])) {
             $tagCollections = array(0 => $tagCollections);

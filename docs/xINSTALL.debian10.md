@@ -147,15 +147,18 @@ ${SUDO_WWW} git clone https://github.com/MAECProject/python-maec.git
 # install mixbox to accommodate the new STIX dependencies:
 ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git
 cd ${PATH_TO_MISP}/app/files/scripts/mixbox
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-stix
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-maec
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-# install STIX2.0 library to support STIX 2.0 export:
-cd ${PATH_TO_MISP}/cti-python-stix2
+cd ${PATH_TO_MISP}/app/files/scripts/misp-stix
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
@@ -164,8 +167,8 @@ ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 # FIXME: Remove libfaup etc once the egg has the library baked-in
 sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
 cd /tmp
-[[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
-[[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+[[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
+[[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
 sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
 cd gtcaca
 $SUDO_CMD mkdir -p build
@@ -214,7 +217,7 @@ sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.com
 #${SUDO_WWW} php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 #${SUDO_WWW} php composer-setup.php
 #${SUDO_WWW} php -r "unlink('composer-setup.php');"
-${SUDO_WWW} php composer.phar install
+${SUDO_WWW} php composer.phar install --no-dev
 # The following is potentially not needed, but just here in case of Keyboard/Chair failures
 ${SUDO_WWW} php composer.phar update
 
@@ -341,6 +344,8 @@ for key in upload_max_filesize post_max_size max_execution_time max_input_time m
 do
     sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
 done
+sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 
 # Restart apache
 sudo systemctl restart apache2
@@ -437,6 +442,7 @@ then
     sudo chmod u+x /etc/rc.local
 fi
 ```
+
 {!generic/MISP_CAKE_init.md!}
 
 ```bash
@@ -447,6 +453,8 @@ sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
 ```
 
 {!generic/misp-modules-debian.md!}
+
+{!generic/misp-modules-cake.md!}
 
 ```bash
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
@@ -490,6 +498,8 @@ sudo service apache2 restart
 ```
 
 {!generic/misp-dashboard-debian.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/viper-debian.md!}
 

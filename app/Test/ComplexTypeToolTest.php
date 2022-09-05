@@ -94,6 +94,15 @@ EOT;
         $this->assertEquals('ip-dst', $results[0]['default_type']);
     }
 
+    public function testCheckFreeTextIpv4Bracket(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('we also saw an IP address (8.8.8.8).');
+        $this->assertCount(1, $results);
+        $this->assertEquals('8.8.8.8', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+    }
+
     public function testCheckFreeTextIpv4WithPort(): void
     {
         $complexTypeTool = new ComplexTypeTool();
@@ -402,6 +411,27 @@ EOT;
         $this->assertEquals('btc', $results[0]['default_type']);
     }
 
+    public function testCheckFreeTextBtcBech32(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+
+        $validAddresses = [
+            'BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4',
+            'tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7',
+            'bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7k7grplx',
+            'BC1SW50QA3JX3S',
+            'bc1zw508d6qejxtdg4y5r3zarvaryvg6kdaj',
+            'tb1qqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesrxh6hy',
+        ];
+
+        foreach ($validAddresses as $validAddress) {
+            $results = $complexTypeTool->checkFreeText($validAddress);
+            $this->assertCount(1, $results);
+            $this->assertEquals($validAddress, $results[0]['value']);
+            $this->assertEquals('btc', $results[0]['default_type']);
+        }
+    }
+
     public function testCheckFreeTextSsdeep(): void
     {
         $complexTypeTool = new ComplexTypeTool();
@@ -415,6 +445,15 @@ EOT;
     {
         $complexTypeTool = new ComplexTypeTool();
         $results = $complexTypeTool->checkFreeText('CVE-2019-16202');
+        $this->assertCount(1, $results);
+        $this->assertEquals('CVE-2019-16202', $results[0]['value']);
+        $this->assertEquals('vulnerability', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextCveLowercase(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('cve-2019-16202');
         $this->assertCount(1, $results);
         $this->assertEquals('CVE-2019-16202', $results[0]['value']);
         $this->assertEquals('vulnerability', $results[0]['default_type']);
@@ -435,6 +474,15 @@ EOT;
         $results = $complexTypeTool->checkFreeText('9e107d9d372bb6826bd81d3542a419d6');
         $this->assertCount(1, $results);
         $this->assertEquals('9e107d9d372bb6826bd81d3542a419d6', $results[0]['value']);
+        $this->assertEquals('md5', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextMd5Uppercase(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('9E107D9D372BB6826BD81D3542A419D6');
+        $this->assertCount(1, $results);
+        $this->assertEquals('9E107D9D372BB6826BD81D3542A419D6', $results[0]['value']);
         $this->assertEquals('md5', $results[0]['default_type']);
     }
 
@@ -479,6 +527,24 @@ EOT;
         }
     }
 
+    public function testCheckFreeTextNonBreakableSpace(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText("127.0.0.1\xc2\xa0127.0.0.2");
+        $this->assertCount(2, $results);
+        $this->assertEquals('127.0.0.1', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextQuoted(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('="127.0.0.1",="127.0.0.2","","1"');
+        $this->assertCount(2, $results);
+        $this->assertEquals('127.0.0.1', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+    }
+
     public function testCheckFreeTextRemoveDuplicates(): void
     {
         $complexTypeTool = new ComplexTypeTool();
@@ -498,8 +564,16 @@ EOT;
     public function testRefangValueDot(): void
     {
         $complexTypeTool = new ComplexTypeTool();
-        foreach (['127.0.0.1', '127[.]0.0.1', '127[.]0[.]0[.]1', '127[dot]0[dot]0[dot]1', '127(dot)0(dot)0(dot)1', '127\.0.0.1'] as $test) {
+        foreach (['127.0.0.1', '127[.]0.0.1', '127[.]0[.]0[.]1', '127[dot]0[dot]0[dot]1', '127(dot)0(dot)0(dot)1'] as $test) {
             $this->assertEquals('127.0.0.1', $complexTypeTool->refangValue($test, 'ip-src'));
         }
+    }
+
+    // see #7214
+    public function testRefangKeepBackslashes(): void
+    {
+        $text = 'http://googlechromeupdater.twilightparadox.com/html?DVXNSTHORF=fd6f240590734406be3bd35ca3622ea0;GRIBOOZ0LN=a3bf23855b0b40dda08f709fabb60d32;\..\..\..\./mshtml,RunHTMLApplication';
+        $complexTypeTool = new ComplexTypeTool();
+        $this->assertEquals($text, $complexTypeTool->refangValue($text, 'url'));
     }
 }

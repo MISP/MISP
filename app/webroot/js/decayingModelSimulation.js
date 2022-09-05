@@ -548,11 +548,11 @@
                 if (tag === false) {
                     return ['', '', '', this.base_score.toFixed(2)];
                 }
-                var namespace = tag.Tag.name.split('=')[0];
+                var basename = this._extractTagPart(tag.Tag.name);
 
-                if (this.base_score_config.taxonomy_effective_ratios[namespace] !== undefined) {
-                    var html1 = this.base_score_config.taxonomy_effective_ratios[namespace].toFixed(2);
-                    var html4 = (parseFloat(tag.Tag.numerical_value) * this.base_score_config.taxonomy_effective_ratios[namespace]).toFixed(2);
+                if (this.base_score_config.taxonomy_effective_ratios[basename] !== undefined) {
+                    var html1 = this.base_score_config.taxonomy_effective_ratios[basename].toFixed(2);
+                    var html4 = (parseFloat(tag.Tag.numerical_value) * this.base_score_config.taxonomy_effective_ratios[basename]).toFixed(2);
                 } else {
                     var html1 = '0';
                     var html4 = '0';
@@ -639,6 +639,20 @@
                 }
                 this.$container;
             },
+
+            _extractTagPart: function(tag) {
+                var reTag = /^(?<namespace>[^:="]+):(?<predicate>[^:="]+)(="(?<value>[^:="]+)")?$/
+                var result = tag.match(reTag);
+                var tagBaseName = '';
+                if (result !== null && result.groups.value !== undefined) {
+                    tagBaseName = result.groups.namespace + ':' + result.groups.predicate;
+                } else if (result !== null) {
+                    tagBaseName = result.groups.namespace;
+                } else {
+                    tagBaseName = tag
+                }
+                return tagBaseName;
+            }
         }
 
         $.BasescoreComputationTable = BasescoreComputationTable;

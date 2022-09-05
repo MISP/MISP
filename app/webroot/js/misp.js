@@ -12,6 +12,23 @@ if (!String.prototype.startsWith) {
   };
 }
 
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function copyToClipboard(element) {
+    var $temp = $("<input>");
+    $("body").append($temp);
+    $temp.val($(element).val()).select();
+    document.execCommand("copy");
+    $temp.remove();
+}
+
 function stringToRGB(str){
     var hash = 0;
     if (str.length == 0) return hash;
@@ -35,7 +52,9 @@ function rgb2hex(rgb) {
 }
 
 function xhrFailCallback(xhr) {
-    if (xhr.status === 403) {
+    if (xhr.status === 401) {
+        showMessage('fail', 'Unauthorized. Please reload page to log again.');
+    } else if (xhr.status === 403 || xhr.status === 405) {
         showMessage('fail', 'Not allowed.');
     } else if (xhr.status === 404) {
         showMessage('fail', 'Resource not found.');
@@ -44,36 +63,44 @@ function xhrFailCallback(xhr) {
     }
 }
 
+function xhr(options) {
+    options.beforeSend = options.beforeSend || function() {
+        $(".loading").show();
+    };
+    options.complete = options.complete || function() {
+        $(".loading").hide();
+    }
+    options.error = options.error || xhrFailCallback;
+    options.cache = options.cache || false;
+
+    if (!options.url.startsWith('http://') && !options.url.startsWith('https://')) {
+        options.url = baseurl + options.url;
+    }
+
+    return $.ajax(options);
+}
+
 function deleteObject(type, action, id) {
     var url = baseurl + "/" + type + "/" + action + "/" + id;
-    $.get(url, function(data) {
-        openPopup("#confirmation_box");
-        $("#confirmation_box").html(data);
-    }).fail(xhrFailCallback)
+    $.get(url, openConfirmation).fail(xhrFailCallback)
 }
 
 function quickDeleteSighting(id, rawId, context) {
     url = baseurl + "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
-    $.get(url, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback)
+    $.get(url, openConfirmation).fail(xhrFailCallback)
 }
 
-function fetchAddSightingForm(type, attribute_id, page, onvalue) {
+function fetchAddSightingForm(type, attribute_id, onvalue) {
     var url = baseurl + "/sightings/quickAdd/" + attribute_id + "/" + type;
     if (onvalue) {
         url = url + "/1";
     } else {
         url = url + "/0";
     }
-    $.get(url, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    });
+    $.get(url, openConfirmation).fail(xhrFailCallback);
 }
 
-function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placement) {
+function flexibleAddSighting(clicked, type, attribute_id, placement) {
     var $clicked = $(clicked);
     var hoverbroken = false;
     $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
@@ -83,24 +110,21 @@ function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placem
         $clicked.off('mouseleave.temp');
         if ($clicked.is(":hover") && !hoverbroken) {
             var html = '<div>'
-                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">This attribute</button>'
-                + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">Global value</button>'
+                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\')">This attribute</button>'
+                + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', true)">Global value</button>'
                 + '</div>';
             openPopover(clicked, html, true, placement);
         }
     }, 1000);
 }
 
-function publishPopup(id, type) {
+function publishPopup(id, type, scope) {
+    scope = scope === undefined ? 'events' : scope;
     var action = "alert";
-    if (type == "publish") action = "publish";
-    if (type == "unpublish") action = "unpublish";
-    if (type == "sighting") action = "publishSightings";
-    var destination = 'attributes';
-    $.get(baseurl + "/events/" + action + "/" + id, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    });
+    if (type === "publish") action = "publish";
+    if (type === "unpublish") action = "unpublish";
+    if (type === "sighting") action = "publishSightings";
+    $.get(baseurl + "/" + scope + "/" + action + "/" + id, openConfirmation).fail(xhrFailCallback);
 }
 
 function delegatePopup(id) {
@@ -108,41 +132,55 @@ function delegatePopup(id) {
 }
 
 function genericPopup(url, popupTarget, callback) {
+    var $popupTarget = $(popupTarget);
     $.get(url, function(data) {
-        $(popupTarget).html(data);
-        $(popupTarget).fadeIn();
-        left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
-        $(popupTarget).css({'left': left + 'px'});
+        $popupTarget.html(data);
+        $popupTarget.fadeIn();
+        var left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
+        $popupTarget.css({'left': left + 'px'});
         $("#gray_out").fadeIn();
         if (callback !== undefined) {
             callback();
         }
-    });
+    }).fail(xhrFailCallback)
 }
 
 function screenshotPopup(url, title) {
     if (!url.startsWith('data:image/')) {
         url = url.slice(0, -1);
     }
-    popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
     url = $('<div>').text(url).html();
-    title = $('<div>').text(title).html();
-    popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" id="screenshot-image" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();"/>';
-    popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+
+    var img = document.createElement('img');
+    img.classList.add('hidden', 'screenshot_box-content');
+    img.src = url;
+    img.title = title;
+    img.alt = title;
+    img.onload = function() {
+        $(this).show();
+        $(this).parent().parent().find('.fa-spinner').remove();
+    }
+    img.onerror = function() {
+        showMessage('fail', 'Something went wrong - could not load attachment');
+        closeScreenshot();
+    }
+
+    var popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
+    popupHtml += '<div class="screenshot-img-box"></div>';
+    popupHtml += '<div class="close-icon useCursorPointer" onclick="closeScreenshot()"></div>';
     if (!url.startsWith('data:image/')) {
-        popupHtml += '<a class="close-icon useCursorPointer fa fa-expand" style="right: 20px; background: black; color: white; text-decoration: none;" target="_blank" href="' + url + '" ></a>';
+        popupHtml += '<a class="close-icon useCursorPointer fa fa-expand" style="right: 20px; background: black; color: white; text-decoration: none;" target="_blank" href="' + url + '"></a>';
     }
     popupHtml += '<div style="height: 20px;"></div>'; // see bottom of image for large one
-    $('#screenshot_box').html(popupHtml);
-    $('#screenshot_box').css({
+
+    var $screenshotBox = $("<div id=\"screenshot_box\"></div>").appendTo("body");
+    $screenshotBox.html(popupHtml);
+    $screenshotBox.css({
         display: 'block',
         top: (document.documentElement.scrollTop + 100) + 'px'
     });
+    $screenshotBox.find(".screenshot-img-box").append(img);
     $("#gray_out").fadeIn();
-}
-
-function submitPublish(id, type) {
-    $("#PromptForm").submit();
 }
 
 function editTemplateElement(type, id) {
@@ -153,8 +191,8 @@ function cancelPrompt(isolated) {
     if (isolated == undefined) {
         $("#gray_out").fadeOut();
     }
-    $("#confirmation_box").fadeOut();
-    $("#confirmation_box").empty();
+    $("#popover_form").fadeOut();
+    $("#confirmation_box").fadeOut().empty();
     $('.have-a-popover').popover('destroy');
 }
 
@@ -162,12 +200,9 @@ function submitDeletion(context_id, action, type, id) {
     var context = 'event';
     if (type == 'template_elements') context = 'template';
     var formData = $('#PromptForm').serialize();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
-        success:function (data, textStatus) {
+        success:function (data) {
             if (type == 'eventGraph') {
                 showMessage('success', 'Network has been deleted');
                 reset_graph_history();
@@ -181,9 +216,8 @@ function submitDeletion(context_id, action, type, id) {
             $("#confirmation_box").fadeOut();
             $("#gray_out").fadeOut();
         },
-        type:"post",
-        cache: false,
-        url: baseurl + "/" + type + "/" + action + "/" + id,
+        type: "post",
+        url: "/" + type + "/" + action + "/" + id,
     });
 }
 
@@ -195,10 +229,7 @@ function removeSighting(caller) {
         context = 'event';
     }
     var formData = $('#PromptForm').serialize();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
         success:function (data, textStatus) {
             handleGenericAjaxResponse(data);
@@ -206,15 +237,14 @@ function removeSighting(caller) {
             updateIndex(id, 'event');
             $.get(baseurl + "/sightings/listSightings/" + rawid + "/" + context + org, function(data) {
                 $("#sightingsData").html(data);
-            });
+            }).fail(xhrFailCallback);
         },
         complete:function() {
             $(".loading").hide();
             $("#confirmation_box").fadeOut();
         },
         type:"post",
-        cache: false,
-        url: baseurl + "/sightings/quickDelete/" + id + "/" + rawid + "/" + context,
+        url: "/sightings/quickDelete/" + id + "/" + rawid + "/" + context,
     });
 }
 
@@ -222,51 +252,62 @@ function toggleSetting(e, setting, id) {
     e.preventDefault();
     e.stopPropagation();
     switch (setting) {
-    case 'warninglist_enable':
-        formID = '#WarninglistIndexForm';
-        dataDiv = '#WarninglistData';
-        replacementForm = baseurl + '/warninglists/getToggleField/';
-        searchString = 'enabled';
-        break;
-    case 'favourite_tag':
-        formID = '#FavouriteTagIndexForm';
-        dataDiv = '#FavouriteTagData';
-        replacementForm = baseurl + '/favourite_tags/getToggleField/';
-        searchString = 'Adding';
-        break;
-    case 'activate_object_template':
-        formID = '#ObjectTemplateIndexForm';
-        dataDiv = '#ObjectTemplateData';
-        replacementForm = baseurl + '/ObjectTemplates/getToggleField/';
-        searchString = 'activated';
-        break;
-    case 'noticelist_enable':
-        formID = '#NoticelistIndexForm';
-        dataDiv = '#NoticelistData';
-        replacementForm = baseurl + '/noticelists/getToggleField/';
-        searchString = 'enabled';
-        break;
+        case 'warninglist_enable':
+            formID = '#WarninglistIndexForm';
+            dataDiv = '#WarninglistData';
+            replacementForm = baseurl + '/warninglists/getToggleField/';
+            searchString = 'enabled';
+            var successCallback = function(setting) {
+                var icon = $(e.target).closest('tr').find('[data-path="Warninglist.enabled"] .fa')
+                if (setting) {
+                    icon.removeClass('fa-times').addClass('fa-check')
+                    $(e.target).removeClass('fa-play').addClass('fa-stop')
+                } else {
+                    icon.removeClass('fa-check').addClass('fa-times')
+                    $(e.target).removeClass('fa-stop').addClass('fa-play')
+                }
+            }
+            break;
+        case 'favourite_tag':
+            formID = '#FavouriteTagIndexForm';
+            dataDiv = '#FavouriteTagData';
+            replacementForm = baseurl + '/favourite_tags/getToggleField/';
+            searchString = 'Adding';
+            break;
+        case 'activate_object_template':
+            formID = '#ObjectTemplateIndexForm';
+            dataDiv = '#ObjectTemplateData';
+            replacementForm = baseurl + '/ObjectTemplates/getToggleField/';
+            searchString = 'activated';
+            break;
+        case 'noticelist_enable':
+            formID = '#NoticelistIndexForm';
+            dataDiv = '#NoticelistData';
+            replacementForm = baseurl + '/noticelists/getToggleField/';
+            searchString = 'enabled';
+            break;
     }
     $(dataDiv).val(id);
     var formData = $(formID).serialize();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
-        success:function (data, textStatus) {
+        success:function (data) {
             var result = data;
             if (result.success) {
                 var setting = false;
                 if (result.success.indexOf(searchString) > -1) setting = true;
-                $('#checkBox_' + id).prop('checked', setting);
+                if (typeof successCallback === 'function') {
+                    successCallback(setting)
+                } else {
+                    $('#' + e.target.id).prop('checked', setting);
+                }
             }
             handleGenericAjaxResponse(data);
         },
         complete:function() {
-            $.get(baseurl + replacementForm, function(data) {
+            $.get(replacementForm, function(data) {
                 $('#hiddenFormDiv').html(data);
-            });
+            }).fail(xhrFailCallback);
             $(".loading").hide();
             $("#confirmation_box").fadeOut();
             $("#gray_out").fadeOut();
@@ -274,28 +315,20 @@ function toggleSetting(e, setting, id) {
         error:function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
         },
-        type:"post",
-        cache: false,
+        type: "post",
         url: $(formID).attr('action'),
     });
 }
 
 function initiatePasswordReset(id) {
-    $.get(baseurl + "/users/initiatePasswordReset/" + id, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    });
+    $.get(baseurl + "/users/initiatePasswordReset/" + id, openConfirmation).fail(xhrFailCallback)
 }
 
 function submitPasswordReset(id) {
     var formData = $('#PromptForm').serialize();
-    var url = baseurl + "/users/initiatePasswordReset/" + id;
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
-        success:function (data, textStatus) {
+        success: function (data) {
             handleGenericAjaxResponse(data);
         },
         complete:function() {
@@ -303,9 +336,8 @@ function submitPasswordReset(id) {
             $("#confirmation_box").fadeOut();
             $("#gray_out").fadeOut();
         },
-        type:"post",
-        cache: false,
-        url:url,
+        type: "post",
+        url: "/users/initiatePasswordReset/" + id,
     });
 }
 
@@ -318,32 +350,24 @@ function submitMessageForm(url, form, target) {
 }
 
 function submitGenericForm(url, form, target) {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: $('#' + form).serialize(),
         success:function (data, textStatus) {
             $('#top').html(data);
             showMessage("success", "Message added.");
         },
-        complete:function() {
-            $(".loading").hide();
-        },
-        error: xhrFailCallback,
-        type:"post",
-        cache: false,
-        url:url,
+        type: "post",
+        url: url,
     });
 }
 
-function acceptObject(type, id, event) {
+function acceptObject(type, id) {
     var name = '#ShadowAttribute_' + id + '_accept';
     var formData = $(name).serialize();
     $.ajax({
         data: formData,
-        success: function (data, textStatus) {
-            updateIndex(event, 'event');
+        success: function (data) {
+            updateIndex(null, 'event');
             eventUnpublish();
             handleGenericAjaxResponse(data);
         },
@@ -358,12 +382,9 @@ function toggleCorrelation(id, skip_reload) {
     if (typeof skip_reload === "undefined") {
         skip_reload = false;
     }
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: $('#PromptForm').serialize(),
-        success:function (data, textStatus) {
+        success:function (data) {
             handleGenericAjaxResponse(data, skip_reload);
             $("#correlation_toggle_" + id).prop('checked', !$("#correlation_toggle_" + id).is(':checked'));
         },
@@ -373,8 +394,7 @@ function toggleCorrelation(id, skip_reload) {
             $("#gray_out").fadeOut();
         },
         type:"post",
-        cache: false,
-        url: baseurl + '/attributes/toggleCorrelation/' + id,
+        url: '/attributes/toggleCorrelation/' + id,
     });
 }
 
@@ -382,10 +402,7 @@ function toggleToIDS(id, skip_reload) {
     if (typeof skip_reload === "undefined") {
         skip_reload = false;
     }
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: $('#PromptForm').serialize(),
         success:function (data, textStatus) {
             handleGenericAjaxResponse(data, skip_reload);
@@ -397,8 +414,7 @@ function toggleToIDS(id, skip_reload) {
             $("#gray_out").fadeOut();
         },
         type:"post",
-        cache: false,
-        url: baseurl + '/attributes/editField/' + id ,
+        url: '/attributes/editField/' + id ,
     });
 }
 
@@ -409,29 +425,22 @@ function eventUnpublish() {
     $('.notPublished').show();
 }
 
-function updateIndex(id, context, newPage) {
-    if (typeof newPage !== 'undefined') page = newPage;
+function updateIndex(id, context) {
     var url, div;
-    if (context == 'event') {
+    if (context === 'event') {
         if (typeof currentUri == 'undefined') {
             location.reload();
             return true;
         }
         url = currentUri;
         div = "#attributes_div";
-    }
-    if (context == 'template') {
-        url = baseurl + "/template_elements/index/" + id;
+    } else if (context === 'template') {
+        url = "/template_elements/index/" + id;
         div = "#templateElements";
     }
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
+    xhr({
+        dataType: "html",
+        success:function (data) {
             $(div).html(data);
             if (typeof genericPopupCallback !== "undefined") {
                 genericPopupCallback("success");
@@ -448,125 +457,86 @@ function updateIndex(id, context, newPage) {
     });
 }
 
-function updateAttributeFieldOnSuccess(name, type, id, field, event) {
+function updateFieldOnSuccess($td, type, id, field) {
+    var objectType = type === 'Object' ? 'objects' : 'attributes';
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            if (field != 'timestamp') {
+        beforeSend: function () {
+            if (field !== 'timestamp') {
                 $(".loading").show();
             }
         },
         dataType:"html",
         cache: false,
-        success:function (data, textStatus) {
-            if (field != 'timestamp') {
+        success: function (data) {
+            if (field !== 'timestamp') {
                 $(".loading").hide();
-                $(name + '_solid').html(data);
-                $(name + '_placeholder').empty();
-                $(name + '_solid').show();
+                $td.find('.inline-field-placeholder').remove();
+                $td.find('.inline-field-solid').html(data).show();
             } else {
-                $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
+                $td.parent().find('td.timestamp').html(data);
             }
+            popoverStartup(); // reactive popovers
         },
-        url: baseurl + "/attributes/fetchViewValue/" + id + "/" + field,
+        error: xhrFailCallback,
+        url: baseurl + "/" + objectType +"/fetchViewValue/" + id + "/" + field,
     });
 }
 
-function updateObjectFieldOnSuccess(name, type, id, field, event) {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            if (field != 'timestamp') {
-                $(".loading").show();
-            }
-        },
-        dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            if (field != 'timestamp') {
-                $(".loading").hide();
-                $(name + '_solid').html(data);
-                $(name + '_placeholder').empty();
-                $(name + '_solid').show();
-            } else {
-                $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
-            }
-        },
-        url: baseurl + "/objects/fetchViewValue/" + id + "/" + field,
-    });
-}
-
-function activateField(type, id, field, event) {
-    resetForms();
-    if (type == 'denyForm') return;
-    var objectType = 'attributes';
-    var containerName = 'Attribute';
-    if (type == 'Object') {
-        objectType = 'objects';
-        containerName = 'Object';
+function activateField($td, type, id, field) {
+    resetEditHoverForms();
+    if (type === 'denyForm') {
+        return;
     }
+    var objectType = type === 'Object' ? 'objects' : 'attributes';
     var name = '#' + type + '_' + id + '_' + field;
-    var container_name = '#' + containerName + '_' + id + '_' + field;
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
+
+    xhr({
+        dataType: "html",
+        success: function (data) {
+            var $placeholder = $('<div class="inline-field-placeholder"></div>').html(data);
+            $td.find(".inline-field-solid").before($placeholder);
+            postActivationScripts($td, name, type, id, field);
+            $td.find(".inline-field-solid").hide();
         },
-        dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
-            $(container_name + '_placeholder').html(data);
-            postActivationScripts(name, type, id, field, event);
-        },
-        url: baseurl + "/" + objectType + "/fetchEditForm/" + id + "/" + field,
+        url: "/" + objectType + "/fetchEditForm/" + id + "/" + field,
     });
-}
-
-
-function submitQuickTag(form) {
-    $('#' + form).submit();
 }
 
 //if someone clicks an inactive field, replace it with the hidden form field. Also, focus it and bind a focusout event, so that it gets saved if the user clicks away.
 //If a user presses enter, submit the form
-function postActivationScripts(name, type, id, field, event) {
-    $(name + '_field').focus();
-    inputFieldButtonActive(name + '_field');
-    if (field == 'value' || field == 'comment') {
-        autoresize($(name + '_field')[0]);
-        $(name + '_field').on('keyup', function () {
+function postActivationScripts($td, name, type, id, field) {
+    var $field = $(name + '_field');
+    $field.focus();
+    inputFieldButtonActive($field);
+    if (field === 'value' || field === 'comment') {
+        autoresize($field[0]);
+        $field.on('keyup', function () {
             autoresize(this);
         });
     }
+
     $(name + '_form').submit(function(e){
         e.preventDefault();
-        submitForm(type, id, field, event);
+        submitForm($td, type, id, field);
         return false;
+    }).bind("focusout", function() {
+        inputFieldButtonPassive($field);
+    }).bind("focusin", function(){
+        inputFieldButtonActive($field);
     });
 
-    $(name + '_form').bind("focusout", function() {
-        inputFieldButtonPassive(name + '_field');
+    var $inlineInputContainer = $field.closest('.inline-input-container');
+
+    $inlineInputContainer.children('.inline-input-accept').bind('click', function() {
+        submitForm($td, type, id, field);
     });
 
-    $(name + '_form').bind("focusin", function(){
-        inputFieldButtonActive(name + '_field');
+    $inlineInputContainer.children('.inline-input-decline').bind('click', function() {
+        resetEditHoverForms();
     });
-
-    $(name + '_form').bind("keydown", function(e) {
-        if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
-            submitForm(type, id, field, event);
-        }
-    });
-    $(name + '_field').closest('.inline-input-container').children('.inline-input-accept').bind('click', function() {
-        submitForm(type, id, field, event);
-    });
-
-    $(name + '_field').closest('.inline-input-container').children('.inline-input-decline').bind('click', function() {
-        resetForms();
-    });
-
-    $(name + '_solid').hide();
 }
 
-function quickEditHover(td, type, id, field, event) {
+function quickEditHover(td, type, id, field) {
     var $td = $(td);
     $td.find('#quickEditButton').remove(); // clean all similar if exist
     var $div = $('<div id="quickEditButton"></div>');
@@ -575,10 +545,10 @@ function quickEditHover(td, type, id, field, event) {
     $span.addClass('fa-as-icon fa fa-edit');
     $span.css('font-size', '12px');
     $div.append($span);
-    $td.find("[id*=_solid]").append($div);
+    $td.find(".inline-field-solid").append($div);
 
     $span.click(function() {
-        activateField(type, id, field, event);
+        activateField($td, type, id, field);
     });
 
     $td.off('mouseleave').on('mouseleave', function() {
@@ -586,37 +556,41 @@ function quickEditHover(td, type, id, field, event) {
     });
 }
 
-function addSighting(type, attribute_id, event_id, page) {
-    $('#Sighting_' + attribute_id + '_type').val(type);
+function addSighting(type, attribute_id) {
+    var $sightingForm = $('#SightingForm');
+    $('input[name="data[Sighting][type]"]', $sightingForm).val(type);
+    $('input[name="data[Sighting][id]"]', $sightingForm).val(attribute_id);
     $.ajax({
-        data: $('#Sighting_' + attribute_id).closest("form").serialize(),
+        data: $sightingForm.serialize(),
         cache: false,
-        success:function (data, textStatus) {
+        success: function (data) {
             handleGenericAjaxResponse(data);
             var result = data;
             if (result.saved == true) {
-                $('.sightingsCounter').each(function( counter ) {
+                // Update global sighting counter
+                $('.sightingsCounter').each(function() {
                     $(this).html(parseInt($(this).html()) + 1);
                 });
-                if (typeof currentUri == 'undefined') {
-                    location.reload();
-                } else {
-                    updateIndex(event_id, 'event');
-                }
+                updateIndex(null, 'event');
             }
         },
-        error:function() {
-            showMessage('fail', 'Request failed for an unknown reason.');
-            updateIndex(context, 'event');
+        error: function(xhr) {
+            xhrFailCallback(xhr);
+            updateIndex(null, 'event');
         },
-        type:"post",
-        url: baseurl + "/sightings/add/" + attribute_id
+        type: "post",
+        url: baseurl + "/sightings/add/",
     });
+}
+
+function resetEditHoverForms() {
+    $('.inline-field-solid').show();
+    $('.inline-field-placeholder').remove();
 }
 
 function resetForms() {
     $('.inline-field-solid').show();
-    $('.inline-field-placeholder').empty();
+    $('.inline-field-placeholder').hide();
 }
 
 function inputFieldButtonActive(selector) {
@@ -636,30 +610,68 @@ function autoresize(textarea) {
 
 // submit the form - this can be triggered by unfocusing the activated form field or by submitting the form (hitting enter)
 // after the form is submitted, intercept the response and act on it
-function submitForm(type, id, field, context) {
+function submitForm($td, type, id, field) {
     var object_type = 'attributes';
-    var action = "editField";
     var name = '#' + type + '_' + id + '_' + field;
-    if (type == 'Object') {
+    if (type === 'Object') {
         object_type = 'objects';
     }
     $.ajax({
         data: $(name + '_field').closest("form").serialize(),
         cache: false,
-        success:function (data, textStatus) {
-            handleAjaxEditResponse(data, name, type, id, field, context);
+        success: function (data) {
+            handleAjaxEditResponse($td, data, type, id, field);
         },
-        error:function() {
-            showMessage('fail', 'Request failed for an unknown reason.');
-            updateIndex(context, 'event');
+        error: function(xhr) {
+            xhrFailCallback(xhr);
+            updateIndex(null, 'event');
         },
-        type:"post",
-        url: baseurl + "/" + object_type + "/" + action + "/" + id
+        type: "post",
+        url: baseurl + "/" + object_type + "/editField/" + id
     });
     $(name + '_field').unbind("keyup");
     $(name + '_form').unbind("focusout");
     return false;
-};
+}
+
+// Event attributes and attributes index and search
+(function() {
+    $(document.body).on('click', '.correlation-toggle', function() {
+        var attribute_id = $(this).parents('tr').data('primary-id');
+        getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
+        return false;
+    });
+    $(document.body).on('click', '.toids-toggle', function() {
+        var attribute_id = $(this).parents('tr').data('primary-id');
+        getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
+        return false;
+    });
+    $(document.body).on('click', '.screenshot', function() {
+        screenshotPopup($(this).attr('src'), $(this).attr('title'));
+    });
+    // Show quick edit hover icon for attributes and objects
+    $(document.body).on('mouseenter', '[data-edit-field]', function() {
+        var $tr = $(this).parents('tr');
+        var objectId = $tr.data('primary-id');
+        var type = $tr.attr('id').startsWith('Object') ? 'Object' : 'Attribute';
+        var field = $(this).data('edit-field');
+        quickEditHover(this, type, objectId, field);
+    });
+    // Show popover with advanced sigtings information about given or selected attributes
+    $(document.body).on('click', '.sightings_advanced_add', function() {
+        var object_context = $(this).data('object-context');
+        var object_id = $(this).data('object-id');
+        if (object_id === 'selected') {
+            var selected = [];
+            $(".select_attribute:checked").each(function() {
+                selected.push($(this).data("id"));
+            });
+            object_id = selected.join('|');
+        }
+        var url = baseurl + "/sightings/advanced/" + object_id + "/" + object_context;
+        genericPopup(url, '#popover_box');
+    });
+})();
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
@@ -667,35 +679,28 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
     if (undefined != addData['local'] && addData['local']) {
         localFlag = '/local:1';
     }
-    url = baseurl + "/events/addTag/" + event_id + localFlag;
+    var url = baseurl + "/events/addTag/" + event_id + localFlag;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #EventTag').val(JSON.stringify(selected_tag_ids));
-        $.ajax({
-            data: $('#EventAddTagForm').serialize(),
-            cache: false,
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
-            success:function (data, textStatus) {
-                loadEventTags(event_id);
-                loadGalaxies(event_id, 'event');
+        var $formData = $(formData);
+        $formData.find('#EventTag').val(JSON.stringify(selected_tag_ids));
+        xhr({
+            data: $formData.serialize(),
+            success: function (data) {
                 handleGenericAjaxResponse(data);
             },
-            error:function() {
+            error: function() {
                 showMessage('fail', 'Could not add tag.');
+            },
+            complete: function() {
                 loadEventTags(event_id);
                 loadGalaxies(event_id, 'event');
-            },
-            complete:function() {
-                $('#temp').remove();
+
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
-            type:"post",
-            url:url
+            type: "post",
+            url: url
         });
     });
 }
@@ -706,19 +711,16 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     if (undefined != addData['local'] && addData['local']) {
         localFlag = '/local:1';
     }
-    url = baseurl + "/attributes/addTag/" + attribute_id + localFlag;
+    var url = baseurl + "/attributes/addTag/" + attribute_id + localFlag;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #AttributeTag').val(JSON.stringify(selected_tag_ids));
-        if (attribute_id == 'selected') {
-            $('#AttributeAttributeIds').val(getSelected());
+        var $formData = $(formData);
+        $formData.find('#AttributeTag').val(JSON.stringify(selected_tag_ids));
+        if (attribute_id === 'selected') {
+            $formData.find('#AttributeAttributeIds').val(getSelected());
         }
-        $.ajax({
-            data: $('#AttributeAddTagForm').serialize(),
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
-            success:function (data, textStatus) {
+        xhr({
+            data: $formData.serialize(),
+            success:function (data) {
                 if (attribute_id == 'selected') {
                     updateIndex(0, 'event');
                 } else {
@@ -736,7 +738,6 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
             type:"post",
             url: url
@@ -750,28 +751,24 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     if (undefined != addData['local'] && addData['local']) {
         localFlag = '/local:1';
     }
-    url = baseurl + "/tag_collections/addTag/" + tag_collection_id + localFlag;
+    var url = baseurl + "/tag_collections/addTag/" + tag_collection_id + localFlag;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #TagCollectionTag').val(JSON.stringify(selected_tag_ids));
-        $.ajax({
-            data: $('#TagCollectionAddTagForm').serialize(),
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
-            success:function (data, textStatus) {
+        var $formData = $(formData);
+        $formData.find('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
+        xhr({
+            data: $formData.serialize(),
+            success:function (data) {
                 handleGenericAjaxResponse(data);
                 refreshTagCollectionRow(tag_collection_id);
             },
             error:function() {
                 showMessage('fail', 'Could not add tag.');
-                loadTagCollectionTags(tag_collection_id);
+                refreshTagCollectionRow(tag_collection_id);
             },
             complete:function() {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
             type:"post",
             url: url
@@ -786,39 +783,36 @@ function refreshTagCollectionRow(tag_collection_id) {
         error:function() {
             showMessage('fail', 'Could not fetch updates to the modified row.');
         },
-        success: function (data, textStatus) {
+        success: function (data) {
             $('[data-row-id="' + tag_collection_id + '"]').replaceWith(data);
         }
     });
-
 }
 
-function handleAjaxEditResponse(data, name, type, id, field, event) {
-    responseArray = data;
-    if (type == 'Attribute') {
+function handleAjaxEditResponse($td, data, type, id, field) {
+    var responseArray = data;
+    if (type === 'Attribute') {
         if (responseArray.saved) {
             var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
             showMessage('success', msg);
-            updateAttributeFieldOnSuccess(name, type, id, field, event);
-            updateAttributeFieldOnSuccess(name, type, id, 'timestamp', event);
+            updateFieldOnSuccess($td, type, id, field);
+            updateFieldOnSuccess($td, type, id, 'timestamp');
             eventUnpublish();
         } else {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
-            updateAttributeFieldOnSuccess(name, type, id, field, event);
+            updateFieldOnSuccess($td, type, id, field);
         }
-    }
-    if (type == 'ShadowAttribute') {
-        updateIndex(event, 'event');
-    } else if (type == 'Object') {
+    } else if (type === 'ShadowAttribute') {
+        updateIndex(null, 'event');
+    } else if (type === 'Object') {
         if (responseArray.saved) {
-            var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
-            showMessage('success', msg);
-            updateObjectFieldOnSuccess(name, type, id, field, event);
-            updateObjectFieldOnSuccess(name, type, id, 'timestamp', event);
+            showMessage('success', responseArray.message);
+            updateFieldOnSuccess($td, type, id, field);
+            updateFieldOnSuccess($td, type, id, 'timestamp');
             eventUnpublish();
         } else {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
-            updateObjectFieldOnSuccess(name, type, id, field, event);
+            updateFieldOnSuccess($td, type, id, field);
         }
     }
     if (responseArray.hasOwnProperty('check_publish')) {
@@ -855,11 +849,9 @@ function handleGenericAjaxResponse(data, skip_reload) {
 
 function toggleAllAttributeCheckboxes() {
     if ($(".select_all").is(":checked")) {
-        $(".select_attribute").prop("checked", true);
-        $(".select_proposal").prop("checked", true);
+        $(".select_attribute, .select_proposal").prop("checked", true);
     } else {
-        $(".select_attribute").prop("checked", false);
-        $(".select_proposal").prop("checked", false);
+        $(".select_attribute, .select_proposal").prop("checked", false);
     }
 }
 
@@ -880,8 +872,13 @@ function toggleAllTaxonomyCheckboxes() {
 }
 
 function attributeListAnyAttributeCheckBoxesChecked() {
-    if ($('.select_attribute:checked').length > 0) $('.mass-select').removeClass('hidden');
-    else $('.mass-select').addClass('hidden');
+    if ($('.select_attribute:checked').length > 0) {
+        $('.mass-select').removeClass('hidden');
+        $('#create-button').removeClass('last');
+    } else {
+        $('.mass-select').addClass('hidden');
+        $('#create-button').addClass('last');
+    }
 }
 
 function listCheckboxesChecked() {
@@ -909,10 +906,24 @@ function multiSelectDeleteEvents() {
             }
         }
     });
-    $.get(baseurl + "/events/delete/" + JSON.stringify(selected), function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
+    deleteEventPopup(JSON.stringify(selected));
+}
+
+function deleteEventPopup(eventId) {
+    $.get(baseurl + "/events/delete/" + eventId, openConfirmation).fail(xhrFailCallback);
+}
+
+function multiSelectExportEvents() {
+    var selected = [];
+    $(".select").each(function() {
+        if ($(this).is(":checked")) {
+            var temp = $(this).data("uuid");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
     });
+    openGenericModal(baseurl + "/events/restSearchExport/" + JSON.stringify(selected))
 }
 
 function multiSelectToggleFeeds(on, cache) {
@@ -925,13 +936,26 @@ function multiSelectToggleFeeds(on, cache) {
             }
         }
     });
-    $.get(baseurl + "/feeds/toggleSelected/" + on + "/" + cache + "/" + JSON.stringify(selected), function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    });
+    $.get(baseurl + "/feeds/toggleSelected/" + on + "/" + cache + "/" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
 }
 
-function multiSelectDeleteEventBlacklist(on, cache) {
+function multiSelectToggleField(scope, action, fieldName, enabled, inputID) {
+    var selected = [];
+    $(".select:checked").each(function() {
+        var temp = $(this).data("id");
+        if (temp != null) {
+            selected.push(temp);
+        }
+    });
+    $.get(baseurl + "/" + scope + "/" + action + "/" + fieldName + "/" + enabled, function(data) {
+        var $formData = $(data);
+        $('body').append($formData)
+        $formData.find(inputID).val(JSON.stringify(selected));
+        $formData.find("form")[0].submit();
+    }).fail(xhrFailCallback);
+}
+
+function multiSelectDeleteEventBlocklist(on, cache) {
     var selected = [];
     $(".select").each(function() {
         if ($(this).is(":checked")) {
@@ -941,62 +965,56 @@ function multiSelectDeleteEventBlacklist(on, cache) {
             }
         }
     });
-    $.get(baseurl + "/eventBlacklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    });
+    $.get(baseurl + "/eventBlocklists/massDelete?ids=" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
 }
 
-function multiSelectAction(event, context) {
+function multiSelectAction(event_id, context) {
     var settings = {
-            deleteAttributes: {
-                confirmation: "Are you sure you want to delete all selected attributes?",
-                controller: "attributes",
-                camelCase: "Attribute",
-                alias: "attribute",
-                action: "delete"
-            },
-            acceptProposals: {
-                confirmation: "Are you sure you want to accept all selected proposals?",
-                controller: "shadow_attributes",
-                camelCase: "ShadowAttribute",
-                alias: "proposal",
-                action: "accept"
-            },
-            discardProposals: {
-                confirmation: "Are you sure you want to discard all selected proposals?",
-                controller: "shadow_attributes",
-                camelCase: "ShadowAttribute",
-                alias: "proposal",
-                action: "discard"
-            },
+        deleteAttributes: {
+            confirmation: "Are you sure you want to delete all selected attributes?",
+            controller: "attributes",
+            camelCase: "Attribute",
+            alias: "attribute",
+            action: "delete"
+        },
+        acceptProposals: {
+            confirmation: "Are you sure you want to accept all selected proposals?",
+            controller: "shadow_attributes",
+            camelCase: "ShadowAttribute",
+            alias: "proposal",
+            action: "accept"
+        },
+        discardProposals: {
+            confirmation: "Are you sure you want to discard all selected proposals?",
+            controller: "shadow_attributes",
+            camelCase: "ShadowAttribute",
+            alias: "proposal",
+            action: "discard"
+        },
     };
     var answer = confirm("Are you sure you want to " + settings[context]["action"] + " all selected " + settings[context]["alias"] + "s?");
     if (answer) {
         var selected = [];
-        $(".select_" + settings[context]["alias"]).each(function() {
-            if ($(this).is(":checked")) {
-                var temp= $(this).data("id");
-                selected.push(temp);
-            }
+        $(".select_" + settings[context]["alias"] + ":checked").each(function() {
+            selected.push($(this).data("id"));
         });
         $('#' + settings[context]["camelCase"] + 'Ids' + settings[context]["action"].ucfirst()).attr('value', JSON.stringify(selected));
         var formData = $('#' + settings[context]["action"] + '_selected').serialize();
         if (context == 'deleteAttributes') {
             var url = $('#delete_selected').attr('action');
-            console.log(url);
         } else {
-            var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
+            var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event_id;
         }
-        $.ajax({
+        xhr({
             data: formData,
-            cache: false,
             type:"POST",
             url: url,
-            success:function (data, textStatus) {
-                updateIndex(event, 'event');
+            success: function (data) {
+                updateIndex(null, 'event');
                 var result = handleGenericAjaxResponse(data);
-                if (settings[context]["action"] != "discard" && result == true) eventUnpublish();
+                if (settings[context]["action"] != "discard" && result == true) {
+                    eventUnpublish();
+                }
             },
         });
     }
@@ -1010,10 +1028,7 @@ function editSelectedAttributes(event) {
 }
 
 function addSelectedTaxonomies(taxonomy) {
-    $.get(baseurl + "/taxonomies/taxonomyMassConfirmation/"+taxonomy, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    });
+    $.get(baseurl + "/taxonomies/taxonomyMassConfirmation/"+taxonomy, openConfirmation).fail(xhrFailCallback);
 }
 
 function proposeObjectsFromSelectedAttributes(clicked, event_id) {
@@ -1022,35 +1037,18 @@ function proposeObjectsFromSelectedAttributes(clicked, event_id) {
 }
 
 function hideSelectedTags(taxonomy) {
-	$.get(baseurl + "/taxonomies/taxonomyMassHide/"+taxonomy, function(data) {
-		$("#confirmation_box").html(data);
-		openPopup("#confirmation_box");
-	});
+	$.get(baseurl + "/taxonomies/taxonomyMassHide/"+taxonomy, openConfirmation).fail(xhrFailCallback);
 }
 
 function unhideSelectedTags(taxonomy) {
-	$.get(baseurl + "/taxonomies/taxonomyMassUnhide/"+taxonomy, function(data) {
-		$("#confirmation_box").html(data);
-		openPopup("#confirmation_box");
-	});
-}
-
-function submitMassTaxonomyTag() {
-    $('#PromptForm').submit();
-}
-
-function submitMassEventDelete() {
-    $('#PromptForm').trigger('submit');
-    event.preventDefault();
+	$.get(baseurl + "/taxonomies/taxonomyMassUnhide/"+taxonomy, openConfirmation).fail(xhrFailCallback);
 }
 
 function getSelected() {
     var selected = [];
-    $(".select_attribute").each(function() {
-        if ($(this).is(":checked")) {
-            var test = $(this).data("id");
-            selected.push(test);
-        }
+    $(".select_attribute:checked").each(function() {
+        var test = $(this).data("id");
+        selected.push(test);
     });
     return JSON.stringify(selected);
 }
@@ -1072,7 +1070,7 @@ function loadEventTags(id) {
     $.ajax({
         dataType:"html",
         cache: false,
-        success:function (data, textStatus) {
+        success:function (data) {
             $(".eventTagContainer").html(data);
         },
         url: baseurl + "/tags/showEventTag/" + id,
@@ -1083,10 +1081,10 @@ function loadGalaxies(id, scope) {
     $.ajax({
         dataType:"html",
         cache: false,
-        success:function (data, textStatus) {
-            if (scope == 'event') {
+        success: function (data) {
+            if (scope === 'event') {
                 $("#galaxies_div").html(data);
-            } else if (scope == 'attribute') {
+            } else if (scope === 'attribute') {
                 $("#attribute_" + id + "_galaxy").html(data);
             }
         },
@@ -1094,69 +1092,31 @@ function loadGalaxies(id, scope) {
     });
 }
 
-function loadTagCollectionTags(id) {
+function loadAttributeTags(attribute_id) {
     $.ajax({
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data, textStatus) {
-            $(".tagCollectionTagContainer").html(data);
+        success: function (data) {
+            $("[data-primary-id=" + attribute_id + "] .attributeTagContainer").html(data);
         },
-        url: baseurl + "/tags/showEventTag/" + id,
-    });
-}
-
-function removeEventTag(event, tag) {
-    var answer = confirm("Are you sure you want to remove this tag from the event?");
-    if (answer) {
-        var formData = $('#removeTag_' + tag).serialize();
-        $.ajax({
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
-            data: formData,
-            type:"POST",
-            cache: false,
-            url: baseurl + "/events/removeTag/" + event + '/' + tag,
-            success:function (data, textStatus) {
-                loadEventTags(event);
-                handleGenericAjaxResponse(data);
-            },
-            complete:function() {
-                $(".loading").hide();
-            }
-        });
-    }
-    return false;
-}
-
-function loadAttributeTags(id) {
-    $.ajax({
-        dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            $("#Attribute_"+id+"_tr .attributeTagContainer").html(data);
-        },
-        url: baseurl + "/tags/showAttributeTag/" + id
+        error: xhrFailCallback,
+        url: baseurl + "/tags/showAttributeTag/" + attribute_id
     });
 }
 
 function removeObjectTagPopup(clicked, context, object, tag) {
     $.get(baseurl + "/" + context + "s/removeTag/" + object + '/' + tag, function(data) {
         openPopover(clicked, data);
-    });
+    }).fail(xhrFailCallback);
 }
 
 function removeObjectTag(context, object, tag) {
     var formData = $('#PromptForm').serialize();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
         type:"POST",
-        cache: false,
-        url: baseurl + "/" + context.toLowerCase() + "s/removeTag/" + object + '/' + tag,
-        success:function (data, textStatus) {
+        url: "/" + context.toLowerCase() + "s/removeTag/" + object + '/' + tag,
+        success:function (data) {
             $("#confirmation_box").fadeOut();
             $("#gray_out").fadeOut();
             if (context == 'Attribute') {
@@ -1168,9 +1128,6 @@ function removeObjectTag(context, object, tag) {
             }
             handleGenericAjaxResponse(data);
         },
-        complete:function() {
-            $(".loading").hide();
-        }
     });
     return false;
 }
@@ -1180,24 +1137,46 @@ function redirectAddObject(templateId, additionalData) {
     window.location = baseurl + '/objects/add/' + eventId + '/' + templateId;
 }
 
-function clickCreateButton(event, type) {
-    var destination = 'attributes';
-    if (type == 'Proposal') destination = 'shadow_attributes';
-    simplePopup(baseurl + "/" + destination + "/add/" + event);
-}
-
-function openGenericModal(url) {
+function openGenericModal(url, modalData, callback) {
     $.ajax({
         type: "get",
         url: url,
         success: function (data) {
             $('#genericModal').remove();
-            $('body').append(data);
-            $('#genericModal').modal();
+            var htmlData;
+            if (modalData !== undefined) {
+                var $modal = $('<div id="genericModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true"></div>');
+                if (modalData.classes !== undefined) {
+                    $modal.addClass(modalData.classes);
+                }
+                var $modalHeaderText = $('<h3 id="genericModalLabel"></h3>');
+                if (modalData.header !== undefined) {
+                    $modalHeaderText.text(modalData.header)
+                }
+                var $modalHeader = $('<div class="modal-header"></div>').append(
+                    $('<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>'),
+                    $modalHeaderText
+                );
+                var $modalBody = $('<div class="modal-body"></div>').html(data);
+                if (modalData.bodyStyle !== undefined) {
+                    $modalBody.css(modalData.bodyStyle);
+                }
+                $modal.append(
+                    $modalHeader,
+                    $modalBody
+                );
+                htmlData = $modal[0].outerHTML;
+            } else {
+                htmlData = data;
+            }
+            $(document.body).append(htmlData);
+            $('#genericModal').modal().on('shown', function() {
+                if (callback !== undefined) {
+                    callback();
+                }
+            });
         },
-        error: function (data, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
-        }
+        error: xhrFailCallback,
     });
 }
 
@@ -1218,7 +1197,7 @@ function openGenericModalPost(url, body) {
 }
 
 function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dismiss_id_to_close) {
-    var url = null;
+    var $form;
     var context = 'event';
     var contextNamingConvention = 'Attribute';
     var closePopover = true;
@@ -1256,18 +1235,17 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
     }
     var $submitButton = $("#submitButton");
     if ($submitButton.parent().hasClass('modal-footer')) {
-        var $form = $submitButton.parent().parent().find('.modal-body form');
-        url = $form.attr('action');
+        $form = $submitButton.parent().parent().find('.modal-body form');
     } else {
-        var $form = $submitButton.closest("form");
-        url = $form.attr('action');
+        $form = $submitButton.closest("form");
     }
+    var url = $form.attr('action');
     // Prepend URL with baseurl if URL is relative
     if (!url.startsWith('http')) {
         url = baseurl + url;
     }
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             if (modal) {
                 if (closePopover) {
                     $('#genericModal').modal('hide');
@@ -1284,24 +1262,27 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             }
         },
         data: $form.serialize(),
-        success: function (data, textStatus) {
-            var result;
+        success: function (data) {
             if (closePopover) {
                 if (modal) {
-                    result = handleAjaxModalResponse(data, context_id, url, referer, context, contextNamingConvention);
+                    handleAjaxModalResponse(data, context_id, url, referer, context, contextNamingConvention);
                 } else {
-                    result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+                    handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
                 }
             }
-            if (referer == 'addSighting') {
+            if (referer === 'addSighting') {
                 updateIndex(update_context_id, 'event');
                 $.get(baseurl + "/sightings/listSightings/" + id + "/attribute", function(data) {
                     $("#sightingsData").html(data);
-                });
+                }).fail(xhrFailCallback);
                 $('.sightingsToggle').removeClass('btn-primary');
                 $('.sightingsToggle').addClass('btn-inverse');
                 $('#sightingsListAllToggle').removeClass('btn-inverse');
                 $('#sightingsListAllToggle').addClass('btn-primary');
+            }
+            if (referer === 'addEventReport' && typeof window.reloadEventReportTable === 'function') {
+                reloadEventReportTable()
+                eventUnpublish()
             }
             if (
                 (
@@ -1312,9 +1293,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 eventUnpublish();
             }
         },
-        error: function (jqXHR, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
-        },
+        error: xhrFailCallback,
         complete: function () {
             $(".loading").hide();
         },
@@ -1325,48 +1304,38 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
 }
 
 function handleAjaxModalResponse(response, context_id, url, referer, context, contextNamingConvention) {
-    responseArray = response;
-    var message = null;
-    var result = "fail";
+    var responseArray = response;
     if (responseArray.saved) {
         updateIndex(context_id, context);
         if (responseArray.success) {
-            showMessage("success", responseArray.success);
-            result = "success";
-        }
-        if (responseArray.errors) {
+            var message = "message" in responseArray ? responseArray.message : responseArray.success;
+            showMessage("success", message);
+        } else if (responseArray.errors) {
             showMessage("fail", responseArray.errors);
         }
     } else {
-        if (responseArray.errors) {
-            showMessage("fail", responseArray.errors);
+        if (responseArray.errors && typeof responseArray.errors === 'string') {
+            var fullErrors = "full_errors" in responseArray ? responseArray.full_errors : '';
+            showMessage("fail", responseArray.errors, fullErrors);
+        } else {
+            var savedArray = saveValuesForPersistance();
+            $.ajax({
+                dataType: "html",
+                success: function (data) {
+                    $('#genericModal').remove();
+                    $('body').append(data);
+                    $('#genericModal').modal();
+                    handleValidationErrors(responseArray.errors, context, contextNamingConvention);
+                    recoverValuesFromPersistance(savedArray);
+                },
+                error: xhrFailCallback,
+                complete: function () {
+                    $(".loading").hide();
+                },
+                url: url
+            });
         }
-        var savedArray = saveValuesForPersistance();
-        $.ajax({
-            async:true,
-            dataType:"html",
-            success:function (data, textStatus) {
-                $('#genericModal').remove();
-                $('body').append(data);
-                $('#genericModal').modal();
-                var error_context = context.charAt(0).toUpperCase() + context.slice(1);
-                handleValidationErrors(responseArray.errors, context, contextNamingConvention);
-                result = "success";
-                if (!$.isEmptyObject(responseArray)) {
-                    result = "fail";
-                }
-                recoverValuesFromPersistance(savedArray);
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                showMessage('fail', textStatus + ": " + errorThrown);
-            },
-            complete: function () {
-                $(".loading").hide();
-            },
-            url:url
-        });
     }
-    return result;
 }
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
@@ -1385,7 +1354,6 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
     } else {
         var savedArray = saveValuesForPersistance();
         $.ajax({
-            async:true,
             dataType:"html",
             success:function (data, textStatus) {
                 $("#popover_form").html(data);
@@ -1425,8 +1393,9 @@ function recoverValuesFromPersistance(formPersistanceArray) {
 function handleValidationErrors(responseArray, context, contextNamingConvention) {
     for (var k in responseArray) {
         var elementName = k.charAt(0).toUpperCase() + k.slice(1);
-        $("#" + contextNamingConvention + elementName).parent().addClass("error");
-        $("#" + contextNamingConvention + elementName).parent().append("<div class=\"error-message\">" + responseArray[k] + "</div>");
+        var $element = $("#" + contextNamingConvention + elementName);
+        $element.parent().addClass("error");
+        $element.parent().append("<div class=\"error-message\">" + responseArray[k] + "</div>");
     }
 }
 
@@ -1443,40 +1412,39 @@ function toggleHistogramType(type, old) {
 }
 
 function updateHistogram(selected) {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
+        success:function (data) {
             $("#histogram").html(data);
         },
-        url: baseurl + "/users/histogram/" + selected,
+        url: "/users/histogram/" + selected,
     });
 }
 
-function showMessage(success, message, context) {
-    if (typeof context !== "undefined") {
-        $("#ajax_" + success, window.parent.document).html(message);
-        var duration = 1000 + (message.length * 40);
-        $("#ajax_" + success + "_container", window.parent.document).fadeIn("slow");
-        $("#ajax_" + success + "_container", window.parent.document).delay(duration).fadeOut("slow");
-    }
-    $("#ajax_" + success).html(message);
+function showMessage(success, message, fullError) {
     var duration = 1000 + (message.length * 40);
+
+    if (message.indexOf("$flashErrorMessage") >= 0) {
+        var flashMessageLink = '<a href="#" class="bold" data-content="' + escapeHtml(fullError) + '" data-html="true" onclick="event.preventDefault();$(this).popover(\'show\')">here</a>';
+        message = message.replace("$flashErrorMessage", flashMessageLink);
+        duration = 5000;
+    }
+
+    $("#ajax_" + success).html(message);
     $("#ajax_" + success + "_container").fadeIn("slow").delay(duration).fadeOut("slow");
 }
 
 function cancelPopoverForm(id) {
     $("#gray_out").fadeOut();
-    $("#popover_form").fadeOut();
     $("#popover_form_large").fadeOut();
-    $("#screenshot_box").fadeOut();
-    $("#popover_box").fadeOut();
+    $("#screenshot_box").fadeOut(400, function() {
+        $(this).remove();
+    });
+    $("#popover_box")
+        .fadeOut()
+        .removeAttr('style') // remove all inline styles
+        .empty(); // remove all child elements
     $("#confirmation_box").fadeOut();
-    $('#gray_out').fadeOut();
     $('#popover_form').fadeOut();
     if (id !== undefined && id !== '') {
         $(id).fadeOut();
@@ -1501,18 +1469,13 @@ function tagFieldChange() {
     $("#addTagField").hide();
 }
 
-function appendTemplateTag(selected_id) {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
+function appendTemplateTag(selected_id)     {
+    xhr({
+        dataType: "html",
+        success: function (data) {
             $("#tags").append(data);
         },
-        url: baseurl + "/tags/viewTag/" + selected_id,
+        url: "/tags/viewTag/" + selected_id,
     });
     updateSelectedTags();
 }
@@ -1546,10 +1509,10 @@ function saveElementSorting(order) {
         data: order,
         dataType:"json",
         contentType: "application/json",
-        cache: false,
-        success:function (data, textStatus) {
+        success:function (data) {
             handleGenericAjaxResponse(data);
         },
+        error: xhrFailCallback,
         type:"post",
         cache: false,
         url: baseurl + "/templates/saveElementSorting/",
@@ -1648,26 +1611,35 @@ function templateElementFileCategoryChange(category) {
     }
 }
 
+function openConfirmation(data) {
+    var $box = $("#confirmation_box");
+    $box.html(data);
+    openPopup($box);
+}
+
 function openPopup(id, adjust_layout, callback) {
+    var $id = $(id);
     adjust_layout = adjust_layout === undefined ? true : adjust_layout;
     if (adjust_layout) {
+        $id.css({'top': '', 'height': ''}).removeClass('vertical-scroll'); // reset inline values
+
         var window_height = $(window).height();
-        var popup_height = $(id).height();
+        var popup_height = $id.height();
         if (window_height < popup_height) {
-            $(id).css("top", 50);
-            $(id).css("height", window_height);
-            $(id).addClass('vertical-scroll');
+            $id.css("top", 50);
+            $id.css("height", window_height - 50);
+            $id.addClass('vertical-scroll');
         } else {
             if (window_height > (300 + popup_height)) {
                 var top_offset = ((window_height - popup_height) / 2) - 150;
             } else {
                 var top_offset = (window_height - popup_height) / 2;
             }
-            $(id).css("top", top_offset + 'px');
+            $id.css("top", top_offset);
         }
     }
     $("#gray_out").fadeIn();
-    $(id).fadeIn(400, function() {
+    $id.fadeIn(400, function() {
         if (callback !== undefined) {
             callback();
         }
@@ -1682,9 +1654,9 @@ function openPopover(clicked, data, hover, placement, callback) {
     var randomId = $clicked.attr('data-dismissid') !== undefined ? $clicked.attr('data-dismissid') : Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
     var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
     $clicked.attr('data-dismissid', randomId);
-    var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'hide\');">×</button>';
+    var closeButtonHtml = '<button class="close" style="margin-left: 5px;">×</button>';
 
-    if (!$clicked.data('popover')) {
+    if (!$clicked.data('popover')) { // true when popover was already created defined
         $clicked.addClass('have-a-popover');
         var popoverOptions = {
             html: true,
@@ -1695,22 +1667,26 @@ function openPopover(clicked, data, hover, placement, callback) {
             template: '<div class="popover" role="tooltip" data-dismissid="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
         };
         $clicked.popover(popoverOptions)
-        .on('shown.bs.popover', function(event) {
-            var $this = $(this);
+        .on('shown.bs.popover', function() {
+            var $this = $(this); // should be the same as $clicked
+            var $popover = $this.data("popover").tip(); // should be the content of popover
             var title = $this.attr('title');
-            var popover = $('div.popover[data-dismissid="' + randomId + '"]');
             title = title === "" ? $this.attr('data-original-title') : title;
+
+            $popover.on("click", ".close", function () {
+                $this.popover("hide");
+            });
 
             if (title === "") {
                 title = "&nbsp;";
                 // adjust popover position (title was empty)
-                var top = popover.offset().top;
-                popover.css('top', (top-17) + 'px');
+                var top = $popover.offset().top;
+                $popover.css('top', (top-17) + 'px');
             }
-            var popoverTitle = popover.find('h3.popover-title');
+            var popoverTitle = $popover.find('h3.popover-title');
             popoverTitle.html(title + closeButtonHtml);
             if (callback !== undefined) {
-                callback(popover);
+                callback($popover);
             }
         })
         .on('keydown.volatilePopover', function(e) {
@@ -1737,22 +1713,20 @@ function openPopover(clicked, data, hover, placement, callback) {
                 },
                 300);
             });
-        } else {
+        } else if (data !== undefined) {
             $clicked.popover('show');
         }
 
-    } else {
-        // $clicked.popover('show');
+    } else if (data !== undefined) {
+        $clicked.popover('show');
     }
     var popover = $clicked.data('popover');
 
-    if (data === undefined) {
-        return popover
-    } else if (popover.options.content !== data) {
-        popover.options.content =  data;
+    if (data !== undefined && popover.options.content !== data) {
+        popover.options.content = data;
         $clicked.popover('show');
-        return popover;
     }
+    return popover;
 }
 
 function getMatrixPopup(scope, scope_id, galaxy_id) {
@@ -1771,11 +1745,10 @@ function getPopup(id, context, target, admin, popupType) {
     if (id != '') url += "/" + id;
     if (popupType == '' || typeof popupType == 'undefined') popupType = '#popover_form';
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         dataType:"html",
-        async: true,
         cache: false,
         success:function (data, textStatus) {
             $(".loading").hide();
@@ -1792,6 +1765,7 @@ function getPopup(id, context, target, admin, popupType) {
 }
 
 // Same as getPopup function but create a popover to populate first
+// DEPRECATED
 function popoverPopup(clicked, id, context, target, admin) {
     var url = baseurl;
     if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
@@ -1800,21 +1774,22 @@ function popoverPopup(clicked, id, context, target, admin) {
     }
     if (target != '') url += "/" + target;
     if (id != '') url += "/" + id;
-    var popover = openPopover(clicked, undefined);
-    $clicked = $(clicked);
+    popoverPopupNew(clicked, url);
+}
 
-    // actual request //
+function popoverPopupNew(clicked, url) {
+    var $clicked = $(clicked);
+    var popover = openPopover($clicked, undefined);
+
+    // actual request
     $.ajax({
-        dataType:"html",
-        async: true,
+        dataType: "html",
         cache: false,
-        success:function (data, textStatus) {
-            if (popover.options.content !== data) {
-                popover.options.content =  data;
-                $clicked.popover('show');
-            }
+        success: function (data) {
+            popover.options.content = data;
+            $clicked.popover('show');
         },
-        error:function(jqXHR, textStatus, errorThrown ) {
+        error: function(jqXHR) {
             var errorJSON = '';
             try {
                 errorJSON = JSON.parse(jqXHR.responseText);
@@ -1824,6 +1799,9 @@ function popoverPopup(clicked, id, context, target, admin) {
                 }
             } catch (SyntaxError) {
                 // no error provided
+                if (jqXHR.status === 401) {
+                    errorJSON = 'Unauthorized. Please reload page to log again.';
+                }
             }
             var errorText = '<div class="alert alert-error" style="margin-bottom: 3px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>';
             if (errorJSON !== '') {
@@ -1836,78 +1814,77 @@ function popoverPopup(clicked, id, context, target, admin) {
     });
 }
 
+function confirmClusterDetach(clicked, target_type, target_id) {
+    popoverConfirm(clicked, undefined, undefined, function (data) {
+        handleGenericAjaxResponse(data);
+        if (target_type === "event") {
+            loadGalaxies(target_id, 'event');
+        } else if (target_type === "attribute") {
+            loadGalaxies(target_id, 'attribute');
+        } else {
+            location.reload();
+        }
+    })
+}
+
 // create a confirm popover on the clicked html node.
-function popoverConfirm(clicked, message, placement) {
+function popoverConfirm(clicked, message, placement, callback) {
+    event.preventDefault();
+
     var $clicked = $(clicked);
     var popoverContent = '<div>';
         popoverContent += message === undefined ? '' : '<p>' + message + '</p>';
-        popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" style="margin-right: 5px;" onclick=submitPopover(this)>Yes</button>';
-        popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</button>';
+        popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" style="margin-right: 5px;">Yes</button>';
+        popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick="cancelPrompt()">Cancel</button>';
     popoverContent += '</div>';
     openPopover($clicked, popoverContent, undefined, placement);
+
     $("#popoverConfirmOK")
     .focus()
     .bind("keydown", function(e) {
         if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
             $(this).click();
-        }
-        if(e.keyCode == 27) { // ESC
+        } else if (e.keyCode == 27) { // ESC
             $clicked.popover('destroy');
         }
+    }).click(function() {
+        var href = $clicked.attr("href");
+        // Load form to get new token
+        fetchFormDataAjax(href, function (form) {
+            var $form = $(form);
+            xhr({
+                data: $form.serialize(),
+                success: function (data) {
+                    if (callback !== undefined) {
+                        callback(data);
+                    } else {
+                        location.reload();
+                    }
+                },
+                complete: function() {
+                    $(".loading").hide();
+                    $("#popover_form").fadeOut();
+                    $("#gray_out").fadeOut();
+                },
+                type: "post",
+                url: $form.attr('action')
+            });
+        })
     });
-}
-
-function submitPopover(clicked) {
-    var $clicked = $(clicked);
-    var $form = $clicked.closest('form');
-    if ($form.length === 0) { // popover container is body, submit from original node
-        var dismissid = $clicked.closest('div.popover').attr('data-dismissid');
-        $form = $('[data-dismissid="' + dismissid + '"]').closest('form');
-    }
-    if ($form.data('ajax')) {
-        $.ajax({
-            data: $form.serialize(),
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
-            success:function (data, textStatus) {
-                location.reload();
-            },
-            error:function() {
-                showMessage('fail', 'Could not perform query.');
-            },
-            complete:function() {
-                $(".loading").hide();
-                $("#popover_form").fadeOut();
-                $("#gray_out").fadeOut();
-                $('#temp').remove();
-            },
-            type:"post",
-            url: $form.attr('action')
-        });
-    } else {
-        $form.submit();
-    }
 }
 
 function simplePopup(url, requestType, data) {
     requestType = requestType === undefined ? 'GET' : requestType
     data = data === undefined ? [] : data
     $("#gray_out").fadeIn();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
+    xhr({
+        dataType: "html",
+        success: function (data) {
+            var $popover = $("#popover_form");
+            $popover.html(data);
+            openPopup($popover);
         },
-        dataType:"html",
-        async: true,
-        cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
-            $("#popover_form").html(data);
-            openPopup("#popover_form");
-        },
-        error:function(xhr) {
-            $(".loading").hide();
+        error: function(xhr) {
             $("#gray_out").fadeOut();
             xhrFailCallback(xhr);
         },
@@ -2091,6 +2068,27 @@ function indexEvaluateFiltering() {
             }
         }
         $('#value_date').html(text);
+
+        if (filtering.timestamp.from != null) {
+            var text = "";
+            if (filtering.timestamp.from != "") text = "From: " + $('<span>').text(filtering.timestamp.from).html();
+            if (filtering.timestamp.until != "") {
+                if (text != "") text += " ";
+                text += "Until: " + $('<span>').text(filtering.timestamp.until).html();
+            }
+        }
+        $('#value_timestamp').html(text);
+
+        if (filtering.publishtimestamp.from != null) {
+            var text = "";
+            if (filtering.publishtimestamp.from != "") text = "From: " + $('<span>').text(filtering.publishtimestamp.from).html();
+            if (filtering.publishtimestamp.until != "") {
+                if (text != "") text += " ";
+                text += "Until: " + $('<span>').text(filtering.publishtimestamp.until).html();
+            }
+        }
+        $('#value_publishtimestamp').html(text);
+
         for (var i = 0; i < simpleFilters.length; i++) {
             indexEvaluateSimpleFiltering(simpleFilters[i]);
         }
@@ -2132,41 +2130,130 @@ function quickFilter(passedArgs, url) {
 
 function runIndexFilter(element) {
     var dataFields = $(element).data();
-    for (var k in $(element).data()) {
+    for (var k in dataFields) {
         if (k in passedArgsArray) {
             delete(passedArgsArray[k]);
         } else {
             passedArgsArray[k] = dataFields[k];
         }
     }
-    url = here;
+    var url = here;
     for (var key in passedArgsArray) {
         url += "/" + key + ":" + passedArgsArray[key];
     }
     window.location.href = url;
 }
 
-function runIndexQuickFilter(preserveParams) {
-    if (!passedArgsArray) {
+function cancelSearch() {
+    $('#quickFilterField').val('');
+    $('#quickFilterButton').click();
+}
+
+// Deprecated, when possible use runIndexQuickFilterFixed that is cleaner
+function runIndexQuickFilter(preserveParams, url, target) {
+    if (typeof passedArgsArray === "undefined") {
         var passedArgsArray = [];
     }
     var searchKey = 'searchall';
-    if ($('#quickFilterField').data('searchkey')) {
-        searchKey = $('#quickFilterField').data('searchkey');
+    var $quickFilterField = $('#quickFilterField');
+    if ($quickFilterField.length > 0) {
+        if ($quickFilterField.data('searchkey')) {
+            searchKey = $('#quickFilterField').data('searchkey');
+        }
+        var value = $quickFilterField.val().trim();
+        if (value.length > 0){
+            passedArgsArray[searchKey] = encodeURIComponent(value);
+        }
     }
-    if ( $('#quickFilterField').val().trim().length > 0){
-        passedArgsArray[searchKey] = encodeURIComponent($('#quickFilterField').val().trim());
+    if (typeof url === "undefined") {
+        url = here;
     }
-    url = here;
-    if (typeof preserveParams !== "undefined") {
+    if (typeof preserveParams === "string") {
+        preserveParams = String(preserveParams);
+        if (!preserveParams.startsWith('/')) {
+            preserveParams = '/' + preserveParams;
+        }
         url += preserveParams;
+    } else if (typeof preserveParams === "object") {
+        for (var key in preserveParams) {
+            if (typeof key == 'number') {
+                url += "/" + preserveParams[key];
+            } else if (key !== 'page') {
+                if (key !== searchKey || !(searchKey in passedArgsArray)) {
+                    url += "/" + key + ":" + preserveParams[key];
+                }
+            }
+        }
     }
     for (var key in passedArgsArray) {
-        if (key !== 'page') {
+        if (typeof key == 'number') {
+            url += "/" + passedArgsArray[key];
+        } else if (key !== 'page') {
             url += "/" + key + ":" + passedArgsArray[key];
         }
     }
-    window.location.href = url;
+    if (target !== undefined) {
+        $.ajax({
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
+                $(target).html(data);
+            },
+            error: function() {
+                showMessage('fail', 'Could not fetch the requested data.');
+            },
+            complete: function() {
+                $(".loading").hide();
+            },
+            type: "get",
+            url: url
+        });
+    } else {
+        window.location.href = url;
+    }
+}
+
+/**
+ * @param {object} preserveParams
+ * @param {string} url
+ * @param {string} [target]
+ */
+function runIndexQuickFilterFixed(preserveParams, url, target) {
+    var $quickFilterField = $('#quickFilterField');
+    var searchKey;
+    if ($quickFilterField.data('searchkey')) {
+        searchKey = $quickFilterField.data('searchkey');
+    } else {
+        searchKey = 'searchall';
+    }
+    if ($quickFilterField.val().trim().length > 0) {
+        preserveParams[searchKey] = encodeURIComponent($quickFilterField.val().trim());
+    } else {
+        delete preserveParams[searchKey]
+    }
+    for (var key in preserveParams) {
+        if (!isNaN(key)) {
+            url += "/" + preserveParams[key];
+        } else if (key !== 'page') {
+            url += "/" + key + ":" + preserveParams[key];
+        }
+    }
+
+    if (target !== undefined) {
+        xhr({
+            success: function (data) {
+                $(target).html(data);
+            },
+            error: function() {
+                showMessage('fail', 'Could not fetch the requested data.');
+            },
+            type: "get",
+            url: url
+        });
+    } else {
+        window.location.href = url;
+    }
 }
 
 function executeFilter(passedArgs, url) {
@@ -2228,6 +2315,22 @@ function indexCreateFilters() {
             if (text != "") text += "/";
             text += "searchDateuntil:" + filtering.date.until;
         }
+        if (filtering.timestamp.from) {
+            if (text != "") text += "/";
+            text += "searchTimestamp:" + filtering.timestamp.from;
+        }
+        if (filtering.timestamp.until) {
+            if (text != "") text += "/";
+            text += "searchTimestamp:" + filtering.timestamp.until;
+        }
+        if (filtering.publishtimestamp.from) {
+            if (text != "") text += "/";
+            text += "searchPublishTimestamp:" + filtering.publishtimestamp.from;
+        }
+        if (filtering.publishtimestamp.until) {
+            if (text != "") text += "/";
+            text += "searchPublishTimestamp:" + filtering.publishtimestamp.until;
+        }
         return baseurl + '/events/index/' + text;
     } else {
         return baseurl + '/admin/users/index/' + text;
@@ -2261,7 +2364,7 @@ function indexSetRowVisibility() {
 }
 
 function indexEvaluateSimpleFiltering(field) {
-    text = "";
+    var text = "";
     if (filtering[field].OR.length == 0 && filtering[field].NOT.length == 0) {
         $('#value_' + field).html(text);
         return false;
@@ -2303,11 +2406,11 @@ function indexEvaluateSimpleFiltering(field) {
 function indexAddRule(param) {
     var found = false;
     if (filterContext == 'event') {
-        if (param.data.param1 == "date") {
+        if (param.data.param1 == "date" || param.data.param1 == "timestamp" || param.data.param1 == "publishtimestamp") {
             var val1 = encodeURIComponent($('#EventSearch' + param.data.param1 + 'from').val());
             var val2 = encodeURIComponent($('#EventSearch' + param.data.param1 + 'until').val());
-            if (val1 != "") filtering.date.from = val1;
-            if (val2 != "") filtering.date.until = val2;
+            if (val1 != "") filtering[param.data.param1].from = val1;
+            if (val2 != "") filtering[param.data.param1].until = val2;
         } else if (param.data.param1 == "published") {
             var value = encodeURIComponent($('#EventSearchpublished').val());
             if (value != "") filtering.published = value;
@@ -2346,19 +2449,21 @@ function indexRuleChange() {
     $('[id^=' + context + 'Search]').hide();
     var rule = $('#' + context + 'Rule').val();
     var fieldName = '#' + context + 'Search' + rule;
-    if (fieldName == '#' + context + 'Searchdate') {
+    if (fieldName === '#' + context + 'Searchdate' || fieldName === '#' + context + 'Searchtimestamp' || fieldName === '#' + context + 'Searchpublishtimestamp') {
         $(fieldName + 'from').show();
         $(fieldName + 'until').show();
     } else {
-        $(fieldName).show();
+        if ($(fieldName + '_chosen').length) {
+            $(fieldName + '_chosen').show();
+        } else {
+            $(fieldName).show();
+        }
     }
     if (simpleFilters.indexOf(rule) != -1) {
         $('#' + context + 'Searchbool').show();
     } else $('#' + context + 'Searchbool').hide();
 
-    $('#addRuleButton').show();
-    $('#addRuleButton').unbind("click");
-    $('#addRuleButton').click({param1: rule}, indexAddRule);
+    $('#addRuleButton').show().unbind("click").click({param1: rule}, indexAddRule);
 }
 
 function indexFilterClearRow(field) {
@@ -2367,6 +2472,12 @@ function indexFilterClearRow(field) {
     if (field == "date") {
         filtering.date.from = "";
         filtering.date.until = "";
+    } else if (field == "timestamp") {
+        filtering.timestamp.from = "";
+        filtering.timestamp.until = "";
+    } else if (field == "publishtimestamp") {
+        filtering.publishtimestamp.from = "";
+        filtering.publishtimestamp.until = "";
     } else if (field == "published") {
         filtering.published = 2;
     } else if (field == "hasproposal") {
@@ -2379,66 +2490,6 @@ function indexFilterClearRow(field) {
     }
     indexSetTableVisibility();
     indexEvaluateFiltering();
-}
-
-
-function restrictEventViewPagination() {
-    var showPages = new Array();
-    var start;
-    var end;
-    var i;
-
-    if (page < 6) {
-        start = 1;
-        if (count - page < 6) {
-            end = count;
-        } else {
-            end = page + (9 - (page - start));
-        }
-    } else if (count - page < 6) {
-        end = count;
-        start = count - 10;
-    } else {
-        start = page-5;
-        end = page+5;
-    }
-
-    if (start > 2) {
-        $("#apage" + start).parent().before("<li><a href id='aExpandLeft'>...</a></li>");
-        $("#aExpandLeft").click(function() {expandPagination(0, 0); return false;});
-        $("#bpage" + start).parent().before("<li><a href id='bExpandLeft'>...</a></li>");
-        $("#bExpandLeft").click(function() {expandPagination(1, 0); return false;})
-    }
-
-    if (end < (count - 1)) {
-        $("#apage" + end).parent().after("<li><a href id='aExpandRight'>...</a></li>");
-        $("#aExpandRight").click(function() {expandPagination(0, 1); return false;});
-        $("#bpage" + end).parent().after("<li><a href id='bExpandRight'>...</a></li>");
-        $("#bExpandRight").click(function() {expandPagination(1, 1); return false;})
-    }
-
-    for (i = 1; i < (count+1); i++) {
-        if (i != 1 && i != count && (i < start || i > end)) {
-            $("#apage" + i).hide();
-            $("#bpage" + i).hide();
-        }
-    }
-}
-
-function expandPagination(bottom, right) {
-    var i;
-    var prefix = "a";
-    if (bottom == 1) prefix = "b";
-    var start = 1;
-    var end = page;
-    if (right == 1) {
-        start = page;
-        end = count;
-        $("#" + prefix + "ExpandRight").remove();
-    } else $("#" + prefix + "ExpandLeft").remove();
-    for (i = start; i < end; i++) {
-        $("#" + prefix + "page" + i).show();
-    }
 }
 
 function getSubGroupFromSetting(setting) {
@@ -2457,20 +2508,14 @@ function serverSettingsActivateField(setting, id) {
     resetForms();
     $('.inline-field-placeholder').hide();
     var fieldName = "#setting_" + getSubGroupFromSetting(setting) + "_" + id;
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
-            $(fieldName + "_placeholder").html(data);
+        success: function (data) {
+            $(fieldName + "_placeholder").html(data).show();
             $(fieldName + "_solid").hide();
-            $(fieldName + "_placeholder").show();
             serverSettingsPostActivationScripts(fieldName, setting, id);
         },
-        url: baseurl + "/servers/serverSettingsEdit/" + setting + "/" + id,
+        url: "/servers/serverSettingsEdit/" + setting + "/" + id,
     });
 }
 
@@ -2509,33 +2554,42 @@ function serverSettingsPostActivationScripts(name, setting, id) {
 }
 
 function serverSettingSubmitForm(name, setting, id) {
-    subGroup = getSubGroupFromSetting(setting);
+    var subGroup = getSubGroupFromSetting(setting);
     var formData = $(name + '_field').closest("form").serialize();
     $.ajax({
         data: formData,
         cache: false,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
-        success:function (data, textStatus) {
+        success: function (data) {
+            if (!data.saved) {
+                $(".loading").hide();
+                showMessage('fail', data.errors);
+                resetForms();
+                $('.inline-field-placeholder').hide();
+                return;
+            }
+
             $.ajax({
-                type:"get",
+                type: "get",
                 url: baseurl + "/servers/serverSettingsReloadSetting/" + setting + "/" + id,
-                success:function (data2, textStatus2) {
+                success: function (data2) {
                     $('#' + subGroup + "_" + id + '_row').replaceWith(data2);
                     $(".loading").hide();
                 },
-                error:function() {
+                error: function() {
                     showMessage('fail', 'Could not refresh the table.');
                 }
             });
         },
-        error:function() {
+        error: function() {
+            $(".loading").hide();
             showMessage('fail', 'Request failed for an unknown reason.');
             resetForms();
             $('.inline-field-placeholder').hide();
         },
-        type:"post",
+        type: "post",
         url: baseurl + "/servers/serverSettingsEdit/" + setting + "/" + id + "/" + 1
     });
     $(name + '_field').unbind("keyup");
@@ -2589,16 +2643,18 @@ function popoverStartup() {
         $('[data-toggle="popover"]').not(e.target).popover('hide');
     });
     $(document).click(function (e) {
-        if (!$('[data-toggle="popover"]').is(e.target)) {
-            $('[data-toggle="popover"]').popover('hide');
+        var $popovers = $('[data-toggle="popover"]');
+        if (!$popovers.is(e.target)) {
+            $popovers.popover('hide');
         }
     });
 }
 
 function changeFreetextImportFrom() {
-    $('#changeTo').find('option').remove();
+    var $changeTo = $('#changeTo');
+    $changeTo.empty();
     options[$('#changeFrom').val()].forEach(function(element) {
-        $('#changeTo').append('<option value="' + element + '">' + element + '</option>');
+        $changeTo.append(new Option(element));
     });
 }
 
@@ -2610,8 +2666,10 @@ function changeFreetextImportExecute() {
     var from = $('#changeFrom').val();
     var to = $('#changeTo').val();
     $('.typeToggle').each(function() {
-        if ($( this ).val() == from) {
-            if (selectContainsOption("#" + $(this).attr('id'), to)) $( this ).val(to);
+        if ($(this).val() === from) {
+            if (selectContainsOption("#" + $(this).attr('id'), to)) {
+                $(this).val(to);
+            }
         }
     });
 }
@@ -2619,7 +2677,7 @@ function changeFreetextImportExecute() {
 function selectContainsOption(selectid, value) {
     var exists = false;
     $(selectid + ' option').each(function(){
-        if (this.value == value) {
+        if (this.value === value) {
             exists = true;
             return false;
         }
@@ -2650,12 +2708,11 @@ function importChoiceSelect(url, elementId, ajax) {
     }
 }
 
-function freetextImportResultsSubmit(id, count) {
+function freetextImportResultsSubmit(event_id, count) {
     var attributeArray = [];
-    var temp;
-    for (i = 0; i < count; i++) {
+    for (var i = 0; i < count; i++) {
         if ($('#Attribute' + i + 'Save').val() == 1) {
-            temp = {
+            attributeArray.push({
                 value:$('#Attribute' + i + 'Value').val(),
                 category:$('#Attribute' + i + 'Category').val(),
                 type:$('#Attribute' + i + 'Type').val(),
@@ -2667,30 +2724,30 @@ function freetextImportResultsSubmit(id, count) {
                 data:$('#Attribute' + i + 'Data').val(),
                 data_is_handled:$('#Attribute' + i + 'DataIsHandled').val(),
                 tags:$('#Attribute' + i + 'Tags').val()
-            }
-            attributeArray[attributeArray.length] = temp;
+            })
         }
-    };
+    }
     $("#AttributeJsonObject").val(JSON.stringify(attributeArray));
     var formData = $(".mainForm").serialize();
-    $.ajax({
+    xhr({
         type: "post",
-        cache: false,
-        url: baseurl + "/events/saveFreeText/" + id,
+        url: "/events/saveFreeText/" + event_id,
         data: formData,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            window.location = baseurl + '/events/view/' + id;
-        },
-        complete:function() {
-            $(".loading").hide();
+        success: function () {
+            window.location = baseurl + '/events/view/' + event_id;
         },
     });
 }
 
 function moduleResultsSubmit(id) {
+    var attributeValue = function ($attributeValue) {
+        if ($attributeValue.find("[data-full]").length) {
+            return $attributeValue.find("[data-full]").data('full');
+        } else {
+            return $attributeValue.text()
+        }
+    }
+
     var typesWithData = ['attachment', 'malware-sample'];
     var data_collected = {};
     var temp;
@@ -2705,7 +2762,7 @@ function moduleResultsSubmit(id) {
     }
     if ($('.MISPObject').length) {
         var objects = [];
-        $(".MISPObject").each(function(o) {
+        $(".MISPObject").each(function() {
             var object_uuid = $(this).find('.ObjectUUID').text();
             temp = {
                 uuid: object_uuid,
@@ -2734,6 +2791,12 @@ function moduleResultsSubmit(id) {
             if ($(this).has('.TemplateUUID').length) {
                 temp['template_uuid'] = $(this).find('.TemplateUUID').text();
             }
+            if ($(this).has('.ObjectFirstSeen').length) {
+                temp['first_seen'] = $(this).find('.ObjectFirstSeen').text();
+            }
+            if ($(this).has('.ObjectLastSeen').length) {
+                temp['last_seen'] = $(this).find('.ObjectLastSeen').text();
+            }
             if ($(this).has('.ObjectReference').length) {
                 var references = [];
                 $(this).find('.ObjectReference').each(function() {
@@ -2748,14 +2811,14 @@ function moduleResultsSubmit(id) {
             }
             if ($(this).find('.ObjectAttribute').length) {
                 var object_attributes = [];
-                $(this).find('.ObjectAttribute').each(function(a) {
+                $(this).find('.ObjectAttribute').each(function() {
                     var attribute_type = $(this).find('.AttributeType').text();
-                    attribute = {
+                    var attribute = {
                         import_attribute: $(this).find('.ImportMISPObjectAttribute')[0].checked,
                         object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
                         type: attribute_type,
-                        value: $(this).find('.AttributeValue').text(),
+                        value: attributeValue($(this).find('.AttributeValue')),
                         uuid: $(this).find('.AttributeUuid').text(),
                         to_ids: $(this).find('.AttributeToIds')[0].checked,
                         disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
@@ -2774,7 +2837,8 @@ function moduleResultsSubmit(id) {
                         $(this).find('.objectAttributeTag').each(function() {
                             tags.push({
                                 name: $(this).attr('title'),
-                                colour: rgb2hex($(this).css('background-color'))
+                                colour: rgb2hex($(this).css('background-color')),
+                                local: $(this).data('local'),
                             });
                         });
                         attribute['Tag'] = tags;
@@ -2797,7 +2861,7 @@ function moduleResultsSubmit(id) {
     }
     if ($('.MISPAttribute').length) {
         var attributes = [];
-        $('.MISPAttribute').each(function(a) {
+        $('.MISPAttribute').each(function() {
             var category_value;
             var type_value;
             if ($(this).find('.AttributeCategorySelect').length) {
@@ -2814,7 +2878,7 @@ function moduleResultsSubmit(id) {
                 import_attribute: $(this).find('.ImportMISPAttribute')[0].checked,
                 category: category_value,
                 type: type_value,
-                value: $(this).find('.AttributeValue').text(),
+                value: attributeValue($(this).find('.AttributeValue')),
                 uuid: $(this).find('.AttributeUuid').text(),
                 to_ids: $(this).find('.AttributeToIds')[0].checked,
                 disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
@@ -2833,7 +2897,8 @@ function moduleResultsSubmit(id) {
                 $(this).find('.attributeTag').each(function() {
                     tags.push({
                         name: $(this).attr('title'),
-                        colour: rgb2hex($(this).css('background-color'))
+                        colour: rgb2hex($(this).css('background-color')),
+                        local: $(this).data('local'),
                     });
                 });
                 temp['Tag'] = tags;
@@ -2850,41 +2915,45 @@ function moduleResultsSubmit(id) {
         });
         data_collected['Attribute'] = attributes;
     }
+    if ($('.MISPEventReport').length) {
+        var reports = [];
+        $('.MISPEventReport').each(function() {
+            temp = {
+                import_report: $(this).find('.ImportMISPEventReport')[0].checked,
+                name: $(this).find('.EventReportName').text(),
+                content: $(this).find('.EventReportContent').text(),
+                uuid: $(this).find('.EventReportUUID').text(),
+                distribution: $(this).find('.EventReportDistribution').val(),
+                sharing_group_id: $(this).find('.EventReportSharingGroup').val()
+            }
+            if (temp['import_report']) {
+                reports.push(temp);
+            }
+        });
+        data_collected['EventReport'] = reports;
+    }
     $("#EventJsonObject").val(JSON.stringify(data_collected));
     var formData = $('.mainForm').serialize();
-    $.ajax({
+    xhr({
         type: "post",
-        cache: false,
-        url: baseurl + "/events/handleModuleResults/" + id,
+        url: "/events/handleModuleResults/" + id,
         data: formData,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
+        success: function () {
             window.location = baseurl + '/events/view/' + id;
         },
-        complete:function() {
-            $(".loading").hide();
-        }
     });
 }
 
 function objectTemplateViewContent(context, id) {
-    var url = baseurl + "/objectTemplateElements/viewElements/" + id + "/" + context;
-    $.ajax({
-            url: url,
-            type:'GET',
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
+    var url = "/objectTemplateElements/viewElements/" + id + "/" + context;
+    xhr({
+        url: url,
+        type:'GET',
+        error: function(){
+            $('#ajaxContent').html('An error has occurred, please reload the page.');
         },
-            error: function(){
-                $('#ajaxContent').html('An error has occured, please reload the page.');
-            },
-            success: function(response){
-                $('#ajaxContent').html(response);
-            },
-        complete: function() {
-            $(".loading").hide();
+        success: function(response){
+            $('#ajaxContent').html(response);
         },
     });
 
@@ -2892,27 +2961,22 @@ function objectTemplateViewContent(context, id) {
 
 function organisationViewContent(context, id) {
     organisationViewButtonHighlight(context);
-    var action = "/organisations/landingpage/";
-    if (context == 'members') {
+    var action;
+    if (context === 'members') {
         action = "/admin/users/index/searchorg:";
-    }
-    if (context == 'events') {
+    } else if (context === 'events') {
         action = "/events/index/searchorg:";
+    } else if (context === 'sharing_groups') {
+        action = "/sharing_groups/index/searchorg:";
     }
-    $.ajax({
-        url: baseurl + action + id,
+    xhr({
+        url: action + id,
         type:'GET',
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
         error: function(){
-            $('#ajaxContent').html('An error has occured, please reload the page.');
+            $('#ajaxContent').html('An error has occurred, please reload the page.');
         },
         success: function(response){
             $('#ajaxContent').html(response);
-        },
-        complete: function() {
-            $(".loading").hide();
         },
     });
 }
@@ -3118,15 +3182,16 @@ function cancelPicklistValues() {
 
 function sgSubmitForm(action) {
     var ajax = {
-            'organisations': organisations,
-            'servers': servers,
-            'sharingGroup': {
-                'name': $('#SharingGroupName').val(),
-                'releasability': $('#SharingGroupReleasability').val(),
-                'description': $('#SharingGroupDescription').val(),
-                'active': $('#SharingGroupActive').is(":checked"),
-                'roaming': $('#SharingGroupRoaming').is(":checked"),
-            }
+        'organisations': organisations,
+        'servers': servers,
+        'sharingGroup': {
+            'uuid': $('#SharingGroupUuid').val(),
+            'name': $('#SharingGroupName').val(),
+            'releasability': $('#SharingGroupReleasability').val(),
+            'description': $('#SharingGroupDescription').val(),
+            'active': $('#SharingGroupActive').is(":checked"),
+            'roaming': $('#SharingGroupRoaming').is(":checked"),
+        }
     };
     $('#SharingGroupJson').val(JSON.stringify(ajax));
     var formName = "#SharingGroup" + action + "Form";
@@ -3188,6 +3253,7 @@ function sharingGroupPopulateFromJson() {
     }
     $('#SharingGroupName').attr('value', jsonparsed.sharingGroup.name);
     $('#SharingGroupReleasability').attr('value', jsonparsed.sharingGroup.releasability);
+    $('#SharingGroupUuid').attr('value', jsonparsed.sharingGroup.uuid);
     $('#SharingGroupDescription').text(jsonparsed.sharingGroup.description);
 }
 
@@ -3204,7 +3270,7 @@ function runOnDemandAction(element, url, target, postFormField) {
         url: url,
         type: type,
         data: data,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(elementContainer).html('Running...');
         },
         error: function(response) {
@@ -3247,26 +3313,27 @@ function getRemoteSyncUser(id) {
     var resultContainer = $("#sync_user_test_" + id);
     $.ajax({
         url: baseurl + '/servers/getRemoteUser/' + id,
-        type:'GET',
-        beforeSend: function (XMLHttpRequest) {
-            resultContainer.html('Running test...');
+        type: 'GET',
+        beforeSend: function () {
+            resultContainer.text('Running test...');
         },
-        error: function(){
-            resultContainer.html('Internal error.');
+        error: function() {
+            resultContainer.html('<span class="red bold">Internal error</span>');
         },
         success: function(response) {
-            if (typeof(response.message) != 'undefined') {
-                resultContainer.empty();
+            resultContainer.empty();
+            if (typeof response !== 'object') {
+                resultContainer.html('<span class="red bold">Internal error</span>');
+            } else if ("error" in response) {
                 resultContainer.append(
                     $('<span>')
-                    .attr('class', 'red bold')
-                    .text('Error')
+                        .attr('class', 'red bold')
+                        .text('Error')
                 ).append(
                     $('<span>')
-                    .text(': #' + response.message)
+                        .text(': #' + response.error)
                 );
             } else {
-                resultContainer.empty();
                 Object.keys(response).forEach(function(key) {
                     var value = response[key];
                     resultContainer.append(
@@ -3281,7 +3348,6 @@ function getRemoteSyncUser(id) {
                     );
                 });
             }
-            var result = response;
         }
     });
 }
@@ -3289,22 +3355,51 @@ function getRemoteSyncUser(id) {
 function testConnection(id) {
     $.ajax({
         url: baseurl + '/servers/testConnection/' + id,
-        type:'GET',
-        beforeSend: function (XMLHttpRequest) {
+        type: 'GET',
+        beforeSend: function () {
             $("#connection_test_" + id).html('Running test...');
         },
         error: function(){
-            $("#connection_test_" + id).html('Internal error.');
+            $("#connection_test_" + id).html('<span class="red bold">Internal error</span>');
         },
-        success: function(response){
-            var result = response;
+        success: function(result) {
+            function line(name, value, valid) {
+                var $value = $('<span></span>').text(value);
+                if (valid === true) {
+                    $value.addClass('green');
+                } else if (valid === false) {
+                    $value.addClass('red');
+                } else if (valid) {
+                    $value.addClass(valid);
+                }
+                return $('<div></div>').text(name + ': ').append($value).html() + '<br>';
+            }
+
+            var html = '';
+
+            if (result.client_certificate) {
+                var cert = result.client_certificate;
+                html += '<span class="bold">Client certificate:</span><br>';
+                if (cert.error) {
+                    html += '<span class="red bold">Error: ' + cert.error + '</span><br>';
+                } else {
+                    html += line("Subject", cert.subject);
+                    html += line("Issuer", cert.issuer);
+                    html += line("Serial number", cert.serial_number);
+                    html += line("Valid from", cert.valid_from, cert.valid_from_ok);
+                    html += line("Valid to", cert.valid_to, cert.valid_to_ok);
+                    html += line("Public key", cert.public_key_type + ' (' + cert.public_key_size + ' bits)', cert.public_key_size_ok);
+                }
+                html += "<br>";
+            }
+
             switch (result.status) {
             case 1:
-                status_message = "OK";
-                compatibility = "Compatible";
-                compatibility_colour = "green";
-                colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
-                issue_colour = "red";
+                var status_message = "OK";
+                var compatibility = "Compatible";
+                var compatibility_colour = "green";
+                var colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
+                var issue_colour = "red";
                 if (result.mismatch == "hotfix") issue_colour = "orange";
                 if (result.newer == "local") {
                     colours.remote = 'class="' + issue_colour + '"';
@@ -3330,6 +3425,7 @@ function testConnection(id) {
                     else status_message = "Remote outdated, notify admin!"
                     colours.status = 'class="' + issue_colour + '"';
                 }
+                var post_result;
                 if (result.post != false) {
                     var post_colour = "red";
                     if (result.post == 1) {
@@ -3346,36 +3442,36 @@ function testConnection(id) {
                         post_result = "Remote too old for this test";
                     }
                 }
-                resultDiv = '<div>Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
-                resultDiv += '<div>Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
-                resultDiv += '<div>Status: <span ' + colours.status + '>' + status_message + '</span><br />';
-                resultDiv += '<div>Compatiblity: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
-                resultDiv += '<div>POST test: <span class="' + post_colour + '">' + post_result + '</span><br />';
-                $("#connection_test_" + id).html(resultDiv);
-                //$("#connection_test_" + id).html('<span class="green bold" title="Connection established, correct response received.">OK</span>');
+                html += line('Local version', result.local_version, colours.local);
+                html += line('Remote version', result.version, colours.remote);
+                html += line('Status', status_message, colours.status);
+                html += line('Compatibility', compatibility, compatibility_colour);
+                html += line('POST test', post_result, post_colour);
                 break;
             case 2:
-                $("#connection_test_" + id).html('<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>');
+                html += '<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>';
                 break;
             case 3:
-                $("#connection_test_" + id).html('<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error</span>');
+                html += '<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error</span>';
                 break;
             case 4:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>');
+                html += '<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>';
                 break;
             case 5:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>');
+                html += '<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>';
                 break;
             case 6:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>');
+                html += '<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>';
                 break;
             case 7:
-                $("#connection_test_" + id).html('<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>');
+                html += '<span class="orange bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user, only pulling events is available.</span>';
                 break;
             case 8:
-                $("#connection_test_" + id).html('<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, syncing sightings only</span>');
+                html += '<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, only pulling events is available. Pushing availale for sightings only</span>';
                 break;
             }
+
+            $("#connection_test_" + id).html(html);
         }
     })
 }
@@ -3396,21 +3492,12 @@ function getTextColour(hex) {
 function gpgSelect(fingerprint) {
     $("#popover_form").fadeOut();
     $("#gray_out").fadeOut();
-    $.ajax({
+    xhr({
         type: "get",
-        url: baseurl + "/users/fetchGpgKey/" + fingerprint,
-        beforeSend: function () {
-            $(".loading").show();
-        },
+        url: "/users/fetchGpgKey/" + fingerprint,
         success: function (data) {
             $("#UserGpgkey").val(data);
             showMessage('success', "Key found!");
-        },
-        error: function (data, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
-        },
-        complete: function () {
-            $(".loading").hide();
         },
     });
 }
@@ -3421,23 +3508,15 @@ function lookupPGPKey(emailFieldName) {
 }
 
 function zeroMQServerAction(action) {
-    $.ajax({
+    xhr({
         type: "get",
-        url: baseurl + "/servers/" + action + "ZeroMQServer/",
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+        url: "/servers/" + action + "ZeroMQServer/",
         success: function (data) {
-            $(".loading").hide();
             if (action !== 'status') {
                 window.location.reload();
             } else {
-                $("#confirmation_box").html(data);
-                openPopup("#confirmation_box");
+                openConfirmation(data);
             }
-        },
-        error: function (data, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
         }
     });
 }
@@ -3449,7 +3528,7 @@ function convertServerFilterRules(rules) {
             rules[type] = JSON.parse($(container).val());
         } else {
             if (type === 'pull') {
-                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "url_params": ""}
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "type_attributes": {"NOT": []}, "type_objects": {"NOT": []}, "url_params": ""}
             } else {
                 rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}
             }
@@ -3463,24 +3542,35 @@ function serverRuleUpdate() {
     var statusOptions = ["OR", "NOT"];
     validOptions.forEach(function(type) {
         validFields.forEach(function(field) {
-            if (type === 'push') {
-                var indexedList = {};
-                window[field].forEach(function(item) {
-                    indexedList[item.id] = item.name;
-                });
+            var indexedList = {};
+            if (type === 'push' || field == 'type_objects') {
+                if (window[field] !== undefined) {
+                    window[field].forEach(function(item) {
+                        indexedList[item.id] = item.name;
+                    });
+                }
             }
             statusOptions.forEach(function(status) {
-                if (rules[type][field][status].length > 0) {
-                    $('#' + type + '_' + field + '_' + status).show();
-                    var t = '';
-                    rules[type][field][status].forEach(function(item) {
-                        if (t.length > 0) t += ', ';
-                        if (type === 'pull') t += item;
-                        else t += indexedList[item];
-                    });
-                    $('#' + type + '_' + field + '_' + status + '_text').text(t);
-                } else {
-                    $('#' + type + '_' + field + '_' + status).hide();
+                if (rules[type][field] !== undefined && rules[type][field][status] !== undefined) {
+                    if (rules[type][field][status].length > 0) {
+                        $('#' + type + '_' + field + '_' + status).show();
+                        var t = '';
+                        rules[type][field][status].forEach(function(item) {
+                            if (t.length > 0) t += ', ';
+                            if (type === 'pull') {
+                                if (indexedList[item] !== undefined) {
+                                    t += indexedList[item];
+                                } else {
+                                    t += item;
+                                }
+                            } else {
+                                t += indexedList[item] !== undefined ? indexedList[item] : item;
+                            }
+                        });
+                        $('#' + type + '_' + field + '_' + status + '_text').text(t);
+                    } else {
+                        $('#' + type + '_' + field + '_' + status).hide();
+                    }
                 }
             });
         });
@@ -3496,18 +3586,6 @@ function serverRuleUpdate() {
     serverRuleGenerateJSON();
 }
 
-function serverRuleFormActivate(type) {
-    if (type != 'pull' && type != 'push') return false;
-    $('.server_rule_popover').hide();
-    $('#gray_out').fadeIn();
-    $('#server_' + type + '_rule_popover').show();
-}
-
-function serverRuleCancel() {
-    $("#gray_out").fadeOut();
-    $(".server_rule_popover").fadeOut();
-}
-
 function serverRuleGenerateJSON() {
     validOptions.forEach(function(type) {
         if ($('#Server' + type.ucfirst() + "Rules").length) {
@@ -3518,93 +3596,16 @@ function serverRuleGenerateJSON() {
     });
 }
 
-function serverRulePopulateTagPicklist() {
-    var fields = ["tags", "orgs"];
-    var target = "";
-    fields.forEach(function(field) {
-        target = "";
-        window[field].forEach(function(element) {
-            if ($.inArray(element.id, rules["push"][field]["OR"]) != -1) target = "#" + field + "pushLeftValues";
-            else if ($.inArray(element.id, rules["push"][field]["NOT"]) != -1) target = "#" + field + "pushRightValues";
-            else target = "#" + field + "pushMiddleValues";
-            $(target).append($('<option/>', {
-                value: element.id,
-                text : element.name
-            }));
-        });
-        target = "#" + field + "pullLeftValues";
-        rules["pull"][field]["OR"].forEach(function(t) {
-            $(target).append($('<option/>', {
-                value: t,
-                text : t
-            }));
-        });
-        target = "#" + field + "pullRightValues";
-        rules["pull"][field]["NOT"].forEach(function(t) {
-            $(target).append($('<option/>', {
-                value: t,
-                text : t
-            }));
-        });
-    });
-    $('#urlParams').val(rules["pull"]["url_params"]);
-}
-
-function submitServerRulePopulateTagPicklistValues(context) {
+function serverRulesUpdateState(context) {
+    var $rootContainer = $('.server-rule-container-' + context)
     validFields.forEach(function(field) {
-        rules[context][field]["OR"] = [];
-        $("#" + field + context + "LeftValues option").each(function() {
-            rules[context][field]["OR"].push($(this).val());
-        });
-        rules[context][field]["NOT"] = [];
-        $("#" + field + context + "RightValues option").each(function() {
-            rules[context][field]["NOT"].push($(this).val());
-        });
-    });
+        var $fieldContainer = $rootContainer.find('.scope-' + field)
+        rules[context][field] = $fieldContainer.data('rules')
+    })
     if (context === 'pull') {
-        rules[context]["url_params"] = $('#urlParams').val();
+        rules[context]["url_params"] = $rootContainer.find('textarea#urlParams').val();
     }
-    $('#server_' + context + '_rule_popover').fadeOut();
-    $('#gray_out').fadeOut();
     serverRuleUpdate();
-}
-
-// type = pull/push, field = tags/orgs, from = Left/Middle/Right, to = Left/Middle/Right
-function serverRuleMoveFilter(type, field, from, to) {
-    var opposites = {"Left": "Right", "Right": "Left"};
-    // first fetch the value
-    var value = "";
-    if (type == "pull" && from == "Middle") {
-        var doInsert = true;
-        value = $("#" + field + type + "NewValue").val();
-        if (value.length !== 0 && value.trim()) {
-            $("#" + field + type + to + "Values" + " option").each(function() {
-                if (value == $(this).val()) doInsert = false;
-            });
-            $("#" + field + type + opposites[to] + "Values" + " option").each(function() {
-                if (value == $(this).val()) $(this).remove();
-            });
-            if (doInsert) {
-                $("#" + field + type + to + "Values").append($('<option/>', {
-                    value: value,
-                    text : value
-                }));
-            }
-        }
-        $("#" + field + type + "NewValue").val('');
-    } else {
-        $("#" + field + type + from + "Values option:selected").each(function () {
-            if (type != "pull" || to != "Middle") {
-                value = $(this).val();
-                text = $(this).text();
-                $("#" + field + type + to + "Values").append($('<option/>', {
-                    value: value,
-                    text : text
-                }));
-            }
-            $(this).remove();
-        });
-    }
 }
 
 function syncUserSelected() {
@@ -3615,100 +3616,184 @@ function syncUserSelected() {
     }
 }
 
-function filterAttributes(filter, id) {
-    var url = baseurl + "/events/viewEventAttributes/" + id;
-    if(filter === 'value'){
-        filter = encodeURIComponent($('#quickFilterField').val().trim());
-        url += filter.length > 0 ? "/searchFor:" + filter : "";
-    } else if(filter !== 'all') {
-        url += "/attributeFilter:" + filter
-        filter = encodeURIComponent($('#quickFilterField').val().trim());
-        url += filter.length > 0 ? "/searchFor:" + filter : "";
-    }
-    if (deleted) url += '/deleted:true';
-    $.ajax({
-        type: "get",
-        url: url,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data) {
-            $("#attributes_div").html(data);
-            $(".loading").hide();
-        },
-        error:function() {
-            showMessage('fail', 'Something went wrong - could not fetch attributes.');
+function eventIndexColumnsToggle(columnName) {
+    xhr({
+        url: "/userSettings/eventIndexColumnToggle/" + columnName,
+        method: "post",
+        success: function () {
+            window.location.reload(); // update page
         }
     });
+}
+
+// Find object or attribute by UUID on current page
+function findObjectByUuid(uuid) {
+    var $tr = null;
+    $('#attributeList tr').each(function () {
+        var trId = $(this).attr('id');
+        if (trId && (trId.startsWith("Object") || trId.startsWith("Attribute") || trId.startsWith('proposal'))) {
+            var objectUuid = $('.uuid', this).text().trim();
+            if (objectUuid === uuid) {
+                $tr = $(this);
+                return false;
+            }
+        }
+    });
+    return $tr;
+}
+
+function focusObjectByUuid(uuid) {
+    var $tr = findObjectByUuid(uuid);
+    if (!$tr) {
+        return false;
+    }
+
+    $([document.documentElement, document.body]).animate({
+        scrollTop: $tr.offset().top - 45, // 42px is #topBar size, so make little bit more space
+    }, 1000, null, function () {
+        $tr.fadeTo(100, 0.3, function () { // blink active row
+            $(this).fadeTo(500, 1.0);
+        });
+        $tr.focus();
+    });
+    return true;
 }
 
 function pivotObjectReferences(url, uuid) {
-    url += '/focus:' + uuid;
-    $.ajax({
-        type:"get",
-        url:url,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success: function (data) {
-            $("#attributes_div").html(data);
-        },
-        error: function() {
-            showMessage('fail', 'Something went wrong - could not fetch attributes.');
-        },
-        complete: function() {
-            $(".loading").hide();
-        }
-    });
+    if (focusObjectByUuid(uuid)) {
+        return; // object is on the same page, we don't need to reload page
+    }
+    fetchAttributes(currentUri, {"focus": uuid});
 }
 
-function toggleBoolFilter(url, param) {
+// Attribute filtering
+function filterAttributes(filter) {
+    var data;
+    if (filter === 'value') {
+        filter = $('#quickFilterField').val().trim();
+        data = {"searchFor": filter}
+    } else if (filter === 'all') {
+        $('#quickFilterField').val(''); // clear input value
+        data = {}
+    } else {
+        data = {"attributeFilter": filter}
+        filter = $('#quickFilterField').val().trim();
+        if (filter.length) {
+            data["searchFor"] = filter;
+        }
+    }
+    fetchAttributes(currentUri, data);
+}
+
+function toggleBoolFilter(param) {
     if (querybuilderTool === undefined) {
         triggerEventFilteringTool(true); // allows to fetch rules
     }
     var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
     var res = cleanRules(rules);
-    Object.keys(res).forEach(function(k) {
-        if (url.indexOf(k) > -1) { // delete url rule (will be replaced by query builder value later on)
-            var replace = '\/' + k + ".+/?";
-            var re = new RegExp(replace,"i");
-            url = url.replace(re, '');
-        }
-    });
+
     if (res[param] !== undefined) {
-        if (param == 'deleted') {
-            res[param] = res[param] == 0 ? 2 : 0;
-        } else {
-            res[param] = res[param] == 0 ? 1 : 0;
-        }
+        res[param] = res[param] == 0 ? 1 : 0;
     } else {
-        if (param == 'deleted') {
-            res[param] = 0;
+        res[param] = 1;
+    }
+    fetchAttributes(currentUri, res);
+}
+
+function recursiveInject(result, rules) {
+    if (rules.rules === undefined) { // add to result
+        var field = rules.field;
+        var value = rules.value;
+        if (result.hasOwnProperty(field)) {
+            if (Array.isArray(result[field])) {
+                result[field].push(value);
+            } else {
+                result[field] = [result[field], value];
+            }
         } else {
-            res[param] = 1;
+            result[field] = value;
         }
     }
+    else if (Array.isArray(rules.rules)) {
+        rules.rules.forEach(function(subrules) {
+            recursiveInject(result, subrules);
+        });
+    }
+}
 
-    url += buildFilterURL(res);
-    url = url.replace(/view\//i, 'viewEventAttributes/');
-    $.ajax({
-        type: "get",
-        url: url,
-        beforeSend: function () {
-            $(".loading").show();
-        },
-        complete: function () {
-            $(".loading").hide();
-        },
-        success:function (data) {
-            $("#attributes_div").html(data);
-            querybuilderTool = undefined;
-
-        },
-        error:function() {
-            showMessage('fail', 'Something went wrong - could not fetch attributes.');
+function cleanRules(rules) {
+    var res = {};
+    recursiveInject(res, rules);
+    // clean up invalid and unset
+    Object.keys(res).forEach(function(k) {
+        var v = res[k];
+        if (v === undefined || v === '') {
+            delete res[k];
         }
     });
+    return res;
+}
+
+function performQuery(rules) {
+    var res = cleanRules(rules);
+    fetchAttributes(currentUri, res);
+}
+
+function setAttributeFilter(field, value) {
+    if (querybuilderTool === undefined) {
+        triggerEventFilteringTool(true); // allows to fetch rules
+    }
+    var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
+
+    var found = false
+    $.each(rules.rules, function (index, rule) {
+        if (rule.field === field) {
+            rule.value = value;
+            found = true;
+        }
+    });
+    if (!found) {
+        rules.rules.push({"field": field, "value": value})
+    }
+    performQuery(rules);
+}
+
+function fetchAttributes(url, data) {
+    var options = {
+        type: "get",
+        url: url,
+        success: function (data) {
+            $("#attributes_div").html(data);
+        },
+        error: function() {
+            showMessage('fail', 'Something went wrong - could not fetch attributes.');
+        }
+    };
+    if (data !== undefined) {
+        // Cleanup URL from rules that has default value or are part of POST request
+        for (var param in data) {
+            if (defaultFilteringRules[param] == data[param]) {
+                delete data[param];
+            }
+        }
+
+        // delete url rules thats are part of default rules
+        Object.keys(defaultFilteringRules).forEach(function (param) {
+            if (url.indexOf(param) > -1) {
+                var replace = '\/' + param + ".+/?";
+                var re = new RegExp(replace,"i");
+                url = url.replace(re, '');
+            }
+        });
+
+        if (!$.isEmptyObject(data)) {
+            options["type"] = "post";
+            options["data"] = data;
+        }
+        options["url"] = url;
+    }
+
+    xhr(options);
 }
 
 function mergeOrganisationUpdate() {
@@ -3764,111 +3849,137 @@ function toggleSettingSubGroup(group) {
     $('.subGroup_' + group).toggle();
 }
 
-function runHoverLookup(type, id) {
-    $.ajax({
-        success:function (html) {
-            ajaxResults["hover"][type + "_" + id] = html;
-            var element = $('#' + type + '_' + id + '_container');
-            element.popover({
-                title: attributeHoverTitle(id, type),
-                content: html,
-                placement: attributeHoverPlacement(element),
-                html: true,
-                trigger: 'manual',
-                container: 'body'
-            }).popover('show');
-            $('#' + currentPopover).popover('destroy');
-            currentPopover = type + '_' + id + '_container'
-        },
-        cache: false,
-        url: baseurl + "/attributes/hoverEnrichment/" + id,
-    });
-}
-
-$(".cortex-json").click(function() {
-    var cortex_data = $(this).data('cortex-json');
-    cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-    var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-    popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-
-});
-
-// add the same as below for click popup
-$(document).on( "click", ".eventViewAttributePopup", function() {
-    $('#popover_box').empty();
-    type = $(this).attr('data-object-type');
-    id = $(this).attr('data-object-id');
-    if (!(type + "_" + id in ajaxResults["persistent"])) {
-        $.ajax({
-            success:function (html) {
-                ajaxResults["persistent"][type + "_" + id] = html;
-            },
-            async: false,
-            cache: false,
-            url: baseurl + "/attributes/hoverEnrichment/" + id + "/1",
-        });
-    }
-    if (type + "_" + id in ajaxResults["persistent"]) {
-        var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
-        enrichment_popover += '<div class="close-icon useCursorPointer popup-close-icon" onClick="closeScreenshot();"></div>';
-        $('#popover_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
-        $('#popover_box').show();
-        $("#gray_out").fadeIn();
-        $('#popover_box').css({'padding': '5px'});
-        $('#popover_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
-        $('#popover_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
-        $('#popover_box').css( "overflow-y", "auto");
-
-        var left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
-        $('#popover_box').css({'left': left + 'px'});
-    }
-    $('#' + currentPopover).popover('destroy');
-});
-
-function flashErrorPopover() {
-    $('#popover_form').css( "minWidth", "200px");
-    $('#popover_form').html($('#flashErrorMessage').html());
-    $('#popover_form').show();
-    var left = ($(window).width() / 2) - ($('#popover_form').width() / 2);
-    $('#popover_form').css({'left': left + 'px'});
-    $("#gray_out").fadeIn();
-}
+// Hover enrichment
+var hoverEnrichmentPopoverTimer;
 
 function attributeHoverTitle(id, type) {
-  return '<span>Lookup results:</span>\
+    return '<span>Lookup results:</span>\
 		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup"\
 				style="float: right;"\
-				data-object-id="${id}"\
-				data-object-type="${type}">\
+				data-object-id="' + id + '"\
+				data-object-type="' +  type + '">\
 	</i>';
 }
 
 function attributeHoverPlacement(element) {
-  var offset = element.offset(),
-    topOffset = offset.top - $(window).scrollTop(),
-    left = offset.left - $(window).scrollLeft(),
-    viewportHeight = window.innerHeight,
-    viewportWidth = window.innerWidth,
-    horiz = 0.5 * viewportWidth - left,
-    horizPlacement = horiz > 0 ? 'right' : 'left',
-    popoverMaxHeight = .75 * viewportHeight;
+    var offset = element.offset(),
+        topOffset = offset.top - $(window).scrollTop(),
+        left = offset.left - $(window).scrollLeft(),
+        viewportHeight = window.innerHeight,
+        viewportWidth = window.innerWidth,
+        horiz = 0.5 * viewportWidth - left,
+        horizPlacement = horiz > 0 ? 'right' : 'left',
+        popoverMaxHeight = .75 * viewportHeight;
 
-  // default to top placement
-  var placement = topOffset - popoverMaxHeight > 0 ? 'top' : horizPlacement;
+    // default to top placement
+    var placement = topOffset - popoverMaxHeight > 0 ? 'top' : horizPlacement;
 
-  // more space on bottom
-  if (topOffset < .5 * viewportHeight) {
-    // will popup fit on bottom
-    placement = popoverMaxHeight < topOffset ? 'bottom' : horizPlacement;
-  }
+    // more space on bottom
+    if (topOffset < .5 * viewportHeight) {
+        // will popup fit on bottom
+        placement = popoverMaxHeight < topOffset ? 'bottom' : horizPlacement;
+    }
 
-  return placement;
+    return placement;
 }
 
-$('body').on('click', function (e) {
+function showHoverEnrichmentPopover(type, id) {
+    var html = ajaxResults["hover"][type + "_" + id];
+    var element = $('#' + type + '_' + id + '_container');
+    element.popover({
+        title: attributeHoverTitle(id, type),
+        content: html,
+        placement: attributeHoverPlacement(element),
+        html: true,
+        trigger: 'manual',
+        container: 'body'
+    }).popover('show');
+    if (currentPopover !== undefined && currentPopover !== '') {
+        $('#' + currentPopover).popover('destroy');
+    }
+    currentPopover = type + '_' + id + '_container'
+}
+
+$(document.body).on('mouseenter', '.eventViewAttributeHover', function () {
+    if (currentPopover !== undefined && currentPopover !== '') {
+        $('#' + currentPopover).popover('destroy');
+        currentPopover = '';
+    }
+    var type = $(this).attr('data-object-type');
+    var id = $(this).attr('data-object-id');
+
+    if (type + "_" + id in ajaxResults["hover"]) {
+        showHoverEnrichmentPopover(type, id);
+    } else {
+        hoverEnrichmentPopoverTimer = setTimeout(function () {
+                $.ajax({
+                    success: function (html) {
+                        ajaxResults["hover"][type + "_" + id] = html;
+                        showHoverEnrichmentPopover(type, id);
+                    },
+                    cache: false,
+                    url: baseurl + "/attributes/hoverEnrichment/" + id,
+                });
+            },
+            500
+        );
+    }
+}).on('mouseout', '.eventViewAttributeHover', function () {
+    clearTimeout(hoverEnrichmentPopoverTimer);
+});
+
+function showEnrichmentPopover(type, id) {
+    var $popoverBox = $('#popover_box');
+    $popoverBox.empty();
+    var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
+    enrichment_popover += '<div class="close-icon useCursorPointer popup-close-icon" onClick="closeScreenshot();"></div>';
+    $popoverBox.html(enrichment_popover);
+    $popoverBox.show();
+    $("#gray_out").fadeIn();
+
+    let maxWidth = ($(window).width() * 0.9 | 0);
+    if (maxWidth > 1400) { // limit popover width to 1400 px
+        maxWidth = 1400;
+    }
+    $popoverBox.css({
+        'padding': '5px',
+        'max-width': maxWidth + "px",
+        'min-width': '700px',
+        'height': ($(window).height() - 300 | 0) + "px",
+        'background-color': 'white',
+    });
+
+    var left = ($(window).width() / 2) - ($popoverBox.width() / 2);
+    $popoverBox.css({'left': left + 'px'});
+
+    if (currentPopover !== undefined && currentPopover !== '') {
+        $('#' + currentPopover).popover('destroy');
+    }
+}
+
+// add the same as below for click popup
+$(document).on("click", ".eventViewAttributePopup", function() {
+    clearTimeout(hoverEnrichmentPopoverTimer); // stop potential popover loading
+
+    var type = $(this).attr('data-object-type');
+    var id = $(this).attr('data-object-id');
+    if (!(type + "_" + id in ajaxResults["persistent"])) { // not in cache
+        xhr({
+            success: function (html) {
+                ajaxResults["persistent"][type + "_" + id] = html; // save to cache
+                showEnrichmentPopover(type, id);
+            },
+            url: "/attributes/hoverEnrichment/" + id + "/1",
+        });
+    } else {
+        showEnrichmentPopover(type, id);
+    }
+});
+
+$(document.body).on('click', function (e) {
   $('[data-toggle=popover]').each(function () {
     // hide any open popovers when the anywhere else in the body is clicked
-    if (typeof currentPopover !== 'undefined') {
+    if (typeof currentPopover !== 'undefined' && currentPopover !== '') {
         if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
           $('#' + currentPopover).popover('destroy');
         }
@@ -3886,15 +3997,10 @@ function serverOwnerOrganisationChange(host_org_id) {
 }
 
 function requestAPIAccess() {
-    url = baseurl + "/users/request_API/";
-    $.ajax({
+    xhr({
         type:"get",
-        url:url,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+        url: "/users/request_API/",
         success:function (data) {
-            $(".loading").hide();
             handleGenericAjaxResponse(data);
         },
         error:function() {
@@ -3903,35 +4009,20 @@ function requestAPIAccess() {
     });
 }
 
-function initPopoverContent(context) {
-    for (var property in formInfoFields) {
-        if (formInfoFields.hasOwnProperty(property)) {
-            $('#' + property + 'InfoPopover').popover("destroy").popover({
-                placement: 'right',
-                html: 'true',
-                trigger: 'hover',
-                content: getFormInfoContent(property, '#' + context + formInfoFields[property])
-            });
-        }
-    }
-}
-
 function checkSharingGroup(context) {
+    var $sharingGroupSelect = $('#' + context + 'SharingGroupId');
     if ($('#' + context + 'Distribution').val() == 4) {
-        $('#' + context + 'SharingGroupId').show();
-        $('#' + context + 'SharingGroupId').closest("div").show();
-    } else {
-        $('#' + context + 'SharingGroupId').hide();
-        $('#' + context + 'SharingGroupId').closest("div").hide();
-    }
-}
+        $sharingGroupSelect.show();
+        $sharingGroupSelect.closest("div").show();
 
-function getFormInfoContent(property, field) {
-    var content = window[property + 'FormInfoValues'][$(field).val()];
-    if (content === undefined || content === null) {
-        return 'N/A';
+        // For sharing group select with more than 10 items, use chosen
+        if ($sharingGroupSelect.find('option').length > 10) {
+            $sharingGroupSelect.chosen();
+        }
+    } else {
+        $sharingGroupSelect.hide();
+        $sharingGroupSelect.closest("div").hide();
     }
-    return content;
 }
 
 function formCategoryChanged(id) {
@@ -3940,21 +4031,45 @@ function formCategoryChanged(id) {
     var alreadySelected = $type.val();
     var options = $type.prop('options');
     $('option', $type).remove();
-    $.each(category_type_mapping[$('#' + id + 'Category').val()], function(val, text) {
-        options[options.length] = new Option(text, val);
-        if (val === alreadySelected) {
-            options[options.length-1].selected = true;
+
+    var selectedCategory = $('#' + id + 'Category').val();
+    var optionsToPush;
+    if (selectedCategory === "") { // if no category is selected, insert all attribute types
+        optionsToPush = {};
+        for (var category in category_type_mapping) {
+            for (var index in category_type_mapping[category]) {
+                var type = category_type_mapping[category][index];
+                optionsToPush[type] = type;
+            }
         }
+    } else {
+        optionsToPush = category_type_mapping[selectedCategory];
+    }
+
+    $.each(optionsToPush, function (index, val) {
+        var option = new Option(val, val);
+        if (val === alreadySelected) {
+            option.selected = true;
+        }
+        options.add(option);
     });
     // enable the form element
     $type.prop('disabled', false);
 }
 
+function formTypeChanged(idPrefix) {
+    var $type = $('#' + idPrefix + 'Type');
+    var currentType = $type.val();
+
+    // Check if current type is correlatable and disable checkbox if yes
+    var nonCorrelatingType = non_correlating_types.indexOf(currentType) !== -1;
+    $('#' + idPrefix + 'DisableCorrelation').prop('disabled', nonCorrelatingType);
+}
+
 function malwareCheckboxSetter(context) {
-    idDiv = "#" + context + "Category" +'Div';
     var value = $("#" + context + "Category").val();  // get the selected value
     // set the malware checkbox if the category is in the zip types
-    $("#" + context + "Malware").prop('checked', formZipTypeValues[value] == "true");
+    $("#" + context + "Malware").prop('checked', formZipTypeValues[value]);
 }
 
 function feedFormUpdate() {
@@ -3992,26 +4107,29 @@ function feedFormUpdate() {
         $('#DeleteLocalFileDiv').hide();
         $('#HeadersDiv').show();
     }
+    feedDistributionChange();
 }
 
 function setContextFields() {
+    if (typeof showContext === "undefined") {
+        showContext = false;
+    }
+
+    var $button = $('#show_attribute_context');
     if (showContext) {
         $('.context').show();
-        $('#show_context').addClass("attribute_filter_text_active");
-        $('#show_context').removeClass("attribute_filter_text");
+        $button.removeClass("btn-inverse").addClass("btn-primary");
     } else {
         $('.context').hide();
-        $('#show_context').addClass("attribute_filter_text");
-        $('#show_context').removeClass("attribute_filter_text_active");
+        $button.removeClass("btn-primary").addClass("btn-inverse");
     }
 }
 
 function toggleContextFields() {
-    if (!showContext) {
-        showContext = true;
-    } else {
+    if (typeof showContext === "undefined") {
         showContext = false;
     }
+    showContext = !showContext;
     setContextFields();
 }
 
@@ -4039,10 +4157,7 @@ function checkOrphanedAttributes() {
 }
 
 function checkAttachments() {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         success:function (data, textStatus) {
             var color = 'red';
             var text = ' (Bad links detected)';
@@ -4052,132 +4167,110 @@ function checkAttachments() {
             }
             $("#orphanedFileCount").html('<span class="' + color + '">' + data + text + '</span>');
         },
-        complete:function() {
-            $(".loading").hide();
-        },
         type:"get",
-        cache: false,
-        url: baseurl + "/attributes/checkAttachments/",
+        url: "/attributes/checkAttachments/",
     });
 }
 
 function loadTagTreemap() {
-    $.ajax({
-        async:true,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         success:function (data, textStatus) {
             $(".treemapdiv").html(data);
         },
-        complete:function() {
-            $(".loading").hide();
-        },
         type:"get",
-        cache: false,
-        url: baseurl + "/users/tagStatisticsGraph",
-    });
-}
-
-function quickEditEvent(id, field) {
-    $.ajax({
-        async:true,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            $("#" + field + "Field").html(data);
-        },
-        complete:function() {
-            $(".loading").hide();
-        },
-        type:"get",
-        cache: false,
-        url: baseurl + "/events/quickEdit/" + id + "/" + field,
+        url: "/users/tagStatisticsGraph",
     });
 }
 
 function selectAllInbetween(last, current) {
-    if (last === false || last == current) return false;
-    var from = $('#' + last).parent().parent().index();
-    var to = $('#' + current).parent().parent().index();
+    if (last === false || last === current) {
+        return false;
+    }
+    var from = $(last).parent().parent().index();
+    var to = $(current).parent().parent().index();
     if (to < from) {
         var temp = from;
         from = to;
         to = temp;
     }
-    $('.select_proposal, .select_attribute, .select').each(function (e) {
-        if ($('#' + this.id).parent().parent().index() >= from && $('#' + this.id).parent().parent().index() <= to) {
+    $('.select_proposal, .select_attribute, .select').each(function () {
+        var index = $(this).parent().parent().index();
+        if (index >= from && index <= to) {
             $(this).prop('checked', true);
         }
     });
 }
 
-$('.galaxy-toggle-button').click(function() {
+$('#eventToggleButtons button').click(function() {
     var element = $(this).data('toggle-type');
-    if ($(this).children('span').hasClass('icon-minus')) {
-        $(this).children('span').addClass('icon-plus');
-        $(this).children('span').removeClass('icon-minus');
-        $('#' + element + '_div').hide();
+    var $button = $(this).children('span');
+    var $element = $('#' + element + '_div');
+    if ($button.hasClass('fa-minus')) {
+        $button.addClass('fa-plus');
+        $button.removeClass('fa-minus');
+        $element.hide();
     } else {
-        $(this).children('span').removeClass('icon-plus');
-        $(this).children('span').addClass('icon-minus');
-        $('#' + element + '_div').show();
+        $button.removeClass('fa-plus');
+        $button.addClass('fa-minus');
+        $element.show();
+
+        // Special cases when another action must be made
+        if (element === 'eventtimeline') {
+            enable_timeline();
+        } else if (element === 'eventgraph') {
+            enable_interactive_graph();
+        }
+
+        var loadUrl = $(this).data('load-url');
+        if (loadUrl) {
+            $.get(loadUrl, function(data) {
+                $element.html(data);
+            }).fail(xhrFailCallback);
+        }
     }
 });
-
-
-function addGalaxyListener(id) {
-    var target_type = $(id).data('target-type');
-    var target_id = $(id).data('target-id');
-    var local = $(id).data('local');
-    console.log(local);
-    if (local) {
-        local = 1;
-    } else {
-        local = 0;
-    }
-    popoverPopup(id, target_id + '/' + target_type + '/local:' + local, 'galaxies', 'selectGalaxyNamespace');
-}
 
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     cluster_ids = cluster_ids === null ? [] : cluster_ids;
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
     var local = additionalData['local'];
+    var mirrorOnEvent = additionalData['mirrorOnEvent'];
     var url = baseurl + "/galaxies/attachMultipleClusters/" + target_id + "/" + scope + "/local:" + local;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
-        if (target_id == 'selected') {
-            $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
+        var $formData = $(formData);
+        $formData.find("#GalaxyTargetIds").val(JSON.stringify(cluster_ids));
+        $formData.find("#GalaxyMirrorOnEvent").prop('checked', mirrorOnEvent);
+        if (target_id === 'selected') {
+            $formData.find('#GalaxyAttributeIds').val(getSelected());
         }
         $.ajax({
-            data: $('#GalaxyAttachMultipleClustersForm').serialize(),
-            beforeSend: function (XMLHttpRequest) {
+            data: $formData.serialize(),
+            beforeSend: function () {
                 $(".loading").show();
             },
-            success:function (data, textStatus) {
-                if (target_id === 'selected') {
+            success:function (data) {
+                if (target_id === 'selected' || scope === 'tag_collection') {
                     location.reload();
                 } else {
-                    if (scope == 'tag_collection') {
-                        location.reload();
-                    } else {
-                        loadGalaxies(target_id, scope);
-                        handleGenericAjaxResponse(data);
+                    loadGalaxies(target_id, scope);
+                    if (mirrorOnEvent) {
+                        var event_id = $('#eventgraph_network').data('event-id')
+                        loadGalaxies(event_id, 'event');
                     }
+                    handleGenericAjaxResponse(data);
                 }
             },
             error:function() {
                 showMessage('fail', 'Could not add cluster.');
-                loadGalaxies(target_id, scope);
+                if (target_id !== 'selected') {
+                    loadGalaxies(target_id, scope);
+                }
             },
             complete:function() {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
             type:"post",
             url: url
@@ -4189,7 +4282,11 @@ function checkAndSetPublishedInfo(skip_reload) {
     if (typeof skip_reload === "undefined") {
         skip_reload = false;
     }
-    var id = $('#hiddenSideMenuData').data('event-id');
+    var $el = $('#hiddenSideMenuData');
+    if ($el.length === 0) {
+        return;
+    }
+    var id = $el.data('event-id');
     if (id !== 'undefined' && !skip_reload) {
         $.get(baseurl + "/events/checkPublishedStatus/" + id, function(data) {
             if (data == 1) {
@@ -4199,34 +4296,42 @@ function checkAndSetPublishedInfo(skip_reload) {
                 $('.published').addClass('hidden');
                 $('.not-published').removeClass('hidden');
             }
-        });
+        }).fail(xhrFailCallback);
     }
 }
 
-$(document).keyup(function(e){
-    if (e.keyCode === 27) {
-    $("#gray_out").fadeOut();
-        $("#popover_form").fadeOut();
-        $("#popover_form_large").fadeOut();
+$(function() {
+    $('#gray_out').click(function() {
+        cancelPopoverForm();
         $("#popover_matrix").fadeOut();
-        $("#screenshot_box").fadeOut();
-        $("#popover_box").fadeOut();
-        $("#confirmation_box").fadeOut();
         $(".loading").hide();
         resetForms();
+        resetEditHoverForms();
+    })
+});
+
+$(document).keyup(function(e){
+    if (e.keyCode === 27) {
+        cancelPopoverForm();
+        $("#popover_matrix").fadeOut();
+        $(".loading").hide();
+        resetForms();
+        resetEditHoverForms();
     }
 });
 
 function closeScreenshot() {
     $("#popover_box").fadeOut();
-    $("#screenshot_box").fadeOut();
+    $("#screenshot_box").fadeOut(400, function() {
+        $(this).remove();
+    });
     $("#gray_out").fadeOut();
 }
 
 function loadSightingGraph(id, scope) {
     $.get(baseurl + "/sightings/viewSightings/" + id + "/" + scope, function(data) {
         $("#sightingsData").html(data);
-    });
+    }).fail(xhrFailCallback)
 }
 
 function checkRolePerms() {
@@ -4243,22 +4348,15 @@ function checkRolePerms() {
 }
 
 function updateMISP() {
-    $.get(baseurl + "/servers/update", function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    });
+    $.get(baseurl + "/servers/update", openConfirmation).fail(xhrFailCallback)
 }
 
 function submitMISPUpdate() {
     var formData = $('#PromptForm').serialize();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
-        success:function (data, textStatus) {
-            $('#gitResult').text(data);
-            $('#gitResult').removeClass('hidden');
+        success:function (data) {
+            $('#gitResult').text(data).removeClass('hidden');
         },
         complete:function() {
             $(".loading").hide();
@@ -4266,8 +4364,7 @@ function submitMISPUpdate() {
             $("#gray_out").fadeOut();
         },
         type:"post",
-        cache: false,
-        url: baseurl + "/servers/update",
+        url: "/servers/update",
     });
 }
 
@@ -4404,7 +4501,7 @@ function add_basic_auth() {
 
 function changeObjectReferenceSelectOption(selected, additionalData) {
     var uuid = selected;
-    var type = additionalData.type;
+    var type = additionalData.itemOptions[uuid].type;
     $('#ObjectReferenceReferencedUuid').val(uuid);
     if (type == "Attribute") {
         $('#targetData').html("");
@@ -4474,16 +4571,16 @@ function checkNoticeList(type) {
     var fields_to_check = {
         "attribute": ["category", "type"]
     }
-    var warnings = [];
-    $('#notice_message').html('<h4>Notices:</h4>');
-    $('#notice_message').hide();
+    var $noticeMessage = $('#notice_message');
+    $noticeMessage.html('<h4>Notices:</h4>');
+    $noticeMessage.hide();
     fields_to_check[type].forEach(function(field_name) {
         if (field_name in notice_list_triggers) {
             var field_value = $('#' + type.ucfirst() + field_name.ucfirst()).val();
             if (field_value in notice_list_triggers[field_name]) {
                 notice_list_triggers[field_name][field_value].forEach(function(notice) {
-                    $('#notice_message').show();
-                    $('#notice_message').append(
+                    $noticeMessage.show();
+                    $noticeMessage.append(
                         $('<div/>')
                             .append($('<span/>').text('['))
                             .append($('<a/>', {href: baseurl + '/noticelists/view/' + notice['list_id'], class:'bold'}).text(notice['list_name']))
@@ -4497,15 +4594,7 @@ function checkNoticeList(type) {
 
 }
 
-function quickSelect(target) {
-    var range = document.createRange();
-    var selection = window.getSelection();
-    range.selectNodeContents(target);
-    selection.removeAllRanges();
-    selection.addRange(range);
-}
-
-$(document).ready(function() {
+$(function() {
     // Show popover for disabled input that contains `data-disabled-reason`.
     $('input:disabled[data-disabled-reason]').popover("destroy").popover({
         placement: 'right',
@@ -4515,63 +4604,33 @@ $(document).ready(function() {
             return $(this).data('disabled-reason');
         }
     });
-
-    $('#quickFilterField').bind("enterKey",function(e){
-        $('#quickFilterButton').trigger("click");
-    });
-    $('#quickFilterField').keyup(function(e){
-        if (e.keyCode == 13) {
-            $('#quickFilterButton').trigger("click");
+    $('#PasswordPopover').popover("destroy").popover({
+        placement: 'right',
+        html: 'true',
+        trigger: 'hover',
+        content: function () {
+            return $(this).data('content');
         }
     });
     $(".queryPopover").click(function() {
-        url = $(this).data('url');
-        id = $(this).data('id');
-        $.get(url + '/' + id, function(data) {
-            $('#popover_form').html(data);
-            openPopup('#popover_form');
-        });
+        var url = $(this).data('url');
+        $.get(url, function(data) {
+            var $popover = $('#popover_form');
+            $popover.html(data);
+            openPopup($popover);
+        }).fail(xhrFailCallback)
     });
     $('.servers_default_role_checkbox').click(function() {
         var id = $(this).data("id");
         var state = $(this).is(":checked");
         $(".servers_default_role_checkbox").not(this).attr('checked', false);
-        $.ajax({
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
-            success:function (data, textStatus) {
+        xhr({
+            success:function (data) {
                 handleGenericAjaxResponse(data);
             },
-            complete:function() {
-                $(".loading").hide();
-            },
             type:"get",
-            cache: false,
-            url: baseurl + '/admin/roles/set_default/' + (state ? id : ""),
+            url: '/admin/roles/set_default/' + (state ? id : ""),
         });
-    });
-    // clicking on an element with this class will select all of its contents in a
-    // single click
-    $('.quickSelect').click(function() {
-        quickSelect(this);
-    });
-    $(".cortex-json").click(function() {
-        var cortex_data = $(this).data('cortex-json');
-        cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-        var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-        popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-        $('#popover_box').html(popupHtml);
-        $('#popover_box').show();
-        $('#popover_box').css({'padding': '5px'});
-        left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
-        if (($('#popover_box').height() + 250) > $(window).height()) {
-            $('#popover_box').height($(window).height() - 250);
-            $('#popover_box').css("overflow-y", "scroll");
-            $('#popover_box').css("overflow-x", "hidden");
-        }
-        $('#popover_box').css({'left': left + 'px'});
-        $("#gray_out").fadeIn();
     });
     $('.add_object_attribute_row').click(function() {
         var template_id = $(this).data('template-id');
@@ -4584,14 +4643,122 @@ $(document).ready(function() {
             $('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
             var $added_row = $('#row_' + object_relation + '_expand').prev().prev();
             $added_row.find('select.Attribute_value_select option:first').attr('disabled', true);
-        });
+        }).fail(xhrFailCallback);
     });
     $('.quickToggleCheckbox').toggle(function() {
         var url = $(this).data('checkbox-url');
     });
+
+    $('#setHomePage').parent().click(function(event) {
+        event.preventDefault();
+        setHomePage();
+    });
+
+    $(document.body).on('click', '.privacy-toggle', function() {
+        var $this = $(this);
+        var $privacy_target = $this.parent().find('.privacy-value');
+        if ($this.hasClass('fa-eye')) {
+            $privacy_target.text($privacy_target.data('hidden-value'));
+            $this.removeClass('fa-eye');
+            $this.addClass('fa-eye-slash');
+
+            if ($privacy_target.hasClass('quickSelect')) {
+                $privacy_target.click();
+            }
+        } else {
+            $privacy_target.text('****************************************');
+            $this.removeClass('fa-eye-slash');
+            $this.addClass('fa-eye');
+        }
+    });
+
+    // For galaxyQuickViewNew.ctp
+    $(document.body).on('click', '*[data-clusterid]', function() {
+        loadClusterRelations($(this).data('clusterid'));
+    });
+    $(document.body).popover({
+        selector: '.galaxyQuickView ul li b',
+        html: true,
+        trigger: 'hover',
+        container: 'body',
+    }).on('shown', function() {
+        $('.tooltip').not(":last").remove();
+    });
 });
 
-$("body").on("click", ".correlation-expand-button", function() {
+// Correlation box for events
+$(function() {
+    var showAllCorrelations = false;
+    var $eventCorrelations = $("#event-correlations");
+    var $select = $eventCorrelations.find("select");
+
+    function changeEventOrder() {
+        var orderBy = $select.val();
+        var array = [];
+        $eventCorrelations.find(".event-correlation").each(function () {
+            $(this).removeClass("hidden-important");
+            array.push({
+                "html": $(this).prop("outerHTML"),
+                "count": $(this).data("count"),
+                "date": $(this).data("date"),
+            });
+        });
+        // sort by defined property
+        array.sort(function (a, b) {
+            var aProp = a[orderBy];
+            var bProp = b[orderBy];
+            if (aProp < bProp) {
+                return 1;
+            }
+            if (aProp > bProp) {
+                return -1;
+            }
+            return 0;
+        });
+
+        var newHtml = array.map(function (item) {
+            return item["html"];
+        }).join(" ");
+
+        if ($eventCorrelations.find(".expand-link").length) {
+            newHtml += $eventCorrelations.find(".expand-link").prop("outerHTML");
+            newHtml += $eventCorrelations.find(".collapse-link").prop("outerHTML");
+        }
+
+        $eventCorrelations.find(".correlation-container").html(newHtml);
+        changeEventVisibility();
+    }
+
+    function changeEventVisibility() {
+        if (showAllCorrelations) {
+            $eventCorrelations.find(".event-correlation.hidden-important").removeClass("hidden-important");
+        } else {
+            // Show just first ten
+            $eventCorrelations.find(".event-correlation").slice(10).addClass("hidden-important");
+        }
+    }
+
+    $select.change(function() {
+        changeEventOrder();
+    });
+
+    $eventCorrelations.on("click", ".expand-link", function() {
+        showAllCorrelations = true;
+        changeEventVisibility();
+        $eventCorrelations.find(".collapse-link").show();
+        $(this).hide();
+    });
+
+    $eventCorrelations.on("click", ".collapse-link", function() {
+        showAllCorrelations = false;
+        changeEventVisibility();
+        $eventCorrelations.find(".expand-link").show();
+        $(this).hide();
+    });
+});
+
+// Handlers for showing/hiding attribute related events
+$(document.body).on("click", ".correlation-expand-button", function() {
     $(this).parent().children(".correlation-expanded-area").show();
     $(this).parent().children(".correlation-collapse-button").show();
     $(this).hide();
@@ -4601,28 +4768,152 @@ $("body").on("click", ".correlation-expand-button", function() {
     $(this).hide();
 });
 
-function queryEventLock(event_id, user_org_id) {
-    if (tabIsActive) {
+// Show full attribute value when value is truncated
+$(document.body).on('click', 'span[data-full] a', function(e) {
+    e.preventDefault();
+
+    var $parent = $(this).parent();
+    var data = $parent.attr('data-full');
+    var type = $parent.attr('data-full-type');
+    var $box;
+    if (type === 'raw' || type === 'cortex') {
+        if (type === 'cortex') {
+            data = JSON.stringify(JSON.parse(data), null, 2); // make JSON nicer
+        }
+
+        $box = $('<pre>').css({
+            'background': 'white',
+            'border': '0',
+            'margin': '0',
+        }).text(data);
+    } else {
+        $box = $('<div>').css({
+            'background': 'white',
+            'white-space': 'pre-wrap',
+            'word-wrap': 'break-word',
+            'padding': '1em',
+        }).text(data);
+    }
+
+    var $popoverFormLarge = $('#popover_form_large');
+    $popoverFormLarge.html($box[0].outerHTML);
+    openPopup($popoverFormLarge);
+})
+
+// Submit quick filter form when user press enter in input field
+$(document.body).on('keyup', '#quickFilterField', function(e) {
+    if (e.keyCode === 13) { // ENTER key
+        $('#quickFilterButton').trigger("click");
+    }
+});
+
+// Send textarea form on CMD+ENTER or CTRL+ENTER
+$(document.body).on('keydown', 'textarea', function(e) {
+    if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) { // CMD+ENTER or CTRL+ENTER key
+        if (e.target.form) {
+            $(e.target.form).submit();
+        }
+    }
+});
+
+// Clicking on an element with this class will select all of its contents in a single click
+$(document.body).on('click', '.quickSelect', function() {
+    var range = document.createRange();
+    var selection = window.getSelection();
+    range.selectNodeContents(this);
+    selection.removeAllRanges();
+    selection.addRange(range);
+});
+
+// Any link with data-paginator attribute will be treated as AJAX paginator
+$(document.body).on('click', 'a[data-paginator]', function (e) {
+    e.preventDefault();
+    var paginatorTarget = $(this).attr('data-paginator');
+    xhr({
+        dataType: "html",
+        success: function (data) {
+            var $target = $(paginatorTarget);
+            destroyPopovers($target);
+            $target.html(data);
+        },
+        url: $(this).attr('href'),
+    });
+});
+
+// Any link with `modal-open` class will be treated as generic modal
+$(document.body).on('click', 'a.modal-open', function (e) {
+    e.preventDefault();
+    openGenericModal($(this).attr('href'));
+});
+
+$(document.body).on('click', '[data-popover-popup]', function (e) {
+    e.preventDefault();
+    var url = $(this).data('popover-popup');
+    popoverPopupNew(this, url);
+});
+
+function destroyPopovers($element) {
+    $element.find('[data-dismissid]').each(function() {
+        $(this).popover('destroy');
+    });
+}
+
+function queryEventLock(event_id, timestamp) {
+    var interval = null;
+    var errorCount = 0;
+    var $container = $('#main-view-container');
+
+    function fetchLocks() {
         $.ajax({
-            url: baseurl + "/events/checkLocks/" + event_id,
-            type: "get",
+            url: baseurl + "/events/checkLocks/" + event_id + "/" + timestamp,
             success: function(data, statusText, xhr) {
-                 if (xhr.status == 200) {
-                     if ($('#event_lock_warning').length != 0) {
-                         $('#event_lock_warning').remove();
-                     }
-                     if (data != '') {
-                         $('#main-view-container').append(data);
-                     }
-                 }
+                if (xhr.status === 200) {
+                    $('#event_lock_warning').remove();
+                    $container.append(data);
+                } else if (xhr.status === 204) {
+                    $('#event_lock_warning').remove();
+                }
+                errorCount = 0;
+            },
+            error: function (xhr) {
+                if (xhr.status === 401) {
+                    var error = '<div id="event_lock_warning" class="alert">' +
+                        '<button class="close" data-dismiss="alert">×</button>' +
+                        'Unauthorized. Please reload page to log again.' +
+                        '</div>';
+                    $('#event_lock_warning').remove();
+                    $container.append(error);
+                }
+
+                ++errorCount;
+                if (errorCount > 60) { // 5 mins
+                    clearInterval(interval);
+                    interval = null;
+                }
             }
         });
     }
-    setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);
+
+    document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === 'visible') {
+            if (interval === null) {
+                interval = setInterval(fetchLocks, 5000); // 5 seconds
+            }
+        } else {
+            if (interval) {
+                clearInterval(interval);
+                interval = null;
+            }
+        }
+    });
+
+    if (!document.hidden) {
+        interval = setInterval(fetchLocks, 5000); // 5 seconds
+    }
 }
 
 function checkIfLoggedIn() {
-    if (tabIsActive) {
+    if (!document.hidden) {
         $.get(baseurl + "/users/checkIfLoggedIn.json")
             .fail(function (xhr) {
                 if (xhr.status === 403) {
@@ -4661,19 +4952,19 @@ function syntaxHighlightJson(json, indent) {
     json = JSON.stringify(json, undefined, indent);
     json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/(?:\r\n|\r|\n)/g, '<br>').replace(/ /g, '&nbsp;');
     return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-            var cls = 'json_number';
-            if (/^"/.test(match)) {
-                    if (/:$/.test(match)) {
-                            cls = 'json_key';
-                    } else {
-                            cls = 'json_string';
-                    }
-            } else if (/true|false/.test(match)) {
-                    cls = 'json_boolean';
-            } else if (/null/.test(match)) {
-                    cls = 'json_null';
-            }
-            return '<span class="' + cls + '">' + match + '</span>';
+        var cls = 'json_number';
+        if (/^"/.test(match)) {
+                if (/:$/.test(match)) {
+                        cls = 'json_key';
+                } else {
+                        cls = 'json_string';
+                }
+        } else if (/true|false/.test(match)) {
+                cls = 'json_boolean';
+        } else if (/null/.test(match)) {
+                cls = 'json_null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
     });
 }
 
@@ -4804,7 +5095,6 @@ function generic_picker_move(scope, direction) {
     }
 }
 
-
 function submit_feed_overlap_tool(feedId) {
     var result = {"Feed": [], "Server": []};
     $('#FeedLeft').children().each(function() {
@@ -4813,10 +5103,7 @@ function submit_feed_overlap_tool(feedId) {
     $('#ServerLeft').children().each(function() {
         result.Server.push($(this).val());
     });
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: result,
         success:function (data, textStatus) {
             if (!isNaN(data)) {
@@ -4829,48 +5116,23 @@ function submit_feed_overlap_tool(feedId) {
         error:function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Could not complete the requested action.']});
         },
-        complete:function() {
-            $(".loading").hide();
-        },
         type:"post",
-        cache: false,
-        url: baseurl + "/feeds/feedCoverage/" + feedId,
+        url: "/feeds/feedCoverage/" + feedId,
     });
 }
 
-function changeTaxonomyRequiredState(checkbox) {
-    var checkbox_state = $(checkbox).is(":checked");
-    var taxonomy_id = $(checkbox).data('taxonomy-id');
-    fetchFormDataAjax(baseurl + '/taxonomies/toggleRequired/' + taxonomy_id, function(formData) {
-        $.ajax({
-            data: $(formData).serialize(),
-            success:function (data, textStatus) {
-                handleGenericAjaxResponse({'saved':true, 'success':['Taxonomy\'s required state toggled.']});
-            },
-            error:function() {
-                $(checkbox).prop('checked', !$(checkbox).prop('checked'));
-                handleGenericAjaxResponse({'saved':false, 'errors':['Could not toggle the required state of the taxonomy.']});
-            },
-            async:"false",
-            type:"post",
-            cache: false,
-            url: baseurl + '/taxonomies/toggleRequired/' + taxonomy_id,
-        });
-    });
-}
-
-function fetchFormDataAjax(url, callback) {
-    var formData = false;
+function fetchFormDataAjax(url, callback, errorCallback) {
     $.ajax({
-        data: '[]',
-        success:function (data, textStatus) {
+        success: function (data) {
             callback(data);
         },
         error:function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+            if (errorCallback !== undefined) {
+                errorCallback();
+            }
         },
-        async: false,
-        type:"get",
+        type: "get",
         cache: false,
         url: url
     });
@@ -4909,12 +5171,12 @@ function checkRoleEnforceRateLimit() {
 
 function queryDeprecatedEndpointUsage() {
     $.ajax({
-        url: baseurl + '/servers/viewDeprecatedFunctionUse',
+        url: baseurl + '/api/viewDeprecatedFunctionUse',
         type: 'GET',
         success: function(data) {
             $('#deprecationResults').html(data);
         },
-        error: function(data) {
+        error: function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Could not query the deprecation statistics.']});
         }
     });
@@ -4930,7 +5192,12 @@ function queryDeprecatedEndpointUsage() {
 function submitDashboardForm(id) {
     var configData = $('#DashboardConfig').val();
     if (configData != '') {
-        configData = JSON.parse(configData);
+        try {
+            configData = JSON.parse(configData);
+        } catch (error) {
+            showMessage('fail', error.message)
+            return
+        }
     } else {
         configData = {};
     }
@@ -4981,7 +5248,7 @@ function submitDashboardAddWidget() {
 
 function saveDashboardState() {
     var dashBoardSettings = [];
-    $('.grid-stack-item').each(function(index) {
+    $('.grid-stack-item').each(function() {
         if ($(this).attr('config') !== undefined && $(this).attr('widget') !== undefined) {
             var config = $(this).attr('config');
             config = JSON.parse(config);
@@ -4998,26 +5265,31 @@ function saveDashboardState() {
             dashBoardSettings.push(temp);
         }
     });
-    $.ajax({
-        data: {value: dashBoardSettings},
-        success:function (data, textStatus) {
-            showMessage('success', 'Dashboard settings saved.');
-        },
-        error: function (jqXHR, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
-        },
-        type: "post",
-        url: baseurl + '/dashboards/updateSettings',
-    });
+    var url = baseurl + '/dashboards/updateSettings'
+    fetchFormDataAjax(url, function(formData) {
+        var $formContainer = $(formData)
+        $formContainer.find('#DashboardValue').val(JSON.stringify(dashBoardSettings))
+        var $theForm = $formContainer.find('form')
+        xhr({
+            data: $theForm.serialize(),
+            success:function () {
+                showMessage('success', 'Dashboard settings saved.');
+            },
+            beforeSend:function() {
+            },
+            type:"post",
+            url: $theForm.attr('action')
+        });
+    })
 }
 
 function updateDashboardWidget(element) {
-    element = $(element);
-    if (element.length) {
-        var container_id = $(element).attr('id').substring(7);
-        var container = $(element).find('.widgetContent');
-        var titleText = $(element).find('.widgetTitleText');
-        var temp = JSON.parse($(element).attr('config'));
+    var $element = $(element);
+    if ($element.length) {
+        var container_id = $element.attr('id').substring(7);
+        var container = $element.find('.widgetContent');
+        var titleText = $element.find('.widgetTitleText');
+        var temp = JSON.parse($element.attr('config'));
         if (temp['alias'] !== undefined) {
             titleText.text(temp['alias']);
         }
@@ -5025,24 +5297,26 @@ function updateDashboardWidget(element) {
             type: 'POST',
             url: baseurl + '/dashboards/renderWidget/' + container_id,
             data: {
-                config: $(element).attr('config'),
-                widget: $(element).attr('widget')
+                config: $element.attr('config'),
+                widget: $element.attr('widget')
             },
-            success:function (data, textStatus) {
+            success:function (data) {
                 container.html(data);
             }
         });
     }
 }
 
-function resetDashboardGrid(grid) {
+function resetDashboardGrid(grid, save = true) {
     $('.grid-stack-item').each(function() {
         updateDashboardWidget(this);
     });
-    saveDashboardState();
+    if (save) {
+        saveDashboardState();
+    }
     $('.edit-widget').click(function() {
-        el = $(this).closest('.grid-stack-item');
-        data = {
+        var el = $(this).closest('.grid-stack-item');
+        var data = {
             id: el.attr('id'),
             config: JSON.parse(el.attr('config')),
             widget: el.attr('widget'),
@@ -5051,7 +5325,7 @@ function resetDashboardGrid(grid) {
         openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
     });
     $('.remove-widget').click(function() {
-        el = $(this).closest('.grid-stack-item');
+        var el = $(this).closest('.grid-stack-item');
         grid.removeWidget(el);
         saveDashboardState();
     });
@@ -5061,15 +5335,15 @@ function setHomePage() {
     $.ajax({
         type: 'GET',
         url: baseurl + '/userSettings/setHomePage',
-        success:function (data, textStatus) {
-            $('#ajax_hidden_container').html(data);
+        success: function (data) {
+            var $tmp = $(data);
             var currentPage = $('#setHomePage').data('current-page');
-            $('#UserSettingPath').val(currentPage);
+            $tmp.find('#UserSettingPath').val(currentPage);
             $.ajax({
                 type: 'POST',
                 url: baseurl + '/userSettings/setHomePage',
-                data: $('#UserSettingSetHomePageForm').serialize(),
-                success:function (data, textStatus) {
+                data: $tmp.serialize(),
+                success: function () {
                     showMessage('success', 'Homepage set.');
                     $('#setHomePage').addClass('orange');
                 },
@@ -5079,7 +5353,241 @@ function setHomePage() {
     });
 }
 
-function changeLocationFromIndexDblclick(row_index) {
-    var href = $('table tr[data-row-id=\"' + row_index + '\"] .dblclickActionElement').attr('href')
+$(document.body).on('dblclick', '.dblclickElement', function() {
+    var href = $(this).closest('tr').find('.dblclickActionElement').attr('href');
     window.location = href;
+});
+
+function loadClusterRelations(clusterId) {
+    if (clusterId !== undefined) {
+        openGenericModal(
+            baseurl + '/GalaxyClusters/viewRelationTree/' + clusterId,
+            {
+                header: "Cluster relation tree",
+                classes: "modal-xl",
+                bodyStyle: {"min-height": "700px"}
+            },
+            function() {
+                if (window.buildTree !== undefined) {
+                    buildTree();
+                }
+            }
+        );
+    }
+}
+
+function submitGenericFormInPlace() {
+    var $genericForm = $('.genericForm');
+    $.ajax({
+        type: "POST",
+        url: $genericForm.attr('action'),
+        data: $genericForm.serialize(), // serializes the form's elements.
+        success: function(data) {
+            if (typeof data === "object" && data.hasOwnProperty('redirect')) {
+                window.location = data.redirect;
+                return;
+            }
+
+            $('#genericModal').modal('hide').remove();
+            $('body').append(data);
+            $('#genericModal').modal();
+        },
+        error: xhrFailCallback,
+    });
+}
+
+function openIdSelection(clicked, scope, action) {
+    var onclick = 'redirectIdSelection(\'' + scope + '\', \'' + action + '\')'
+    var html = '<div class="input-append">'
+                + '<input class="span2" id="eventIdSelectionInput" type="number" min="1" step="1" placeholder="42">'
+                + '<button class="btn btn-primary" type="button" onclick="' + onclick + '">Submit</button>'
+            + '</div>';
+    openPopover(clicked, html, false, 'right')
+}
+
+function redirectIdSelection(scope, action) {
+    var id = $('#eventIdSelectionInput').val()
+    if (id.length > 0) {
+        window.location = baseurl + '/' + scope + '/' + action + '/' + id
+    } else {
+        showMessage('fail', 'Not an valid event id');
+    }
+}
+
+$(document.body).on('click', '.hex-value-convert', function() {
+    var $hexValueSpan = $(this).parent().children(':first-child');
+    var val = $hexValueSpan.text().trim();
+    if (!$hexValueSpan.hasClass('binary-representation')) {
+        var bin = [];
+        val.split('').forEach(function (entry) {
+            var temp = parseInt(entry, 16).toString(2);
+            bin.push(Array(5 - (temp.length)).join('0') + temp);
+        });
+        bin = bin.join(' ');
+        $hexValueSpan
+            .text(bin)
+            .attr('data-original-title', 'Binary representation')
+            .addClass('binary-representation');
+        if ($hexValueSpan.attr('title')) {
+            $hexValueSpan.attr('title', 'Binary representation');
+        }
+        $(this)
+            .attr('data-original-title', 'Switch to hexadecimal representation')
+            .attr('aria-label', 'Switch to hexadecimal representation');
+    } else {
+        var hex = '';
+        val.split(' ').forEach(function (entry) {
+            hex += parseInt(entry, 2).toString(16).toUpperCase();
+        });
+        $hexValueSpan
+            .text(hex)
+            .attr('data-original-title', 'Hexadecimal representation')
+            .removeClass('binary-representation');
+        if ($hexValueSpan.attr('title')) {
+            $hexValueSpan.attr('title', 'Hexadecimal representation');
+        }
+        $(this)
+            .attr('data-original-title', 'Switch to binary representation')
+            .attr('aria-label', 'Switch to binary representation');
+    }
+});
+
+// Tag popover with taxonomy description
+(function() {
+    var tagDataCache = {};
+    function fetchTagInfo(tagId, callback) {
+        if (tagId in tagDataCache) {
+            callback(tagDataCache[tagId]);
+            return;
+        }
+
+        $.ajax({
+            success: function (data) {
+                data = $.parseJSON(data);
+                var tagData;
+                for (var i = 0; i < data.length; i++) {
+                    var tag = data[i];
+                    if (tag.Tag.id == tagId) {
+                        tagData = data[i]
+                        break;
+                    }
+                }
+                if (tagData !== undefined) {
+                    callback(tagData);
+                    tagDataCache[tagId] = tagData;
+                }
+            },
+            type: "get",
+            url: baseurl + "/tags/search/" + tagId + "/1/1"
+        })
+    }
+
+    function constructTaxonomyInfo(tagData) {
+        var predicateText = tagData.TaxonomyPredicate.expanded;
+        if (tagData.TaxonomyPredicate.TaxonomyEntry) {
+            predicateText += ": " + tagData.TaxonomyPredicate.TaxonomyEntry[0].expanded;
+        }
+
+        var $predicate = $('<div/>').append(
+            $('<h3/>').css("margin-top", "5px").text('Tag info'),
+            $('<p/>').css("margin-bottom", "5px").text(predicateText)
+        );
+        if (tagData.TaxonomyPredicate.description) {
+            $predicate.append($('<p/>').css("margin-bottom", "5px").append(
+                $('<strong/>').text('Description: '),
+                $('<span/>').text(tagData.TaxonomyPredicate.description)
+            ));
+        }
+        if (tagData.TaxonomyPredicate.TaxonomyEntry && tagData.TaxonomyPredicate.TaxonomyEntry[0].numerical_value) {
+            $predicate.append($('<p/>').css("margin-bottom", "5px").append(
+                $('<strong/>').text('Numerical value: '),
+                $('<span/>').text(tagData.TaxonomyPredicate.TaxonomyEntry[0].numerical_value)
+            ));
+        }
+        var $meta = $('<div/>').append(
+            $('<h3/>').text('Taxonomy: ' + tagData.Taxonomy.namespace.toUpperCase()),
+            $('<p/>').css("margin-bottom", "5px").append(
+                $('<span/>').text(tagData.Taxonomy.description)
+            )
+        )
+        return $('<div/>').append($predicate, $meta)
+    }
+
+    var popoverDebounce = null;
+    $(document.body).on({
+        mouseover: function() {
+            var $tag = $(this);
+            popoverDebounce = setTimeout(function() {
+                popoverDebounce = null;
+                var tagId = $tag.data('tag-id');
+
+                fetchTagInfo(tagId, function (tagData) {
+                    if (tagData.TaxonomyPredicate === undefined) {
+                        return;
+                    }
+                    // Check if user cursor is still on tag
+                    if ($(':hover').last()[0] !== $tag[0]) {
+                        return;
+                    }
+                    $tag.popover({
+                        html: true,
+                        container: 'body',
+                        placement: 'top',
+                        template: '<div class="popover"><div class="arrow"></div><div class="popover-content"></div></div>',
+                        content: function () {
+                            return constructTaxonomyInfo(tagData);
+                        }
+                    }).popover('show');
+                });
+            }, 200);
+        },
+        mouseout: function() {
+            if (popoverDebounce) {
+                clearTimeout(popoverDebounce);
+                popoverDebounce = null;
+            }
+            $(this).popover('destroy');
+        }
+    }, 'a.tag[data-tag-id]');
+})();
+
+// Highlight column for roles table
+$('td.rotate').hover(function() {
+    var $table = $(this).closest('table');
+    var t = parseInt($(this).index()) + 1;
+    $table.find('td:nth-child(' + t + ')').css('background-color', '#CFEFFF');
+}, function() {
+    var $table = $(this).closest('table');
+    var t = parseInt($(this).index()) + 1;
+    $table.find('td:nth-child(' + t + ')').css('background-color', '');
+});
+
+function enableWorkflowDebugMode(workflow_id, currentEnabledState, callback) {
+    var enabled = currentEnabledState ? false : true
+    var url = baseurl + '/workflows/debugToggleField/' + workflow_id + '/' + (enabled ? '1' : '0')
+    fetchFormDataAjax(url, function (formData) {
+        var $formData = $(formData);
+        $.ajax({
+            data: $formData.find('form').serialize(),
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
+                showMessage('success', data.message);
+                if (callback) {
+                    callback(data)
+                }
+            },
+            error: function () {
+                showMessage('fail', 'Could not toggle debug mode.');
+            },
+            complete: function () {
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+            },
+            type: "post",
+            url: $formData.find('form').attr('action')
+        });
+    });
 }

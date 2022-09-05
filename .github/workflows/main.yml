@@ -1,0 +1,266 @@
+# This is a basic workflow to help you get started with Actions
+
+name: misp
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the 2.4 and develop branches
+on:
+  push:
+    branches: [ 2.4, develop, misp-stix ]
+  pull_request:
+    branches: [ 2.4, develop, misp-stix ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04]
+        php: ['7.2', '7.3', '7.4']
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      # Run mariadb
+      - uses: getong/mariadb-action@v1.1
+        with:
+          host port: 3306
+          container port: 3306
+          mysql root password: 'bar'
+          mysql database: 'misp'
+          mysql user: 'misp'
+          mysql password: 'blah'
+
+      - uses: zhulik/redis-action@1.1.0
+        with:
+          redis version: '5'
+          number of databases: 100
+
+      # prepare php stuff
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysql, mbstring, json, xml, opcache, readline, redis, gd, apcu
+
+      - name: Initialize variables
+        run: |
+          echo "USER=`id -u -n`" >> $GITHUB_ENV
+          echo "HOST=localhost" >> $GITHUB_ENV
+
+      - name: Install system deps
+        env:
+          php_version: ${{ matrix.php }}
+        run: |
+          sudo apt-get -y update
+          # Repo is missing for unknown reason
+          LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+          if [[ $php_version == "7.2" ]]; then
+            # hotfix due to: https://bugs.php.net/bug.php?id=81640 TODO: remove after libpcre2-8-0:10.36 gets to stable channel
+            sudo apt-get --fix-broken install
+          fi
+          sudo apt-get -y install curl python3 python3-pip python3-virtualenv apache2 libapache2-mod-php$php_version
+
+      # Runs a set of commands using the runners shell
+      - name: Install deps
+        run: |
+              sudo chown $USER:www-data $HOME/.composer
+              pushd app
+              sudo -H -u $USER php composer.phar install --no-progress
+              popd
+              cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
+              # Set perms
+              sudo chown -R $USER:www-data `pwd`
+              sudo chmod -R 775 `pwd`
+              sudo chmod -R g+ws `pwd`/app/tmp
+              sudo chmod -R g+ws `pwd`/app/tmp/cache
+              sudo chmod -R g+ws `pwd`/app/tmp/cache/persistent
+              sudo chmod -R g+ws `pwd`/app/tmp/cache/models
+              sudo chmod -R g+ws `pwd`/app/tmp/logs
+              sudo chmod -R g+ws `pwd`/app/files
+              sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
+              sudo chown -R $USER:www-data `pwd`
+              # Resque perms
+              sudo chown -R $USER:www-data `pwd`/app/Plugin/CakeResque/tmp
+              sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
+              # install MySQL
+              sudo chmod -R 777 `pwd`/INSTALL
+              mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES';"
+              mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant usage on *.* to misp@'%' identified by 'blah';"
+              mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant all privileges on misp.* to misp@'%';"
+              mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp < INSTALL/MYSQL.sql
+              # configure apache virtual hosts
+              sudo chmod -R 777 `pwd`/build
+              sudo mkdir -p /etc/apache2/sites-available
+              sudo cp -f build/github-action-ci-apache /etc/apache2/sites-available/misp.conf
+              sudo sed -e "s?%GITHUB_WORKSPACE%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp.conf
+              sudo sed -e "s?%HOST%?${HOST}?g" --in-place /etc/apache2/sites-available/misp.conf
+              sudo a2dissite 000-default
+              sudo a2ensite misp.conf
+              cat /etc/apache2/sites-enabled/misp.conf
+              sudo a2enmod rewrite
+              sudo systemctl restart apache2
+              # MISP configuration
+              sudo chmod -R 777 `pwd`/travis
+              sudo cp app/Config/bootstrap.default.php app/Config/bootstrap.php
+              sudo cp travis/database.php app/Config/database.php
+              sudo cp app/Config/core.default.php app/Config/core.php
+              sudo cp app/Config/config.default.php app/Config/config.php
+              sudo cp travis/email.php app/Config/email.php
+              # Ensure the perms
+              sudo chown -R $USER:www-data `pwd`/app/Config
+              sudo chmod -R 777 `pwd`/app/Config
+              # GPG setup
+              sudo mkdir `pwd`/.gnupg
+              # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
+              sudo cp -a /dev/urandom /dev/random
+              sudo gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
+              sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
+              # change perms
+              sudo chown -R $USER:www-data `pwd`
+              sudo chown -R www-data:www-data `pwd`/.gnupg
+              sudo chmod -R 700 `pwd`/.gnupg
+              sudo usermod -a -G www-data $USER
+              sudo chmod -R 777 `pwd`/app/Plugin/CakeResque/tmp/
+              # Ensure the perms of config files
+              sudo chown -R $USER:www-data `pwd`/app/Config
+              sudo chmod -R 777 `pwd`/app/Config
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.server_settings_skip_backup_rotate" 1'
+              sudo chown -R $USER:www-data `pwd`/app/Config
+              sudo chmod -R 777 `pwd`/app/Config
+
+      - name: DB Update
+        run: |
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.osuser" $USER'
+              sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
+              sudo -E su $USER -c 'app/Console/cake Admin schemaDiagnostics'
+
+      - name: Configure MISP
+        run: |
+              sudo -u $USER app/Console/cake userInit -q | sudo tee ./key.txt
+              echo "AUTH=`cat key.txt`" >> $GITHUB_ENV
+              sudo -u $USER app/Console/cake Admin setSetting "Session.autoRegenerate" 0
+              sudo -u $USER app/Console/cake Admin setSetting "Session.timeout" 600
+              sudo -u $USER app/Console/cake Admin setSetting "Session.cookieTimeout" 3600
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.host_org_id" 1
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.email" "info@admin.test"
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.disable_emailing" false
+              sudo -u $USER app/Console/cake Admin setSetting --force "debug" true
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_port" 6379
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_database" 13
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_password" ""
+              sudo -u $USER app/Console/cake Admin setSetting "GnuPG.email" "info@admin.test"
+              sudo -u $USER app/Console/cake Admin setSetting "GnuPG.homedir" "`pwd`/.gnupg"
+              sudo -u $USER app/Console/cake Admin setSetting "GnuPG.password" "travistest"
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.download_gpg_from_homedir" 1
+
+      - name: Configure ZMQ
+        run: |
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "127.0.0.1"
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1
+
+      - name: Update Galaxies
+        run: sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
+
+      - name: Update Taxonomies
+        run: sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
+
+      - name: Update Warninglists
+        run: sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
+
+      - name: Update Noticelists
+        run: sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'
+
+      - name: Update Object Templates
+        run: sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates 1'
+
+      - name: Turn MISP live
+        run: sudo -E su $USER -c 'app/Console/cake Live 1'
+
+      - name: Start workers
+        run: |
+              sudo chmod +x app/Console/worker/start.sh
+              sudo -u www-data 'app/Console/worker/start.sh'
+
+      - name: Python setup
+        run: |
+              sudo chmod 777 ./key.txt
+              sudo chmod -R 777 ./tests
+              # Start workers
+              # Dirty install python stuff
+              python3 -m virtualenv -p python3 ./venv
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
+              . ./venv/bin/activate
+              export PYTHONPATH=$PYTHONPATH:./app/files/scripts
+              pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 pyzmq redis plyara
+              deactivate
+
+      - name: Test if apache is working
+        run: |
+              sudo systemctl status apache2 --no-pager -l
+              sudo apache2ctl -S
+              curl http://${HOST}
+              sudo chmod -R 777 PyMISP
+              pushd PyMISP
+              echo 'url = "http://'${HOST}'"' >> tests/keys.py
+              echo 'key = "'${AUTH}'"' >> tests/keys.py
+              cat tests/keys.py
+              popd
+
+      - name: Build test
+        run: |
+              . ./venv/bin/activate
+              pushd tests
+              ./build-test.sh
+
+      - name: Run PHP tests
+        run: |
+              ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
+              sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
+
+      - name: Run tests
+        run: |
+              pushd tests
+              ./curl_tests_GH.sh $AUTH $HOST
+              popd
+
+              sudo chmod -R g+ws `pwd`/app/tmp/logs
+          
+              . ./venv/bin/activate
+              pushd PyMISP
+              python tests/testlive_comprehensive.py
+              popd
+              python tests/testlive_security.py -v
+              python tests/testlive_sync.py
+              python tests/testlive_comprehensive_local.py -v
+              pushd PyMISP
+              python tests/test_mispevent.py
+              popd
+              cp PyMISP/tests/keys.py PyMISP/examples/events/
+              pushd PyMISP/examples/events/
+              python ./create_massive_dummy_events.py -l 5 -a 30
+              popd
+              python tools/misp-feed/validate.py
+              deactivate
+
+      - name: Logs
+        if: ${{ always() }}
+        run: |
+              tail -n +1 `pwd`/app/tmp/logs/*
+              tail -n +1 /var/log/apache2/*.log
+

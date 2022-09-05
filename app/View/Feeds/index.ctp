@@ -2,7 +2,7 @@
     echo '<div class="index">';
     echo $this->element('/genericElements/IndexTable/index_table', array(
         'data' => array(
-            'data' => $feeds,
+            'data' => $data,
             'primary_id_path' => 'Feed.id',
             'top_bar' => array(
                 'children' => array(
@@ -67,7 +67,7 @@
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
                         'data' => '',
-                        'searchKey' => 'value'
+                        'searchKey' => 'quickFilter'
                     )
                 )
             ),
@@ -82,7 +82,7 @@
                     )
                 ),
                 array(
-                    'name' => __('Id'),
+                    'name' => __('ID'),
                     'sort' => 'Feed.id',
                     'class' => 'short',
                     'data_path' => 'Feed.id',
@@ -108,6 +108,7 @@
                     'name' => __('Name'),
                     'class' => 'shortish',
                     'data_path' => 'Feed.name',
+                    'sort' => 'Feed.name',
                 ),
                 array(
                     'name' => __('Format'),
@@ -143,7 +144,8 @@
                 array(
                     'name' => __('Headers'),
                     'class' => 'shortish',
-                    'data_path' => 'Feed.headers'
+                    'data_path' => 'Feed.headers',
+                    'requirement' => $isSiteAdmin
                 ),
                 array(
                     'name' => __('Target'),
@@ -190,7 +192,8 @@
                     'name' => __('Tag'),
                     'class' => 'short',
                     'data_path' => 'Tag',
-                    'element' => 'tags'
+                    'element' => 'tags',
+                    'scope' => 'feeds'
                 ),
                 array(
                     'name' => __('Visible'),
@@ -211,8 +214,8 @@
             ),
             'title' => __('Feeds'),
             'description' => __('Generate feed lookup caches or fetch feed data (enabled feeds only)'),
-            'html' => sprintf(
-                '<div class="toggleButtons">%s%s%s%s%s</div><br />',
+            'html' => $isSiteAdmin ? sprintf(
+                '<div class="toggleButtons">%s%s%s%s%s</div><br>',
                 $this->Form->postButton(
                     __('Load default feed metadata'),
                     array('controller' => 'feeds', 'action' => 'loadDefaultFeeds'),
@@ -247,7 +250,7 @@
                     'margin-left:20px;',
                     __('Fetch and store all feed data')
                 )
-            ),
+            ) : '',
             'actions' => array(
                 array(
                     'url' => $baseurl . '/feeds/previewIndex',
@@ -309,18 +312,13 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'index'));
 ?>
 <script type="text/javascript">
-    $(document).ready(function(){
+    $(function() {
         popoverStartup();
         $('.select').on('change', function() {
             listCheckboxesChecked();
         });
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();
-        });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter();
-            }
         });
     });
 </script>

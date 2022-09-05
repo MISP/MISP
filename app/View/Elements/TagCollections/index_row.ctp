@@ -1,9 +1,9 @@
     <tr data-row-id="<?php echo h($item['TagCollection']['id']); ?>">
-        <td class="short"><?php echo h($item['TagCollection']['id']);?>&nbsp;</td>
-        <td class="short"><?php echo h($item['TagCollection']['uuid']);?>&nbsp;</td>
-        <td class="short"><?php echo h($item['TagCollection']['name']);?>&nbsp;</td>
+        <td class="short"><?php echo h($item['TagCollection']['id']);?></td>
+        <td class="short"><?php echo h($item['TagCollection']['uuid']);?></td>
+        <td class="short"><?php echo h($item['TagCollection']['name']);?></td>
         <td class="shortish">
-          <div class="attributeTagContainer" id="#Tag_Collection_<?php echo h($item['TagCollection']['id']);?>_tr .attributeTagContainer">
+          <div class="attributeTagContainer">
             <?php
                 echo $this->element(
                     'ajaxTagCollectionTags',
@@ -20,7 +20,7 @@
         </td>
         <td class="shortish">
           <?php
-            echo $this->element('galaxyQuickViewMini', array(
+            echo $this->element('galaxyQuickViewNew', array(
               'mayModify' => ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']),
               'isAclTagger' => $me['Role']['perm_tagger'],
               'data' => $item['Galaxy'],
@@ -30,14 +30,14 @@
             ));
           ?>
         </td>
-        <td class="short"><span class="icon-<?php echo $item['TagCollection']['all_orgs'] ? 'ok' : 'remove'; ?>">&nbsp;</span></td>
+        <td class="short"><i class="fa fa-<?= $item['TagCollection']['all_orgs'] ? 'check' : 'times'; ?>"></i></td>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $item['Organisation']['id'];?>'">
             <?php
                 echo $this->OrgImg->getOrgImg(array('name' => $item['Organisation']['name'], 'id' => $item['Organisation']['id'], 'size' => 24));
             ?>
         </td>
-        <td class="short"><?php echo empty($item['User']['email']) ? '&nbsp;' : h($item['User']['email']);?>&nbsp;</td>
-        <td><?php echo h($item['TagCollection']['description']);?>&nbsp;</td>
+        <td class="short"><?php echo empty($item['User']['email']) ? '&nbsp;' : h($item['User']['email']);?></td>
+        <td><?php echo h($item['TagCollection']['description']);?></td>
         <td class="short action-links">
             <?php
                 if ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']) {
@@ -52,7 +52,6 @@
                     __('Download configuration'),
                     h($item['TagCollection']['id'])
                 );
-
             ?>
         </td>
     </tr>

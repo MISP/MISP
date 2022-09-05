@@ -3,23 +3,29 @@
     <fieldset>
         <legend><?php echo __('Import from MISP Export File'); ?></legend>
 <?php
+    echo $this->Form->input('Event.filecontent', [
+        'label' => 'Paste <b>' . __('MISP XML or JSON file content') . '</b>',
+        'type' => 'textarea',
+        'class' => 'span7',
+    ]);
+    echo '<div class="input clear"></div>';
     echo $this->Form->input('Event.submittedfile', array(
-            'label' => '<b>' . __('MISP XML or JSON file') . '</b>',
-            'type' => 'file',
+        'label' => 'or choose <b>' . __('MISP XML or JSON file') . '</b>',
+        'type' => 'file',
     ));
     ?>
         <div class="input clear"></div>
     <?php
     if (Configure::read('MISP.take_ownership_xml_import')):
     echo $this->Form->input('Event.takeownership', array(
-            'checked' => false,
-            'label' => __('Take ownership of the event'),
-            'title' => __('Warning: This will change the creator organisation of the event, tampering with the event\'s ownership and releasability and can lead to unexpected behaviour when synchronising the event with instances that have another creator for the same event.)'
+        'checked' => false,
+        'label' => __('Take ownership of the event'),
+        'title' => __('Warning: This will change the creator organisation of the event, tampering with the event\'s ownership and releasability and can lead to unexpected behaviour when synchronising the event with instances that have another creator for the same event.)'
     )));
     endif;
     echo $this->Form->input('publish', array(
-            'checked' => false,
-            'label' => __('Publish imported events'),
+        'checked' => false,
+        'label' => __('Publish imported events'),
     ));
 ?>
     </fieldset>
@@ -28,6 +34,4 @@
     echo $this->Form->end();
 ?>
 </div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'addMISPExport'));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'import_from'));

@@ -65,14 +65,16 @@
                     'class' => 'input-xxlarge',
                     'required' => 1,
                     'options' => $orgs,
-                    'default' => empty($suggestedOrg[0]) ? false : $suggestedOrg[0]
+                    'default' => empty($suggestedOrg[0]) ? false : $suggestedOrg[0],
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'role_id',
                     'label' => __('Role'),
                     'class' => 'input-xxlarge',
                     'required' => 1,
-                    'options' => $roles
+                    'options' => $roles,
+                    'type' => 'dropdown'
                 )
             ),
             'submit' => array(
@@ -85,7 +87,6 @@
         )
     ));
 ?>
-</div>
 <script type="text/javascript">
     var role_perms = <?= json_encode($role_perms) ?>;
     function checkPermConditions() {

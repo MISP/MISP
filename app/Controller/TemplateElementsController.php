@@ -4,7 +4,7 @@ App::uses('AppController', 'Controller');
 
 class TemplateElementsController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');
+    public $components = array('RequestHandler');
 
     public $paginate = array(
             'limit' => 50,
@@ -15,11 +15,13 @@ class TemplateElementsController extends AppController
 
     public function index($id)
     {
-
+        if (!is_numeric($id)) {
+            throw new MethodNotAllowedException(__('No template with the provided ID exists, or you are not authorised to see it.'));
+        }
         //check permissions
         $template = $this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), false);
         if (!$this->_isSiteAdmin() && !$template) {
-            throw new MethodNotAllowedException('No template with the provided ID exists, or you are not authorised to see it.');
+            throw new MethodNotAllowedException(__('No template with the provided ID exists, or you are not authorised to see it.'));
         }
 
         $templateElements = $this->TemplateElement->find('all', array(
@@ -36,7 +38,7 @@ class TemplateElementsController extends AppController
         $this->loadModel('Attribute');
         $this->set('validTypeGroups', $this->Attribute->validTypeGroups);
         $this->set('id', $id);
-        $this->layout = 'ajaxTemplate';
+        $this->layout = false;
         $this->set('elements', $templateElements);
         $mayModify = false;
         if ($this->_isSiteAdmin() || $template['Template']['org'] == $this->Auth->user('Organisation')['name']) {
@@ -55,7 +57,7 @@ class TemplateElementsController extends AppController
             throw new MethodNotAllowedException('This action is for ajax requests only.');
         }
         $this->set('id', $id);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/template_element_add_choices');
     }
 
@@ -114,7 +116,7 @@ class TemplateElementsController extends AppController
                 $this->set('categoryArray', $categoryArray);
                 $this->set('categories', $categories);
             }
-            $this->layout = 'ajaxTemplate';
+            $this->layout = false;
             $this->render('ajax/template_element_add_' . $type);
         } elseif ($this->request->is('post')) {
             $pos = $this->TemplateElement->lastPosition($id);
@@ -208,7 +210,7 @@ class TemplateElementsController extends AppController
                 $this->set('categoryArray', $categoryArray);
                 $this->set('categories', $categories);
             }
-            $this->layout = 'ajaxTemplate';
+            $this->layout = false;
             $this->render('ajax/template_element_edit_' . $type);
         } elseif ($this->request->is('post') || $this->request->is('put')) {
             $this->request->data[$ModelType]['id'] = $templateElement[$ModelType][0]['id'];

@@ -1,9 +1,10 @@
 <?php
-/*
+/**
  * Reset a password
  *
  * arg0 = email
  * arg1 = new password
+ * @deprecated Use UserShell instead
  */
 class PasswordShell extends AppShell {
 
@@ -11,6 +12,8 @@ class PasswordShell extends AppShell {
 
     public function main()
     {
+        $this->err('This method is deprecated. Next time please use `cake user change_pw [user] [password]` command.');
+
         $this->ConfigLoad->execute();
         if (!isset($this->args[0]) || empty($this->args[0]) || !isset($this->args[1]) || empty($this->args[1])) echo 'MISP password reset command line tool.' . PHP_EOL . 'To assign a new password for a user:' . PHP_EOL . APP . 'Console/cake Password [email] [password]' . PHP_EOL;
         else {

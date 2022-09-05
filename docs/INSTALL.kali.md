@@ -1,16 +1,16 @@
 # INSTALLATION INSTRUCTIONS
-## for Kali Linux 2020.2
+## for Kali Linux 2021.1
 # 0/ Quick MISP Instance on Kali Linux - Status
 
-This has been tested by @SteveClement on 20200513
+This has been tested by @SteveClement on 20210331
 
 # 1/ Prepare Kali with a MISP User
 
-This only works on Kali 2020.x 2019.x was year(s) ago(tm).
+This only works on Kali 2020.4 and higher.
 
 To install MISP on Kali copy paste this in your shell:
 ```bash
-wget -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
+wget --no-cache -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
 ```
 
 !!! notice

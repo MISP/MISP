@@ -14,7 +14,7 @@ edit_uri: ""
 #dev_addr: "192.168.10.34:8000"
 
 # Copyright
-copyright: "Copyright &copy; 2020 MISP Project"
+copyright: "Copyright &copy; 2022 MISP Project"
 
 # Options
 extra:
@@ -70,25 +70,24 @@ nav:
       - 'Ubuntu 18.04': 'INSTALL.ubuntu1804.md'
       - 'Ubuntu 20.04': 'INSTALL.ubuntu2004.md'
       - 'Kali Linux': 'INSTALL.kali.md'
-      - 'RHEL7/CentOS7': 'INSTALL.rhel7.md'
       - 'RHEL8/CentOS8': 'INSTALL.rhel8.md'
+      - 'RHEL7/CentOS7': 'INSTALL.rhel7.md'
     - xInstall Guides: 
       - 'Warning': 'xINSTALL.md'
       - 'Debian 10': 'xINSTALL.debian10.md'
-      - 'Ubuntu 18.04 \w webmin': 'xINSTALL.ubuntu1804.with.webmin.md'
       - 'Tsurugi Linux': 'xINSTALL.tsurugi.md'
-      - 'OpenBSD 6.7': 'xINSTALL.OpenBSD.md'
+      - 'OpenBSD 7.0': 'xINSTALL.OpenBSD.md'
+      - 'Ubuntu 22.04': 'xINSTALL.ubuntu2204.md'
     - Config Guides:
       - 'Elastic Search Logging': 'CONFIG.elasticsearch-logging.md'
       - 'Amazon S3 attachments': 'CONFIG.s3-attachments.md'
       - 'S/MIME': 'CONFIG.SMIME.md'
     - Update MISP: 'UPDATE.md'
     - Upgrading MISP: 'UPGRADE.md'
+    - Migrating BG Jobs: 'background-jobs-migration-guide.md'
     - Old guides:
-      - '2.3 to 2.4 upgrade': 'archive/old-2_3to2_4-UPGRADE.md'
-      - 'Ubuntu 16.04': 'archive/INSTALL.ubuntu1604.md'
-      - 'Debian 9': 'xINSTALL.debian9.md'
-      - 'Centos 6': 'xINSTALL.centos6.md'
+      - 'Ubuntu 18.04 \w webmin': 'archive/xINSTALL.ubuntu1804.with.webmin.md'
+      - 'Debian 9': 'archive/xINSTALL.debian9.md'
       - 'FreeBSD': 'archive/xINSTALL.FreeBSD.md'
     - About:
       - 'MISP Release Notes': 'Changelog.md'

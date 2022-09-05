@@ -1,17 +1,6 @@
 <?php
 class AchievementsWidget
 {
-    /*
-    * Note: for this widget to display as expected, you need all icons to be accessible in your webroot. (img/custom)
-    * Icons used:
-    * - misp_event.png --> https://user-images.githubusercontent.com/1073662/87687773-6eff6d80-c786-11ea-9dcf-009a158a276c.png
-    * - misp_object.png --> https://user-images.githubusercontent.com/1073662/87687775-6f980400-c786-11ea-985c-b3c15c01d63e.png
-    * - tlp_green.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/48/tlp_green.png
-    * - attack.png --> https://raw.githubusercontent.com/mitre-attack/attack-website/master/attack-theme/static/images/attack-logo.png
-    * - taxonomy.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/48/taxonomy.png
-    * - galaxy.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/48/galaxy.png
-    *
-    */
 
     public $render = 'Achievements';
     public $title = 'Achievements of my organization';
@@ -41,32 +30,32 @@ class AchievementsWidget
     public function __construct(){
         $this->badges = array(
            "events" => array(
-               "icon" => "/img/custom/misp_event.png",
+               "icon" => "/img/ach_misp_event.png",
                "title" => __("MISP is all about sharing relevant data with each other. Start by creating your first event."),
                "help_page" => "https://www.circl.lu/doc/misp/using-the-system/#creating-an-event"
            ),
            "tags" => array(
-               "icon" => "/img/custom/tlp_green.png",
+               "icon" => "/img/ach_tlp_green.png",
                "title" => __("By adding tags to your events, they can be categorized more easily."),
                "help_page" => "https://www.circl.lu/doc/misp/using-the-system/#tagging"
            ),
            "objects" => array(
-               "icon" => "/img/custom/misp_object.png",
+               "icon" => "/img/ach_misp_object.png",
                "title" => __("To enhance the structure of your events, use MISP Objects."),
                "help_page" => "https://github.com/MISP/misp-objects/blob/main/README.md"
            ),
            "taxonomies" => array(
-               "icon" => "/img/custom/taxonomy.png",
+               "icon" => "/img/ach_taxonomy.png",
                "title" => __("Make sure to speak the same language as your counterparts by using taxonomies for your tags."),
                "help_page" => "https://www.circl.lu/doc/misp/taxonomy/"
            ),
            "galaxies" => array (
-               "icon" => "/img/custom/galaxy.png",
+               "icon" => "/img/ach_galaxy.png",
                "title" => __("Go above and beyond tags and taxonomies, and start using galaxies."),
                "help_page" => "https://www.circl.lu/doc/misp/galaxy/"
            ),
            "attack" => array(
-               "icon" => "/img/custom/attack.png",
+               "icon" => "/img/ach_attack.png",
                "title" => __("Add the TTPs following the MITRE ATT&CK framework to make your events even more interesting."),
                "help_page" => "https://www.misp-project.org/2018/06/27/MISP.2.4.93.released.html"
            )

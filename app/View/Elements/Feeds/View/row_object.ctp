@@ -37,6 +37,7 @@
   </td>
   <td>&nbsp;</td>
   <td>&nbsp;</td>
+  <td>&nbsp;</td>
 </tr>
 <?php
   if (!empty($object['Attribute'])) {

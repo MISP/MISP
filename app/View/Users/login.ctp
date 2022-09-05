@@ -19,7 +19,7 @@
         <?php if (Configure::read('MISP.main_logo') && file_exists(APP . '/webroot/img/custom/' . Configure::read('MISP.main_logo'))): ?>
             <img src="<?php echo $baseurl?>/img/custom/<?php echo h(Configure::read('MISP.main_logo'));?>" style=" display:block; margin-left: auto; margin-right: auto;" />
         <?php else: ?>
-            <img src="<?php echo $baseurl?>/img/misp-logo.png" style="display:block; margin-left: auto; margin-right: auto;"/>
+            <img src="<?php echo $baseurl?>/img/misp-logo-s-u.png" style="display:block; margin-left: auto; margin-right: auto;"/>
         <?php endif;?>
         </div>
         <?php
@@ -32,12 +32,23 @@
                 </div>
         <?php
             endif;
+            if ($formLoginEnabled):
             echo $this->Form->create('User');
         ?>
         <legend><?php echo __('Login');?></legend>
         <?php
             echo $this->Form->input('email', array('autocomplete' => 'off', 'autofocus'));
             echo $this->Form->input('password', array('autocomplete' => 'off'));
+            if (!empty(Configure::read('LinOTPAuth')) && Configure::read('LinOTPAuth.enabled')!== FALSE) {
+                echo $this->Form->input('otp', array('autocomplete' => 'off', 'type' => 'password', 'label' => 'OTP'));
+                echo "<div class=\"clear\">";
+                echo sprintf(
+                    '%s <a href="%s/selfservice" title="LinOTP Selfservice">LinOTP Selfservice</a> %s',
+                    __('Visit'),
+                    h(Configure::read('LinOTPAuth.baseUrl')),
+                    __('for the One-Time-Password selfservice.')
+                );
+            }
         ?>
             <div class="clear">
             <?php
@@ -52,8 +63,12 @@
             <?= $this->Form->button(__('Login'), array('class' => 'btn btn-primary')); ?>
         <?php
             echo $this->Form->end();
+            endif;
             if (Configure::read('ApacheShibbAuth') == true) {
                 echo '<div class="clear"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
+            }
+            if (Configure::read('AadAuth') == true) {
+                echo '<div class="clear"></div><a class="btn btn-info" href="/users/login?AzureAD=enable">Login with AzureAD</a>';
             }
         ?>
     </td>
@@ -65,7 +80,7 @@
 </div>
 
 <script>
-$(document).ready(function() {
+$(function() {
     $('#UserLoginForm').submit(function(event) {
         event.preventDefault()
         submitLoginForm()
@@ -77,15 +92,27 @@ function submitLoginForm() {
     var url = $form.attr('action')
     var email = $form.find('#UserEmail').val()
     var password = $form.find('#UserPassword').val()
+    var LinOTPAuth = <?= empty(Configure::read('LinOTPAuth')) ? 'false' : 'true' ?>;
+    var LinOTPAuthEnabled = <?= empty(Configure::read('LinOTPAuth.enabled')) ? 'false' : 'true' ?>;
+
+    if (LinOTPAuth && LinOTPAuthEnabled) {
+        var otp = $form.find('#UserOtp').val()
+    }
     if (!$form[0].checkValidity()) {
         $form[0].reportValidity()
     } else {
         fetchFormDataAjax(url, function(html) {
-            var formHTML = $(html).find('form')
+            var formHTML = $(html).find('form#UserLoginForm')
+            if (!formHTML.length) {
+                window.location = baseurl + '/users/login'
+            }
             $('body').append($('<div id="temp" style="display: none"/>').append(formHTML))
-            var $tmpForm = $('#temp form')
+            var $tmpForm = $('#temp form#UserLoginForm')
             $tmpForm.find('#UserEmail').val(email)
             $tmpForm.find('#UserPassword').val(password)
+            if (LinOTPAuth && LinOTPAuthEnabled) {
+                $tmpForm.find('#UserOtp').val(otp)
+            }
             $tmpForm.submit()
         })
     }

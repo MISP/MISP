@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for OpenBSD 6.7-amd64
+## for OpenBSD 7.0-amd64
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
@@ -13,11 +13,6 @@
 !!! notice
     This guide attempts to offer native httpd or apache2/nginx.
 
-!!! warning
-    As of 20181018 the native httpd server is NOT useable with MISP on OpenBSD 6.3.
-    Thus ONLY Apache 2.x available.
-    NO *rewrite* available, just yet. It will be in [the next release](https://marc.info/?l=openbsd-tech&m=152761257806283&w=2)
-
 !!! notice
     As of OpenBSD 6.4 the native httpd has rewrite rules and php 5.6 is gone too.
 
@@ -25,7 +20,7 @@
 
 ```bash
 export AUTOMAKE_VERSION=1.16
-export AUTOCONF_VERSION=2.69
+export AUTOCONF_VERSION=2.71
 ```
 
 ### 1/ Minimal OpenBSD install
@@ -86,7 +81,7 @@ doas pkg_add -v mariadb-server
 #### Install misc dependencies
 
 ```bash
-doas pkg_add -v curl git python--%3.7 redis libmagic autoconf--%2.69 automake--%1.16 libtool unzip--iconv
+doas pkg_add -v curl git sqlite3 python--%3.9 redis libmagic autoconf--%2.71 automake--%1.16 libtool unzip--iconv rust
 ```
 
 ```bash
@@ -229,10 +224,10 @@ doas rcctl enable httpd
 #### Install Python virtualenv
 ```bash
 doas pkg_add -v py3-virtualenv py3-pip
-doas ln -sf /usr/local/bin/pip3.7 /usr/local/bin/pip
-doas ln -s /usr/local/bin/python3.7 /usr/local/bin/python
+doas ln -sf /usr/local/bin/pip3.9 /usr/local/bin/pip
+doas ln -s /usr/local/bin/python3.9 /usr/local/bin/python
 doas mkdir /usr/local/virtualenvs
-doas virtualenv-3 /usr/local/virtualenvs/MISP
+doas /usr/local/bin/virtualenv /usr/local/virtualenvs/MISP
 ```
 
 #### Install ssdeep
@@ -247,13 +242,8 @@ doas pkg_add -v fcgi-cgi fcgi
 ```
 
 #### php7 ports
-!!! notice
-    php-5.6 is marked as end-of-life starting December 2018, use php 7.0 instead.
-    Option 2.
-    If on OpenBSD 6.3, upgrade to 6.7 to make your life much easier.
-
 ```
-doas pkg_add -v php-mysqli--%7.4 php-pcntl--%7.4 php-pdo_mysql--%7.4 php-apache--%7.4 pecl74-redis php-gd--%7.4 php-zip--%7.4
+doas pkg_add -v php-mysqli--%7.4 php-pcntl--%7.4 php-pdo_mysql--%7.4 php-apache--%7.4 pecl74-redis php-gd--%7.4 php-zip--%7.4 php-bcmath--%7.4 php-intl--%7.4
 ```
 
 #### /etc/php-7.4.ini 
@@ -343,7 +333,7 @@ ${SUDO_WWW} git submodule foreach --recursive git config core.filemode false
 ${SUDO_WWW} git config core.filemode false
 
 doas pkg_add -v py3-pip libxml libxslt py3-jsonschema
-doas /usr/local/virtualenvs/MISP/bin/pip install -U pip
+doas /usr/local/virtualenvs/MISP/bin/pip install -U pip setuptools setuptools-rust
 
 cd /var/www/htdocs/MISP/app/files/scripts
 false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git; done
@@ -352,27 +342,31 @@ false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MAECPro
 false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git; done
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-cybox
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-stix
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-maec
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install mixbox to accommodate the new STIX dependencies:
+# Install mixbox to accommodate the new STIX dependencies:
 cd /var/www/htdocs/MISP/app/files/scripts/mixbox
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install PyMISP
+# Install PyMISP
 cd /var/www/htdocs/MISP/PyMISP
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install support for STIX 2.0
-cd /var/www/htdocs/MISP/cti-python-stix2
+# Install misp-stix
+cd /var/www/htdocs/MISP/app/files/scripts/misp-stix
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install python-magic and pydeep
+# Install python-magic and pydeep
 doas /usr/local/virtualenvs/MISP/bin/pip install python-magic
 doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/pydeep.git
 ```
@@ -384,7 +378,7 @@ doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app
 doas mkdir /var/www/.composer ; doas chown www:www /var/www/.composer
-${SUDO_WWW} env HOME=/var/www php composer.phar install
+${SUDO_WWW} env HOME=/var/www php composer.phar install --no-dev
 
 # To use the scheduler worker for scheduled tasks, do the following:
 ${SUDO_WWW} cp -f /var/www/htdocs/MISP/INSTALL/setup/config.php /var/www/htdocs/MISP/app/Plugin/CakeResque/Config/config.php
@@ -503,6 +497,7 @@ LoadModule rewrite_module /usr/local/lib/apache2/mod_rewrite.so
 LoadModule ssl_module /usr/local/lib/apache2/mod_ssl.so
 LoadModule proxy_module /usr/local/lib/apache2/mod_proxy.so
 LoadModule proxy_fcgi_module /usr/local/lib/apache2/mod_proxy_fcgi.so
+LoadModule socache_shmcb_module /usr/local/lib/apache2/socache_shmcb_module.so
 Listen 443
 DirectoryIndex index.php
 ```
@@ -611,6 +606,7 @@ cd /usr/local/src/
 doas chown ${MISP_USER} /usr/local/src
 doas -u misp git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
+$SUDO_WWW git config core.filemode false
 # pip3 install
 doas /usr/local/virtualenvs/MISP/bin/pip install -I -r REQUIREMENTS
 doas /usr/local/virtualenvs/MISP/bin/pip install -I .
@@ -841,6 +837,7 @@ doas mkdir misp-dashboard
 doas chown www:www misp-dashboard
 ${SUDO_WWW} git clone https://github.com/MISP/misp-dashboard.git
 cd misp-dashboard
+$SUDO_WWW git config core.filemode false
 #/!\ Made on Linux, the next script will fail
 #doas /var/www/misp-dashboard/install_dependencies.sh
 doas virtualenv -ppython3 /usr/local/virtualenvs/DASHENV

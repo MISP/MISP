@@ -21,17 +21,23 @@ import json
 import os
 import time
 import io
-import stix2
+import pymisp
 import stix2misp_mapping
+import uuid
 from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
 _misp_dir = Path(os.path.realpath(__file__)).parents[4]
 _misp_objects_path = _misp_dir / 'app' / 'files' / 'misp-objects' / 'objects'
-_pymisp_dir = _misp_dir / 'PyMISP'
-with open(_pymisp_dir / 'pymisp' / 'data' / 'describeTypes.json', 'r') as f:
-    _misp_types = json.loads(f.read())['result'].get('types')
+_misp_types = pymisp.AbstractMISP().describe_types.get('types')
 from pymisp import MISPEvent, MISPObject, MISPAttribute
+
+_scripts_path = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_scripts_path / 'cti-python-stix2'))
+import stix2
+
+_RFC_UUID_VERSIONS = (1, 3, 4, 5)
+_UUIDv4 = uuid.UUID('76beed5f-7251-457e-8c2a-b45f7b589d3d')
 
 
 class StixParser():
@@ -74,7 +80,9 @@ class StixParser():
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
             attribute_distribution = 5
-        self._synonyms_to_tag_names = args[2] if len(args) > 2 else '/var/www/MISP/app/files/scripts/synonymsToTagNames.json'
+        synonyms_to_tag_names = args[2] if len(args) > 2 else '/var/www/MISP/app/files/scripts/synonymsToTagNames.json'
+        with open(synonyms_to_tag_names, 'rt', encoding='utf-8') as f:
+            self._synonyms_to_tag_names = json.loads(f.read())
         self.parse_event(event)
 
     def _load_galaxy(self, galaxy):
@@ -102,15 +110,29 @@ class StixParser():
         except AttributeError:
             self.report = {report['id'].split('--')[1]: report}
 
-    def _load_synonyms_to_tag_names(self):
-        with open(self._synonyms_to_tag_names, 'rt', encoding='utf-8') as f:
-            synonyms_to_tag_names = json.loads(f.read())
-        self._synonyms_to_tag_names = synonyms_to_tag_names
-
     def save_file(self):
+        for attribute in self.misp_event.attributes:
+            if uuid.UUID(attribute.uuid).version not in _RFC_UUID_VERSIONS:
+                attribute.uuid = self._sanitize_uuid(attribute)
+        for misp_object in self.misp_event.objects:
+            if uuid.UUID(misp_object.uuid).version not in _RFC_UUID_VERSIONS:
+                misp_object.uuid = self._sanitize_uuid(misp_object)
+                for reference in misp_object.references:
+                    reference.object_uuid = misp_object.uuid
+                    if uuid.UUID(reference.referenced_uuid).version not in _RFC_UUID_VERSIONS:
+                        reference.referenced_uuid = uuid.uuid5(_UUIDv4, reference.referenced_uuid)
+                for attribute in misp_object.attributes:
+                    if uuid.UUID(attribute.uuid).version not in _RFC_UUID_VERSIONS:
+                        attribute.uuid = self._sanitize_uuid(attribute)
         event = self.misp_event.to_json()
         with open(f'{self.filename}.stix2', 'wt', encoding='utf-8') as f:
             f.write(event)
+
+    @staticmethod
+    def _sanitize_uuid(misp_feature):
+        comment = f'Original UUID was: {misp_feature.uuid}'
+        misp_feature.comment = f'{misp_feature.comment} - {comment}' if hasattr(misp_feature, 'comment') else comment
+        return uuid.uuid5(_UUIDv4, misp_feature.uuid)
 
     ################################################################################
     ##                 PARSING FUNCTIONS USED BY BOTH SUBCLASSES.                 ##
@@ -121,6 +143,8 @@ class StixParser():
             for attribute in self.misp_event.attributes:
                 if attribute.uuid in self.marking_refs:
                     for marking_uuid in self.marking_refs[attribute.uuid]:
+                        if marking_uuid not in self.marking_definition:
+                            continue
                         attribute.add_tag(self.marking_definition[marking_uuid]['object'])
                         self.marking_definition[marking_uuid]['used'] = True
         if self.marking_definition:
@@ -293,13 +317,6 @@ class StixParser():
             print(f'More than one {main_type} objects in this observable: {observable}', file=sys.stderr)
         return main_objects[0] if main_objects else None, references
 
-    def _get_tag_names_from_synonym(self, name):
-        try:
-            return self._synonyms_to_tag_names[name]
-        except TypeError:
-            self._load_synonyms_to_tag_names()
-            return self._synonyms_to_tag_names[name]
-
     @staticmethod
     def getTimestampfromDate(date):
         try:
@@ -331,6 +348,14 @@ class StixParser():
         except KeyError:
             pass
         return misp_object
+
+    def _parse_galaxy_name(self, galaxy_name, default = None):
+        for identifier in galaxy_name.split(' - '):
+            if identifier[0].isalpha() and any(character.isdecimal() for character in identifier[1:]):
+                for name, tag_names in self._synonyms_to_tag_names.items():
+                    if identifier in name:
+                        return tag_names
+        return default
 
     @staticmethod
     def _process_test_filter(value, main_type):
@@ -481,12 +506,12 @@ class StixFromMISPParser(StixParser):
 
     def parse_galaxy(self, galaxy):
         if hasattr(galaxy, 'labels'):
-            return tuple(label for label in galaxy.labels if label.startswith('misp-galaxy:'))
+            return [label for label in galaxy.labels if label.startswith('misp-galaxy:')]
         try:
-            return tuple(self._get_tag_names_from_synonym(galaxy.name))
+            return self._synonyms_to_tag_names[galaxy.name]
         except KeyError:
             print(f'Unknown {galaxy._type} name: {galaxy.name}', file=sys.stderr)
-            return tuple()
+            return self._parse_galaxy_name(galaxy.name, default=[f'misp-galaxy:{galaxy._type}="{galaxy.name}"'])
 
     def parse_indicator_attribute(self, indicator):
         attribute = self.create_attribute_dict(indicator)
@@ -501,7 +526,7 @@ class StixFromMISPParser(StixParser):
 
     def parse_indicator_object(self, indicator):
         misp_object, object_type = self.create_misp_object(indicator)
-        pattern = indicator.pattern.replace('\\\\', '\\').strip('[]').split(' AND ')
+        pattern = self._handle_pattern(indicator.pattern).replace('\\\\', '\\').split(' AND ')
         try:
             attributes = getattr(self, stix2misp_mapping.objects_mapping[object_type]['pattern'])(pattern)
         except KeyError:
@@ -622,14 +647,20 @@ class StixFromMISPParser(StixParser):
 
     def _parse_attachment(self, observable):
         if len(observable) > 1:
-            return self._parse_name(observable, index='1'), self._parse_payload(observable)
+            return self._parse_name(observable), self._parse_payload(observable)
         return self._parse_name(observable)
 
     def parse_credential_observable(self, observable):
         return self.fill_observable_attributes(observable['0'], 'credential_mapping')
 
     def _parse_domain_ip_attribute(self, observable):
-        return f'{self._parse_value(observable)}|{self._parse_value(observable, index="1")}'
+        return f'{self._parse_domain_value(observable)}|{self._parse_ip_value(observable)}'
+
+    @staticmethod
+    def _parse_domain_value(observables):
+        for observable in observables.values():
+            if observable.type == 'domain-name':
+                return observable.value
 
     @staticmethod
     def parse_domain_ip_observable(observable):
@@ -657,6 +688,12 @@ class StixFromMISPParser(StixParser):
     @staticmethod
     def _parse_email_reply_to(observable):
         return observable['0'].additional_header_fields.get('Reply-To')
+
+    @staticmethod
+    def _parse_email_value(observables):
+        for observable in observables.values():
+            if observable.type == 'email-addr':
+                return observable.value
 
     def parse_file_observable(self, observable):
         file, references = self.filter_main_object(observable, 'File')
@@ -688,15 +725,17 @@ class StixFromMISPParser(StixParser):
                 })
         return attributes
 
-    def _parse_filename_hash(self, observable, attribute_type, index='0'):
+    def _parse_filename_hash(self, observable, attribute_type):
         hash_type = attribute_type.split('|')[1]
-        filename = self._parse_name(observable, index=index)
-        hash_value = self._parse_hash(observable, hash_type, index=index)
+        filename = self._parse_name(observable)
+        hash_value = self._parse_hash(observable, hash_type)
         return f'{filename}|{hash_value}'
 
-    def _parse_hash(self, observable, attribute_type, index='0'):
+    def _parse_hash(self, observables, attribute_type):
         hash_type = self._define_hash_type(attribute_type)
-        return observable[index]['hashes'].get(hash_type)
+        for observable in observables.values():
+            if observable.type == 'file':
+                return observable.hashes.get(hash_type)
 
     def parse_ip_port_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
@@ -716,19 +755,33 @@ class StixFromMISPParser(StixParser):
             attributes.append(attribute)
         return attributes
 
+    @staticmethod
+    def _parse_ip_value(observables):
+        for observable in observables.values():
+            if observable.type in ('ipv4-addr', 'ipv6-addr'):
+                return observable.value
+
+    @staticmethod
+    def _parse_mac_value(observables):
+        for observable in observables.values():
+            if observable.type == 'mac-addr':
+                return observable.value
+
     def _parse_malware_sample(self, observable):
         if len(observable) > 1:
-            value = self._parse_filename_hash(observable, 'filename|md5', '1')
+            value = self._parse_filename_hash(observable, 'filename|md5')
             return value, self._parse_payload(observable)
         return self._parse_filename_hash(observable, 'filename|md5')
 
     @staticmethod
-    def _parse_name(observable, index='0'):
-        return observable[index].get('name')
+    def _parse_name(observables):
+        for observable in observables.values():
+            if observable.type == 'file':
+                return observable.name
 
     def _parse_network_attribute(self, observable):
-        port = self._parse_port(observable, index='1')
-        return f'{self._parse_value(observable)}|{port}'
+        port = self._parse_port(observable)
+        return f'{self._parse_ip_value(observable)}|{port}'
 
     def parse_network_connection_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
@@ -775,8 +828,10 @@ class StixFromMISPParser(StixParser):
         return observable['0'].get('number')
 
     @staticmethod
-    def _parse_payload(observable):
-        return observable['0'].payload_bin
+    def _parse_payload(observables):
+        for observable in observables.values():
+            if observable.type == 'artifact':
+                return observable.payload_bin
 
     def parse_pe_observable(self, observable):
         key = self._fetch_file_observable(observable)
@@ -785,9 +840,10 @@ class StixFromMISPParser(StixParser):
         return self.parse_file_observable(observable), pe_uuid
 
     @staticmethod
-    def _parse_port(observable, index='0'):
-        port_observable = observable[index]
-        return port_observable['src_port'] if 'src_port' in port_observable else port_observable['dst_port']
+    def _parse_port(observables):
+        for observable in observables.values():
+            if observable.type == 'network-traffic':
+                return observable.src_port if hasattr(observable, 'src_port') else observable.dst_port
 
     def parse_process_observable(self, observable):
         process, references = self.filter_main_object(observable, 'Process', test_function='_process_test_filter')
@@ -858,6 +914,12 @@ class StixFromMISPParser(StixParser):
             attributes.append(attribute)
         return attributes
 
+    @staticmethod
+    def parse_url_value(observables):
+        for observable in observables.items():
+            if observable.type == 'url':
+                return observable.value
+
     def parse_user_account_observable(self, observable):
         observable = observable['0']
         attributes = self.fill_observable_attributes(observable, 'user_account_mapping')
@@ -867,10 +929,6 @@ class StixFromMISPParser(StixParser):
                 attributes.extend(self._parse_user_account_groups(extension['groups']))
             attributes.extend(self.fill_observable_attributes(extension, 'user_account_mapping'))
         return attributes
-
-    @staticmethod
-    def _parse_value(observable, index='0'):
-        return observable[index].get('value')
 
     def _parse_x509_attribute(self, observable, attribute_type):
         hash_type = attribute_type.split('-')[-1]
@@ -1109,6 +1167,8 @@ class StixFromMISPParser(StixParser):
         if tags:
             attribute['Tag'] = tags
         attribute.update(self.parse_timeline(stix_object))
+        if hasattr(stix_object, 'description') and stix_object.description:
+            attribute['comment'] = stix_object.description
         if hasattr(stix_object, 'object_marking_refs'):
             self.update_marking_refs(attribute_uuid, stix_object.object_marking_refs)
         return attribute
@@ -1119,6 +1179,8 @@ class StixFromMISPParser(StixParser):
         misp_object = MISPObject('file' if object_type == 'WindowsPEBinaryFile' else object_type,
                                  misp_objects_path_custom=_misp_objects_path)
         misp_object.uuid = stix_object.id.split('--')[1]
+        if hasattr(stix_object, 'description') and stix_object.description:
+            misp_object.comment = stix_object.description
         misp_object.update(self.parse_timeline(stix_object))
         return misp_object, object_type
 
@@ -1137,7 +1199,9 @@ class StixFromMISPParser(StixParser):
 
     @staticmethod
     def get_misp_type(labels):
-        return labels[0].split('=')[1].strip('"')
+        for label in labels:
+            if label.startswith('misp:type=') or label.startswith('misp:name='):
+                return label.split('=')[1].strip('"')
 
     @staticmethod
     def parse_attribute_pattern(pattern):
@@ -1168,8 +1232,8 @@ class StixFromMISPParser(StixParser):
 
     @staticmethod
     def parse_custom_property(custom_property):
-        properties = custom_property.split('_')
-        return {'type': properties[2], 'object_relation': '-'.join(properties[3:])}
+        properties = custom_property.split('_')[2:]
+        return {'object_relation': '-'.join(properties)}
 
 
 class ExternalStixParser(StixParser):
@@ -1203,8 +1267,9 @@ class ExternalStixParser(StixParser):
         self.handle_markings()
 
     def parse_galaxy(self, galaxy):
-        if galaxy.name in self._synonyms_to_tag_names:
-            return self._synonyms_to_tag_names[galaxy.name]
+        galaxy_names = self._check_existing_galaxy_name(galaxy.name)
+        if galaxy_names is not None:
+            return galaxy_names
         return [f'misp-galaxy:{galaxy._type}="{galaxy.name}"']
 
     def _parse_indicator(self, indicator):
@@ -1254,24 +1319,39 @@ class ExternalStixParser(StixParser):
                 misp_object.add_attribute(**attribute)
 
     def parse_attack_pattern(self, attack_pattern):
-        misp_object = self.create_misp_object(attack_pattern)
-        if hasattr(attack_pattern, 'external_references'):
-            for reference in attack_pattern.external_references:
-                source_name = reference['source_name']
-                value = reference['external_id'].split('-')[1] if source_name == 'capec' else reference['url']
-                attribute = deepcopy(stix2misp_mapping.attack_pattern_references_mapping[source_name]) if source_name in stix2misp_mapping.attack_pattern_references_mapping else stix2misp_mapping.references_attribute_mapping
-                attribute['value'] = value
-                misp_object.add_attribute(**attribute)
-        self.fill_misp_object(misp_object, attack_pattern, 'attack_pattern_mapping')
-        self.misp_event.add_object(**misp_object)
+        galaxy_names = self._check_existing_galaxy_name(attack_pattern.name)
+        if galaxy_names is not None:
+            self.galaxy[attack_pattern['id'].split('--')[1]] = {'tag_names': galaxy_names, 'used': False}
+        else:
+            misp_object = self.create_misp_object(attack_pattern)
+            if hasattr(attack_pattern, 'external_references'):
+                references = defaultdict(set)
+                for reference in attack_pattern.external_references:
+                    if hasattr(reference, 'url'):
+                        references['references'].add(reference.url)
+                    if hasattr(reference, 'external_id'):
+                        external_id = reference.external_id
+                        references['id'].add(external_id.split('-')[1] if external_id.startswith('CAPEC-') else external_id)
+                if references:
+                    for feature, values in references.items():
+                        for value in values:
+                            attribute = {'value': value}
+                            attribute.update(getattr(stix2misp_mapping, f'attack_pattern_{feature}_attribute'))
+                            misp_object.add_attribute(**attribute)
+            self.fill_misp_object(misp_object, attack_pattern, 'attack_pattern_mapping')
+            self.misp_event.add_object(**misp_object)
 
     def parse_course_of_action(self, course_of_action):
-        misp_object = self.create_misp_object(course_of_action)
-        self.fill_misp_object(misp_object, course_of_action, 'course_of_action_mapping')
-        self.misp_event.add_object(**misp_object)
+        galaxy_names = self._check_existing_galaxy_name(course_of_action.name)
+        if galaxy_names is not None:
+            self.galaxy[course_of_action['id'].split('--')[1]] = {'tag_names': galaxy_names, 'used': False}
+        else:
+            misp_object = self.create_misp_object(course_of_action)
+            self.fill_misp_object(misp_object, course_of_action, 'course_of_action_mapping')
+            self.misp_event.add_object(**misp_object)
 
     def parse_usual_indicator(self, indicator, separator):
-        pattern = tuple(part.strip() for part in indicator.pattern.strip('[]').split(separator))
+        pattern = tuple(part.strip() for part in self._handle_pattern(indicator.pattern).split(separator))
         types = self._parse_pattern_types(pattern)
         try:
             getattr(self, stix2misp_mapping.pattern_mapping[types])(indicator, separator)
@@ -1280,16 +1360,20 @@ class ExternalStixParser(StixParser):
             self.add_stix2_pattern_object(indicator)
 
     def parse_vulnerability(self, vulnerability):
-        attributes = self._get_attributes_from_observable(vulnerability, 'vulnerability_mapping')
-        if hasattr(vulnerability, 'external_references'):
-            for reference in vulnerability.external_references:
-                if reference['source_name'] == 'url':
-                    attribute = deepcopy(stix2misp_mapping.references_attribute_mapping)
-                    attribute['value'] = reference['url']
-                    attributes.append(attribute)
-        if len(attributes) == 1 and attributes[0]['object_relation'] == 'id':
-            attributes[0]['type'] = 'vulnerability'
-        self.handle_import_case(vulnerability, attributes, 'vulnerability')
+        galaxy_names = self._check_existing_galaxy_name(vulnerability.name)
+        if galaxy_names is not None:
+            self.galaxy[vulnerability['id'].split('--')[1]] = {'tag_names': galaxy_names, 'used': False}
+        else:
+            attributes = self._get_attributes_from_observable(vulnerability, 'vulnerability_mapping')
+            if hasattr(vulnerability, 'external_references'):
+                for reference in vulnerability.external_references:
+                    if reference['source_name'] == 'url':
+                        attribute = deepcopy(stix2misp_mapping.references_attribute_mapping)
+                        attribute['value'] = reference['url']
+                        attributes.append(attribute)
+            if len(attributes) == 1 and attributes[0]['object_relation'] == 'id':
+                attributes[0]['type'] = 'vulnerability'
+            self.handle_import_case(vulnerability, attributes, 'vulnerability')
 
     ################################################################################
     ##                        OBSERVABLE PARSING FUNCTIONS                        ##
@@ -1450,6 +1534,17 @@ class ExternalStixParser(StixParser):
             extension_types = (extension_type for extension_type in file_object.extensions.keys())
             print(f'File extension type(s) not supported at the moment: {", ".join(extension_types)}', file=sys.stderr)
         self.handle_import_case(observable, attributes, 'file', _force_object=('file-encoding', 'path'))
+
+    def parse_ip_address_observable(self, observable):
+        attributes = []
+        for observable_object in observable.objects.values():
+            attribute = {
+                'value': observable_object.value,
+                'to_ids': False
+            }
+            attribute.update(stix2misp_mapping.ip_attribute_mapping)
+            attributes.append(attribute)
+        self.handle_import_case(observable, attributes, 'ip-port')
 
     def parse_ip_network_traffic_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable.objects, 'NetworkTraffic')
@@ -1661,7 +1756,7 @@ class ExternalStixParser(StixParser):
     def parse_domain_ip_port_pattern(self, indicator, separator):
         attributes = []
         references = defaultdict(dict)
-        for pattern_part in indicator.pattern.strip('[]').split(separator):
+        for pattern_part in self._handle_pattern(indicator.pattern).split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type not in stix2misp_mapping.domain_ip_mapping:
                 if any(pattern_type.startswith(f'network-traffic:{feature}_ref') for feature in ('src', 'dst')):
@@ -1686,7 +1781,7 @@ class ExternalStixParser(StixParser):
     def parse_email_message_pattern(self, indicator, separator):
         attributes = []
         attachments = defaultdict(dict)
-        for pattern_part in indicator.pattern.strip('[]').split(separator):
+        for pattern_part in self._handle_pattern(indicator.pattern).split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type not in stix2misp_mapping.email_mapping:
                 if pattern_type.startswith('email-message:body_multipart'):
@@ -1718,7 +1813,7 @@ class ExternalStixParser(StixParser):
         attributes = []
         attachment = {}
         extensions = defaultdict(lambda: defaultdict(dict))
-        for pattern_part in indicator.pattern.strip('[]').split(separator):
+        for pattern_part in self._handle_pattern(indicator.pattern).split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type in stix2misp_mapping.attachment_types:
                 attachment[pattern_type] = pattern_value.strip("'")
@@ -1809,7 +1904,7 @@ class ExternalStixParser(StixParser):
         protocols = []
         references = defaultdict(dict)
         extensions = defaultdict(dict)
-        for pattern_part in indicator.pattern.strip('[]').split(separator):
+        for pattern_part in self._handle_pattern(indicator.pattern).split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type in stix2misp_mapping.network_traffic_mapping:
                 attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
@@ -1842,7 +1937,7 @@ class ExternalStixParser(StixParser):
         attributes = []
         parent = {}
         child = defaultdict(set)
-        for pattern_part in indicator.pattern.strip('[]').split(separator):
+        for pattern_part in self._handle_pattern(indicator.pattern).split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if 'parent_' in pattern_type:
                 child[pattern_type.split('.')[-1]].add(pattern_value)
@@ -1885,7 +1980,7 @@ class ExternalStixParser(StixParser):
 
     def parse_user_account_pattern(self, indicator, separator):
         attributes = []
-        pattern = indicator.pattern.strip('[]').split(separator)
+        pattern = self._handle_pattern(indicator.pattern).split(separator)
         object_name, mapping = self._fetch_user_account_type_pattern(pattern)
         for pattern_part in pattern:
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
@@ -1912,30 +2007,29 @@ class ExternalStixParser(StixParser):
     ################################################################################
 
     def add_attributes_from_indicator(self, indicator, attribute_type, separator):
-        patterns = indicator.pattern.strip('[]').split(separator)
+        patterns = self._handle_pattern(indicator.pattern).split(separator)
+        attribute = {
+            'type': attribute_type,
+            'to_ids': True
+        }
+        attribute.update(self.parse_timeline(indicator))
+        if hasattr(indicator, 'description') and indicator.description:
+            attribute['comment'] = indicator.description
         if len(patterns) == 1:
             _, value = self.get_type_and_value_from_pattern(patterns[0])
-            attribute = MISPAttribute()
-            attribute.from_dict(**{
-                'uuid': indicator.id.split('--')[1],
-                'type': attribute_type,
-                'value': value,
-                'to_ids': True
-            })
-            attribute.update(self.parse_timeline(indicator))
+            attribute.update(
+                {
+                    'uuid': indicator.id.split('--')[1],
+                    'value': value,
+                }
+            )
             self.misp_event.add_attribute(**attribute)
         else:
-            tmp_attribute = self.parse_timeline(indicator)
             for pattern in patterns:
                 _, value = self.get_type_and_value_from_pattern(pattern)
-                attribute = MISPAttribute()
-                attribute.from_dict(**{
-                    'type': attribute_type,
-                    'value': value,
-                    'to_ids': True
-                })
-                attribute.update(tmp_attribute)
-                self.misp_event.add_attribute(**attribute)
+                misp_attribute = {'value': value}
+                misp_attribute.update(attribute)
+                self.misp_event.add_attribute(**misp_attribute)
 
     def add_attributes_from_observable(self, observable, attribute_type, feature):
         if len(observable.objects) == 1:
@@ -1960,10 +2054,17 @@ class ExternalStixParser(StixParser):
                 attribute.update(tmp_attribute)
                 self.misp_event.add_attribute(**attribute)
 
+    def _check_existing_galaxy_name(self, galaxy_name):
+        if galaxy_name in self._synonyms_to_tag_names:
+            return self._synonyms_to_tag_names[galaxy_name]
+        return self._parse_galaxy_name(galaxy_name)
+
     def create_misp_object(self, stix_object, name=None):
         misp_object = MISPObject(name if name is not None else stix_object.type,
                                  misp_objects_path_custom=_misp_objects_path)
         misp_object.uuid = stix_object.id.split('--')[1]
+        if hasattr(stix_object, 'description') and stix_object.description:
+            misp_object.comment = stix_object.description
         misp_object.update(self.parse_timeline(stix_object))
         return misp_object
 
@@ -1989,13 +2090,15 @@ class ExternalStixParser(StixParser):
                     misp_object.add_attribute(**attribute)
                 self.misp_event.add_object(**misp_object)
             else:
-                attribute = {field: attributes[0][field] for field in stix2misp_mapping.single_attribute_fields if attributes[0].get(field)}
+                attribute = {field: attributes[0][field] for field in stix2misp_mapping.single_attribute_fields if attributes[0].get(field) is not None}
                 attribute['uuid'] = stix_object.id.split('--')[1]
                 attribute.update(self.parse_timeline(stix_object))
                 if isinstance(stix_object, stix2.v20.Indicator):
                     attribute['to_ids'] = True
                 if hasattr(stix_object, 'object_marking_refs'):
                     self.update_marking_refs(attribute['uuid'], stix_object.object_marking_refs)
+                if hasattr(stix_object, 'description') and stix_object.description:
+                    attribute['comment'] = stix_object.description
                 self.misp_event.add_attribute(**attribute)
         except IndexError:
             object_type = 'indicator' if isinstance(stix_object, stix2.Indicator) else 'observable objects'
@@ -2006,6 +2109,10 @@ class ExternalStixParser(StixParser):
         if isinstance(_force_object, (list, tuple)):
             return attribute['object_relation'] in _force_object
         return _force_object
+
+    @staticmethod
+    def _handle_pattern(pattern):
+        return pattern.strip().strip('[]')
 
     @staticmethod
     def _parse_observable_types(observable_objects):
@@ -2033,7 +2140,7 @@ def from_misp(stix_objects):
 
 
 def main(args):
-    filename = Path(os.path.dirname(args[0]), args[1])
+    filename = args[1] if args[1][0] == '/' else Path(os.path.dirname(args[0]), args[1])
     with open(filename, 'rt', encoding='utf-8') as f:
         event = stix2.parse(f.read(), allow_custom=True, interoperability=True)
     stix_parser = StixFromMISPParser() if from_misp(event.objects) else ExternalStixParser()

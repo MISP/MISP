@@ -55,6 +55,9 @@ class MispZmq:
     socket = None
     pidfile = None
 
+    r: redis.StrictRedis
+    namespace: str
+
     def __init__(self):
         self._logger = logging.getLogger()
 
@@ -102,8 +105,8 @@ class MispZmq:
         self.socket = context.socket(zmq.PUB)
         if self.settings["username"]:
             self.socket.plain_server = True  # must come before bind
-        self.socket.bind("tcp://*:{}".format(self.settings["port"]))
-        self._logger.debug("ZMQ listening on tcp://*:{}".format(self.settings["port"]))
+        self.socket.bind("tcp://{}:{}".format(self.settings["host"], self.settings["port"]))
+        self._logger.debug("ZMQ listening on tcp://{}:{}".format(self.settings["host"], self.settings["port"]))
 
         if self._logger.isEnabledFor(logging.DEBUG):
             monitor = self.socket.get_monitor_socket()
@@ -168,7 +171,7 @@ class MispZmq:
         topics = ["misp_json", "misp_json_event", "misp_json_attribute", "misp_json_sighting",
                   "misp_json_organisation", "misp_json_user", "misp_json_conversation",
                   "misp_json_object", "misp_json_object_reference", "misp_json_audit",
-                  "misp_json_tag",
+                  "misp_json_tag", "misp_json_warninglist", "misp_json_workflow"
                   ]
 
         lists = ["{}:command".format(self.namespace)]

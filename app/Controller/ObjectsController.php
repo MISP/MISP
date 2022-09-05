@@ -1,6 +1,7 @@
 <?php
 
 App::uses('AppController', 'Controller');
+App::uses('JsonTool', 'Tools');
 
 /**
  * @property MispObject $MispObject
@@ -9,7 +10,7 @@ class ObjectsController extends AppController
 {
     public $uses = 'MispObject';
 
-    public $components = array('Security' ,'RequestHandler', 'Session');
+    public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
             'limit' => 20,
@@ -39,7 +40,7 @@ class ObjectsController extends AppController
                 'ObjectTemplateElement'
             )
         ));
-        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $event_id);
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $event_id, ['contain' => ['Orgc']]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
         }
@@ -61,7 +62,7 @@ class ObjectsController extends AppController
         }
         $multiple_template_elements = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[multiple=true]'));
         $multiple_attribute_allowed = array();
-        foreach ($multiple_template_elements as $k => $template_element) {
+        foreach ($multiple_template_elements as $template_element) {
             $relation_type = $template_element['object_relation'] . ':' . $template_element['type'];
             $multiple_attribute_allowed[$relation_type] = true;
         }
@@ -85,6 +86,18 @@ class ObjectsController extends AppController
         foreach ($similar_objects as $obj) {
             $similar_object_ids[] = $obj['Attribute']['object_id'];
             $similar_object_similarity_amount[$obj['Attribute']['object_id']] = $obj[0]['similarity_amount'];
+        }
+
+        if (isset($this->request->data['Attribute'])) {
+            foreach ($this->request->data['Attribute'] as &$attribute) {
+                if (empty($attribute['uuid'])) {
+                    $attribute['uuid'] = CakeText::uuid();
+                }
+                $validation = $this->MispObject->Attribute->validateAttribute($attribute, false);
+                if ($validation !== true) {
+                    $attribute['validation'] = $validation;
+                }
+            }
         }
 
         $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
@@ -160,7 +173,7 @@ class ObjectsController extends AppController
             }
         }
         // Find the event that is to be updated
-        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $eventId, ['contain' => ['Orgc']]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
         }
@@ -225,11 +238,13 @@ class ObjectsController extends AppController
                     $object['Attribute'][$k]['event_id'] = $eventId;
                     $this->MispObject->Event->Attribute->set($object['Attribute'][$k]);
                     if (!$this->MispObject->Event->Attribute->validates()) {
-                        if ($this->MispObject->Event->Attribute->validationErrors['value'][0] !== 'Composite type found but the value not in the composite (value1|value2) format.') {
+                        $validationErrors = $this->MispObject->Event->Attribute->validationErrors;
+                        $isCompositeError = isset($validationErrors['value']) && $validationErrors['value'][0] === 'Composite type found but the value not in the composite (value1|value2) format.';
+                        if (!$isCompositeError) {
                             $error = sprintf(
                                 'Could not save object as at least one attribute has failed validation (%s). %s',
                                 isset($attribute['object_relation']) ? $attribute['object_relation'] : 'No object_relation',
-                                json_encode($this->MispObject->Event->Attribute->validationErrors)
+                                json_encode($validationErrors)
                             );
                         }
                     }
@@ -355,39 +370,44 @@ class ObjectsController extends AppController
         if (!$this->_isRest()) {
             $this->MispObject->Event->insertLock($this->Auth->user(), $object['Event']['id']);
         }
-        $template = $this->MispObject->ObjectTemplate->find('first', array(
-            'conditions' => array(
-                'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
-                'ObjectTemplate.version' => $object['Object']['template_version'],
-            ),
-            'recursive' => -1,
-            'contain' => array(
-                'ObjectTemplateElement'
-            )
-        ));
-        if (empty($template) && !$this->_isRest()) {
-            $this->Flash->error('Object cannot be edited, no valid template found.');
+        if (!empty($object['Object']['template_uuid']) && !empty($object['Object']['template_version'])) {
+            $template = $this->MispObject->ObjectTemplate->find('first', array(
+                'conditions' => array(
+                    'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
+                    'ObjectTemplate.version' => $object['Object']['template_version'],
+                ),
+                'recursive' => -1,
+                'contain' => array(
+                    'ObjectTemplateElement'
+                )
+            ));
+        }
+        if (empty($template) && !$this->_isRest() && !$update_template_available) {
+            $this->Flash->error('Object cannot be edited, no valid template found. ', ['params' => ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')]]);
             $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
         }
-        $templateData = $this->MispObject->resolveUpdatedTemplate($template, $object, $update_template_available);
-        $this->set('updateable_attribute', $templateData['updateable_attribute']);
-        $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
-        if (!empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
-            $revisedObjectData = $this->Session->read('object_being_created');
-            if ($this->params['named']['cur_object_tmp_uuid'] == $revisedObjectData['cur_object_tmp_uuid']) { // ensure that the passed session data is for the correct object
-                $revisedObjectData = $revisedObjectData['data'];
-            } else {
-                $this->Session->delete('object_being_created');
-                $revisedObjectData = array();
+        if (!empty($template)) {
+            $templateData = $this->MispObject->resolveUpdatedTemplate($template, $object, $update_template_available);
+            $this->set('updateable_attribute', $templateData['updateable_attribute']);
+            $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
+            $this->set('original_template_unkown', $templateData['original_template_unkown']);
+            if (!empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
+                $revisedObjectData = $this->Session->read('object_being_created');
+                if ($this->params['named']['cur_object_tmp_uuid'] == $revisedObjectData['cur_object_tmp_uuid']) { // ensure that the passed session data is for the correct object
+                    $revisedObjectData = $revisedObjectData['data'];
+                } else {
+                    $this->Session->delete('object_being_created');
+                    $revisedObjectData = array();
+                }
             }
-        }
-        if (!empty($revisedObjectData)) {
-            $revisedData = $this->MispObject->reviseObject($revisedObjectData, $object, $template);
-            $this->set('revised_object', $revisedData['revised_object_both']);
-            $object = $revisedData['object'];
-        }
-        if (!empty($templateData['template'])) {
-            $template = $this->MispObject->prepareTemplate($templateData['template'], $object);
+            if (!empty($revisedObjectData)) {
+                $revisedData = $this->MispObject->reviseObject($revisedObjectData, $object, $template);
+                $this->set('revised_object', $revisedData['revised_object_both']);
+                $object = $revisedData['object'];
+            }
+            if (!empty($templateData['template'])) {
+                $template = $this->MispObject->prepareTemplate($templateData['template'], $object);
+            }
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $this->Session->delete('object_being_created');
@@ -398,7 +418,7 @@ class ObjectsController extends AppController
               $this->request->data['Object'] = $this->request->data;
             }
             if (isset($this->request->data['Object']['data'])) {
-                $this->request->data = json_decode($this->request->data['Object']['data'], true);
+                $this->request->data = JsonTool::decode($this->request->data['Object']['data']);
             }
             if (isset($this->request->data['Object'])) {
                 $this->request->data = array_merge($this->request->data, $this->request->data['Object']);
@@ -407,15 +427,14 @@ class ObjectsController extends AppController
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
             $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute, $this->Auth->user());
             $error_message = __('Object could not be saved.');
-            if (!is_numeric($objectToSave)){
+            $savedObject = array();
+            if (!is_numeric($objectToSave)) {
                 $object_validation_errors = array();
                 foreach($objectToSave as $field => $field_errors) {
                     $object_validation_errors[] = sprintf('%s: %s', $field,  implode(', ', $field_errors));
                 }
                 $error_message = __('Object could not be saved.') . PHP_EOL . implode(PHP_EOL, $object_validation_errors);
-            }
-            $savedObject = array();
-            if (is_numeric($objectToSave)) {
+            } else {
                 $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $object['Object']['id'])));
                 if (isset($this->request->data['deleted']) && $this->request->data['deleted']) {
                     $this->MispObject->deleteObject($savedObject[0], $hard=false, $unpublish=false);
@@ -539,7 +558,7 @@ class ObjectsController extends AppController
         }
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
-        $object = $this->MispObject->syncObjectAndAttributeSeen($object, $forcedSeenOnElements);
+        $object = $this->MispObject->syncObjectAndAttributeSeen($object, $forcedSeenOnElements, false);
         if ($this->MispObject->save($object)) {
             $this->MispObject->Event->unpublishEvent($object['Event']['id']);
             if ($seen_changed) {
@@ -554,21 +573,21 @@ class ObjectsController extends AppController
     public function fetchViewValue($id, $field = null)
     {
         $validFields = array('timestamp', 'comment', 'distribution', 'first_seen', 'last_seen');
-        if (!isset($field) || !in_array($field, $validFields)) {
+        if (!isset($field) || !in_array($field, $validFields, true)) {
             throw new MethodNotAllowedException('Invalid field requested.');
         }
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
         }
         $params = array(
-                'conditions' => array('Object.id' => $id),
-                'fields' => array('id', 'distribution', 'event_id', $field),
-                'contain' => array(
-                        'Event' => array(
-                                'fields' => array('distribution', 'id', 'org_id'),
-                        )
-                ),
-                'flatten' => 1
+            'conditions' => array('Object.id' => $id),
+            'fields' => array('id', 'distribution', 'event_id', $field),
+            'contain' => array(
+                'Event' => array(
+                    'fields' => array('distribution', 'id', 'org_id'),
+                )
+            ),
+            'flatten' => 1
         );
         $object = $this->MispObject->fetchObjectSimple($this->Auth->user(), $params);
         if (empty($object)) {
@@ -576,11 +595,12 @@ class ObjectsController extends AppController
         }
         $object = $object[0];
         $result = $object['Object'][$field];
-        if ($field == 'distribution') {
-            $result=$this->MispObject->shortDist[$result];
+        if ($field === 'distribution') {
+            $result = $this->MispObject->shortDist[$result];
         }
         $this->set('value', $result);
-        $this->layout = 'ajax';
+        $this->set('field', $field);
+        $this->layout = false;
         $this->render('ajax/objectViewFieldForm');
     }
 
@@ -612,7 +632,7 @@ class ObjectsController extends AppController
         if (!$this->__canModifyEvent($object)) {
             throw new NotFoundException(__('Invalid object'));
         }
-        $this->layout = 'ajax';
+        $this->layout = false;
         if ($field == 'distribution') {
             $distributionLevels = $this->MispObject->shortDist;
             unset($distributionLevels[4]);
@@ -708,10 +728,9 @@ class ObjectsController extends AppController
             if (!isset($fieldName)) {
                 throw new MethodNotAllowedException('No field requested.');
             }
-            $fields = array('template_uuid', 'template_version', 'id', 'event_id');
             $params = array(
                 'conditions' => array('Object.id' => $id),
-                'fields' => $fields,
+                'fields' => array('template_uuid', 'template_version', 'id', 'event_id'),
                 'flatten' => 1,
                 'contain' => array(
                     'Event'
@@ -721,9 +740,8 @@ class ObjectsController extends AppController
             $object = $this->MispObject->fetchObjects($this->Auth->user(), $params);
             if (empty($object)) {
                 throw new NotFoundException(__('Invalid object'));
-            } else {
-                $object = $object[0];
             }
+            $object = $object[0];
             if (!$this->__canModifyEvent($object)) {
                 throw new ForbiddenException(__('You do not have permission to do that.'));
             }
@@ -748,25 +766,30 @@ class ObjectsController extends AppController
             }
 
             // check if fields can be added
-            foreach($object['Attribute'] as $i => $objAttr) {
+            foreach($object['Attribute'] as $objAttr) {
                 $objectAttrFromTemplate = $template['ObjectTemplateElement'][0];
                 if ($objAttr['object_relation'] == $fieldName && !$objectAttrFromTemplate['multiple']) {
                     throw new NotFoundException(__('Invalid field'));
                 }
             }
             $template = $this->MispObject->prepareTemplate($template, $object);
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->set('object', $object['Object']);
             $template_element = $template['ObjectTemplateElement'][0];
             unset($template_element['value']); // avoid filling if multiple
             $this->set('template_element', $template_element);
-            $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+            $distributionData = $this->MispObject->Attribute->fetchDistributionData($this->Auth->user());
             $this->set('distributionData', $distributionData);
-            $info = array();
-            foreach ($distributionData['levels'] as $key => $value) {
-                $info['distribution'][$key] = array('key' => $value, 'desc' => $this->MispObject->Event->Attribute->distributionDescriptions[$key]['formdesc']);
+
+            $info = ['category' => [], 'distribution' => []];
+            foreach ($this->MispObject->Attribute->categoryDefinitions as $key => $value) {
+                $info['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
             }
-            $this->set('info', $info);
+            foreach ($this->MispObject->Attribute->distributionLevels as $key => $value) {
+                $info['distribution'][$key] = $this->MispObject->Attribute->distributionDescriptions[$key]['formdesc'];
+            }
+
+            $this->set('fieldDesc', $info);
             $this->render('ajax/quickAddAttributeForm');
         } else if ($this->request->is('post') || $this->request->is('put')) {
             return $this->edit($this->request->data['Object']['id'], false, true);
@@ -797,6 +820,9 @@ class ObjectsController extends AppController
             $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
         }
         if ($this->request->is('post') || $this->request->is('delete')) {
+            if (!empty($this->request->data['hard'])) {
+                $hard = true;
+            }
             if ($this->__delete($object['Object']['id'], $hard)) {
                 $message = 'Object deleted.';
                 if ($this->request->is('ajax')) {
@@ -876,21 +902,31 @@ class ObjectsController extends AppController
 
     public function view($id)
     {
-        if ($this->_isRest()) {
-            $objects = $this->MispObject->fetchObjects($this->Auth->user(), array(
+        if ($this->request->is('head')) { // Just check if object exists
+            $exists = $this->MispObject->fetchObjects($this->Auth->user(), [
                 'conditions' => $this->__objectIdToConditions($id),
-            ));
-            if (!empty($objects)) {
-                $object = $objects[0];
-                if (!empty($object['Event'])) {
-                    $object['Object']['Event'] = $object['Event'];
-                }
-                if (!empty($object['Attribute'])) {
-                    $object['Object']['Attribute'] = $object['Attribute'];
-                }
-                return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
-            }
+                'metadata' => true,
+            ]);
+            return new CakeResponse(['status' => $exists ? 200 : 404]);
+        }
+
+        $objects = $this->MispObject->fetchObjects($this->Auth->user(), array(
+            'conditions' => $this->__objectIdToConditions($id),
+        ));
+        if (empty($objects)) {
             throw new NotFoundException(__('Invalid object.'));
+        }
+        $object = $objects[0];
+        if ($this->_isRest()) {
+            if (!empty($object['Event'])) {
+                $object['Object']['Event'] = $object['Event'];
+            }
+            if (!empty($object['Attribute'])) {
+                $object['Object']['Attribute'] = $object['Attribute'];
+            }
+            return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
+        } else {
+            $this->redirect('/events/view/' . $object['Object']['event_id']);
         }
     }
 

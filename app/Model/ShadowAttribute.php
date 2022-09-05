@@ -1,12 +1,17 @@
 <?php
-
 App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
+App::uses('ComplexTypeTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
+App::uses('AttributeValidationTool', 'Tools');
 
 /**
  * @property Event $Event
+ * @property Attribute $Attribute
+ * @property-read array $typeDefinitions
+ * @property-read array $categoryDefinitions
  */
 class ShadowAttribute extends AppModel
 {
@@ -17,6 +22,7 @@ class ShadowAttribute extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
@@ -58,23 +64,7 @@ class ShadowAttribute extends AppModel
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
             'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
-            //'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
     );
-
-    // if these then a category my have upload to be zipped
-
-    public $zippedDefinitions = array(
-            'malware-sample'
-    );
-
-    // if these then a category my have upload
-
-    public $uploadDefinitions = array(
-            'attachment'
-    );
-
-    // definitions of categories
-    public $categoryDefinitions;
 
     public $order = array("ShadowAttribute.event_id" => "DESC", "ShadowAttribute.type" => "ASC");
 
@@ -122,45 +112,56 @@ class ShadowAttribute extends AppModel
         ),
         'to_ids' => array(
             'boolean' => array(
-                'rule' => array('boolean'),
+                'rule' => 'boolean',
                 'required' => false,
             ),
         ),
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
-                'message' => 'Please provide a valid UUID'
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
             ),
         ),
         'proposal_to_delete' => array(
-                'boolean' => array(
-                        'rule' => array('boolean'),
-                ),
+            'boolean' => array(
+                'rule' => 'boolean',
+            ),
         ),
         'first_seen' => array(
             'rule' => array('datetimeOrNull'),
             'required' => false,
-            'message' => array('Invalid ISO 8601 format')
+            'message' => array('Invalid ISO 8601 format'),
         ),
         'last_seen' => array(
-            'rule' => array('datetimeOrNull'),
-            'required' => false,
-            'message' => array('Invalid ISO 8601 format')
+            'datetimeOrNull' => array(
+                'rule' => array('datetimeOrNull'),
+                'required' => false,
+                'message' => array('Invalid ISO 8601 format'),
+            ),
+            'validateLastSeenValue' => array(
+                'rule' => array('validateLastSeenValue'),
+                'required' => false,
+                'message' => array('Last seen value should be greater than first seen value')
+            ),
         )
     );
 
-    public function __construct($id = false, $table = null, $ds = null)
+    public function __isset($name)
     {
-        parent::__construct($id, $table, $ds);
-        $this->virtualFields = Set::merge($this->virtualFields, array(
-            //'distribution' => 'IF (Attribute.private=true, "Your organization only", IF (Attribute.cluster=true, "This Community-only", "All communities"))',
-            //'distribution' => 'IF (ShadowAttribute.private=true AND ShadowAttribute.cluster=false, "Your organization only", IF (ShadowAttribute.private=true AND ShadowAttribute.cluster=true, "This server-only", IF (ShadowAttribute.private=false AND ShadowAttribute.cluster=true, "This Community-only", IF (ShadowAttribute.communitie=true, "Connected communities" , "All communities"))))',
-        ));
-        $this->fieldDescriptions = Set::merge($this->fieldDescriptions, array(
-            //'distribution' => array('desc' => 'This fields indicates the intended distribution of the attribute (same as when adding an event, see Add Event)'),
-        ));
-        $this->categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
-        $this->typeDefinitions = $this->Event->Attribute->typeDefinitions;
+        if ($name === 'typeDefinitions' || $name === 'categoryDefinitions') {
+            return true;
+        }
+        return parent::__isset($name);
+    }
+
+    public function __get($name)
+    {
+        if ($name === 'categoryDefinitions') {
+            return $this->Attribute->categoryDefinitions;
+        } else if ($name === 'typeDefinitions') {
+            return $this->Attribute->typeDefinitions;
+        }
+        return parent::__get($name);
     }
 
     // The Associations below have been created with all possible keys, those that are not needed can be removed
@@ -173,7 +174,7 @@ class ShadowAttribute extends AppModel
             $compositeTypes = $this->getCompositeTypes();
             // explode composite types in value1 and value2
             $pieces = explode('|', $this->data['ShadowAttribute']['value']);
-            if (in_array($this->data['ShadowAttribute']['type'], $compositeTypes)) {
+            if (in_array($this->data['ShadowAttribute']['type'], $compositeTypes, true)) {
                 if (2 != count($pieces)) {
                     throw new InternalErrorException('Composite type, but value not explodable');
                 }
@@ -189,7 +190,8 @@ class ShadowAttribute extends AppModel
             $this->data['ShadowAttribute']['deleted'] = 0;
         }
         if ($this->data['ShadowAttribute']['deleted']) {
-            $this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
+            // correlations for proposals are deprecated.
+            //$this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
         }
 
         // convert into utc and micro sec
@@ -211,25 +213,24 @@ class ShadowAttribute extends AppModel
         if (isset($sa['ShadowAttribute'])) {
             $sa = $sa['ShadowAttribute'];
         }
-        if (in_array($sa['type'], $this->Event->Attribute->nonCorrelatingTypes)) {
+        if (in_array($sa['type'], Attribute::NON_CORRELATING_TYPES, true)) {
             return;
         }
         $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
         $shadow_attribute_correlations = array();
-        $fields = array('value1', 'value2');
         $correlatingValues = array($sa['value1']);
         if (!empty($sa['value2'])) {
             $correlatingValues[] = $sa['value2'];
         }
         foreach ($correlatingValues as $k => $cV) {
-            $correlatingAttributes[$k] = $this->Event->Attribute->find('all', array(
+            $correlatingAttributes[$k] = $this->Attribute->find('all', array(
                     'conditions' => array(
                             'AND' => array(
                                     'OR' => array(
                                             'Attribute.value1' => $cV,
                                             'Attribute.value2' => $cV
                                     ),
-                                    'Attribute.type !=' => $this->Event->Attribute->nonCorrelatingTypes,
+                                    'Attribute.type !=' => Attribute::NON_CORRELATING_TYPES,
                                     'Attribute.deleted' => 0,
                                     'Attribute.event_id !=' => $sa['event_id']
                             ),
@@ -277,12 +278,15 @@ class ShadowAttribute extends AppModel
                 $result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
             }
         }
+        /*
+         * correlations are deprecated for proposals
         if ((isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) || (isset($this->data['ShadowAttribute']['proposal_to_delete']) && $this->data['ShadowAttribute']['proposal_to_delete'])) {
             // this is a deletion
             // Could be a proposal to delete or flagging a proposal that it was discarded / accepted - either way, we don't want to correlate here for now
         } else {
             $this->__afterSaveCorrelation($this->data['ShadowAttribute']);
         }
+        */
         if (empty($this->data['ShadowAttribute']['deleted'])) {
             $action = $created ? 'add' : 'edit';
             $this->publishKafkaNotification('shadow_attribute', $this->data, $action);
@@ -301,50 +305,67 @@ class ShadowAttribute extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
-        // remove leading and trailing blanks
-        //$this->trimStringFields(); // TODO
-        if (isset($this->data['ShadowAttribute']['value'])) {
-            $this->data['ShadowAttribute']['value'] = trim($this->data['ShadowAttribute']['value']);
-        }
-
-        if (!isset($this->data['ShadowAttribute']['comment'])) {
-            $this->data['ShadowAttribute']['comment'] = '';
-        }
-
-        if (!isset($this->data['ShadowAttribute']['type'])) {
+        $proposal = &$this->data['ShadowAttribute'];
+        if (!isset($proposal['type'])) {
+            $this->invalidate('type', 'No value provided.');
             return false;
         }
 
-        if (empty($this->data['ShadowAttribute']['timestamp'])) {
-            $date = new DateTime();
-            $this->data['ShadowAttribute']['timestamp'] = $date->getTimestamp();
+        if (!isset($proposal['comment'])) {
+            $proposal['comment'] = '';
         }
 
-        if (!isset($this->data['ShadowAttribute']['proposal_to_delete'])) {
-            $this->data['ShadowAttribute']['proposal_to_delete'] = 0;
+        // make some changes to the inserted value
+        if (isset($proposal['value'])) {
+            $value = trim($proposal['value']);
+            $value = ComplexTypeTool::refangValue($value, $proposal['type']);
+            $value = AttributeValidationTool::modifyBeforeValidation($proposal['type'], $value);
+            $proposal['value'] = $value;
         }
 
-        // make some last changes to the inserted value
-        $this->data['ShadowAttribute']['value'] = $this->Event->Attribute->modifyBeforeValidation($this->data['ShadowAttribute']['type'], $this->data['ShadowAttribute']['value']);
+        if (!isset($proposal['org'])) {
+            $proposal['org'] = '';
+        }
+
+        if (empty($proposal['timestamp'])) {
+            $proposal['timestamp'] = time();
+        }
+
+        if (!isset($proposal['proposal_to_delete'])) {
+            $proposal['proposal_to_delete'] = 0;
+        }
 
         // generate UUID if it doesn't exist
-        if (empty($this->data['ShadowAttribute']['uuid'])) {
-            $this->data['ShadowAttribute']['uuid'] = CakeText::uuid();
+        if (empty($proposal['uuid'])) {
+            $proposal['uuid'] = CakeText::uuid();
+        } else {
+            $proposal['uuid'] = strtolower($proposal['uuid']);
         }
 
-        if (!empty($this->data['ShadowAttribute']['type']) && empty($this->data['ShadowAttribute']['category'])) {
-            $this->data['ShadowAttribute']['category'] = $this->Event->Attribute->typeDefinitions[$this->data['ShadowAttribute']['type']]['default_category'];
+        if (empty($proposal['category'])) {
+            $proposal['category'] = $this->Attribute->typeDefinitions[$proposal['type']]['default_category'];
         }
 
-        // always return true, otherwise the object cannot be saved
+        if (isset($proposal['first_seen'])) {
+            $proposal['first_seen'] = $proposal['first_seen'] === '' ? null : $proposal['first_seen'];
+        }
+        if (isset($proposal['last_seen'])) {
+            $proposal['last_seen'] = $proposal['last_seen'] === '' ? null : $proposal['last_seen'];
+        }
+
         return true;
     }
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as $k => $v) {
-            $results[$k] = $this->Attribute->UTCToISODatetime($results[$k], $this->alias);
+        foreach ($results as &$v) {
+            $proposal = &$v['ShadowAttribute'];
+            if (!empty($proposal['first_seen'])) {
+                $proposal['first_seen'] = $this->microTimestampToIso($proposal['first_seen']);
+            }
+            if (!empty($proposal['last_seen'])) {
+                $proposal['last_seen'] = $this->microTimestampToIso($proposal['last_seen']);
+            }
         }
         return $results;
     }
@@ -353,45 +374,35 @@ class ShadowAttribute extends AppModel
     {
         $category = $this->data['ShadowAttribute']['category'];
         if (isset($this->categoryDefinitions[$category]['types'])) {
-            return in_array($fields['type'], $this->categoryDefinitions[$category]['types']);
+            return in_array($fields['type'], $this->categoryDefinitions[$category]['types'], true);
         }
         return false;
     }
 
     public function validCategory($fields)
     {
-        return $this->Event->Attribute->validCategory($fields);
+        return $this->Attribute->validCategory($fields);
     }
 
     public function validateAttributeValue($fields)
     {
         $value = $fields['value'];
-        return $this->Event->Attribute->runValidation($value, $this->data['ShadowAttribute']['type']);
+        return AttributeValidationTool::validate($this->data['ShadowAttribute']['type'], $value);
     }
 
     public function getCompositeTypes()
     {
-        // build the list of composite Attribute.type dynamically by checking if type contains a |
-        // default composite types
-        $compositeTypes = array('malware-sample');  // TODO hardcoded composite
-        // dynamically generated list
-        foreach (array_keys($this->typeDefinitions) as $type) {
-            $pieces = explode('|', $type);
-            if (2 == count($pieces)) {
-                $compositeTypes[] = $type;
-            }
-        }
-        return $compositeTypes;
+        return $this->Attribute->getCompositeTypes();
     }
 
     public function typeIsMalware($type)
     {
-        return in_array($type, $this->zippedDefinitions);
+        return $this->Attribute->typeIsMalware($type);
     }
 
     public function typeIsAttachment($type)
     {
-        return in_array($type, $this->zippedDefinitions) || in_array($type, $this->uploadDefinitions);
+        return $this->Attribute->typeIsAttachment($type);
     }
 
     public function base64EncodeAttachment(array $attribute)
@@ -412,7 +423,11 @@ class ShadowAttribute extends AppModel
     public function saveBase64EncodedAttachment($attribute)
     {
         $data = base64_decode($attribute['data']);
-        return $this->loadAttachmentTool()->saveShadow($attribute['event_id'], $attribute['id'], $data);
+        $result = $this->loadAttachmentTool()->saveShadow($attribute['event_id'], $attribute['id'], $data);
+        if ($result) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_SHADOW_ATTRIBUTE, $attribute);
+        }
+        return $result;
     }
 
     /**
@@ -443,15 +458,23 @@ class ShadowAttribute extends AppModel
     // check whether the variable is null or datetime
     public function datetimeOrNull($fields)
     {
-        $k = array_keys($fields)[0];
-        $seen = $fields[$k];
-        try {
-            new DateTime($seen);
-            $returnValue = true;
-        } catch (Exception $e) {
-            $returnValue = false;
+        return $this->Attribute->datetimeOrNull($fields);
+    }
+
+    public function validateLastSeenValue($fields)
+    {
+        $ls = $fields['last_seen'];
+        if (!isset($this->data['ShadowAttribute']['first_seen']) || is_null($ls)) {
+            return true;
         }
-        return $returnValue || is_null($seen);
+        $converted = $this->Attribute->ISODatetimeToUTC(['ShadowAttribute' => [
+            'first_seen' => $this->data['ShadowAttribute']['first_seen'],
+            'last_seen' => $ls
+        ]], 'ShadowAttribute');
+        if ($converted['ShadowAttribute']['first_seen'] > $converted['ShadowAttribute']['last_seen']) {
+            return false;
+        }
+        return true;
     }
 
     public function setDeleted($id)
@@ -488,22 +511,29 @@ class ShadowAttribute extends AppModel
         }
     }
 
-    public function getEventContributors($id)
+    /**
+     * @param int $eventId
+     * @return array Key is organisation ID, value is an organisation name
+     */
+    public function getEventContributors($eventId)
     {
-        $orgs = $this->find('all', array('fields' => array(
-            'DISTINCT(ShadowAttribute.org_id)'),
-            'conditions' => array('event_id' => $id),
-            'recursive' => -1,
+        $orgIds = $this->find('column', array(
+            'fields' => array('ShadowAttribute.org_id'),
+            'conditions' => array('event_id' => $eventId),
+            'unique' => true,
             'order' => false
         ));
-        $org_ids = array();
-        $this->Organisation = ClassRegistry::init('Organisation');
-        foreach ($orgs as $org) {
-            $org_ids[] = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('id', 'name'), 'conditions' => array('Organisation.id' => $org['ShadowAttribute']['org_id'])));
+        if (empty($orgIds)) {
+            return [];
         }
-        return $org_ids;
-    }
 
+        $this->Organisation = ClassRegistry::init('Organisation');
+        return $this->Organisation->find('list', array(
+            'recursive' => -1,
+            'fields' => array('id', 'name'),
+            'conditions' => array('Organisation.id' => $orgIds)
+        ));
+    }
 
     /**
      * Sends an email to members of the organization that owns the event
@@ -535,7 +565,7 @@ class ShadowAttribute extends AppModel
         $body = "Hello, \n\n";
         $body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n\n";
         $body .= 'To view the event in question, follow this link: ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
-        $subject =  "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id;
+        $subject =  "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id . ' (uuid: ' . $event['Event']['uuid'] . ')';
         $result = false;
         foreach ($orgMembers as $user) {
             $result = $this->User->sendEmail($user, $body, $body, $subject) or $result;
@@ -586,7 +616,11 @@ class ShadowAttribute extends AppModel
         return $proposalCount;
     }
 
-    private function __preCaptureMassage($proposal)
+    /**
+     * @param array $proposal
+     * @return array|false
+     */
+    private function __preCaptureMassage(array $proposal)
     {
         if (empty($proposal['event_uuid']) || empty($proposal['Org'])) {
             return false;
@@ -641,49 +675,50 @@ class ShadowAttribute extends AppModel
         return false;
     }
 
-    public function pullProposals($user, $server, $HttpSocket = null)
+    /**
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @return int
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function pullProposals(array $user, ServerSyncTool $serverSync)
     {
-        $version = explode('.', $server['Server']['version']);
-        if (
-            ($version[0] == 2 && $version[1] == 4 && $version[2] < 111)
-        ) {
+        if (!$serverSync->isSupported(ServerSyncTool::FEATURE_PROPOSALS)) {
             return 0;
         }
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
+
         $i = 1;
         $fetchedCount = 0;
-        $chunk_size = 1000;
+        $chunkSize = 1000;
         $timestamp = strtotime("-90 day");
-        while(true) {
-            $uri = sprintf(
-                '%s/shadow_attributes/index/all:1/timestamp:%s/limit:%s/page:%s/deleted[]:0/deleted[]:1.json',
-                $url,
-                $timestamp,
-                $chunk_size,
-                $i
-            );
-            $i += 1;
-            $response = $HttpSocket->get($uri, false, $request);
-            if ($response->code == 200) {
-                $data = json_decode($response->body, true);
-                if (empty($data)) {
-                    return $fetchedCount;
-                }
-                $returnSize = count($data);
-                foreach ($data as $k => $proposal) {
-                    $result = $this->capture($proposal['ShadowAttribute'], $user);
-                    if ($result) {
-                        $fetchedCount += 1;
-                    }
-                }
-                if ($returnSize < $chunk_size) {
-                    return $fetchedCount;
-                }
-            } else {
+        while (true) {
+            try {
+                $data = $serverSync->fetchProposals([
+                    'all' => 1,
+                    'timestamp' => $timestamp,
+                    'limit' => $chunkSize,
+                    'page' => $i,
+                    'deleted' => [0, 1],
+                ])->json();
+            } catch (Exception $e) {
+                $this->logException("Could not fetch page $i of proposals from remote server {$serverSync->server()['Server']['id']}", $e);
                 return $fetchedCount;
             }
+            $returnSize = count($data);
+            if ($returnSize === 0) {
+                return $fetchedCount;
+            }
+            foreach ($data as $proposal) {
+                $result = $this->capture($proposal['ShadowAttribute'], $user);
+                if ($result) {
+                    $fetchedCount++;
+                }
+            }
+            if ($returnSize < $chunkSize) {
+                return $fetchedCount;
+            }
+            $i++;
         }
     }
 
@@ -691,7 +726,7 @@ class ShadowAttribute extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->Event->SharingGroup->authorizedIds($user);
             $attributeDistribution = array(
                 'Attribute.distribution' => array(1,2,3,5)
             );
@@ -708,7 +743,7 @@ class ShadowAttribute extends AppModel
                     'OR' => array(
                         'Event.org_id' => $user['org_id'],
                         ['AND' => [
-                            'Event.distribution' => array(1,2,3,5),
+                            'Event.distribution' => array(1,2,3),
                             $unpublishedPrivate ? ['Event.published' => 1] : [],
                         ]],
                         ['AND' => [
@@ -782,26 +817,28 @@ class ShadowAttribute extends AppModel
                 ));
             }
         } else {
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'generate proposal correlation',
-                    'job_input' => 'All attributes',
-                    'retries' => 0,
-                    'status' => 1,
-                    'org' => 'SYSTEM',
-                    'message' => 'Correlating Proposals.',
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate proposal correlation',
+                'All attributes',
+                'Correlating Proposals.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array('jobGenerateShadowAttributeCorrelation', $jobId),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateShadowAttributeCorrelation',
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
+
             $this->Log->create();
             $this->Log->save(array(
                     'org' => 'SYSTEM',
@@ -814,5 +851,50 @@ class ShadowAttribute extends AppModel
                     'change' => 'The job for the generation of Proposal correlations as part of the 2.4.20 datamodel upgrade has been queued'
             ));
         }
+    }
+
+    public function saveAttachment($shadowAttribute, $path_suffix='')
+    {
+        $result = $this->loadAttachmentTool()->saveShadow($shadowAttribute['event_id'], $shadowAttribute['id'], $shadowAttribute['data'], $path_suffix);
+        if ($result) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_SHADOW_ATTRIBUTE, $shadowAttribute);
+        }
+        return $result;
+    }
+
+    /**
+     * @param array $shadowAttribute
+     * @param bool $thumbnail
+     * @param int $maxWidth - When $thumbnail is true
+     * @param int $maxHeight - When $thumbnail is true
+     * @return string
+     * @throws Exception
+     */
+    public function getPictureData(array $shadowAttribute, $thumbnail=false, $maxWidth=200, $maxHeight=200)
+    {
+        if ($thumbnail && extension_loaded('gd')) {
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                // Return thumbnail directly if already exists
+                try {
+                    return $this->getAttachment($shadowAttribute['ShadowAttribute'], $path_suffix = '_thumbnail');
+                } catch (NotFoundException $e) {
+                    // pass
+                }
+            }
+
+            // Thumbnail doesn't exists, we need to generate it
+            $imageData = $this->getAttachment($shadowAttribute['ShadowAttribute']);
+            $imageData = $this->loadAttachmentTool()->resizeImage($imageData, $maxWidth, $maxHeight);
+
+            // Save just when requested default thumbnail size
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                $shadowAttribute['ShadowAttribute']['data'] = $imageData;
+                $this->saveAttachment($shadowAttribute['ShadowAttribute'], $path_suffix='_thumbnail');
+            }
+        } else {
+            $imageData = $this->getAttachment($shadowAttribute['ShadowAttribute']);
+        }
+
+        return $imageData;
     }
 }

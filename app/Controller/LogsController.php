@@ -5,7 +5,6 @@ App::uses('AppController', 'Controller');
 class LogsController extends AppController
 {
     public $components = array(
-        'Security',
         'RequestHandler',
         'AdminCrud' => array(
             'crud' => array('index')
@@ -23,56 +22,25 @@ class LogsController extends AppController
     {
         parent::beforeFilter();
 
-        // permit reuse of CSRF tokens on the search page.
+        // No need for CSRF tokens for a search
         if ('admin_search' == $this->request->params['action']) {
-            $this->Security->csrfUseOnce = false;
+            $this->Security->csrfCheck = false;
         }
-    }
-
-    private function __resolveSpecial($data, $type, $fields)
-    {
-        if (!is_array($data)) {
-            $data = array($data);
-        }
-        foreach ($data as $k => $element) {
-            if (!is_numeric($data)) {
-                $this->loadModel($type);
-                $params = array(
-                    'conditions' => array(),
-                    'recursive' => -1,
-                    'fields' => array($type . '.id')
-                );
-                foreach ($fields as $field) {
-                    $params['conditions']['OR'][$type . '.' . $field] = $element;
-                }
-                $records = $this->$type->find('all', $params);
-                if (empty($records)) {
-                    $data[$k] = -1;
-                } else {
-                    $temp = array();
-                    foreach ($records as $record) {
-                        $temp[] = $record[$type]['id'];
-                    }
-                    $data = array_merge($data, $temp);
-                }
-            }
-        }
-        return $data;
     }
 
     public function admin_index()
     {
+        $paramArray = array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip');
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => $paramArray,
+            'ordered_url_params' => func_get_args()
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        unset($filterData);
         if ($this->_isRest()) {
-            $paramArray = array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip');
-            $filterData = array(
-                'request' => $this->request,
-                'named_params' => $this->params['named'],
-                'paramArray' => $paramArray,
-                'ordered_url_params' => compact($paramArray)
-            );
-            $exception = false;
-            $filters = $this->_harvestParameters($filterData, $exception);
-            unset($filterData);
             if ($filters === false) {
                 return $exception;
             }
@@ -97,7 +65,7 @@ class LogsController extends AppController
                         $conditions['AND'][] = array('created <= ' => date("Y-m-d H:i:s", $tempData[0]));
                         $conditions['AND'][] = array('created >= ' => date("Y-m-d H:i:s", $tempData[1]));
                     }
-                } else {
+                } else if ($filter !== 'limit' && $filter !== 'page') {
                     $data = array('OR' => $data);
                     $conditions = $this->Log->generic_add_filter($conditions, $data, 'Log.' . $filter);
                 }
@@ -119,25 +87,21 @@ class LogsController extends AppController
             $log_entries = $this->Log->find('all', $params);
             return $this->RestResponse->viewData($log_entries, 'json');
         } else {
-            if (!$this->userRole['perm_audit']) {
-                $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-            }
             $this->set('isSearch', 0);
             $this->recursive = 0;
             $validFilters = $this->Log->logMeta;
             if (!$this->_isSiteAdmin()) {
                 $orgRestriction = $this->Auth->user('Organisation')['name'];
                 $conditions['Log.org'] = $orgRestriction;
-                $this->paginate = array(
-                        'limit' => 60,
-                        'conditions' => $conditions,
-                        'order' => array('Log.id' => 'DESC')
-                );
+                $this->paginate['conditions'] = $conditions;
             } else {
                 $validFilters = array_merge_recursive($validFilters, $this->Log->logMetaAdmin);
             }
             if (isset($this->params['named']['filter']) && in_array($this->params['named']['filter'], array_keys($validFilters))) {
                 $this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
+            }
+            foreach ($filters as $key => $value) {
+                $this->paginate['conditions']["Log.$key"] = $value;
             }
             $this->set('validFilters', $validFilters);
             $this->set('filter', isset($this->params['named']['filter']) ? $this->params['named']['filter'] : false);
@@ -146,17 +110,18 @@ class LogsController extends AppController
     }
 
     // Shows a minimalistic history for the currently selected event
-    public function event_index($id)
+    public function event_index($id, $org = null)
     {
-        // check if the user has access to this event...
-        $mayModify = false;
         $this->loadModel('Event');
         $event = $this->Event->fetchEvent($this->Auth->user(), array(
             'eventid' => $id,
-            'includeAllTags' => 1,
             'sgReferenceOnly' => 1,
             'deleted' => [0, 1],
-            'deleted_proposals' => 1
+            'deleted_proposals' => 1,
+            'noSightings' => true,
+            'noEventReports' => true,
+            'includeEventCorrelations' => false,
+            'excludeGalaxy' => true,
         ));
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');
@@ -164,7 +129,7 @@ class LogsController extends AppController
         $event = $event[0];
         $attribute_ids = array();
         $object_ids = array();
-        $proposal_ids = array();
+        $proposal_ids = array_column($event['ShadowAttribute'], 'id');
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $aa) {
                 $attribute_ids[] = $aa['id'];
@@ -221,57 +186,52 @@ class LogsController extends AppController
                 )
             );
         }
-        // send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
-        $mineOrAdmin = true;
-        if (!$this->_isSiteAdmin() && $event['Event']['org_id'] != $this->Auth->user('org_id')) {
-            $mineOrAdmin = false;
-        }
-        $this->set('published', $event['Event']['published']);
-        if ($mineOrAdmin && $this->userRole['perm_modify']) {
-            $mayModify = true;
+
+        if ($org) {
+            $conditions['org'] = $org;
         }
 
-        $fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org', 'email');
-        $this->paginate = array(
-                'limit' => 60,
-                'conditions' => $conditions,
-                'order' => array('Log.id' => 'DESC'),
-                'fields' => $fieldList
-        );
+        $this->paginate['fields'] = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org', 'email');
+        $this->paginate['conditions'] = $conditions;
+
         $list = $this->paginate();
         if (!$this->_isSiteAdmin()) {
             $this->loadModel('User');
-            $emails = $this->User->find('list', array(
-                    'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
-                    'fields' => array('User.id', 'User.email')
+            $orgEmails = $this->User->find('column', array(
+                'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
+                'fields' => array('User.email')
             ));
             foreach ($list as $k => $item) {
-                if (!in_array($item['Log']['email'], $emails)) {
+                if (!in_array($item['Log']['email'], $orgEmails, true)) {
                     $list[$k]['Log']['email'] = '';
                 }
             }
         }
         if ($this->_isRest()) {
-            foreach ($list as $k => $item) {
-                $list[$k] = $item['Log'];
-            }
-            $list = array('Log' => $list);
+            $list = array('Log' => array_column($list, 'Log'));
             return $this->RestResponse->viewData($list, $this->response->type());
-        } else {
-            $this->set('event', $event);
-            $this->set('list', $list);
-            $this->set('eventId', $id);
-            $this->set('mayModify', $mayModify);
         }
-    }
 
-    public $helpers = array('Js' => array('Jquery'), 'Highlight');
+        // send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
+        $mineOrAdmin = true;
+        if (!$this->_isSiteAdmin() && $event['Event']['org_id'] != $this->Auth->user('org_id')) {
+            $mineOrAdmin = false;
+        }
+
+        $mayModify = false;
+        if ($mineOrAdmin && $this->userRole['perm_modify']) {
+            $mayModify = true;
+        }
+
+        $this->set('published', $event['Event']['published']);
+        $this->set('event', $event);
+        $this->set('list', $list);
+        $this->set('eventId', $id);
+        $this->set('mayModify', $mayModify);
+    }
 
     public function admin_search($new = false)
     {
-        if (!$this->userRole['perm_audit']) {
-            $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-        }
         $orgRestriction = null;
         if ($this->_isSiteAdmin()) {
             $orgRestriction = false;
@@ -404,7 +364,37 @@ class LogsController extends AppController
             $this->set('actions', $actions);
 
             // combobox for models
-            $models = array('Attribute', 'Event', 'EventBlocklist', 'EventTag', 'Feed', 'DecayingModel', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Allowedlist');
+            $models = [
+                'Attribute',
+                'Allowedlist',
+                'AuthKey',
+                'Event',
+                'EventBlocklist',
+                'EventTag',
+                'Feed',
+                'DecayingModel',
+                'EventGraph',
+                'EventReport',
+                'MispObject',
+                'Organisation',
+                'Post',
+                'Regexp',
+                'Role',
+                'Server',
+                'ShadowAttribute',
+                'SharingGroup',
+                'Tag',
+                'Task',
+                'Taxonomy',
+                'Template',
+                'Thread',
+                'User',
+                'Galaxy',
+                'GalaxyCluster',
+                'GalaxyClusterRelation',
+                'Workflow',
+            ];
+            sort($models);
             $models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
             $this->set('models', $models);
             $this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);

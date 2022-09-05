@@ -1,39 +1,58 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Warninglist $Warninglist
+ */
 class WarninglistsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
-            'contain' => array(
-                'WarninglistType'
-            ),
-            'order' => array(
-                'Warninglist.id' => 'DESC'
-            ),
+        'limit' => 60,
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
+        'contain' => array(
+            'WarninglistType'
+        ),
+        'order' => array(
+            'Warninglist.id' => 'DESC'
+        ),
+        'recursive' => -1,
     );
 
     public function index()
     {
-        $this->paginate['recursive'] = -1;
+        $filters = $this->IndexFilter->harvestParameters(['value', 'enabled']);
+        if (!empty($filters['value'])) {
+            $this->paginate['conditions'] = [
+                'OR' => [
+                    'LOWER(Warninglist.name) LIKE' => '%' . strtolower($filters['value']) . '%',
+                    'LOWER(Warninglist.description) LIKE' => '%' . strtolower($filters['value']) . '%',
+                    'LOWER(Warninglist.type)' => strtolower($filters['value']),
+                ]
+            ];
+        }
+        if (isset($filters['enabled'])) {
+            $this->paginate['conditions'][] = ['Warninglist.enabled' => $filters['enabled']];
+        }
+        $this->Warninglist->addCountField(
+            'warninglist_entry_count',
+            $this->Warninglist->WarninglistEntry,
+            ['WarninglistEntry.warninglist_id = Warninglist.id']
+        );
         $warninglists = $this->paginate();
         foreach ($warninglists as &$warninglist) {
-            $warninglist['Warninglist']['valid_attributes'] = array();
-            foreach ($warninglist['WarninglistType'] as $type) {
-                $warninglist['Warninglist']['valid_attributes'][] = $type['type'];
-            }
-            $warninglist['Warninglist']['valid_attributes'] = implode(', ', $warninglist['Warninglist']['valid_attributes']);
+            $validAttributes = array_column($warninglist['WarninglistType'], 'type');
+            $warninglist['Warninglist']['valid_attributes'] = implode(', ', $validAttributes);
             unset($warninglist['WarninglistType']);
         }
         if ($this->_isRest()) {
-            $this->set('Warninglists', $warninglists);
-            $this->set('_serialize', array('Warninglists'));
-        } else {
-            $this->set('warninglists', $warninglists);
+            return $this->RestResponse->viewData(['Warninglists' => $warninglists], $this->response->type());
         }
+
+        $this->set('warninglists', $warninglists);
+        $this->set('passedArgsArray', $filters);
+        $this->set('possibleCategories', $this->Warninglist->categories());
     }
 
     public function update()
@@ -55,14 +74,14 @@ class WarninglistsController extends AppController
                     }
                     $this->Log->create();
                     $this->Log->save(array(
-                            'org' => $this->Auth->user('Organisation')['name'],
-                            'model' => 'Warninglist',
-                            'model_id' => $id,
-                            'email' => $this->Auth->user('email'),
-                            'action' => 'update',
-                            'user_id' => $this->Auth->user('id'),
-                            'title' => __('Warning list updated'),
-                            'change' => $change,
+                        'org' => $this->Auth->user('Organisation')['name'],
+                        'model' => 'Warninglist',
+                        'model_id' => $id,
+                        'email' => $this->Auth->user('email'),
+                        'action' => 'update',
+                        'user_id' => $this->Auth->user('id'),
+                        'title' => __('Warning list updated'),
+                        'change' => $change,
                     ));
                     $successes++;
                 }
@@ -71,14 +90,14 @@ class WarninglistsController extends AppController
                 foreach ($result['fails'] as $id => $fail) {
                     $this->Log->create();
                     $this->Log->save(array(
-                            'org' => $this->Auth->user('Organisation')['name'],
-                            'model' => 'Warninglist',
-                            'model_id' => $id,
-                            'email' => $this->Auth->user('email'),
-                            'action' => 'update',
-                            'user_id' => $this->Auth->user('id'),
-                            'title' => __('Warning list failed to update'),
-                            'change' => $fail['name'] . __(' could not be installed/updated. Error: ') . $fail['fail'], // TODO: needs to be optimized for non-SVO languages
+                        'org' => $this->Auth->user('Organisation')['name'],
+                        'model' => 'Warninglist',
+                        'model_id' => $id,
+                        'email' => $this->Auth->user('email'),
+                        'action' => 'update',
+                        'user_id' => $this->Auth->user('id'),
+                        'title' => __('Warning list failed to update'),
+                        'change' => __('%s could not be installed/updated. Error: %s', $fail['name'], $fail['fail']), // TODO: needs to be optimized for non-SVO languages
                     ));
                     $fails++;
                 }
@@ -86,14 +105,14 @@ class WarninglistsController extends AppController
         } else {
             $this->Log->create();
             $this->Log->save(array(
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'model' => 'Warninglist',
-                    'model_id' => 0,
-                    'email' => $this->Auth->user('email'),
-                    'action' => 'update',
-                    'user_id' => $this->Auth->user('id'),
-                    'title' => __('Warninglist update (nothing to update)'),
-                    'change' => __('Executed an update of the warning lists, but there was nothing to update.'),
+                'org' => $this->Auth->user('Organisation')['name'],
+                'model' => 'Warninglist',
+                'model_id' => 0,
+                'email' => $this->Auth->user('email'),
+                'action' => 'update',
+                'user_id' => $this->Auth->user('id'),
+                'title' => __('Warninglist update (nothing to update)'),
+                'change' => __('Executed an update of the warning lists, but there was nothing to update.'),
             ));
         }
         if ($successes == 0 && $fails == 0) {
@@ -104,9 +123,9 @@ class WarninglistsController extends AppController
             $message = __('Could not update any of the warning lists');
         } else {
             $flashType = 'success';
-            $message = __('Successfully updated ' . $successes . ' warninglists.');
+            $message = __('Successfully updated %s warninglists.', $successes);
             if ($fails != 0) {
-                $message . __(' However, could not update ') . $fails . ' warning list.'; // TODO: non-SVO languages need to be considered
+                $message .= __(' However, could not update %s warninglists.', $fails); // TODO: non-SVO languages need to be considered
             }
         }
         if ($this->_isRest()) {
@@ -115,6 +134,91 @@ class WarninglistsController extends AppController
             $this->Flash->{$flashType}($message);
             $this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
         }
+    }
+
+    public function add()
+    {
+        $types = array_combine($this->Warninglist->validate['type']['rule'][1], $this->Warninglist->validate['type']['rule'][1]);
+        $this->set('possibleTypes', $types);
+        $this->set('possibleCategories', $this->Warninglist->categories());
+
+        $this->loadModel('Attribute');
+        $this->set('matchingAttributes', array_combine(array_keys($this->Attribute->typeDefinitions), array_keys($this->Attribute->typeDefinitions)));
+
+        $this->CRUD->add([
+            'beforeSave' => function (array $warninglist) {
+                if (isset($warninglist['Warninglist']['entries'])) {
+                    $entries = $this->Warninglist->parseFreetext($warninglist['Warninglist']['entries']);
+                    unset($warninglist['Warninglist']['entries']);
+                    $warninglist['WarninglistEntry'] = $entries;
+                }
+                if (isset($warninglist['Warninglist']['matching_attributes']) && is_array($warninglist['Warninglist']['matching_attributes'])) {
+                    $warninglist['WarninglistType'] = [];
+                    foreach ($warninglist['Warninglist']['matching_attributes'] as $attribute) {
+                        $warninglist['WarninglistType'][] = ['type' => $attribute];
+                    }
+                }
+                $warninglist['Warninglist']['default'] = 0;
+                return $warninglist;
+            },
+        ]);
+        if ($this->restResponsePayload) {
+            return $this->restResponsePayload;
+        }
+    }
+
+    public function edit($id = null)
+    {
+        $types = array_combine($this->Warninglist->validate['type']['rule'][1], $this->Warninglist->validate['type']['rule'][1]);
+        $this->set('possibleTypes', $types);
+        $this->set('possibleCategories', $this->Warninglist->categories());
+
+        $this->loadModel('Attribute');
+        $this->set('matchingAttributes', array_combine(array_keys($this->Attribute->typeDefinitions), array_keys($this->Attribute->typeDefinitions)));
+
+        $this->CRUD->edit($id, [
+            'conditions' => ['default' => 0], // it is not possible to edit default warninglist
+            'contain' => ['WarninglistEntry', 'WarninglistType'],
+            'fields' => ['name', 'description', 'type', 'category', 'entries', 'matching_attributes'],
+            'redirect' => ['action' => 'view', $id],
+            'beforeSave' => function (array $warninglist) {
+                if (isset($warninglist['Warninglist']['entries'])) {
+                    $entries = $this->Warninglist->parseFreetext($warninglist['Warninglist']['entries']);
+                    unset($warninglist['Warninglist']['entries']);
+                    $warninglist['WarninglistEntry'] = $entries;
+                }
+                if (isset($warninglist['Warninglist']['matching_attributes']) && is_array($warninglist['Warninglist']['matching_attributes'])) {
+                    $warninglist['WarninglistType'] = [];
+                    foreach ($warninglist['Warninglist']['matching_attributes'] as $attribute) {
+                        $warninglist['WarninglistType'][] = ['type' => $attribute];
+                    }
+                }
+                $warninglist['Warninglist']['version']++;
+                return $warninglist;
+            },
+        ]);
+        if ($this->restResponsePayload) {
+            return $this->restResponsePayload;
+        }
+
+        if (isset($this->request->data['WarninglistEntry'])) {
+            $entries = [];
+            foreach ($this->request->data['WarninglistEntry'] as $entry) {
+                $value = $entry['value'];
+                if ($entry['comment']) {
+                    $value .= ' # ' . $entry['comment'];
+                }
+                $entries[] = $value;
+            }
+            $this->request->data['Warninglist']['entries'] = implode("\n", $entries);
+        }
+
+        if (isset($this->request->data['WarninglistType'])) {
+            $attributes = array_column($this->request->data['WarninglistType'], 'type');
+            $this->request->data['Warninglist']['matching_attributes'] = $attributes;
+        }
+
+        $this->render('add');
     }
 
     /*
@@ -143,13 +247,12 @@ class WarninglistsController extends AppController
                     $names = $this->request->data['name'];
                 }
                 $conditions = array();
-                foreach ($names as $k => $name) {
+                foreach ($names as $name) {
                     $conditions['OR'][] = array('LOWER(Warninglist.name) LIKE' => strtolower($name));
                 }
-                $id = $this->Warninglist->find('list', array(
+                $id = $this->Warninglist->find('column', array(
                     'conditions' => $conditions,
-                    'recursive' => -1,
-                    'fields' => array('Warninglist.id', 'Warninglist.id')
+                    'fields' => array('Warninglist.id')
                 ));
             }
         }
@@ -186,7 +289,6 @@ class WarninglistsController extends AppController
             $this->Warninglist->regenerateWarninglistCaches($warningList['Warninglist']['id']);
         }
         if ($success) {
-            $this->Warninglist->regenerateWarninglistCaches($id);
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success . __(' warninglist(s) ') . $message)), 'status' => 200, 'type' => 'json')); // TODO: non-SVO lang considerations
         } else {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Warninglist(s) could not be toggled.'))), 'status' => 200, 'type' => 'json'));
@@ -219,7 +321,7 @@ class WarninglistsController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This action is available via AJAX only.'));
         }
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/getToggleField');
     }
 
@@ -228,32 +330,99 @@ class WarninglistsController extends AppController
         if (!is_numeric($id)) {
             throw new NotFoundException(__('Invalid ID.'));
         }
-        $warninglist = $this->Warninglist->find('first', array('contain' => array('WarninglistEntry', 'WarninglistType'), 'conditions' => array('id' => $id)));
+        $warninglist = $this->Warninglist->find('first', array(
+            'contain' => array('WarninglistEntry', 'WarninglistType'),
+            'conditions' => array('id' => $id))
+        );
         if (empty($warninglist)) {
             throw new NotFoundException(__('Warninglist not found.'));
+        }
+        if ($this->IndexFilter->isCsv()) {
+            $csv = [];
+            foreach ($warninglist['WarninglistEntry'] as $entry) {
+                $line = $entry['value'];
+                if ($entry['comment']) {
+                    $line .= ';' . $entry['comment'];
+                }
+                $csv[] = $line;
+            }
+            return $this->RestResponse->viewData(implode("\n", $csv), 'csv');
         }
         if ($this->_isRest()) {
             $warninglist['Warninglist']['WarninglistEntry'] = $warninglist['WarninglistEntry'];
             $warninglist['Warninglist']['WarninglistType'] = $warninglist['WarninglistType'];
-            $this->set('Warninglist', $warninglist['Warninglist']);
-            $this->set('_serialize', array('Warninglist'));
-        } else {
-            $this->set('warninglist', $warninglist);
+            return $this->RestResponse->viewData(['Warninglist' => $warninglist['Warninglist']], $this->response->type());
         }
+
+        $this->set('warninglist', $warninglist);
+        $this->set('possibleCategories', $this->Warninglist->categories());
+    }
+
+    public function import()
+    {
+        $this->request->allowMethod(['post']);
+
+        if (empty($this->request->data)) {
+            throw new BadRequestException(__('No valid data received.'));
+        }
+
+        foreach (['name', 'type', 'version', 'description', 'matching_attributes', 'list'] as $filed) {
+            if (!isset($this->request->data[$filed])) {
+                throw new BadRequestException(__('No valid data received: field `%s` is missing.', $filed));
+            }
+        }
+
+        if (!is_array($this->request->data['list'])) {
+            throw new BadRequestException(__('No valid data received: `list` field is not array'));
+        }
+
+        try {
+            $id = $this->Warninglist->import($this->request->data);
+            return $this->RestResponse->saveSuccessResponse('Warninglist', 'import', $id, false, __('Warninglist imported'));
+        } catch (Exception $e) {
+            return $this->RestResponse->saveFailResponse('Warninglist', 'import', false, $e->getMessage());
+        }
+    }
+
+    public function export($id = null)
+    {
+        if (empty($id)) {
+            throw new NotFoundException(__('Warninglist not found.'));
+        }
+        $warninglist = $this->Warninglist->find('first', [
+            'contain' => ['WarninglistType'],
+            'conditions' => ['id' => $id],
+        ]);
+        if (empty($warninglist)) {
+            throw new NotFoundException(__('Warninglist not found.'));
+        }
+        $matchingAttributes = array_column($warninglist['WarninglistType'], 'type');
+        $list = $this->Warninglist->WarninglistEntry->find('column', [
+            'conditions' => ['warninglist_id' => $warninglist['Warninglist']['id']],
+            'fields' => ['value'],
+        ]);
+        $output = [
+            'name' => $warninglist['Warninglist']['name'],
+            'type' => $warninglist['Warninglist']['type'],
+            'version' => $warninglist['Warninglist']['version'],
+            'description' => $warninglist['Warninglist']['description'],
+            'matching_attributes' => $matchingAttributes,
+            'list' => $list,
+        ];
+        return $this->RestResponse->viewData($output, 'json');
     }
 
     public function delete($id)
     {
         if ($this->request->is('post')) {
-            $id = intval($id);
+            $id = (int)$id;
             $result = $this->Warninglist->quickDelete($id);
             if ($result) {
-                $this->Flash->success(__('Warninglist successfuly deleted.'));
-                $this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+                $this->Flash->success(__('Warninglist successfully deleted.'));
             } else {
-                $this->Flash->error(__('Warninglists could not be deleted.'));
-                $this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+                $this->Flash->error(__('Warninglist could not be deleted.'));
             }
+            $this->redirect(['controller' => 'warninglists', 'action' => 'index']);
         } else {
             if ($this->request->is('ajax')) {
                 $this->set('id', $id);
@@ -267,31 +436,45 @@ class WarninglistsController extends AppController
     public function checkValue()
     {
         if ($this->request->is('post')) {
-            $warninglists = $this->Warninglist->getWarninglists(array());
             if (empty($this->request->data)) {
                 throw new NotFoundException(__('No valid data received.'));
             }
             $data = $this->request->data;
+            if (is_array($data) && isset($data['Warninglist'])) {
+                $data = $data['Warninglist'];
+            }
             if (!is_array($data)) {
                 $data = array($data);
             }
             if (array_key_exists('[]', $data)) {
                 $data = $data['[]'];
             }
+
             $hits = array();
+            $warninglists = $this->Warninglist->getEnabled();
             foreach ($data as $dataPoint) {
+                $dataPoint = trim($dataPoint);
                 foreach ($warninglists as $warninglist) {
-                    $listValues = $this->Warninglist->getWarninglistEntries($warninglist['Warninglist']['id']);
-                    $listValues = array_combine($listValues, $listValues);
-                    $result = $this->Warninglist->quickCheckValue($listValues, $dataPoint, $warninglist['Warninglist']['type']);
-                    if ($result) {
-                        $hits[$dataPoint][] = array('id' => $warninglist['Warninglist']['id'], 'name' => $warninglist['Warninglist']['name']);
+                    $values = $this->Warninglist->getFilteredEntries($warninglist);
+                    $result = $this->Warninglist->checkValue($values, $dataPoint, '', $warninglist['Warninglist']['type']);
+                    if ($result !== false) {
+                        $hits[$dataPoint][] = [
+                            'id' => $warninglist['Warninglist']['id'],
+                            'name' => $warninglist['Warninglist']['name'],
+                            'matched' => $result[0],
+                        ];
                     }
                 }
             }
-            return $this->RestResponse->viewData($hits, $this->response->type());
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData($hits, $this->response->type());
+            }
+            $this->set('hits', $hits);
+            $this->set('data', $data);
         } else {
-            return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
+            if ($this->_isRest()) {
+                return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
+            }
         }
     }
 }

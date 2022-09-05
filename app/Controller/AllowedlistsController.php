@@ -5,7 +5,6 @@ App::uses('AppController', 'Controller');
 class AllowedlistsController extends AppController
 {
     public $components = array(
-        'Security',
         'AdminCrud'
     );
 
@@ -21,6 +20,7 @@ class AllowedlistsController extends AppController
         if (!$this->userRole['perm_regexp_access']) {
             $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
         }
+        $this->set('action', 'add');
         $this->AdminCrud->adminAdd();
     }
 
@@ -30,6 +30,7 @@ class AllowedlistsController extends AppController
             $this->redirect(array('controller' => 'allowedlists', 'action' => 'index', 'admin' => false));
         }
         $this->AdminCrud->adminIndex();
+        $this->render('index');
     }
 
     public function admin_edit($id = null)
@@ -38,6 +39,9 @@ class AllowedlistsController extends AppController
             $this->redirect(array('controller' => 'allowedlists', 'action' => 'index', 'admin' => false));
         }
         $this->AdminCrud->adminEdit($id);
+        $this->set('action', 'edit');
+        $this->set('id', $id);
+        $this->render('admin_add');
     }
 
     public function admin_delete($id = null)

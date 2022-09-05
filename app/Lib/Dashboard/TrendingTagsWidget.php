@@ -20,36 +20,41 @@ class TrendingTagsWidget
     "include": ["misp-galaxy:", "my-internal-taxonomy"]
 }';
     public $description = 'Widget showing the trending tags over the past x seconds, along with the possibility to include/exclude tags.';
+    public $cacheLifetime = 600;
 
 	public function handler($user, $options = array())
 	{
-        $this->Event = ClassRegistry::init('Event');
-        $params = array(
-            'metadata' => 1,
-            'timestamp' => time() - (empty($options['time_window']) ? 8640000 : $options['time_window'])
-        );
+	    /** @var Event $eventModel */
+        $eventModel = ClassRegistry::init('Event');
         $threshold = empty($options['threshold']) ? 10 : $options['threshold'];
-        $eventIds = $this->Event->filterEventIds($user, $params);
-        $params['eventid'] = $eventIds;
-        $events = array();
+        $params = [
+            'timestamp' => time() - (empty($options['time_window']) ? 8640000 : $options['time_window']),
+        ];
+        $eventIds = $eventModel->filterEventIds($user, $params);
+
+        $tags = [];
+        $tagColours = [];
         if (!empty($eventIds)) {
-            $events = $this->Event->fetchEvent($user, $params);
-        }
-        $tags = array();
-        $tagColours = array();
-        foreach ($events as $event) {
-            foreach ($event['EventTag'] as $et) {
-                if ($this->checkTag($options, $et['Tag']['name'])) {
-                    if (empty($tags[$et['Tag']['name']])) {
-                        $tags[$et['Tag']['name']] = 1;
-                        $tagColours[$et['Tag']['name']] = $et['Tag']['colour'];
-                    } else {
-                        $tags[$et['Tag']['name']] += 1;
-                    }
+            $eventTags = $eventModel->EventTag->find('all', [
+                'conditions' => ['EventTag.event_id' => $eventIds],
+                'contain' => ['Tag' => ['fields' => ['name', 'colour']]],
+                'recursive' => -1,
+                'fields' => ['id'],
+            ]);
+
+            foreach ($eventTags as $eventTag) {
+                $tagName = $eventTag['Tag']['name'];
+                if (isset($tags[$tagName])) {
+                    $tags[$tagName]++;
+                } else if ($this->checkTag($options, $tagName)) {
+                    $tags[$tagName] = 1;
+                    $tagColours[$tagName] = $eventTag['Tag']['colour'];
                 }
             }
+
+            arsort($tags);
         }
-        arsort($tags);
+
         $data['data'] = array_slice($tags, 0, $threshold);
         $data['colours'] = $tagColours;
         return $data;

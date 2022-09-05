@@ -22,7 +22,6 @@ echo $this->Html->css('bootstrap');
 echo $this->Html->css('bootstrap-datepicker');
 echo $this->Html->css('bootstrap-timepicker');
 echo $this->Html->css('bootstrap-colorpicker');
-echo $this->Html->css('famfamfam-flags');
 echo $this->Html->css('font-awesome');
 echo $this->Html->script('jquery');
 echo $this->Html->script('bootstrap');

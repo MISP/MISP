@@ -27,16 +27,28 @@
             ?>
                 </div>
             <?php
+            echo '<div class="input clear"></div>';
             echo $this->Form->input('to_ids', array(
-                    'options' => array(__('No'), __('Yes'), __('Do not alter current settings')),
-                    'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-                    'label' => __('For Intrusion Detection System'),
-                    'selected' => 2,
+                'options' => array(__('No'), __('Yes'), __('Do not alter current settings')),
+                'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
+                'label' => __('For Intrusion Detection System'),
+                'selected' => 2
             ));
+            echo '<div class="input clear"></div>';
             echo $this->Form->input('is_proposal', array(
                 'type' => 'checkbox',
                 'label' => __('Create proposals'),
                 'checked' => false
+            ));
+            echo '<div class="input clear"></div>';
+            echo $this->Form->input('disable_correlation', array(
+                'label' => __('Correlations'),
+                'options' => [
+                    '2' => __('Do not alter current settings'),
+                    '0' => __('Enable correlations'),
+                    '1' => __('Disable correlations')
+                ],
+                'selected' => '2'
             ));
             ?>
                 <div class="input clear"></div>
@@ -102,7 +114,6 @@
 // Generate tooltip information
 //
 var formInfoValues = new Array();
-var fieldsArrayAttribute = new Array('AttributeDistribution', 'AttributeComment', 'AttributeToIds');
 <?php
 foreach ($distributionDescriptions as $type => $def) {
     $info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
@@ -139,8 +150,7 @@ function syncMassEditFormAndSubmit(btn) {
     submitPopoverForm('<?php echo $id;?>', 'massEdit');
 }
 
-$(document).ready(function() {
-
+$(function() {
     $('#AttributeDistribution').change(function() {
         if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
         else $('#SGContainer').hide();
@@ -162,17 +172,18 @@ $(document).ready(function() {
     });
 
     $("input, label").on('mouseleave', function(e) {
-        $('#'+e.currentTarget.id).popover('destroy');
-    });
-
-    $("input, label").on('mouseover', function(e) {
-        var $e = $(e.target);
-        $('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-        }).popover('show');
+        if (e.currentTarget.id) {
+            $('#' + e.currentTarget.id).popover('destroy');
+        }
+    }).on('mouseover', function(e) {
+        if (e.currentTarget.id) {
+            $('#' + e.currentTarget.id).popover('destroy');
+            $('#' + e.currentTarget.id).popover({
+                trigger: 'focus',
+                placement: 'right',
+                container: 'body',
+            }).popover('show');
+        }
     });
 
     // workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.

@@ -1,27 +1,38 @@
 <?php
-
 App::uses('StixExport', 'Export');
 
 class Stix1Export extends StixExport
 {
     protected $__attributes_limit = 15000;
-    private $__script_name = 'misp2stix.py ';
-    private $__baseurl = null;
-    private $__org = null;
+    protected $__default_version = '1.1.1';
+    protected $__sane_versions = array('1.1.1', '1.2');
 
-    protected function initiate_framing_params()
+    protected function __initiate_framing_params()
     {
-        $this->__baseurl = escapeshellarg(Configure::read('MISP.baseurl'));
-        $this->__org = escapeshellarg(Configure::read('MISP.org'));
-        $framing_file = $this->__scripts_dir . 'misp_framing.py ';
-        $my_server = ClassRegistry::init('Server');
-        return $my_server->getPythonVersion() . ' ' . $framing_file . $this->__return_type . ' ' . $this->__baseurl . ' ' . $this->__org . ' ' . $this->__return_format . ' ' . $this->__end_of_cmd;
+        return [
+            ProcessTool::pythonBin(),
+            $this->__framing_script,
+            'stix1',
+            '-s', $this->__scope,
+            '-v', $this->__version,
+            '-n', Configure::read('MISP.baseurl'),
+            '-o', Configure::read('MISP.org'),
+            '-f', $this->__return_format,
+        ];
     }
 
-    protected function __parse_misp_events($filename)
+    protected function __parse_misp_data()
     {
-        $scriptFile = $this->__scripts_dir . $this->__script_name;
-        $my_server = ClassRegistry::init('Server');
-        return shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename . ' ' . $this->__return_format . ' ' . $this->__baseurl . ' ' . $this->__org . $this->__end_of_cmd);
+        $command = [
+            ProcessTool::pythonBin(),
+            $this->__scripts_dir . 'misp2stix.py',
+            '-s', $this->__scope,
+            '-v', $this->__version,
+            '-f', $this->__return_format,
+            '-o', Configure::read('MISP.org'),
+            '-i',
+        ];
+        $command = array_merge($command, $this->__filenames);
+        return ProcessTool::execute($command, null, true);
     }
 }

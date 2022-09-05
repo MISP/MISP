@@ -1,5 +1,7 @@
 <?php
 App::uses('AWSS3Client', 'Tools');
+App::uses('ProcessTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 class AttachmentTool
 {
@@ -32,7 +34,6 @@ class AttachmentTool
     {
         return $this->_exists(true, $eventId, $attributeId, $path_suffix);
     }
-
 
     /**
      * @param bool $shadow
@@ -155,7 +156,7 @@ class AttachmentTool
         } else {
             $filepath = $this->attachmentDir() . DS . $path;
             $file = new File($filepath);
-            if (!$file->exists()) {
+            if (!is_file($file->path)) {
                 throw new NotFoundException("File '$filepath' does not exists.");
             }
         }
@@ -208,10 +209,7 @@ class AttachmentTool
 
         } else {
             $path = $this->attachmentDir() . DS . $path;
-            $file = new File($path, true);
-            if (!$file->write($data)) {
-                throw new Exception("Could not save attachment to file '$path'.");
-            }
+            FileAccessTool::writeToFile($path, $data, true);
         }
 
         return true;
@@ -283,6 +281,7 @@ class AttachmentTool
             $s3 = $this->loadS3Client();
             $s3->deleteDirectory($eventId);
         } else {
+            App::uses('Folder', 'Utility');
             $dirPath = $this->attachmentDir();
 
             foreach (array($dirPath, $dirPath . DS . 'shadow') as $dirPath) {
@@ -297,6 +296,9 @@ class AttachmentTool
     }
 
     /**
+     * It is not possible to use PHP extensions for compressing. The reason is, that extensions support just AES encrypted
+     * files, but these files are not supported in Windows and in Python. So the only solution is to use 'zip' command.
+     *
      * @param string $originalFilename
      * @param string $content
      * @param string $md5
@@ -305,103 +307,35 @@ class AttachmentTool
      */
     public function encrypt($originalFilename, $content, $md5)
     {
-        if (method_exists("ZipArchive", "setEncryptionName")) {
-            // When PHP zip extension is installed and supports creating encrypted archives.
-            return $this->encryptByExtension($originalFilename, $content, $md5);
-        } else {
-            return $this->encryptByCommand($originalFilename, $content, $md5);
-        }
-    }
-
-    /**
-     * @param string $originalFilename
-     * @param string $content
-     * @param string $md5
-     * @return string Content of zipped file
-     * @throws Exception
-     */
-    private function encryptByCommand($originalFilename, $content, $md5)
-    {
         $tempDir = $this->tempDir();
 
-        $contentsFile = new File($tempDir . DS . $md5, true);
-        if (!$contentsFile->write($content)) {
-            throw new Exception("Could not write content to file '{$contentsFile->path}'.");
-        }
-        $contentsFile->close();
+        FileAccessTool::writeToFile($tempDir . DS . $md5, $content);
+        FileAccessTool::writeToFile($tempDir . DS . $md5 . '.filename.txt', $originalFilename);
 
-        $fileNameFile = new File($tempDir . DS . $md5 . '.filename.txt', true);
-        if (!$fileNameFile->write($originalFilename)) {
-            throw new Exception("Could not write original file name to file '{$fileNameFile->path}'.");
-        }
-        $fileNameFile->close();
-
-        $zipFile = new File($tempDir . DS . $md5 . '.zip');
+        $zipFile = $tempDir . DS . $md5 . '.zip';
 
         $exec = [
             'zip',
             '-j', // junk (don't record) directory names
             '-P', // use standard encryption
             self::ZIP_PASSWORD,
-            escapeshellarg($zipFile->path),
-            escapeshellarg($contentsFile->path),
-            escapeshellarg($fileNameFile->path),
+            $zipFile,
+            $tempDir . DS . $md5,
+            $tempDir . DS . $md5 . '.filename.txt',
         ];
 
         try {
-            $this->execute($exec);
-            $zipContent = $zipFile->read();
-            if ($zipContent === false) {
-                throw new Exception("Could not read content of newly created ZIP file.");
-            }
-
-            return $zipContent;
+            ProcessTool::execute($exec);
+            return FileAccessTool::readFromFile($zipFile);
 
         } catch (Exception $e) {
-            throw new Exception("Could not create encrypted ZIP file '{$zipFile->path}'.", 0, $e);
+            throw new Exception("Could not create encrypted ZIP file '$zipFile'.", 0, $e);
 
         } finally {
-            $fileNameFile->delete();
-            $contentsFile->delete();
-            $zipFile->delete();
+            FileAccessTool::deleteFile($tempDir . DS . $md5);
+            FileAccessTool::deleteFile($tempDir . DS . $md5 . '.filename.txt');
+            FileAccessTool::deleteFile($zipFile);
         }
-    }
-
-    /**
-     * @param string $originalFilename
-     * @param string $content
-     * @param string $md5
-     * @return string Content of zipped file
-     * @throws Exception
-     */
-    private function encryptByExtension($originalFilename, $content, $md5)
-    {
-        $zipFilePath = $this->tempFileName();
-
-        $zip = new ZipArchive();
-        $result = $zip->open($zipFilePath, ZipArchive::CREATE);
-        if ($result === true) {
-            $zip->setPassword(self::ZIP_PASSWORD);
-
-            $zip->addFromString($md5, $content);
-            $zip->setEncryptionName($md5, ZipArchive::EM_AES_128);
-
-            $zip->addFromString("$md5.filename.txt", $originalFilename);
-            $zip->setEncryptionName("$md5.filename.txt", ZipArchive::EM_AES_128);
-
-            $zip->close();
-        } else {
-            throw new Exception("Could not create encrypted ZIP file '$zipFilePath'. Error code: $result");
-        }
-
-        $zipFile = new File($zipFilePath);
-        $zipContent = $zipFile->read();
-        if ($zipContent === false) {
-            throw new Exception("Could not read content of newly created ZIP file.");
-        }
-        $zipFile->delete();
-
-        return $zipContent;
     }
 
     /**
@@ -429,13 +363,13 @@ class AttachmentTool
      * @return array
      * @throws Exception
      */
-    public function advancedExtraction($pythonBin, $filePath)
+    public function advancedExtraction($filePath)
     {
         return $this->executeAndParseJsonOutput([
-            $pythonBin,
+            ProcessTool::pythonBin(),
             self::ADVANCED_EXTRACTION_SCRIPT_PATH,
             '-p',
-            escapeshellarg($filePath),
+            $filePath,
         ]);
     }
 
@@ -444,9 +378,68 @@ class AttachmentTool
      * @return array
      * @throws Exception
      */
-    public function checkAdvancedExtractionStatus($pythonBin)
+    public function checkAdvancedExtractionStatus()
     {
-        return $this->executeAndParseJsonOutput([$pythonBin, self::ADVANCED_EXTRACTION_SCRIPT_PATH, '-c']);
+        return $this->executeAndParseJsonOutput([ProcessTool::pythonBin(), self::ADVANCED_EXTRACTION_SCRIPT_PATH, '-c']);
+    }
+
+    /**
+     * @param string $data
+     * @param int $maxWidth
+     * @param int $maxHeight
+     * @param string $outputFormat Can be 'png' or 'webp'
+     * @return string
+     * @throws Exception
+     */
+    public function resizeImage($data, $maxWidth, $maxHeight, $outputFormat = 'png')
+    {
+        $image = imagecreatefromstring($data);
+        if ($image === false) {
+            throw new Exception("Image is not valid.");
+        }
+
+        $currentWidth = imagesx($image);
+        $currentHeight = imagesy($image);
+
+        // Compute thumbnail size with keeping ratio
+        if ($currentWidth > $currentHeight) {
+            $newWidth = min($currentWidth, $maxWidth);
+            $divisor = $currentWidth / $newWidth;
+            $newHeight = floor($currentHeight / $divisor);
+        } else {
+            $newHeight = min($currentHeight, $maxHeight);
+            $divisor = $currentHeight / $newHeight;
+            $newWidth = floor($currentWidth / $divisor);
+        }
+
+        $imageThumbnail = imagecreatetruecolor($newWidth, $newHeight);
+
+        // Allow transparent background
+        imagealphablending($imageThumbnail, false);
+        imagesavealpha($imageThumbnail, true);
+        $transparent = imagecolorallocatealpha($imageThumbnail, 255, 255, 255, 127);
+        imagefilledrectangle($imageThumbnail, 0, 0, $newWidth, $newHeight, $transparent);
+
+        // Resize image
+        imagecopyresampled($imageThumbnail, $image, 0, 0, 0, 0, $newWidth, $newHeight, $currentWidth, $currentHeight);
+        imagedestroy($image);
+
+        // Output image to string
+        ob_start();
+        if ($outputFormat === 'webp') {
+            if (!function_exists('imagewebp')) {
+                throw new InvalidArgumentException("Webp image format is not supported.");
+            }
+            imagewebp($imageThumbnail);
+        } elseif ($outputFormat === 'png') {
+            imagepng($imageThumbnail, null, 9);
+        } else {
+            throw new InvalidArgumentException("Unsupported image format $outputFormat.");
+        }
+        $imageData = ob_get_clean();
+        imagedestroy($imageThumbnail);
+
+        return $imageData;
     }
 
     private function tempFileName()
@@ -475,9 +468,10 @@ class AttachmentTool
      * Naive way to detect if we're working in S3
      * @return bool
      */
-    private function attachmentDirIsS3()
+    public function attachmentDirIsS3()
     {
-        return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
+        $attachmentsDir = Configure::read('MISP.attachments_dir');
+        return $attachmentsDir && substr($attachmentsDir, 0, 2) === "s3";
     }
 
     /**
@@ -515,50 +509,11 @@ class AttachmentTool
      */
     private function executeAndParseJsonOutput(array $command)
     {
-        $output = $this->execute($command);
-
-        $json = json_decode($output, true);
-        if ($json === null) {
-            throw new Exception("Command output is not valid JSON: " . json_last_error_msg());
+        $output = ProcessTool::execute($command);
+        try {
+            return JsonTool::decode($output);
+        } catch (Exception $e) {
+            throw new Exception("Command output is not valid JSON.", 0, $e);
         }
-        return $json;
-    }
-
-    /**
-     * This method is much more complicated than just `exec`, but it also provide stderr output, so Exceptions
-     * can be much more specific.
-     *
-     * @param array $command
-     * @return string
-     * @throws Exception
-     */
-    private function execute(array $command)
-    {
-        $descriptorspec = [
-            1 => ["pipe", "w"], // stdout
-            2 => ["pipe", "w"], // stderr
-        ];
-
-        $command = implode(' ', $command);
-        $process = proc_open($command, $descriptorspec, $pipes);
-        if (!$process) {
-            throw new Exception("Command '$command' could be started.");
-        }
-
-        $stdout = stream_get_contents($pipes[1]);
-        if ($stdout === false) {
-            throw new Exception("Could not get STDOUT of command.");
-        }
-        fclose($pipes[1]);
-
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[2]);
-
-        $returnCode = proc_close($process);
-        if ($returnCode !== 0) {
-            throw new Exception("Command '$command' return error code $returnCode. STDERR: '$stderr', STDOUT: '$stdout'");
-        }
-
-        return $stdout;
     }
 }

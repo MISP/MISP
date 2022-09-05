@@ -12,66 +12,104 @@ class ACLComponent extends Component
     // $action == array('OR' => array())  -  any role in the array has access
     // $action == array('AND' => array()) -  roles with all permissions in the array have access
     // If we add any new functionality to MISP and we don't add it to this list, it will only be visible to site admins.
-    private $__aclList = array(
+    const ACL_LIST = array(
             '*' => array(
-                    'blackhole' => array(),
-                    'checkAction' => array(),
-                    'checkAuthUser' => array(),
-                    'checkExternalAuthUser' => array(),
-                    'cleanModelCaches' => array(),
-                    'debugACL' => array(),
-                    'generateCount' => array(),
-                    'getActions' => array(),
-                    'pruneDuplicateUUIDs' => array(),
-                    'queryACL' => array(),
-                    'removeDuplicateEvents' => array(),
-                    'restSearch' => array('*'),
-                    'updateDatabase' => array(),
-                    'upgrade2324' => array(),
+                'blackhole' => array(),
+                'debugACL' => array(),
+                'queryACL' => array(),
+                'restSearch' => array('*'),
             ),
+            'api' => [
+                'rest' => ['perm_auth'],
+                'viewDeprecatedFunctionUse' => [],
+                'openapi' => ['*'],
+                'getApiInfo' => ['*'],
+                'getAllApis' => ['*'],
+            ],
             'attributes' => array(
-                    'add' => array('perm_add'),
-                    'add_attachment' => array('perm_add'),
-                    'add_threatconnect' => array('perm_add'),
-                    'addTag' => array('perm_tagger'),
-                    'attributeReplace' => array('perm_add'),
-                    'attributeStatistics' => array('*'),
-                    'bro' => array('*'),
-                    'checkAttachments' => array(),
-                    'checkComposites' => array('perm_admin'),
-                    'checkOrphanedAttributes' => array(),
-                    'delete' => array('perm_add'),
-                    'deleteSelected' => array('perm_add'),
-                    'describeTypes' => array('*'),
-                    'download' => array('*'),
-                    'downloadAttachment' => array('*'),
-                    'downloadSample' => array('*'),
-                    'edit' => array('perm_add'),
-                    'editField' => array('perm_add'),
-                    'editSelected' => array('perm_add'),
-                    'exportSearch' => array('*'),
-                    'fetchEditForm' => array('perm_add'),
-                    'fetchViewValue' => array('*'),
-                    'generateCorrelation' => array(),
-                    'getMassEditForm' => array('perm_add'),
-                    'hoverEnrichment' => array('perm_add'),
-                    'index' => array('*'),
-                    'pruneOrphanedAttributes' => array(),
-                    'removeTag' => array('perm_tagger'),
-                    'reportValidationIssuesAttributes' => array(),
-                    'restore' => array('perm_add'),
-                    'restSearch' => array('*'),
-                    'returnAttributes' => array('*'),
-                    'rpz' => array('*'),
-                    'search' => array('*'),
-                    'searchAlternate' => array('*'),
-                    'toggleCorrelation' => array('perm_add'),
-                    'text' => array('*'),
-                    'toggleToIDS' => array('perm_add'),
-                    'updateAttributeValues' => array('perm_add'),
-                    'view' => array('*'),
-                    'viewPicture' => array('*'),
+                'add' => array('perm_add'),
+                'add_attachment' => array('perm_add'),
+                'add_threatconnect' => array('perm_add'),
+                'addTag' => array('perm_tagger'),
+                'attributeReplace' => array('perm_add'),
+                'attributeStatistics' => array('*'),
+                'bro' => array('*'),
+                'checkAttachments' => array(),
+                'checkComposites' => array('perm_admin'),
+                'checkOrphanedAttributes' => array(),
+                'delete' => array('perm_add'),
+                'deleteSelected' => array('perm_add'),
+                'describeTypes' => array('*'),
+                'download' => array('*'),
+                'downloadAttachment' => array('*'),
+                'downloadSample' => array('*'),
+                'edit' => array('perm_add'),
+                'editField' => array('perm_add'),
+                'editSelected' => array('perm_add'),
+                'exportSearch' => array('*'),
+                'fetchEditForm' => array('perm_add'),
+                'fetchViewValue' => array('*'),
+                'generateCorrelation' => array(),
+                'getMassEditForm' => array('perm_add'),
+                'hoverEnrichment' => array('perm_add'),
+                'index' => array('*'),
+                'pruneOrphanedAttributes' => array(),
+                'removeTag' => array('perm_tagger'),
+                'reportValidationIssuesAttributes' => array(),
+                'restore' => array('perm_add'),
+                'restSearch' => array('*'),
+                'returnAttributes' => array('*'),
+                'rpz' => array('*'),
+                'search' => array('*'),
+                'toggleCorrelation' => array('perm_add'),
+                'text' => array('*'),
+                'toggleToIDS' => array('perm_add'),
+                'updateAttributeValues' => array('perm_add'),
+                'view' => array('*'),
+                'viewPicture' => array('*'),
             ),
+            'authKeys' => [
+                'add' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
+                'delete' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
+                'edit' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
+                'index' => ['perm_auth'],
+                'view' => ['perm_auth']
+            ],
+            'cerebrates' => [
+                'add' => [],
+                'delete' => [],
+                'download_org' => [],
+                'download_sg' => [],
+                'edit' => [],
+                'index' => [],
+                'preview_orgs' => [],
+                'preview_sharing_groups' => [],
+                'pull_orgs' => [],
+                'pull_sgs' => [],
+                'view' => []
+            ],
+            'correlationExclusions' => [
+                'add' => [],
+                'edit' => [],
+                'clean' => [],
+                'delete' => [],
+                'index' => [],
+                'view' => []
+            ],
+            'correlations' => [
+                'generateOccurrences' => [],
+                'generateTopCorrelations' => [],
+                'overCorrelations' => [],
+                'switchEngine' => [],
+                'top' => [],
+                'truncate' => []
+            ],
+            'cryptographicKeys' => [
+                'add' => ['perm_add'],
+                'delete' => ['perm_add'],
+                'index' => ['*'],
+                'view' => ['*']
+            ],
             'dashboards' => array(
                 'getForm' => array('*'),
                 'index' => array('*'),
@@ -107,48 +145,63 @@ class ACLComponent extends Component
                 "linkAttributeTypeToModel" => array( 'OR' => array('perm_admin', 'perm_decaying'))
             ),
             'communities' => array(
-                    'index' => array(),
-                    'requestAccess' => array(),
-                    'view' => array()
+                'index' => array(),
+                'requestAccess' => array(),
+                'view' => array()
             ),
             'eventBlocklists' => array(
-                    'add' => [
-                        'AND' => [
-                            'host_org_user',
-                            'perm_add'
-                        ]
-                    ],
-                    'delete' => [
-                        'AND' => [
-                            'host_org_user',
-                            'perm_add'
-                        ]
-                    ],
-                    'edit' => [
-                        'AND' => [
-                            'host_org_user',
-                            'perm_add'
-                        ]
-                    ],
-                    'index' => [
-                        'AND' => [
-                            'host_org_user',
-                            'perm_add'
-                        ]
-                    ],
-                    'massDelete' => [
-                        'AND' => [
-                            'host_org_user',
-                            'perm_add'
-                        ]
+                'add' => [
+                    'AND' => [
+                        'host_org_user',
+                        'perm_add'
                     ]
+                ],
+                'delete' => [
+                    'AND' => [
+                        'host_org_user',
+                        'perm_add'
+                    ]
+                ],
+                'edit' => [
+                    'AND' => [
+                        'host_org_user',
+                        'perm_add'
+                    ]
+                ],
+                'index' => [
+                    'AND' => [
+                        'host_org_user',
+                        'perm_add'
+                    ]
+                ],
+                'massDelete' => [
+                    'AND' => [
+                        'host_org_user',
+                        'perm_add'
+                    ]
+                ]
             ),
             'eventDelegations' => array(
-                    'acceptDelegation' => array('perm_add'),
-                    'delegateEvent' => array('perm_delegate'),
-                    'deleteDelegation' => array('perm_add'),
-                    'index' => array('*'),
-                    'view' => array('*'),
+                'acceptDelegation' => array('AND' => ['delegation_enabled', 'perm_add']),
+                'delegateEvent' => array('AND' => ['delegation_enabled', 'perm_delegate']),
+                'deleteDelegation' => array('AND' => ['delegation_enabled', 'perm_add']),
+                'index' => array('delegation_enabled'),
+                'view' => array('delegation_enabled'),
+            ),
+            'eventReports' => array(
+                'add' => array('perm_add'),
+                'view' => array('*'),
+                'viewSummary' => array('*'),
+                'edit' => array('perm_add'),
+                'delete' => array('perm_add'),
+                'reportFromEvent' => array('perm_add'),
+                'restore' => array('perm_add'),
+                'index' => array('*'),
+                'getProxyMISPElements' => array('*'),
+                'extractAllFromReport' => array('*'),
+                'extractFromReport' => array('*'),
+                'replaceSuggestionInReport' => array('*'),
+                'importReportFromUrl' => array('*'),
             ),
             'events' => array(
                     'add' => array('perm_add'),
@@ -183,7 +236,6 @@ class ACLComponent extends Component
                     'getEventGraphTags' => array('*'),
                     'getEventGraphGeneric' => array('*'),
                     'getEventTimeline' => array('*'),
-                    'genDistributionGraph' => array('*'),
                     'getDistributionGraph' => array('*'),
                     'getReferenceData' => array('*'),
                     'getReferences' => array('*'),
@@ -193,36 +245,46 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'importChoice' => array('*'),
                     'importModule' => array('*'),
-                    'massDelete' => array('perm_site_admin'),
+                    'massDelete' => array(),
                     'merge' => array('perm_modify'),
                     'nids' => array('*'),
+                    'populate' => array('perm_add'),
                     'proposalEventIndex' => array('*'),
+                    'protect' => ['perm_add'],
                     'publish' => array('perm_publish'),
                     'publishSightings' => array('perm_sighting'),
                     'pushEventToZMQ' => array('perm_publish_zmq'),
                     'pushEventToKafka' => array('perm_publish_kafka'),
                     'pushProposals' => array('perm_sync'),
                     'queryEnrichment' => array('perm_add'),
+                    'recoverEvent' => array(),
                     'removePivot' => array('*'),
                     'removeTag' => array('perm_tagger'),
                     'reportValidationIssuesEvents' => array(),
+                    'restoreDeletedEvents' => array(),
                     'restSearch' => array('*'),
+                    'restSearchExport' => array('*'),
+                    'runTaxonomyExclusivityCheck' => array('*'),
                     'saveFreeText' => array('perm_add'),
                     'stix' => array('*'),
                     'stix2' => array('*'),
                     'strposarray' => array(),
                     'toggleCorrelation' => array('perm_add'),
+                    'unprotect' => ['perm_add'],
                     'unpublish' => array('perm_modify'),
                     'updateGraph' => array('*'),
                     'upload_analysis_file' => array('perm_add'),
                     'upload_sample' => array('AND' => array('perm_auth', 'perm_add')),
-                    'upload_stix' => array('perm_add'),
+                    'upload_stix' => array('perm_modify'),
                     'view' => array('*'),
+                    'viewClusterRelations' => array('*'),
                     'viewEventAttributes' => array('*'),
-                    'viewEventGraph' => array('*'),
                     'viewGraph' => array('*'),
                     'viewGalaxyMatrix' => array('*'),
-                    'xml' => array('*')
+                    'xml' => array('*'),
+                'addEventLock' => ['perm_auth'],
+                'removeEventLock' => ['perm_auth'],
+                'generateCount' => array(),
             ),
             'favouriteTags' => array(
                 'toggle' => array('*'),
@@ -242,42 +304,76 @@ class ACLComponent extends Component
                     'fetchSelectedFromFreetextIndex' => array(),
                     'getEvent' => array(),
                     'importFeeds' => array(),
-                    'index' => array('*'),
-                    'loadDefaultFeeds' => array('perm_site_admin'),
+                    'index' => ['host_org_user'],
+                    'loadDefaultFeeds' => array(),
                     'previewEvent' => array('*'),
                     'previewIndex' => array('*'),
-                    'searchCaches' => array('*'),
-                    'toggleSelected' => array('perm_site_admin'),
-                    'view' => array('*'),
+                    'searchCaches' => ['host_org_user'],
+                    'toggleSelected' => array(),
+                    'view' => ['host_org_user'],
             ),
             'galaxies' => array(
                 'attachCluster' => array('perm_tagger'),
                 'attachMultipleClusters' => array('perm_tagger'),
                 'delete' => array(),
+                'disable' => array(),
+                'enable' => array(),
+                'export' => array('*'),
+                'forkTree' => array('*'),
                 'index' => array('*'),
+                'import' => array('perm_galaxy_editor'),
+                'pushCluster' => array('perm_sync'),
+                'relationsGraph' => array('*'),
                 'selectGalaxy' => array('perm_tagger'),
                 'selectGalaxyNamespace' => array('perm_tagger'),
                 'selectCluster' => array('perm_tagger'),
                 'showGalaxies' => array('*'),
+                'toggle' => array(),
                 'update' => array(),
                 'view' => array('*'),
-                'viewGraph' => array('*')
+                'viewGraph' => array('*'),
+                'wipe_default' => array(),
+            ),
+            'galaxyClusterBlocklists' => array(
+                'add' => array(),
+                'delete' => array(),
+                'edit' => array(),
+                'index' => array(),
+                'massDelete' => array(),
             ),
             'galaxyClusters' => array(
-                'attachToEvent' => array('perm_tagger'),
-                'delete' => array('perm_site_admin'),
+                'add' => array('perm_galaxy_editor'),
+                'delete' => array('perm_galaxy_editor'),
                 'detach' => array('perm_tagger'),
+                'edit' => array('perm_galaxy_editor'),
+                'index' => array('*'),
+                'publish' => array('perm_galaxy_editor'),
+                'restore' => array('perm_galaxy_editor'),
+                'restSearch' => array('*'),
+                'unpublish' => array('perm_galaxy_editor'),
+                'updateCluster' => array('perm_galaxy_editor'),
+                'view' => array('*'),
+                'viewCyCatRelations' => array('*'),
+                'viewGalaxyMatrix' => array('*'),
+                'viewRelations' => array('*'),
+                'viewRelationTree' => array('*'),
+            ),
+            'galaxyClusterRelations' => array(
+                'add' => array('perm_galaxy_editor'),
+                'delete' => array('perm_galaxy_editor'),
+                'edit' => array('perm_galaxy_editor'),
                 'index' => array('*'),
                 'view' => array('*'),
-                'viewGalaxyMatrix' => array('*')
             ),
             'galaxyElements' => array(
-                    'index' => array('*')
+                'delete' => array('perm_galaxy_editor'),
+                'flattenJson' => array('perm_galaxy_editor'),
+                'index' => array('*'),
             ),
             'jobs' => array(
                     'cache' => array('*'),
                     'getError' => array(),
-                    'getGenerateCorrelationProgress' => array('*'),
+                    'getGenerateCorrelationProgress' => array(),
                     'getProgress' => array('*'),
                     'index' => array(),
                     'clearJobs' => array()
@@ -286,11 +382,16 @@ class ACLComponent extends Component
                     'admin_index' => array('perm_audit'),
                     'admin_search' => array('perm_audit'),
                     'event_index' => array('*'),
-                    'maxDateActivity' => array('*'),
                     'returnDates' => array('*'),
                     'testForStolenAttributes' => array(),
                     'pruneUpdateLogs' => array()
             ),
+      'auditLogs' => [
+          'admin_index' => ['perm_audit'],
+          'fullChange' => ['perm_audit'],
+          'eventIndex' => ['*'],
+          'returnDates' => ['*'],
+      ],
       'modules' => array(
         'index' => array('perm_auth'),
         'queryEnrichment' => array('perm_auth'),
@@ -308,7 +409,8 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'toggleEnable' => array(),
                     'update' => array(),
-                    'view' => array('*')
+                    'view' => array('*'),
+                    'preview_entries' => array('*')
             ),
             'objects' => array(
                     'add' => array('perm_add'),
@@ -339,313 +441,411 @@ class ACLComponent extends Component
                 'edit' => array('perm_object_template'),
                 'delete' => array('perm_object_template'),
                 'getToggleField' => array(),
+                'getRaw' => array('perm_object_template'),
                 'objectChoice' => array('*'),
                 'objectMetaChoice' => array('perm_add'),
                 'view' => array('*'),
                 'viewElements' => array('*'),
                 'index' => array('*'),
-                'update' => array('perm_site_admin')
+                'update' => array()
             ),
             'objectTemplateElements' => array(
                 'viewElements' => array('*')
             ),
             'orgBlocklists' => array(
-                    'add' => array(),
-                    'delete' => array(),
-                    'edit' => array(),
-                    'index' => array(),
+                'add' => array(),
+                'delete' => array(),
+                'edit' => array(),
+                'index' => array(),
             ),
             'organisations' => array(
-                    'admin_add' => array(),
-                    'admin_delete' => array(),
-                    'admin_edit' => array(),
-                    'admin_generateuuid' => array(),
-                    'admin_merge' => array(),
-                    'fetchOrgsForSG' => array('perm_sharing_group'),
-                    'fetchSGOrgRow' => array('*'),
-                    'getUUIDs' => array('perm_sync'),
-                    'index' => array('*'),
-                    'landingpage' => array('*'),
-                    'view' => array('*'),
+                'admin_add' => array(),
+                'admin_delete' => array(),
+                'admin_edit' => array(),
+                'admin_generateuuid' => array(),
+                'admin_merge' => array(),
+                'fetchOrgsForSG' => array('perm_sharing_group'),
+                'fetchSGOrgRow' => array('*'),
+                'getUUIDs' => array('perm_sync'),
+                'index' => array('*'),
+                'view' => array('*'),
             ),
             'pages' => array(
-                    'display' => array('*'),
+                'display' => array('*'),
             ),
             'posts' => array(
-                    'add' => array('*'),
-                    'delete' => array('*'),
-                    'edit' => array('*'),
-                    'pushMessageToZMQ' => array('perm_site_admin')
+                'add' => array('not_read_only_authkey'),
+                'delete' => array('not_read_only_authkey'),
+                'edit' => array('not_read_only_authkey'),
+                'pushMessageToZMQ' => array()
             ),
             'regexp' => array(
-                    'admin_add' => array('perm_regexp_access'),
-                    'admin_clean' => array('perm_regexp_access'),
-                    'admin_delete' => array('perm_regexp_access'),
-                    'admin_edit' => array('perm_regexp_access'),
-                    'admin_index' => array('perm_regexp_access'),
-                    'cleanRegexModifiers' => array('perm_regexp_access'),
-                    'index' => array('*'),
+                'admin_add' => array('perm_regexp_access'),
+                'admin_clean' => array('perm_regexp_access'),
+                'admin_delete' => array('perm_regexp_access'),
+                'admin_edit' => array('perm_regexp_access'),
+                'admin_index' => array('perm_regexp_access'),
+                'cleanRegexModifiers' => array('perm_regexp_access'),
+                'index' => array('*'),
             ),
             'restClientHistory' => array(
-                    'delete' => array('*'),
-                    'index' => array('*')
+                'delete' => array('not_read_only_authkey'),
+                'index' => array('*')
             ),
             'roles' => array(
-                    'admin_add' => array(),
-                    'admin_delete' => array(),
-                    'admin_edit' => array(),
-                    'admin_index' => array('perm_admin'),
-                    'admin_set_default' => array(),
-                    'index' => array('*'),
-                    'view' => array('*'),
+                'admin_add' => array(),
+                'admin_delete' => array(),
+                'admin_edit' => array(),
+                'admin_set_default' => array(),
+                'index' => array('*'),
+                'view' => array('*'),
             ),
             'servers' => array(
-                    'add' => array(),
-                    'dbSchemaDiagnostic' => array(),
-                    'cache' => array(),
-                    'changePriority' => array(),
-                    'checkout' => array(),
-                    'clearWorkerQueue' => array(),
-                    'createSync' => array('perm_sync'),
-                    'delete' => array(),
-                    'deleteFile' => array(),
-                    'edit' => array(),
-                    'eventBlockRule' => array(),
-                    'fetchServersForSG' => array('perm_sharing_group'),
-                    'filterEventIndex' => array(),
-                    'getApiInfo' => array('*'),
-                    'getGit' => array(),
-                    'getInstanceUUID' => array('perm_sync'),
-                    'getPyMISPVersion' => array('*'),
-                    'getRemoteUser' => array(),
-                    'getSetting' => array(),
-                    'getSubmodulesStatus' => array(),
-                    'getSubmoduleQuickUpdateForm' => array(),
-                    'getWorkers' => array(),
-                    'getVersion' => array('*'),
-                    'idTranslator' => array('*'),
-                    'import' => array(),
-                    'index' => array(),
-                    'ondemandAction' => array(),
-                    'postTest' => array('perm_sync'),
-                    'previewEvent' => array(),
-                    'previewIndex' => array(),
-                    'pull' => array(),
-                    'purgeSessions' => array(),
-                    'push' => array(),
-                    'releaseUpdateLock' => array(),
-                    'resetRemoteAuthKey' => array(),
-                    'rest' => array('perm_auth'),
-                    'restartDeadWorkers' => array(),
-                    'restartWorkers' => array(),
-                    'serverSettings' => array(),
-                    'serverSettingsEdit' => array(),
-                    'serverSettingsReloadSetting' => array(),
-                    'startWorker' => array(),
-                    'startZeroMQServer' => array(),
-                    'statusZeroMQServer' => array(),
-                    'stopWorker' => array(),
-                    'stopZeroMQServer' => array(),
-                    'testConnection' => array(),
-                    'update' => array(),
-                    'updateJSON' => array(),
-                    'updateProgress' => array(),
-                    'updateSubmodule' => array(),
-                    'uploadFile' => array(),
-                    'viewDeprecatedFunctionUse' => array()
+                'add' => array(),
+                'dbSchemaDiagnostic' => array(),
+                'dbConfiguration' => array(),
+                'cache' => array(),
+                'changePriority' => array(),
+                'checkout' => array(),
+                'clearWorkerQueue' => array(),
+                'createSync' => array('perm_sync'),
+                'delete' => array(),
+                'deleteFile' => array(),
+                'edit' => array(),
+                'eventBlockRule' => array(),
+                'fetchServersForSG' => array('perm_sharing_group'),
+                'filterEventIndex' => array(),
+                'getAvailableSyncFilteringRules' => array('*'),
+                'getInstanceUUID' => array('perm_sync'),
+                'getPyMISPVersion' => array('*'),
+                'getRemoteUser' => array(),
+                'getSetting' => array(),
+                'getSubmodulesStatus' => array(),
+                'getSubmoduleQuickUpdateForm' => array(),
+                'getWorkers' => array(),
+                'getVersion' => array('perm_auth'),
+                'idTranslator' => ['host_org_user'],
+                'import' => array(),
+                'index' => array(),
+                'ipUser' => ['perm_site_admin'],
+                'ondemandAction' => array(),
+                'postTest' => array('*'),
+                'previewEvent' => array(),
+                'previewIndex' => array(),
+                'compareServers' => [],
+                'pull' => array(),
+                'purgeSessions' => array(),
+                'push' => array(),
+                'queryAvailableSyncFilteringRules' => array(),
+                'releaseUpdateLock' => array(),
+                'resetRemoteAuthKey' => array(),
+                'removeOrphanedCorrelations' => array(),
+                'restartDeadWorkers' => array(),
+                'restartWorkers' => array(),
+                'serverSettings' => array(),
+                'serverSettingsEdit' => array(),
+                'serverSettingsReloadSetting' => array(),
+                'startWorker' => array(),
+                'startZeroMQServer' => array(),
+                'statusZeroMQServer' => array(),
+                'stopWorker' => array(),
+                'stopZeroMQServer' => array(),
+                'testConnection' => array(),
+                'update' => array(),
+                'updateJSON' => array(),
+                'updateProgress' => array(),
+                'updateSubmodule' => array(),
+                'uploadFile' => array(),
+                'killAllWorkers' => [],
+                'cspReport' => ['*'],
+                'pruneDuplicateUUIDs' => array(),
+                'removeDuplicateEvents' => array(),
+                'upgrade2324' => array(),
+                'cleanModelCaches' => array(),
+                'updateDatabase' => array(),
+                'rest' => ['perm_auth'],
             ),
             'shadowAttributes' => array(
-                    'accept' => array('perm_add'),
-                    'acceptSelected' => array('perm_add'),
-                    'add' => array('perm_add'),
-                    'add_attachment' => array('perm_add'),
-                    'delete' => array('perm_add'),
-                    'discard' => array('perm_add'),
-                    'discardSelected' => array('perm_add'),
-                    'download' => array('*'),
-                    'edit' => array('perm_add'),
-                    'generateCorrelation' => array(),
-                    'index' => array('*'),
-                    'view' => array('*'),
+                'accept' => array('perm_add'),
+                'acceptSelected' => array('perm_add'),
+                'add' => array('perm_add'),
+                'add_attachment' => array('perm_add'),
+                'delete' => array('perm_add'),
+                'discard' => array('perm_add'),
+                'discardSelected' => array('perm_add'),
+                'download' => array('*'),
+                'edit' => array('perm_add'),
+                'generateCorrelation' => array(),
+                'index' => array('*'),
+                'view' => array('*'),
+                'viewPicture' => array('*'),
+            ),
+            'sharingGroupBlueprints' => array(
+                'add' => array('perm_sharing_group'),
+                'delete' => array('perm_sharing_group'),
+                'detach' => array('perm_sharing_group'),
+                'edit' => array('perm_sharing_group'),
+                'execute' => array('perm_sharing_group'),
+                'index' => array('perm_sharing_group'),
+                'view' => array('perm_sharing_group'),
+                'viewOrgs' => array('perm_sharing_group'),
             ),
             'sharingGroups' => array(
-                    'add' => array('perm_sharing_group'),
-                    'addServer' => array('perm_sharing_group'),
-                    'addOrg' => array('perm_sharing_group'),
-                    'delete' => array('perm_sharing_group'),
-                    'edit' => array('perm_sharing_group'),
-                    'index' => array('*'),
-                    'removeServer' => array('perm_sharing_group'),
-                    'removeOrg' => array('perm_sharing_group'),
-                    'view' => array('*'),
+                'add' => array('perm_sharing_group'),
+                'addServer' => array('perm_sharing_group'),
+                'addOrg' => array('perm_sharing_group'),
+                'delete' => array('perm_sharing_group'),
+                'edit' => array('perm_sharing_group'),
+                'index' => array('*'),
+                'removeServer' => array('perm_sharing_group'),
+                'removeOrg' => array('perm_sharing_group'),
+                'view' => array('*'),
             ),
             'sightings' => array(
-                    'add' => array('perm_sighting'),
-                    'restSearch' => array('perm_sighting'),
-                    'advanced' => array('perm_sighting'),
-                    'delete' => array('perm_sighting'),
-                    'index' => array('*'),
-                    'listSightings' => array('*'),
-                    'quickDelete' => array('perm_sighting'),
-                    'viewSightings' => array('*'),
-                    'bulkSaveSightings' => array('OR' => array('perm_sync', 'perm_sighting')),
-                    'quickAdd' => array('perm_sighting')
+                'add' => array('perm_sighting'),
+                'restSearch' => array('perm_sighting'),
+                'advanced' => array('perm_sighting'),
+                'delete' => array('perm_sighting'),
+                'index' => array('*'),
+                'listSightings' => array('*'),
+                'quickDelete' => array('perm_sighting'),
+                'viewSightings' => array('*'),
+                'bulkSaveSightings' => array('OR' => array('perm_sync', 'perm_sighting')),
+                'filterSightingUuidsForPush' => ['perm_sync'],
+                'quickAdd' => array('perm_sighting')
             ),
             'sightingdb' => array(
-                    'add' => array(),
-                    'edit' => array(),
-                    'delete' => array(),
-                    'index' => array(),
-                    'requestStatus' => array(),
-                    'search' => array()
+                'add' => array(),
+                'edit' => array(),
+                'delete' => array(),
+                'index' => array(),
+                'requestStatus' => array(),
+                'search' => array()
             ),
             'tagCollections' => array(
-                    'add' => array('perm_tag_editor'),
-                    'addTag' => array('perm_tag_editor'),
-                    'delete' => array('perm_tag_editor'),
-                    'edit' => array('perm_tag_editor'),
-                    'getRow' => array('perm_tag_editor'),
-                    'import' => array('perm_tag_editor'),
-                    'index' => array('*'),
-                    'removeTag' => array('perm_tag_editor'),
-                    'view' => array('*')
+                'add' => array('perm_tag_editor'),
+                'addTag' => array('perm_tag_editor'),
+                'delete' => array('perm_tag_editor'),
+                'edit' => array('perm_tag_editor'),
+                'getRow' => array('perm_tag_editor'),
+                'import' => array('perm_tag_editor'),
+                'index' => array('*'),
+                'removeTag' => array('perm_tag_editor'),
+                'view' => array('*')
             ),
             'tags' => array(
-                    'add' => array('perm_tag_editor'),
-                    'attachTagToObject' => array('perm_tagger'),
-                    'delete' => array(),
-                    'edit' => array(),
-                    'index' => array('*'),
-                    'quickAdd' => array('perm_tag_editor'),
-                    'removeTagFromObject' => array('perm_tagger'),
-                    'search' => array('*'),
-                    'selectTag' => array('perm_tagger'),
-                    'selectTaxonomy' => array('perm_tagger'),
-                    'showEventTag' => array('*'),
-                    'showAttributeTag' => array('*'),
-                    'showTagControllerTag' => array('*'),
-                    'tagStatistics' => array('*'),
-                    'view' => array('*'),
-                    'viewGraph' => array('*'),
-                    'viewTag' => array('*')
+                'add' => array('perm_tag_editor'),
+                'attachTagToObject' => array('perm_tagger'),
+                'delete' => array(),
+                'edit' => array(),
+                'index' => array('*'),
+                'quickAdd' => array('perm_tag_editor'),
+                'removeTagFromObject' => array('perm_tagger'),
+                'search' => array('*'),
+                'selectTag' => array('perm_tagger'),
+                'selectTaxonomy' => array('perm_tagger'),
+                'showEventTag' => array('*'),
+                'showAttributeTag' => array('*'),
+                'showTagControllerTag' => array('*'),
+                'tagStatistics' => array('*'),
+                'view' => array('*'),
+                'viewGraph' => array('*'),
+                'viewTag' => array('*')
             ),
             'tasks' => array(
-                    'index' => array(),
-                    'setTask' => array(),
+                'index' => array(),
+                'setTask' => array(),
             ),
             'taxonomies' => array(
-                    'addTag' => array(),
-                    'delete' => array(),
-                    'disable' => array(),
-                    'disableTag' => array(),
-                    'enable' => array(),
-                    'index' => array('*'),
-                    'taxonomyMassConfirmation' => array('perm_tagger'),
-                    'taxonomyMassHide' => array('perm_tagger'),
-                    'taxonomyMassUnhide' => array('perm_tagger'),
-                    'toggleRequired' => array('perm_site_admin'),
-                    'update' => array(),
-                    'view' => array('*'),
-                    'unhideTag' => array('perm_tagger'),
-                    'hideTag' => array('perm_tagger'),
+                'addTag' => array(),
+                'delete' => array(),
+                'disable' => array(),
+                'disableTag' => array(),
+                'enable' => array(),
+                'index' => array('*'),
+                'taxonomy_tags' => array('*'),
+                'taxonomyMassConfirmation' => array('perm_tagger'),
+                'taxonomyMassHide' => array('perm_tagger'),
+                'taxonomyMassUnhide' => array('perm_tagger'),
+                'toggleRequired' => array(),
+                'update' => array(),
+                'import' => [],
+                'export' => ['*'],
+                'view' => array('*'),
+                'unhideTag' => array('perm_tagger'),
+                'hideTag' => array('perm_tagger'),
+                'normalizeCustomTagsToTaxonomyFormat' => [],
             ),
             'templateElements' => array(
-                    'add' => array('perm_template'),
-                    'delete' => array('perm_template'),
-                    'edit' => array('perm_template'),
-                    'index' => array('*'),
-                    'templateElementAddChoices' => array('perm_template'),
+                'add' => array('perm_template'),
+                'delete' => array('perm_template'),
+                'edit' => array('perm_template'),
+                'index' => array('*'),
+                'templateElementAddChoices' => array('perm_template'),
             ),
             'templates' => array(
-                    'add' => array('perm_template'),
-                    'delete' => array('perm_template'),
-                    'deleteTemporaryFile' => array('perm_add'),
-                    'edit' => array('perm_template'),
-                    'index' => array('*'),
-                    'populateEventFromTemplate' => array('perm_add'),
-                    'saveElementSorting' => array('perm_template'),
-                    'submitEventPopulation' => array('perm_add'),
-                    'templateChoices' => array('*'),
-                    'uploadFile' => array('*'),
-                    'view' => array('*'),
+                'add' => array('perm_template'),
+                'delete' => array('perm_template'),
+                'deleteTemporaryFile' => array('perm_add'),
+                'edit' => array('perm_template'),
+                'index' => array('*'),
+                'populateEventFromTemplate' => array('perm_add'),
+                'saveElementSorting' => array('perm_template'),
+                'submitEventPopulation' => array('perm_add'),
+                'templateChoices' => array('*'),
+                'uploadFile' => array('*'),
+                'view' => array('*'),
             ),
             'threads' => array(
-                    'index' => array('*'),
-                    'view' => array('*'),
-                    'viewEvent' => array('*'),
+                'index' => array('*'),
+                'view' => array('*'),
+                'viewEvent' => array('*'),
             ),
             'users' => array(
-                    'acceptRegistrations' => array('perm_site_admin'),
-                    'admin_add' => array('perm_admin'),
-                    'admin_delete' => array('perm_admin'),
-                    'admin_edit' => array('perm_admin'),
-                    'admin_email' => array('perm_admin'),
-                    'admin_filterUserIndex' => array('perm_admin'),
-                    'admin_index' => array('perm_admin'),
-                    'admin_monitor' => array('perm_site_admin'),
-                    'admin_quickEmail' => array('perm_admin'),
-                    'admin_view' => array('perm_admin'),
-                    'attributehistogram' => array('*'),
-                    'change_pw' => array('*'),
-                    'checkAndCorrectPgps' => array(),
-                    'checkIfLoggedIn' => array('*'),
-                    'dashboard' => array('*'),
-                    'delete' => array('perm_admin'),
-                    'discardRegistrations' => array('perm_site_admin'),
-                    'downloadTerms' => array('*'),
-                    'edit' => array('*'),
-                    'email_otp' => array('*'),
-                    'searchGpgKey' => array('*'),
-                    'fetchGpgKey' => array('*'),
-                    'histogram' => array('*'),
-                    'initiatePasswordReset' => array('perm_admin'),
-                    'login' => array('*'),
-                    'logout' => array('*'),
-                    'register' => array('*'),
-                    'registrations' => array('perm_site_admin'),
-                    'resetAllSyncAuthKeys' => array(),
-                    'resetauthkey' => array('*'),
-                    'request_API' => array('*'),
-                    'routeafterlogin' => array('*'),
-                    'statistics' => array('*'),
-                    'tagStatisticsGraph' => array('*'),
-                    'terms' => array('*'),
-                    'updateLoginTime' => array('*'),
-                    'verifyCertificate' => array(),
-                    'verifyGPG' => array(),
-                    'view' => array('*'),
+                'acceptRegistrations' => array(),
+                'admin_add' => ['AND' => ['perm_admin', 'add_user_enabled']],
+                'admin_delete' => array('perm_admin'),
+                'admin_edit' => array('perm_admin'),
+                'admin_email' => array('perm_admin'),
+                'admin_filterUserIndex' => array('perm_admin'),
+                'admin_index' => array('perm_admin'),
+                'admin_massToggleField' => array('perm_admin'),
+                'admin_monitor' => array(),
+                'admin_quickEmail' => array('perm_admin'),
+                'admin_view' => array('perm_admin'),
+                'attributehistogram' => array('*'),
+                'change_pw' => ['AND' => ['self_management_enabled', 'password_change_enabled', 'not_read_only_authkey']],
+                'checkAndCorrectPgps' => array(),
+                'checkIfLoggedIn' => array('*'),
+                'dashboard' => array('*'),
+                'delete' => array('perm_admin'),
+                'discardRegistrations' => array(),
+                'downloadTerms' => array('*'),
+                'edit' => array('self_management_enabled'),
+                'email_otp' => array('*'),
+                'searchGpgKey' => array('*'),
+                'fetchGpgKey' => array('*'),
+                'histogram' => array('*'),
+                'initiatePasswordReset' => ['AND' => ['perm_admin', 'password_change_enabled']],
+                'login' => array('*'),
+                'logout' => array('*'),
+                'register' => array('*'),
+                'registrations' => array(),
+                'resetAllSyncAuthKeys' => array(),
+                'resetauthkey' => ['AND' => ['self_management_enabled', 'perm_auth', 'not_read_only_authkey']],
+                'request_API' => array('*'),
+                'routeafterlogin' => array('*'),
+                'statistics' => array('*'),
+                'tagStatisticsGraph' => array('*'),
+                'terms' => array('*'),
+                'updateLoginTime' => array('*'),
+                'updateToAdvancedAuthKeys' => array(),
+                'verifyCertificate' => array(),
+                'verifyGPG' => array(),
+                'view' => array('*'),
+                'getGpgPublicKey' => array('*'),
+                'unsubscribe' => ['*'],
             ),
             'userSettings' => array(
-                    'index' => array('*'),
-                    'view' => array('*'),
-                    'setSetting' => array('*'),
-                    'getSetting' => array('*'),
-                    'delete' => array('*'),
-                    'setHomePage' => array('*')
+                'index' => array('*'),
+                'view' => array('*'),
+                'setSetting' => array('not_read_only_authkey'),
+                'getSetting' => array('*'),
+                'delete' => array('not_read_only_authkey'),
+                'setHomePage' => array('not_read_only_authkey'),
+                'eventIndexColumnToggle' => ['*'],
             ),
             'warninglists' => array(
-                    'checkValue' => array('perm_auth'),
-                    'delete' => array(),
-                    'enableWarninglist' => array(),
-                    'getToggleField' => array(),
-                    'index' => array('*'),
-                    'toggleEnable' => array(),
-                    'update' => array(),
-                    'view' => array('*')
+                'checkValue' => array('perm_auth'),
+                'delete' => ['perm_warninglist'],
+                'enableWarninglist' => ['perm_warninglist'],
+                'getToggleField' => ['perm_warninglist'],
+                'index' => array('*'),
+                'toggleEnable' => ['perm_warninglist'],
+                'update' => array(),
+                'view' => array('*'),
+                'edit' => ['perm_warninglist'],
+                'add' => ['perm_warninglist'],
+                'export' => ['*'],
+                'import' => ['perm_warninglist'],
             ),
+            'workflows' => [
+                'index'=> [],
+                'rebuildRedis'=> [],
+                'edit'=> [],
+                'delete'=> [],
+                'view'=> [],
+                'editor'=> [],
+                'triggers'=> [],
+                'moduleIndex'=> [],
+                'moduleView'=> [],
+                'toggleModule'=> [],
+                'checkGraph'=> [],
+                'executeWorkflow'=> [],
+                'debugToggleField'=> [],
+                'massToggleField'=> [],
+            ],
+            'workflowBlueprints' => [
+                'add' => [],
+                'delete' => [],
+                'edit' => [],
+                'export' => [],
+                'import' => [],
+                'index' => [],
+                'update' => [],
+                'view' => [],
+            ],
             'allowedlists' => array(
-                    'admin_add' => array('perm_regexp_access'),
-                    'admin_delete' => array('perm_regexp_access'),
-                    'admin_edit' => array('perm_regexp_access'),
-                    'admin_index' => array('perm_regexp_access'),
-                    'index' => array('*'),
+                'admin_add' => array('perm_regexp_access'),
+                'admin_delete' => array('perm_regexp_access'),
+                'admin_edit' => array('perm_regexp_access'),
+                'admin_index' => array('perm_regexp_access'),
+                'index' => array('*'),
             ),
             'eventGraph' => array(
-                    'view' => array('*'),
-                    'add' => array('perm_add'),
-                    'delete' => array('perm_modify'),
+                'view' => array('*'),
+                'viewPicture' => array('*'),
+                'add' => array('perm_add'),
+                'delete' => array('perm_modify'),
             )
     );
+
+    private $dynamicChecks = [];
+
+    public function __construct(ComponentCollection $collection, $settings = array())
+    {
+        parent::__construct($collection, $settings);
+
+        $this->dynamicChecks['host_org_user'] = function (array $user) {
+            $hostOrgId = Configure::read('MISP.host_org_id');
+            return (int)$user['org_id'] === (int)$hostOrgId;
+        };
+        $this->dynamicChecks['self_management_enabled'] = function (array $user) {
+            if (Configure::read('MISP.disableUserSelfManagement') && !$user['Role']['perm_admin'])  {
+                throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
+            }
+            return true;
+        };
+        $this->dynamicChecks['password_change_enabled'] = function (array $user) {
+            if (Configure::read('MISP.disable_user_password_change')) {
+                throw new MethodNotAllowedException('User password change has been disabled on this instance.');
+            }
+            return true;
+        };
+        $this->dynamicChecks['add_user_enabled'] = function (array $user) {
+            if (Configure::read('MISP.disable_user_add')) {
+                throw new MethodNotAllowedException('Adding users has been disabled on this instance.');
+            }
+            return true;
+        };
+        $this->dynamicChecks['delegation_enabled'] = function (array $user) {
+            return (bool)Configure::read('MISP.delegation');
+        };
+        // Returns true if current user is not using advanced auth key or if authkey is not read only
+        $this->dynamicChecks['not_read_only_authkey'] = function (array $user) {
+            return !isset($user['authkey_read_only']) || !$user['authkey_read_only'];
+        };
+    }
 
     private function __checkLoggedActions($user, $controller, $action)
     {
@@ -664,7 +864,6 @@ class ACLComponent extends Component
         foreach ($loggedActions as $k => $v) {
             $loggedActions[$k] = array_change_key_case($v);
         }
-        $message = '';
         if (!empty($loggedActions[$controller])) {
             if (!empty($loggedActions[$controller][$action])) {
                 $message = $loggedActions[$controller][$action]['message'];
@@ -720,6 +919,24 @@ class ACLComponent extends Component
     }
 
     /**
+     * @param array $user
+     * @param string $controller
+     * @param string $action
+     * @return bool
+     */
+    public function canUserAccess($user, $controller, $action)
+    {
+        try {
+            $this->checkAccess($user, $controller, $action, false);
+        } catch (NotFoundException $e) {
+            throw new RuntimeException("Invalid controller '$controller' specified.", 0, $e);
+        } catch (MethodNotAllowedException $e) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * The check works like this:
      * - If the user is a site admin, return true
      * - If the requested action has an OR-d list, iterate through the list. If any of the permissions are set for the user, return true
@@ -730,36 +947,34 @@ class ACLComponent extends Component
      * @param array|null $user
      * @param string $controller
      * @param string $action
-     * @param bool $soft If true, instead of exception, HTTP error code is retuned as int.
-     * @return bool|int
+     * @param bool $checkLoggedActions
+     * @return true
      * @throws NotFoundException
      * @throws MethodNotAllowedException
-     * @throws InternalErrorException
      */
-    public function checkAccess($user, $controller, $action, $soft = false)
+    public function checkAccess($user, $controller, $action, $checkLoggedActions = true)
     {
         $controller = lcfirst(Inflector::camelize($controller));
         $action = strtolower($action);
-        $host_org_id = Configure::read('MISP.host_org_id');
-        $aclList = $this->__aclList;
-        foreach ($aclList as $k => $v) {
-            $aclList[$k] = array_change_key_case($v);
+        if ($checkLoggedActions) {
+            $this->__checkLoggedActions($user, $controller, $action);
         }
-        $this->__checkLoggedActions($user, $controller, $action);
         if ($user && $user['Role']['perm_site_admin']) {
             return true;
         }
-        if (!isset($aclList[$controller])) {
-            return $this->__error(404, 'Invalid controller.', $soft);
+        if (!isset(self::ACL_LIST[$controller])) {
+            throw new NotFoundException('Invalid controller.');
         }
-        if (isset($aclList[$controller][$action]) && !empty($aclList[$controller][$action])) {
-            if (in_array('*', $aclList[$controller][$action])) {
+        $controllerAclList = array_change_key_case(self::ACL_LIST[$controller]);
+        if (!empty($controllerAclList[$action])) {
+            $rules = $controllerAclList[$action];
+            if (in_array('*', $rules, true)) {
                 return true;
             }
-            if (isset($aclList[$controller][$action]['OR'])) {
-                foreach ($aclList[$controller][$action]['OR'] as $permission) {
-                    if ($permission === 'host_org_user') {
-                        if ((int)$user['org_id'] === (int)$host_org_id) {
+            if (isset($rules['OR'])) {
+                foreach ($rules['OR'] as $permission) {
+                    if (isset($this->dynamicChecks[$permission])) {
+                        if ($this->dynamicChecks[$permission]($user)) {
                             return true;
                         }
                     } else {
@@ -768,11 +983,11 @@ class ACLComponent extends Component
                         }
                     }
                 }
-            } elseif (isset($aclList[$controller][$action]['AND'])) {
+            } elseif (isset($rules['AND'])) {
                 $allConditionsMet = true;
-                foreach ($aclList[$controller][$action]['AND'] as $permission) {
-                    if ($permission === 'host_org_user') {
-                        if ((int)$user['org_id'] !== (int)$host_org_id) {
+                foreach ($rules['AND'] as $permission) {
+                    if (isset($this->dynamicChecks[$permission])) {
+                        if (!$this->dynamicChecks[$permission]($user)) {
                             $allConditionsMet = false;
                         }
                     } else {
@@ -784,33 +999,21 @@ class ACLComponent extends Component
                 if ($allConditionsMet) {
                     return true;
                 }
-            } elseif ($aclList[$controller][$action][0] !== 'host_org_user' && $user['Role'][$aclList[$controller][$action][0]]) {
-                return true;
-            } elseif ($aclList[$controller][$action][0] === 'host_org_user' && (int)$user['org_id'] === (int)$host_org_id) {
+            } elseif (isset($this->dynamicChecks[$rules[0]])) {
+                if ($this->dynamicChecks[$rules[0]]($user)) {
+                    return true;
+                }
+            } elseif ($user['Role'][$rules[0]]) {
                 return true;
             }
         }
-        return $this->__error(403, 'You do not have permission to use this functionality.', $soft);
-    }
-
-    private function __error($code, $message, $soft = false)
-    {
-        if ($soft) {
-            return $code;
-        }
-        switch ($code) {
-            case 404:
-                throw new NotFoundException($message);
-                break;
-            case 403:
-                throw new MethodNotAllowedException($message);
-            default:
-                throw new InternalErrorException('Unknown error: ' . $message);
-        }
+        throw new MethodNotAllowedException('You do not have permission to use this functionality.');
     }
 
     private function __findAllFunctions()
     {
+        $functionsToIgnore = ['beforeFilter', 'afterFilter', 'beforeRender',  'getEventManager'];
+
         $functionFinder = '/function[\s\n]+(\S+)[\s\n]*\(/';
         $dir = new Folder(APP . 'Controller');
         $files = $dir->find('.*\.php');
@@ -821,11 +1024,11 @@ class ACLComponent extends Component
                 $controllerName = '*';
             }
             $functionArray = array();
-            $fileContents = file_get_contents(APP . 'Controller' . DS . $file);
+            $fileContents = FileAccessTool::readFromFile(APP . 'Controller' . DS . $file);
             $fileContents = preg_replace('/\/\*[^\*]+?\*\//', '', $fileContents);
             preg_match_all($functionFinder, $fileContents, $functionArray);
             foreach ($functionArray[1] as $function) {
-                if (substr($function, 0, 1) !== '_' && $function !== 'beforeFilter' && $function !== 'afterFilter') {
+                if ($function[0] !== '_' && !in_array($function, $functionsToIgnore, true)) {
                     $results[$controllerName][] = $function;
                 }
             }
@@ -846,8 +1049,7 @@ class ACLComponent extends Component
         $missing = array();
         foreach ($results as $controller => $functions) {
             foreach ($functions as $function) {
-                if (!isset($this->__aclList[$controller])
-                || !in_array($function, array_keys($this->__aclList[$controller]))) {
+                if (!isset(self::ACL_LIST[$controller]) || !in_array($function, array_keys(self::ACL_LIST[$controller]))) {
                     $missing[$controller][] = $function;
                 }
             }
@@ -877,39 +1079,18 @@ class ACLComponent extends Component
         return $results;
     }
 
-    private function __checkRoleAccess($role)
+    private function __checkRoleAccess(array $role)
     {
         $result = array();
-        foreach ($this->__aclList as $controller => $actions) {
-            $controllerNames = Inflector::variable($controller) == Inflector::underscore($controller) ? array(Inflector::variable($controller)) : array(Inflector::variable($controller), Inflector::underscore($controller));
+        $fakeUser = ['Role' => $role, 'org_id' => Configure::read('MISP.host_org_id')];
+        foreach (self::ACL_LIST as $controller => $actions) {
+            $controllerNames = Inflector::variable($controller) === Inflector::underscore($controller) ?
+                array(Inflector::variable($controller)) :
+                array(Inflector::variable($controller), Inflector::underscore($controller));
             foreach ($controllerNames as $controllerName) {
                 foreach ($actions as $action => $permissions) {
-                    if ($role['perm_site_admin']) {
-                        $result[] = DS . $controllerName . DS . $action;
-                    } elseif (in_array('*', $permissions)) {
-                        $result[] = DS . $controllerName . DS . $action . DS . '*';
-                    } elseif (isset($permissions['OR'])) {
-                        $access = false;
-                        foreach ($permissions['OR'] as $permission) {
-                            if ($role[$permission]) {
-                                $access = true;
-                            }
-                        }
-                        if ($access) {
-                            $result[] = DS . $controllerName . DS . $action . DS . '*';
-                        }
-                    } elseif (isset($permissions['AND'])) {
-                        $access = true;
-                        foreach ($permissions['AND'] as $permission) {
-                            if ($role[$permission]) {
-                                $access = false;
-                            }
-                        }
-                        if ($access) {
-                            $result[] = DS . $controllerName . DS . $action . DS . '*';
-                        }
-                    } elseif (isset($permissions[0]) && $role[$permissions[0]]) {
-                        $result[] = DS . $controllerName . DS . $action . DS . '*';
+                    if ($this->canUserAccess($fakeUser, $controllerName, $action)) {
+                        $result[] = "/$controllerName/$action";
                     }
                 }
             }

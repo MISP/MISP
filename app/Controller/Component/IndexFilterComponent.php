@@ -6,29 +6,33 @@
 
 class IndexFilterComponent extends Component
 {
-    private $__Controller = false;
+    /** @var Controller */
+    public $Controller;
+    public $isRest = null;
 
-    public function startup(Controller $controller) {
-        $this->__Controller = $controller;
+    public function initialize(Controller $controller)
+    {
+        $this->Controller = $controller;
     }
 
     // generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
-    public function harvestParameters($paramArray, &$exception = array())
+    public function harvestParameters($paramArray, &$exception = [])
     {
-        $data = array();
-        if (!empty($this->__Controller->request->is('post'))) {
-            if (empty($this->__Controller->request->data)) {
-                $exception = $this->__Controller->RestResponse->throwException(
+        $request = $this->Controller->request;
+        $data = [];
+        if ($request->is('post')) {
+            if (empty($request->data)) {
+                $exception = $this->Controller->RestResponse->throwException(
                     400,
                     __('Either specify the search terms in the url, or POST a json with the filter parameters.'),
-                    '/' . $this->__Controller->request->params['controller'] . '/' . $this->__Controller->action
+                    '/' . $request->params['controller'] . '/' . $this->Controller->action
                 );
                 return false;
             } else {
-                if (isset($this->__Controller->request->data['request'])) {
-                    $data = $this->__Controller->request->data['request'];
+                if (isset($request->data['request'])) {
+                    $data = $request->data['request'];
                 } else {
-                    $data = $this->__Controller->request->data;
+                    $data = $request->data;
                 }
             }
         }
@@ -41,19 +45,20 @@ class IndexFilterComponent extends Component
                     $data[$p] = $options['ordered_url_params'][$p];
                     $data[$p] = str_replace(';', ':', $data[$p]);
                 }
-                if (isset($this->__Controller->params['named'][$p])) {
-                    $data[$p] = str_replace(';', ':', $this->__Controller->params['named'][$p]);
+                if (isset($request->params['named'][$p])) {
+                    $data[$p] = str_replace(';', ':', $request->params['named'][$p]);
                 }
             }
         }
-        foreach ($data as $k => $v) {
-            if (!is_array($data[$k])) {
-                $data[$k] = trim($data[$k]);
-                if (strpos($data[$k], '||')) {
-                    $data[$k] = explode('||', $data[$k]);
+        foreach ($data as &$v) {
+            if (is_string($v)) {
+                $v = trim($v);
+                if (strpos($v, '||')) {
+                    $v = explode('||', $v);
                 }
             }
         }
+        unset($v);
         if (!empty($options['additional_delimiters'])) {
             if (!is_array($options['additional_delimiters'])) {
                 $options['additional_delimiters'] = array($options['additional_delimiters']);
@@ -63,6 +68,7 @@ class IndexFilterComponent extends Component
                 foreach ($options['additional_delimiters'] as $delim) {
                     if (strpos($v, $delim) !== false) {
                         $found = true;
+                        break;
                     }
                 }
                 if ($found) {
@@ -73,8 +79,48 @@ class IndexFilterComponent extends Component
                 }
             }
         }
-        $this->__Controller->set('passedArgs', json_encode($this->__Controller->passedArgs, true));
+        $this->Controller->set('passedArgs', json_encode($this->Controller->passedArgs));
         return $data;
     }
 
+    public function isRest()
+    {
+        // This method is surprisingly slow and called many times for one request, so it make sense to cache the result.
+        if ($this->isRest !== null) {
+            return $this->isRest;
+        }
+        $api = $this->isApiFunction($this->Controller->request->params['controller'], $this->Controller->request->params['action']);
+        if (isset($this->Controller->RequestHandler) && ($api || $this->isJson() || $this->Controller->RequestHandler->isXml() || $this->isCsv())) {
+            $this->isRest = true;
+            return true;
+        } else {
+            $this->isRest = false;
+            return false;
+        }
+    }
+
+    public function isJson()
+    {
+        return $this->Controller->request->header('Accept') === 'application/json' || $this->Controller->RequestHandler->prefers() === 'json';
+    }
+
+    public function isCsv()
+    {
+        return $this->Controller->request->header('Accept') === 'text/csv' || $this->Controller->RequestHandler->prefers() === 'csv';
+    }
+
+    public function isXml()
+    {
+
+    }
+
+    /**
+     * @param string $controller
+     * @param string $action
+     * @return bool
+     */
+    public function isApiFunction($controller, $action)
+    {
+        return isset($this->Controller->automationArray[$controller]) && in_array($action, $this->Controller->automationArray[$controller], true);
+    }
 }

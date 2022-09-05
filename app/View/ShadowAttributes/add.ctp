@@ -16,13 +16,15 @@ echo $this->element('genericElements/Form/genericForm', array(
                 'class' => 'input',
                 'empty' => __('(choose one)'),
                 'options' => $categories,
-                'stayInLine' => 1
+                'stayInLine' => 1,
+                'type' => 'dropdown'
             ),
             array(
                 'field' => 'type',
                 'class' => 'input',
                 'empty' => __('(choose category first)'),
-                'options' => $types
+                'options' => $types,
+                'type' => 'dropdown'
             ),
             array(
                 'field'=> 'value',
@@ -78,8 +80,8 @@ if (!$ajax) {
 }
 ?>
     <script type="text/javascript">
-        var category_type_mapping = <?= json_encode(array_map(function($value) {
-            return array_combine($value['types'], $value['types']);
+        var category_type_mapping = <?= json_encode(array_map(function(array $value) {
+            return $value['types'];
         }, $categoryDefinitions)); ?>;
 
         $('#ShadowAttributeCategory').change(function() {

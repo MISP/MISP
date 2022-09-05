@@ -92,7 +92,7 @@ class EventBlocklistsController extends AppController
         } else {
             $ids = json_decode($this->request->query('ids'), true);
             if (empty($ids)) {
-                throw new NotFoundException(__('Invalid event IDs.'));
+                throw new NotFoundException(__('Invalid event blocklist IDs.'));
 
             }
             $this->set('event_ids', $ids);

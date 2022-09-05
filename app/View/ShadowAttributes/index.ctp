@@ -1,5 +1,5 @@
+<div class="shadowAttributes index">
 <?php
-    echo '<div class="shadowAttributes index">';
     echo $this->element('/genericElements/IndexTable/index_table', array(
         'data' => array(
             'data' => $shadowAttributes,
@@ -31,7 +31,7 @@
             ),
             'fields' => array(
                 array(
-                    'name' => __('Id'),
+                    'name' => __('ID'),
                     'sort' => 'ShadowAttribute.id',
                     'class' => 'short',
                     'data_path' => 'ShadowAttribute.id',
@@ -101,6 +101,7 @@
                 array(
                     'url' => $baseurl . '/events/view',
                     'url_params_data_paths' => 'ShadowAttribute.event_id',
+                    'url_named_params_data_paths' => ['focus' => 'ShadowAttribute.uuid'],
                     'icon' => 'eye',
                     'title' => __('View Event'),
                     'dbclickAction' => true,
@@ -112,14 +113,9 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewProposals'));
 ?>
 <script type="text/javascript">
-    $(document).ready(function(){
+    $(function(){
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();
-        });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter();
-            }
         });
     });
 </script>

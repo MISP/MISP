@@ -17,9 +17,21 @@
             ),
             'submit' => array(
                 'action' => 'import',
-                'ajaxSubmit' => "$('#DashboardImportForm').submit();"
+                'ajaxSubmit' => "submitImportDashboardForm()"
             ),
             'description' => __('Import a configuration JSON as exported from another MISP instance.')
         )
     ));
 ?>
+<script>
+function submitImportDashboardForm() {
+    var $form = $('#DashboardImportForm')
+    var json = $form.find('textarea[name="data[Dashboard][value]"]').val()
+    try {
+        json = JSON.parse(json)
+        $form.submit()
+    } catch (error) {
+        showMessage('fail', error.message)
+    }
+}
+</script>

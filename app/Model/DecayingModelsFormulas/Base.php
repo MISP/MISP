@@ -106,7 +106,7 @@ abstract class DecayingModelBase
         $flag_contain_matching_taxonomy = false;
         if (!empty($taxonomy_effective_ratios)) {
             foreach ($tags as $k => $tag) {
-                $taxonomy = explode('=', $tag['Tag']['name'])[0];
+                $taxonomy = $this->__extractTagBasename($tag['Tag']['name'])['base'];
                 if (isset($taxonomy_effective_ratios[$taxonomy])) {
                     $flag_contain_matching_taxonomy = true;
                     $base_score += $taxonomy_effective_ratios[$taxonomy] * $tag['Tag']['numerical_value'];

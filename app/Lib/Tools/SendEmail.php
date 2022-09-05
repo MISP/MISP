@@ -3,6 +3,36 @@ App::uses('CakeEmail', 'Network/Email');
 
 class SendEmailException extends Exception {}
 
+class CakeEmailBody
+{
+    /** @var string|null */
+    public $html;
+
+    /** @var string|null */
+    public $text;
+
+    public function __construct($text = null, $html = null)
+    {
+        $this->html = $html;
+        $this->text = $text;
+    }
+
+    /**
+     * @return string
+     */
+    public function format()
+    {
+        if (!empty($this->html) && !empty($this->text)) {
+            return 'both';
+        }
+
+        if (!empty($this->html)) {
+            return 'html';
+        }
+        return 'text';
+    }
+}
+
 /**
  * Class CakeEmailExtended
  *
@@ -14,7 +44,7 @@ class SendEmailException extends Exception {}
 class CakeEmailExtended extends CakeEmail
 {
     /**
-     * @var MimeMultipart|MessagePart
+     * @var MimeMultipart|MessagePart|CakeEmailBody
      */
     private $body;
 
@@ -30,7 +60,7 @@ class CakeEmailExtended extends CakeEmail
             $headers['Content-Type'] = $this->body->getContentType();
         } else if ($this->body instanceof MessagePart) {
             $headers = array_merge($headers, $this->body->getHeaders());
-        } else {
+        } else if ($this->_emailFormat !== 'both') { // generate correct content-type header for 'text' or 'html' format
             $headers['Content-Type'] = 'multipart/mixed; boundary="' . $this->boundary() . '"';
         }
 
@@ -71,18 +101,40 @@ class CakeEmailExtended extends CakeEmail
             return $this->body->render();
         } else if ($this->body instanceof MessagePart) {
             return $this->body->render(false);
+        } else if ($this->body instanceof CakeEmailBody) {
+            return $this->_render([]); // @see _renderTemplates
         }
 
-        return  $this->_render($this->_wrap($this->body));
+        throw new InvalidArgumentException("Expected that body is instance of MimeMultipart, MessagePart or CakeEmailBody, " . gettype($this->body) . " given.");
     }
 
-    // This is hack how to force CakeEmail to always generate multipart message.
     protected function _renderTemplates($content)
     {
-        $this->_boundary = md5(uniqid());
-        $output = parent::_renderTemplates($content);
-        $output[''] = '';
-        return $output;
+        if (!$this->body instanceof CakeEmailBody) {
+            throw new InvalidArgumentException("Expected instance of CakeEmailBody, " . gettype($this->body) . " given.");
+        }
+
+        $this->_boundary = md5(mt_rand());
+
+        $rendered = [];
+        if (!empty($this->body->text)) {
+            $rendered['text'] = $this->body->text;
+        }
+        if (!empty($this->body->html)) {
+            $rendered['html'] = $this->body->html;
+        }
+
+        foreach ($rendered as $type => $content) {
+            $content = str_replace(array("\r\n", "\r"), "\n", $content);
+            $content = $this->_encodeString($content, $this->charset);
+            $content = $this->_wrap($content);
+            $content = implode("\n", $content);
+            $rendered[$type] = rtrim($content, "\n");
+        }
+
+        // This is hack how to force CakeEmail to always generate multipart message.
+        $rendered[''] = '';
+        return $rendered;
     }
 
     protected function _render($content)
@@ -101,7 +153,7 @@ class CakeEmailExtended extends CakeEmail
         if ($content !== null) {
             throw new InvalidArgumentException("Content must be null for CakeEmailExtended.");
         }
-        return parent::send($this->body);
+        return parent::send();
     }
 
     public function __toString()
@@ -139,7 +191,7 @@ class MimeMultipart
     public function __construct($subtype = 'mixed', $additionalTypes = array())
     {
         $this->subtype = $subtype;
-        $this->boundary = md5(uniqid());
+        $this->boundary = md5(mt_rand());
         $this->additionalTypes = $additionalTypes;
     }
 
@@ -252,10 +304,11 @@ class MessagePart
 
 class SendEmail
 {
-    /**
-     * @var CryptGpgExtended
-     */
+    /** @var CryptGpgExtended */
     private $gpg;
+
+    /** @var string|null */
+    private $transport;
 
     /**
      * @param CryptGpgExtended|null $gpg
@@ -272,6 +325,14 @@ class SendEmail
     }
 
     /**
+     * @param string $transport
+     */
+    public function setTransport($transport)
+    {
+        $this->transport = $transport;
+    }
+
+    /**
      * @param array $params
      * @return array|bool
      * @throws Crypt_GPG_Exception
@@ -279,13 +340,14 @@ class SendEmail
      */
     public function sendExternal(array $params)
     {
-        foreach (array('body', 'reply-to', 'to', 'subject', 'text') as $requiredParam) {
+        foreach (array('body', 'reply-to', 'to', 'subject') as $requiredParam) {
             if (!isset($params[$requiredParam])) {
                 throw new InvalidArgumentException("Param '$requiredParam' is required, but not provided.");
             }
         }
 
-        $params['body'] = str_replace('\n', PHP_EOL, $params['body']); // TODO: Why this?
+        $body = str_replace('\n', PHP_EOL, $params['body']); // TODO: Why this?
+        $body = new CakeEmailBody($body);
 
         $attachments = array();
         if (!empty($params['requestor_gpgkey'])) {
@@ -306,9 +368,13 @@ class SendEmail
         $email->returnPath(Configure::read('MISP.email'));
         $email->to($params['to']);
         $email->subject($params['subject']);
-        $email->emailFormat('text');
-        $email->body($params['body']);
+        $email->emailFormat($body->format());
+        $email->body($body);
         $email->attachments($attachments);
+
+        if ($this->transport) {
+            $email->transport($this->transport);
+        }
 
         $mock = false;
         if (!empty(Configure::read('MISP.disable_emailing')) || !empty($params['mock'])) {
@@ -320,7 +386,7 @@ class SendEmail
             if (!$this->gpg) {
                 throw new SendEmailException("GPG encryption is enabled, but GPG is not configured.");
             }
-            
+
             try {
                 $fingerprint = $this->importAndValidateGpgPublicKey($params['gpgkey']);
             } catch (Crypt_GPG_NoDataException $e) {
@@ -352,16 +418,20 @@ class SendEmail
     /**
      * @param array $user
      * @param string $subject
-     * @param string $body
-     * @param string|null $bodyWithoutEncryption
+     * @param SendEmailTemplate|string $body
+     * @param string|false $bodyWithoutEncryption
      * @param array $replyToUser
-     * @return bool True if e-mail is encrypted, false if not.
+     * @return array
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      * @throws SendEmailException
      */
-    public function sendToUser(array $user, $subject, $body, $bodyWithoutEncryption = null, array $replyToUser = array())
+    public function sendToUser(array $user, $subject, $body, $bodyWithoutEncryption = false, array $replyToUser = array())
     {
+        if ($body instanceof SendEmailTemplate && $bodyWithoutEncryption !== false) {
+            throw new InvalidArgumentException("When body is instance of SendEmailTemplate, \$bodyWithoutEncryption must be false.");
+        }
+
         if (Configure::read('MISP.disable_emailing')) {
             throw new SendEmailException('Emailing is currently disabled on this instance.');
         }
@@ -370,22 +440,53 @@ class SendEmail
             throw new InvalidArgumentException("Invalid user model provided.");
         }
 
+        // Intentional `array_key_exists` instead of `isset`
+        if (!array_key_exists('gpgkey', $user['User']) || !array_key_exists('certif_public', $user['User'])) {
+            throw new InvalidArgumentException("User without `gpgkey` or `certif_public` field provided.");
+        }
+
         // Check if the e-mail can be encrypted
-        $canEncryptGpg = isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey']);
-        $canEncryptSmime = isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
+        $canEncryptGpg = !empty($user['User']['gpgkey']);
+        $canEncryptSmime = !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
 
         if (Configure::read('GnuPG.onlyencrypted') && !$canEncryptGpg && !$canEncryptSmime) {
             throw new SendEmailException('Encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.');
         }
 
-        // If 'bodyonlyencrypted' is enabled and the user has no encryption key, use the alternate body (if it exists)
-        if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSmime && !$canEncryptGpg && $bodyWithoutEncryption) {
-            $body = $bodyWithoutEncryption;
+        // If 'GnuPG.bodyonlyencrypted' is enabled and the user has no encryption key, use the alternate body
+        $hideDetails = Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSmime && !$canEncryptGpg;
+
+        if ($body instanceof SendEmailTemplate) {
+            $body->set('canEncryptSmime', $canEncryptSmime);
+            $body->set('canEncryptGpg', $canEncryptGpg);
+            $bodyContent = $body->render($hideDetails);
+            $subject = $body->subject() ?: $subject; // Get generated subject from template
+        } else {
+            if ($hideDetails && $bodyWithoutEncryption) {
+                $body = $bodyWithoutEncryption;
+            }
+            $bodyContent = new CakeEmailBody($body);
         }
 
-        $body = str_replace('\n', PHP_EOL, $body); // TODO: Why this?
+        $email = $this->create($user, $subject, $bodyContent, [], $replyToUser);
 
-        $email = $this->create($user, $subject, $body, array(), $replyToUser);
+        if ($this->transport) {
+            $email->transport($this->transport);
+        }
+
+        // Generate `In-Reply-To` and `References` headers to group emails
+        if ($body instanceof SendEmailTemplate && $body->referenceId()) {
+            $reference = sha1($body->referenceId() . '|' .  Configure::read('MISP.uuid'));
+            $reference = "<$reference@{$email->domain()}>";
+            $email->addHeaders([
+                'In-Reply-To' => $reference,
+                'References' => $reference,
+            ]);
+        }
+
+        if ($body instanceof SendEmailTemplate && $body->listUnsubscribe()) {
+            $email->addHeaders(['List-Unsubscribe' => "<{$body->listUnsubscribe()}>"]);
+        }
 
         $signed = false;
         if (Configure::read('GnuPG.sign')) {
@@ -396,7 +497,7 @@ class SendEmail
             try {
                 $gnupgEmail = Configure::read('GnuPG.email');
                 if (empty($gnupgEmail)) {
-                    throw new Exception("Email signing is enabled but variable 'GnuPG.email' is not set.");
+                    throw new Exception("GPG email signing is enabled but variable 'GnuPG.email' is not set.");
                 }
 
                 $this->gpg->addSignKey($gnupgEmail, Configure::read('GnuPG.password'));
@@ -406,7 +507,7 @@ class SendEmail
 
                 $signed = true;
             } catch (Exception $e) {
-                throw new SendEmailException("The message could not be signed.", 0, $e);
+                throw new SendEmailException("The message could not be signed by GPG.", 0, $e);
             }
         }
 
@@ -415,15 +516,15 @@ class SendEmail
             if (!$this->gpg) {
                 throw new SendEmailException("GPG signing is enabled, but GPG is not initialized. Check debug log why GPG could not be initialized.");
             }
-            
+
             try {
                 $fingerprint = $this->importAndValidateGpgPublicKey($user['User']['gpgkey']);
             } catch (Crypt_GPG_NoDataException $e) {
-                throw new SendEmailException("The message could not be encrypted because the provided key is invalid.", 0, $e);
+                throw new SendEmailException("The message could not be encrypted because the provided GPG key is invalid.", 0, $e);
             }
 
             if (!$fingerprint) {
-                throw new SendEmailException("The message could not be encrypted because the provided key is either expired or cannot be used for encryption.");
+                throw new SendEmailException("The message could not be encrypted because the provided GPG key is either expired or cannot be used for encryption.");
             }
 
             try {
@@ -441,19 +542,24 @@ class SendEmail
 
                 $encrypted = true;
             } catch (Exception $e) {
-                throw new SendEmailException('The message could not be encrypted.', 0, $e);
+                throw new SendEmailException('The message could not be encrypted by GPG.', 0, $e);
             }
         }
 
         if (!$canEncryptGpg && $canEncryptSmime) {
-            $this->signBySmime($email);
+            if (!empty(Configure::read('SMIME.cert_public_sign')) && !empty(Configure::read('SMIME.key_sign'))) {
+                $this->signBySmime($email);
+            }
             $this->encryptBySmime($email, $user['User']['certif_public']);
             $encrypted = true;
         }
 
         try {
-            $email->send();
-            return $encrypted;
+            return [
+                'contents' => $email->send(),
+                'encrypted' => $encrypted,
+                'subject' => $subject,
+            ];
         } catch (Exception $e) {
             throw new SendEmailException('The message could not be sent.', 0, $e);
         }
@@ -472,24 +578,23 @@ class SendEmail
             // Try to encrypt empty message
             $this->encryptTextBySmime($certificate, '');
         } catch (SendEmailException $e) {
-            throw new Exception('This certificate cannot be used to encrypt email.', 0, $e);
+            throw new Exception('This S/MIME certificate cannot be used to encrypt email.', 0, $e);
         }
 
         $parsed = openssl_x509_parse($certificate);
 
         if (!$parsed) {
-            throw new Exception('Could not parse certificate');
+            throw new Exception('Could not parse S/MIME certificate');
         }
 
-        // Purpose '5' should be 'smimeencrypt'
-        if (!($parsed['purposes'][5][0] === 1 && $parsed['purposes'][5][2] === 'smimeencrypt')) {
-            throw new Exception('This certificate cannot be used to encrypt email.');
+        if ($parsed['purposes'][X509_PURPOSE_SMIME_ENCRYPT][0] !== true) {
+            throw new Exception('This S/MIME certificate cannot be used to encrypt email.');
         }
 
         $now = new DateTime();
         $validToTime = new DateTime("@{$parsed['validTo_time_t']}");
         if ($validToTime <= $now) {
-            throw new Exception('This certificate is expired.');
+            throw new Exception('This S/MIME certificate expired at ' . $validToTime->format('c'));
         }
 
         return true;
@@ -498,14 +603,22 @@ class SendEmail
     /**
      * @param array $user User model
      * @param string $subject
-     * @param string $body
+     * @param CakeEmailBody $body
      * @param array $attachments
      * @param array $replyToUser User model
      * @return CakeEmailExtended
      */
-    private function create(array $user, $subject, $body, array $attachments = array(), array $replyToUser = array())
+    private function create(array $user, $subject, CakeEmailBody $body, array $attachments = array(), array $replyToUser = array())
     {
         $email = new CakeEmailExtended();
+
+        $fromEmail = Configure::read('MISP.email');
+
+        // Set correct domain when sending email from CLI
+        $fromEmailParts = explode('@', $fromEmail, 2);
+        if (isset($fromEmailParts[1])) {
+            $email->domain($fromEmailParts[1]);
+        }
 
         // We must generate message ID by own, because CakeEmail returns different message ID for every call of
         // getHeaders() method.
@@ -516,6 +629,9 @@ class SendEmail
         // If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender.
         // For this reason we should also attach the public key of the sender along with the message (if applicable).
         if ($replyToUser) {
+            if (!isset($replyToUser['User']['email'])) {
+                throw new InvalidArgumentException("Invalid replyToUser model provided.");
+            }
             $email->replyTo($replyToUser['User']['email']);
             if (!empty($replyToUser['User']['gpgkey'])) {
                 $attachments['gpgkey.asc'] = $replyToUser['User']['gpgkey'];
@@ -526,11 +642,11 @@ class SendEmail
             $email->replyTo(Configure::read('MISP.email_reply_to'));
         }
 
-        $email->from(Configure::read('MISP.email'));
-        $email->returnPath(Configure::read('MISP.email')); // TODO?
+        $email->from($fromEmail, Configure::read('MISP.email_from_name'));
+        $email->returnPath($fromEmail); // TODO?
         $email->to($user['User']['email']);
         $email->subject($subject);
-        $email->emailFormat('text');
+        $email->emailFormat($body->format());
         $email->body($body);
 
         foreach ($attachments as $key => $value) {
@@ -554,14 +670,15 @@ class SendEmail
 
         $messagePart = new MessagePart();
         $messagePart->addHeader('Content-Type', array(
-            'multipart/mixed',
+            $email->emailFormat() === 'both' ? 'multipart/alternative' : 'multipart/mixed',
             'boundary="' . $email->boundary() . '"',
             'protected-headers="v1"',
         ));
 
-        // Protect User-Facing Headers according to https://tools.ietf.org/id/draft-autocrypt-lamps-protected-headers-01.html
+        // Protect User-Facing Headers and Structural Headers according to
+        // https://tools.ietf.org/id/draft-autocrypt-lamps-protected-headers-02.html
         $originalHeaders = $email->getHeaders(array('subject', 'from', 'to'));
-        $protectedHeaders = array('From', 'To', 'Date', 'Message-ID', 'Subject', 'Reply-To');
+        $protectedHeaders = ['From', 'To', 'Date', 'Message-ID', 'Subject', 'Reply-To', 'In-Reply-To', 'References'];
         foreach ($protectedHeaders as $header) {
             if (isset($originalHeaders[$header])) {
                 $messagePart->addHeader($header, $originalHeaders[$header]);
@@ -650,7 +767,7 @@ class SendEmail
 
         $messagePart = new MessagePart();
         $messagePart->addHeader('Content-Type', array(
-            'multipart/mixed',
+            $email->emailFormat() === 'both' ? 'multipart/alternative' : 'multipart/mixed',
             'boundary="' . $email->boundary() . '"',
         ));
         $messagePart->setPayload($renderedEmail);
@@ -725,14 +842,14 @@ class SendEmail
         }
 
         list($inputFile, $outputFile) = $this->createInputOutputFiles($body);
-        $result = openssl_pkcs7_sign($inputFile->pwd(), $outputFile->pwd(), $certPublicSign, $keySign, array(), 0);
+        $result = openssl_pkcs7_sign($inputFile->pwd(), $outputFile->pwd(), $certPublicSign, $keySign, array(), PKCS7_DETACHED);
         $inputFile->delete();
 
         if ($result) {
             $data = $outputFile->read();
             $outputFile->delete();
             $parts = explode("\n\n", $data);
-            return $parts[1] . "\n";
+            return $parts[4] . "\n";
 
         } else {
             $outputFile->delete();
@@ -772,6 +889,7 @@ class SendEmail
      * @param string $content
      * @return File[]
      * @throws SendEmailException
+     * @throws Exception
      */
     private function createInputOutputFiles($content)
     {
@@ -783,11 +901,10 @@ class SendEmail
         }
 
         App::uses('FileAccessTool', 'Tools');
-        $fileAccessTool = new FileAccessTool();
-        $inputFile = $fileAccessTool->createTempFile($dir, 'SMIME');
-        $fileAccessTool->writeToFile($inputFile, $content);
+        $inputFile = FileAccessTool::createTempFile($dir, 'SMIME');
+        FileAccessTool::writeToFile($inputFile, $content);
 
-        $outputFile = $fileAccessTool->createTempFile($dir, 'SMIME');
+        $outputFile = FileAccessTool::createTempFile($dir, 'SMIME');
         return array(new File($inputFile), new File($outputFile));
     }
 
@@ -861,6 +978,7 @@ class SendEmail
             $parts[] = 'prefer-encrypt=mutual';
         }
         $parts[] = 'keydata=' . base64_encode($keyData);
-        return implode('; ', $parts);
+        // Use the PHP wordwrap function to wrap the Autocrypt header to 74 (+ CRLF) to meet RFC 5322 - 2.1.1 line length limits 
+        return wordwrap(implode('; ', $parts), 74, "\r\n\t", true);
     }
 }

@@ -1,5 +1,7 @@
-<?php
-    echo $this->Html->script('d3');
+<?= $this->element('genericElements/assetLoader', [
+    'css' => ['treemap'],
+    'js' => ['d3', 'treemap'],
+]);
 ?>
 <div id="treemapSettings">
     <div class="row">
@@ -23,6 +25,5 @@
     var root = <?php echo json_encode($treemap); ?>;
     var flatData = <?php echo json_encode($flatData); ?>;
     var taxonomies = <?php echo json_encode($taxonomies); ?>;
-    var hiddenTaxonomies = [];
+    tagStatisticGraph(root, flatData, taxonomies);
 </script>
-<?php echo $this->Html->script('treemap'); ?>

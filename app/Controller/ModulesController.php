@@ -3,7 +3,6 @@ App::uses('AppController', 'Controller');
 class ModulesController extends AppController
 {
     public $components = array(
-    'Security',
     'RequestHandler'
   );
 
@@ -42,7 +41,7 @@ class ModulesController extends AppController
         }
 
         // Query
-        $result = $this->Module->queryModuleServer('/query', json_encode($data), true);
+        $result = $this->Module->queryModuleServer($data, true);
         if (!$result) {
             $result = array('error' => 'Something went wrong, no response from module.');
         }

@@ -7,8 +7,8 @@
                     <p><?php echo __('Available Organisations');?></p>
                     <select id="leftValues" size="5" multiple style="width:285px;">
                         <?php
-                            foreach ($orgs as $org) {
-                                echo '<option value="' . h($org['id']) . '" selected>' . h($org['name']) . '</option>';
+                            foreach ($orgs as $orgId => $orgName) {
+                                echo '<option value="' . intval($orgId) . '" selected>' . h($orgName) . '</option>';
                             }
                         ?>
                     </select>

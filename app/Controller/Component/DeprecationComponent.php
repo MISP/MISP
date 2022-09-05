@@ -1,18 +1,15 @@
 <?php
-
-
 class DeprecationComponent extends Component
 {
-    public $redis = false;
-
     /*
      *  Deprecated endpoints
      *  - simple controller->action structure
      *  - each endpoint can be set to to a deprecation warning message or false
      */
-    public $deprecatedEndpoints = false;
+    private $deprecatedEndpoints;
 
-    public function initialize(Controller $controller) {
+    public function initialize(Controller $controller)
+    {
         $this->deprecatedEndpoints = array(
             'attributes' => array(
                 'rpz' => __('Use /attributes/restSearch to export RPZ rules.'),
@@ -42,10 +39,19 @@ class DeprecationComponent extends Component
         );
     }
 
-    public function checkDeprecation($controller, $action, $model, $user_id)
+    /**
+     * @param string $controller
+     * @param string $action
+     * @param AppModel $model
+     * @param int|null $user_id
+     * @return false|string
+     */
+    public function checkDeprecation($controller, $action, AppModel $model, $user_id)
     {
         if (isset($this->deprecatedEndpoints[$controller][$action])) {
-            $this->__logDeprecatedAccess($controller, $action, $model, $user_id);
+            if ($user_id) {
+                $this->__logDeprecatedAccess($controller, $action, $model, $user_id);
+            }
             if ($this->deprecatedEndpoints[$controller][$action]) {
                 return $this->deprecatedEndpoints[$controller][$action];
             }
@@ -53,31 +59,25 @@ class DeprecationComponent extends Component
         return false;
     }
 
-    private function __logDeprecatedAccess($controller, $action, $model, $user_id)
+    private function __logDeprecatedAccess($controller, $action, AppModel $model, $user_id)
     {
-        $this->redis = $model->setupRedis();
-        if ($this->redis) {
-            @$this->redis->hincrby(
+        $redis = $model->setupRedis();
+        if ($redis) {
+            @$redis->hincrby(
                 'misp:deprecation',
-                sprintf(
-                    '%s:%s:%s',
-                    $controller,
-                    $action,
-                    $user_id
-                ),
+                "$controller:$action:$user_id",
                 1
             );
-            $result = $this->redis->hGetAll('misp:deprecation');
         }
         return false;
     }
 
-    public function getDeprecatedAccessList($model)
+    public function getDeprecatedAccessList(AppModel $model)
     {
-        $this->redis = $model->setupRedis();
-        if ($this->redis) {
-            $rearranged = array();
-            @$result = $this->redis->hGetAll('misp:deprecation');
+        $rearranged = array();
+        $redis = $model->setupRedis();
+        if ($redis) {
+            $result = $redis->hGetAll('misp:deprecation');
             if (!empty($result)) {
                 foreach ($result as $key => $value) {
                     $key_components = explode(':', $key);

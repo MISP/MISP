@@ -1,10 +1,14 @@
 <?php
-
 App::uses('AppModel', 'Model');
+App::uses('FileAccessTool', 'Tools');
 
+/**
+ * @property ObjectTemplateElement $ObjectTemplateElement
+ */
 class ObjectTemplate extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
                 'userModel' => 'User',
@@ -18,8 +22,8 @@ class ObjectTemplate extends AppModel
             'foreignKey' => 'user_id'
         ),
         'Organisation' => array(
-                'className' => 'Organisation',
-                'foreignKey' => 'org_id'
+            'className' => 'Organisation',
+            'foreignKey' => 'org_id'
         )
     );
     public $hasMany = array(
@@ -28,14 +32,14 @@ class ObjectTemplate extends AppModel
             'dependent' => true,
         )
     );
-    public $validate = array(
-    );
+
+    const OBJECTS_DIR = APP . 'files/misp-objects/objects';
 
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $result) {
-            if (isset($results[$k]['ObjectTemplate']['requirements'])) {
-                $results[$k]['ObjectTemplate']['requirements'] = json_decode($results[$k]['ObjectTemplate']['requirements'], true);
+            if (isset($result['ObjectTemplate']['requirements'])) {
+                $results[$k]['ObjectTemplate']['requirements'] = json_decode($result['ObjectTemplate']['requirements'], true);
             }
         }
         return $results;
@@ -49,10 +53,9 @@ class ObjectTemplate extends AppModel
 
     public function update($user = false, $type = false, $force = false)
     {
-        $objectsDir = APP . 'files/misp-objects/objects';
-        $directories = glob($objectsDir . '/*', GLOB_ONLYDIR);
+        $directories = $this->getTemplateDirectoryPaths();
         foreach ($directories as $k => $dir) {
-            $dir = str_replace($objectsDir, '', $dir);
+            $dir = str_replace(self::OBJECTS_DIR, '', $dir);
             $directories[$k] = $dir;
         }
         $updated = array();
@@ -60,12 +63,10 @@ class ObjectTemplate extends AppModel
             if ($type && '/' . $type != $dir) {
                 continue;
             }
-            if (!file_exists($objectsDir . DS . $dir . DS . 'definition.json')) {
+            if (!file_exists(self::OBJECTS_DIR . DS . $dir . DS . 'definition.json')) {
                 continue;
             }
-            $file = new File($objectsDir . DS . $dir . DS . 'definition.json');
-            $template = json_decode($file->read(), true);
-            $file->close();
+            $template = FileAccessTool::readJsonFromFile(self::OBJECTS_DIR . DS . $dir . DS . 'definition.json');
             if (!isset($template['version'])) {
                 $template['version'] = 1;
             }
@@ -96,7 +97,6 @@ class ObjectTemplate extends AppModel
 
     private function __updateObjectTemplate($template, $current, $user = false)
     {
-        $success = false;
         $template['requirements'] = array();
         $requirementFields = array('required', 'requiredOneOf');
         foreach ($requirementFields as $field) {
@@ -119,14 +119,16 @@ class ObjectTemplate extends AppModel
         }
         $id = $this->id;
         $this->setActive($id);
-        $fieldsToCompare = array('object_relation', 'type', 'ui-priority', 'categories', 'sane_default', 'values_list', 'multiple', 'disable_correlation');
+
+        $attributes = [];
         foreach ($template['attributes'] as $k => $attribute) {
-            $attribute['object_relation'] = $k;
             $attribute = $this->__convertJSONToElement($attribute);
-            $this->ObjectTemplateElement->create();
+            $attribute['object_relation'] = $k;
             $attribute['object_template_id'] = $id;
-            $result = $this->ObjectTemplateElement->save(array('ObjectTemplateElement' => $attribute));
+            $attributes[] = ['ObjectTemplateElement' => $attribute];
         }
+        $this->ObjectTemplateElement->saveMany($attributes);
+
         return true;
     }
 
@@ -134,17 +136,17 @@ class ObjectTemplate extends AppModel
     {
         $result = array();
         $translation_table = array(
-                'misp-usage-frequency' => 'frequency',
-                'misp-attribute' => 'type',
-                'description' => 'description',
-                'ui-priority' => 'ui-priority',
-                'type' => 'type',
-                'disable_correlation' => 'disable_correlation',
-                'object_relation' => 'object_relation',
-                'categories' => 'categories',
-                'sane_default' => 'sane_default',
-                'values_list' => 'values_list',
-                'multiple' => 'multiple'
+            'misp-usage-frequency' => 'frequency',
+            'misp-attribute' => 'type',
+            'description' => 'description',
+            'ui-priority' => 'ui-priority',
+            'type' => 'type',
+            'disable_correlation' => 'disable_correlation',
+            'object_relation' => 'object_relation',
+            'categories' => 'categories',
+            'sane_default' => 'sane_default',
+            'values_list' => 'values_list',
+            'multiple' => 'multiple'
         );
         foreach ($translation_table as $from => $to) {
             if (isset($attribute[$from])) {
@@ -273,34 +275,31 @@ class ObjectTemplate extends AppModel
     }
 
     // simple test to see if there are any object templates - if not trigger update
-    public function populateIfEmpty($user)
+    public function populateIfEmpty(array $user)
     {
-        $result = $this->find('first', array(
-            'recursive' => -1,
-            'fields' => array('ObjectTemplate.id')
-        ));
-        if (empty($result)) {
+        if (!$this->hasAny()) {
             $this->update($user);
         }
-        return true;
     }
 
     public function setActive($id)
     {
         $template = $this->find('first', array(
             'recursive' => -1,
-            'conditions' => array('ObjectTemplate.id' => $id)
+            'conditions' => array('ObjectTemplate.id' => $id),
+            'fields' => ['ObjectTemplate.id', 'ObjectTemplate.uuid', 'ObjectTemplate.active'],
         ));
         if (empty($template)) {
             return false;
         }
         if ($template['ObjectTemplate']['active']) {
             $template['ObjectTemplate']['active'] = 0;
-            $this->save($template);
+            $this->save($template, true, ['active']);
             return 0;
         }
         $similar_templates = $this->find('all', array(
             'recursive' => -1,
+            'fields' => ['ObjectTemplate.id'],
             'conditions' => array(
                 'ObjectTemplate.uuid' => $template['ObjectTemplate']['uuid'],
                 'NOT' => array(
@@ -309,11 +308,61 @@ class ObjectTemplate extends AppModel
             )
         ));
         $template['ObjectTemplate']['active'] = 1;
-        $this->save($template);
+        $this->save($template, true, ['active']);
         foreach ($similar_templates as $st) {
             $st['ObjectTemplate']['active'] = 0;
-            $this->save($st);
+            $this->save($st, true, ['active']);
         }
         return 1;
+    }
+
+    public function getRawFromDisk($uuidOrName)
+    {
+        if (Validation::uuid($uuidOrName)) {
+            foreach ($this->readTemplatesFromDisk() as $templateFromDisk) {
+                if ($templateFromDisk['uuid'] === $uuidOrName) {
+                    return $templateFromDisk;
+                }
+            }
+        } else {
+            $allTemplateNames = $this->getTemplateDirectoryPaths(false);
+            if (in_array($uuidOrName, $allTemplateNames, true)) { // ensure the path is not out of scope
+                return $this->readTemplateFromDisk($this->getFullPathFromTemplateName($uuidOrName));
+            }
+        }
+        return [];
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function readTemplateFromDisk($path)
+    {
+        if (!file_exists($path)) {
+            return false;
+        }
+        return FileAccessTool::readJsonFromFile($path);
+    }
+
+    private function readTemplatesFromDisk()
+    {
+        foreach ($this->getTemplateDirectoryPaths() as $dirpath) {
+            $filepath = $dirpath . DS . 'definition.json';
+            $template = $this->readTemplateFromDisk($filepath);
+            if (isset($template['uuid'])) {
+                yield $template;
+            }
+        }
+    }
+
+    private function getTemplateDirectoryPaths($fullPath=true)
+    {
+        $dir = new Folder(self::OBJECTS_DIR, false);
+        return $dir->read(true, false, $fullPath)[0];
+    }
+
+    private function getFullPathFromTemplateName($templateName)
+    {
+        return self::OBJECTS_DIR . DS . $templateName . DS . 'definition.json';
     }
 }

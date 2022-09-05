@@ -1,8 +1,3 @@
-<?php
-    $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
-    $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-?>
-
 <div>
     <div id="timeline-header" class="eventgraph_header">
         <label id="timeline-scope" class="btn center-in-network-header network-control-btn">
@@ -24,10 +19,14 @@
         </div>
     </div>
     <span id="fullscreen-btn-timeline" class="fullscreen-btn-timeline btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
+    <span class="timeline-help shortcut-help btn btn-xs btn-info">?</span>
 </div>
-
-<?php
-    echo $this->Html->script('moment-with-locales');
-    echo $this->Html->script('event-timeline');
-    echo $this->Html->css('event-timeline');
-?>
+<?= $this->element('genericElements/assetLoader', [
+     'js' => [
+         'moment.min',
+         'event-timeline',
+     ],
+     'css' => [
+         'event-timeline',
+     ],
+ ]);

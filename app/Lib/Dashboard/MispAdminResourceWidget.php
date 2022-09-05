@@ -16,14 +16,15 @@ class MispAdminResourceWidget
 	{
         $this->Server = ClassRegistry::init('Server');
         $data = array();
-        $redis = $this->Server->setupRedis();
-        if ($redis) {
-            $memory_stats = round($redis->rawCommand('memory', 'stats')[3] / 1024 / 1024) . 'M';
+
+        $redisInfo = $this->Server->redisInfo();
+        if ($redisInfo['connection']) {
+            $memory_stats = round($redisInfo['used_memory'] / 1024 / 1024) . 'M';
             $data[] = array(
                 'title' => __('Current Redis memory usage'),
                 'value' => h($memory_stats)
             );
-            $memory_stats = round($redis->rawCommand('memory', 'stats')[1] / 1024 / 1024) . 'M';
+            $memory_stats = round($redisInfo['used_memory_peak'] / 1024 / 1024) . 'M';
             $data[] = array(
                 'title' => __('Peak Redis memory usage'),
                 'value' => h($memory_stats)

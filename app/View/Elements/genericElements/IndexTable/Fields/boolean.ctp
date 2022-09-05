@@ -10,8 +10,10 @@
             'text' => 'blocked'
         )
     );
+
+    $data = Hash::get($row, $field['data_path']);
     if (
-        !empty(Hash::extract($row, $field['data_path'])[0]) &&
+        !empty($data) &&
         !empty($field['rule_path'][0]) &&
         !empty(Hash::extract($row, $field['rule_path'])[0])
     ) {
@@ -25,7 +27,7 @@
                             $values = implode(', ', $values);
                         }
                         $rules_raw[] = sprintf(
-                            '<span class=\'bold\'>%s %s</span>: <span class=\'%s\'>%s</span>',
+                            '<span class="bold">%s %s</span>: <span class="%s">%s</span>',
                             h(Inflector::humanize($rule)),
                             $typeOptions[$boolean]['text'],
                             $typeOptions[$boolean]['colour'],
@@ -35,24 +37,34 @@
                 }
             } else if (!empty($rule_data)){
                 $rules_raw[] = sprintf(
-                    '<span class=\'bold\'>%s</span>: <span class=\'green\'>%s</span>',
+                    '<span class="bold">%s</span>: <span class="green">%s</span>',
                     h(Inflector::humanize($rule)),
                     h($rule_data)
                 );
             }
         }
-        $rules_raw = implode('<br />', $rules_raw);
+        $rules_raw = implode('<br>', $rules_raw);
     }
+
+    $classes = ['fa'];
+    $classes[] = !empty($data) ? 'fa-check' : 'fa-times';
+
+    if (!empty($field['colors'])) {
+        $classes[] = !empty($data) ? 'green' : 'grey';
+    } else {
+        $classes[] = 'black';
+    }
+
     echo sprintf(
-        '<i class="black fa fa-%s" role="img" aria-label="%s"></i>%s',
-        (!empty(Hash::extract($row, $field['data_path'])[0])) ? 'check' : 'times',
-        (!empty(Hash::extract($row, $field['data_path'])[0])) ? __('Yes') : __('No'),	
+        '<i class="%s" role="img" aria-label="%s"></i>%s',
+        implode(' ', $classes),
+        (!empty($data)) ? __('Yes') : __('No'),
         empty($rules_raw) ? '' :
         sprintf(
             ' <span data-toggle="popover" title="%s" data-content="%s">(%s)</span>',
             __('Filter rules'),
-            $rules_raw,
+            h($rules_raw),
             __('Rules')
         )
     );
-?>
+

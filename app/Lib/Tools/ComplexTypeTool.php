@@ -3,21 +3,16 @@ require_once __DIR__ . '/TmpFileTool.php';
 
 class ComplexTypeTool
 {
-    private $__refangRegexTable = array(
+    const REFANG_REGEX_TABLE = array(
         array(
             'from' => '/^(hxxp|hxtp|htxp|meow|h\[tt\]p)/i',
             'to' => 'http',
             'types' => array('link', 'url')
         ),
         array(
-            'from' => '/(\[\.\]|\[dot\]|\(dot\)|\\\\\.)/',
+            'from' => '/(\[\.\]|\[dot\]|\(dot\))/',
             'to' => '.',
             'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
-        ),
-        array(
-            'from' => '/\.+/',
-            'to' => '.',
-            'types' => array('ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
         ),
         array(
             'from' => '/\[hxxp:\/\/\]/',
@@ -27,7 +22,7 @@ class ComplexTypeTool
         array(
             'from' => '/[\@]|\[at\]/',
             'to' => '@',
-            'types' => array('email-src', 'email-dst')
+            'types' => array('email', 'email-src', 'email-dst')
         ),
         array(
             'from' => '/\[:\]/',
@@ -36,12 +31,21 @@ class ComplexTypeTool
         )
     );
 
+    const HEX_HASH_TYPES = [
+        32 => ['single' => ['md5', 'imphash', 'x509-fingerprint-md5', 'ja3-fingerprint-md5'], 'composite' => ['filename|md5', 'filename|imphash']],
+        40 => ['single' => ['sha1', 'pehash', 'x509-fingerprint-sha1', 'cdhash'], 'composite' => ['filename|sha1', 'filename|pehash']],
+        56 => ['single' => ['sha224', 'sha512/224'], 'composite' => ['filename|sha224', 'filename|sha512/224']],
+        64 => ['single' => ['sha256', 'authentihash', 'sha512/256', 'x509-fingerprint-sha256'], 'composite' => ['filename|sha256', 'filename|authentihash', 'filename|sha512/256']],
+        96 => ['single' => ['sha384'], 'composite' => ['filename|sha384']],
+        128 => ['single' => ['sha512'], 'composite' => ['filename|sha512']],
+    ];
+
     private $__tlds = null;
 
-    public function refangValue($value, $type)
+    public static function refangValue($value, $type)
     {
-        foreach ($this->__refangRegexTable as $regex) {
-            if (in_array($type, $regex['types'])) {
+        foreach (self::REFANG_REGEX_TABLE as $regex) {
+            if (in_array($type, $regex['types'], true)) {
                 $value = preg_replace($regex['from'], $regex['to'], $value);
             }
         }
@@ -131,16 +135,6 @@ class ComplexTypeTool
         return array('type' => 'other', 'value' => $input);
     }
 
-    private function __returnOddElements($array)
-    {
-        foreach ($array as $k => $v) {
-            if ($k % 2 != 1) {
-                unset($array[$k]);
-            }
-        }
-        return array_values($array);
-    }
-
     /**
      * Parse a CSV file with the given settings
      * All lines starting with # are stripped
@@ -177,11 +171,14 @@ class ComplexTypeTool
         unset($input);
 
         $iocArray = [];
-        foreach ($tmpFile->csv($delimiter) as $row) {
+        foreach ($tmpFile->intoParsedCsv($delimiter) as $row) {
             if (!empty($row[0][0]) && $row[0][0] === '#') { // Comment
                 continue;
             }
             foreach ($row as $elementPos => $element) {
+                if (empty($element)) {
+                    continue;
+                }
                 if (empty($values) || in_array(($elementPos + 1), $values)) {
                     $element = trim($element, " \t\n\r\0\x0B\"\'");
                     if (empty($element)) {
@@ -201,25 +198,28 @@ class ComplexTypeTool
         return $iocArray;
     }
 
-    public function checkFreeText($input, $settings = array())
+    /**
+     * @param string $input
+     * @param array $settings
+     * @return array
+     */
+    public function checkFreeText($input, array $settings = [])
     {
-        $charactersToTrim = '\'",() ' . "\t\n\r\0\x0B"; // custom + default PHP trim
+        $input = str_replace("\xc2\xa0", ' ', $input); // non breaking space to normal space
+        $input = preg_replace('/\p{C}+/u', ' ', $input);
         $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
-        $quotedText = explode('"', $input);
-        foreach ($quotedText as $k => $temp) {
-            $temp = trim($temp);
-            if (empty($temp)) {
-                unset($quotedText[$k]);
-            } else {
-                $quotedText[$k] = $temp;
+
+        preg_match_all('/\"([^\"]*)\"/', $input, $matches);
+        foreach ($matches[1] as $match) {
+            if ($match !== '') {
+                $iocArray[] = $match;
             }
         }
-        $iocArray = array_merge($iocArray, $this->__returnOddElements($quotedText));
-        $resultArray = array();
+        unset($matches);
+
+        $resultArray = [];
         foreach ($iocArray as $ioc) {
-            $ioc = str_replace("\xc2\xa0", '', $ioc); // remove non breaking space
-            $ioc = trim($ioc, $charactersToTrim);
-            $ioc = preg_replace('/\p{C}+/u', '', $ioc);
+            $ioc = trim($ioc, '\'".,() ' . "\t\n\r\0\x0B"); // custom + default PHP trim
             if (empty($ioc)) {
                 continue;
             }
@@ -234,43 +234,72 @@ class ComplexTypeTool
             if (isset($resultArray[$typeArray['value']])) {
                 continue;
             }
+            $typeArray['original_value'] = $ioc;
             $resultArray[$typeArray['value']] = $typeArray;
         }
         return array_values($resultArray);
     }
 
-    private $__hexHashTypes = array(
-        32 => array('single' => array('md5', 'imphash', 'x509-fingerprint-md5'), 'composite' => array('filename|md5', 'filename|imphash')),
-        40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1', 'cdhash'), 'composite' => array('filename|sha1', 'filename|pehash')),
-        56 => array('single' => array('sha224', 'sha512/224'), 'composite' => array('filename|sha224', 'filename|sha512/224')),
-        64 => array('single' => array('sha256', 'authentihash', 'sha512/256', 'x509-fingerprint-sha256'), 'composite' => array('filename|sha256', 'filename|authentihash', 'filename|sha512/256')),
-        96 => array('single' => array('sha384'), 'composite' => array('filename|sha384')),
-        128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
-    );
-
-    // algorithms to run through in order
-    private $__checks = array('Hashes', 'Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS', 'BTC');
-
+    /**
+     * @param string $raw_input Trimmed value
+     * @return array|false
+     */
     private function __resolveType($raw_input)
     {
-        $input = array('raw' => trim($raw_input));
+        // Check if value is clean IP without doing expensive operations.
+        if (filter_var($raw_input, FILTER_VALIDATE_IP)) {
+            return [
+                'types' => ['ip-dst', 'ip-src', 'ip-src/ip-dst'],
+                'to_ids' => true,
+                'default_type' => 'ip-dst',
+                'value' => $raw_input,
+            ];
+        }
+
+        $input = ['raw' => $raw_input];
+
+        // Check hashes before refang and port extracting, it is not necessary for hashes. This speedups parsing
+        // freetexts or CSVs with a lot of hashes.
+        if ($result = $this->__checkForHashes($input)) {
+            return $result;
+        }
 
         $input = $this->__refangInput($input);
-        $input = $this->__extractPort($input);
 
-        foreach ($this->__checks as $check) {
-            $result = $this->{'__checkFor' . $check}($input);
-            if ($result) {
-                return $result;
-            }
+        // Check email before port extracting, it is not necessary for email. This speedups parsing
+        // freetexts or CSVs with a lot of emails.
+        if ($result = $this->__checkForEmail($input)) {
+            return $result;
+        }
+
+        $input = $this->__extractPort($input);
+        if ($result = $this->__checkForIP($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForDomainOrFilename($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForSimpleRegex($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForAS($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForBTC($input)) {
+            return $result;
         }
         return false;
     }
 
     private function __checkForBTC($input)
     {
-        if (preg_match("#^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$#i", $input['raw'])) {
-            return array('types' => array('btc'), 'categories' => array('Financial fraud'), 'to_ids' => true, 'default_type' => 'btc', 'value' => $input['raw']);
+        if (preg_match("#^([13][a-km-zA-HJ-NP-Z1-9]{25,34})|(bc|tb)1([023456789acdefghjklmnpqrstuvwxyz]{11,71})$#i", $input['raw'])) {
+            return [
+                'types' => ['btc'],
+                'to_ids' => true,
+                'default_type' => 'btc',
+                'value' => $input['raw'],
+            ];
         }
         return false;
     }
@@ -280,7 +309,12 @@ class ComplexTypeTool
         // quick filter for an @ to see if we should validate a potential e-mail address
         if (strpos($input['refanged'], '@') !== false) {
             if (filter_var($input['refanged'], FILTER_VALIDATE_EMAIL)) {
-                return array('types' => array('email-src', 'email-dst', 'target-email', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input['refanged']);
+                return [
+                    'types' => array('email', 'email-src', 'email-dst', 'target-email', 'whois-registrant-email'),
+                    'to_ids' => true,
+                    'default_type' => 'email-src',
+                    'value' => $input['refanged'],
+                ];
             }
         }
         return false;
@@ -300,7 +334,7 @@ class ComplexTypeTool
         // handle prepared composite values with the filename|hash format
         if (strpos($input['raw'], '|')) {
             $compositeParts = explode('|', $input['raw']);
-            if (count($compositeParts) == 2) {
+            if (count($compositeParts) === 2) {
                 if ($this->__resolveFilename($compositeParts[0])) {
                     $hash = $this->__resolveHash($compositeParts[1]);
                     if ($hash) {
@@ -320,7 +354,7 @@ class ComplexTypeTool
             if ($this->__checkForBTC($input)) {
                 $types[] = 'btc';
             }
-            return array('types' => $types, 'to_ids' => true, 'default_type' => $hash['single'][0], 'value' => $input['raw']);
+            return array('types' => $types, 'to_ids' => true, 'default_type' => $types[0], 'value' => $input['raw']);
         }
         // ssdeep has a different pattern
         if ($this->__resolveSsdeep($input['raw'])) {
@@ -346,17 +380,17 @@ class ComplexTypeTool
 
     private function __refangInput($input)
     {
-        $input['refanged'] = $input['raw'];
-        foreach ($this->__refangRegexTable as $regex) {
-            $input['refanged'] = preg_replace($regex['from'], $regex['to'], $input['refanged']);
+        $refanged = $input['raw'];
+        foreach (self::REFANG_REGEX_TABLE as $regex) {
+            $refanged = preg_replace($regex['from'], $regex['to'], $refanged);
         }
-        $input['refanged'] = rtrim($input['refanged'], ".");
+        $refanged = rtrim($refanged, ".");
         $input['refanged'] = preg_replace_callback(
             '/\[.\]/',
             function ($matches) {
                 return trim($matches[0], '[]');
             },
-            $input['refanged']
+            $refanged
         );
         return $input;
     }
@@ -365,12 +399,17 @@ class ComplexTypeTool
     {
         // CVE numbers
         if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input['raw'])) {
-            return array('types' => array('vulnerability'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'vulnerability', 'value' => $input['raw']);
+            return [
+                'types' => ['vulnerability'],
+                'to_ids' => false,
+                'default_type' => 'vulnerability',
+                'value' => strtoupper($input['raw']), // 'CVE' must be uppercase
+            ];
         }
         // Phone numbers - for automatic recognition, needs to start with + or include dashes
         if ($input['raw'][0] === '+' || strpos($input['raw'], '-')) {
             if (!preg_match('#^[0-9]{4}-[0-9]{2}-[0-9]{2}$#i', $input['raw']) && preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input['raw'])) {
-                return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'categories' => array('Other'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input['raw']);
+                return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input['raw']);
             }
         }
         return false;
@@ -460,7 +499,7 @@ class ComplexTypeTool
             $temp = explode('\\', $input['raw']);
             if (strpos(end($temp), '.') || preg_match('/^.:/i', $temp[0])) {
                 if ($this->__resolveFilename(end($temp))) {
-                    return array('types' => array('filename'), 'categories' => array('Payload installation'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $input['raw']);
+                    return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $input['raw']);
                 }
             } else if (!empty($temp[0])) {
                 return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey', 'value' => $input['raw']);
@@ -496,8 +535,8 @@ class ComplexTypeTool
     private function __resolveHash($value)
     {
         $strlen = strlen($value);
-        if (isset($this->__hexHashTypes[$strlen]) && preg_match("#[0-9a-f]{" . $strlen . "}$#i", $value)) {
-            return $this->__hexHashTypes[$strlen];
+        if (isset(self::HEX_HASH_TYPES[$strlen]) && ctype_xdigit($value)) {
+            return self::HEX_HASH_TYPES[$strlen];
         }
         return false;
     }

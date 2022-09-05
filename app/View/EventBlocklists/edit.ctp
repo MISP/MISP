@@ -1,47 +1,54 @@
-<div class="eventBlocklist form">
-<?php echo $this->Form->create('EventBlocklist');?>
-    <fieldset>
-        <legend><?php echo __('Edit Event Blocklist Entries');?></legend>
-        <p><?php echo __('List of all the event UUIDs that you wish to block from being entered.');?></p>
-    <?php
-        echo $this->Form->input('uuids', array(
-                'type' => 'textarea',
+<?php
+if ($isSiteAdmin) {
+    echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'admin', 'menuItem' => 'eventBlocklistsAdd']);
+} else {
+    echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event-collection', 'menuItem' => 'eventBlocklistsAdd']);
+}
+
+echo $this->element('genericElements/Form/genericForm', [
+    'data' => [
+        'title' => __('Edit Event Blocklist Entries'),
+        'description' => __('List of all the event UUIDs that you wish to block from being entered.'),
+        'fields' => [
+            [
+                'field' => 'uuids',
                 'label' => __('UUIDs'),
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
+                'type' => 'textarea',
+                'placeholder' => __('Enter a single or a list of UUIDs'),
                 'disabled' => 'disabled',
                 'default' => $blockEntry['EventBlocklist']['event_uuid']
-        ));
-        echo $this->Form->input('event_orgc', array(
-                'div' => 'input clear',
-                'class' => 'input-xxlarge',
+            ],
+            [
+                'field' => 'event_orgc',
                 'label' => __('Creating organisation'),
-                'default' => $blockEntry['EventBlocklist']['event_orgc'],
-        ));
-        echo $this->Form->input('event_info', array(
-                'type' => 'textarea',
-                'div' => 'input clear',
                 'class' => 'input-xxlarge',
+                'placeholder' => __('(Optional) The organisation that the event is associated with'),
+                'default' => $blockEntry['EventBlocklist']['event_orgc']
+            ],
+            [
+                'field' => 'event_info',
                 'label' => __('Event info'),
-                'default' => $blockEntry['EventBlocklist']['event_info'],
-        ));
-        echo $this->Form->input('comment', array(
                 'type' => 'textarea',
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
-                'default' => $blockEntry['EventBlocklist']['comment'],
-        ));
-    ?>
-    </fieldset>
-<?php
-echo $this->Form->button(__('Edit'), array('class' => 'btn btn-primary'));
-echo $this->Form->end();
-?>
-</div>
-<?php
-    if ($isSiteAdmin) {
-        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlocklistsAdd'));
-    } else {
-        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'eventBlocklistsAdd'));
-    }
-?>
+                'placeholder' => __('(Optional) the event info of the event that you would like to block. It\'s best to leave this empty if you are adding a list of UUIDs.'),
+                'default' => $blockEntry['EventBlocklist']['event_info']
+            ],
+            [
+                'field' => 'comment',
+                'label' => __('Comment'),
+                'type' => 'textarea',
+                'div' => 'input clear',
+                'class' => 'input-xxlarge',
+                'placeholder' => __('(Optional) Any comments you would like to add regarding this (or these) entries.'),
+                'default' => $blockEntry['EventBlocklist']['comment']
+            ],
+        ],
+        'submit' => [
+            'action' => $this->request->params['action'],
+            'ajaxSubmit' => 'submitGenericFormInPlace();'
+        ]
+    ]
+]);

@@ -4,12 +4,12 @@ App::uses('AppController', 'Controller');
 
 class DecayingModelController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');
+    public $components = array('RequestHandler');
 
     public $paginate = array(
             'limit' => 50,
             'order' => array(
-                    'DecayingModel.ID' => 'desc'
+                'DecayingModel.ID' => 'desc'
             )
     );
 
@@ -43,28 +43,12 @@ class DecayingModelController extends AppController
     {
         if ($this->request->is('post') || $this->request->is('put')) {
             $data = $this->request->data['DecayingModel'];
-            if ($data['submittedjson']['name'] != '' && $data['json'] != '') {
-                throw new MethodNotAllowedException(__('Only one import field can be used'));
-            }
-            if ($data['submittedjson']['size'] > 0) {
-                $filename = basename($data['submittedjson']['name']);
-                $file_content = file_get_contents($data['submittedjson']['tmp_name']);
-                if ((isset($data['submittedjson']['error']) && $data['submittedjson']['error'] == 0) ||
-                    (!empty($data['submittedjson']['tmp_name']) && $data['submittedjson']['tmp_name'] != '')
-                ) {
-                    if (!$file_content) {
-                        throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
-                    }
-                }
-                $text = $file_content;
-            } else {
-                $text = $data['json'];
-            }
+            $text = FileAccessTool::getTempUploadedFile($data['submittedjson'], $data['json']);
             $json = json_decode($text, true);
             if ($json === null) {
                 throw new MethodNotAllowedException(__('Error while decoding JSON'));
             }
-            
+
             unset($json['id']);
             unset($json['uuid']);
             $json['default'] = 0;
@@ -638,8 +622,6 @@ class DecayingModelController extends AppController
             );
             $attributes = $this->paginate($this->User->Event->Attribute);
 
-            // attach sightings and massage tags
-            $sightingsData = array();
             if (!empty($options['overrideLimit'])) {
                 $overrideLimit = true;
             } else {
@@ -651,17 +633,13 @@ class DecayingModelController extends AppController
             $eventTags = array();
             foreach ($attributes as $k => $attribute) {
                 $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
-                $attributes[$k]['Attribute'] = $this->User->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
+                $attributes[$k]['Attribute'] = $this->User->Event->massageTags($this->Auth->user(), $attributes[$k]['Attribute'], 'Attribute');
                 unset($attributes[$k]['AttributeTag']);
                 foreach ($attributes[$k]['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
                     if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
                         unset($attributes[$k]['Attribute']['AttributeTag'][$k2]);
                     }
                 }
-                $sightingsData = array_merge(
-                    $sightingsData,
-                    $this->Sighting->attachToEvent($attribute, $this->Auth->user(), $attributes[$k]['Attribute']['id'], $extraConditions = false)
-                );
                 if (!empty($params['includeEventTags'])) {
                     $tagConditions = array('EventTag.event_id' => $attribute['Event']['id']);
                     if (empty($params['includeAllTags'])) {
@@ -694,8 +672,7 @@ class DecayingModelController extends AppController
                     }
                 }
             }
-            $sightingsData = $this->User->Event->getSightingData(array('Sighting' => $sightingsData));
-            $this->set('sightingsData', $sightingsData);
+            $this->set('sightingsData', $this->Sighting->attributesStatistics($attributes, $this->Auth->user()));
             $this->set('attributes', $attributes);
             $this->set('attrDescriptions', $this->User->Event->Attribute->fieldDescriptions);
             $this->set('typeDefinitions', $this->User->Event->Attribute->typeDefinitions);

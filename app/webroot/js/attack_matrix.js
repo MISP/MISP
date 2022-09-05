@@ -244,12 +244,15 @@
 
 	function makeTagging(tagIds) {
 		$('#GalaxyViewGalaxyMatrixForm #GalaxyTargetIds').val(JSON.stringify(tagIds));
+		if ($('#GalaxyAttributeIds').length > 0) {
+			$('#GalaxyAttributeIds').val(getSelected());
+		}
 		$('#GalaxyViewGalaxyMatrixForm').submit();
 	}
 
 	function filterEvent(tagName, tagId) {
 		$('#attributesFilterField').val(tagName);
-		filterAttributes('value', $('#attributesFilterField').data('eventid'));
+		filterAttributes('value');
 	}
 
 	function pickCell(cell, clusterId, recurseChosen) {

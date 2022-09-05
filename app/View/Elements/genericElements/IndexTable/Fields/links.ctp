@@ -9,17 +9,26 @@
     if (!empty($field['url_params_data_paths'])) {
         if (is_array($field['url_params_data_paths'])) {
             $temp = array();
-            foreach ($field['url_params_data_paths'] as $path) {
-                $temp[] = h(Hash::extract($row, $path)[0]);
+            foreach ($field['url_params_data_paths'] as $k => $path) {
+                $extracted_value = Hash::extract($row, $path);
+                if (!empty($extracted_value)) {
+                    if (is_string($k)) { // associative array, use cake's parameter
+                        $temp[] = h($k) . ':' . h($extracted_value[0]);
+                    } else {
+                        $temp[] = h($extracted_value[0]);
+                    }
+                }
             }
             $url_param_data_paths = implode('/', $temp);
         } else {
-            $url_param_data_paths = h(Hash::extract($row, $field['url_params_data_paths'])[0]);
+            $url_param_data_paths = Hash::extract($row, $field['url_params_data_paths']);
+            if (empty($url_param_data_paths)) {
+                $url_param_data_paths = '';
+            }
         }
-        $urlWithData .= '/' . $url_param_data_paths;
     }
     $links = array();
-    foreach ($data_elements as $data) {
+    foreach ($data_elements as $k => $data) {
         if (!empty($data['name'])) {
             $field['title'] = $data['name'];
         }
@@ -32,6 +41,13 @@
                 $data
             );
         } elseif (!empty($field['url_params_data_paths'])) {
+            if (!empty($url_param_data_paths)) {
+                if (is_array($url_param_data_paths)) {
+                    $urlWithData .= '/' . $url_param_data_paths[$k];
+                } else {
+                    $urlWithData .= '/' . $url_param_data_paths;
+                }
+            }
             $url = $urlWithData;
         } else {
             $url = $data;

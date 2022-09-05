@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+
 class EventBlocklist extends AppModel
 {
     public $useTable = 'event_blocklists';
@@ -7,6 +8,7 @@ class EventBlocklist extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'userModel' => 'User',
                     'userKey' => 'user_id',
@@ -25,8 +27,8 @@ class EventBlocklist extends AppModel
                             'message' => 'Event already blocklisted.'
                     ),
                     'uuid' => array(
-                            'rule' => array('uuid'),
-                            'message' => 'Please provide a valid UUID'
+                            'rule' => 'uuid',
+                            'message' => 'Please provide a valid RFC 4122 UUID'
                     ),
             )
     );
@@ -38,13 +40,43 @@ class EventBlocklist extends AppModel
         if (!isset($schema['event_info'])) {
             $this->updateDatabase('addEventBlocklistsContext');
         }
-        $date = date('Y-m-d H:i:s');
         if (empty($this->data['EventBlocklist']['id'])) {
-            $this->data['EventBlocklist']['date_created'] = $date;
+            $this->data['EventBlocklist']['date_created'] = date('Y-m-d H:i:s');
         }
         if (empty($this->data['EventBlocklist']['comment'])) {
             $this->data['EventBlocklist']['comment'] = '';
         }
         return true;
+    }
+
+    /**
+     * @param array $eventArray
+     */
+    public function removeBlockedEvents(array &$eventArray)
+    {
+        // When event array contains a lot events, it is more efficient to fetch all blocked events
+        $conditions = (count($eventArray) > 10000) ? [] : ['EventBlocklist.event_uuid' => array_column($eventArray, 'uuid')];
+        $blocklistHits = $this->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['EventBlocklist.event_uuid'],
+        ]);
+        if (empty($blocklistHits)) {
+            return;
+        }
+        $blocklistHits = array_flip($blocklistHits);
+        foreach ($eventArray as $k => $event) {
+            if (isset($blocklistHits[$event['uuid']])) {
+                unset($eventArray[$k]);
+            }
+        }
+    }
+
+    /**
+     * @param string $eventUuid
+     * @return bool
+     */
+    public function isBlocked($eventUuid)
+    {
+        return $this->hasAny(['event_uuid' => $eventUuid]);
     }
 }

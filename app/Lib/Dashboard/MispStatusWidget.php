@@ -18,7 +18,12 @@ class MispStatusWidget
         $data = array();
         $data[] = array(
             'title' => __('Events modified'),
-            'value' => count($this->Event->fetchEventIds($user, false, false, false, true, $lastLogin)),
+            'value' => count(
+                $this->Event->fetchEventIds($user, [
+                    'list' => true,
+                    'timestamp' => $lastLogin
+                ])
+            ),
             'html' => sprintf(
                 ' (<a href="%s">%s</a>)',
                 Configure::read('MISP.baseurl') . '/events/index/timestamp:' . (time() - 86400),
@@ -27,14 +32,19 @@ class MispStatusWidget
         );
         $data[] = array(
             'title' => __('Events published'),
-            'value' => count($this->Event->fetchEventIds($user, false, false, false, true, false, $lastLogin)),
+            'value' => count(
+                $this->Event->fetchEventIds($user, [
+                    'list' => true,
+                    'publish_timestamp' => $lastLogin
+                ])
+            ),
             'html' => sprintf(
                 ' (<a href="%s">%s</a>)',
                 Configure::read('MISP.baseurl') . '/events/index/published:1/timestamp:' . (time() - 86400),
                 'View'
             )
         );
-        $notifications = $this->Event->populateNotifications($user);
+        $notifications = $this->Event->User->populateNotifications($user);
         if (!empty($notifications['proposalCount'])) {
             $data[] = array(
                 'title' => __('Pending proposals'),
