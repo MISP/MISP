@@ -2796,11 +2796,32 @@ class AppModel extends Model
                 ),
                 'order' => 'timestamp DESC',
             ));
+            $tagIDsOfFirstAttribute = Hash::extract($attributes[0]['AttributeTag'], '{n}.tag_id');
+            $eventIDOfFirstAttribute = $attributes[0]['Attribute']['event_id'];
             unset($attributes[0]);
             foreach ($attributes as $attribute) {
                 $tagIDs = Hash::extract($attribute['AttributeTag'], '{n}.tag_id');
-                $this->Attribute->delete($attribute['Attribute']['id']);
-                $this->Log->createLogEntry('SYSTEM', 'delete', 'Attribute', $attribute['Attribute']['id'], __('Removed attribute (%s)', $attribute['Attribute']['id']), __('Attribute\'s UUID duplicated (%s) tag ID attached [%s]', $attribute['Attribute']['uuid'], implode($tagIDs)));
+                $logTag = false;
+                $logEventID = false;
+                if (empty(array_diff($tagIDs, $tagIDsOfFirstAttribute))) {
+                    $logTag = true;
+                }
+                if ($eventIDOfFirstAttribute != $attribute['Attribute']['event_id']) {
+                    $logEventID = true;
+                }
+                $success = $this->Attribute->delete($attribute['Attribute']['id']);
+                if (empty($success)) {
+                    $this->Log->createLogEntry('SYSTEM', 'delete', 'Attribute', $attribute['Attribute']['id'], __('Could not remove attribute (%s)', $attribute['Attribute']['id']), __('Deletion was rejected.'));
+                    continue;
+                }
+                $logMessage = __('Attribute\'s UUID duplicated (%s).', $attribute['Attribute']['uuid']);
+                if ($logEventID) {
+                    $logMessage .= __(' Was part of another event_id (%s) than the one that was kept (%s).', $attribute['Attribute']['event_id'], $eventIDOfFirstAttribute);
+                } else if ($logTag) {
+                    $logMessage .= __(' Tag IDs attached [%s]', implode($tagIDs));
+                } else {
+                }
+                $this->Log->createLogEntry('SYSTEM', 'delete', 'Attribute', $attribute['Attribute']['id'], __('Removed attribute (%s)', $attribute['Attribute']['id']), $logMessage);
                 $counter++;
             }
         }
