@@ -2848,7 +2848,7 @@ class AttributesController extends AppController
 
             $event = $this->Attribute->Event->find('first', [
                 'recursive' => -1,
-                'conditons' => ['Event.id' => $attribute['Attribute']['event_id']]
+                'conditions' => ['Event.id' => $attribute['Attribute']['event_id']]
             ]);
             if (!$this->_isRest()) {
                 $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);

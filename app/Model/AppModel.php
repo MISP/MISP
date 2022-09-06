@@ -83,7 +83,7 @@ class AppModel extends Model
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
-        93 => false, 94 => false, 95 => true,
+        93 => false, 94 => false, 95 => true, 96 => true,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1860,11 +1860,14 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `over_correlating_values` MODIFY `value` varchar(191) NOT NULL;";
                 break;
             case 95:
+                $sqlArray[] = "ALTER TABLE `servers` ADD `remove_missing_tags` tinyint(1) NOT NULL DEFAULT 0 AFTER `skip_proxy`;";
+                break;
+            case 96:
                 $sqlArray[] = "ALTER TABLE `users`
-                        ADD COLUMN `notification_daily`     tinyint(1) NOT NULL DEFAULT 0,
-                        ADD COLUMN `notification_weekly`    tinyint(1) NOT NULL DEFAULT 0,
-                        ADD COLUMN `notification_monthly`   tinyint(1) NOT NULL DEFAULT 0
-                    ;";
+                    ADD COLUMN `notification_daily`     tinyint(1) NOT NULL DEFAULT 0,
+                    ADD COLUMN `notification_weekly`    tinyint(1) NOT NULL DEFAULT 0,
+                    ADD COLUMN `notification_monthly`   tinyint(1) NOT NULL DEFAULT 0
+                ;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2349,14 +2352,14 @@ class AppModel extends Model
                     $job = ClassRegistry::init('Job');
                     $jobId = $job->createJob(
                             'SYSTEM',
-                            Job::WORKER_PRIO,
+                            Job::WORKER_UPDATE,
                             'run_updates',
                             'command: ' . implode(',', $updates),
                             'Updating.'
                         );
 
                     $this->getBackgroundJobsTool()->enqueue(
-                        BackgroundJobsTool::PRIO_QUEUE,
+                        BackgroundJobsTool::UPDATE_QUEUE,
                         BackgroundJobsTool::CMD_ADMIN,
                         [
                             'runUpdates',
