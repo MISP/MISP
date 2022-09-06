@@ -2734,17 +2734,17 @@ class AppModel extends Model
         $removedResults = array(
             'Event' => $this->removeDuplicateEventUUIDs(),
             'Attribute' => $this->removeDuplicateAttributeUUIDs(),
-            'Object' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('MispObject')),
-            'Sighting' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Sighting')),
-            'Dashboard' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Dashboard')),
-            'Inbox' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Inbox')),
+            'Object' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('MispObject'), 'timestamp'),
+            'Sighting' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Sighting'), 'date_sighting'),
+            'Dashboard' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Dashboard'), 'timestamp'),
+            'Inbox' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Inbox'), 'timestamp'),
             'TagCollection' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('TagCollection')),
             // 'GalaxyCluster' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('GalaxyCluster')),
         );
         $this->Log->createLogEntry('SYSTEM', 'update_database', 'Server', 0, __('Removed duplicated UUIDs'), __('Event: %s, Attribute: %s, Object: %s, Sighting: %s, Dashboard: %s, Inbox: %s, TagCollection: %s', h($removedResults['Event']), h($removedResults['Attribute']), h($removedResults['Object']), h($removedResults['Sighting']), h($removedResults['Dashboard']), h($removedResults['Inbox']), h($removedResults['TagCollection'])));
     }
 
-    private function __removeDuplicateUUIDsGeneric($model): int
+    private function __removeDuplicateUUIDsGeneric($model, $sort_by=false): int
     {
         $className = get_class($model);
         $alias = $model->alias;
@@ -2756,10 +2756,14 @@ class AppModel extends Model
         ));
         $counter = 0;
         foreach ($duplicates as $duplicate) {
-            $fetched_duplicates = $model->find('all', array(
+            $options = [
                 'recursive' => -1,
-                'conditions' => array('uuid' => $duplicate[$alias]['uuid'])
-            ));
+                'conditions' => array('uuid' => $duplicate[$alias]['uuid']),
+            ];
+            if (!empty($sort_by)) {
+                $options['order'] = "$sort_by DESC";
+            }
+            $fetched_duplicates = $model->find('all', $options);
             unset($fetched_duplicates[0]);
             foreach ($fetched_duplicates as $fetched_duplicate) {
                 $model->delete($fetched_duplicate[$alias]['id']);
@@ -2778,6 +2782,7 @@ class AppModel extends Model
             'fields' => array('Attribute.uuid', 'count(Attribute.uuid) as occurrence'),
             'recursive' => -1,
             'group' => array('Attribute.uuid HAVING occurrence > 1'),
+            'order' => false,
         ));
         $counter = 0;
         foreach ($duplicates as $duplicate) {
@@ -2788,7 +2793,8 @@ class AppModel extends Model
                     'AttributeTag' => array(
                         'fields' => array('tag_id')
                     )
-                )
+                ),
+                'order' => 'timestamp DESC',
             ));
             unset($attributes[0]);
             foreach ($attributes as $attribute) {
@@ -2819,8 +2825,9 @@ class AppModel extends Model
 
         foreach ($duplicates as $duplicate) {
             $events = $this->Event->find('all', array(
-                    'recursive' => -1,
-                    'conditions' => array('uuid' => $duplicate['Event']['uuid'])
+                'recursive' => -1,
+                'conditions' => array('uuid' => $duplicate['Event']['uuid']),
+                'order' => 'timestamp DESC',
             ));
             unset($events[0]);
             foreach ($events as $event) {
