@@ -58,12 +58,18 @@ class DefaultCorrelationBehavior extends ModelBehavior
         return self::TABLE_NAME;
     }
 
+    /**
+     * @param Model $Model
+     * @param string $value
+     * @param array $a
+     * @param array $b
+     * @return array
+     */
     public function createCorrelationEntry(Model $Model, $value, $a, $b)
     {
-        $valueId = $this->Correlation->CorrelationValue->getValueId($value);
         if ($this->deadlockAvoidance) {
             return [
-                'value_id' => $valueId,
+                'value_id' => $value,
                 '1_event_id' => $a['Event']['id'],
                 '1_object_id' => $a['Attribute']['object_id'],
                 '1_attribute_id' => $a['Attribute']['id'],
@@ -87,7 +93,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
             ];
         } else {
             return [
-                (int) $valueId,
+                $value,
                 (int) $a['Event']['id'],
                 (int) $a['Attribute']['object_id'],
                 (int) $a['Attribute']['id'],
@@ -112,7 +118,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         }
     }
 
-    public function saveCorrelations(Model $Model, $correlations)
+    public function saveCorrelations(Model $Model, array $correlations)
     {
         $fields = [
             'value_id',
@@ -138,14 +144,23 @@ class DefaultCorrelationBehavior extends ModelBehavior
             'object_sharing_group_id'
         ];
 
+        // Replace value with value ID
+        $valueIndex = $this->deadlockAvoidance ? 'value_id' : 0;
+        $values = array_column($correlations, $valueIndex);
+        $valueIds = $this->Correlation->CorrelationValue->getIds($values);
+
+        foreach ($correlations as &$correlation) {
+            $correlation[$valueIndex] = $valueIds[$correlation[$valueIndex]];
+        }
+
         if ($this->deadlockAvoidance) {
-          return $this->Correlation->saveMany($correlations, array(
+            return $this->Correlation->saveMany($correlations, [
                 'atomic' => false,
                 'callbacks' => false,
                 'deep' => false,
                 'validate' => false,
-                'fieldList' => $fields
-            ));
+                'fieldList' => $fields,
+            ]);
         } else {
             $db = $this->Correlation->getDataSource();
             // Split to chunks datasource is is enabled

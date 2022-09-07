@@ -6,7 +6,8 @@ App::uses('AppModel', 'Model');
  * @property Event $Event
  * @property CorrelationValue $CorrelationValue
  * @method saveCorrelations(array $correlations)
- * @method runBeforeSaveCorrelation
+ * @method createCorrelationEntry(string $value, array $a, array $b)
+ * @method runBeforeSaveCorrelation(array $attribute)
  * @method fetchRelatedEventIds(array $user, int $eventId, array $sgids)
  * @method getFieldRules
  * @method getContainRules($filter = null)
@@ -183,17 +184,6 @@ class Correlation extends AppModel
         return $correlatingAttributes;
     }
 
-    /**
-     * @param string $value
-     * @param array $a Attribute A
-     * @param array $b Attribute B
-     * @return array
-     */
-    private function __createCorrelationEntry($value, $a, $b)
-    {
-        return $this->createCorrelationEntry($value, $a, $b);
-    }
-
     public function correlateValue($value, $jobId = false)
     {
         $correlatingAttributes = $this->__getMatchingAttributes($value);
@@ -216,7 +206,7 @@ class Correlation extends AppModel
                 if ($correlatingAttribute['Attribute']['event_id'] === $correlatingAttribute2['Attribute']['event_id']) {
                     continue;
                 }
-                $correlations[] = $this->__createCorrelationEntry($value, $correlatingAttribute, $correlatingAttribute2);
+                $correlations[] = $this->createCorrelationEntry($value, $correlatingAttribute, $correlatingAttribute2);
             }
             $extraCorrelations = $this->__addAdvancedCorrelations($correlatingAttribute);
             if (!empty($extraCorrelations)) {
@@ -224,8 +214,8 @@ class Correlation extends AppModel
                     if ($correlatingAttribute['Attribute']['event_id'] === $extraCorrelation['Attribute']['event_id']) {
                         continue;
                     }
-                    $correlations[] = $this->__createCorrelationEntry($value, $correlatingAttribute, $extraCorrelation);
-                    //$correlations = $this->__createCorrelationEntry($value, $extraCorrelation, $correlatingAttribute, $correlations);
+                    $correlations[] = $this->createCorrelationEntry($value, $correlatingAttribute, $extraCorrelation);
+                    //$correlations = $this->createCorrelationEntry($value, $extraCorrelation, $correlatingAttribute, $correlations);
                 }
             }
             if ($jobId && $k % 100 === 0) {
@@ -252,17 +242,16 @@ class Correlation extends AppModel
         }
     }
 
-    public function correlateAttribute(array $attribute)
-    {
-        $this->runBeforeSaveCorrelation($attribute);
-        $this->afterSaveCorrelation($attribute);
-    }
-
     public function beforeSaveCorrelation(array $attribute)
     {
         $this->runBeforeSaveCorrelation($attribute);
     }
 
+    /**
+     * @param string $scope
+     * @param int $id
+     * @return false|array
+     */
     private function __cachedGetContainData($scope, $id)
     {
         if (!empty($this->getContainRules($scope))) {
@@ -390,9 +379,9 @@ class Correlation extends AppModel
                     $value = $cV;
                 }
                 if ($a['Attribute']['id'] > $b['Attribute']['id']) {
-                    $correlations[] = $this->__createCorrelationEntry($value, $a, $b);
+                    $correlations[] = $this->createCorrelationEntry($value, $a, $b);
                 } else {
-                    $correlations[] = $this->__createCorrelationEntry($value, $b, $a);
+                    $correlations[] = $this->createCorrelationEntry($value, $b, $a);
                 }
             }
         }
