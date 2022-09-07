@@ -78,6 +78,7 @@ class UserShell extends AppShell
             'parser' => [
                 'arguments' => [
                     'userId' => ['help' => __('User ID or e-mail address.'), 'required' => true],
+                    'authKey' => ['help' => __('Optional new authentication key.'), 'required' => false],
                 ],
             ],
         ]);
@@ -334,12 +335,24 @@ class UserShell extends AppShell
 
     public function change_authkey()
     {
-        list($userId) = $this->args;
+        $newkey = null;
+        if (isset($this->args[1])) {
+            list($userId, $newkey) = $this->args;
+        } else {
+            list($userId) = $this->args;
+        }
         $user = $this->getUser($userId);
+
+        # validate new authentication key if provided
+        if (!empty($newkey) && (strlen($newkey) != 40 || !ctype_alnum($newkey))) {
+            $this->error('The new auth key needs to be 40 characters long and only alphanumeric.');
+        }
 
         if (empty(Configure::read('Security.advanced_authkeys'))) {
             $oldKey = $user['authkey'];
-            $newkey = $this->User->generateAuthKey();
+            if (empty($newkey)) {
+                $newkey = $this->User->generateAuthKey();
+            }
             $this->User->updateField($user, 'authkey', $newkey);
             $this->Log->createLogEntry('SYSTEM', 'reset_auth_key', 'User', $user['id'],
                 __('Authentication key for user %s (%s) updated.', $user['id'], $user['email']),
@@ -347,7 +360,7 @@ class UserShell extends AppShell
             );
             $this->out("Authentication key changed to: $newkey");
         } else {
-            $newkey = $this->User->AuthKey->resetAuthKey($user['id']);
+            $newkey = $this->User->AuthKey->resetAuthKey($user['id'], null, $newkey);
             if ($newkey) {
                 $this->out("Old authentication keys disabled and new key created: $newkey");
             } else {
