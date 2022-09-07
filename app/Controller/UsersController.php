@@ -2783,11 +2783,11 @@ class UsersController extends AppController
             if (!empty($success)) {
                 $message = __('Notification settings saved');
                 $this->Flash->success($message);
+                $this->redirect(['action' => 'view', 'me']);
             } else {
                 $message = __('Notification settings could not be saved');
                 $this->Flash->error($message);
             }
-            $this->redirect(['action' => 'view', 'me']);
         }
         $user['periodic_settings'] = $this->User->extractPeriodicSettingForUser($user);
         $this->request->data = $user;
