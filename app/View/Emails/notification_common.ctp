@@ -10,7 +10,15 @@
  *  - `detailed-summary-tags`
  *  - `detailed-summary-events`
  *  - `aggregated-context`
+ * 
+ * Additional variables:
+ *  - `event-table-include-basescore`: bool
  */
+
+$default_vars = [
+    'event_table_include_basescore' => true,
+];
+$vars = array_merge($default_vars, $this->__vars);
 
 $event_number = count($events);
 $attribute_number = 0;
@@ -258,7 +266,7 @@ array_splice($all_tag_amount, 10);
     <?php else: ?>
         <?php if (!empty($events)): ?>
             <h3><?= __('Event list') ?></h3>
-            <table>
+            <table class="table table-condensed">
                 <thead>
                     <tr>
                         <th style="padding: 0 0.5em;">Creator Org.</th>
@@ -268,6 +276,9 @@ array_splice($all_tag_amount, 10);
                         <?php foreach ($additional_taxonomy_event_list as $taxonomy_name => $taxonomy_prefix): ?>
                             <th style="padding: 0 0.5em;"><?= h($taxonomy_name) ?></th>
                         <?php endforeach; ?>
+                        <?php if (!empty($vars['event_table_include_basescore'])): ?>
+                            <th style="padding: 0 0.5em;"><?= __('Decaying Base Score') ?></th>
+                        <?php endif; ?>
                         <th style="padding: 0 0.5em;"><?= __('Event Info') ?></th>
                     </tr>
                 </thead>
@@ -287,6 +298,20 @@ array_splice($all_tag_amount, 10);
                             <?php foreach ($additional_taxonomy_event_list as $taxonomy_name => $taxonomy_prefix): ?>
                                 <td><?= findAndBuildTag($event['EventTag'], $taxonomy_prefix, $this) ?></td>
                             <?php endforeach; ?>
+                            <?php if (!empty($vars['event_table_include_basescore'])): ?>
+                                <td style="padding: 0 0.5em;">
+                                    <?php if (isset($event['event_base_score'])): ?>
+                                        <?php foreach ($event['event_base_score'] as $bs): ?>
+                                            <div style="display: flex;">
+                                                <i style="display: inline-block; max-width: 12em; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" title="<?= h($bs['DecayingModel']['name']); ?>"><?= h($bs['DecayingModel']['name']); ?>:</i>
+                                                <b style="color: <?= !empty($bs['decayed']) ? '#b94a48' : '#468847' ?>;"><?= round($bs['base_score'], 2) ?></b>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        &nbsp;
+                                    <?php endif; ?>
+                                </td>
+                            <?php endif; ?>
                             <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($event['Event']['uuid'])) ?>"><?= h($event['Event']['info']) ?></a></td>
                         </tr>
                     <?php endforeach; ?>

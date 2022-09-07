@@ -1752,7 +1752,7 @@ class User extends AppModel
         $filtersForRestSearch = $filters;
         $filters['last'] = $this->resolveTimeDelta($filters['last']);
         $events = $this->__getEventsForFilters($user, $filters);
-        
+
         $elementCounter = 0;
         $renderView = false;
         $filtersForRestSearch['publish_timestamp'] = $filtersForRestSearch['last'];
@@ -1798,6 +1798,7 @@ class User extends AppModel
     {
         $filters = [
             'last' => $this->__genTimerangeFilter($period),
+            'includeBaseScoresOnEvent' => true,
         ];
         if (!empty($period_filters['orgc_id'])) {
             $filters['orgc_id'] = $period_filters['orgc_id'];
