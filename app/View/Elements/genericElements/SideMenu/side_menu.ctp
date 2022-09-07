@@ -382,6 +382,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/users/viewPeriodicSummary/daily',
                         'text' => __('View periodic summary')
                     ));
+                    if ($menuItem === 'viewPeriodicSummary' || $menuItem === 'notification_settings') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'notification_settings',
+                            'url' => $baseurl . '/users/notificationSettings',
+                            'text' => __('Periodic summary settings')
+                        ));
+                    }
                     echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/events/export',
@@ -641,7 +648,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'notification_settings',
                         'url' => $baseurl . '/users/notificationSettings',
-                        'text' => __('My Notification Settings')
+                        'text' => __('Periodic summary settings')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'user_settings_set',
