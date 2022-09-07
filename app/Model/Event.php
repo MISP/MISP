@@ -1610,6 +1610,7 @@ class Event extends AppModel
             'includeRelatedTags',
             'excludeLocalTags',
             'includeDecayScore',
+            'includeBaseScoresOnEvent',
             'includeSightingdb',
             'includeFeedCorrelations',
             'includeServerCorrelations',
@@ -1918,7 +1919,7 @@ class Event extends AppModel
         $sharingGroupData = $sharingGroupReferenceOnly ? [] : $this->__cacheSharingGroupData($user, $useCache);
 
         // Initialize classes that will be necessary during event fetching
-        if (!empty($options['includeDecayScore']) && !isset($this->DecayingModel)) {
+        if ((!empty($options['includeDecayScore']) || !empty($options['includeBaseScoresOnEvent'])) && !isset($this->DecayingModel)) {
             $this->DecayingModel = ClassRegistry::init('DecayingModel');
         }
         if ($options['includeServerCorrelations'] && !$isSiteAdmin && $user['org_id'] != Configure::read('MISP.host_org_id')) {
@@ -2014,6 +2015,9 @@ class Event extends AppModel
                     $event = $this->includeRelatedTags($event, $options);
                 }
                 //$event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
+            }
+            if (!empty($options['includeBaseScoresOnEvent'])) {
+                $event = $this->DecayingModel->attachBaseScoresToEvent($user, $event);
             }
             $shadowAttributeByOldId = [];
             if (!empty($event['ShadowAttribute'])) {
