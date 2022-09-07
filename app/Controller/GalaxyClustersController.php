@@ -9,30 +9,30 @@ class GalaxyClustersController extends AppController
     public $components = array('Session', 'RequestHandler');
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
-            'recursive' => -1,
-            'order' => array(
-                'GalaxyCluster.version' => 'DESC',
-                'GalaxyCluster.value' => 'ASC'
+        'limit' => 60,
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'recursive' => -1,
+        'order' => array(
+            'GalaxyCluster.version' => 'DESC',
+            'GalaxyCluster.value' => 'ASC'
+        ),
+        'contain' => array(
+            'Tag' => array(
+                'fields' => array('Tag.id'),
+                /*
+                'EventTag' => array(
+                    'fields' => array('EventTag.event_id')
+                ),
+                'AttributeTag' => array(
+                    'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
+                )
+                */
             ),
-            'contain' => array(
-                'Tag' => array(
-                    'fields' => array('Tag.id'),
-                    /*
-                    'EventTag' => array(
-                        'fields' => array('EventTag.event_id')
-                    ),
-                    'AttributeTag' => array(
-                        'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
-                    )
-                    */
-                ),
-                'GalaxyElement' => array(
-                    'conditions' => array('GalaxyElement.key' => 'synonyms'),
-                    'fields' => array('value')
-                ),
-            )
+            'GalaxyElement' => array(
+                'conditions' => array('GalaxyElement.key' => 'synonyms'),
+                'fields' => array('value')
+            ),
+        )
     );
 
     public function index($galaxyId)
@@ -165,7 +165,6 @@ class GalaxyClustersController extends AppController
      */
     public function view($id)
     {
-        $id = $this->Toolbox->findIdByUuid($this->GalaxyCluster, $id);
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
         $tag = $this->GalaxyCluster->Tag->find('first', array(
             'conditions' => array(
@@ -181,29 +180,30 @@ class GalaxyClustersController extends AppController
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($cluster, $this->response->type());
-        } else {
-            $clusters = [$cluster];
-            $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
-            $cluster = $clusters[0];
-            $cluster = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $cluster);
-            $this->set('id', $id);
-            $this->set('galaxy', ['Galaxy' => $cluster['GalaxyCluster']['Galaxy']]);
-            $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
-            $this->set('cluster', $cluster);
-            $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
-            if (!empty($cluster['GalaxyCluster']['extended_from'])) {
-                $newVersionAvailable = $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['version'] > $cluster['GalaxyCluster']['extends_version'];
-            } else {
-                $newVersionAvailable = false;
-            }
-            $this->set('newVersionAvailable', $newVersionAvailable);
-            $this->loadModel('Attribute');
-            $distributionLevels = $this->Attribute->distributionLevels;
-            $this->set('distributionLevels', $distributionLevels);
-            if (!$cluster['GalaxyCluster']['default'] && !$cluster['GalaxyCluster']['published'] && $cluster['GalaxyCluster']['orgc_id'] == $this->Auth->user()['org_id']) {
-                $this->Flash->warning(__('This cluster is not published. Users will not be able to use it'));
-            }
         }
+
+        $clusters = [$cluster];
+        $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
+        $cluster = $clusters[0];
+        $cluster = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $cluster);
+        $this->set('id', $cluster['GalaxyCluster']['id']);
+        $this->set('galaxy', ['Galaxy' => $cluster['GalaxyCluster']['Galaxy']]);
+        $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
+        $this->set('cluster', $cluster);
+        $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
+        if (!empty($cluster['GalaxyCluster']['extended_from'])) {
+            $newVersionAvailable = $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['version'] > $cluster['GalaxyCluster']['extends_version'];
+        } else {
+            $newVersionAvailable = false;
+        }
+        $this->set('newVersionAvailable', $newVersionAvailable);
+        $this->loadModel('Attribute');
+        $distributionLevels = $this->Attribute->distributionLevels;
+        $this->set('distributionLevels', $distributionLevels);
+        if (!$cluster['GalaxyCluster']['default'] && !$cluster['GalaxyCluster']['published'] && $cluster['GalaxyCluster']['orgc_id'] == $this->Auth->user()['org_id']) {
+            $this->Flash->warning(__('This cluster is not published. Users will not be able to use it'));
+        }
+        $this->set('title_for_layout', __('Galaxy cluster %s', $cluster['GalaxyCluster']['value']));
     }
 
     /**
