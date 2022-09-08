@@ -48,6 +48,25 @@ class Module_webhook extends WorkflowBaseActionModule
         ];
     }
 
+    public function diagnostic(): array
+    {
+        $errors = array_merge(parent::diagnostic(), []);
+        if (empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
+            $errors = $this->addNotification(
+                $errors,
+                'error',
+                __('`rest_client_enable_arbitrary_urls` is turned off.'),
+                __('The module will not send any request as long as `Security.rest_client_enable_arbitrary_urls` is not turned on.'),
+                [
+                    __('This is a security measure to ensure a site-admin do not send arbitrary request to internal services')
+                ],
+                true,
+                true
+            );
+        }
+        return $errors;
+    }
+
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);

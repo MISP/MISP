@@ -785,6 +785,11 @@ class Workflow extends AppModel
                         ];
                     }
                 }
+                if ($moduleType == 'modules_action') {
+                    $moduleClass = $this->getModuleClassByType('action', $module['id']);
+                    $diagnostic = $moduleClass->diagnostic();
+                    $modules[$moduleType][$i]['notifications'] = array_merge_recursive($modules[$moduleType][$i]['notifications'], $diagnostic);
+                }
             }
         }
         return $modules;
