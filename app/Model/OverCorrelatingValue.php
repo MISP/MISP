@@ -70,7 +70,7 @@ class OverCorrelatingValue extends AppModel
      */
     public function getLimit()
     {
-        return Configure::check('MISP.correlation_limit') ? Configure::read('MISP.correlation_limit') : 20;
+        return Configure::read('MISP.correlation_limit') ?: 20;
     }
 
     public function getOverCorrelations($query)
