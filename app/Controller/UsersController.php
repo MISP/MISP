@@ -2810,8 +2810,9 @@ class UsersController extends AppController
     public function viewPeriodicSummary(string $period)
     {
         $summary = $this->User->generatePeriodicSummary($this->Auth->user('id'), $period);
-        $notification_settings = $this->User->getUsablePeriodicSettingForUser($this->Auth->user('id'), $period);
-        $this->set('notification_settings', $notification_settings);
+        $periodic_settings = $this->User->extractPeriodicSettingForUser($this->Auth->user('id'));
+        $notification_settings = $this->User->getUsablePeriodicSettingForUser($periodic_settings);
+        $this->set('periodic_settings', $periodic_settings);
         $this->set('summary', $summary);
         $this->set('period', $period);
     }

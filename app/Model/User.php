@@ -1649,9 +1649,10 @@ class User extends AppModel
         return substr(hash('sha256', "{$user['id']}|$salt"), 0, 8);
     }
 
-    public function extractPeriodicSettingForUser($user): array
+    public function extractPeriodicSettingForUser($user, $decode=false): array
     {
-        $filter_names = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags'];
+        $filter_names = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags'];
+        $filter_to_decode = ['tags', 'trending_for_tags', ];
         if (is_numeric($user)) {
             $user = $this->find('first', [
                 'recursive' => -1,
@@ -1670,12 +1671,17 @@ class User extends AppModel
                 $periodic_settings_indexed[$filter_name] = $periodic_settings[0]['value'][$filter_name];
             }
         }
+        foreach ($filter_to_decode as $filter) {
+            if (!empty($decode) && !empty($periodic_settings_indexed[$filter])) {
+                $periodic_settings_indexed[$filter] = JsonTool::decode($periodic_settings_indexed[$filter]);
+            }
+        }
         return $periodic_settings_indexed;
     }
 
-    public function getUsablePeriodicSettingForUser($user, $period): array
+    public function getUsablePeriodicSettingForUser(array $periodicSettings): array
     {
-        return $this->__getUsableFilters($this->extractPeriodicSettingForUser($user), $period);
+        return $this->__getUsableFilters($periodicSettings);
     }
 
     public function saveNotificationSettings(int $user_id, array $data): bool
@@ -1695,12 +1701,15 @@ class User extends AppModel
         ]);
         if ($success) {
             $periodic_settings = $data['periodic_settings'];
-            if (empty($periodic_settings['tags'])) {
-                $periodic_settings['tags'] = '[]';
-            } else {
-                $decodedTags = json_decode($periodic_settings['tags'], true);
-                if ($decodedTags === null) {
-                    return false;
+            $param_to_decode = ['tags', 'trending_for_tags', ];
+            foreach ($param_to_decode as $param) {
+                if (empty($periodic_settings[$param])) {
+                    $periodic_settings[$param] = '[]';
+                } else {
+                    $decodedTags = json_decode($periodic_settings[$param], true);
+                    if ($decodedTags === null) {
+                        return false;
+                    }
                 }
             }
             $notification_filters = [
@@ -1709,6 +1718,7 @@ class User extends AppModel
                 'sharing_group_id' => $periodic_settings['distribution'] != 4 ? '' : ($periodic_settings['sharing_group_id'] ?? []),
                 'event_info' => $periodic_settings['event_info'] ?? '',
                 'tags' => $periodic_settings['tags'] ?? '[]',
+                'trending_for_tags' => $periodic_settings['trending_for_tags'] ?? '[]',
             ];
             $new_user_setting = [
                 'UserSetting' => [
@@ -1731,7 +1741,7 @@ class User extends AppModel
     }
 
     /**
-     * Undocumented function
+     * generatePeriodicSummary
      *
      * @param int $user_id
      * @param string $period
@@ -1751,8 +1761,9 @@ class User extends AppModel
         }
         App::import('Tools', 'SendEmail');
         $emailTemplate = $this->prepareEmailTemplate($period);
-        $filters = $this->getUsablePeriodicSettingForUser($existingUser, $period);
-        $filtersForRestSearch = $filters;
+        $periodicSettings = $this->extractPeriodicSettingForUser($user, true);
+        $filters = $this->getUsablePeriodicSettingForUser($periodicSettings);
+        $filtersForRestSearch = $filters; // filters for restSearch are slightly different than fetchEvent
         $filters['last'] = $this->resolveTimeDelta($filters['last']);
         $events = $this->__getEventsForFilters($user, $filters);
 
@@ -1771,11 +1782,10 @@ class User extends AppModel
         $aggregated_context = $this->__renderAggregatedContext($finalContext);
 
         $rollingWindows = 2;
-        $tagFilterPrefixes = ['misp-galaxy:mitre-attack-pattern', 'admiralty-scale'];
-        $trendAnalysis = $this->Event->getTrendsForTags($user, $filters, $this->__periodToDays($period), $rollingWindows, $tagFilterPrefixes);
+        $trendAnalysis = $this->Event->getTrendsForTags($user, $filters, $this->__periodToDays($period), $rollingWindows, $periodicSettings['trending_for_tags']);
         $trendData = [
             'trendAnalysis' => $trendAnalysis,
-            'tagFilterPrefixes' => $tagFilterPrefixes,
+            'tagFilterPrefixes' => $periodicSettings['trending_for_tags'],
         ];
         $trending_summary = $this->__renderTrendingSummary($trendData);
 
@@ -1837,7 +1847,7 @@ class User extends AppModel
             $filters['event_info'] = $period_filters['event_info'];
         }
         if (!empty($period_filters['tags'])) {
-            $filters['tags'] = JsonTool::decode($period_filters['tags']);
+            $filters['tags'] = $period_filters['tags'];
         }
         return $filters;
     }

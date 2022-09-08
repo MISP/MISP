@@ -7,19 +7,13 @@ $currentPeriod = $allTimestamps[0];
 $previousPeriod = $allTimestamps[1];
 $previousPeriod2 = $allTimestamps[2];
 
-$clusteredTags[$previousPeriod]['admiralty-scale:source-reliability="d"'] = [
-    'occurence' => (float) 0.33,
-    'raw_change' => (int) 1,
-    'percent_change' => (int) 100,
-    'change_sign' => (int) 1
-];
 $allUniqueTagsPerPeriod = array_map(function ($tags) {
     return array_keys($tags);
 }, $clusteredTags);
 $allUniqueTags = array_unique(array_merge($allUniqueTagsPerPeriod[$currentPeriod], $allUniqueTagsPerPeriod[$previousPeriod], $allUniqueTagsPerPeriod[$previousPeriod2]));
 App::uses('ColourPaletteTool', 'Tools');
 $paletteTool = new ColourPaletteTool();
-$COLOR_PALETTE = $paletteTool->createColourPalette(count($allUniqueTags));
+$COLOR_PALETTE = $paletteTool->createColourPalette(max(count($allUniqueTags), 1));
 
 $trendIconMapping = [
     1 => '▲',
@@ -119,40 +113,44 @@ if (!function_exists('computeLinePositions')) {
             </tbody>
         </table>
     </div>
-    <div style="padding: 0 40px; margin: -40px 20px 0 0;">
-        <div class="chart-container">
-            <div class="canvas">
-                <?php foreach ($chartData as $tag => $coords) : ?>
-                    <?php for ($i=0; $i < 3; $i++) : ?>
-                        <?php
-                            $coord = $coords[$i];
-                            $previousCoord = isset($coords[$i - 1]) ? $coords[$i - 1] : false;
-                        ?>
-                        <span class="dot" style="<?= sprintf('left: %spx; top: %spx; background-color: %s;', $coord[0], $coord[1], $colorForTags[$tag]) ?>" title="<?= h($tag) ?>"></span>
-                        <?php
-                            if (!empty($previousCoord)) {
-                                $linePosition = computeLinePositions($previousCoord[0], $previousCoord[1], $coord[0], $coord[1]);
-                                echo sprintf(
-                                    '<span class="line" style="left: %spx; top: %spx; width: %spx; transform: rotate(%srad); background-color: %s;" title="%s"></span>',
-                                    $linePosition['left'],
-                                    $linePosition['top'],
-                                    $linePosition['width'],
-                                    $linePosition['angle'],
-                                    $colorForTags[$tag],
-                                    h($tag),
-                                );
-                            }
-                        ?>
-                    <?php endfor ?>
-                <?php endforeach ?>
-            </div>
-            <div style="position: relative;">
-                <span style="<?= sprintf('position: absolute; white-space: nowrap; translate: -50%%; left: %spx; top: %spx;', 0, 0) ?>"><?= __('Period 2') ?></span>
-                <span style="<?= sprintf('position: absolute; white-space: nowrap; translate: -50%%; left: %spx; top: %spx;', $canvasWidth/2, 0) ?>"><?= __('Previous period') ?></span>
-                <span style="<?= sprintf('position: absolute; white-space: nowrap; translate: -50%%; left: %spx; top: %spx;', $canvasWidth, 0) ?>"><?= __('Current period') ?></span>
+    <?php if (!empty($allUniqueTags)): ?>
+        <div style="padding: 0 40px; margin: -40px 20px 0 0;">
+            <div class="chart-container">
+                <div class="canvas">
+                    <?php foreach ($chartData as $tag => $coords) : ?>
+                        <?php for ($i=0; $i < 3; $i++) : ?>
+                            <?php
+                                $coord = $coords[$i];
+                                $previousCoord = isset($coords[$i - 1]) ? $coords[$i - 1] : false;
+                            ?>
+                            <span class="dot" style="<?= sprintf('left: %spx; top: %spx; background-color: %s;', $coord[0], $coord[1], $colorForTags[$tag]) ?>" title="<?= h($tag) ?>"></span>
+                            <?php
+                                if (!empty($previousCoord)) {
+                                    $linePosition = computeLinePositions($previousCoord[0], $previousCoord[1], $coord[0], $coord[1]);
+                                    echo sprintf(
+                                        '<span class="line" style="left: %spx; top: %spx; width: %spx; transform: rotate(%srad); background-color: %s;" title="%s"></span>',
+                                        $linePosition['left'],
+                                        $linePosition['top'],
+                                        $linePosition['width'],
+                                        $linePosition['angle'],
+                                        $colorForTags[$tag],
+                                        h($tag),
+                                    );
+                                }
+                            ?>
+                        <?php endfor ?>
+                    <?php endforeach ?>
+                </div>
+                <div style="position: relative;">
+                    <span style="<?= sprintf('position: absolute; white-space: nowrap; translate: -50%%; left: %spx; top: %spx;', 0, 0) ?>"><?= __('Period 2') ?></span>
+                    <span style="<?= sprintf('position: absolute; white-space: nowrap; translate: -50%%; left: %spx; top: %spx;', $canvasWidth/2, 0) ?>"><?= __('Previous period') ?></span>
+                    <span style="<?= sprintf('position: absolute; white-space: nowrap; translate: -50%%; left: %spx; top: %spx;', $canvasWidth, 0) ?>"><?= __('Current period') ?></span>
+                </div>
             </div>
         </div>
-    </div>
+    <?php else: ?>
+        <p><?= __('- No tag for the selected tag namespace -') ?></p>
+    <?php endif; ?>
 </div>
 
 <?php if (!empty($allTags)) : ?>
@@ -211,10 +209,15 @@ if (!function_exists('computeLinePositions')) {
             </tr>
         </thead>
         <?php foreach ($tagFilterPrefixes as $tagPrefix) : ?>
+                <?php
+                if (empty($allTags[$tagPrefix])) {
+                    continue;
+                }
+                ?>
             <tbody>
                 <tr>
                     <td colspan="4">
-                        <h4><?= __('Taxonomy: %s', sprintf('<code>%s</code>', h($tagPrefix))) ?></h4>
+                        <h4><?= __('Tag namespace: %s', sprintf('<code>%s</code>', h($tagPrefix))) ?></h4>
                     </td>
                 </tr>
                 <?php foreach ($allTags[$tagPrefix] as $tagName) : ?>

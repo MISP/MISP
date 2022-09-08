@@ -8,12 +8,12 @@
     <h2><?= __('MISP %s summary', h($period)); ?></h2>
 
     <button type="button" class="btn btn-inverse" data-toggle="collapse" data-target="#summary-filters">
-        <?= __('Show filters used to generate the summary') ?>
+        <?= __('Show settings used to generate the summary') ?>
     </button>
 
     <div id="summary-filters" class="collapse">
         <pre>
-<?= JsonTool::encode($notification_settings, true) ?>
+<?= JsonTool::encode($periodic_settings, true) ?>
         </pre>
     </div>
     <div class="report-container" style="margin-top: 2em;">

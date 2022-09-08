@@ -57,6 +57,13 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'tagsPicker',
                 'placeholder' => '["tlp:red"]',
             ],
+            sprintf('<h4>%s</h4>', __('Notification filters')),
+            [
+                'field' => 'periodic_settings.trending_for_tags',
+                'label' => __('Generate trends for tag namespaces'),
+                'type' => 'textarea',
+                'placeholder' => '["misp-galaxy:mitre-attack-pattern", "admiralty-scale"]',
+            ],
         ],
         'submit' => [
             'action' => $this->request->params['action'],
