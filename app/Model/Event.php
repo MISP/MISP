@@ -7641,4 +7641,19 @@ class Event extends AppModel
             'all_timestamps' => array_keys($clusteredTags['eventNumberPerRollingWindow']),
         ];
     }
+
+    public function getTrendsForTagsFromEvents(array $events, int $baseDayRange, int $rollingWindows=3, $tagFilterPrefixes=null): array
+    {
+        App::uses('TrendingTool', 'Tools');
+        $trendingTool = new TrendingTool($this);
+        $trendAnalysis = $trendingTool->getTrendsForTags($events, $baseDayRange, $rollingWindows, $tagFilterPrefixes);
+        $clusteredTags = $trendAnalysis['clustered_tags'];
+        $trendAnalysis = $trendAnalysis['trend_analysis'];
+        return [
+            'clustered_tags' => $trendAnalysis,
+            'clustered_events' => $clusteredTags['eventNumberPerRollingWindow'],
+            'all_tags' => $clusteredTags['allTagsPerPrefix'],
+            'all_timestamps' => array_keys($clusteredTags['eventNumberPerRollingWindow']),
+        ];
+    }
 }

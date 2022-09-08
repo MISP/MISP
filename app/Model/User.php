@@ -1782,7 +1782,7 @@ class User extends AppModel
         $aggregated_context = $this->__renderAggregatedContext($finalContext);
 
         $rollingWindows = 2;
-        $trendAnalysis = $this->Event->getTrendsForTags($user, $filters, $this->__periodToDays($period), $rollingWindows, $periodicSettings['trending_for_tags']);
+        $trendAnalysis = $this->Event->getTrendsForTagsFromEvents($events, $this->__periodToDays($period), $rollingWindows, $periodicSettings['trending_for_tags']);
         $trendData = [
             'trendAnalysis' => $trendAnalysis,
             'tagFilterPrefixes' => $periodicSettings['trending_for_tags'],
