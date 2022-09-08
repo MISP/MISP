@@ -134,7 +134,7 @@ if (!function_exists('computeLinePositions')) {
                                     $linePosition['width'],
                                     $linePosition['angle'],
                                     $colorForTags[$tag],
-                                    h($tag),
+                                    h($tag)
                                 );
                             }
                             ?>
