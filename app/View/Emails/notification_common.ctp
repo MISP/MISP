@@ -44,6 +44,7 @@ $mitre_attack_techniques = [];
 $mitre_galaxy_tag_prefix = 'misp-galaxy:mitre-attack-pattern="';
 
 foreach ($events as $event) {
+    $unique_tag_per_event = [];
     $attribute_number += count($event['Attribute']);
     $object_number += count($event['Object']);
     $event_report_number += count($event['EventReport']);
@@ -52,6 +53,12 @@ foreach ($events as $event) {
 
     foreach ($event['EventTag'] as $event_tag) {
         $tag = $event_tag['Tag'];
+
+        if (!empty($unique_tag_per_event[$tag['name']])) {
+            continue; // Only one instance of tag per event
+        }
+        $unique_tag_per_event[$tag['name']] = true;
+
         if (empty($all_tag_amount[$tag['name']])) {
             $all_tag_amount[$tag['name']] = 0;
             $tag_color_mapping[$tag['name']] = $tag['colour'];
@@ -72,6 +79,12 @@ foreach ($events as $event) {
 
         foreach ($attribute['AttributeTag'] as $attribute_tag) {
             $tag = $attribute_tag['Tag'];
+
+            if (!empty($unique_tag_per_event[$tag['name']])) {
+                continue; // Only one instance of tag per event
+            }
+            $unique_tag_per_event[$tag['name']] = true;
+
             if (empty($all_tag_amount[$tag['name']])) {
                 $all_tag_amount[$tag['name']] = 0;
                 $tag_color_mapping[$tag['name']] = $tag['colour'];
@@ -100,6 +113,12 @@ foreach ($events as $event) {
 
             foreach ($attribute['AttributeTag'] as $attribute_tag) {
                 $tag = $attribute_tag['Tag'];
+
+                if (!empty($unique_tag_per_event[$tag['name']])) {
+                    continue; // Only one instance of tag per event
+                }
+                $unique_tag_per_event[$tag['name']] = true;
+
                 if (empty($all_tag_amount[$tag['name']])) {
                     $all_tag_amount[$tag['name']] = 0;
                     $tag_color_mapping[$tag['name']] = $tag['colour'];
