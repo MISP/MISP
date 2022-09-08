@@ -24,13 +24,13 @@ class Module_webhook extends WorkflowBaseActionModule
         $this->params = [
             [
                 'id' => 'url',
-                'label' => 'Payload URL',
-                'type' => 'input',
+                'label' => __('Payload URL'),
+                'type' => 'text',
                 'placeholder' => 'https://example.com/test',
             ],
             [
                 'id' => 'content_type',
-                'label' => 'Content type',
+                'label' => __('Content type'),
                 'type' => 'select',
                 'default' => 'json',
                 'options' => [
@@ -40,8 +40,8 @@ class Module_webhook extends WorkflowBaseActionModule
             ],
             [
                 'id' => 'data_extraction_path',
-                'label' => 'Data extraction path',
-                'type' => 'input',
+                'label' => __('Data extraction path'),
+                'type' => 'text',
                 'default' => '',
                 'placeholder' => 'Attribute.{n}.AttributeTag.{n}.Tag.name',
             ],
