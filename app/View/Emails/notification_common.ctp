@@ -15,8 +15,14 @@
  *  - `event-table-include-basescore`: bool
  */
 
+if (empty($this->__vars)) {
+    $this->__vars = [];
+}
 $default_vars = [
     'event_table_include_basescore' => true,
+    'additional_taxonomy_event_list' => [
+        'PAP' => 'PAP:'
+    ],
 ];
 $vars = array_merge($default_vars, $this->__vars);
 
@@ -36,9 +42,6 @@ $tag_color_mapping = [];
 
 $mitre_attack_techniques = [];
 $mitre_galaxy_tag_prefix = 'misp-galaxy:mitre-attack-pattern="';
-$additional_taxonomy_event_list = [
-    'PAP' => 'PAP:',
-];
 
 foreach ($events as $event) {
     $attribute_number += count($event['Attribute']);
@@ -122,7 +125,8 @@ foreach ($events as $event) {
 }
 
 if (!function_exists('findAndBuildTag')) {
-    function findAndBuildTag($tag_list, $tag_prefix, $that) {
+    function findAndBuildTag($tag_list, $tag_prefix, $that)
+    {
         foreach ($tag_list as $tag) {
             if (substr($tag['Tag']['name'], 0, strlen($tag_prefix)) == $tag_prefix) {
                 return $that->element('tag', ['tag' => $tag]);
@@ -143,192 +147,282 @@ array_splice($object_types, 10);
 array_splice($all_tag_amount, 10);
 ?>
 
-<h2><?= !empty($filters['published']) ? __('Summary of published Events') : __('Summary of Events') ?></h2>
-<?php if ($this->fetch('prepend-html')): ?>
+<h1><?= !empty($filters['published']) ? __('Summary of published Events') : __('Summary of Events') ?></h1>
+<?php if ($this->fetch('prepend-html')) : ?>
     <?= $this->fetch('prepend-html') ?>
 <?php endif; ?>
 
-<?php if ($this->fetch('table-overview')): ?>
+<?php if ($this->fetch('table-overview')) : ?>
     <?= $this->fetch('table-overview'); ?>
-<?php else: ?>
-    <table class="table table-condensed" style="max-width: 500px;">
-        <tbody>
-            <tr>
-                <td><?= __('Summary period') ?></td>
-                <td><?= h($period) ?></td>
-            </tr>
-            <tr>
-                <td><?= __('Generation date') ?></td>
-                <td><?= date("c"); ?></td>
-            </tr>
-            <tr>
-                <td><?= __('Events #') ?></td>
-                <td><?= $event_number ?></td>
-            </tr>
-            <tr>
-                <td><?= __('Attributes #') ?></td>
-                <td><?= $attribute_number ?></td>
-            </tr>
-            <tr>
-                <td><?= __('Objects #') ?></td>
-                <td><?= $object_number ?></td>
-            </tr>
-            <tr>
-                <td><?= __('Event Report #') ?></td>
-                <td><?= $event_report_number ?></td>
-            </tr>
-            <tr>
-                <td><?= __('Proposals #') ?></td>
-                <td><?= $proposal_number ?></td>
-            </tr>
-            <tr>
-                <td><?= __('Unique tags #') ?></td>
-                <td><?= $unique_tag_number ?></td>
-            </tr>
-        </tbody>
-    </table>
+<?php else : ?>
+    <div class="panel">
+        <h2><?= __('Data at a glance') ?></h2>
+        <table class="table table-condensed mw-50">
+            <tbody>
+                <tr>
+                    <td><?= __('Summary period') ?></td>
+                    <td><?= h($period) ?></td>
+                </tr>
+                <tr>
+                    <td><?= __('Generation date') ?></td>
+                    <td><?= date("c"); ?></td>
+                </tr>
+                <tr>
+                    <td><?= __('Events #') ?></td>
+                    <td><?= $event_number ?></td>
+                </tr>
+                <tr>
+                    <td><?= __('Attributes #') ?></td>
+                    <td><?= $attribute_number ?></td>
+                </tr>
+                <tr>
+                    <td><?= __('Objects #') ?></td>
+                    <td><?= $object_number ?></td>
+                </tr>
+                <tr>
+                    <td><?= __('Event Report #') ?></td>
+                    <td><?= $event_report_number ?></td>
+                </tr>
+                <tr>
+                    <td><?= __('Proposals #') ?></td>
+                    <td><?= $proposal_number ?></td>
+                </tr>
+                <tr>
+                    <td><?= __('Unique tags #') ?></td>
+                    <td><?= $unique_tag_number ?></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 <?php endif; ?>
-<br>
 
-<?php if ($this->fetch('detailed-summary-full')): ?>
+<?php if ($this->fetch('detailed-summary-full')) : ?>
     <?= $this->fetch('detailed-summary-full'); ?>
-<?php else: ?>
-    <h2><?= __('Detailed summary') ?></h2>
-    <?php if ($this->fetch('detailed-summary-mitre-attack')): ?>
-        <?= $this->fetch('detailed-summary-mitre-attack'); ?>
-    <?php else: ?>
-        <?php if (!empty($mitre_attack_techniques)): ?>
-            <h4><?= __('Mitre Att&ck techniques') ?></h4>
-            <ul>
-                <?php foreach ($mitre_attack_techniques as $technique => $tag) : ?>
-                    <li>
-                        <?php
+<?php else : ?>
+    <div class="panel">
+        <h2><?= __('Detailed summary') ?></h2>
+        <?php if ($this->fetch('detailed-summary-mitre-attack')) : ?>
+            <?= $this->fetch('detailed-summary-mitre-attack'); ?>
+        <?php else : ?>
+            <?php if (!empty($mitre_attack_techniques)) : ?>
+                <h4><?= __('Mitre Att&ck techniques') ?></h4>
+                <ul>
+                    <?php foreach ($mitre_attack_techniques as $technique => $tag) : ?>
+                        <li>
+                            <?php
                             $tag['Tag']['name'] = $technique;
                             echo $this->element('tag', ['tag' => $tag])
-                        ?>
+                            ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if ($this->fetch('detailed-summary-type')) : ?>
+            <?= $this->fetch('detailed-summary-type'); ?>
+        <?php else : ?>
+            <?php if (!empty($attribute_types)) : ?>
+                <h4><?= __('Top 10 Attribute types') ?></h4>
+                <ul>
+                    <?php foreach ($attribute_types as $type => $amount) : ?>
+                        <li><strong><?= h($type) ?></strong>: <?= $amount ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+
+            <?php if (!empty($object_types)) : ?>
+                <h4><?= __('Top 10 MISP Object names') ?></h4>
+                <ul>
+                    <?php foreach ($object_types as $name => $amount) : ?>
+                        <li><strong><?= h($name) ?></strong>: <?= $amount ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+
+            <?php if (!empty($all_event_report)) : ?>
+                <h4><?= __('All Event Reports') ?></h4>
+                <ul>
+                    <?php foreach ($all_event_report as $report) : ?>
+                        <li>
+                            <a href="<?= sprintf('%s/eventReports/view/%s', $baseurl, h($report['uuid'])) ?>">
+                                <?= sprintf('%s :: %s', h($report['event_info']), h($report['name'])); ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if ($this->fetch('detailed-summary-tags')) : ?>
+            <?= $this->fetch('detailed-summary-tags'); ?>
+        <?php else : ?>
+            <h4><?= __('Top 10 Tags') ?></h4>
+            <ul>
+                <?php foreach ($all_tag_amount as $tag_name => $amount) : ?>
+                    <li>
+                        <?= $this->element('tag', ['tag' => ['Tag' => ['name' => $tag_name, 'colour' => $tag_color_mapping[$tag_name]]]]) ?>
+                        <?= $amount ?>
                     </li>
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>
-    <?php endif; ?>
 
-    <?php if ($this->fetch('detailed-summary-type')): ?>
-        <?= $this->fetch('detailed-summary-type'); ?>
-    <?php else: ?>
-        <?php if (!empty($attribute_types)): ?>
-            <h4><?= __('Top 10 Attribute types') ?></h4>
-            <ul>
-            <?php foreach ($attribute_types as $type => $amount) : ?>
-                <li><strong><?= h($type) ?></strong>: <?= $amount ?></li>
-                <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
-
-        <?php if (!empty($object_types)): ?>
-            <h4><?= __('Top 10 MISP Object names') ?></h4>
-            <ul>
-            <?php foreach ($object_types as $name => $amount) : ?>
-                <li><strong><?= h($name) ?></strong>: <?= $amount ?></li>
-                <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
-
-        <?php if (!empty($all_event_report)): ?>
-            <h4><?= __('All Event Reports') ?></h4>
-            <ul>
-            <?php foreach ($all_event_report as $report) : ?>
-                <li>
-                    <a href="<?= sprintf('%s/eventReports/view/%s', $baseurl, h($report['uuid'])) ?>">
-                        <?= sprintf('%s :: %s', h($report['event_info']), h($report['name'])); ?>
-                    </a>
-                </li>
-                <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
-    <?php endif; ?>
-
-    <?php if ($this->fetch('detailed-summary-tags')): ?>
-        <?= $this->fetch('detailed-summary-tags'); ?>
-    <?php else: ?>
-        <h4><?= __('Top 10 Tags') ?></h4>
-        <ul>
-        <?php foreach ($all_tag_amount as $tag_name => $amount) : ?>
-            <li>
-                <?= $this->element('tag', ['tag' => ['Tag' => ['name' => $tag_name, 'colour' => $tag_color_mapping[$tag_name]]]]) ?>
-                <?= $amount ?>
-            </li>
-            <?php endforeach; ?>
-        </ul>
-    <?php endif; ?>
-
-    <?php if ($this->fetch('detailed-summary-events')): ?>
-        <?= $this->fetch('detailed-summary-events'); ?>
-    <?php else: ?>
-        <?php if (!empty($events)): ?>
-            <h3><?= __('Event list') ?></h3>
-            <table class="table table-condensed">
-                <thead>
-                    <tr>
-                        <th style="padding: 0 0.5em;">Creator Org.</th>
-                        <th style="padding: 0 0.5em;">TLP</th>
-                        <th style="padding: 0 0.5em;"><?= __('State') ?></th>
-                        <th style="padding: 0 0.5em;"><?= __('Threat Level') ?></th>
-                        <?php foreach ($additional_taxonomy_event_list as $taxonomy_name => $taxonomy_prefix): ?>
-                            <th style="padding: 0 0.5em;"><?= h($taxonomy_name) ?></th>
-                        <?php endforeach; ?>
-                        <?php if (!empty($vars['event_table_include_basescore'])): ?>
-                            <th style="padding: 0 0.5em;"><?= __('Decaying Base Score') ?></th>
-                        <?php endif; ?>
-                        <th style="padding: 0 0.5em;"><?= __('Event Info') ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($events as $event) : ?>
-                        <?php
+        <?php if ($this->fetch('detailed-summary-events')) : ?>
+            <?= $this->fetch('detailed-summary-events'); ?>
+        <?php else : ?>
+            <?php if (!empty($events)) : ?>
+                <h3><?= __('Event list') ?></h3>
+                <table class="table table-condensed">
+                    <thead>
+                        <tr>
+                            <th>Creator Org.</th>
+                            <th>TLP</th>
+                            <th><?= __('State') ?></th>
+                            <th><?= __('Threat Level') ?></th>
+                            <?php foreach ($vars['additional_taxonomy_event_list'] as $taxonomy_name => $taxonomy_prefix) : ?>
+                                <th><?= h($taxonomy_name) ?></th>
+                            <?php endforeach; ?>
+                            <?php if (!empty($vars['event_table_include_basescore'])) : ?>
+                                <th><?= __('Decaying Base Score') ?></th>
+                            <?php endif; ?>
+                            <th><?= __('Event Info') ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($events as $event) : ?>
+                            <?php
                             $workflowTag = findAndBuildTag($event['EventTag'], 'workflow:', $this);
                             $analysisHtml = !empty($workflowTag) ? $workflowTag : h($analysisLevels[$event['Event']['analysis']]);
                             $tlpTag = findAndBuildTag($event['EventTag'], 'tlp:', $this);
                             $tlpHtml = !empty($tlpTag) ? $tlpTag : h($distributionLevels[$event['Event']['distribution']]);
-                        ?>
-                        <tr>
-                            <td><?= h($event['Orgc']['name']) ?></td>
-                            <td><?= $tlpHtml ?></td>
-                            <td><?= $analysisHtml ?></td>
-                            <td><?= h($event['ThreatLevel']['name']); ?></td>
-                            <?php foreach ($additional_taxonomy_event_list as $taxonomy_name => $taxonomy_prefix): ?>
-                                <td><?= findAndBuildTag($event['EventTag'], $taxonomy_prefix, $this) ?></td>
-                            <?php endforeach; ?>
-                            <?php if (!empty($vars['event_table_include_basescore'])): ?>
-                                <td style="padding: 0 0.5em;">
-                                    <?php if (isset($event['event_base_score'])): ?>
-                                        <?php foreach ($event['event_base_score'] as $bs): ?>
-                                            <div style="display: flex;">
-                                                <i style="display: inline-block; max-width: 12em; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" title="<?= h($bs['DecayingModel']['name']); ?>"><?= h($bs['DecayingModel']['name']); ?>:</i>
-                                                <b style="color: <?= !empty($bs['decayed']) ? '#b94a48' : '#468847' ?>;"><?= round($bs['base_score'], 2) ?></b>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        &nbsp;
-                                    <?php endif; ?>
-                                </td>
-                            <?php endif; ?>
-                            <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($event['Event']['uuid'])) ?>"><?= h($event['Event']['info']) ?></a></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php else: ?>
-            <p><?= __('No events.') ?></p>
+                            ?>
+                            <tr>
+                                <td><?= h($event['Orgc']['name']) ?></td>
+                                <td><?= $tlpHtml ?></td>
+                                <td><?= $analysisHtml ?></td>
+                                <td><?= h($event['ThreatLevel']['name']); ?></td>
+                                <?php foreach ($vars['additional_taxonomy_event_list'] as $taxonomy_name => $taxonomy_prefix) : ?>
+                                    <td><?= findAndBuildTag($event['EventTag'], $taxonomy_prefix, $this) ?></td>
+                                <?php endforeach; ?>
+                                <?php if (!empty($vars['event_table_include_basescore'])) : ?>
+                                    <td>
+                                        <?php if (isset($event['event_base_score'])) : ?>
+                                            <table class="table-xcondensed no-border">
+                                                <?php foreach ($event['event_base_score'] as $bs) : ?>
+                                                    <tr>
+                                                        <td style="line-height: 14px;"><i class="no-overflow" style="max-width: 12em;" title="<?= h($bs['DecayingModel']['name']); ?>"><?= h($bs['DecayingModel']['name']); ?>:</i></td>
+                                                        <td style="line-height: 14px;"><b style="color: <?= !empty($bs['decayed']) ? '#b94a48' : '#468847' ?>;"><?= round($bs['base_score'], 2) ?></b></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </table>
+                                        <?php else : ?>
+                                            &nbsp;
+                                        <?php endif; ?>
+                                    </td>
+                                <?php endif; ?>
+                                <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($event['Event']['uuid'])) ?>"><?= h($event['Event']['info']) ?></a></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else : ?>
+                <p><?= __('No events.') ?></p>
+            <?php endif; ?>
         <?php endif; ?>
-    <?php endif; ?>
+    </div>
 <?php endif; // detailed-summary-full ?>
 
-<?php if ($this->fetch('aggregated-context')): ?>
+<?php if ($this->fetch('trending-summary')) : ?>
+    <?= $this->fetch('trending-summary'); ?>
+<?php else : ?>
+    <div class="panel">
+        <?= $trending_summary; ?>
+    </div>
+<?php endif; ?>
+
+<?php if ($this->fetch('aggregated-context')) : ?>
     <?= $this->fetch('aggregated-context'); ?>
-<?php else: ?>
-    <div>
+<?php else : ?>
+    <div class="panel">
         <?= $aggregated_context; ?>
     </div>
 <?php endif; ?>
 
 <?= $this->fetch('content'); ?>
+
+<style>
+    .mw-50 {
+        max-width: 50%;
+    }
+
+    .panel {
+        padding: 4px 10px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        background-color: #f9f9f9;
+        margin-bottom: 20px;
+    }
+
+    .tag {
+        display: inline-block;
+        padding: 2px 4px;
+        font-size: 12px;
+        font-weight: bold;
+        line-height: 14px;
+        margin-right: 2px;
+        border-radius: 3px;
+    }
+
+    .no-overflow {
+        display: inline-block;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden
+    }
+
+    .table {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .table.table-condensed td,
+    .table.table-condensed th {
+        padding: 4px 5px;
+    }
+
+    .table-xcondensed td,
+    .table-xcondensed th {
+        padding: 0px 2px !important;
+    }
+
+    .table th,
+    .table td {
+        padding: 8px;
+        line-height: 20px;
+        text-align: left;
+        vertical-align: top;
+        border-top: 1px solid #dddddd;
+    }
+
+    .table thead th {
+        vertical-align: bottom;
+    }
+
+    .table caption+thead tr:first-child th,
+    .table caption+thead tr:first-child td,
+    .table colgroup+thead tr:first-child th,
+    .table colgroup+thead tr:first-child td,
+    .table thead:first-child tr:first-child th,
+    .table thead:first-child tr:first-child td {
+        border-top: 0;
+    }
+
+    table.no-border td {
+        border-top: 0;
+    }
+
+    .table.no-border tbody+tbody {
+        border-top: 0;
+    }
+</style>

@@ -1766,15 +1766,25 @@ class User extends AppModel
             $filtersForRestSearch['event_tags'] = $filtersForRestSearch['tags'];
             unset($filtersForRestSearch['tags']);
         }
-        $final = $this->Event->restSearch($user, 'context', $filtersForRestSearch, false, false, $elementCounter, $renderView);
-        $final = json_decode($final->intoString(), true);
-        $aggregated_context = $this->__renderAggregatedContext($final);
+        $finalContext = $this->Event->restSearch($user, 'context', $filtersForRestSearch, false, false, $elementCounter, $renderView);
+        $finalContext = json_decode($finalContext->intoString(), true);
+        $aggregated_context = $this->__renderAggregatedContext($finalContext);
+
+        $rollingWindows = 2;
+        $tagFilterPrefixes = ['misp-galaxy:mitre-attack-pattern', 'admiralty-scale'];
+        $trendAnalysis = $this->Event->getTrendsForTags($user, $filters, $this->__periodToDays($period), $rollingWindows, $tagFilterPrefixes);
+        $trendData = [
+            'trendAnalysis' => $trendAnalysis,
+            'tagFilterPrefixes' => $tagFilterPrefixes,
+        ];
+        $trending_summary = $this->__renderTrendingSummary($trendData);
 
         $emailTemplate->set('baseurl', $this->baseurl);
         $emailTemplate->set('events', $events);
         $emailTemplate->set('filters', $filters);
         $emailTemplate->set('period', $period);
         $emailTemplate->set('aggregated_context', $aggregated_context);
+        $emailTemplate->set('trending_summary', $trending_summary);
         $emailTemplate->set('analysisLevels', $this->Event->analysisLevels);
         $emailTemplate->set('distributionLevels', $this->Event->distributionLevels);
         if (!empty($rendered)) {
@@ -1786,15 +1796,25 @@ class User extends AppModel
 
     private function __renderAggregatedContext(array $restSearchOutput): string
     {
+        return $this->__renderGeneric('Events' . DS . 'module_views', 'context_view', $restSearchOutput);
+    }
+
+    private function __renderTrendingSummary(array $trendData): string
+    {
+        return $this->__renderGeneric('Elements' . DS . 'Events', 'trendingSummary', $trendData);
+    }
+
+    private function __renderGeneric(string $viewPath, string $viewFile, array $viewVars): string
+    {
         $view = new View();
         $view->autoLayout = false;
         $view->helpers = ['TextColour'];
         $view->loadHelpers();
 
-        $view->set($restSearchOutput);
+        $view->set($viewVars);
         $view->set('baseurl', $this->baseurl);
-        $view->viewPath = 'Events' . DS . 'module_views';
-        return $view->render('context_view', false);
+        $view->viewPath = $viewPath;
+        return $view->render($viewFile, false);
     }
 
     private function __getUsableFilters(array $period_filters, string $period='daily'): array
@@ -1831,6 +1851,13 @@ class User extends AppModel
             $timerange = '31d';
         }
         return $timerange;
+    }
+
+    private function __periodToDays(string $period='daily'): int
+    {
+        return ($period == 'daily' ? 1 : (
+            $period == 'weekly' ? 7 : 31)
+        );
     }
 
     private function __getEventsForFilters(array $user, array $filters): array
