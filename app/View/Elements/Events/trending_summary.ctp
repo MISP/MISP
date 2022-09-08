@@ -48,7 +48,7 @@ $canvasWidth = 600;
 $canvasHeight = 150;
 foreach (array_keys($chartData) as $tag) {
     $chartData[$tag][0] = [0, $canvasHeight - ($chartData[$tag][0] / $maxValue) * $canvasHeight];
-    $chartData[$tag][1] = [$canvasWidth/2, $canvasHeight - ($chartData[$tag][1] / $maxValue) * $canvasHeight];
+    $chartData[$tag][1] = [$canvasWidth / 2, $canvasHeight - ($chartData[$tag][1] / $maxValue) * $canvasHeight];
     $chartData[$tag][2] = [$canvasWidth, $canvasHeight - ($chartData[$tag][2] / $maxValue) * $canvasHeight];
 }
 
@@ -113,42 +113,42 @@ if (!function_exists('computeLinePositions')) {
             </tbody>
         </table>
     </div>
-    <?php if (!empty($allUniqueTags)): ?>
+    <?php if (!empty($allUniqueTags)) : ?>
         <div style="padding: 0 40px; margin: -40px 20px 0 0;">
             <div class="chart-container">
                 <div class="canvas">
                     <?php foreach ($chartData as $tag => $coords) : ?>
-                        <?php for ($i=0; $i < 3; $i++) : ?>
+                        <?php for ($i = 0; $i < 3; $i++) : ?>
                             <?php
-                                $coord = $coords[$i];
-                                $previousCoord = isset($coords[$i - 1]) ? $coords[$i - 1] : false;
+                            $coord = $coords[$i];
+                            $previousCoord = isset($coords[$i - 1]) ? $coords[$i - 1] : false;
                             ?>
                             <span class="dot" style="<?= sprintf('left: %spx; top: %spx; background-color: %s;', $coord[0], $coord[1], $colorForTags[$tag]) ?>" title="<?= h($tag) ?>"></span>
                             <?php
-                                if (!empty($previousCoord)) {
-                                    $linePosition = computeLinePositions($previousCoord[0], $previousCoord[1], $coord[0], $coord[1]);
-                                    echo sprintf(
-                                        '<span class="line" style="left: %spx; top: %spx; width: %spx; transform: rotate(%srad); background-color: %s;" title="%s"></span>',
-                                        $linePosition['left'],
-                                        $linePosition['top'],
-                                        $linePosition['width'],
-                                        $linePosition['angle'],
-                                        $colorForTags[$tag],
-                                        h($tag),
-                                    );
-                                }
+                            if (!empty($previousCoord)) {
+                                $linePosition = computeLinePositions($previousCoord[0], $previousCoord[1], $coord[0], $coord[1]);
+                                echo sprintf(
+                                    '<span class="line" style="left: %spx; top: %spx; width: %spx; transform: rotate(%srad); background-color: %s;" title="%s"></span>',
+                                    $linePosition['left'],
+                                    $linePosition['top'],
+                                    $linePosition['width'],
+                                    $linePosition['angle'],
+                                    $colorForTags[$tag],
+                                    h($tag),
+                                );
+                            }
                             ?>
                         <?php endfor ?>
                     <?php endforeach ?>
                 </div>
                 <div style="position: relative;">
-                    <span style="<?= sprintf('position: absolute; white-space: nowrap; translate: -50%%; left: %spx; top: %spx;', 0, 0) ?>"><?= __('Period 2') ?></span>
-                    <span style="<?= sprintf('position: absolute; white-space: nowrap; translate: -50%%; left: %spx; top: %spx;', $canvasWidth/2, 0) ?>"><?= __('Previous period') ?></span>
-                    <span style="<?= sprintf('position: absolute; white-space: nowrap; translate: -50%%; left: %spx; top: %spx;', $canvasWidth, 0) ?>"><?= __('Current period') ?></span>
+                    <span class="axis-label" style="<?= sprintf('left: %spx; top: %spx;', 0, 0) ?>"><?= __('Period 2') ?></span>
+                    <span class="axis-label" style="<?= sprintf('left: %spx; top: %spx;', $canvasWidth / 2, 0) ?>"><?= __('Previous period') ?></span>
+                    <span class="axis-label" style="<?= sprintf('left: %spx; top: %spx;', $canvasWidth, 0) ?>"><?= __('Current period') ?></span>
                 </div>
             </div>
         </div>
-    <?php else: ?>
+    <?php else : ?>
         <p><?= __('- No tag for the selected tag namespace -') ?></p>
     <?php endif; ?>
 </div>
@@ -209,11 +209,11 @@ if (!function_exists('computeLinePositions')) {
             </tr>
         </thead>
         <?php foreach ($tagFilterPrefixes as $tagPrefix) : ?>
-                <?php
-                if (empty($allTags[$tagPrefix])) {
-                    continue;
-                }
-                ?>
+            <?php
+            if (empty($allTags[$tagPrefix])) {
+                continue;
+            }
+            ?>
             <tbody>
                 <tr>
                     <td colspan="4">
@@ -296,5 +296,11 @@ if (!function_exists('computeLinePositions')) {
         width: 10px;
         height: 10px;
         border: 1px solid #000;
+    }
+
+    .axis-label {
+        position: absolute;
+        white-space: nowrap;
+        translate: -50%;
     }
 </style>
