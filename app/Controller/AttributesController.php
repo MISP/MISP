@@ -758,6 +758,8 @@ class AttributesController extends AppController
             if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
                 $this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
                 $this->request->data['Attribute']['event_id'] = $existingAttribute['Attribute']['event_id'];
+                $this->request->data['Attribute']['object_id'] = $existingAttribute['Attribute']['object_id'];
+                $this->request->data['Attribute']['uuid'] = $existingAttribute['Attribute']['uuid'];
                 $skipTimeCheck = false;
                 if (!isset($this->request->data['Attribute']['timestamp'])) {
                     $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp();
@@ -790,7 +792,7 @@ class AttributesController extends AppController
                 }
                 $this->Attribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
             } else {
-                $result = $this->Attribute->save($this->request->data);
+                $result = $this->Attribute->save($this->request->data, array('fieldList' => Attribute::EDITABLE_FIELDS));
                 if ($result) {
                     $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $attribute['Event']['id'], $capture=true);
                 }
@@ -2848,7 +2850,7 @@ class AttributesController extends AppController
 
             $event = $this->Attribute->Event->find('first', [
                 'recursive' => -1,
-                'conditons' => ['Event.id' => $attribute['Attribute']['event_id']]
+                'conditions' => ['Event.id' => $attribute['Attribute']['event_id']]
             ]);
             if (!$this->_isRest()) {
                 $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
