@@ -262,7 +262,9 @@ array_splice($all_tag_amount, 10);
                 <?php foreach ($all_tag_amount as $tag_name => $amount) : ?>
                     <li>
                         <?= $this->element('tag', ['tag' => ['Tag' => ['name' => $tag_name, 'colour' => $tag_color_mapping[$tag_name]]]]) ?>
-                        <?= $amount ?>
+                        <span style="padding: 2px 9px; border-radius: 9px; font-weight: bold; background-color: #999; color: #fff;">
+                            <?= $amount ?>
+                        </span>
                     </li>
                 <?php endforeach; ?>
             </ul>
@@ -360,7 +362,7 @@ array_splice($all_tag_amount, 10);
         padding: 4px 10px;
         border: 1px solid #ccc;
         border-radius: 3px;
-        background-color: #f9f9f9;
+        background-color: #cccccc22;
         margin-bottom: 20px;
     }
 
