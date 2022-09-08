@@ -57,9 +57,6 @@ class Correlation extends AppModel
     /** @var array */
     private $cidrListCache;
 
-    /** @var string */
-    private $__correlationEngine;
-
     private $__tempContainCache = [];
 
     /** @var OverCorrelatingValue */
@@ -68,10 +65,10 @@ class Correlation extends AppModel
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-        $this->__correlationEngine = $this->getCorrelationModelName();
-        $deadlockAvoidance = Configure::check('MISP.deadlock_avoidance') ? Configure::read('MISP.deadlock_avoidance') : false;
+        $correlationEngine = $this->getCorrelationModelName();
+        $deadlockAvoidance = Configure::read('MISP.deadlock_avoidance') ?: false;
         // load the currently used correlation engine
-        $this->Behaviors->load($this->__correlationEngine . 'Correlation', ['deadlockAvoidance' => $deadlockAvoidance]);
+        $this->Behaviors->load($correlationEngine . 'Correlation', ['deadlockAvoidance' => $deadlockAvoidance]);
         // getTableName() needs to be implemented by the engine - this points us to the table to be used
         $this->useTable = $this->getTableName();
         $this->advancedCorrelationEnabled = (bool)Configure::read('MISP.enable_advanced_correlations');
@@ -984,5 +981,13 @@ class Correlation extends AppModel
             );
         }
         return $result === true;
+    }
+
+    /**
+     * @return string
+     */
+    private function getCorrelationModelName()
+    {
+        return Configure::read('MISP.correlation_engine') ?: 'Default';
     }
 }

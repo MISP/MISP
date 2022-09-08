@@ -48,6 +48,9 @@ class AppModel extends Model
     /** @var AttachmentTool|null */
     private $attachmentTool;
 
+    /** @var Workflow|null */
+    private $Workflow;
+
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
     const OLD_DB_CHANGES = array(
@@ -3567,22 +3570,6 @@ class AppModel extends Model
         return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSourceName === 'Database/MysqlExtended' || $dataSource instanceof Mysql;
     }
 
-    public function getCorrelationModelName()
-    {
-        if (!empty(Configure::read('MISP.correlation_engine'))) {
-            return Configure::read('MISP.correlation_engine');
-        }
-        return 'Default';
-    }
-
-    public function loadCorrelationModel()
-    {
-        if (!empty(Configure::read('MISP.correlation_engine'))) {
-            return ClassRegistry::init(Configure::read('MISP.correlation_engine'));
-        }
-        return ClassRegistry::init('Correlation');
-    }
-
     /**
      * executeTrigger
      *
@@ -3594,9 +3581,6 @@ class AppModel extends Model
      */
     public function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
     {
-        if ($this->Workflow === null) {
-            $this->Workflow = ClassRegistry::init('Workflow');
-        }
         if ($this->isTriggerCallable($trigger_id)) {
            $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
            if (!empty($logging) && empty($success)) {
@@ -3618,13 +3602,6 @@ class AppModel extends Model
             $this->Workflow->checkTriggerListenedTo($trigger_id);
     }
 
-    public function addPendingLogEntry($logEntry)
-    {
-        $logEntries = Configure::read('pendingLogEntries');
-        $logEntries[] = $logEntry;
-        Configure::write('pendingLogEntries', $logEntries);
-    }
-
     /**
      * Use different CakeEventManager to fix memory leak
      * @return CakeEventManager
@@ -3639,7 +3616,8 @@ class AppModel extends Model
         return $this->_eventManager;
     }
 
-    private function __retireOldCorrelationEngine($user = null) {
+    private function __retireOldCorrelationEngine($user = null)
+    {
         if ($user === null) {
             $user = [
                 'id' => 0,

@@ -5,10 +5,6 @@ class OverCorrelatingValue extends AppModel
 {
     public $recursive = -1;
 
-    public $actsAs = array(
-        'Containable'
-    );
-
     public function beforeValidate($options = array())
     {
         $this->data['OverCorrelatingValue']['value'] = self::truncate($this->data['OverCorrelatingValue']['value']);
