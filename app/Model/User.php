@@ -1651,7 +1651,7 @@ class User extends AppModel
 
     public function extractPeriodicSettingForUser($user): array
     {
-        $filter_names = ['orgc_id', 'published', 'distribution', 'sharing_group_id', 'event_info', 'tags'];
+        $filter_names = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags'];
         if (is_numeric($user)) {
             $user = $this->find('first', [
                 'recursive' => -1,
@@ -1701,7 +1701,6 @@ class User extends AppModel
             }
             $notification_filters = [
                 'orgc_id' => $periodic_settings['orgc_id'] ?? [],
-                'published' => $periodic_settings['published'] ?? '',
                 'distribution' => $periodic_settings['distribution'] ?? '',
                 'sharing_group_id' => $periodic_settings['distribution'] != 4 ? '' : ($periodic_settings['sharing_group_id'] ?? []),
                 'event_info' => $periodic_settings['event_info'] ?? '',
@@ -1798,13 +1797,11 @@ class User extends AppModel
     {
         $filters = [
             'last' => $this->__genTimerangeFilter($period),
+            'published' => true,
             'includeBaseScoresOnEvent' => true,
         ];
         if (!empty($period_filters['orgc_id'])) {
             $filters['orgc_id'] = $period_filters['orgc_id'];
-        }
-        if (!empty($period_filters['published'])) {
-            $filters['published'] = true;
         }
         if (!empty($period_filters['distribution'])) {
             $filters['distribution'] = intval($period_filters['distribution']);

@@ -31,12 +31,6 @@ echo $this->element('genericElements/Form/genericForm', [
                 'picker' => true,
             ],
             [
-                'field' => 'periodic_settings.published',
-                'label' => __('Only include published Events'),
-                'class' => 'input',
-                'type' => 'checkbox'
-            ],
-            [
                 'field' => 'periodic_settings.distribution',
                 'label' => __('Distribution level'),
                 'class' => 'input',
