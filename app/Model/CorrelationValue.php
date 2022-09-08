@@ -17,10 +17,11 @@ class CorrelationValue extends AppModel
         $values = array_unique($values, SORT_REGULAR); // Remove duplicate values
         $existingValues = $this->find('list', [
             'recursive' => -1,
+            'callbacks' => false,
             'fields' => ['value', 'id'],
             'conditions' => [
                 'value' => $values,
-            ]
+            ],
         ]);
 
         $notExistValues = array_diff($values, array_keys($existingValues));
@@ -29,7 +30,10 @@ class CorrelationValue extends AppModel
             foreach ($notExistValues as $notExistValue) {
                 $this->create();
                 try {
-                    $this->save(['value' => $notExistValue]);
+                    $this->save(['value' => $notExistValue], [
+                        'callbacks' => false,
+                        'validate' => false,
+                    ]);
                     $existingValues[$notExistValue] = $this->id;
                 } catch (Exception $e) {
                     $existingValues[$notExistValue] = $this->getValueId($notExistValue);
