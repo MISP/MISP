@@ -94,12 +94,11 @@ class OverCorrelatingValue extends AppModel
 
     public function findOverCorrelatingValues(array $values_to_check): array
     {
-        $values_to_check_truncated = array_unique(self::truncateValues($values_to_check));
-        $overCorrelatingValues = $this->find('column', [
+        $values_to_check_truncated = array_unique(self::truncateValues($values_to_check), SORT_REGULAR);
+        return $this->find('column', [
             'conditions' => ['value' => $values_to_check_truncated],
             'fields' => ['value'],
         ]);
-        return $overCorrelatingValues;
     }
 
     public function generateOccurrencesRouter()
