@@ -536,6 +536,10 @@ class TestComprehensive(unittest.TestCase):
             for event in (first, second):
                 check_response(self.admin_misp_connector.delete_event(event))
 
+    def test_correlations_noacl(self):
+        with MISPSetting(self.admin_misp_connector, {"MISP.correlation_engine": "NoAcl"}):
+            self.test_correlations()
+
     def test_advanced_correlations(self):
         with MISPSetting(self.admin_misp_connector, {"MISP.enable_advanced_correlations": True}):
             first = create_simple_event()
