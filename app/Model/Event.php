@@ -1147,6 +1147,10 @@ class Event extends AppModel
         return $data[0];
     }
 
+    /**
+     * @param array $event
+     * @return bool
+     */
     public function quickDelete(array $event)
     {
         $id = (int)$event['Event']['id'];
@@ -1156,7 +1160,7 @@ class Event extends AppModel
             'fields' => array('Thread.id'),
             'recursive' => -1
         ));
-        $thread_id = !empty($thread) ? $thread['Thread']['id'] : false;
+        $thread_id = !empty($thread) ? (int)$thread['Thread']['id'] : false;
         $relations = array(
             array(
                 'table' => 'attributes',
@@ -1231,10 +1235,17 @@ class Event extends AppModel
                 )
             );
         }
-        App::uses('QueryTool', 'Tools');
-        $queryTool = new QueryTool();
+
+        $db = $this->getDataSource();
+        $db->begin();
+        $connection = $db->getConnection();
         foreach ($relations as $relation) {
-            $queryTool->quickDelete($relation['table'], $relation['foreign_key'], $relation['value'], $this);
+            $query = $connection->prepare('DELETE FROM ' . $db->name($relation['table']) . ' WHERE ' . $db->name($relation['foreign_key']) . ' = :value');
+            $query->bindValue(':value', $relation['value'], PDO::PARAM_INT);
+            $query->execute();
+        }
+        if (!$db->commit()) {
+            return false;
         }
         $this->set($event);
         return $this->delete(null, false);
