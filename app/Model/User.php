@@ -1779,7 +1779,7 @@ class User extends AppModel
         ];
         $trending_summary = $this->__renderTrendingSummary($trendData);
 
-        $emailTemplate->set('baseurl', $this->baseurl);
+        $emailTemplate->set('baseurl', $this->Event->__getAnnounceBaseurl());
         $emailTemplate->set('events', $events);
         $emailTemplate->set('filters', $filters);
         $emailTemplate->set('period', $period);
@@ -1812,7 +1812,7 @@ class User extends AppModel
         $view->loadHelpers();
 
         $view->set($viewVars);
-        $view->set('baseurl', $this->baseurl);
+        $view->set('baseurl', $this->Event->__getAnnounceBaseurl());
         $view->viewPath = $viewPath;
         return $view->render($viewFile, false);
     }
