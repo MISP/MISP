@@ -1695,9 +1695,13 @@ class User extends AppModel
         ]);
         if ($success) {
             $periodic_settings = $data['periodic_settings'];
-            $decodedTags = json_decode($periodic_settings['tags'], true);
-            if ($decodedTags === null) {
-                return false;
+            if (empty($periodic_settings['tags'])) {
+                $periodic_settings['tags'] = '[]';
+            } else {
+                $decodedTags = json_decode($periodic_settings['tags'], true);
+                if ($decodedTags === null) {
+                    return false;
+                }
             }
             $notification_filters = [
                 'orgc_id' => $periodic_settings['orgc_id'] ?? [],
