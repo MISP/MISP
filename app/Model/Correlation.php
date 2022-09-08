@@ -369,7 +369,7 @@ class Correlation extends AppModel
             }
             foreach ($correlatingAttributes as $b) {
                 // On a full correlation, only correlate with attributes that have a higher ID to avoid duplicate correlations
-                if ($full && $b['Attribute']['id'] < $b['Attribute']['id']) {
+                if ($full && $a['Attribute']['id'] < $b['Attribute']['id']) {
                     continue;
                 }
                 if (isset($b['Attribute']['value1'])) {
