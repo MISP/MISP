@@ -105,7 +105,7 @@ if (!empty($ajax)) {
         ),
         sprintf(
             '<div class="modal-footer">%s</div>',
-            $this->element('genericElements/Form/submitButton', $submitButtonData)
+            !empty($data['submit']['no_submit']) ? '' : $this->element('genericElements/Form/submitButton', $submitButtonData)
         )
     );
 } else {
@@ -119,7 +119,7 @@ if (!empty($ajax)) {
         empty($data['description']) ? '' : $data['description'],
         $fieldsString,
         $metaFieldString,
-        $this->element('genericElements/Form/submitButton', $submitButtonData),
+        !empty($data['submit']['no_submit']) ? '' : $this->element('genericElements/Form/submitButton', $submitButtonData),
         $formEnd
     );
 }

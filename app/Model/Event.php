@@ -1370,6 +1370,7 @@ class Event extends AppModel
                     'eventinfo' => array('function' => 'set_filter_eventinfo'),
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'tags' => array('function' => 'set_filter_tags'),
+                    'event_tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'date' => array('function' => 'set_filter_date', 'pop' => true),
@@ -1620,6 +1621,7 @@ class Event extends AppModel
             'includeRelatedTags',
             'excludeLocalTags',
             'includeDecayScore',
+            'includeBaseScoresOnEvent',
             'includeSightingdb',
             'includeFeedCorrelations',
             'includeServerCorrelations',
@@ -1629,7 +1631,8 @@ class Event extends AppModel
             'limit',
             'page',
             'order',
-            'protected'
+            'protected',
+            'published',
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -1765,6 +1768,9 @@ class Event extends AppModel
         }
         if ($options['protected']) {
             $conditions['AND'][] = array('Event.protected' => $options['protected']);
+        }
+        if ($options['published']) {
+            $conditions['AND'][] = array('Event.published' => $options['published']);
         }
         if (!empty($options['includeRelatedTags'])) {
             $options['includeGranularCorrelations'] = 1;
@@ -1924,7 +1930,7 @@ class Event extends AppModel
         $sharingGroupData = $sharingGroupReferenceOnly ? [] : $this->__cacheSharingGroupData($user, $useCache);
 
         // Initialize classes that will be necessary during event fetching
-        if (!empty($options['includeDecayScore']) && !isset($this->DecayingModel)) {
+        if ((!empty($options['includeDecayScore']) || !empty($options['includeBaseScoresOnEvent'])) && !isset($this->DecayingModel)) {
             $this->DecayingModel = ClassRegistry::init('DecayingModel');
         }
         if ($options['includeServerCorrelations'] && !$isSiteAdmin && $user['org_id'] != Configure::read('MISP.host_org_id')) {
@@ -2020,6 +2026,9 @@ class Event extends AppModel
                     $event = $this->includeRelatedTags($event, $options);
                 }
                 //$event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
+            }
+            if (!empty($options['includeBaseScoresOnEvent'])) {
+                $event = $this->DecayingModel->attachBaseScoresToEvent($user, $event);
             }
             $shadowAttributeByOldId = [];
             if (!empty($event['ShadowAttribute'])) {
@@ -2689,7 +2698,7 @@ class Event extends AppModel
 
     public function set_filter_tags(&$params, $conditions, $options)
     {
-        if (!empty($params['tags'])) {
+        if (!empty($params['tags']) || !empty($params['event_tags'])) {
             $conditions = $this->Attribute->set_filter_tags($params, $conditions, $options);
         }
         return $conditions;
@@ -7622,5 +7631,40 @@ class Event extends AppModel
             $kafkaPubTool = $this->getKafkaPubTool();
             $kafkaPubTool->publishJson($kafkaTopic, $fullEvent[0], 'publish');
         }
+    }
+
+    public function getTrendsForTags(array $user, array $eventFilters=[], int $baseDayRange, int $rollingWindows=3, $tagFilterPrefixes=null): array
+    {
+        $fullDayNumber = $baseDayRange + $baseDayRange * $rollingWindows;
+        $fullRange = $this->resolveTimeDelta($fullDayNumber . 'd');
+        $eventFilters['last'] = $fullRange . 'd';
+        $eventFilters['order'] = 'timestamp DESC';
+        $events = $this->fetchEvent($user, $eventFilters);
+        App::uses('TrendingTool', 'Tools');
+        $trendingTool = new TrendingTool($this);
+        $trendAnalysis = $trendingTool->getTrendsForTags($events, $baseDayRange, $rollingWindows, $tagFilterPrefixes);
+        $clusteredTags = $trendAnalysis['clustered_tags'];
+        $trendAnalysis = $trendAnalysis['trend_analysis'];
+        return [
+            'clustered_tags' => $trendAnalysis,
+            'clustered_events' => $clusteredTags['eventNumberPerRollingWindow'],
+            'all_tags' => $clusteredTags['allTagsPerPrefix'],
+            'all_timestamps' => array_keys($clusteredTags['eventNumberPerRollingWindow']),
+        ];
+    }
+
+    public function getTrendsForTagsFromEvents(array $events, int $baseDayRange, int $rollingWindows=3, $tagFilterPrefixes=null): array
+    {
+        App::uses('TrendingTool', 'Tools');
+        $trendingTool = new TrendingTool($this);
+        $trendAnalysis = $trendingTool->getTrendsForTags($events, $baseDayRange, $rollingWindows, $tagFilterPrefixes);
+        $clusteredTags = $trendAnalysis['clustered_tags'];
+        $trendAnalysis = $trendAnalysis['trend_analysis'];
+        return [
+            'clustered_tags' => $trendAnalysis,
+            'clustered_events' => $clusteredTags['eventNumberPerRollingWindow'],
+            'all_tags' => $clusteredTags['allTagsPerPrefix'],
+            'all_timestamps' => array_keys($clusteredTags['eventNumberPerRollingWindow']),
+        ];
     }
 }

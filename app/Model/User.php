@@ -18,6 +18,9 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
  */
 class User extends AppModel
 {
+    private const PERIODIC_USER_SETTING_KEY = 'periodic_notification_filters';
+    public const PERIODIC_NOTIFICATIONS = ['notification_daily', 'notification_weekly', 'notification_monthly'];
+
     public $displayField = 'email';
 
     public $validate = array(
@@ -1644,5 +1647,245 @@ class User extends AppModel
     {
         $salt = Configure::read('Security.salt');
         return substr(hash('sha256', "{$user['id']}|$salt"), 0, 8);
+    }
+
+    public function extractPeriodicSettingForUser($user, $decode=false): array
+    {
+        $filter_names = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags'];
+        $filter_to_decode = ['tags', 'trending_for_tags', ];
+        if (is_numeric($user)) {
+            $user = $this->find('first', [
+                'recursive' => -1,
+                'conditions' => ['User.id' => $user],
+                'contain' => [
+                    'UserSetting',
+                ]
+            ]);
+        }
+        $periodic_settings = array_values(array_filter($user['UserSetting'], function ($userSetting) {
+            return $userSetting['setting'] == self::PERIODIC_USER_SETTING_KEY;
+        }));
+        $periodic_settings_indexed = [];
+        if (!empty($periodic_settings)) {
+            foreach ($filter_names as $filter_name) {
+                $periodic_settings_indexed[$filter_name] = $periodic_settings[0]['value'][$filter_name];
+            }
+        }
+        foreach ($filter_to_decode as $filter) {
+            if (!empty($decode) && !empty($periodic_settings_indexed[$filter])) {
+                $periodic_settings_indexed[$filter] = JsonTool::decode($periodic_settings_indexed[$filter]);
+            }
+        }
+        return $periodic_settings_indexed;
+    }
+
+    public function getUsablePeriodicSettingForUser(array $periodicSettings, $period='daily'): array
+    {
+        return $this->__getUsableFilters($periodicSettings, $period);
+    }
+
+    public function saveNotificationSettings(int $user_id, array $data): bool
+    {
+        $existingUser = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['User.id' => $user_id],
+        ]);
+        if (empty($existingUser)) {
+            return false;
+        }
+        foreach (self::PERIODIC_NOTIFICATIONS as $notification_period) {
+            $existingUser['User'][$notification_period] = $data['User'][$notification_period];
+        }
+        $success = $this->save($existingUser, [
+            'fieldList' => self::PERIODIC_NOTIFICATIONS
+        ]);
+        if ($success) {
+            $periodic_settings = $data['periodic_settings'];
+            $param_to_decode = ['tags', 'trending_for_tags', ];
+            foreach ($param_to_decode as $param) {
+                if (empty($periodic_settings[$param])) {
+                    $periodic_settings[$param] = '[]';
+                } else {
+                    $decodedTags = json_decode($periodic_settings[$param], true);
+                    if ($decodedTags === null) {
+                        return false;
+                    }
+                }
+            }
+            $notification_filters = [
+                'orgc_id' => $periodic_settings['orgc_id'] ?? [],
+                'distribution' => $periodic_settings['distribution'] ?? '',
+                'sharing_group_id' => $periodic_settings['distribution'] != 4 ? '' : ($periodic_settings['sharing_group_id'] ?? []),
+                'event_info' => $periodic_settings['event_info'] ?? '',
+                'tags' => $periodic_settings['tags'] ?? '[]',
+                'trending_for_tags' => $periodic_settings['trending_for_tags'] ?? '[]',
+            ];
+            $new_user_setting = [
+                'UserSetting' => [
+                    'user_id' => $existingUser['User']['id'],
+                    'setting' => self::PERIODIC_USER_SETTING_KEY,
+                    'value' => $notification_filters
+                ]
+            ];
+            $success = $this->UserSetting->setSetting($existingUser['User'], $new_user_setting);
+        }
+        return !empty($success);
+    }
+
+    public function getSubscribedUsersForPeriod(string $period): array
+    {
+        return $this->find('all', [
+            'recursive' => -1,
+            'conditions' => ["notification_$period" => true],
+        ]);
+    }
+
+    /**
+     * generatePeriodicSummary
+     *
+     * @param int $user_id
+     * @param string $period
+     * @return string|SendEmailTemplate
+     * @throws NotFoundException
+     * @throws InvalidArgumentException
+     */
+    public function generatePeriodicSummary(int $user_id, string $period, $rendered=true)
+    {
+        $existingUser = $this->getUserById($user_id);
+        $user = $this->rearrangeToAuthForm($existingUser);
+        $allowed_periods = array_map(function($period) {
+            return substr($period, strlen('notification_'));
+        }, self::PERIODIC_NOTIFICATIONS);
+        if (!in_array($period, $allowed_periods)) {
+            throw new InvalidArgumentException(__('Invalid period. Must be one of %s', JsonTool::encode(self::PERIODIC_NOTIFICATIONS)));
+        }
+        App::import('Tools', 'SendEmail');
+        $emailTemplate = $this->prepareEmailTemplate($period);
+        $periodicSettings = $this->extractPeriodicSettingForUser($user, true);
+        $filters = $this->getUsablePeriodicSettingForUser($periodicSettings, $period);
+        $filtersForRestSearch = $filters; // filters for restSearch are slightly different than fetchEvent
+        $filters['last'] = $this->resolveTimeDelta($filters['last']);
+        $filters['sgReferenceOnly'] = true;
+        $filters['includeEventCorrelations'] = false;
+        $filters['noSightings'] = true;
+        $filters['includeGalaxy'] = false;
+        $events = $this->__getEventsForFilters($user, $filters);
+
+        $elementCounter = 0;
+        $renderView = false;
+        $filtersForRestSearch['publish_timestamp'] = $filtersForRestSearch['last'];
+        $filtersForRestSearch['returnFormat'] = 'context';
+        $filtersForRestSearch['staticHtml'] = true;
+        unset($filtersForRestSearch['last']);
+        if (!empty($filtersForRestSearch['tags'])) {
+            $filtersForRestSearch['event_tags'] = $filtersForRestSearch['tags'];
+            unset($filtersForRestSearch['tags']);
+        }
+        $finalContext = $this->Event->restSearch($user, 'context', $filtersForRestSearch, false, false, $elementCounter, $renderView);
+        $finalContext = json_decode($finalContext->intoString(), true);
+        $aggregated_context = $this->__renderAggregatedContext($finalContext);
+
+        $rollingWindows = 2;
+        $trendAnalysis = $this->Event->getTrendsForTagsFromEvents($events, $this->__periodToDays($period), $rollingWindows, $periodicSettings['trending_for_tags']);
+        $trendData = [
+            'trendAnalysis' => $trendAnalysis,
+            'tagFilterPrefixes' => $periodicSettings['trending_for_tags'],
+        ];
+        $trending_summary = $this->__renderTrendingSummary($trendData);
+
+        $emailTemplate->set('baseurl', $this->Event->__getAnnounceBaseurl());
+        $emailTemplate->set('events', $events);
+        $emailTemplate->set('filters', $filters);
+        $emailTemplate->set('period', $period);
+        $emailTemplate->set('aggregated_context', $aggregated_context);
+        $emailTemplate->set('trending_summary', $trending_summary);
+        $emailTemplate->set('analysisLevels', $this->Event->analysisLevels);
+        $emailTemplate->set('distributionLevels', $this->Event->distributionLevels);
+        if (!empty($rendered)) {
+            $summary = $emailTemplate->render();
+            return $summary->format() == 'text' ? $summary->text : $summary->html;
+        }
+        return $emailTemplate;
+    }
+
+    private function __renderAggregatedContext(array $restSearchOutput): string
+    {
+        return $this->__renderGeneric('Events' . DS . 'module_views', 'context_view', $restSearchOutput);
+    }
+
+    private function __renderTrendingSummary(array $trendData): string
+    {
+        return $this->__renderGeneric('Elements' . DS . 'Events', 'trendingSummary', $trendData);
+    }
+
+    private function __renderGeneric(string $viewPath, string $viewFile, array $viewVars): string
+    {
+        $view = new View();
+        $view->autoLayout = false;
+        $view->helpers = ['TextColour'];
+        $view->loadHelpers();
+
+        $view->set($viewVars);
+        $view->set('baseurl', $this->Event->__getAnnounceBaseurl());
+        $view->viewPath = $viewPath;
+        return $view->render($viewFile, false);
+    }
+
+    private function __getUsableFilters(array $period_filters, string $period='daily'): array
+    {
+        $filters = [
+            'last' => $this->__genTimerangeFilter($period),
+            'published' => true,
+            'includeBaseScoresOnEvent' => true,
+        ];
+        if (!empty($period_filters['orgc_id'])) {
+            $filters['orgc_id'] = $period_filters['orgc_id'];
+        }
+        if (isset($period_filters['distribution']) && $period_filters['distribution'] >= 0) {
+            $filters['distribution'] = intval($period_filters['distribution']);
+        }
+        if (!empty($period_filters['sharing_group_id'])) {
+            $filters['sharing_group_id'] = $period_filters['sharing_group_id'];
+        }
+        if (!empty($period_filters['event_info'])) {
+            $filters['event_info'] = $period_filters['event_info'];
+        }
+        if (!empty($period_filters['tags'])) {
+            $filters['tags'] = $period_filters['tags'];
+        }
+        return $filters;
+    }
+
+    private function __genTimerangeFilter(string $period='daily'): string
+    {
+        $timerange = '1d';
+        if ($period == 'weekly') {
+            $timerange = '7d';
+        } else if ($period == 'monthly'){
+            $timerange = '31d';
+        }
+        return $timerange;
+    }
+
+    private function __periodToDays(string $period='daily'): int
+    {
+        return ($period == 'daily' ? 1 : (
+            $period == 'weekly' ? 7 : 31)
+        );
+    }
+
+    private function __getEventsForFilters(array $user, array $filters): array
+    {
+        $this->Event = ClassRegistry::init('Event');
+        $events = $this->Event->fetchEvent($user, $filters);
+        return $events;
+    }
+
+    public function prepareEmailTemplate(string $period='daily'): SendEmailTemplate
+    {
+        $subject = sprintf('[%s MISP] %s %s', Configure::read('MISP.org'), Inflector::humanize($period), __('Notification - %s', (new DateTime())->format('Y-m-d')));
+        $template = new SendEmailTemplate("notification_$period");
+        $template->subject($subject);
+        return $template;
     }
 }

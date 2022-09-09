@@ -8190,6 +8190,39 @@
                 "column_type": "int(11)",
                 "column_default": "0",
                 "extra": ""
+            },
+            {
+                "column_name": "notification_daily",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "notification_weekly",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "notification_monthly",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
             }
         ],
         "user_settings": [
@@ -9116,5 +9149,5 @@
             "uuid": false
         }
     },
-    "db_version": "96"
+    "db_version": "97"
 }
