@@ -1,5 +1,4 @@
 <div>
-    <h1><?= __('Aggregated context') ?></h1>
     <?php if (!empty($tags)): ?>
         <h2><?= __('Tags and Taxonomies') ?></h2>
         <div>

@@ -88,18 +88,16 @@ if (!function_exists('computeLinePositions')) {
 
 ?>
 
-<h2><?= __('Tag trendings') ?></h2>
-
 <div style="display: flex; column-gap: 20px; justify-content: space-around; margin-bottom: 40px;">
-    <div>
-        <table class="table table-condensed" style="min-width: 300px; min-width: 400px;">
+    <div style="display: flex; align-items: center;">
+        <table class="table table-condensed" style="min-width: 300px; max-width: 400px; margin: 0;">
             <tbody>
                 <tr>
                     <td><?= __('Period duration') ?></td>
                     <td><?= __('%s days', $currentPeriodDate->diff($now)->format('%a')); ?></td>
                 </tr>
                 <tr>
-                    <td><?= __('Current period') ?></td>
+                    <td><?= __('Starting period') ?></td>
                     <td><?= sprintf('%s', $currentPeriodDate->format('M d, o. (\W\e\e\k W)')); ?></td>
                 </tr>
                 <tr>
@@ -114,7 +112,7 @@ if (!function_exists('computeLinePositions')) {
         </table>
     </div>
     <?php if (!empty($allUniqueTags)) : ?>
-        <div style="padding: 0 40px; margin: -40px 20px 0 0;">
+        <div style="padding: 0 40px;">
             <div class="chart-container">
                 <div class="y-axis-container">
                     <div>
@@ -151,7 +149,7 @@ if (!function_exists('computeLinePositions')) {
                 <div class="x-axis-container">
                     <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', 0, 0) ?>"><?= __('Period-2') ?></span>
                     <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', $canvasWidth / 2, 0) ?>"><?= __('Previous period') ?></span>
-                    <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', $canvasWidth, 0) ?>"><?= __('Current period') ?></span>
+                    <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', $canvasWidth, 0) ?>"><?= __('Starting period') ?></span>
                 </div>
             </div>
         </div>
@@ -199,7 +197,7 @@ if (!function_exists('computeLinePositions')) {
                 </th>
                 <th>
                     <span>
-                        <div><?= __('Current period') ?></div>
+                        <div><?= __('Starting period') ?></div>
                         <div style="font-weight: normal;"><?= __('%s events', h($clusteredEvents[$currentPeriod])) ?></div>
                     </span>
                     <table>
