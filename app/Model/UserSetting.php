@@ -100,6 +100,15 @@ class UserSetting extends AppModel
         'oidc' => [ // Data saved by OIDC plugin
             'internal' => true,
         ],
+        'periodic_notification_filters' => [
+            'placeholder' => [
+                'orgc_id' => '1',
+                'distribution' => '1',
+                'sharing_group_id' => '1',
+                'event_info' => 'phishing',
+                'tags' => '["tlp:red"]',
+            ],
+        ],
     );
 
     // massage the data before we send it off for validation before saving anything

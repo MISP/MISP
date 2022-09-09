@@ -155,6 +155,20 @@
                         'colors' => true,
                     ),
                     array(
+                        'name' => __('Periodic notif.'),
+                        'element' => 'custom',
+                        'class' => 'short',
+                        'function' => function (array $user) use ($periodic_notifications) {
+                            $period_subscriptions = [];
+                            foreach ($periodic_notifications as $period) {
+                                if (!empty($user['User'][$period])) {
+                                    $period_subscriptions[] = substr($period, 13, 1);
+                                }
+                            }
+                            return implode('/', $period_subscriptions);
+                        }
+                    ),
+                    array(
                         'name' => __('PGP Key'),
                         'element' => 'boolean',
                         'sort' => 'User.gpgkey',

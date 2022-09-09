@@ -5,7 +5,7 @@
 .root-container {
     display: flex;
     height: calc(100vh - 2*42px); /* total space available minus header and footer */
-    margin-top: -20px;
+    margin-top: -8px;
     flex-direction: column;
 }
 
@@ -203,6 +203,7 @@
 }
 
 .sidebar-workflow-block > .icon {
+    min-width: 18px;
     width: 1.25em;
     align-items: flex-start;
     display: flex;

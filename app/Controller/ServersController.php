@@ -322,7 +322,8 @@ class ServersController extends AppController
                         'json' => '[]',
                         'push_rules' => $defaultPushRules,
                         'pull_rules' => $defaultPullRules,
-                        'self_signed' => 0
+                        'self_signed' => 0,
+                        'remove_missing_tags' => 0
                     );
                     foreach ($defaults as $default => $dvalue) {
                         if (!isset($this->request->data['Server'][$default])) {
@@ -514,7 +515,7 @@ class ServersController extends AppController
             }
             if (!$fail) {
                 // say what fields are to be updated
-                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
+                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
                 $this->request->data['Server']['id'] = $id;
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
@@ -2064,7 +2065,7 @@ class ServersController extends AppController
         }
         if (Configure::read('Security.advanced_authkeys')) {
             $this->loadModel('AuthKey');
-            $authkey = $this->AuthKey->createnewkey($this->Auth->user('id'), __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
+            $authkey = $this->AuthKey->createnewkey($this->Auth->user('id'), null, __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
         } else {
             $this->loadModel('User');
             $authkey = $this->User->find('column', [

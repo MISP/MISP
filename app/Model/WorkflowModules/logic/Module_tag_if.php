@@ -34,7 +34,7 @@ class Module_tag_if extends WorkflowBaseLogicModule
             'order' => ['name asc'],
             'fields' => ['Tag.id', 'Tag.name']
         ]);
-        $tags = array_column(array_column($tags, 'Tag'), 'name', 'id');
+        $tags = array_column(array_column($tags, 'Tag'), 'name');
         $this->params = [
             [
                 'id' => 'scope',
@@ -83,11 +83,11 @@ class Module_tag_if extends WorkflowBaseLogicModule
     {
         $path = '';
         if ($scope == 'attribute') {
-            $path = 'Event._AttributeFlattened.{n}.Tag.{n}.id';
+            $path = 'Event._AttributeFlattened.{n}.Tag.{n}.name';
         } elseif ($scope == 'event_attribute') {
-            $path = 'Event._AttributeFlattened.{n}._allTags.{n}.id';
+            $path = 'Event._AttributeFlattened.{n}._allTags.{n}.name';
         } else {
-            $path = 'Event.Tag.{n}.id';
+            $path = 'Event.Tag.{n}.name';
         }
         return Hash::extract($data, $path) ?? [];
     }

@@ -5,6 +5,7 @@ if ($data['module_type'] == 'trigger') {
         ['element' => 'Workflows/executionPath', 'element_params' => ['workflow' => $data['Workflow']]],
     ];
 }
+$append[] = ['element' => 'Workflows/execute_module', 'element_params' => ['module' => $data]];
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
@@ -54,6 +55,7 @@ echo $this->element(
             ],
             [
                 'key' => __('Module Parameters'),
+                'class' => 'restrict-height',
                 'type' => 'json',
                 'path' => 'params',
             ],

@@ -13,6 +13,7 @@ class WorkflowsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'checkGraph';
+        $this->Security->unlockedActions[] = 'moduleStatelessExecution';
         $requirementErrors = [];
         if (empty(Configure::read('MISP.background_jobs'))) {
             $requirementErrors[] = __('Background workers must be enabled to use workflows');
@@ -153,6 +154,9 @@ class WorkflowsController extends AppController
         $modules = $this->Workflow->attachNotificationToModules($modules, $workflow);
         $this->loadModel('WorkflowBlueprint');
         $workflowBlueprints = $this->WorkflowBlueprint->find('all');
+        $workflowBlueprints = array_map(function($blueprint) {
+            return $this->WorkflowBlueprint->attachModuleDataToBlueprint($blueprint);
+        }, $workflowBlueprints);
         $this->set('selectedWorkflow', $workflow);
         $this->set('workflowTriggerId', $trigger_id);
         $this->set('modules', $modules);
@@ -421,5 +425,14 @@ class WorkflowsController extends AppController
             ],
         ];
         return $this->RestResponse->viewData($data, 'json');
+    }
+
+    public function moduleStatelessExecution($module_id)
+    {
+        $this->request->allowMethod(['post']);
+        $input_data = JsonTool::decode($this->request->data['input_data']);
+        $param_data = $this->request->data['module_indexed_param'];
+        $result = $this->Workflow->moduleStatelessExecution($module_id, $input_data, $param_data);
+        return $this->RestResponse->viewData($result, 'json');
     }
 }
