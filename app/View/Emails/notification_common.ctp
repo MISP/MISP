@@ -168,7 +168,6 @@ array_splice($object_types, 10);
 array_splice($all_tag_amount, 10);
 ?>
 
-<h1><?= !empty($filters['published']) ? __('Summary of published Events') : __('Summary of Events') ?></h1>
 <?php if ($this->fetch('prepend-html')) : ?>
     <?= $this->fetch('prepend-html') ?>
 <?php endif; ?>
