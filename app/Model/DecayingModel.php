@@ -638,6 +638,36 @@ class DecayingModel extends AppModel
         return $attribute;
     }
 
+    public function attachBaseScoresToEvent($user, $event, $model_id=false, $model_overrides=array(), $include_full_model=0)
+    {
+        $models = [];
+        if ($model_id === false) { // fetch all allowed and associated models
+            $models = $this->fetchAllAllowedModels($user, false, [], ['DecayingModel.enabled' => true]);
+        } else {
+            $models = $this->fetchModels($user, $model_id, false, array());
+        }
+        foreach ($models as $model) {
+            if (!empty($model_overrides)) {
+                $model = $this->overrideModelParameters($model, $model_overrides);
+            }
+            $basescore = $this->getBaseScoreForEvent($event, $model, $user);
+            $decayed = $this->isBaseScoreDecayed($model, $basescore);
+            $to_attach = [
+                'base_score' => $basescore,
+                'decayed' => $decayed,
+                'DecayingModel' => [
+                    'id' => $model['DecayingModel']['id'],
+                    'name' => $model['DecayingModel']['name']
+                ]
+            ];
+            if ($include_full_model) {
+                $to_attach['DecayingModel'] = $model['DecayingModel'];
+            }
+            $event['event_base_score'][] = $to_attach;
+        }
+        return $event;
+    }
+
     public function getScore($attribute, $model, $user=false)
     {
         if (is_numeric($attribute) && $user !== false) {
@@ -655,6 +685,18 @@ class DecayingModel extends AppModel
         }
         $this->Computation = $this->getModelClass($model);
         return $this->Computation->computeCurrentScore($user, $model, $attribute);
+    }
+
+    public function getBaseScoreForEvent(array $event, array $model): float
+    {
+        $this->Computation = $this->getModelClass($model);
+        return $this->Computation->computeBasescore($model, $event)['base_score'];
+    }
+
+    public function isBaseScoreDecayed(array $model, float $basescore): bool
+    {
+        $threshold = $model['DecayingModel']['parameters']['threshold'];
+        return $threshold > $basescore;
     }
 
     public function isDecayed($attribute, $model, $score=false, $user=false)

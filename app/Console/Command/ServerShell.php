@@ -578,6 +578,37 @@ class ServerShell extends AppShell
         $this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');
     }
 
+    public function sendPeriodicSummaryToUsers()
+    {
+        $this->ConfigLoad->execute();
+        $periods = $this->__getPeriodsForToday();
+        $start_time = time();
+        echo __n('Started periodic summary generation for the %s period', 'Started periodic summary generation for periods: %s', count($periods), implode(', ', $periods)) . PHP_EOL;
+        foreach ($periods as $period) {
+            $users = $this->User->getSubscribedUsersForPeriod($period);
+            echo __n('%s user has subscribed for the `%s` period', '%s users has subscribed for the `%s` period', count($users), count($users), $period) . PHP_EOL;
+            foreach ($users as $user) {
+                echo __('Sending `%s` report to `%s`', $period, $user['User']['email']) . PHP_EOL;
+                $emailTemplate = $this->User->generatePeriodicSummary($user['User']['id'], $period, false);
+                $this->User->sendEmail($user, $emailTemplate, false, null);
+            }
+        }
+        echo __('All reports sent. Task took %s secondes', time() -  $start_time) . PHP_EOL;
+    }
+
+    private function __getPeriodsForToday(): array
+    {
+        $today = new DateTime();
+        $periods = ['daily'];
+        if ($today->format('j') == 1) {
+            $periods[] = 'weekly';
+        }
+        if ($today->format('N') == 1) {
+            $periods[] = 'monthly';
+        }
+        return $periods;
+    }
+
     /**
      * @param int $userId
      * @return array

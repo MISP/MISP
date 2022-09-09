@@ -377,6 +377,18 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('View delegation requests')
                         ));
                     }
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'viewPeriodicSummary',
+                        'url' => $baseurl . '/users/viewPeriodicSummary/daily',
+                        'text' => __('View periodic summary')
+                    ));
+                    if ($menuItem === 'viewPeriodicSummary' || $menuItem === 'notification_settings') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'notification_settings',
+                            'url' => $baseurl . '/users/notificationSettings',
+                            'text' => __('Periodic summary settings')
+                        ));
+                    }
                     echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/events/export',
@@ -632,6 +644,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'element_id' => 'user_settings_index_me',
                         'url' => $baseurl . '/user_settings/index/user_id:me',
                         'text' => __('My Settings')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'notification_settings',
+                        'url' => $baseurl . '/users/notificationSettings',
+                        'text' => __('Periodic summary settings')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'user_settings_set',

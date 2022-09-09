@@ -22,6 +22,8 @@ class ContextExport
     private $__taxonomyFetched = [];
     private $__galaxyFetched = [];
 
+    private $__passedOptions = [];
+
     public $non_restrictive_export = true;
     public $renderView = 'context_view';
 
@@ -33,7 +35,6 @@ class ContextExport
                 $this->__aggregate($attribute, Hash::extract($attribute, 'AttributeTag.{n}.Tag'));
             }
         }
-
         $this->__attack_export_tool->handler($data, $options);
         return '';
     }
@@ -45,6 +46,7 @@ class ContextExport
         App::uses('AttackExport', 'Export');
         $this->__attack_export_tool = new AttackExport();
         $this->__attack_export_tool->handler($options);
+        $this->__passedOptions = $options;
 
         return '';
     }
@@ -55,6 +57,9 @@ class ContextExport
         $this->__aggregateTagsPerTaxonomy();
         $this->__aggregateClustersPerGalaxy();
         $attackData = json_decode($attackFinal, true);
+        if (!empty($this->__passedOptions['filters']['staticHtml'])) {
+            $attackData['static'] = true;
+        }
         return json_encode([
             'attackData' => $attackData,
             'tags' => $this->__aggregatedTags,
