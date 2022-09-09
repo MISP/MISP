@@ -1837,7 +1837,7 @@ class User extends AppModel
         if (!empty($period_filters['orgc_id'])) {
             $filters['orgc_id'] = $period_filters['orgc_id'];
         }
-        if (!empty($period_filters['distribution'])) {
+        if (isset($period_filters['distribution']) && $period_filters['distribution'] >= 0) {
             $filters['distribution'] = intval($period_filters['distribution']);
         }
         if (!empty($period_filters['sharing_group_id'])) {

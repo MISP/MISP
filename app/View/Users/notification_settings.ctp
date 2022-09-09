@@ -34,7 +34,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'field' => 'periodic_settings.distribution',
                 'label' => __('Distribution level'),
                 'class' => 'input',
-                'options' => [0 => ' '] + $distributionLevels,
+                'options' => [-1 => ' '] + $distributionLevels,
                 'type' => 'dropdown'
             ],
             [
