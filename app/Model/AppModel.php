@@ -83,7 +83,7 @@ class AppModel extends Model
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
-        93 => false, 94 => false, 95 => false,
+        93 => false, 94 => false, 95 => true, 96 => false, 97 => true,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -264,6 +264,10 @@ class AppModel extends Model
                     );
                 }
                 $dbUpdateSuccess = true;
+                break;
+            case 96:
+                $this->removeDuplicatedUUIDs();
+                $dbUpdateSuccess = $this->updateDatabase('createUUIDsConstraints');
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -1862,6 +1866,13 @@ class AppModel extends Model
             case 95:
                 $sqlArray[] = "ALTER TABLE `servers` ADD `remove_missing_tags` tinyint(1) NOT NULL DEFAULT 0 AFTER `skip_proxy`;";
                 break;
+            case 97:
+                $sqlArray[] = "ALTER TABLE `users`
+                    ADD COLUMN `notification_daily`     tinyint(1) NOT NULL DEFAULT 0,
+                    ADD COLUMN `notification_weekly`    tinyint(1) NOT NULL DEFAULT 0,
+                    ADD COLUMN `notification_monthly`   tinyint(1) NOT NULL DEFAULT 0
+                ;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1929,6 +1940,15 @@ class AppModel extends Model
                     ;";
                 $indexArray[] = array('shadow_attributes', 'first_seen');
                 $indexArray[] = array('shadow_attributes', 'last_seen');
+                break;
+            case 'createUUIDsConstraints':
+                $tables_to_check = ['events', 'attributes', 'objects', 'sightings', 'dashboards', 'inbox', 'organisations', 'tag_collections'];
+                foreach ($tables_to_check as $table) {
+                    if (!$this->__checkIndexExists($table, 'uuid', true)) {
+                        $this->__dropIndex($table, 'uuid');
+                        $this->__addIndex($table, 'uuid', null, true);
+                    }
+                }
                 break;
             default:
                 return false;
@@ -2178,6 +2198,18 @@ class AppModel extends Model
             $additionResult['errorMessage'] = $errorMessage;
         }
         return $additionResult;
+    }
+
+    private function __checkIndexExists($table, $column_name, $is_unique = false): bool
+    {
+        $query = sprintf(
+            'SHOW INDEX FROM %s WHERE Column_name = \'%s\' and Non_unique = %s;',
+            $table,
+            $column_name,
+            !empty($is_unique) ? '0' : '1'
+        );
+        $existing_index = $this->query($query);
+        return !empty($existing_index);
     }
 
     public function cleanCacheFiles()
@@ -2702,6 +2734,143 @@ class AppModel extends Model
 
         }
         return true;
+    }
+
+    public function removeDuplicatedUUIDs()
+    {
+        $removedResults = array(
+            'Event' => $this->removeDuplicateEventUUIDs(),
+            'Attribute' => $this->removeDuplicateAttributeUUIDs(),
+            'Object' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('MispObject'), 'timestamp'),
+            'Sighting' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Sighting'), 'date_sighting'),
+            'Dashboard' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Dashboard'), 'timestamp'),
+            'Inbox' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Inbox'), 'timestamp'),
+            'TagCollection' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('TagCollection')),
+            // 'GalaxyCluster' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('GalaxyCluster')),
+        );
+        $this->Log->createLogEntry('SYSTEM', 'update_database', 'Server', 0, __('Removed duplicated UUIDs'), __('Event: %s, Attribute: %s, Object: %s, Sighting: %s, Dashboard: %s, Inbox: %s, TagCollection: %s', h($removedResults['Event']), h($removedResults['Attribute']), h($removedResults['Object']), h($removedResults['Sighting']), h($removedResults['Dashboard']), h($removedResults['Inbox']), h($removedResults['TagCollection'])));
+    }
+
+    private function __removeDuplicateUUIDsGeneric($model, $sort_by=false): int
+    {
+        $className = get_class($model);
+        $alias = $model->alias;
+        $this->Log = ClassRegistry::init('Log');
+        $duplicates = $model->find('all', array(
+            'fields' => array('uuid', 'count(uuid) as occurrence'),
+            'recursive' => -1,
+            'group' => array('uuid HAVING occurrence > 1'),
+        ));
+        $counter = 0;
+        foreach ($duplicates as $duplicate) {
+            $options = [
+                'recursive' => -1,
+                'conditions' => array('uuid' => $duplicate[$alias]['uuid']),
+            ];
+            if (!empty($sort_by)) {
+                $options['order'] = "$sort_by DESC";
+            }
+            $fetched_duplicates = $model->find('all', $options);
+            unset($fetched_duplicates[0]);
+            foreach ($fetched_duplicates as $fetched_duplicate) {
+                $model->delete($fetched_duplicate[$alias]['id']);
+                $this->Log->createLogEntry('SYSTEM', 'delete', $className, $fetched_duplicate[$alias]['id'], __('Removed %s (%s)', $className, $fetched_duplicate[$alias]['id']), __('%s\'s UUID duplicated (%s)', $className, $fetched_duplicate[$alias]['uuid']));
+                $counter++;
+            }
+        }
+        return $counter;
+    }
+
+    public function removeDuplicateAttributeUUIDs()
+    {
+        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Log = ClassRegistry::init('Log');
+        $duplicates = $this->Attribute->find('all', array(
+            'fields' => array('Attribute.uuid', 'count(Attribute.uuid) as occurrence'),
+            'recursive' => -1,
+            'group' => array('Attribute.uuid HAVING occurrence > 1'),
+            'order' => false,
+        ));
+        $counter = 0;
+        foreach ($duplicates as $duplicate) {
+            $attributes = $this->Attribute->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('uuid' => $duplicate['Attribute']['uuid']),
+                'contain' => array(
+                    'AttributeTag' => array(
+                        'fields' => array('tag_id')
+                    )
+                ),
+                'order' => 'timestamp DESC',
+            ));
+            $tagIDsOfFirstAttribute = Hash::extract($attributes[0]['AttributeTag'], '{n}.tag_id');
+            $eventIDOfFirstAttribute = $attributes[0]['Attribute']['event_id'];
+            unset($attributes[0]);
+            foreach ($attributes as $attribute) {
+                $tagIDs = Hash::extract($attribute['AttributeTag'], '{n}.tag_id');
+                $logTag = false;
+                $logEventID = false;
+                if (empty(array_diff($tagIDs, $tagIDsOfFirstAttribute))) {
+                    $logTag = true;
+                }
+                if ($eventIDOfFirstAttribute != $attribute['Attribute']['event_id']) {
+                    $logEventID = true;
+                }
+                $success = $this->Attribute->delete($attribute['Attribute']['id']);
+                if (empty($success)) {
+                    $this->Log->createLogEntry('SYSTEM', 'delete', 'Attribute', $attribute['Attribute']['id'], __('Could not remove attribute (%s)', $attribute['Attribute']['id']), __('Deletion was rejected.'));
+                    continue;
+                }
+                $logMessage = __('Attribute\'s UUID duplicated (%s).', $attribute['Attribute']['uuid']);
+                if ($logEventID) {
+                    $logMessage .= __(' Was part of another event_id (%s) than the one that was kept (%s).', $attribute['Attribute']['event_id'], $eventIDOfFirstAttribute);
+                } else if ($logTag) {
+                    $logMessage .= __(' Tag IDs attached [%s]', implode($tagIDs));
+                } else {
+                }
+                $this->Log->createLogEntry('SYSTEM', 'delete', 'Attribute', $attribute['Attribute']['id'], __('Removed attribute (%s)', $attribute['Attribute']['id']), $logMessage);
+                $counter++;
+            }
+        }
+        return $counter;
+    }
+
+    public function removeDuplicateEventUUIDs()
+    {
+        $this->Event = ClassRegistry::init('Event');
+        $this->Log = ClassRegistry::init('Log');
+        $duplicates = $this->Event->find('all', array(
+                'fields' => array('Event.uuid', 'count(Event.uuid) as occurrence'),
+                'recursive' => -1,
+                'group' => array('Event.uuid HAVING occurrence > 1'),
+        ));
+        $counter = 0;
+
+        // load this so we can remove the blocklist item that will be created, this is the one case when we do not want it.
+        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+        }
+
+        foreach ($duplicates as $duplicate) {
+            $events = $this->Event->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('uuid' => $duplicate['Event']['uuid']),
+                'order' => 'timestamp DESC',
+            ));
+            unset($events[0]);
+            foreach ($events as $event) {
+                $uuid = $event['Event']['uuid'];
+                $this->Event->delete($event['Event']['id']);
+                $this->Log->createLogEntry('SYSTEM', 'delete', 'Event', $event['Event']['id'], __('Removed event (%s)', $event['Event']['id']), __('Event\'s UUID duplicated (%s)', $event['Event']['uuid']));
+                $counter++;
+                // remove the blocklist entry that we just created with the event deletion, if the feature is enabled
+                // We do not want to block the UUID, since we just deleted a copy
+                if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+                    $this->EventBlocklist->deleteAll(array('EventBlocklist.event_uuid' => $uuid));
+                }
+            }
+        }
+        return $counter;
     }
 
     public function checkFilename($filename)
