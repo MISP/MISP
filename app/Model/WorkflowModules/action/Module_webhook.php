@@ -56,7 +56,7 @@ class Module_webhook extends WorkflowBaseActionModule
                 $errors,
                 'error',
                 __('`rest_client_enable_arbitrary_urls` is turned off.'),
-                __('The module will not send any request as long as `Security.rest_client_enable_arbitrary_urls` is not turned on.'),
+                __('The module will not send any request as long as `Security.rest_client_enable_arbitrary_urls` is turned off.'),
                 [
                     __('This is a security measure to ensure a site-admin do not send arbitrary request to internal services')
                 ],
@@ -70,6 +70,10 @@ class Module_webhook extends WorkflowBaseActionModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
+        if (empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
+            $errors[] = __('`Security.rest_client_enable_arbitrary_urls` is turned off');
+            return false;
+        }
         $params = $this->getParamsWithValues($node);
         if (empty($params['url']['value'])) {
             $errors[] = __('URL not provided.');
