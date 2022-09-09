@@ -2065,7 +2065,7 @@ class ServersController extends AppController
         }
         if (Configure::read('Security.advanced_authkeys')) {
             $this->loadModel('AuthKey');
-            $authkey = $this->AuthKey->createnewkey($this->Auth->user('id'), __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
+            $authkey = $this->AuthKey->createnewkey($this->Auth->user('id'), null, __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
         } else {
             $this->loadModel('User');
             $authkey = $this->User->find('column', [
