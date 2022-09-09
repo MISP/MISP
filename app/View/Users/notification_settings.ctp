@@ -25,6 +25,7 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'periodic_settings.orgc_id',
                 'label' => __('Creator organisation'),
+                'class' => 'span6',
                 'options' => $orgs,
                 'type' => 'dropdown',
                 'multiple' => true,
@@ -33,14 +34,14 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'periodic_settings.distribution',
                 'label' => __('Distribution level'),
-                'class' => 'input',
+                'class' => 'input span6',
                 'options' => [-1 => ' '] + $distributionLevels,
                 'type' => 'dropdown'
             ],
             [
                 'field' => 'periodic_settings.sharing_group_id',
                 'label' => __('Sharing Group'),
-                'class' => 'input',
+                'class' => 'input span6',
                 'options' => $sharingGroups,
                 'type' => 'dropdown',
                 'multiple' => true,
@@ -48,12 +49,13 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'periodic_settings.event_info',
                 'label' => __('Event info'),
-                'class' => 'input',
+                'class' => 'input span6',
                 'placeholder' => 'Phishing URL',
             ],
             [
                 'field' => 'periodic_settings.tags',
                 'label' => __('Event Tags'),
+                'class' => 'span6',
                 'type' => 'tagsPicker',
                 'placeholder' => '["tlp:red"]',
             ],
@@ -61,6 +63,7 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'periodic_settings.trending_for_tags',
                 'label' => __('Generate trends for tag namespaces'),
+                'class' => 'span6',
                 'type' => 'textarea',
                 'placeholder' => '["misp-galaxy:mitre-attack-pattern", "admiralty-scale"]',
             ],
@@ -85,3 +88,6 @@ if (!$ajax) {
         });
     })
 </script>
+
+<style>
+</style>

@@ -1,7 +1,7 @@
 <?php
 $seed = mt_rand();
 $input = $this->Form->input($fieldData['field'], [
-    'class' => 'tag-textarea',
+    'class' => ($fieldData['class'] ?? '') . ' tag-textarea',
     'label' => $fieldData['label'] ?? __('Tag list'),
     'type' => 'textarea',
     'placeholder' => $fieldData['placeholder'] ?? 'tlp:red, PAP:GREEN',
