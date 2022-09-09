@@ -116,6 +116,13 @@ if (!function_exists('computeLinePositions')) {
     <?php if (!empty($allUniqueTags)) : ?>
         <div style="padding: 0 40px; margin: -40px 20px 0 0;">
             <div class="chart-container">
+                <div class="y-axis-container">
+                    <div>
+                        <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, 0, -25) ?>"><?= h($maxValue) ?></span>
+                        <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20)/2, 0) ?>"><?= h(round($maxValue / 2, 2)) ?></span>
+                        <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20), 25) ?>"><?= 0 ?></span>
+                    </div>
+                </div>
                 <div class="canvas">
                     <?php foreach ($chartData as $tag => $coords) : ?>
                         <?php for ($i = 0; $i < 3; $i++) : ?>
@@ -141,10 +148,10 @@ if (!function_exists('computeLinePositions')) {
                         <?php endfor ?>
                     <?php endforeach ?>
                 </div>
-                <div style="position: relative;">
-                    <span class="axis-label" style="<?= sprintf('left: %spx; top: %spx;', 0, 0) ?>"><?= __('Period 2') ?></span>
-                    <span class="axis-label" style="<?= sprintf('left: %spx; top: %spx;', $canvasWidth / 2, 0) ?>"><?= __('Previous period') ?></span>
-                    <span class="axis-label" style="<?= sprintf('left: %spx; top: %spx;', $canvasWidth, 0) ?>"><?= __('Current period') ?></span>
+                <div class="x-axis-container">
+                    <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', 0, 0) ?>"><?= __('Period-2') ?></span>
+                    <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', $canvasWidth / 2, 0) ?>"><?= __('Previous period') ?></span>
+                    <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', $canvasWidth, 0) ?>"><?= __('Current period') ?></span>
                 </div>
             </div>
         </div>
@@ -285,10 +292,50 @@ if (!function_exists('computeLinePositions')) {
         box-shadow: 1px 1px 2px 0px #00000066;
     }
 
+    .chart-container {
+        position: relative;
+        background-color: #dddddd33;
+        padding: 5px 35px 5px 45px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+    }
+
     .canvas {
         width: 610px;
         height: 160px;
         position: relative;
+    }
+
+    .x-axis-container {
+        position: relative;
+        height: 20px;
+    }
+
+    .x-axis-label {
+        position: absolute;
+        white-space: nowrap;
+        translate: -50%;
+    }
+
+    .y-axis-container {
+        height: 150px;
+        border-right: 1px solid #000;
+        position: absolute;
+        left: -5px;
+        top: 10px;
+        padding-left: inherit;
+    }
+
+    .y-axis-container > div {
+        position: relative;
+        height: 100%;
+    }
+
+    .y-axis-label {
+        position: absolute;
+        white-space: nowrap;
+        /* transform: translate(-100%, 0%); */
+        padding: 0 5px;
     }
 
     .tag-legend {
@@ -296,11 +343,5 @@ if (!function_exists('computeLinePositions')) {
         width: 10px;
         height: 10px;
         border: 1px solid #000;
-    }
-
-    .axis-label {
-        position: absolute;
-        white-space: nowrap;
-        translate: -50%;
     }
 </style>
