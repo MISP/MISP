@@ -319,9 +319,9 @@ array_splice($all_tag_amount, 10);
                     <table class="table table-condensed">
                         <thead>
                             <tr>
-                                <th><?= __('Published date') ?></th>
+                                <th><?= __('Publish date') ?></th>
                                 <th><?= __('Creator Org.') ?></th>
-                                <th>TLP</th>
+                                <th><?= __('Distribution') ?></th>
                                 <th><?= __('State') ?></th>
                                 <th><?= __('Threat Level') ?></th>
                                 <?php foreach ($vars['additional_taxonomy_event_list'] as $taxonomy_name => $taxonomy_prefix) : ?>
@@ -337,15 +337,21 @@ array_splice($all_tag_amount, 10);
                             <?php foreach ($events as $event) : ?>
                                 <?php
                                 $workflowTag = findAndBuildTag($event['EventTag'], 'workflow:', $this);
-                                $analysisHtml = !empty($workflowTag) ? $workflowTag : h($analysisLevels[$event['Event']['analysis']]);
+                                $analysisHtml = !empty($workflowTag) ? $workflowTag : '';
                                 $tlpTag = findAndBuildTag($event['EventTag'], 'tlp:', $this);
-                                $tlpHtml = !empty($tlpTag) ? $tlpTag : h($distributionLevels[$event['Event']['distribution']]);
+                                $tlpHtml = !empty($tlpTag) ? $tlpTag : '';
                                 ?>
                                 <tr>
                                     <td><?= DateTime::createFromFormat('U', h($event['Event']['publish_timestamp']))->format('Y-m-d') ?></td>
                                     <td><?= h($event['Orgc']['name']) ?></td>
-                                    <td><?= $tlpHtml ?></td>
-                                    <td><?= $analysisHtml ?></td>
+                                    <td>
+                                        <<?= !empty($tlpHtml) ? 'small' : 'span' ?>><?= h($distributionLevels[$event['Event']['distribution']]) ?></<?= !empty($tlpHtml) ? 'small' : 'span' ?>>
+                                        <span style="margin-left: 3px;"><?= $tlpHtml ?></span>
+                                    </td>
+                                    <td>
+                                        <<?= !empty($analysisHtml) ? 'small' : 'span' ?>><?= h($analysisLevels[$event['Event']['analysis']]) ?></<?= !empty($analysisHtml) ? 'small' : 'span' ?>>
+                                        <span style="margin-left: 3px;"><?= $analysisHtml ?></span>
+                                    </td>
                                     <td><?= h($event['ThreatLevel']['name']); ?></td>
                                     <?php foreach ($vars['additional_taxonomy_event_list'] as $taxonomy_name => $taxonomy_prefix) : ?>
                                         <td><?= findAndBuildTag($event['EventTag'], $taxonomy_prefix, $this) ?></td>
