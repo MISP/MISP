@@ -8731,7 +8731,7 @@
             "restrict_to_org_id": false,
             "restrict_to_permission_flag": false,
             "user_id": false,
-            "uuid": false
+            "uuid": true
         },
         "decaying_models": {
             "all_orgs": false,
@@ -8869,7 +8869,7 @@
             "title": false,
             "type": false,
             "user_agent_sha256": false,
-            "uuid": false
+            "uuid": true
         },
         "jobs": {
             "id": true
@@ -9062,7 +9062,7 @@
             "id": true,
             "org_id": false,
             "user_id": false,
-            "uuid": false
+            "uuid": true
         },
         "tag_collection_tags": {
             "id": true,
@@ -9149,5 +9149,5 @@
             "uuid": false
         }
     },
-    "db_version": "96"
+    "db_version": "97"
 }
