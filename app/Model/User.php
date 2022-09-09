@@ -1765,6 +1765,10 @@ class User extends AppModel
         $filters = $this->getUsablePeriodicSettingForUser($periodicSettings, $period);
         $filtersForRestSearch = $filters; // filters for restSearch are slightly different than fetchEvent
         $filters['last'] = $this->resolveTimeDelta($filters['last']);
+        $filters['sgReferenceOnly'] = true;
+        $filters['includeEventCorrelations'] = false;
+        $filters['noSightings'] = true;
+        $filters['includeGalaxy'] = false;
         $events = $this->__getEventsForFilters($user, $filters);
 
         $elementCounter = 0;
