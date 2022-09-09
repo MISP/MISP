@@ -2811,7 +2811,7 @@ class UsersController extends AppController
     {
         $summary = $this->User->generatePeriodicSummary($this->Auth->user('id'), $period);
         $periodic_settings = $this->User->extractPeriodicSettingForUser($this->Auth->user('id'));
-        $notification_settings = $this->User->getUsablePeriodicSettingForUser($periodic_settings);
+        $notification_settings = $this->User->getUsablePeriodicSettingForUser($periodic_settings, $period);
         $this->set('periodic_settings', $periodic_settings);
         $this->set('summary', $summary);
         $this->set('period', $period);

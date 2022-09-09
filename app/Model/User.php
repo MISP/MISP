@@ -1679,9 +1679,9 @@ class User extends AppModel
         return $periodic_settings_indexed;
     }
 
-    public function getUsablePeriodicSettingForUser(array $periodicSettings): array
+    public function getUsablePeriodicSettingForUser(array $periodicSettings, $period='daily'): array
     {
-        return $this->__getUsableFilters($periodicSettings);
+        return $this->__getUsableFilters($periodicSettings, $period);
     }
 
     public function saveNotificationSettings(int $user_id, array $data): bool
@@ -1762,7 +1762,7 @@ class User extends AppModel
         App::import('Tools', 'SendEmail');
         $emailTemplate = $this->prepareEmailTemplate($period);
         $periodicSettings = $this->extractPeriodicSettingForUser($user, true);
-        $filters = $this->getUsablePeriodicSettingForUser($periodicSettings);
+        $filters = $this->getUsablePeriodicSettingForUser($periodicSettings, $period);
         $filtersForRestSearch = $filters; // filters for restSearch are slightly different than fetchEvent
         $filters['last'] = $this->resolveTimeDelta($filters['last']);
         $events = $this->__getEventsForFilters($user, $filters);
