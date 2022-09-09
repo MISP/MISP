@@ -4,8 +4,12 @@
         <div>
             <?php
             $htmlTags = '';
+            $customTagHtml = '';
             foreach ($tags as $namespace => $entries) {
-                $htmlTags .= sprintf('<div><h4>%s</h4></div>', h($namespace));
+                if (empty($entries[0]['Taxonomy'])) {
+                    continue;
+                }
+                $htmlTags .= sprintf('<div><h4><code>%s</code></h4></div>', h($namespace));
                 if (!empty($entries[0]['Taxonomy']['description'])) {
                     $htmlTags .= sprintf('<div><i>%s</i></div>', h($entries[0]['Taxonomy']['description']));
                 }
