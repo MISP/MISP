@@ -195,7 +195,7 @@ array_splice($all_tag_amount, 10);
                                 $start_date->format('W'),
                                 $now->format('M d, o'),
                                 $now->format('W'),
-                                $start_date->format('M d, o'),
+                                $start_date->format('M d, o')
                             )
                             ?>
                         </td>
