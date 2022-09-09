@@ -209,6 +209,23 @@ class WorkflowBaseModule
         }
         return $items;
     }
+
+    protected function addNotification(array $errors, string $severity, string $text, string $description='', array $details=[], bool $showInSidebar=false, bool $showInNode=false): array
+    {
+         $errors[$severity][] = [
+            'text' => $text,
+            'description' => $description,
+            'details' => $details,
+            '__show_in_sidebar' => $showInSidebar,
+            '__show_in_node' => $showInNode,
+        ];
+        return $errors;
+    }
+
+    public function diagnostic(): array
+    {
+        return [];
+    }
 }
 
 class WorkflowBaseTriggerModule extends WorkflowBaseModule
