@@ -303,34 +303,42 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 				'Authorization' => 'Bearer ' . $authdata["access_token"]
 			]
 		];
+				
+		$has_next_page = true;
 		$url = self::$auth_provider_user . "/v1.0/me/memberOf";
+		while ($has_next_page) {
+			$response = (new HttpSocket())->get($url, array(), $options);
 
-		$response = (new HttpSocket())->get($url, null, $options);
-
-		if (!$response->isOk()) {
-			$this->_log("warning", "Error received during user group data fetch.");
-			$this->_logHttpError("debug", $url, $response);
-			return false;
-		}
-
-		$groupdata = json_decode($response->body, true);  //This should now contain your logged on user memberOf (groups) information
-		if (isset($groupdata["error"])) {
-			$this->_log("warning", "Group data fetch contained an error.");
-			$this->_log("debug", "Response: " . json_encode($groupdata["error"]));
-			return false;
-		}
-
-		// Now check if the user has any of the MISP AAD groups enabled
-		foreach ($groupdata["value"] as $group) {
-			$groupdisplayName = $group["displayName"];
-			if ($groupdisplayName == self::$misp_siteadmin) {
-				return self::$misp_siteadmin;
+			if (!$response->isOk()) {
+				$this->_log("warning", "Error received during user group data fetch.");
+				$this->_logHttpError("debug", $url, $response);
+				return false;
 			}
-			if ($groupdisplayName == self::$misp_orgadmin) {
-				return self::$misp_orgadmin;
+
+			$groupdata = json_decode($response->body, true);  //This should now contain your logged on user memberOf (groups) information
+			if (isset($groupdata["error"])) {
+				$this->_log("warning", "Group data fetch contained an error.");
+				$this->_log("debug", "Response: " . json_encode($groupdata["error"]));
+				return false;
 			}
-			if ($groupdisplayName == self::$misp_user) {
-				return self::$misp_user;
+
+			// Now check if the user has any of the MISP AAD groups enabled
+			foreach ($groupdata["value"] as $group) {
+				$groupdisplayName = $group["displayName"];
+				if ($groupdisplayName == self::$misp_siteadmin) {
+					return self::$misp_siteadmin;
+				}
+				if ($groupdisplayName == self::$misp_orgadmin) {
+					return self::$misp_orgadmin;
+				}
+				if ($groupdisplayName == self::$misp_user) {
+					return self::$misp_user;
+				}
+			}
+
+			$has_next_page = array_key_exists("@odata.nextLink", $groupdata);
+			if ($has_next_page) {
+				$url = $groupdata["@odata.nextLink"];
 			}
 		}
 

@@ -516,13 +516,21 @@ class Event extends AppModel
         return $this->save($event, true, ['timestamp', 'published']);
     }
 
-    public function attachTagsToEventAndTouch($event_id, $tags)
+    public function attachTagsToEventAndTouch($event_id, $tags, array $user)
     {
         $touchEvent = false;
         $success = false;
-        foreach ($tags as $tagId) {
+        $capturedTags = [];
+        foreach ($tags as $tag_name) {
             $nothingToChange = false;
-            $success = $success || $this->EventTag->attachTagToEvent($event_id, ['id' => $tagId], $nothingToChange);
+            $tag_id = $this->captureTagWithCache(
+                [
+                    'name' => $tag_name,
+                ],
+                $user,
+                $capturedTags
+            );
+            $success = $success || $this->EventTag->attachTagToEvent($event_id, ['id' => $tag_id], $nothingToChange);
             $touchEvent = $touchEvent || !$nothingToChange;
         }
         if ($touchEvent) {
@@ -535,9 +543,14 @@ class Event extends AppModel
     {
         $touchEvent = false;
         $success = false;
-        foreach ($tags as $tagId) {
+        foreach ($tags as $tag_name) {
             $nothingToChange = false;
-            $success = $success || $this->EventTag->detachTagFromEvent($event_id, $tagId, $nothingToChange);
+            $tag_id = $this->EventTag->Tag->lookupTagIdFromName($tag_name);
+            if ($tag_id == -1) {
+                $success = $success || true;
+                continue;
+            }
+            $success = $success || $this->EventTag->detachTagFromEvent($event_id, $tag_id, $nothingToChange);
             $touchEvent = $touchEvent || !$nothingToChange;
         }
         if ($touchEvent) {
@@ -1134,6 +1147,10 @@ class Event extends AppModel
         return $data[0];
     }
 
+    /**
+     * @param array $event
+     * @return bool
+     */
     public function quickDelete(array $event)
     {
         $id = (int)$event['Event']['id'];
@@ -1143,7 +1160,7 @@ class Event extends AppModel
             'fields' => array('Thread.id'),
             'recursive' => -1
         ));
-        $thread_id = !empty($thread) ? $thread['Thread']['id'] : false;
+        $thread_id = !empty($thread) ? (int)$thread['Thread']['id'] : false;
         $relations = array(
             array(
                 'table' => 'attributes',
@@ -1218,10 +1235,17 @@ class Event extends AppModel
                 )
             );
         }
-        App::uses('QueryTool', 'Tools');
-        $queryTool = new QueryTool();
+
+        $db = $this->getDataSource();
+        $db->begin();
+        $connection = $db->getConnection();
         foreach ($relations as $relation) {
-            $queryTool->quickDelete($relation['table'], $relation['foreign_key'], $relation['value'], $this);
+            $query = $connection->prepare('DELETE FROM ' . $db->name($relation['table']) . ' WHERE ' . $db->name($relation['foreign_key']) . ' = :value');
+            $query->bindValue(':value', $relation['value'], PDO::PARAM_INT);
+            $query->execute();
+        }
+        if (!$db->commit()) {
+            return false;
         }
         $this->set($event);
         return $this->delete(null, false);
@@ -3274,7 +3298,7 @@ class Event extends AppModel
      * @return false|int
      * @throws Exception
      */
-    private function captureTagWithCache(array $tag, array $user, array &$capturedTags)
+    public function captureTagWithCache(array $tag, array $user, array &$capturedTags)
     {
         $tagName = $tag['name'];
         if (isset($capturedTags[$tagName])) {
@@ -3740,6 +3764,7 @@ class Event extends AppModel
                     'Server.unpublish_event',
                     'Server.publish_without_email',
                     'Server.internal',
+                    'Server.remove_missing_tags'
                 )
             ));
         } else {
@@ -3846,7 +3871,7 @@ class Event extends AppModel
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $attribute) {
                     $nothingToChange = false;
-                    $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange);
+                    $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
                     if ($result !== true) {
                         $validationErrors['Attribute'][] = $result;
                     }

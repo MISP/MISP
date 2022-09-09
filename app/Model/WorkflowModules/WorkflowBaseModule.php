@@ -106,6 +106,24 @@ class WorkflowBaseModule
         $pubSubTool->workflow_push($message);
     }
 
+    protected function render_jinja_template($template, array $data): string
+    {
+        $mispModule = ClassRegistry::init('Module');
+        $postData = [
+            'module' => 'jinja_template_rendering',
+            'text' => JsonTool::encode([
+                'template' => $template,
+                'data' => $data,
+            ])
+        ];
+        $result = $mispModule->queryModuleServer($postData, false, 'Enrichment', false, [], true);
+        if (!empty($result['error'])) {
+            return '';
+        }
+        $rendered = $result['results'][0]['values'][0];
+        return $rendered;
+    }
+
     protected function logError($message)
     {
         $this->Log = ClassRegistry::init('Log');

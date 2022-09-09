@@ -1598,6 +1598,9 @@ function saveFilteringForModule() {
             $('<div></div>').addClass('alert alert-danger').text('Some fields cannot be empty')
         )
     } else {
+        if (selector.length == 0 && value.length == 0 && path.length == 0) {
+            operator = ''
+        }
         var node_id = $blockFilteringModal.data('selected-node-id')
         var block = $blockFilteringModal.data('selected-block')
         block.saved_filters = {

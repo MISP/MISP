@@ -121,7 +121,7 @@ class WorkflowBlueprintsController extends AppController
         $content = JsonTool::encode($workflowBlueprint, JSON_PRETTY_PRINT);
         $this->response->body($content);
         $this->response->type('json');
-        $this->response->download(sprintf('workflowblueprint_%s_%s.json', $workflowBlueprint['WorkflowBlueprint']['name'], time()));
+        $this->response->download(sprintf('blueprint_%s_%s.json', str_replace(' ', '-', strtolower($workflowBlueprint['WorkflowBlueprint']['name'])), time()));
         return $this->response;
     }
 }
