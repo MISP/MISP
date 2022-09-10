@@ -6,10 +6,26 @@ class CorrelationValue extends AppModel
     public $recursive = -1;
 
     /**
+     * @param array $correlations
+     * @param string|int $valueIndex
+     * @return void
+     */
+    public function replaceValueWithId(array &$correlations, $valueIndex)
+    {
+        $values = array_column($correlations, $valueIndex);
+        $valueIds = $this->getIds($values);
+
+        foreach ($correlations as &$correlation) {
+            $value = mb_substr($correlation[$valueIndex], 0, 191);
+            $correlation[$valueIndex] = $valueIds[$value];
+        }
+    }
+
+    /**
      * @param array $values
      * @return array Value in key, value ID in value
      */
-    public function getIds(array $values)
+    private function getIds(array $values)
     {
         foreach ($values as &$value) {
             $value = mb_substr($value, 0, 191);

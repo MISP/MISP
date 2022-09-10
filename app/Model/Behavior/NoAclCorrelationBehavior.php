@@ -89,14 +89,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
             'attribute_id'
         ];
 
-        // Replace value with value ID
-        $valueIndex = $this->deadlockAvoidance ? 'value_id' : 0;
-        $values = array_column($correlations, $valueIndex);
-        $valueIds = $this->Correlation->CorrelationValue->getIds($values);
-
-        foreach ($correlations as &$correlation) {
-            $correlation[$valueIndex] = $valueIds[$correlation[$valueIndex]];
-        }
+        $this->Correlation->CorrelationValue->replaceValueWithId($correlations, $this->deadlockAvoidance ? 'value_id' : 0);
 
         if ($this->deadlockAvoidance) {
             return $this->Correlation->saveMany($correlations, [
