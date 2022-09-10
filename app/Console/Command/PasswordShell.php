@@ -14,7 +14,6 @@ class PasswordShell extends AppShell {
     {
         $this->err('This method is deprecated. Next time please use `cake user change_pw [user] [password]` command.');
 
-        $this->ConfigLoad->execute();
         if (!isset($this->args[0]) || empty($this->args[0]) || !isset($this->args[1]) || empty($this->args[1])) echo 'MISP password reset command line tool.' . PHP_EOL . 'To assign a new password for a user:' . PHP_EOL . APP . 'Console/cake Password [email] [password]' . PHP_EOL;
         else {
             // get the users that need their password hashed
@@ -42,7 +41,6 @@ class PasswordShell extends AppShell {
 
     public function getOptionParser()
     {
-        $this->ConfigLoad->execute();
         $parser = parent::getOptionParser();
         $parser->addOption('override_password_change', array(
             'short' => 'o',

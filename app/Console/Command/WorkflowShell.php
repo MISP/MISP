@@ -6,11 +6,9 @@ require_once 'AppShell.php';
 class WorkflowShell extends AppShell {
 
     public $uses = ['Job', 'Workflow'];
-    public $tasks = ['ConfigLoad'];
 
     public function executeWorkflowForTrigger()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
             die(__('Invalid number of arguments.'));
         }
@@ -39,7 +37,6 @@ class WorkflowShell extends AppShell {
 
     public function walkGraph()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
             die(__('Invalid number of arguments.'));
         }

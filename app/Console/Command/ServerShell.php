@@ -57,7 +57,6 @@ class ServerShell extends AppShell
 
     public function pullAll()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['PullAll'] . PHP_EOL);
         }
@@ -367,7 +366,6 @@ class ServerShell extends AppShell
 
     public function enqueuePull()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue pull'] . PHP_EOL);
         }
@@ -430,7 +428,6 @@ class ServerShell extends AppShell
 
     public function enqueueFeedFetch()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue feed fetch'] . PHP_EOL);
         }
@@ -480,7 +477,6 @@ class ServerShell extends AppShell
 
     public function enqueueFeedCache()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue feed cache'] . PHP_EOL);
         }
@@ -537,7 +533,6 @@ class ServerShell extends AppShell
 
     public function enqueuePush()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue push'] . PHP_EOL);
         }
