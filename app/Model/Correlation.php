@@ -6,7 +6,8 @@ App::uses('AppModel', 'Model');
  * @property Event $Event
  * @property CorrelationValue $CorrelationValue
  * @method saveCorrelations(array $correlations)
- * @method runBeforeSaveCorrelation
+ * @method createCorrelationEntry(string $value, array $a, array $b)
+ * @method runBeforeSaveCorrelation(array $attribute)
  * @method fetchRelatedEventIds(array $user, int $eventId, array $sgids)
  * @method getFieldRules
  * @method getContainRules($filter = null)
@@ -56,9 +57,6 @@ class Correlation extends AppModel
     /** @var array */
     private $cidrListCache;
 
-    /** @var string */
-    private $__correlationEngine;
-
     private $__tempContainCache = [];
 
     /** @var OverCorrelatingValue */
@@ -67,10 +65,10 @@ class Correlation extends AppModel
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-        $this->__correlationEngine = $this->getCorrelationModelName();
-        $deadlockAvoidance = Configure::check('MISP.deadlock_avoidance') ? Configure::read('MISP.deadlock_avoidance') : false;
+        $correlationEngine = $this->getCorrelationModelName();
+        $deadlockAvoidance = Configure::read('MISP.deadlock_avoidance') ?: false;
         // load the currently used correlation engine
-        $this->Behaviors->load($this->__correlationEngine . 'Correlation', ['deadlockAvoidance' => $deadlockAvoidance]);
+        $this->Behaviors->load($correlationEngine . 'Correlation', ['deadlockAvoidance' => $deadlockAvoidance]);
         // getTableName() needs to be implemented by the engine - this points us to the table to be used
         $this->useTable = $this->getTableName();
         $this->advancedCorrelationEnabled = (bool)Configure::read('MISP.enable_advanced_correlations');
@@ -183,17 +181,6 @@ class Correlation extends AppModel
         return $correlatingAttributes;
     }
 
-    /**
-     * @param string $value
-     * @param array $a Attribute A
-     * @param array $b Attribute B
-     * @return array
-     */
-    private function __createCorrelationEntry($value, $a, $b)
-    {
-        return $this->createCorrelationEntry($value, $a, $b);
-    }
-
     public function correlateValue($value, $jobId = false)
     {
         $correlatingAttributes = $this->__getMatchingAttributes($value);
@@ -216,7 +203,7 @@ class Correlation extends AppModel
                 if ($correlatingAttribute['Attribute']['event_id'] === $correlatingAttribute2['Attribute']['event_id']) {
                     continue;
                 }
-                $correlations[] = $this->__createCorrelationEntry($value, $correlatingAttribute, $correlatingAttribute2);
+                $correlations[] = $this->createCorrelationEntry($value, $correlatingAttribute, $correlatingAttribute2);
             }
             $extraCorrelations = $this->__addAdvancedCorrelations($correlatingAttribute);
             if (!empty($extraCorrelations)) {
@@ -224,8 +211,8 @@ class Correlation extends AppModel
                     if ($correlatingAttribute['Attribute']['event_id'] === $extraCorrelation['Attribute']['event_id']) {
                         continue;
                     }
-                    $correlations[] = $this->__createCorrelationEntry($value, $correlatingAttribute, $extraCorrelation);
-                    //$correlations = $this->__createCorrelationEntry($value, $extraCorrelation, $correlatingAttribute, $correlations);
+                    $correlations[] = $this->createCorrelationEntry($value, $correlatingAttribute, $extraCorrelation);
+                    //$correlations = $this->createCorrelationEntry($value, $extraCorrelation, $correlatingAttribute, $correlations);
                 }
             }
             if ($jobId && $k % 100 === 0) {
@@ -252,17 +239,16 @@ class Correlation extends AppModel
         }
     }
 
-    public function correlateAttribute(array $attribute)
-    {
-        $this->runBeforeSaveCorrelation($attribute);
-        $this->afterSaveCorrelation($attribute);
-    }
-
     public function beforeSaveCorrelation(array $attribute)
     {
         $this->runBeforeSaveCorrelation($attribute);
     }
 
+    /**
+     * @param string $scope
+     * @param int $id
+     * @return false|array
+     */
     private function __cachedGetContainData($scope, $id)
     {
         if (!empty($this->getContainRules($scope))) {
@@ -374,13 +360,13 @@ class Correlation extends AppModel
                 // If we have more correlations for the value than the limit, set the block entry and stop the correlation process
                 $this->OverCorrelatingValue->block($cV);
                 return true;
-            } else {
+            } else if ($count !== 0) {
                 // If we have fewer hits than the limit, proceed with the correlation, but first make sure we remove any existing blockers
                 $this->OverCorrelatingValue->unblock($cV);
             }
             foreach ($correlatingAttributes as $b) {
                 // On a full correlation, only correlate with attributes that have a higher ID to avoid duplicate correlations
-                if ($full && $b['Attribute']['id'] < $b['Attribute']['id']) {
+                if ($full && $a['Attribute']['id'] < $b['Attribute']['id']) {
                     continue;
                 }
                 if (isset($b['Attribute']['value1'])) {
@@ -390,9 +376,9 @@ class Correlation extends AppModel
                     $value = $cV;
                 }
                 if ($a['Attribute']['id'] > $b['Attribute']['id']) {
-                    $correlations[] = $this->__createCorrelationEntry($value, $a, $b);
+                    $correlations[] = $this->createCorrelationEntry($value, $a, $b);
                 } else {
-                    $correlations[] = $this->__createCorrelationEntry($value, $b, $a);
+                    $correlations[] = $this->createCorrelationEntry($value, $b, $a);
                 }
             }
         }
@@ -995,5 +981,13 @@ class Correlation extends AppModel
             );
         }
         return $result === true;
+    }
+
+    /**
+     * @return string
+     */
+    private function getCorrelationModelName()
+    {
+        return Configure::read('MISP.correlation_engine') ?: 'Default';
     }
 }

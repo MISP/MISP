@@ -5,10 +5,6 @@ class OverCorrelatingValue extends AppModel
 {
     public $recursive = -1;
 
-    public $actsAs = array(
-        'Containable'
-    );
-
     public function beforeValidate($options = array())
     {
         $this->data['OverCorrelatingValue']['value'] = self::truncate($this->data['OverCorrelatingValue']['value']);
@@ -70,7 +66,7 @@ class OverCorrelatingValue extends AppModel
      */
     public function getLimit()
     {
-        return Configure::check('MISP.correlation_limit') ? Configure::read('MISP.correlation_limit') : 20;
+        return Configure::read('MISP.correlation_limit') ?: 20;
     }
 
     public function getOverCorrelations($query)
@@ -94,12 +90,11 @@ class OverCorrelatingValue extends AppModel
 
     public function findOverCorrelatingValues(array $values_to_check): array
     {
-        $values_to_check_truncated = array_unique(self::truncateValues($values_to_check));
-        $overCorrelatingValues = $this->find('column', [
+        $values_to_check_truncated = array_unique(self::truncateValues($values_to_check), SORT_REGULAR);
+        return $this->find('column', [
             'conditions' => ['value' => $values_to_check_truncated],
             'fields' => ['value'],
         ]);
-        return $overCorrelatingValues;
     }
 
     public function generateOccurrencesRouter()
