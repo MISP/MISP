@@ -254,54 +254,38 @@ class NoAclCorrelationBehavior extends ModelBehavior
 
     /**
      * @param Correlation $Model
-     * @param $user
-     * @param $sgids
+     * @param array $user Not used
+     * @param array $sgids Not used
      * @param array $attribute
-     * @param array $fields
+     * @param array $fields Attribute fields to fetch
      * @param bool $includeEventData
      * @return array
      */
     public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false)
     {
-        // LATER getRelatedAttributes($attribute) this might become a performance bottleneck
-        // prepare the conditions
-        $conditions = [
-            [
+        $correlatedAttributeIds = $Model->find('column', [
+            'conditions' => [
                 'Correlation.1_event_id !=' => $attribute['event_id'],
-                'Correlation.attribute_id' => $attribute['id']
+                'Correlation.attribute_id' => $attribute['id'],
             ],
-            [
+            'fields' => ['1_attribute_id'],
+        ]);
+
+        $correlatedAttributeIds2 = $Model->find('column', [
+            'conditions' => [
                 'Correlation.event_id !=' => $attribute['event_id'],
-                'Correlation.1_attribute_id' => $attribute['id']
-            ]
-        ];
-        $corr_fields = [
-            [
-                '1_attribute_id',
-                '1_event_id',
-                'value_id'
+                'Correlation.1_attribute_id' => $attribute['id'],
             ],
-            [
-                'attribute_id',
-                'event_id',
-                'value_id'
-            ]
-        ];
-        $prefixes = ['1_', ''];
-        $correlated_attribute_ids = [];
-        foreach ($conditions as $k => $condition) {
-            $temp_correlations = $Model->find('all', [
-                'recursive' => -1,
-                'conditions' => $condition,
-                'fields' => $corr_fields[$k]
-            ]);
-            if (!empty($temp_correlations)) {
-                foreach ($temp_correlations as $temp_correlation) {
-                    $correlated_attribute_ids[] = $temp_correlation['Correlation'][$prefixes[$k] . 'attribute_id'];
-                }
-            }
+            'fields' => ['attribute_id'],
+        ]);
+        foreach ($correlatedAttributeIds2 as $tempCorrelation) {
+            $correlatedAttributeIds[] = $tempCorrelation;
         }
-        $contain = [];
+
+        if (empty($correlatedAttributeIds)) {
+            return [];
+        }
+
         if (!empty($includeEventData)) {
             $contain['Event'] = [
                 'fields' => [
@@ -319,11 +303,14 @@ class NoAclCorrelationBehavior extends ModelBehavior
                     'Event.org_id'
                 ]
             ];
+        } else {
+            $contain = [];
         }
+
         $relatedAttributes = $Model->Attribute->find('all', [
             'recursive' => -1,
             'conditions' => [
-                'Attribute.id' => $correlated_attribute_ids
+                'Attribute.id' => $correlatedAttributeIds
             ],
             'fields' => $fields,
             'contain' => $contain
