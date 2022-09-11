@@ -8,7 +8,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
 {
     const TABLE_NAME = 'no_acl_correlations';
 
-    private $__config = [
+    const CONFIG = [
         'AttributeFetcher' => [
             'fields' =>  [
                 'Attribute.event_id',
@@ -132,18 +132,23 @@ class NoAclCorrelationBehavior extends ModelBehavior
         }
     }
 
+    /**
+     * @param Model $Model
+     * @param string|null $filter
+     * @return false|mixed
+     */
     public function getContainRules(Model $Model, $filter = null)
     {
         if (empty($filter)) {
-            return $this->__config['AttributeFetcher']['contain'];
+            return self::CONFIG['AttributeFetcher']['contain'];
         } else {
-            return empty($this->__config['AttributeFetcher']['contain'][$filter]) ? false : $this->__config['AttributeFetcher']['contain'][$filter];
+            return self::CONFIG['AttributeFetcher']['contain'][$filter] ?? false;
         }
     }
 
     public function getFieldRules(Model $Model)
     {
-        return $this->__config['AttributeFetcher']['fields'];
+        return self::CONFIG['AttributeFetcher']['fields'];
     }
 
     /**
