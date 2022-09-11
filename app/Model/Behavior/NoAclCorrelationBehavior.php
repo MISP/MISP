@@ -180,7 +180,6 @@ class NoAclCorrelationBehavior extends ModelBehavior
             'contain' => [
                 'CorrelationValue' => [
                     'fields' => [
-                        'CorrelationValue.id',
                         'CorrelationValue.value'
                     ]
                 ]
@@ -193,7 +192,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
     /**
      * @param Model $Model
      * @param array $user
-     * @param int $id Event ID
+     * @param int|array $id Event ID
      * @return array
      */
     public function runGetAttributesRelatedToEvent(Model $Model, array $user, $id)

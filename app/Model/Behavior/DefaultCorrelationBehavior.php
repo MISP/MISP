@@ -204,7 +204,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
     /**
      * Fetch correlations for given event.
      * @param array $user
-     * @param int $eventId
+     * @param int|array $eventId
      * @param array $sgids
      * @param bool $primary
      * @return array
@@ -245,7 +245,6 @@ class DefaultCorrelationBehavior extends ModelBehavior
             'contain' => [
                 'CorrelationValue' => [
                     'fields' => [
-                        'CorrelationValue.id',
                         'CorrelationValue.value'
                     ]
                 ]
@@ -264,7 +263,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
     /**
      * @param Correlation $Model
      * @param array $user
-     * @param int $id Event ID
+     * @param int|array $id Event ID
      * @param array $sgids
      * @return array
      */
