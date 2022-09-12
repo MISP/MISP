@@ -1649,10 +1649,16 @@ class User extends AppModel
         return substr(hash('sha256', "{$user['id']}|$salt"), 0, 8);
     }
 
+    /**
+     * @param array|int $user
+     * @param bool $decode
+     * @return array
+     * @throws JsonException
+     */
     public function extractPeriodicSettingForUser($user, $decode=false): array
     {
-        $filter_names = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags'];
-        $filter_to_decode = ['tags', 'trending_for_tags', ];
+        $filterNames = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags'];
+        $filterToDecode = ['tags', 'trending_for_tags'];
         if (is_numeric($user)) {
             $user = $this->find('first', [
                 'recursive' => -1,
@@ -1662,11 +1668,11 @@ class User extends AppModel
                 ]
             ]);
         }
-        $periodic_settings = array_values(array_filter($user['UserSetting'], function ($userSetting) {
-            return $userSetting['setting'] == self::PERIODIC_USER_SETTING_KEY;
+        $periodicSettings = array_values(array_filter($user['UserSetting'], function ($userSetting) {
+            return $userSetting['setting'] === self::PERIODIC_USER_SETTING_KEY;
         }));
-        if (empty($periodic_settings)) {
-            $periodic_settings = [['value' => [
+        if (empty($periodicSettings)) {
+            $periodicSettings = [['value' => [
                 'orgc_id' => '',
                 'distribution' => -1,
                 'sharing_group_id' => '',
@@ -1676,17 +1682,15 @@ class User extends AppModel
             ]]];
         }
         $periodic_settings_indexed = [];
-        if (!empty($periodic_settings)) {
-            foreach ($filter_names as $filter_name) {
-                $periodic_settings_indexed[$filter_name] = $periodic_settings[0]['value'][$filter_name];
+        foreach ($filterNames as $filter_name) {
+            $periodic_settings_indexed[$filter_name] = $periodicSettings[0]['value'][$filter_name];
+        }
+        foreach ($filterToDecode as $filter) {
+            if (!empty($decode) && !empty($periodicSettingsIndexed[$filter])) {
+                $periodicSettingsIndexed[$filter] = JsonTool::decode($periodicSettingsIndexed[$filter]);
             }
         }
-        foreach ($filter_to_decode as $filter) {
-            if (!empty($decode) && !empty($periodic_settings_indexed[$filter])) {
-                $periodic_settings_indexed[$filter] = JsonTool::decode($periodic_settings_indexed[$filter]);
-            }
-        }
-        return $periodic_settings_indexed;
+        return $periodicSettingsIndexed;
     }
 
     public function getUsablePeriodicSettingForUser(array $periodicSettings, $period='daily'): array
@@ -1694,11 +1698,17 @@ class User extends AppModel
         return $this->__getUsableFilters($periodicSettings, $period);
     }
 
-    public function saveNotificationSettings(int $user_id, array $data): bool
+    /**
+     * @param int $userId
+     * @param array $data
+     * @return bool
+     * @throws Exception
+     */
+    public function saveNotificationSettings(int $userId, array $data): bool
     {
         $existingUser = $this->find('first', [
             'recursive' => -1,
-            'conditions' => ['User.id' => $user_id],
+            'conditions' => ['User.id' => $userId],
         ]);
         if (empty($existingUser)) {
             return false;
@@ -1766,7 +1776,7 @@ class User extends AppModel
         $allowed_periods = array_map(function($period) {
             return substr($period, strlen('notification_'));
         }, self::PERIODIC_NOTIFICATIONS);
-        if (!in_array($period, $allowed_periods)) {
+        if (!in_array($period, $allowed_periods, true)) {
             throw new InvalidArgumentException(__('Invalid period. Must be one of %s', JsonTool::encode(self::PERIODIC_NOTIFICATIONS)));
         }
         App::import('Tools', 'SendEmail');

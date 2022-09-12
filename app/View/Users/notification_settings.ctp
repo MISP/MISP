@@ -35,7 +35,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'field' => 'periodic_settings.distribution',
                 'label' => __('Distribution level'),
                 'class' => 'input span6',
-                'options' => [-1 => ' '] + $distributionLevels,
+                'options' => [-1 => __('– All –')] + $distributionLevels,
                 'type' => 'dropdown'
             ],
             [
@@ -80,7 +80,7 @@ if (!$ajax) {
 ?>
 
 <script>
-    $(document).ready(function() {
+    $(function() {
         checkSharingGroup('periodic_settings');
 
         $('#periodic_settingsDistribution').change(function() {
@@ -88,6 +88,3 @@ if (!$ajax) {
         });
     })
 </script>
-
-<style>
-</style>

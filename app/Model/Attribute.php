@@ -2738,7 +2738,11 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function fetchDistributionData($user)
+    /**
+     * @param array $user
+     * @return array
+     */
+    public function fetchDistributionData(array $user)
     {
         $initialDistribution = $this->defaultDistribution();
         $sgs = $this->SharingGroup->fetchAllAuthorised($user, 'name', 1);
@@ -2746,7 +2750,7 @@ class Attribute extends AppModel
         if (empty($sgs)) {
             unset($distributionLevels[4]);
         }
-        return array('sgs' => $sgs, 'levels' => $distributionLevels, 'initial' => $initialDistribution);
+        return ['sgs' => $sgs, 'levels' => $distributionLevels, 'initial' => $initialDistribution];
     }
 
     public function simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile)
