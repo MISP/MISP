@@ -36,13 +36,19 @@ $colorForTags = [];
 $chartData = [];
 $maxValue = 0;
 foreach ($allUniqueTags as $i => $tag) {
-    $colorForTags[$tag] = $COLOR_PALETTE[$i];
-    $chartData[$tag] = [
-        $clusteredTags[$previousPeriod2][$tag]['occurence'] ?? 0,
-        $clusteredTags[$previousPeriod][$tag]['occurence'] ?? 0,
-        $clusteredTags[$currentPeriod][$tag]['occurence'] ?? 0,
-    ];
-    $maxValue = max($maxValue, max($chartData[$tag]));
+    if (
+        !empty($clusteredTags[$previousPeriod2][$tag]['occurence']) ||
+        !empty($clusteredTags[$previousPeriod][$tag]['occurence']) ||
+        !empty($clusteredTags[$currentPeriod][$tag]['occurence'])
+    ) {
+        $colorForTags[$tag] = $COLOR_PALETTE[$i];
+        $chartData[$tag] = [
+            $clusteredTags[$previousPeriod2][$tag]['occurence'] ?? 0,
+            $clusteredTags[$previousPeriod][$tag]['occurence'] ?? 0,
+            $clusteredTags[$currentPeriod][$tag]['occurence'] ?? 0,
+        ];
+        $maxValue = max($maxValue, max($chartData[$tag]));
+    }
 }
 $canvasWidth = 600;
 $canvasHeight = 150;
@@ -117,7 +123,7 @@ if (!function_exists('computeLinePositions')) {
                 <div class="y-axis-container">
                     <div>
                         <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, 0, -25) ?>"><?= h($maxValue) ?></span>
-                        <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20)/2, 0) ?>"><?= h(round($maxValue / 2, 2)) ?></span>
+                        <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20) / 2, 0) ?>"><?= h(round($maxValue / 2, 2)) ?></span>
                         <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20), 25) ?>"><?= 0 ?></span>
                     </div>
                 </div>
@@ -159,7 +165,7 @@ if (!function_exists('computeLinePositions')) {
 </div>
 
 <?php if (!empty($allTags)) : ?>
-    <table class="table table-condensed no-border">
+    <table class="table table-condensed no-border trending-table">
         <thead>
             <tr>
                 <th></th>
@@ -171,8 +177,8 @@ if (!function_exists('computeLinePositions')) {
                     <table>
                         <thead style="font-size: small;">
                             <tr>
-                                <td style="min-width: 20px;">#</td>
-                                <td style="min-width: 15px;">⥮</td>
+                                <td>#</td>
+                                <td>⥮</td>
                                 <td>%</td>
                                 <td></td>
                             </tr>
@@ -187,8 +193,8 @@ if (!function_exists('computeLinePositions')) {
                     <table>
                         <thead style="font-size: small;">
                             <tr>
-                                <td style="min-width: 20px;">#</td>
-                                <td style="min-width: 15px;">⥮</td>
+                                <td>#</td>
+                                <td>⥮</td>
                                 <td>%</td>
                                 <td></td>
                             </tr>
@@ -203,8 +209,8 @@ if (!function_exists('computeLinePositions')) {
                     <table>
                         <thead style="font-size: small;">
                             <tr>
-                                <td style="min-width: 20px;">#</td>
-                                <td style="min-width: 15px;">⥮</td>
+                                <td>#</td>
+                                <td>⥮</td>
                                 <td>%</td>
                                 <td></td>
                             </tr>
@@ -275,6 +281,16 @@ if (!function_exists('computeLinePositions')) {
 <?php endif; ?>
 
 <style>
+    table.trending-table thead td:first-child,
+    table.trending-table tbody td:first-child {
+        min-width: 20px;
+    }
+
+    table.trending-table thead td:nth-child(2),
+    table.trending-table tbody td:nth-child(2) {
+        min-width: 15px;
+    }
+
     .dot {
         position: absolute;
         height: 7px;
@@ -324,7 +340,7 @@ if (!function_exists('computeLinePositions')) {
         padding-left: inherit;
     }
 
-    .y-axis-container > div {
+    .y-axis-container>div {
         position: relative;
         height: 100%;
     }
