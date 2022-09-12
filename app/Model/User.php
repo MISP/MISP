@@ -1658,7 +1658,7 @@ class User extends AppModel
     public function extractPeriodicSettingForUser($user, $decode = false): array
     {
         $filterNames = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags'];
-        $filterToDecode = ['tags', 'trending_for_tags'];
+        $filtersToDecode = ['tags', 'trending_for_tags'];
         if (is_numeric($user)) {
             $user = $this->find('first', [
                 'recursive' => -1,
@@ -1681,13 +1681,15 @@ class User extends AppModel
                 'trending_for_tags' => '[]'
             ]]];
         }
-        $periodic_settings_indexed = [];
-        foreach ($filterNames as $filter_name) {
-            $periodic_settings_indexed[$filter_name] = $periodicSettings[0]['value'][$filter_name];
+        $periodicSettingsIndexed = [];
+        foreach ($filterNames as $filterName) {
+            $periodicSettingsIndexed[$filterName] = $periodicSettings[0]['value'][$filterName];
         }
-        foreach ($filterToDecode as $filter) {
-            if (!empty($decode) && !empty($periodicSettingsIndexed[$filter])) {
-                $periodicSettingsIndexed[$filter] = JsonTool::decode($periodicSettingsIndexed[$filter]);
+        if ($decode) {
+            foreach ($filtersToDecode as $filter) {
+                if (!empty($periodicSettingsIndexed[$filter])) {
+                    $periodicSettingsIndexed[$filter] = JsonTool::decode($periodicSettingsIndexed[$filter]);
+                }
             }
         }
         return $periodicSettingsIndexed;
