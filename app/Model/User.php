@@ -1787,9 +1787,10 @@ class User extends AppModel
 
         $rollingWindows = 2;
         $trendAnalysis = $this->Event->getTrendsForTagsFromEvents($events, $this->__periodToDays($period), $rollingWindows, $periodicSettings['trending_for_tags']);
+        $tagFilterPrefixes = $periodicSettings['trending_for_tags'] ?: array_keys($trendAnalysis['all_tags']);
         $trendData = [
             'trendAnalysis' => $trendAnalysis,
-            'tagFilterPrefixes' => $periodicSettings['trending_for_tags'],
+            'tagFilterPrefixes' => $tagFilterPrefixes,
         ];
         $trending_summary = $this->__renderTrendingSummary($trendData);
 

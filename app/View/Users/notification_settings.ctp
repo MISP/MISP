@@ -59,7 +59,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'tagsPicker',
                 'placeholder' => '["tlp:red"]',
             ],
-            sprintf('<h4>%s</h4>', __('Notification filters')),
+            sprintf('<h4>%s</h4>', __('Report settings')),
             [
                 'field' => 'periodic_settings.trending_for_tags',
                 'label' => __('Generate trends for tag namespaces'),
