@@ -2,6 +2,9 @@
 class TrendingTool
 {
     private $eventModel;
+    public const defaultTagNamespaceForTrends = [
+        'misp-galaxy:mitre-attack-pattern',
+    ];
 
     public function __construct($eventModel)
     {
@@ -10,6 +13,7 @@ class TrendingTool
 
     public function getTrendsForTags(array $events, int $baseDayRange, int $rollingWindows=3, $tagFilterPrefixes=null): array
     {
+        $tagFilterPrefixes = $tagFilterPrefixes ?: self::defaultTagNamespaceForTrends;
         $clusteredTags = $this->__clusterTagsForRollingWindow($events, $baseDayRange, $rollingWindows, $tagFilterPrefixes);
         $trendAnalysis = $this->__computeTrendAnalysis($clusteredTags);
         return [
