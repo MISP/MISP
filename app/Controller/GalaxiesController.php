@@ -539,7 +539,7 @@ class GalaxiesController extends AppController
             $user = $this->Auth->user();
             if ($target_id === 'selected') {
                 $target_id_list = $this->_jsonDecode($this->request->data['Galaxy']['attribute_ids']);
-            } else {
+            } elseif (!is_array($target_id)) {
                 $target_id_list = array($target_id);
             }
             $cluster_ids = $this->request->data['Galaxy']['target_ids'];
@@ -587,7 +587,7 @@ class GalaxiesController extends AppController
                     }
                 }
             }
-            if ($this->request->is('ajax')) {
+            if ($this->request->is('ajax') || $this->request->is('post')) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
             }
 
