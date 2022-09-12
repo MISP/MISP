@@ -638,7 +638,7 @@ class DecayingModel extends AppModel
         return $attribute;
     }
 
-    public function attachBaseScoresToEvent($user, $event, $model_id=false, $model_overrides=array(), $include_full_model=0)
+    public function attachScoresToEvent($user, $event, $model_id=false, $model_overrides=array(), $include_full_model=0)
     {
         $models = [];
         if ($model_id === false) { // fetch all allowed and associated models
@@ -650,10 +650,11 @@ class DecayingModel extends AppModel
             if (!empty($model_overrides)) {
                 $model = $this->overrideModelParameters($model, $model_overrides);
             }
-            $basescore = $this->getBaseScoreForEvent($event, $model, $user);
-            $decayed = $this->isBaseScoreDecayed($model, $basescore);
+            $eventScore = $this->getScoreForEvent($event, $model);
+            $decayed = $this->isEventDecayed($model, $eventScore['score']);
             $to_attach = [
-                'base_score' => $basescore,
+                'score' => $eventScore['score'],
+                'base_score' => $eventScore['base_score'],
                 'decayed' => $decayed,
                 'DecayingModel' => [
                     'id' => $model['DecayingModel']['id'],
@@ -663,7 +664,7 @@ class DecayingModel extends AppModel
             if ($include_full_model) {
                 $to_attach['DecayingModel'] = $model['DecayingModel'];
             }
-            $event['event_base_score'][] = $to_attach;
+            $event['event_scores'][] = $to_attach;
         }
         return $event;
     }
@@ -687,16 +688,16 @@ class DecayingModel extends AppModel
         return $this->Computation->computeCurrentScore($user, $model, $attribute);
     }
 
-    public function getBaseScoreForEvent(array $event, array $model): float
+    public function getScoreForEvent($event, $model): array
     {
         $this->Computation = $this->getModelClass($model);
-        return $this->Computation->computeBasescore($model, $event)['base_score'];
+        return $this->Computation->computeEventScore($model, $event);
     }
 
-    public function isBaseScoreDecayed(array $model, float $basescore): bool
+    public function isEventDecayed(array $model, float $score): bool
     {
         $threshold = $model['DecayingModel']['parameters']['threshold'];
-        return $threshold > $basescore;
+        return $threshold > $score;
     }
 
     public function isDecayed($attribute, $model, $score=false, $user=false)
