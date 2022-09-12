@@ -596,10 +596,10 @@ class ServerShell extends AppShell
         $today = new DateTime();
         $periods = ['daily'];
         if ($today->format('j') == 1) {
-            $periods[] = 'weekly';
+            $periods[] = 'monthly';
         }
         if ($today->format('N') == 1) {
-            $periods[] = 'monthly';
+            $periods[] = 'weekly';
         }
         return $periods;
     }
