@@ -281,7 +281,6 @@ if (!function_exists('computeLinePositions')) {
                             $low = '#fee8c8';
                             $medium = '#f09c8f';
                             $high = '#bc2f1a';
-                            // $high = '#9d2815';
                             $periodColorRatio = $clusteredTags[$currentPeriod][$tagName]['occurence'] / $maxValue;
                             $colorGradient = [];
                             foreach ($periods as $i => $period) {
