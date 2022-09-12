@@ -10,7 +10,6 @@ class LiveShell extends AppShell {
 
     public function main()
     {
-        $this->ConfigLoad->execute();
         $live = $this->args[0];
         if ($live != 0 && $live != 1) {
             echo 'Invalid parameters. Usage: /var/www/MISP/app/Console/cake Live [0|1]';

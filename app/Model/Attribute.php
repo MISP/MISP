@@ -107,18 +107,19 @@ class Attribute extends AppModel
     const UPLOAD_DEFINITIONS = ['attachment'];
 
     // skip Correlation for the following types
-    const NON_CORRELATING_TYPES = array(
+    const NON_CORRELATING_TYPES = [
         'comment',
         'http-method',
         'aba-rtn',
         'gender',
         'counter',
+        'float',
         'port',
         'nationality',
         'cortex',
         'boolean',
         'anonymised'
-    );
+    ];
 
     const PRIMARY_ONLY_CORRELATING_TYPES = array(
         'ip-src|port',

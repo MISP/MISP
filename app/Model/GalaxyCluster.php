@@ -1404,48 +1404,39 @@ class GalaxyCluster extends AppModel
     }
 
     /**
-     * fetchClusterById Simple ACL-aware method to fetch a cluster by Id or UUID
+     * Simple ACL-aware method to fetch a cluster by Id or UUID
      *
-     * @param  array $user
-     * @param  int|string $clusterId
-     * @param  bool  $full
+     * @param array $user
+     * @param int|string $clusterId Cluster ID or UUID
+     * @param bool $throwErrors
+     * @param bool $full
      * @return array
      */
     public function fetchClusterById(array $user, $clusterId, $throwErrors=true, $full=false)
     {
         $alias = $this->alias;
         if (Validation::uuid($clusterId)) {
-            $temp = $this->find('first', array(
-                'recursive' => -1,
-                'fields' => array("${alias}.id", "${alias}.uuid"),
-                'conditions' => array("${alias}.uuid" => $clusterId)
-            ));
-            if (empty($temp)) {
-                if ($throwErrors) {
-                    throw new NotFoundException(__('Invalid galaxy cluster'));
-                }
-                return array();
-            }
-            $clusterId = $temp[$alias]['id'];
-        } elseif (!is_numeric($clusterId)) {
+            $conditions = array("${alias}.uuid" => $clusterId);
+        } elseif (is_numeric($clusterId)) {
+            $conditions = array("${alias}.id" => $clusterId);
+        } else{
             if ($throwErrors) {
                 throw new NotFoundException(__('Invalid galaxy cluster'));
             }
             return array();
         }
-        $conditions = array('conditions' => array("${alias}.id" => $clusterId));
-        $cluster = $this->fetchGalaxyClusters($user, $conditions, $full=$full);
-        return $cluster;
+
+        return $this->fetchGalaxyClusters($user, ['conditions' => $conditions], $full=$full);
     }
 
 
     /**
-     * fetchIfAuthorized Fetches a cluster and checks if the user has the authorization to perform the requested operation
+     * Fetches a cluster and checks if the user has the authorization to perform the requested operation
      *
      * @param  array $user
      * @param  int|string|array $cluster
      * @param  mixed $authorizations the requested actions to be performed on the cluster
-     * @param  bool  $throwErrors Should the function throws excpetion if users is not allowed to perform the action
+     * @param  bool  $throwErrors Should the function throws exception if users is not allowed to perform the action
      * @param  bool  $full
      * @return array The cluster or an error message
      */
@@ -1474,7 +1465,7 @@ class GalaxyCluster extends AppModel
             return $cluster;
         }
 
-        if (in_array('view', $authorizations) && count($authorizations) == 1) {
+        if (in_array('view', $authorizations) && count($authorizations) === 1) {
             return $cluster;
         } else {
             if (!$user['Role']['perm_galaxy_editor']) {
