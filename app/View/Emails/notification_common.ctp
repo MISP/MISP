@@ -166,10 +166,12 @@ $unique_tag_number = count(array_keys($all_tag_amount));
 arsort($attribute_types);
 arsort($object_types);
 arsort($all_tag_amount);
+arsort($mitre_attack_techniques);
 
 array_splice($attribute_types, 10);
 array_splice($object_types, 10);
 array_splice($all_tag_amount, 10);
+array_splice($mitre_attack_techniques, 10);
 ?>
 
 <?php if ($this->fetch('prepend-html')) : ?>
@@ -251,10 +253,13 @@ array_splice($all_tag_amount, 10);
                 <?= $this->fetch('detailed-summary-mitre-attack'); ?>
             <?php else : ?>
                 <?php if (!empty($mitre_attack_techniques)) : ?>
-                    <h4><?= __('Mitre Att&ck techniques') ?></h4>
+                    <h4><?= __('Top 10 Mitre Att&ck techniques') ?></h4>
                     <ul>
                         <?php foreach ($mitre_attack_techniques as $technique => $tag) : ?>
                             <li>
+                                <span style="padding: 2px 9px; margin-right: 5px; border-radius: 9px; font-weight: bold; background-color: #999; color: #fff;">
+                                    <?= $all_tag_amount[$tag['Tag']['name']] ?>
+                                </span>
                                 <?php
                                 $tag['Tag']['name'] = $technique;
                                 echo $this->element('tag', ['tag' => $tag])
