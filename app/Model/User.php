@@ -1665,6 +1665,16 @@ class User extends AppModel
         $periodic_settings = array_values(array_filter($user['UserSetting'], function ($userSetting) {
             return $userSetting['setting'] == self::PERIODIC_USER_SETTING_KEY;
         }));
+        if (empty($periodic_settings)) {
+            $periodic_settings = [['value' => [
+                'orgc_id' => '',
+                'distribution' => -1,
+                'sharing_group_id' => '',
+                'event_info' => '',
+                'tags' => '[]',
+                'trending_for_tags' => '[]'
+            ]]];
+        }
         $periodic_settings_indexed = [];
         if (!empty($periodic_settings)) {
             foreach ($filter_names as $filter_name) {
