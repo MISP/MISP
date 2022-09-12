@@ -1655,7 +1655,7 @@ class User extends AppModel
      * @return array
      * @throws JsonException
      */
-    public function extractPeriodicSettingForUser($user, $decode=false): array
+    public function extractPeriodicSettingForUser($user, $decode = false): array
     {
         $filterNames = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags'];
         $filterToDecode = ['tags', 'trending_for_tags'];
@@ -1765,20 +1765,24 @@ class User extends AppModel
      *
      * @param int $user_id
      * @param string $period
+     * @param bool $rendered
      * @return string|SendEmailTemplate
      * @throws NotFoundException
      * @throws InvalidArgumentException
+     * @throws JsonException
      */
-    public function generatePeriodicSummary(int $user_id, string $period, $rendered=true)
+    public function generatePeriodicSummary(int $user_id, string $period, $rendered = true)
     {
         $existingUser = $this->getUserById($user_id);
         $user = $this->rearrangeToAuthForm($existingUser);
-        $allowed_periods = array_map(function($period) {
+
+        $allowedPeriods = array_map(function($period) {
             return substr($period, strlen('notification_'));
         }, self::PERIODIC_NOTIFICATIONS);
-        if (!in_array($period, $allowed_periods, true)) {
+        if (!in_array($period, $allowedPeriods, true)) {
             throw new InvalidArgumentException(__('Invalid period. Must be one of %s', JsonTool::encode(self::PERIODIC_NOTIFICATIONS)));
         }
+
         App::import('Tools', 'SendEmail');
         $emailTemplate = $this->prepareEmailTemplate($period);
         $periodicSettings = $this->extractPeriodicSettingForUser($user, true);
@@ -1802,7 +1806,7 @@ class User extends AppModel
             unset($filtersForRestSearch['tags']);
         }
         $finalContext = $this->Event->restSearch($user, 'context', $filtersForRestSearch, false, false, $elementCounter, $renderView);
-        $finalContext = json_decode($finalContext->intoString(), true);
+        $finalContext = JsonTool::decode($finalContext->intoString());
         $aggregated_context = $this->__renderAggregatedContext($finalContext);
 
         $rollingWindows = 2;
@@ -1877,13 +1881,14 @@ class User extends AppModel
         return $filters;
     }
 
-    private function __genTimerangeFilter(string $period='daily'): string
+    private function __genTimerangeFilter(string $period = 'daily'): string
     {
-        $timerange = '1d';
-        if ($period == 'weekly') {
+        if ($period === 'weekly') {
             $timerange = '7d';
-        } else if ($period == 'monthly'){
+        } else if ($period === 'monthly') {
             $timerange = '31d';
+        } else {
+            $timerange = '1d';
         }
         return $timerange;
     }
@@ -1897,12 +1902,10 @@ class User extends AppModel
 
     private function __getEventsForFilters(array $user, array $filters): array
     {
-        $this->Event = ClassRegistry::init('Event');
-        $events = $this->Event->fetchEvent($user, $filters);
-        return $events;
+        return $this->Event->fetchEvent($user, $filters);
     }
 
-    public function prepareEmailTemplate(string $period='daily'): SendEmailTemplate
+    public function prepareEmailTemplate(string $period = 'daily'): SendEmailTemplate
     {
         $subject = sprintf('[%s MISP] %s %s', Configure::read('MISP.org'), Inflector::humanize($period), __('Notification - %s', (new DateTime())->format('Y-m-d')));
         $template = new SendEmailTemplate("notification_$period");

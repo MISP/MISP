@@ -1,12 +1,13 @@
 <?php
 class TrendingTool
 {
+    /** @var Event */
     private $eventModel;
     public const defaultTagNamespaceForTrends = [
         'misp-galaxy:mitre-attack-pattern',
     ];
 
-    public function __construct($eventModel)
+    public function __construct(Event $eventModel)
     {
         $this->eventModel = $eventModel;
     }
