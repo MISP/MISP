@@ -996,7 +996,8 @@ a.proposal_link_red:hover {
 }
 
 .report-container {
-    margin: 0 0;
+    margin: 0 auto;
+    max-width: 1500px;
     justify-content: center;
     padding: 10px 15px;
     overflow-y: auto;
