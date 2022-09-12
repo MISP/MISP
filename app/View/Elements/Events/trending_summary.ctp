@@ -354,6 +354,7 @@ if (!function_exists('computeLinePositions')) {
     }
 
     .x-axis-label {
+        font-size: 12px;
         position: absolute;
         white-space: nowrap;
         translate: -50%;
@@ -368,7 +369,7 @@ if (!function_exists('computeLinePositions')) {
         padding-left: inherit;
     }
 
-    .y-axis-container>div {
+    .y-axis-container > div {
         position: relative;
         height: 100%;
     }
@@ -376,7 +377,7 @@ if (!function_exists('computeLinePositions')) {
     .y-axis-label {
         position: absolute;
         white-space: nowrap;
-        /* transform: translate(-100%, 0%); */
+        font-size: 12px;
         padding: 0 5px;
     }
 

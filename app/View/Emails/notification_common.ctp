@@ -257,7 +257,7 @@ array_splice($mitre_attack_techniques, 10);
                     <ul>
                         <?php foreach ($mitre_attack_techniques as $technique => $tag) : ?>
                             <li>
-                                <span style="padding: 2px 9px; margin-right: 5px; border-radius: 9px; font-weight: bold; background-color: #999; color: #fff;">
+                                <span class="tag" style="background-color: #999; color: #fff; border-radius: 9px; padding: 2px 8px;">
                                     <?= $all_tag_amount[$tag['Tag']['name']] ?>
                                 </span>
                                 <?php
@@ -312,7 +312,7 @@ array_splice($mitre_attack_techniques, 10);
                 <ul>
                     <?php foreach ($all_tag_amount as $tag_name => $amount) : ?>
                         <li>
-                            <span style="padding: 2px 9px; margin-right: 5px; border-radius: 9px; font-weight: bold; background-color: #999; color: #fff;">
+                            <span class="tag" style="background-color: #999; color: #fff; border-radius: 9px; padding: 2px 8px;">
                                 <?= $amount ?>
                             </span>
                             <?= $this->element('tag', ['tag' => ['Tag' => ['name' => $tag_name, 'colour' => $tag_color_mapping[$tag_name]]]]) ?>
