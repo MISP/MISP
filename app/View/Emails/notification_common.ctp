@@ -315,7 +315,7 @@ array_splice($all_tag_amount, 10);
                 <?= $this->fetch('detailed-summary-events'); ?>
             <?php else : ?>
                 <?php if (!empty($events)) : ?>
-                    <h4><?= __('Event list') ?></h4>
+                    <h4><?= __('Event list') ?> <small style="color: #999999;"><?= sprintf(' (%s)', count($event)) ?></small></h4>
                     <table class="table table-condensed">
                         <thead>
                             <tr>
@@ -328,7 +328,7 @@ array_splice($all_tag_amount, 10);
                                     <th><?= h($taxonomy_name) ?></th>
                                 <?php endforeach; ?>
                                 <?php if (!empty($vars['event_table_include_basescore'])) : ?>
-                                    <th><?= __('Decaying Base Score') ?></th>
+                                    <th><?= __('Decaying Event Score') ?></th>
                                 <?php endif; ?>
                                 <th><?= __('Event Info') ?></th>
                             </tr>
@@ -358,12 +358,12 @@ array_splice($all_tag_amount, 10);
                                     <?php endforeach; ?>
                                     <?php if (!empty($vars['event_table_include_basescore'])) : ?>
                                         <td>
-                                            <?php if (isset($event['event_base_score'])) : ?>
+                                            <?php if (isset($event['event_scores'])) : ?>
                                                 <table class="table-xcondensed no-border">
-                                                    <?php foreach ($event['event_base_score'] as $bs) : ?>
+                                                    <?php foreach ($event['event_scores'] as $score) : ?>
                                                         <tr>
-                                                            <td style="line-height: 14px;"><i class="no-overflow" style="max-width: 12em;" title="<?= h($bs['DecayingModel']['name']); ?>"><?= h($bs['DecayingModel']['name']); ?>:</i></td>
-                                                            <td style="line-height: 14px;"><b style="color: <?= !empty($bs['decayed']) ? '#b94a48' : '#468847' ?>;"><?= round($bs['base_score'], 2) ?></b></td>
+                                                            <td style="line-height: 14px;"><i class="no-overflow" style="max-width: 12em;" title="<?= h($score['DecayingModel']['name']); ?>"><?= h($score['DecayingModel']['name']); ?>:</i></td>
+                                                            <td style="line-height: 14px;"><b style="color: <?= !empty($score['decayed']) ? '#b94a48' : '#468847' ?>;"><?= round($score['score'], 2) ?></b></td>
                                                         </tr>
                                                     <?php endforeach; ?>
                                                 </table>

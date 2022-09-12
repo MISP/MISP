@@ -1837,7 +1837,7 @@ class User extends AppModel
         $filters = [
             'last' => $this->__genTimerangeFilter($period),
             'published' => true,
-            'includeBaseScoresOnEvent' => true,
+            'includeScoresOnEvent' => true,
         ];
         if (!empty($period_filters['orgc_id'])) {
             $filters['orgc_id'] = $period_filters['orgc_id'];
