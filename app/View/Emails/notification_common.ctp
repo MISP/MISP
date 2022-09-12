@@ -20,6 +20,7 @@ if (empty($this->__vars)) {
 }
 $default_vars = [
     'event_table_include_basescore' => true,
+    'event_table_max_event_count' => 30,
     'additional_taxonomy_event_list' => [
         'PAP' => 'PAP:'
     ],
@@ -44,6 +45,9 @@ $tag_color_mapping = [];
 
 $mitre_attack_techniques = [];
 $mitre_galaxy_tag_prefix = 'misp-galaxy:mitre-attack-pattern="';
+
+$reportLink = sprintf('%s/users/viewPeriodicSummary/%s', $baseurl, $period);
+$eventLink = sprintf('%s/events/index/searchpublished:1/searchPublishTimestamp:%s/searchPublishTimestamp:%s', $baseurl, h($start_date->format('Y-m-d H:i:s')), h($now->format('Y-m-d H:i:s')));
 
 foreach ($events as $event) {
     $unique_tag_per_event = [];
@@ -230,6 +234,7 @@ array_splice($all_tag_amount, 10);
                     </tr>
                 </tbody>
             </table>
+            ⮞ <a href="<?= h($reportLink) ?>"><?= __('View this report in MISP') ?></a>
         </div>
     </div>
 <?php endif; ?>
@@ -315,7 +320,7 @@ array_splice($all_tag_amount, 10);
                 <?= $this->fetch('detailed-summary-events'); ?>
             <?php else : ?>
                 <?php if (!empty($events)) : ?>
-                    <h4><?= __('Event list') ?> <small style="color: #999999;"><?= sprintf(' (%s)', count($event)) ?></small></h4>
+                    <h4><?= __('Event list') ?> <small style="color: #999999;"><?= sprintf(' (%s)', count($events)) ?></small></h4>
                     <table class="table table-condensed">
                         <thead>
                             <tr>
@@ -334,8 +339,11 @@ array_splice($all_tag_amount, 10);
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($events as $event) : ?>
+                            <?php foreach ($events as $i => $event) : ?>
                                 <?php
+                                if ($i > $vars['event_table_max_event_count']-1) {
+                                    break;
+                                }
                                 $workflowTag = findAndBuildTag($event['EventTag'], 'workflow:', $this);
                                 $analysisHtml = !empty($workflowTag) ? $workflowTag : '';
                                 $tlpTag = findAndBuildTag($event['EventTag'], 'tlp:', $this);
@@ -379,6 +387,17 @@ array_splice($all_tag_amount, 10);
                     </table>
                 <?php else : ?>
                     <p><?= __('No events.') ?></p>
+                <?php endif; ?>
+                <?php if (count($events) > $vars['event_table_max_event_count']) : ?>
+                    ⮞ <?=
+                        __n(
+                            '%s event not displayed.',
+                            '%s events not displayed.',
+                            count($events) - $vars['event_table_max_event_count'],
+                            sprintf('<strong>%s</strong>', count($events) - $vars['event_table_max_event_count'])
+                        )
+                    ?>
+                    <a href="<?= h($eventLink) ?>"><?= __('View all events in MISP') ?></a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
