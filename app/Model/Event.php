@@ -2068,7 +2068,9 @@ class Event extends AppModel
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
                 }
 
-                $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
+                if (!empty($options['includeGranularCorrelations'])) {
+                    $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
+                }
 
                 // move all object attributes to a temporary container
                 $tempObjectAttributeContainer = array();
