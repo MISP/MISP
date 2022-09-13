@@ -1562,7 +1562,8 @@ class Attribute extends AppModel
                 );
             }
         } else {
-            $attributeCount = $this->__iteratedCorrelation($jobId, $full, $attributeCount);
+            // Not sure why that line was added. If there are no events, there are no correlations to save
+            // $attributeCount = $this->__iteratedCorrelation($jobId, $full, $attributeCount);
         }
         if ($jobId) {
             $this->Job->saveStatus($jobId, true);
@@ -1582,7 +1583,7 @@ class Attribute extends AppModel
     {
         if ($jobId) {
             $message = $attributeId ? __('Correlating Attribute %s', $attributeId) : __('Correlating Event %s (%s MB used)', $eventId, intval(memory_get_usage() / 1024 / 1024));
-            $this->Job->saveProgress($jobId, $message, ($j / $eventCount) * 100);
+            $this->Job->saveProgress($jobId, $message, !empty($eventCount) ? ($j / $eventCount) * 100 : 0);
         }
         $attributeConditions = [
             'Attribute.deleted' => 0,
