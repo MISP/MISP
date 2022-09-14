@@ -1651,8 +1651,17 @@ class User extends AppModel
 
     public function extractPeriodicSettingForUser($user, $decode=false): array
     {
-        $filter_names = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags'];
+        $filter_names = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags', 'include_correlations'];
         $filter_to_decode = ['tags', 'trending_for_tags', ];
+        $default_periodic_settings = [['value' => [
+            'orgc_id' => '',
+            'distribution' => -1,
+            'sharing_group_id' => '',
+            'event_info' => '',
+            'tags' => '[]',
+            'trending_for_tags' => '[]',
+            'include_correlations' => '',
+        ]]];
         if (is_numeric($user)) {
             $user = $this->find('first', [
                 'recursive' => -1,
@@ -1666,19 +1675,12 @@ class User extends AppModel
             return $userSetting['setting'] == self::PERIODIC_USER_SETTING_KEY;
         }));
         if (empty($periodic_settings)) {
-            $periodic_settings = [['value' => [
-                'orgc_id' => '',
-                'distribution' => -1,
-                'sharing_group_id' => '',
-                'event_info' => '',
-                'tags' => '[]',
-                'trending_for_tags' => '[]'
-            ]]];
+            $periodic_settings = $default_periodic_settings;
         }
         $periodic_settings_indexed = [];
         if (!empty($periodic_settings)) {
             foreach ($filter_names as $filter_name) {
-                $periodic_settings_indexed[$filter_name] = $periodic_settings[0]['value'][$filter_name];
+                $periodic_settings_indexed[$filter_name] = $periodic_settings[0]['value'][$filter_name] ?? $default_periodic_settings[0]['value'][$filter_name];
             }
         }
         foreach ($filter_to_decode as $filter) {
@@ -1729,6 +1731,7 @@ class User extends AppModel
                 'event_info' => $periodic_settings['event_info'] ?? '',
                 'tags' => $periodic_settings['tags'] ?? '[]',
                 'trending_for_tags' => $periodic_settings['trending_for_tags'] ?? '[]',
+                'include_correlations' => $periodic_settings['include_correlations'] ?? '',
             ];
             $new_user_setting = [
                 'UserSetting' => [
@@ -1776,7 +1779,8 @@ class User extends AppModel
         $filtersForRestSearch = $filters; // filters for restSearch are slightly different than fetchEvent
         $filters['last'] = $this->resolveTimeDelta($filters['last']);
         $filters['sgReferenceOnly'] = true;
-        $filters['includeEventCorrelations'] = false;
+        $filters['includeEventCorrelations'] = !empty($periodicSettings['include_correlations']);
+        $filters['includeGranularCorrelations'] = !empty($periodicSettings['include_correlations']);
         $filters['noSightings'] = true;
         $filters['includeGalaxy'] = false;
         $events = $this->__getEventsForFilters($user, $filters);
@@ -1807,6 +1811,7 @@ class User extends AppModel
         $emailTemplate->set('baseurl', $this->Event->__getAnnounceBaseurl());
         $emailTemplate->set('events', $events);
         $emailTemplate->set('filters', $filters);
+        $emailTemplate->set('periodicSettings', $periodicSettings);
         $emailTemplate->set('period', $period);
         $emailTemplate->set('aggregated_context', $aggregated_context);
         $emailTemplate->set('trending_summary', $trending_summary);

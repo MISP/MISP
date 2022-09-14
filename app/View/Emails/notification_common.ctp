@@ -9,6 +9,7 @@
  *  - `detailed-summary-type`
  *  - `detailed-summary-tags`
  *  - `detailed-summary-events`
+ *  - `detailed-summary-correlations`
  *  - `aggregated-context`
  * 
  * Additional variables:
@@ -49,6 +50,9 @@ $mitre_galaxy_tag_prefix = 'misp-galaxy:mitre-attack-pattern="';
 $reportLink = sprintf('%s/users/viewPeriodicSummary/%s', $baseurl, $period);
 $eventLink = sprintf('%s/events/index/searchpublished:1/searchPublishTimestamp:%s/searchPublishTimestamp:%s', $baseurl, h($start_date->format('Y-m-d H:i:s')), h($now->format('Y-m-d H:i:s')));
 
+$processed_correlations = [];
+$new_correlations = [];
+
 foreach ($events as $event) {
     $unique_tag_per_event = [];
     $attribute_number += count($event['Attribute']);
@@ -77,7 +81,12 @@ foreach ($events as $event) {
         }
     }
 
+    $attribute_light_by_id = [];
     foreach ($event['Attribute'] as $attribute) {
+        $attribute_light_by_id[$attribute['id']] = [
+            'timestamp' => $attribute['timestamp'],
+            'type' => $attribute['type'],
+        ];
         if (empty($attribute_types[$attribute['type']])) {
             $attribute_types[$attribute['type']] = 0;
         }
@@ -146,6 +155,33 @@ foreach ($events as $event) {
             'event_id' => $event_report['event_id'],
             'event_info' => $event['Event']['info'],
         ];
+    }
+
+    if (!empty($event['RelatedEvent'])) {
+        $related_event_by_id = [];
+        foreach ($event['RelatedEvent'] as $related_event) {
+            $related_event_by_id[$related_event['Event']['id']] = $related_event['Event'];
+        }
+    
+        foreach ($event['RelatedAttribute'] as $attribute_id => $related_attributes) {
+            $has_attribute_been_modified_since_last_period = intval($attribute_light_by_id[$attribute_id]['timestamp']) >= intval($start_date->format('U'));
+            foreach ($related_attributes as $related_attribute) {
+                $correlation_id = sprintf('%s-%s', $related_attribute['attribute_id'], $attribute_id);
+                $reversed_correlation_id = sprintf('%s-%s', $attribute_id, $related_attribute['attribute_id']);
+                $has_correlation_been_processed = !empty($processed_correlations[$correlation_id]); // We already added the correlation the other way around
+                if ($has_attribute_been_modified_since_last_period && !$has_correlation_been_processed) {
+                    $source_event = $event['Event'];
+                    $source_event['Orgc'] = $event['Orgc'];
+                    $new_correlations[] = [
+                        'source_event' => $source_event,
+                        'target_event' => $related_event_by_id[$related_attribute['id']],
+                        'attribute_value' => $related_attribute['value'],
+                        'attribute_type' => $attribute_light_by_id[$attribute_id]['type'],
+                    ];
+                    $processed_correlations[$reversed_correlation_id] = true;
+                }
+            }
+        }
     }
 }
 
@@ -234,6 +270,12 @@ array_splice($mitre_attack_techniques, 10);
                         <td><?= __('Unique tags #') ?></td>
                         <td><?= $unique_tag_number ?></td>
                     </tr>
+                    <?php if (!empty($periodicSettings['include_correlations'])): ?>
+                        <tr>
+                            <td><?= __('New correlation #') ?></td>
+                            <td><?= count($new_correlations) ?></td>
+                        </tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
             ⮞ <a href="<?= h($reportLink) ?>"><?= __('View this report in MISP') ?></a>
@@ -405,6 +447,47 @@ array_splice($mitre_attack_techniques, 10);
                     <a href="<?= h($eventLink) ?>"><?= __('View all events in MISP') ?></a>
                 <?php endif; ?>
             <?php endif; ?>
+
+            <?php if ($this->fetch('detailed-summary-correlations')) : ?>
+                <?= $this->fetch('detailed-summary-correlations'); ?>
+            <?php else : ?>
+                <?php if (!empty($new_correlations)) : ?>
+                    <h4><?= __('New correlations') ?><small style="color: #999999;"><?= sprintf(' (%s)', count($new_correlations)) ?></small></h4>
+                    <div>
+                        <?php foreach ($new_correlations as $correlation): ?>
+                            <div style="display: flex; flex-wrap: nowrap; align-items: center; margin-top: 0.5em;">
+                                <span>
+                                    <span class="correlating-event-container">
+                                        <span>
+                                            <a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['source_event']['id'])) ?>"><?= h($correlation['source_event']['info']) ?></a>
+                                        </span>
+                                        <span class="org-date">
+                                            <span><?=  h($correlation['source_event']['date']) ?></span>
+                                            <span><?=  h($correlation['source_event']['Orgc']['name']) ?></span>
+                                        </span>
+                                    </span>
+                                </span>
+                                <span class="correlating-attribute-container">
+                                    <span class="correlating-attribute">
+                                        <?= h($correlation['attribute_type']); ?> :: <b><?= h($correlation['attribute_value']) ?></b>
+                                    </span>
+                                </span>
+                                <span>
+                                    <span class="correlating-event-container">
+                                        <span>
+                                            <a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['target_event']['id'])) ?>"><?= h($correlation['target_event']['info']) ?></a>
+                                        </span>
+                                        <span class="org-date">
+                                            <span><?=  h($correlation['target_event']['date']) ?></span>
+                                            <span><?=  h($correlation['target_event']['Orgc']['name']) ?></span>
+                                        </span>
+                                    </span>
+                                </span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif ; ?>
+            <?php endif ; ?>
         </div>
     </div>
     <?php endif; // detailed-summary-full 
@@ -486,6 +569,41 @@ array_splice($mitre_attack_techniques, 10);
             line-height: 14px;
             margin-right: 2px;
             border-radius: 3px;
+        }
+
+        .correlating-attribute {
+            padding: 3px 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+        .correlating-attribute-container {
+            display: flex;
+            box-sizing: border-box;
+            margin: 0 0;
+            align-items: center;
+            min-width: 400px;
+        }
+        .correlating-attribute-container::before,
+        .correlating-attribute-container::after {
+            display: inline-block;
+            content: ' ';
+            height: 2px;
+            width: 100%;
+            background-color: #ccc;
+        }
+
+        .correlating-event-container {
+            display: flex;
+            flex-direction: column;
+            min-width: 180px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 3px 5px;
+        }
+        .correlating-event-container > .org-date {
+            display: flex;
+            justify-content: space-between;
         }
 
         .no-overflow {

@@ -67,6 +67,12 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'textarea',
                 'placeholder' => '["misp-galaxy:mitre-attack-pattern", "admiralty-scale"]',
             ],
+            [
+                'field' => 'periodic_settings.include_correlations',
+                'label' => __('Include events correlations'),
+                'default' => 0,
+                'type' => 'checkbox'
+            ],
         ],
         'submit' => [
             'action' => $this->request->params['action'],
