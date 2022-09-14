@@ -18,7 +18,7 @@ info:
 
     * **[CLI]** Use the following command: `./app/Console/cake user change_authkey [e-mail/user_id]`
 
-    * **API** Provided you already have an admin level API key, you can create an API for another user using the `[POST]/auth_keys/add/{{user_id}}` endpoint.
+    * **API** Provided you already have an admin level API key, you can create an API key for another user using the `[POST]/auth_keys/add/{{user_id}}` endpoint.
 
     > **NOTE:** The authentication key will only be displayed once, so take note of it or store it properly in your application secrets.
 
