@@ -247,7 +247,7 @@ array_splice($mitre_attack_techniques, 10);
                         <td><?= date("c"); ?></td>
                     </tr>
                     <tr>
-                        <td><?= __('Events #') ?></td>
+                        <td><?= __('Published Events #') ?></td>
                         <td><?= $event_number ?></td>
                     </tr>
                     <tr>
