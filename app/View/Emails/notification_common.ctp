@@ -29,7 +29,7 @@ $default_vars = [
 $vars = array_merge($default_vars, $this->__vars);
 
 $now = new DateTime();
-$start_date = new DateTime('7 days ago');
+$start_date = new DateTime($period_days . ' days ago');
 $event_number = count($events);
 $attribute_number = 0;
 $object_number = 0;

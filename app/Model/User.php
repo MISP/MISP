@@ -1800,7 +1800,7 @@ class User extends AppModel
         $aggregated_context = $this->__renderAggregatedContext($finalContext);
 
         $rollingWindows = 2;
-        $trendAnalysis = $this->Event->getTrendsForTagsFromEvents($events, $this->__periodToDays($period), $rollingWindows, $periodicSettings['trending_for_tags']);
+        $trendAnalysis = $this->Event->getTrendsForTagsFromEvents($events, $this->periodToDays($period), $rollingWindows, $periodicSettings['trending_for_tags']);
         $tagFilterPrefixes = $periodicSettings['trending_for_tags'] ?: array_keys($trendAnalysis['all_tags']);
         $trendData = [
             'trendAnalysis' => $trendAnalysis,
@@ -1812,6 +1812,7 @@ class User extends AppModel
         $emailTemplate->set('events', $events);
         $emailTemplate->set('filters', $filters);
         $emailTemplate->set('periodicSettings', $periodicSettings);
+        $emailTemplate->set('period_days', $this->periodToDays($period));
         $emailTemplate->set('period', $period);
         $emailTemplate->set('aggregated_context', $aggregated_context);
         $emailTemplate->set('trending_summary', $trending_summary);
@@ -1883,7 +1884,7 @@ class User extends AppModel
         return $timerange;
     }
 
-    private function __periodToDays(string $period='daily'): int
+    public function periodToDays(string $period='daily'): int
     {
         return ($period == 'daily' ? 1 : (
             $period == 'weekly' ? 7 : 31)
