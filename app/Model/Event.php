@@ -4927,7 +4927,9 @@ class Event extends AppModel
     ) {
         $object['category'] = $object['meta-category'];
 
-        $include = empty($filterType['attributeFilter']) || $filterType['attributeFilter'] === 'all' || $filterType['attributeFilter'] === 'object' || $object['meta-category'] === $filterType['attributeFilter'];
+        $include = empty($filterType['attributeFilter']) ||
+            in_array($filterType['attributeFilter'], array('all', 'object', 'correlation', 'proposal', 'warning')) ||
+            $object['meta-category'] === $filterType['attributeFilter'];
 
         if (!$include) {
             return null;
