@@ -22,6 +22,8 @@ if (empty($this->__vars)) {
 $default_vars = [
     'event_table_include_basescore' => true,
     'event_table_max_event_count' => 30,
+    'correlation_table_advanced_ui' => 10,
+    'correlation_table_max_count' => 50,
     'additional_taxonomy_event_list' => [
         'PAP' => 'PAP:'
     ],
@@ -454,37 +456,68 @@ array_splice($mitre_attack_techniques, 10);
                 <?php if (!empty($new_correlations)) : ?>
                     <h4><?= __('New correlations') ?><small style="color: #999999;"><?= sprintf(' (%s)', count($new_correlations)) ?></small></h4>
                     <div>
-                        <?php foreach ($new_correlations as $correlation): ?>
-                            <div style="display: flex; flex-wrap: nowrap; align-items: center; margin-top: 0.5em;">
-                                <span>
-                                    <span class="correlating-event-container">
-                                        <span>
-                                            <a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['source_event']['id'])) ?>"><?= h($correlation['source_event']['info']) ?></a>
-                                        </span>
-                                        <span class="org-date">
-                                            <span><?=  h($correlation['source_event']['date']) ?></span>
-                                            <span><?=  h($correlation['source_event']['Orgc']['name']) ?></span>
-                                        </span>
-                                    </span>
-                                </span>
-                                <span class="correlating-attribute-container">
-                                    <span class="correlating-attribute">
-                                        <?= h($correlation['attribute_type']); ?> :: <b><?= h($correlation['attribute_value']) ?></b>
-                                    </span>
-                                </span>
-                                <span>
-                                    <span class="correlating-event-container">
-                                        <span>
-                                            <a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['target_event']['id'])) ?>"><?= h($correlation['target_event']['info']) ?></a>
-                                        </span>
-                                        <span class="org-date">
-                                            <span><?=  h($correlation['target_event']['date']) ?></span>
-                                            <span><?=  h($correlation['target_event']['Orgc']['name']) ?></span>
+                        <?php if (count($new_correlations) < $vars['correlation_table_advanced_ui']) : ?>
+                            <?php foreach ($new_correlations as $correlation): ?>
+                                <div style="display: flex; flex-wrap: nowrap; align-items: center; margin-top: 0.5em;">
+                                    <span>
+                                        <span class="correlating-event-container">
+                                            <span>
+                                                <a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['source_event']['id'])) ?>"><?= h($correlation['source_event']['info']) ?></a>
+                                            </span>
+                                            <span class="org-date">
+                                                <span><?=  h($correlation['source_event']['date']) ?></span>
+                                                <span><?=  h($correlation['source_event']['Orgc']['name']) ?></span>
+                                            </span>
                                         </span>
                                     </span>
-                                </span>
-                            </div>
-                        <?php endforeach; ?>
+                                    <span class="correlating-attribute-container">
+                                        <span class="correlating-attribute">
+                                            <?= h($correlation['attribute_type']); ?> :: <b><?= h($correlation['attribute_value']) ?></b>
+                                        </span>
+                                    </span>
+                                    <span>
+                                        <span class="correlating-event-container">
+                                            <span>
+                                                <a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['target_event']['id'])) ?>"><?= h($correlation['target_event']['info']) ?></a>
+                                            </span>
+                                            <span class="org-date">
+                                                <span><?=  h($correlation['target_event']['date']) ?></span>
+                                                <span><?=  h($correlation['target_event']['Orgc']['name']) ?></span>
+                                            </span>
+                                        </span>
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <table class="table table-xcondensed">
+                                <thead>
+                                    <tr>
+                                        <th><?= __('Event1.info') ?></th>
+                                        <th><?= __('Value') ?></th>
+                                        <th><?= __('Event2.info') ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach (array_slice($new_correlations, 0, $vars['correlation_table_max_count']) as $correlation): ?>
+                                        <tr>
+                                            <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['source_event']['id'])) ?>"><?= h($correlation['source_event']['info']) ?></a></td>
+                                            <td><b><?=  h($correlation['attribute_value']) ?></b></td>
+                                            <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['target_event']['id'])) ?>"><?= h($correlation['target_event']['info']) ?></a></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                            <?php
+                            if (count($new_correlations) > $vars['correlation_table_max_count']) {
+                                echo '⮞ ' . __n(
+                                    '%s correlation not displayed.',
+                                    '%s correlations not displayed.',
+                                    count($new_correlations) - $vars['correlation_table_max_count'],
+                                    sprintf('<strong>%s</strong>', count($new_correlations) - $vars['correlation_table_max_count'])
+                                );
+                            }
+                            ?>
+                        <?php endif; ?>
                     </div>
                 <?php endif ; ?>
             <?php endif ; ?>
