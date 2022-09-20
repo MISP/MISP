@@ -2771,6 +2771,7 @@ class UsersController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $success = $this->User->saveNotificationSettings($user['id'], $this->request->data);
             if ($success) {
+                $this->_refreshAuth();
                 $message = __('Notification settings saved');
                 $this->Flash->success($message);
                 $this->redirect(['action' => 'view', 'me']);

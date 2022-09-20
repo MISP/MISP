@@ -1693,11 +1693,11 @@ class User extends AppModel
         return $this->__getUsableFilters($periodicSettings, $period);
     }
 
-    public function saveNotificationSettings(int $user_id, array $data): bool
+    public function saveNotificationSettings(int $userId, array $data): bool
     {
         $existingUser = $this->find('first', [
             'recursive' => -1,
-            'conditions' => ['User.id' => $user_id],
+            'conditions' => ['User.id' => $userId],
         ]);
         if (empty($existingUser)) {
             return false;
@@ -1706,11 +1706,11 @@ class User extends AppModel
             $existingUser['User'][$notification_period] = $data['User'][$notification_period];
         }
         $success = $this->save($existingUser, [
-            'fieldList' => self::PERIODIC_NOTIFICATIONS
+            'fieldList' => array_merge(self::PERIODIC_NOTIFICATIONS, ['date_modified']),
         ]);
         if ($success) {
             $periodic_settings = $data['periodic_settings'];
-            $param_to_decode = ['tags', 'trending_for_tags', ];
+            $param_to_decode = ['tags', 'trending_for_tags'];
             foreach ($param_to_decode as $param) {
                 if (empty($periodic_settings[$param])) {
                     $periodic_settings[$param] = '[]';
