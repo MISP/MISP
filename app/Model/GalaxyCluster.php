@@ -1142,7 +1142,7 @@ class GalaxyCluster extends AppModel
         }
 
         $this->Event = ClassRegistry::init('Event');
-        $sharingGroupData = $this->Event->__cacheSharingGroupData($user, false);
+        $sharingGroupData = $this->Event->__cacheSharingGroupData($user, true);
         foreach ($clusters as $i => $cluster) {
             if (!empty($cluster['GalaxyCluster']['sharing_group_id']) && isset($sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']])) {
                 $clusters[$i]['SharingGroup'] = $sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']];
