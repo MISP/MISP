@@ -228,7 +228,7 @@ array_splice($mitre_attack_techniques, 10);
                 <tbody>
                     <tr>
                         <td><?= __('Summary period') ?></td>
-                        <td><?= h($period) ?></td>
+                        <td><?= h(ucfirst($period)) ?></td>
                     </tr>
                     <tr>
                         <td><?= __('Summary for dates') ?></td>

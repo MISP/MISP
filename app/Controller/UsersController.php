@@ -2797,6 +2797,7 @@ class UsersController extends AppController
         ]);
         $this->set('orgs', $orgs);
         $this->set('user', $user);
+        $this->set('title_for_layout', __('Notification settings'));
     }
 
     public function viewPeriodicSummary(string $period)
@@ -2807,6 +2808,7 @@ class UsersController extends AppController
         $this->set('periodic_settings', $periodicSettings);
         $this->set('summary', $summary);
         $this->set('period', $period);
+        $this->set('title_for_layout', __('Periodic summary'));
     }
 
     private function __canChangePassword()
