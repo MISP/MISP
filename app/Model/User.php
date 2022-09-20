@@ -493,14 +493,6 @@ class User extends AppModel
         return $fails;
     }
 
-    public function getOrgMemberCount($org)
-    {
-        return $this->find('count', array(
-                'conditions' => array(
-                        'org =' => $org,
-                )));
-    }
-
     /**
      * 0 - true if key is valid
      * 1 - User e-mail
