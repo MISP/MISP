@@ -753,7 +753,7 @@ class Taxonomy extends AppModel
 
     /**
      * @param string $tag
-     * @return array|null
+     * @return array|null Returns null if tag is not in taxonomy format
      */
     public function splitTagToComponents($tag)
     {

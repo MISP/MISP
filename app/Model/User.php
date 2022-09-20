@@ -1774,8 +1774,8 @@ class User extends AppModel
         $filters['includeEventCorrelations'] = !empty($periodicSettings['include_correlations']);
         $filters['includeGranularCorrelations'] = !empty($periodicSettings['include_correlations']);
         $filters['noSightings'] = true;
-        $filters['includeGalaxy'] = false;
-        $events = $this->__getEventsForFilters($user, $filters);
+        $filters['fetchFullClusters'] = false;
+        $events = $this->Event->fetchEvent($user, $filters);
 
         $elementCounter = 0;
         $renderView = false;
@@ -1881,13 +1881,6 @@ class User extends AppModel
         return ($period == 'daily' ? 1 : (
             $period == 'weekly' ? 7 : 31)
         );
-    }
-
-    private function __getEventsForFilters(array $user, array $filters): array
-    {
-        $this->Event = ClassRegistry::init('Event');
-        $events = $this->Event->fetchEvent($user, $filters);
-        return $events;
     }
 
     public function prepareEmailTemplate(string $period='daily'): SendEmailTemplate
