@@ -149,7 +149,7 @@ class ContextExport
             if (!empty($taxonomy['TaxonomyPredicate'][$splits['predicate']])) {
                 $predicate = $taxonomy['TaxonomyPredicate'][$splits['predicate']];
                 $entry = null;
-                if (!empty($splits['value'])) {
+                if (!empty($splits['value']) && isset($predicate['TaxonomyEntry'][$splits['value']])) {
                     $entry = $predicate['TaxonomyEntry'][$splits['value']];
                 }
                 unset($predicate['TaxonomyEntry']);
