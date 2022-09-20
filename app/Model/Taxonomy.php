@@ -589,9 +589,9 @@ class Taxonomy extends AppModel
             return false; // not taxonomy tag
         }
 
-        $key = 'taxonomies_cache:tagName=' . $tagName . "&" . "metaOnly=$metaOnly" . "&" . "fullTaxonomy=$fullTaxonomy";
+        $key = "taxonomies_cache:tagName=$tagName&metaOnly=$metaOnly&fullTaxonomy=$fullTaxonomy";
         $redis = $this->setupRedis();
-        $taxonomy = $redis ? json_decode($redis->get($key), true) : null;
+        $taxonomy = $redis ? RedisTool::deserialize($redis->get($key)) : null;
 
         if (!$taxonomy) {
             if (isset($splits['value'])) {
@@ -634,7 +634,7 @@ class Taxonomy extends AppModel
             }
 
             if ($redis) {
-                $redis->setex($key, 1800, json_encode($taxonomy));
+                $redis->setex($key, 1800, RedisTool::serialize($taxonomy));
             }
         }
 

@@ -14,6 +14,20 @@ class ServerShell extends AppShell
 {
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
 
+    public function getOptionParser()
+    {
+        $parser = parent::getOptionParser();
+        $parser->addSubcommand('fetchIndex', [
+            'help' => __('Fetch remote instance event index.'),
+            'parser' => array(
+                'arguments' => array(
+                    'server_id' => ['help' => __('Remote server ID.'), 'required' => true],
+                ),
+            )
+        ]);
+        return $parser;
+    }
+
     public function list()
     {
         $servers = $this->Server->find('all', [
@@ -53,6 +67,15 @@ class ServerShell extends AppShell
 
         $res = $this->Server->runConnectionTest($server, false);
         echo $this->json($res) . PHP_EOL;
+    }
+
+    public function fetchIndex()
+    {
+        $serverId = intval($this->args[0]);
+        $server = $this->getServer($serverId);
+        $serverSync = new ServerSyncTool($server, $this->Server->setupSyncRequest($server));
+        $index = $this->Server->getEventIndexFromServer($serverSync);
+        echo $this->json($index) . PHP_EOL;
     }
 
     public function pullAll()
