@@ -689,26 +689,18 @@ class Event extends AppModel
     }
 
     /**
+     * Get related attributes for event
      * @param array $user
-     * @param int|array $id Event ID when $scope is 'event', Attribute ID when $scope is 'attribute'
-     * @param bool $shadowAttribute
-     * @param string $scope 'event' or 'attribute'
+     * @param int|array $eventIds Event IDs
      * @return array
      */
-    public function getRelatedAttributes(array $user, $id, $shadowAttribute = false, $scope = 'event')
+    public function getRelatedAttributes(array $user, $eventIds)
     {
-        if ($shadowAttribute) {
-            // no longer supported
-            return [];
-        } else {
-            $parentIdField = '1_attribute_id';
-            $correlationModelName = 'Correlation';
-        }
-        if (!isset($this->{$correlationModelName})) {
-            $this->{$correlationModelName} = ClassRegistry::init($correlationModelName);
+        if (!isset($this->Correlation)) {
+            $this->Correlation = ClassRegistry::init('Correlation');
         }
         $sgids = $this->SharingGroup->authorizedIds($user);
-        $relatedAttributes = $this->{$correlationModelName}->getAttributesRelatedToEvent($user, $id, $sgids);
+        $relatedAttributes = $this->Correlation->getAttributesRelatedToEvent($user, $eventIds, $sgids);
         return $relatedAttributes;
     }
 

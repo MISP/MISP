@@ -83,33 +83,38 @@ class CorrelationsController extends AppController
             'page' => 1,
             'order' => 'occurrence desc'
         ];
-        foreach (array_keys($query) as $custom_param) {
-            if (isset($this->params['named'][$custom_param])) {
-                $query[$custom_param] = $this->params['named'][$custom_param];
-            }    
-        }
-        if (isset($this->params['named']['scope'])) {
-            $limit = $this->Correlation->OverCorrelatingValue->getLimit();
-            if ($this->params['named']['scope'] === 'over_correlating') {
-                $query['conditions'][] = ['occurrence >=' => $limit];
-            } else if ($this->params['named']['scope'] === 'not_over_correlating') {
-                $query['conditions'][] = ['occurrence <' => $limit];
+        foreach ($query as $customParam => $foo) {
+            if (isset($this->request->params['named'][$customParam])) {
+                $query[$customParam] = $this->request->params['named'][$customParam];
             }
+        }
+        if (isset($this->request->params['named']['scope'])) {
+            $limit = $this->Correlation->OverCorrelatingValue->getLimit();
+            if ($this->request->params['named']['scope'] === 'over_correlating') {
+                $scope = 'over_correlating';
+                $query['conditions'][] = ['occurrence >=' => $limit];
+            } else if ($this->request->params['named']['scope'] === 'not_over_correlating') {
+                $query['conditions'][] = ['occurrence <' => $limit];
+                $scope = 'not_over_correlating';
+            }
+        } else {
+            $scope = 'all';
         }
         $data = $this->Correlation->OverCorrelatingValue->getOverCorrelations($query);
         $data = $this->Correlation->attachExclusionsToOverCorrelations($data);
 
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($data, 'json');
-        } else {
-            $this->__setPagingParams($query['page'], $query['limit'], count($data), 'named');
-            $this->set('data', $data);
-            $this->set('title_for_layout', __('Index of over correlating values'));
-            $this->set('menuData', [
-                'menuList' => 'correlationExclusions',
-                'menuItem' => 'over'
-            ]);
         }
+
+        $this->__setPagingParams($query['page'], $query['limit'], count($data), 'named');
+        $this->set('data', $data);
+        $this->set('scope', $scope);
+        $this->set('title_for_layout', __('Index of over correlating values'));
+        $this->set('menuData', [
+            'menuList' => 'correlationExclusions',
+            'menuItem' => 'over'
+        ]);
     }
 
     public function switchEngine(string $engine)
@@ -205,17 +210,15 @@ class CorrelationsController extends AppController
     {
         $this->loadModel('OverCorrelatingValue');
         $this->OverCorrelatingValue->generateOccurrencesRouter();
-        $message = __('Job queued.');
         if (Configure::read('MISP.background_jobs')) {
             $message = __('Job queued.');
         } else {
             $message = __('Over-correlations counted successfully.');
         }
-        if (!$this->_isRest()) {
-            $this->Flash->info($message);
-            $this->redirect(['controller' => 'correlations', 'action' => 'overCorrelations']);
-        } else {
+        if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Correlations', 'generateOccurrences', false, $this->response->type(), $message);
         }
+        $this->Flash->info($message);
+        $this->redirect(['controller' => 'correlations', 'action' => 'overCorrelations']);
     }
 }
