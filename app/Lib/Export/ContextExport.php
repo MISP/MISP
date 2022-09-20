@@ -12,13 +12,13 @@ class ContextExport
         'includeEventCorrelations' => false,
     ];
     private $__eventTags = [];
+    /** @var array Tag name => Galaxy */
     private $__eventGalaxies = [];
 
     private $__aggregatedTags = [];
     private $__aggregatedClusters = [];
 
     private $__taxonomyFetched = [];
-    private $__galaxyFetched = [];
 
     private $__passedOptions = [];
 
@@ -84,7 +84,6 @@ class ContextExport
             foreach ($entity['Galaxy'] as $galaxy) {
                 foreach ($galaxy['GalaxyCluster'] as $galaxyCluster) {
                     $this->__eventGalaxies[$galaxyCluster['tag_name']] = $galaxyCluster;
-                    $this->fetchGalaxyForTag($galaxyCluster['tag_name']);
                 }
             }
         }
@@ -102,6 +101,7 @@ class ContextExport
     /**
      * @param string $tagName
      * @return void
+     * @throws RedisException
      */
     private function fetchTaxonomyForTag($tagName)
     {
@@ -126,28 +126,11 @@ class ContextExport
                     }
                 }
                 $this->__taxonomyFetched[$splits['namespace']] = $fetched;
+            } else {
+                // Do not try to fetch non existing taxonomy again
+                $this->__taxonomyFetched[$splits['namespace']] = false;
             }
         }
-    }
-
-    /**
-     * @param string $tagName
-     * @return void
-     */
-    private function fetchGalaxyForTag($tagName)
-    {
-        $splits = $this->Taxonomy->splitTagToComponents($tagName);
-        if ($splits === null) {
-            return; // tag is not in taxonomy format
-        }
-        if (isset($this->__galaxyFetched[$splits['predicate']])) {
-            return; // already fetched
-        }
-        $galaxy = $this->Galaxy->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.type' => $splits['predicate'])
-        ));
-        $this->__galaxyFetched[$splits['predicate']] = $galaxy;
     }
 
     private function __aggregateTagsPerTaxonomy()
@@ -184,12 +167,24 @@ class ContextExport
 
     private function __aggregateClustersPerGalaxy()
     {
+        $galaxyTypes = [];
+        foreach ($this->__eventGalaxies as $tagName => $foo) {
+            $splits = $this->Taxonomy->splitTagToComponents($tagName);
+            $galaxyTypes[$splits['predicate']] = true;
+        }
+
+        $fetchedGalaxies = $this->Galaxy->find('all', [
+            'recursive' => -1,
+            'conditions' => array('Galaxy.type' => array_keys($galaxyTypes)),
+        ]);
+        $fetchedGalaxies = array_column(array_column($fetchedGalaxies, 'Galaxy'), null, 'type');
+
         ksort($this->__eventGalaxies);
-        foreach ($this->__eventGalaxies as $tagname => $cluster) {
-            $splits = $this->Taxonomy->splitTagToComponents($tagname);
-            $galaxy = $this->__galaxyFetched[$splits['predicate']];
+        foreach ($this->__eventGalaxies as $tagName => $cluster) {
+            $splits = $this->Taxonomy->splitTagToComponents($tagName);
+            $galaxy = $fetchedGalaxies[$splits['predicate']];
             $this->__aggregatedClusters[$splits['predicate']][] = [
-                'Galaxy' => $galaxy['Galaxy'],
+                'Galaxy' => $galaxy,
                 'GalaxyCluster' => $cluster,
             ];
         }
