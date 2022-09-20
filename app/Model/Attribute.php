@@ -2151,13 +2151,13 @@ class Attribute extends AppModel
         if ($options['includeDecayScore']) {
             $options['includeEventTags'] = true;
         }
-        if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
-            $params['conditions']['AND']['Attribute.deleted'] = 0;
-        } else {
+        if (isset($options['deleted'])) {
             if ($options['deleted'] === "only") {
                 $options['deleted'] = 1;
             }
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = $options['deleted'];
+        } elseif (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
+            $params['conditions']['AND']['Attribute.deleted'] = 0;
         }
         if (isset($options['group'])) {
             $params['group'] = !empty($options['group']) ? $options['group'] : false;
