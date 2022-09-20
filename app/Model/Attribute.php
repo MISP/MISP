@@ -510,21 +510,26 @@ class Attribute extends AppModel
     public function beforeDelete($cascade = true)
     {
         // delete attachments from the disk
-        $this->read(); // first read the attribute from the db
-        if ($this->typeIsAttachment($this->data['Attribute']['type'])) {
-            $this->loadAttachmentTool()->delete($this->data['Attribute']['event_id'], $this->data['Attribute']['id']);
+        $attribute = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'id' => $this->id,
+            ]
+        ]);
+        if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
+            $this->loadAttachmentTool()->delete($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
         }
         // update correlation..
-        $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
-        if (!empty($this->data['Attribute']['id'])) {
+        $this->Correlation->beforeSaveCorrelation($attribute['Attribute']);
+        if (!empty($attribute['Attribute']['id'])) {
             if ($this->pubToZmq('attribute')) {
                 $pubSubTool = $this->getPubSubTool();
-                $pubSubTool->attribute_save($this->data, 'delete');
+                $pubSubTool->attribute_save($attribute, 'delete');
             }
             $kafkaTopic = $this->kafkaTopic('attribute');
             if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
-                $kafkaPubTool->publishJson($kafkaTopic, $this->data, 'delete');
+                $kafkaPubTool->publishJson($kafkaTopic, $attribute, 'delete');
             }
         }
     }
