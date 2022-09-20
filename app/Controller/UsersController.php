@@ -2771,6 +2771,7 @@ class UsersController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $success = $this->User->saveNotificationSettings($user['id'], $this->request->data);
             if ($success) {
+                $this->_refreshAuth();
                 $message = __('Notification settings saved');
                 $this->Flash->success($message);
                 $this->redirect(['action' => 'view', 'me']);
@@ -2780,8 +2781,10 @@ class UsersController extends AppController
             }
         }
 
-        $user['periodic_settings'] = $this->User->extractPeriodicSettingForUser($user);
-        $this->request->data = $user;
+        $this->request->data = [
+            'User' => $user,
+            'periodic_settings' => $this->User->fetchPeriodicSettingForUser($user['id']),
+        ];
         $this->loadModel('Attribute');
         $distributionData = $this->Attribute->fetchDistributionData($user);
         unset($distributionData['levels'][5]);
@@ -2804,7 +2807,7 @@ class UsersController extends AppController
     {
         $userId = $this->Auth->user('id');
         $summary = $this->User->generatePeriodicSummary($userId, $period);
-        $periodicSettings = $this->User->extractPeriodicSettingForUser($userId);
+        $periodicSettings = $this->User->fetchPeriodicSettingForUser($userId);
         $this->set('periodic_settings', $periodicSettings);
         $this->set('summary', $summary);
         $this->set('period', $period);
