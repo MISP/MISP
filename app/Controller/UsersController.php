@@ -2780,7 +2780,7 @@ class UsersController extends AppController
             }
         }
 
-        $user['periodic_settings'] = $this->User->extractPeriodicSettingForUser($user);
+        $user['periodic_settings'] = $this->User->extractPeriodicSettingForUser($user['id']);
         $this->request->data = $user;
         $this->loadModel('Attribute');
         $distributionData = $this->Attribute->fetchDistributionData($user);
