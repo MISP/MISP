@@ -2781,8 +2781,10 @@ class UsersController extends AppController
             }
         }
 
-        $user['periodic_settings'] = $this->User->fetchPeriodicSettingForUser($user['id']);
-        $this->request->data = $user;
+        $this->request->data = [
+            'User' => $user,
+            'periodic_settings' => $this->User->fetchPeriodicSettingForUser($user['id']),
+        ];
         $this->loadModel('Attribute');
         $distributionData = $this->Attribute->fetchDistributionData($user);
         unset($distributionData['levels'][5]);
