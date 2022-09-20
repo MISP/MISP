@@ -1647,7 +1647,7 @@ class User extends AppModel
      * @return array
      * @throws JsonException
      */
-    public function extractPeriodicSettingForUser($userId, $decode = false): array
+    public function fetchPeriodicSettingForUser($userId, $decode = false): array
     {
         $filterNames = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags', 'include_correlations'];
         $filterToDecode = ['tags', 'trending_for_tags'];
@@ -1771,7 +1771,7 @@ class User extends AppModel
         }
         App::import('Tools', 'SendEmail');
         $emailTemplate = $this->prepareEmailTemplate($period);
-        $periodicSettings = $this->extractPeriodicSettingForUser($user_id, true);
+        $periodicSettings = $this->fetchPeriodicSettingForUser($user_id, true);
         $filters = $this->getUsablePeriodicSettingForUser($periodicSettings, $period);
         $filtersForRestSearch = $filters; // filters for restSearch are slightly different than fetchEvent
         $filters['last'] = $this->resolveTimeDelta($filters['last']);
