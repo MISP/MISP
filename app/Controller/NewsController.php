@@ -1,6 +1,9 @@
 <?php
-App::uses('AppController', 'Controller', 'CRUD');
+App::uses('AppController', 'Controller');
 
+/**
+ * @property News $News
+ */
 class NewsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -8,28 +11,51 @@ class NewsController extends AppController
     public $paginate = array(
         'limit' => 5,
         'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
-        'order' => array(
+        'order' => [
             'News.id' => 'DESC'
-        ),
+        ],
+        'contain' => [
+            'User' => ['fields' => ['User.email']],
+        ]
     );
 
     public function index()
     {
-        $this->paginate['contain'] = array('User' => array('fields' => array('User.email')));
+        $user = $this->Auth->user();
         $newsItems = $this->paginate();
 
-        $newsread = $this->Auth->user('newsread');
-        foreach ($newsItems as $key => $item) {
-            if ($item['News']['date_created'] > $newsread) {
-                $newsItems[$key]['News']['new'] = true;
-            } else {
-                $newsItems[$key]['News']['new'] = false;
+        $newsread = $user['newsread'];
+        $hasUnreadNews = false;
+        foreach ($newsItems as &$item) {
+            $isNew = $item['News']['date_created'] > $newsread;
+            $item['News']['new'] = $isNew;
+            if ($isNew) {
+                $hasUnreadNews = true;
             }
         }
         $this->set('newsItems', $newsItems);
+        $this->set('hasUnreadNews', $hasUnreadNews);
 
-        $this->loadModel('User');
-        $this->User->updateField($this->Auth->user(), 'newsread', time());
+        if ($hasUnreadNews) {
+            $homepage = $this->User->UserSetting->getValueForUser($user['id'], 'homepage');
+            if (!empty($homepage)) {
+                $this->set('homepage', $homepage);
+            } else {
+                $this->set('homepage', "{$this->baseurl}/events/index");
+            }
+
+            $this->User->updateField($user, 'newsread', time());
+        }
+    }
+
+    public function admin_index()
+    {
+        $user = $this->Auth->user();
+        $this->paginate['limit'] = 25;
+        $newsItems = $this->paginate();
+
+        $this->set('newsItems', $newsItems);
+        $this->set('user', $user);
     }
 
     public function add()
@@ -74,7 +100,6 @@ class NewsController extends AppController
 
     public function delete($id)
     {
-        $this->defaultModel = 'News';
         $this->CRUD->delete($id);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;

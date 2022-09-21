@@ -397,10 +397,11 @@ class ACLComponent extends Component
         'queryEnrichment' => array('perm_auth'),
       ),
             'news' => array(
-                    'add' => array(),
-                    'edit' => array(),
-                    'delete' => array(),
-                    'index' => array('*'),
+                'add' => array(),
+                'edit' => array(),
+                'delete' => array(),
+                'admin_index' => array(),
+                'index' => ['*'],
             ),
             'noticelists' => array(
                     'delete' => array(),

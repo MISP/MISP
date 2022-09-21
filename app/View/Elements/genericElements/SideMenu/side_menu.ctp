@@ -1364,9 +1364,14 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 case 'news':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/news/index',
-                        'text' => __('View News')
+                        'text' => __('View News'),
                     ));
                     if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/admin/news/index',
+                            'text' => __('View News as Admin'),
+                            'element_id' => 'admin_index',
+                        ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/news/add',
                             'text' => __('Add News Item')
