@@ -999,11 +999,13 @@ class EventsController extends AppController
         }
 
         $possibleColumns[] = 'attribute_count';
-        $possibleColumns[] = 'timestamp';
-        $possibleColumns[] = 'publish_timestamp';
 
         if (Configure::read('MISP.showCorrelationsOnIndex')) {
             $possibleColumns[] = 'correlations';
+        }
+
+        if (Configure::read('MISP.showEventReportCountOnIndex')) {
+            $possibleColumns[] = 'report_count';
         }
 
         if (Configure::read('MISP.showSightingsCountOnIndex')) {
@@ -1014,10 +1016,6 @@ class EventsController extends AppController
             $possibleColumns[] = 'proposals';
         }
 
-        if (Configure::read('MISP.showEventReportCountOnIndex')) {
-            $possibleColumns[] = 'report_count';
-        }
-
         if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
             $possibleColumns[] = 'discussion';
         }
@@ -1025,6 +1023,9 @@ class EventsController extends AppController
         if ($this->_isSiteAdmin()) {
             $possibleColumns[] = 'creator_user';
         }
+
+        $possibleColumns[] = 'timestamp';
+        $possibleColumns[] = 'publish_timestamp';
 
         $userDisabledColumns = $this->User->UserSetting->getValueForUser($this->Auth->user()['id'], 'event_index_hide_columns');
         if ($userDisabledColumns === null) {

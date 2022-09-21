@@ -44,7 +44,7 @@
             'proposals' => __('Proposals'),
             'discussion' => __('Posts'),
             'report_count' => __('Report count'),
-            'timestamp' => __('Last change at'),
+            'timestamp' => __('Last modified at'),
             'publish_timestamp' => __('Published at')
         ];
 
