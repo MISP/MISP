@@ -38,14 +38,14 @@ $chartData = [];
 $maxValue = 0;
 foreach ($allUniqueTags as $i => $tag) {
     if (
-        !empty($clusteredTags[$previousPeriod2][$tag]['occurence']) ||
-        !empty($clusteredTags[$previousPeriod][$tag]['occurence']) ||
-        !empty($clusteredTags[$currentPeriod][$tag]['occurence'])
+        !empty($clusteredTags[$previousPeriod2][$tag]['occurrence']) ||
+        !empty($clusteredTags[$previousPeriod][$tag]['occurrence']) ||
+        !empty($clusteredTags[$currentPeriod][$tag]['occurrence'])
     ) {
         $chartData[$tag] = [
-            $clusteredTags[$previousPeriod2][$tag]['occurence'] ?? 0,
-            $clusteredTags[$previousPeriod][$tag]['occurence'] ?? 0,
-            $clusteredTags[$currentPeriod][$tag]['occurence'] ?? 0,
+            $clusteredTags[$previousPeriod2][$tag]['occurrence'] ?? 0,
+            $clusteredTags[$previousPeriod][$tag]['occurrence'] ?? 0,
+            $clusteredTags[$currentPeriod][$tag]['occurrence'] ?? 0,
         ];
         $maxValue = max($maxValue, max($chartData[$tag]));
     }
@@ -242,7 +242,7 @@ if (!function_exists('computeLinePositions')) {
                             <table class="table-condensed no-border trending-table-data">
                                 <tbody>
                                     <tr>
-                                        <td><?= h($clusteredTags[$previousPeriod2][$tagName]['occurence'] ?? '-') ?></td>
+                                        <td><?= h($clusteredTags[$previousPeriod2][$tagName]['occurrence'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$previousPeriod2][$tagName]['raw_change'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$previousPeriod2][$tagName]['percent_change'] ?? '-') ?>%</td>
                                     </tr>
@@ -253,7 +253,7 @@ if (!function_exists('computeLinePositions')) {
                             <table class="table-condensed no-border trending-table-data">
                                 <tbody>
                                     <tr>
-                                        <td><?= h($clusteredTags[$previousPeriod][$tagName]['occurence'] ?? '-') ?></td>
+                                        <td><?= h($clusteredTags[$previousPeriod][$tagName]['occurrence'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$previousPeriod][$tagName]['raw_change'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$previousPeriod][$tagName]['percent_change'] ?? '-') ?>%</td>
                                         <td style="font-size: large; color: <?= $trendColorMapping[$clusteredTags[$previousPeriod][$tagName]['change_sign'] ?? '?'] ?>"><?= $trendIconMapping[$clusteredTags[$previousPeriod][$tagName]['change_sign'] ?? '?'] ?></td>
@@ -265,7 +265,7 @@ if (!function_exists('computeLinePositions')) {
                             <table class="table-condensed no-border trending-table-data">
                                 <tbody>
                                     <tr>
-                                        <td><?= h($clusteredTags[$currentPeriod][$tagName]['occurence'] ?? '-') ?></td>
+                                        <td><?= h($clusteredTags[$currentPeriod][$tagName]['occurrence'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$currentPeriod][$tagName]['raw_change'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$currentPeriod][$tagName]['percent_change'] ?? '-') ?>%</td>
                                         <td style="font-size: large; color: <?= $trendColorMapping[$clusteredTags[$currentPeriod][$tagName]['change_sign'] ?? '?'] ?>"><?= $trendIconMapping[$clusteredTags[$currentPeriod][$tagName]['change_sign'] ?? '?'] ?></td>
@@ -282,7 +282,7 @@ if (!function_exists('computeLinePositions')) {
                             $high = '#bc2f1a';
                             $colorGradient = [];
                             foreach ($periods as $i => $period) {
-                                $ratio = ($clusteredTags[$period][$tagName]['occurence'] ?? 0) / $maxValue;
+                                $ratio = ($clusteredTags[$period][$tagName]['occurrence'] ?? 0) / $maxValue;
                                 $color = $ratio <= 0.33 ? $low : ($ratio >= 0.66 ? $high : $medium);
                                 $length = 100 * $i / (count($periods) - 1);
                                 $colorGradient[] = sprintf('%s %s%%', $color, $length);
