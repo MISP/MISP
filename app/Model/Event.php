@@ -2176,7 +2176,7 @@ class Event extends AppModel
         }
 
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        $clusters = $this->GalaxyCluster->getClusters($galaxyTags, $user, true, $fetchFullCluster);
+        $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, $fetchFullCluster);
 
         if (empty($clusters)) {
             return;
@@ -2194,7 +2194,7 @@ class Event extends AppModel
                 if (isset($clustersByTagIds[$tagId])) {
                     $cluster = $clustersByTagIds[$tagId];
                     $galaxyId = $cluster['Galaxy']['id'];
-                    $cluster['local'] = isset($eventTag['local']) ? $eventTag['local'] : false;
+                    $cluster['local'] = $eventTag['local'] ?? false;
                     if (isset($event['Galaxy'][$galaxyId])) {
                         unset($cluster['Galaxy']);
                         $event['Galaxy'][$galaxyId]['GalaxyCluster'][] = $cluster;
@@ -2218,7 +2218,7 @@ class Event extends AppModel
                         if (isset($clustersByTagIds[$tagId])) {
                             $cluster = $clustersByTagIds[$tagId];
                             $galaxyId = $cluster['Galaxy']['id'];
-                            $cluster['local'] = isset($attributeTag['local']) ? $attributeTag['local'] : false;
+                            $cluster['local'] = $attributeTag['local'] ?? false;
                             if (isset($attribute['Galaxy'][$galaxyId])) {
                                 unset($cluster['Galaxy']);
                                 $attribute['Galaxy'][$galaxyId]['GalaxyCluster'][] = $cluster;
@@ -6833,7 +6833,7 @@ class Event extends AppModel
             }
         }
 
-        $notCachedTags = array_diff_key($tagIds, isset($this->assetCache['tags']) ? $this->assetCache['tags'] : []);
+        $notCachedTags = array_diff_key($tagIds, $this->assetCache['tags'] ?? []);
         if (empty($notCachedTags)) {
             return;
         }

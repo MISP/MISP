@@ -2373,7 +2373,7 @@ class Attribute extends AppModel
 
         $tags = $this->AttributeTag->Tag->find('all', [
             'conditions' => $conditions,
-            'fields' => ['id', 'name', 'colour', 'numerical_value'],
+            'fields' => ['id', 'name', 'colour', 'numerical_value', 'is_galaxy'],
             'recursive' => -1,
         ]);
         $tags = array_column(array_column($tags, 'Tag'), null, 'id');

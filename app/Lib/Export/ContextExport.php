@@ -10,7 +10,9 @@ class ContextExport
         'noShadowAttributes' => true,
         'sgReferenceOnly' => true,
         'includeEventCorrelations' => false,
+        'fetchFullClusters' => false,
     ];
+
     private $__eventTags = [];
     /** @var array Tag name => Galaxy */
     private $__eventGalaxies = [];

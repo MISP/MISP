@@ -1688,9 +1688,33 @@ class User extends AppModel
         return $periodicSettingsIndexed;
     }
 
-    public function getUsablePeriodicSettingForUser(array $periodicSettings, $period='daily'): array
+    /**
+     * @param array $period_filters
+     * @param string $period
+     * @return array
+     */
+    private function getUsablePeriodicSettingForUser(array $period_filters, $period='daily'): array
     {
-        return $this->__getUsableFilters($periodicSettings, $period);
+        $filters = [
+            'last' => $this->__genTimerangeFilter($period),
+            'published' => true,
+        ];
+        if (!empty($period_filters['orgc_id'])) {
+            $filters['orgc_id'] = $period_filters['orgc_id'];
+        }
+        if (isset($period_filters['distribution']) && $period_filters['distribution'] >= 0) {
+            $filters['distribution'] = intval($period_filters['distribution']);
+        }
+        if (!empty($period_filters['sharing_group_id'])) {
+            $filters['sharing_group_id'] = $period_filters['sharing_group_id'];
+        }
+        if (!empty($period_filters['event_info'])) {
+            $filters['event_info'] = $period_filters['event_info'];
+        }
+        if (!empty($period_filters['tags'])) {
+            $filters['tags'] = $period_filters['tags'];
+        }
+        return $filters;
     }
 
     public function saveNotificationSettings(int $userId, array $data): bool
@@ -1780,6 +1804,7 @@ class User extends AppModel
         $filters['includeGranularCorrelations'] = !empty($periodicSettings['include_correlations']);
         $filters['noSightings'] = true;
         $filters['fetchFullClusters'] = false;
+        $filters['includeScoresOnEvent'] = true;
         $events = $this->Event->fetchEvent($user, $filters);
 
         $elementCounter = 0;
@@ -1843,31 +1868,6 @@ class User extends AppModel
         $view->set('baseurl', $this->Event->__getAnnounceBaseurl());
         $view->viewPath = $viewPath;
         return $view->render($viewFile, false);
-    }
-
-    private function __getUsableFilters(array $period_filters, string $period='daily'): array
-    {
-        $filters = [
-            'last' => $this->__genTimerangeFilter($period),
-            'published' => true,
-            'includeScoresOnEvent' => true,
-        ];
-        if (!empty($period_filters['orgc_id'])) {
-            $filters['orgc_id'] = $period_filters['orgc_id'];
-        }
-        if (isset($period_filters['distribution']) && $period_filters['distribution'] >= 0) {
-            $filters['distribution'] = intval($period_filters['distribution']);
-        }
-        if (!empty($period_filters['sharing_group_id'])) {
-            $filters['sharing_group_id'] = $period_filters['sharing_group_id'];
-        }
-        if (!empty($period_filters['event_info'])) {
-            $filters['event_info'] = $period_filters['event_info'];
-        }
-        if (!empty($period_filters['tags'])) {
-            $filters['tags'] = $period_filters['tags'];
-        }
-        return $filters;
     }
 
     private function __genTimerangeFilter(string $period='daily'): string
