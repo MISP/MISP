@@ -1,8 +1,10 @@
 <?php
 class ColourPaletteTool
 {
-
-    // pass the number of distinct colours to receive an array of colours
+    /**
+     * @param int $count Pass the number of distinct colours to receive an array of colours
+     * @return array
+     */
     public function createColourPalette($count)
     {
         $interval = 1 / $count;
@@ -13,6 +15,10 @@ class ColourPaletteTool
         return $colours;
     }
 
+    /**
+     * @param array $hsv
+     * @return string
+     */
     public function HSVtoRGB(array $hsv)
     {
         list($H, $S, $V) = $hsv;
@@ -50,12 +56,16 @@ class ColourPaletteTool
         return $this->convertToHex(array($R, $G, $B));
     }
 
+    /**
+     * @param array $channels
+     * @return string
+     */
     public function convertToHex($channels)
     {
         $colour = '#';
         foreach ($channels as $channel) {
-            $channel = strval(dechex(round($channel*255)));
-            if (strlen($channel) == 1) {
+            $channel = dechex(round($channel*255));
+            if (strlen($channel) === 1) {
                 $channel = '0' . $channel;
             }
             $colour .= $channel;

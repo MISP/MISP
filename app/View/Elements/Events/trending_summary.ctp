@@ -42,7 +42,6 @@ foreach ($allUniqueTags as $i => $tag) {
         !empty($clusteredTags[$previousPeriod][$tag]['occurence']) ||
         !empty($clusteredTags[$currentPeriod][$tag]['occurence'])
     ) {
-        $colorForTags[$tag] = $COLOR_PALETTE[$i];
         $chartData[$tag] = [
             $clusteredTags[$previousPeriod2][$tag]['occurence'] ?? 0,
             $clusteredTags[$previousPeriod][$tag]['occurence'] ?? 0,
@@ -50,6 +49,7 @@ foreach ($allUniqueTags as $i => $tag) {
         ];
         $maxValue = max($maxValue, max($chartData[$tag]));
     }
+    $colorForTags[$tag] = $COLOR_PALETTE[$i];
 }
 $canvasWidth = 600;
 $canvasHeight = 150;
