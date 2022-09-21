@@ -598,7 +598,6 @@ class ServerShell extends AppShell
 
     public function sendPeriodicSummaryToUsers()
     {
-        $this->ConfigLoad->execute();
         $periods = $this->__getPeriodsForToday();
         $start_time = time();
         echo __n('Started periodic summary generation for the %s period', 'Started periodic summary generation for periods: %s', count($periods), implode(', ', $periods)) . PHP_EOL;
@@ -611,7 +610,7 @@ class ServerShell extends AppShell
                 $this->User->sendEmail($user, $emailTemplate, false, null);
             }
         }
-        echo __('All reports sent. Task took %s secondes', time() -  $start_time) . PHP_EOL;
+        echo __('All reports sent. Task took %s seconds', time() -  $start_time) . PHP_EOL;
     }
 
     private function __getPeriodsForToday(): array

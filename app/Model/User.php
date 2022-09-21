@@ -830,7 +830,7 @@ class User extends AppModel
      * @param array $user
      * @param SendEmailTemplate|string $body
      * @param string|false $bodyNoEnc
-     * @param string $subject
+     * @param string|null $subject
      * @param array|false $replyToUser
      * @return bool
      * @throws Crypt_GPG_BadPassphraseException
@@ -1741,7 +1741,10 @@ class User extends AppModel
     {
         return $this->find('all', [
             'recursive' => -1,
-            'conditions' => ["notification_$period" => true],
+            'conditions' => [
+                "notification_$period" => true,
+                'disabled' => false,
+            ],
         ]);
     }
 
