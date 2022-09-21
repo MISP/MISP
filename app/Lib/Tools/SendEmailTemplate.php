@@ -24,7 +24,7 @@ class SendEmailTemplate
     /**
      * This value will be used for grouping emails in mail client.
      * @param string|null $referenceId
-     * @return string
+     * @return string|void
      */
     public function referenceId($referenceId = null)
     {
@@ -49,7 +49,7 @@ class SendEmailTemplate
     /**
      * Get subject from template. Must be called after render method.
      * @param string|null $subject
-     * @return string
+     * @return string|void
      */
     public function subject($subject = null)
     {
@@ -84,7 +84,6 @@ class SendEmailTemplate
         $View->set($this->viewVars);
         $View->set('hideDetails', $hideDetails);
 
-        $View->viewPath = $View->layoutPath = 'Emails' . DS . 'html';
         try {
             $View->viewPath = $View->layoutPath = 'Emails' . DS . 'html' . DS . 'Custom';
             $html = $View->render($this->viewName); // Attempt to load a custom template if it exists
@@ -93,7 +92,7 @@ class SendEmailTemplate
             try {
                 $html = $View->render($this->viewName);
             } catch (MissingViewException $e) {
-                $html = null; // HTMl template is optional
+                $html = null; // HTML template is optional
             }
         }
 

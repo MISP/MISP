@@ -1780,25 +1780,25 @@ class User extends AppModel
     /**
      * generatePeriodicSummary
      *
-     * @param int $user_id
-     * @param string $period
+     * @param int $userId
+     * @param string $period Can be 'daily', 'weekly' or 'monthly'
+     * @param bool $rendered When false, instance of SendEmailTemplate will returned
      * @return string|SendEmailTemplate
      * @throws NotFoundException
      * @throws InvalidArgumentException
      */
-    public function generatePeriodicSummary(int $user_id, string $period, $rendered=true)
+    public function generatePeriodicSummary(int $userId, string $period, $rendered=true)
     {
-        $existingUser = $this->getUserById($user_id);
-        $user = $this->rearrangeToAuthForm($existingUser);
-        $allowed_periods = array_map(function($period) {
+        $allowedPeriods = array_map(function($period) {
             return substr($period, strlen('notification_'));
         }, self::PERIODIC_NOTIFICATIONS);
-        if (!in_array($period, $allowed_periods)) {
+        if (!in_array($period, $allowedPeriods, true)) {
             throw new InvalidArgumentException(__('Invalid period. Must be one of %s', JsonTool::encode(self::PERIODIC_NOTIFICATIONS)));
         }
+
+        $user = $this->getAuthUser($userId);
         App::import('Tools', 'SendEmail');
-        $emailTemplate = $this->prepareEmailTemplate($period);
-        $periodicSettings = $this->fetchPeriodicSettingForUser($user_id, true);
+        $periodicSettings = $this->fetchPeriodicSettingForUser($userId, true);
         $filters = $this->getUsablePeriodicSettingForUser($periodicSettings, $period);
         $filtersForRestSearch = $filters; // filters for restSearch are slightly different than fetchEvent
         $filters['last'] = $this->resolveTimeDelta($filters['last']);
@@ -1821,7 +1821,7 @@ class User extends AppModel
             unset($filtersForRestSearch['tags']);
         }
         $finalContext = $this->Event->restSearch($user, 'context', $filtersForRestSearch, false, false, $elementCounter, $renderView);
-        $finalContext = json_decode($finalContext->intoString(), true);
+        $finalContext = JsonTool::decode($finalContext->intoString());
         $aggregated_context = $this->__renderAggregatedContext($finalContext);
 
         $rollingWindows = 2;
@@ -1833,6 +1833,7 @@ class User extends AppModel
         ];
         $trending_summary = $this->__renderTrendingSummary($trendData);
 
+        $emailTemplate = $this->prepareEmailTemplate($period);
         $emailTemplate->set('baseurl', $this->Event->__getAnnounceBaseurl());
         $emailTemplate->set('events', $events);
         $emailTemplate->set('filters', $filters);
@@ -1843,9 +1844,9 @@ class User extends AppModel
         $emailTemplate->set('trending_summary', $trending_summary);
         $emailTemplate->set('analysisLevels', $this->Event->analysisLevels);
         $emailTemplate->set('distributionLevels', $this->Event->distributionLevels);
-        if (!empty($rendered)) {
+        if ($rendered) {
             $summary = $emailTemplate->render();
-            return $summary->format() == 'text' ? $summary->text : $summary->html;
+            return $summary->format() === 'text' ? $summary->text : $summary->html;
         }
         return $emailTemplate;
     }
@@ -1875,23 +1876,21 @@ class User extends AppModel
 
     private function __genTimerangeFilter(string $period='daily'): string
     {
-        $timerange = '1d';
-        if ($period == 'weekly') {
-            $timerange = '7d';
-        } else if ($period == 'monthly'){
-            $timerange = '31d';
-        }
-        return $timerange;
+        return $this->periodToDays($period) . 'd';
     }
 
-    public function periodToDays(string $period='daily'): int
+    private function periodToDays(string $period='daily'): int
     {
-        return ($period == 'daily' ? 1 : (
-            $period == 'weekly' ? 7 : 31)
-        );
+        if ($period === 'daily') {
+            return 1;
+        } else if ($period === 'weekly') {
+            return 7;
+        } else {
+            return 31;
+        }
     }
 
-    public function prepareEmailTemplate(string $period='daily'): SendEmailTemplate
+    private function prepareEmailTemplate(string $period = 'daily'): SendEmailTemplate
     {
         $subject = sprintf('[%s MISP] %s %s', Configure::read('MISP.org'), Inflector::humanize($period), __('Notification - %s', (new DateTime())->format('Y-m-d')));
         $template = new SendEmailTemplate("notification_$period");

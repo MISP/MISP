@@ -105,15 +105,15 @@ if (!function_exists('computeLinePositions')) {
                 </tr>
                 <tr>
                     <td><?= __('Starting period') ?></td>
-                    <td><?= sprintf('%s', $currentPeriodDate->format('M d, o. (\W\e\e\k W)')); ?></td>
+                    <td><?= $currentPeriodDate->format('M d, o. (\W\e\e\k W)'); ?></td>
                 </tr>
                 <tr>
                     <td><?= __('Previous period') ?></td>
-                    <td><?= sprintf('%s', $previousPeriodDate->format('M d, o. (\W\e\e\k W)')); ?></td>
+                    <td><?= $previousPeriodDate->format('M d, o. (\W\e\e\k W)'); ?></td>
                 </tr>
                 <tr>
                     <td><?= __('Period-2') ?></td>
-                    <td><?= sprintf('%s', $previousPeriod2Date->format('M d, o. (\W\e\e\k W)')); ?></td>
+                    <td><?= $previousPeriod2Date->format('M d, o. (\W\e\e\k W)'); ?></td>
                 </tr>
             </tbody>
         </table>
@@ -125,7 +125,7 @@ if (!function_exists('computeLinePositions')) {
                     <div>
                         <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, 0, -25) ?>"><?= h($maxValue) ?></span>
                         <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20) / 2, 0) ?>"><?= h(round($maxValue / 2, 2)) ?></span>
-                        <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20), 25) ?>"><?= 0 ?></span>
+                        <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20), 25) ?>">0</span>
                     </div>
                 </div>
                 <div class="canvas">
@@ -288,7 +288,6 @@ if (!function_exists('computeLinePositions')) {
                                 $colorGradient[] = sprintf('%s %s%%', $color, $length);
                             }
                         ?>
-
                         <div class="heatbar" style="background: <?= sprintf('linear-gradient(90deg, %s);', implode(', ', $colorGradient)) ?>;"></div>
                     </td>
                 <?php endforeach; ?>
