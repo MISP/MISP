@@ -17,9 +17,6 @@ class Correlation extends AppModel
     const CACHE_NAME = 'misp:top_correlations',
         CACHE_AGE = 'misp:top_correlations_age';
 
-    /** @var array */
-    private $__compositeTypes;
-
     public $belongsTo = array(
         'Attribute' => [
             'className' => 'Attribute',
@@ -864,16 +861,19 @@ class Correlation extends AppModel
      */
     public function attachCorrelationExclusion(array $attributes)
     {
-        if (!isset($this->__compositeTypes)) {
-            $this->__compositeTypes = $this->Attribute->getCompositeTypes();
-        }
-
+        $compositeTypes = $this->Attribute->getCompositeTypes();
         $valuesToCheck = [];
         foreach ($attributes as &$attribute) {
-            if (in_array($attribute['type'], $this->__compositeTypes, true)) {
+            if ($attribute['disable_correlation'] || in_array($attribute['type'],Attribute::NON_CORRELATING_TYPES, true)) {
+                continue;
+            }
+            $primaryOnly = in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true);
+            if (in_array($attribute['type'], $compositeTypes, true)) {
                 $values = explode('|', $attribute['value']);
                 $valuesToCheck[$values[0]] = true;
-                $valuesToCheck[$values[1]] = true;
+                if (!$primaryOnly) {
+                    $valuesToCheck[$values[1]] = true;
+                }
             } else {
                 $values = [$attribute['value']];
                 $valuesToCheck[$values[0]] = true;
@@ -881,7 +881,7 @@ class Correlation extends AppModel
 
             if ($this->__preventExcludedCorrelations($values[0])) {
                 $attribute['correlation_exclusion'] = true;
-            } elseif (!empty($values[1]) && $this->__preventExcludedCorrelations($values[1])) {
+            } elseif (!empty($values[1]) && !$primaryOnly && $this->__preventExcludedCorrelations($values[1])) {
                 $attribute['correlation_exclusion'] = true;
             }
         }
@@ -890,16 +890,20 @@ class Correlation extends AppModel
         unset($valuesToCheck);
 
         foreach ($attributes as &$attribute) {
-            if (in_array($attribute['type'], $this->__compositeTypes, true)) {
-                $values = explode('|', $attribute['value']);
-            } else {
-                $values = [$attribute['value']];
+            if ($attribute['disable_correlation'] || in_array($attribute['type'],Attribute::NON_CORRELATING_TYPES, true)) {
+                continue;
             }
-            $values = $this->OverCorrelatingValue->truncateValues($values);
+            $primaryOnly = in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true);
+            if (in_array($attribute['type'], $compositeTypes, true)) {
+                $values = explode('|', $attribute['value']);
+                $values = OverCorrelatingValue::truncateValues($values);
+            } else {
+                $values = [OverCorrelatingValue::truncate($attribute['value'])];
+            }
 
             if (isset($overCorrelatingValues[$values[0]])) {
                 $attribute['over_correlation'] = true;
-            } elseif (!empty($values[1]) && isset($overCorrelatingValues[$values[1]])) {
+            } elseif (!empty($values[1])  && !$primaryOnly && isset($overCorrelatingValues[$values[1]])) {
                 $attribute['over_correlation'] = true;
             }
         }
