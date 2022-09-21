@@ -92,7 +92,6 @@ if (!function_exists('computeLinePositions')) {
         return $conf;
     }
 }
-
 ?>
 
 <div style="display: flex; column-gap: 20px; justify-content: space-around; margin-bottom: 40px;">
@@ -255,7 +254,7 @@ if (!function_exists('computeLinePositions')) {
                                     <tr>
                                         <td><?= h($clusteredTags[$previousPeriod][$tagName]['occurrence'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$previousPeriod][$tagName]['raw_change'] ?? '-') ?></td>
-                                        <td><?= h($clusteredTags[$previousPeriod][$tagName]['percent_change'] ?? '-') ?>%</td>
+                                        <td><?= h($clusteredTags[$previousPeriod][$tagName]['percent_change'] ?? '-') ?>&nbsp;%</td>
                                         <td style="font-size: large; color: <?= $trendColorMapping[$clusteredTags[$previousPeriod][$tagName]['change_sign'] ?? '?'] ?>"><?= $trendIconMapping[$clusteredTags[$previousPeriod][$tagName]['change_sign'] ?? '?'] ?></td>
                                     </tr>
                                 </tbody>
@@ -267,7 +266,7 @@ if (!function_exists('computeLinePositions')) {
                                     <tr>
                                         <td><?= h($clusteredTags[$currentPeriod][$tagName]['occurrence'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$currentPeriod][$tagName]['raw_change'] ?? '-') ?></td>
-                                        <td><?= h($clusteredTags[$currentPeriod][$tagName]['percent_change'] ?? '-') ?>%</td>
+                                        <td><?= h($clusteredTags[$currentPeriod][$tagName]['percent_change'] ?? '-') ?>&nbsp;%</td>
                                         <td style="font-size: large; color: <?= $trendColorMapping[$clusteredTags[$currentPeriod][$tagName]['change_sign'] ?? '?'] ?>"><?= $trendIconMapping[$clusteredTags[$currentPeriod][$tagName]['change_sign'] ?? '?'] ?></td>
                                     </tr>
                                 </tbody>

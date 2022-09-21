@@ -56,7 +56,7 @@ class TrendingTool
                         $trendAnalysis[$previousTimestamp][$tag] = [
                             'occurrence' => 0,
                             'raw_change' => -$amount,
-                            'percent_change' => 100 * (-$amount / $amount),
+                            'percent_change' => round(100 * (-$amount / $amount), 2),
                             'change_sign' => -$amount > 0 ? 1 : (-$amount < 0 ? -1 : 0),
                         ];
                     }
