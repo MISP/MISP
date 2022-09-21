@@ -6038,6 +6038,7 @@ class Server extends AppModel
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'redacted' => true
                 ),
             ),
             'Security' => array(
@@ -6746,6 +6747,7 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
+                    'redacted' => true
                 ),
                 'ZeroMQ_redis_host' => array(
                     'level' => 2,
@@ -6769,6 +6771,7 @@ class Server extends AppModel
                     'value' => '',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
+                    'redacted' => true
                 ),
                 'ZeroMQ_redis_database' => array(
                     'level' => 2,
