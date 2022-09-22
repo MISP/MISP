@@ -635,11 +635,14 @@ class AttributeValidationTool
     }
 
     /**
-     * @param $value
+     * @param string $value
      * @return bool
      */
     private static function isSsdeep($value)
     {
+        if (strpos($value, "\n") !== false) {
+            return false;
+        }
         $parts = explode(':', $value);
         if (count($parts) !== 3) {
             return false;
