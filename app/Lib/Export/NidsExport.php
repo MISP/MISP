@@ -1,6 +1,6 @@
 <?php
 
-class NidsExport
+abstract class NidsExport
 {
     public $rules = array();
 
@@ -858,15 +858,16 @@ class NidsExport
         }
     }
 
+    /**
+     * @param array $attribute
+     * @return array|string[]
+     */
     public static function getIpPort($attribute)
     {
-        $ipport = array();
         if (strpos($attribute['type'], 'port') !== false) {
-            $ipport = explode('|', $attribute['value']);
+            return explode('|', $attribute['value']);
         } else {
-            $ipport[0] = $attribute['value'];
-            $ipport[1] = 'any';
+            return [$attribute['value'], 'any'];
         }
-        return $ipport;
     }
 }
