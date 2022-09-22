@@ -245,7 +245,6 @@ if (!function_exists('computeLinePositions')) {
                                         <td><?= h($clusteredTags[$previousPeriod2][$tagName]['occurence'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$previousPeriod2][$tagName]['raw_change'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$previousPeriod2][$tagName]['percent_change'] ?? '-') ?>%</td>
-                                        <td style="font-size: large; color: <?= $trendColorMapping[$clusteredTags[$previousPeriod2][$tagName]['change_sign'] ?? '?'] ?>"><?= $trendIconMapping[$clusteredTags[$previousPeriod2][$tagName]['change_sign'] ?? '?'] ?></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -281,7 +280,6 @@ if (!function_exists('computeLinePositions')) {
                             $low = '#fee8c8';
                             $medium = '#f09c8f';
                             $high = '#bc2f1a';
-                            $periodColorRatio = $clusteredTags[$currentPeriod][$tagName]['occurence'] / $maxValue;
                             $colorGradient = [];
                             foreach ($periods as $i => $period) {
                                 $ratio = ($clusteredTags[$period][$tagName]['occurence'] ?? 0) / $maxValue;

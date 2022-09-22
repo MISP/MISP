@@ -123,6 +123,10 @@ foreach ($events as $event) {
 
         $attribute_number += count($object['Attribute']);
         foreach ($object['Attribute'] as $attribute) {
+            $attribute_light_by_id[$attribute['id']] = [
+                'timestamp' => $attribute['timestamp'],
+                'type' => $attribute['type'],
+            ];
             if (empty($attribute_types[$attribute['type']])) {
                 $attribute_types[$attribute['type']] = 0;
             }
@@ -164,7 +168,7 @@ foreach ($events as $event) {
         foreach ($event['RelatedEvent'] as $related_event) {
             $related_event_by_id[$related_event['Event']['id']] = $related_event['Event'];
         }
-    
+
         foreach ($event['RelatedAttribute'] as $attribute_id => $related_attributes) {
             $has_attribute_been_modified_since_last_period = intval($attribute_light_by_id[$attribute_id]['timestamp']) >= intval($start_date->format('U'));
             foreach ($related_attributes as $related_attribute) {
