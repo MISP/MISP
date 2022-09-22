@@ -1130,16 +1130,17 @@ class ObjectsController extends AppController
         $this->set('unmapped', $unmappedAttributes);
     }
 
-    function proposeObjectsFromAttributes($event_id, $selected_attributes='[]')
+    public function proposeObjectsFromAttributes($eventId, $selectedAttributes='[]')
     {
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
         }
-        $selected_attributes = json_decode($selected_attributes, true);
-        $res = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $event_id, $selected_attributes);
-        $potential_templates = $res['templates'];
-        $attribute_types = $res['types'];
-        usort($potential_templates, function($a, $b) {
+
+        $selectedAttributes = $this->_jsonDecode($selectedAttributes);
+        $res = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $eventId, $selectedAttributes);
+        $potentialTemplates = $res['templates'];
+        $attributeTypes = $res['types'];
+        usort($potentialTemplates, function($a, $b) {
             if ($a['ObjectTemplate']['id'] == $b['ObjectTemplate']['id']) {
                 return 0;
             } else if (is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
@@ -1152,9 +1153,9 @@ class ObjectsController extends AppController
                 return count($a['ObjectTemplate']['invalidTypes']) > count($b['ObjectTemplate']['invalidTypes']) ? 1 : -1;
             }
         });
-        $this->set('potential_templates', $potential_templates);
-        $this->set('selected_types', $attribute_types);
-        $this->set('event_id', $event_id);
+        $this->set('potential_templates', $potentialTemplates);
+        $this->set('selected_types', $attributeTypes);
+        $this->set('event_id', $eventId);
     }
 
     public function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')

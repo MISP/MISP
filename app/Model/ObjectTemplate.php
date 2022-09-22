@@ -206,7 +206,12 @@ class ObjectTemplate extends AppModel
         return true;
     }
 
-    public function checkTemplateConformityBasedOnTypes($template, $attributes)
+    /**
+     * @param array $template
+     * @param array $attributes
+     * @return array
+     */
+    public function checkTemplateConformityBasedOnTypes(array $template, array $attributes)
     {
         $to_return = array('valid' => true, 'missingTypes' => array());
         if (!empty($template['ObjectTemplate']['requirements'])) {
@@ -216,8 +221,9 @@ class ObjectTemplate extends AppModel
                     $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField))[0];
                     $found = false;
                     foreach ($attributes as $attribute) {
-                        if ($attribute['Attribute']['type'] == $requiredType) {
+                        if ($attribute['Attribute']['type'] === $requiredType) {
                             $found = true;
+                            break;
                         }
                     }
                     if (!$found) {
@@ -231,11 +237,12 @@ class ObjectTemplate extends AppModel
                 $all_required_type = array();
                 foreach ($template['ObjectTemplate']['requirements']['requiredOneOf'] as $requiredField) {
                     $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField));
-                    $requiredType = empty($requiredType) ? NULL : $requiredType[0];
+                    $requiredType = empty($requiredType) ? null : $requiredType[0];
                     $all_required_type[] = $requiredType;
                     foreach ($attributes as $attribute) {
-                        if ($attribute['Attribute']['type'] == $requiredType) {
+                        if ($attribute['Attribute']['type'] === $requiredType) {
                             $found = true;
+                            break;
                         }
                     }
                 }
@@ -245,7 +252,7 @@ class ObjectTemplate extends AppModel
             }
         }
 
-        // at this point, an object could created; checking if all attribute are valids
+        // at this point, an object could created; checking if all attribute are valid
         $valid_types = array();
         $to_return['invalidTypes'] = array();
         $to_return['invalidTypesMultiple'] = array();

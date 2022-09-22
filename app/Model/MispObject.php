@@ -452,7 +452,7 @@ class MispObject extends AppModel
         return false;
     }
 
-    public function saveObject($object, $eventId, $template = false, $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
+    public function saveObject(array $object, $eventId, $template = false, $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
     {
         $templateFields = array(
             'name' => 'name',
@@ -482,7 +482,6 @@ class MispObject extends AppModel
             }
         }
         $this->create();
-        $result = false;
         if ($this->save($object)) {
             $result = $this->id;
             foreach ($object['Attribute'] as $k => $attribute) {
@@ -1215,36 +1214,40 @@ class MispObject extends AppModel
         return count($orphans);
     }
 
-    public function validObjectsFromAttributeTypes($user, $event_id, $selected_attribute_ids)
+    /**
+     * @param array $user
+     * @param int $eventId
+     * @param array $selectedAttributeIds
+     * @return array|array[]
+     * @throws Exception
+     */
+    public function validObjectsFromAttributeTypes(array $user, $eventId, array $selectedAttributeIds)
     {
-        $attributes = $this->Attribute->fetchAttributes($user,
-            array(
-                'conditions' => array(
-                    'Attribute.id' => $selected_attribute_ids,
-                    'Attribute.event_id' => $event_id,
-                    'Attribute.object_id' => 0
-                ),
-            )
-        );
+        $attributes = $this->Attribute->fetchAttributesSimple($user, [
+            'conditions' => [
+                'Attribute.id' => $selectedAttributeIds,
+                'Attribute.event_id' => $eventId,
+                'Attribute.object_id' => 0,
+            ],
+        ]);
         if (empty($attributes)) {
             return array('templates' => array(), 'types' => array());
         }
-        $attribute_types = array();
+        $attributeTypes = array();
         foreach ($attributes as $i => $attribute) {
-            $attribute_types[$attribute['Attribute']['type']] = 1;
+            $attributeTypes[$attribute['Attribute']['type']] = true;
             $attributes[$i]['Attribute']['object_relation'] = $attribute['Attribute']['type'];
         }
-        $attribute_types = array_keys($attribute_types);
+        $attributeTypes = array_keys($attributeTypes);
 
-        $potential_templates = $this->ObjectTemplate->find('list', array(
+        $potentialTemplateIds = $this->ObjectTemplate->find('column', array(
             'recursive' => -1,
             'fields' => array(
                 'ObjectTemplate.id',
-                'COUNT(ObjectTemplateElement.type) as type_count'
             ),
             'conditions' => array(
                 'ObjectTemplate.active' => true,
-                'ObjectTemplateElement.type' => $attribute_types
+                'ObjectTemplateElement.type' => $attributeTypes,
             ),
             'joins' => array(
                 array(
@@ -1256,13 +1259,11 @@ class MispObject extends AppModel
                 )
             ),
             'group' => 'ObjectTemplate.id',
-            'order' => 'type_count DESC'
         ));
 
-        $potential_template_ids = array_keys($potential_templates);
         $templates = $this->ObjectTemplate->find('all', array(
             'recursive' => -1,
-            'conditions' => array('id' => $potential_template_ids),
+            'conditions' => array('id' => $potentialTemplateIds),
             'contain' => 'ObjectTemplateElement'
         ));
 
@@ -1272,20 +1273,15 @@ class MispObject extends AppModel
             $templates[$i]['ObjectTemplate']['invalidTypes'] = $res['invalidTypes'];
             $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
         }
-        return array('templates' => $templates, 'types' => $attribute_types);
+        return array('templates' => $templates, 'types' => $attributeTypes);
     }
 
-    public function groupAttributesIntoObject($user, $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping, $hard_delete_attribute)
+    public function groupAttributesIntoObject(array $user, $event_id, array $object, $template, array $selected_attribute_ids, array $selected_object_relation_mapping, $hard_delete_attribute)
     {
         $saved_object_id = $this->saveObject($object, $event_id, $template, $user);
         if (!is_numeric($saved_object_id)) {
             return $saved_object_id;
         }
-
-        $saved_object = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Object.id' => $saved_object_id)
-        ));
 
         $existing_attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array(
             'Attribute.id' => $selected_attribute_ids,
@@ -1299,7 +1295,7 @@ class MispObject extends AppModel
         $event = array('Event' => $existing_attributes[0]['Event']);
 
         // Duplicate the attribute and its context, otherwise connected instances will drop the duplicated UUID
-        foreach ($existing_attributes as $i => $existing_attribute) {
+        foreach ($existing_attributes as $existing_attribute) {
             if (isset($selected_object_relation_mapping[$existing_attribute['Attribute']['id']])) {
                 $sightings = $this->Event->Sighting->attachToEvent($event, $user, $existing_attribute['Attribute']['id']);
                 $object_relation = $selected_object_relation_mapping[$existing_attribute['Attribute']['id']];
@@ -1308,20 +1304,18 @@ class MispObject extends AppModel
                 unset($created_attribute['id']);
                 unset($created_attribute['uuid']);
                 $created_attribute['object_relation'] = $object_relation;
-                $created_attribute['object_id'] = $saved_object['Object']['id'];
+                $created_attribute['object_id'] = $saved_object_id;
                 if (isset($existing_attribute['AttributeTag'])) {
                     $created_attribute['AttributeTag'] = $existing_attribute['AttributeTag'];
                 }
                 if (!empty($sightings)) {
                     $created_attribute['Sighting'] = $sightings;
                 }
-                $saved_object['Attribute'][$i] = $created_attribute;
-                $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object['Object']['id']);
+                $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object_id);
                 $this->Attribute->deleteAttribute($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
             }
         }
-        return $saved_object['Object']['id'];
-
+        return $saved_object_id;
     }
 
     public function resolveUpdatedTemplate($template, $object, $update_template_available = false)
