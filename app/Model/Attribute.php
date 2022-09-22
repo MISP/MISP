@@ -1153,48 +1153,6 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $allowNotPublished = false)
-    {
-        //permissions are taken care of in fetchAttributes()
-        $conditions['AND'] = array();
-        if ($allowNonIDS === false) {
-            $conditions['AND']['Attribute.to_ids'] = 1;
-            if ($allowNotPublished === false) {
-                $conditions['AND']['Event.published'] = 1;
-            }
-        }
-        if (!is_array($type) && $type !== 'all') {
-            $conditions['AND']['Attribute.type'] = $type;
-        }
-        if ($from) {
-            $conditions['AND']['Event.date >='] = $from;
-        }
-        if ($to) {
-            $conditions['AND']['Event.date <='] = $to;
-        }
-        if ($last) {
-            $conditions['AND']['Event.publish_timestamp >='] = $last;
-        }
-
-        if ($eventId !== false) {
-            $conditions['AND'][] = array('Event.id' => $eventId);
-        } elseif ($tags !== false) {
-            $passed_param = array('tags' => $tags);
-            $conditions = $this->set_filter_tags($passed_param, $conditions, array('scope' => 'Attribute'));
-        }
-        $attributes = $this->fetchAttributes($user, array(
-                'conditions' => $conditions,
-                'order' => 'Attribute.value1 ASC',
-                'fields' => array('value'),
-                'contain' => array('Event' => array(
-                    'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
-                )),
-                'enforceWarninglist' => $enforceWarninglist,
-                'flatten' => 1
-        ));
-        return $attributes;
-    }
-
     public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false, $enforceWarninglist = false)
     {
         // we can group hostname and domain as well as ip-src and ip-dst in this case
