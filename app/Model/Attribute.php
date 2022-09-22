@@ -908,7 +908,7 @@ class Attribute extends AppModel
         if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
             $thumbnailInRedis = Configure::read('MISP.thumbnail_in_redis');
             if ($thumbnailInRedis) {
-                $redis = $this->setupRedisWithException();
+                $redis = RedisTool::init();
                 if ($data = $redis->get("misp:thumbnail:attribute:{$attribute['Attribute']['id']}:$outputFormat")) {
                     return $data;
                 }
@@ -930,7 +930,7 @@ class Attribute extends AppModel
         // Save just when requested default thumbnail size
         if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
             if ($thumbnailInRedis) {
-                $redis->set("misp:thumbnail:attribute:{$attribute['Attribute']['id']}:$outputFormat", $imageData, 3600);
+                $redis->setex("misp:thumbnail:attribute:{$attribute['Attribute']['id']}:$outputFormat", 3600, $imageData);
             } else {
                 $this->loadAttachmentTool()->save($attribute['Attribute']['event_id'], $attribute['Attribute']['id'], $imageData, $suffix);
             }
@@ -2378,7 +2378,7 @@ class Attribute extends AppModel
 
         $tags = $this->AttributeTag->Tag->find('all', [
             'conditions' => $conditions,
-            'fields' => ['id', 'name', 'colour', 'numerical_value'],
+            'fields' => ['id', 'name', 'colour', 'numerical_value', 'is_galaxy'],
             'recursive' => -1,
         ]);
         $tags = array_column(array_column($tags, 'Tag'), null, 'id');

@@ -71,7 +71,8 @@ class AttributesController extends AppController
 
     public function index()
     {
-        $this->paginate['conditions']['AND'][] = $this->Attribute->buildConditions($this->Auth->user());
+        $user = $this->Auth->user();
+        $this->paginate['conditions']['AND'][] = $this->Attribute->buildConditions($user);
         $attributes = $this->paginate();
 
         if ($this->_isRest()) {
@@ -84,13 +85,13 @@ class AttributesController extends AppController
             'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
         ]);
         $orgTable = Hash::combine($orgTable, '{n}.Orgc.id', '{n}.Orgc');
-        $sgids = $this->Attribute->SharingGroup->authorizedIds($this->Auth->user());
+        $sgids = $this->Attribute->SharingGroup->authorizedIds($user);
         foreach ($attributes as &$attribute) {
             if (isset($orgTable[$attribute['Event']['orgc_id']])) {
                 $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
             }
             $temp = $this->Attribute->Correlation->getRelatedAttributes(
-                $this->Auth->user(),
+                $user,
                 $sgids,
                 $attribute['Attribute'],
                 [],
@@ -104,7 +105,7 @@ class AttributesController extends AppController
             $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $temp;
         }
 
-        list($attributes, $sightingsData) = $this->__searchUI($attributes);
+        list($attributes, $sightingsData) = $this->__searchUI($attributes, $user);
         $this->set('isSearch', 0);
         $this->set('sightingsData', $sightingsData);
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
@@ -1540,6 +1541,7 @@ class AttributesController extends AppController
 
     public function search($continue = false)
     {
+        $user = $this->Auth->user();
         $exception = null;
         $filters = $this->__getSearchFilters($exception);
         if ($this->request->is('post') || !empty($this->request->params['named']['tags'])) {
@@ -1571,7 +1573,7 @@ class AttributesController extends AppController
         }
         if (!empty($filters)) {
             $filters['includeCorrelations'] = 1;
-            $params = $this->Attribute->restSearch($this->Auth->user(), 'json', $filters, true);
+            $params = $this->Attribute->restSearch($user, 'json', $filters, true);
             if (!isset($params['conditions']['Attribute.deleted'])) {
                 $params['conditions']['Attribute.deleted'] = 0;
             }
@@ -1589,7 +1591,7 @@ class AttributesController extends AppController
                 'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
             ]);
             $orgTable = array_column(array_column($orgTable, 'Orgc'), null, 'id');
-            $sgids = $this->Attribute->SharingGroup->authorizedIds($this->Auth->user());
+            $sgids = $this->Attribute->SharingGroup->authorizedIds($user);
             foreach ($attributes as &$attribute) {
                 if (isset($orgTable[$attribute['Event']['orgc_id']])) {
                     $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
@@ -1599,7 +1601,7 @@ class AttributesController extends AppController
                 }
                 if (isset($filters['includeCorrelations'])) {
                     $temp = $this->Attribute->Correlation->getRelatedAttributes(
-                        $this->Auth->user(),
+                        $user,
                         $sgids,
                         $attribute['Attribute'],
                         [],
@@ -1617,7 +1619,7 @@ class AttributesController extends AppController
                 return $this->RestResponse->viewData($attributes, $this->response->type());
             }
 
-            list($attributes, $sightingsData) = $this->__searchUI($attributes);
+            list($attributes, $sightingsData) = $this->__searchUI($attributes, $user);
             $this->set('sightingsData', $sightingsData);
 
             if (isset($filters['tags']) && !empty($filters['tags'])) {
@@ -1653,7 +1655,12 @@ class AttributesController extends AppController
         }
     }
 
-    private function __searchUI(array $attributes)
+    /**
+     * @param array $attributes
+     * @param array $user
+     * @return array|array[]
+     */
+    private function __searchUI(array $attributes, array $user)
     {
         if (empty($attributes)) {
             return [[], []];
@@ -1663,11 +1670,8 @@ class AttributesController extends AppController
 
         $this->loadModel('Sighting');
         $this->loadModel('AttachmentScan');
-        $user = $this->Auth->user();
-        $attributeIds = [];
         $galaxyTags = [];
         foreach ($attributes as &$attribute) {
-            $attributeIds[] = $attribute['Attribute']['id'];
             if ($this->Attribute->isImage($attribute['Attribute'])) {
                 if (extension_loaded('gd')) {
                     // if extension is loaded, the data is not passed to the view because it is asynchronously fetched
@@ -1687,8 +1691,8 @@ class AttributesController extends AppController
 
             $attribute['Attribute']['AttributeTag'] = $attribute['AttributeTag'];
             foreach ($attribute['Attribute']['AttributeTag'] as $at) {
-                if (substr($at['Tag']['name'], 0, 12) === 'misp-galaxy:') {
-                    $galaxyTags[] = $at['Tag']['name'];
+                if ($at['Tag']['is_galaxy']) {
+                    $galaxyTags[$at['Tag']['id']] = $at['Tag']['name'];
                 }
             }
             unset($attribute['AttributeTag']);
@@ -1698,14 +1702,11 @@ class AttributesController extends AppController
         // Fetch galaxy clusters in one query
         if (!empty($galaxyTags)) {
             $this->loadModel('GalaxyCluster');
-            $clusters = $this->GalaxyCluster->getClusters($galaxyTags, $user, true, false);
+            $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, false);
             $clusters = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
         } else {
             $clusters = [];
         }
-
-        // Fetch correlations in one query
-        $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, false, 'attribute');
 
         // `attachFeedCorrelations` method expects different attribute format, so we need to transform that, then process
         // and then take information back to original attribute structure.
@@ -1721,7 +1722,7 @@ class AttributesController extends AppController
                 }
                 $cluster = $clusters[$attributeTag['Tag']['id']];
                 $galaxyId = $cluster['Galaxy']['id'];
-                $cluster['local'] = isset($attributeTag['local']) ? $attributeTag['local'] : false;
+                $cluster['local'] = $attributeTag['local'] ?? false;
                 if (isset($attribute['Attribute']['Galaxy'][$galaxyId])) {
                     unset($cluster['Galaxy']);
                     $galaxies[$galaxyId]['GalaxyCluster'][] = $cluster;
@@ -1737,12 +1738,9 @@ class AttributesController extends AppController
             if (isset($attributesWithFeedCorrelations[$k]['Feed'])) {
                 $attributes[$k]['Attribute']['Feed'] = $attributesWithFeedCorrelations[$k]['Feed'];
             }
-            if (isset($correlations[$attribute['Attribute']['id']])) {
-                $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attribute['Attribute']['id']];
-            }
         }
         $sightingsData = $this->Sighting->attributesStatistics($attributes, $user);
-        return array($attributes, $sightingsData);
+        return [$attributes, $sightingsData];
     }
 
     public function checkComposites()

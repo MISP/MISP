@@ -204,7 +204,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
     /**
      * Fetch correlations for given event.
      * @param array $user
-     * @param int $eventId
+     * @param int|array $eventId
      * @param array $sgids
      * @param bool $primary
      * @return array
@@ -245,7 +245,6 @@ class DefaultCorrelationBehavior extends ModelBehavior
             'contain' => [
                 'CorrelationValue' => [
                     'fields' => [
-                        'CorrelationValue.id',
                         'CorrelationValue.value'
                     ]
                 ]
@@ -264,7 +263,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
     /**
      * @param Correlation $Model
      * @param array $user
-     * @param int $id Event ID
+     * @param int|array $id Event ID
      * @param array $sgids
      * @return array
      */
@@ -337,7 +336,6 @@ class DefaultCorrelationBehavior extends ModelBehavior
             [
                 '1_attribute_id',
                 '1_object_id',
-                '1_event_id',
                 '1_distribution',
                 '1_object_distribution',
                 '1_event_distribution',
@@ -345,12 +343,10 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 '1_object_sharing_group_id',
                 '1_event_sharing_group_id',
                 '1_org_id',
-                'value_id'
             ],
             [
                 'attribute_id',
                 'object_id',
-                'event_id',
                 'distribution',
                 'object_distribution',
                 'event_distribution',
@@ -358,11 +354,10 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 'object_sharing_group_id',
                 'event_sharing_group_id',
                 'org_id',
-                'value_id'
             ]
         ];
         $prefixes = ['1_', ''];
-        $correlated_attribute_ids = [];
+        $correlatedAttributeIds = [];
         foreach ($conditions as $k => $condition) {
             $temp_correlations = $Model->find('all', [
                 'recursive' => -1,
@@ -376,10 +371,15 @@ class DefaultCorrelationBehavior extends ModelBehavior
                             continue;
                         }
                     }
-                    $correlated_attribute_ids[] = $temp_correlation['Correlation'][$prefixes[$k] . 'attribute_id'];
+                    $correlatedAttributeIds[] = $temp_correlation['Correlation'][$prefixes[$k] . 'attribute_id'];
                 }
             }
         }
+
+        if (empty($correlatedAttributeIds)) {
+            return [];
+        }
+
         $contain = [];
         if (!empty($includeEventData)) {
             $contain['Event'] = [
@@ -402,7 +402,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         $relatedAttributes = $Model->Attribute->find('all', [
             'recursive' => -1,
             'conditions' => [
-                'Attribute.id' => $correlated_attribute_ids
+                'Attribute.id' => $correlatedAttributeIds
             ],
             'fields' => $fields,
             'contain' => $contain

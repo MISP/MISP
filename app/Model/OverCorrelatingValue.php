@@ -83,16 +83,11 @@ class OverCorrelatingValue extends AppModel
         return $data;
     }
 
-    public function checkValue($value)
+    public function findOverCorrelatingValues(array $valuesToCheck): array
     {
-        return $this->hasAny(['value' => self::truncate($value)]);
-    }
-
-    public function findOverCorrelatingValues(array $values_to_check): array
-    {
-        $values_to_check_truncated = array_unique(self::truncateValues($values_to_check), SORT_REGULAR);
+        $valuesToCheck = array_unique(self::truncateValues($valuesToCheck), SORT_REGULAR);
         return $this->find('column', [
-            'conditions' => ['value' => $values_to_check_truncated],
+            'conditions' => ['value' => $valuesToCheck],
             'fields' => ['value'],
         ]);
     }
@@ -134,14 +129,23 @@ class OverCorrelatingValue extends AppModel
         ]);
         $this->Attribute = ClassRegistry::init('Attribute');
         foreach ($overCorrelations as &$overCorrelation) {
+            $value = $overCorrelation['OverCorrelatingValue']['value'] . '%';
             $count = $this->Attribute->find('count', [
                 'recursive' => -1,
                 'conditions' => [
                     'OR' => [
-                        'Attribute.value1 LIKE' => $overCorrelation['OverCorrelatingValue']['value'] . '%',
-                        'Attribute.value2 LIKE' => $overCorrelation['OverCorrelatingValue']['value'] . '%'
-                    ]
-                ]
+                        'Attribute.value1 LIKE' => $value,
+                        'AND' => [
+                            'Attribute.value2 LIKE' => $value,
+                            'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
+                        ],
+                    ],
+                    'NOT' => ['Attribute.type' => Attribute::NON_CORRELATING_TYPES],
+                    'Attribute.disable_correlation' => 0,
+                    'Event.disable_correlation' => 0,
+                    'Attribute.deleted' => 0,
+                ],
+                'contain' => ['Event'],
             ]);
             $overCorrelation['OverCorrelatingValue']['occurrence'] = $count;
         }

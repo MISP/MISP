@@ -19,6 +19,9 @@ class DecayingModel extends AppModel
     private $__registered_model_classes = array(); // Proxy for already instantiated classes
     public $allowed_overrides = array('threshold' => 1, 'lifetime' => 1, 'decay_speed' => 1);
 
+    /** @var array */
+    private $defaultModelsCache;
+
     public function afterFind($results, $primary = false) {
         foreach ($results as $k => $v) {
             if (!empty($v['DecayingModel']['parameters'])) {
@@ -207,7 +210,7 @@ class DecayingModel extends AppModel
         return $default_models;
     }
 
-    public function fetchAllAllowedModels($user, $full=true, $filters=array(), $additionnal_conditions=array())
+    public function fetchAllAllowedModels($user, $full=true, $filters=array(), $additionalConditions=array())
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
@@ -223,10 +226,10 @@ class DecayingModel extends AppModel
                 $conditions[] = array('not' => array('DecayingModel.uuid' => null));
             }
         }
-        $conditions[] = array('AND' => $additionnal_conditions);
+        $conditions[] = array('AND' => $additionalConditions);
         $decayingModels = $this->find('all', array(
             'conditions' => $conditions,
-            'include' => $full ? 'DecayingModelMapping' :''
+            'include' => $full ? 'DecayingModelMapping' : ''
         ));
         foreach ($decayingModels as $i => $decayingModel) { // includes both model default mapping and user mappings
             if ($full) {
@@ -638,17 +641,29 @@ class DecayingModel extends AppModel
         return $attribute;
     }
 
-    public function attachScoresToEvent($user, $event, $model_id=false, $model_overrides=array(), $include_full_model=0)
+    /**
+     * @param array $user
+     * @param array $event
+     * @param int|bool $modelId
+     * @param array $modelOverrides
+     * @param bool $includeFullModel
+     * @return array
+     */
+    public function attachScoresToEvent(array $user, array $event, $modelId = false, $modelOverrides = [], $includeFullModel = false)
     {
-        $models = [];
-        if ($model_id === false) { // fetch all allowed and associated models
-            $models = $this->fetchAllAllowedModels($user, false, [], ['DecayingModel.enabled' => true]);
+        if ($modelId === false) { // fetch all allowed and associated models
+            if (isset($this->defaultModelsCache[$user['id']])) {
+                $models = $this->defaultModelsCache[$user['id']];
+            } else {
+                $models = $this->fetchAllAllowedModels($user, false, [], ['DecayingModel.enabled' => true]);
+                $this->defaultModelsCache[$user['id']] = $models;
+            }
         } else {
-            $models = $this->fetchModels($user, $model_id, false, array());
+            $models = $this->fetchModels($user, $modelId, false, array());
         }
         foreach ($models as $model) {
-            if (!empty($model_overrides)) {
-                $model = $this->overrideModelParameters($model, $model_overrides);
+            if (!empty($modelOverrides)) {
+                $model = $this->overrideModelParameters($model, $modelOverrides);
             }
             $eventScore = $this->getScoreForEvent($event, $model);
             $decayed = $this->isEventDecayed($model, $eventScore['score']);
@@ -661,7 +676,7 @@ class DecayingModel extends AppModel
                     'name' => $model['DecayingModel']['name']
                 ]
             ];
-            if ($include_full_model) {
+            if ($includeFullModel) {
                 $to_attach['DecayingModel'] = $model['DecayingModel'];
             }
             $event['event_scores'][] = $to_attach;

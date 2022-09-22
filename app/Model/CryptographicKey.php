@@ -89,13 +89,13 @@ class CryptographicKey extends AppModel
     }
 
     /**
-     * @return string Instance key fingerprint
+     * @return string|false Instance key fingerprint or false is no key is set
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      */
     public function ingestInstanceKey()
     {
-        // If instance just key stored just in GPG homedir, use that key.
+        // If instance key is stored just in GPG homedir, use that key.
         if (Configure::read('MISP.download_gpg_from_homedir')) {
             if (!$this->gpg) {
                 throw new Exception("Could not initiate GPG");
@@ -130,7 +130,7 @@ class CryptographicKey extends AppModel
             try {
                 $this->gpg->importKey($instanceKey);
             } catch (Crypt_GPG_NoDataException $e) {
-                throw new MethodNotAllowedException("Could not import the instance key..");
+                throw new MethodNotAllowedException("Could not import the instance key.");
             }
             $fingerprint = $this->gpg->getFingerprint(Configure::read('GnuPG.email'));
             if ($redis) {

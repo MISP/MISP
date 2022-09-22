@@ -25,6 +25,7 @@ App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('RandomTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('RedisTool', 'Tools');
 App::uses('BetterCakeEventManager', 'Tools');
 
 class AppModel extends Model
@@ -37,9 +38,6 @@ class AppModel extends Model
 
     /** @var BackgroundJobsTool */
     private static $loadedBackgroundJobsTool;
-
-    /** @var null|Redis */
-    private static $__redisConnection;
 
     private $__profiler = array();
 
@@ -2885,37 +2883,11 @@ class AppModel extends Model
      * Similar method as `setupRedis`, but this method throw exception if Redis cannot be reached.
      * @return Redis
      * @throws Exception
+     * @deprecated
      */
     public function setupRedisWithException()
     {
-        if (self::$__redisConnection) {
-            return self::$__redisConnection;
-        }
-
-        if (!class_exists('Redis')) {
-            throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
-        }
-
-        $host = Configure::read('MISP.redis_host') ?: '127.0.0.1';
-        $port = Configure::read('MISP.redis_port') ?: 6379;
-        $database = Configure::read('MISP.redis_database') ?: 13;
-        $pass = Configure::read('MISP.redis_password');
-
-        $redis = new Redis();
-        if (!$redis->connect($host, (int) $port)) {
-            throw new Exception("Could not connect to Redis: {$redis->getLastError()}");
-        }
-        if (!empty($pass)) {
-            if (!$redis->auth($pass)) {
-                throw new Exception("Could not authenticate to Redis: {$redis->getLastError()}");
-            }
-        }
-        if (!$redis->select($database)) {
-            throw new Exception("Could not select Redis database $database: {$redis->getLastError()}");
-        }
-
-        self::$__redisConnection = $redis;
-        return $redis;
+        return RedisTool::init();
     }
 
     /**
@@ -2927,7 +2899,7 @@ class AppModel extends Model
     public function setupRedis()
     {
         try {
-            return $this->setupRedisWithException();
+            return RedisTool::init();
         } catch (Exception $e) {
             return false;
         }

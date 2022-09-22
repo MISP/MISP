@@ -2766,21 +2766,12 @@ class UsersController extends AppController
 
     public function notificationSettings()
     {
-        $user_id = $this->Auth->user('id');
-        $user = $this->User->find('first', [
-            'recursive' => -1,
-            'conditions' => ['User.id' => $user_id],
-            'contain' => [
-                'UserSetting',
-            ]
-        ]);
-        if (empty($user)) {
-            throw new NotFoundException(__('Invalid user'));
-        }
+        $user = $this->Auth->user();
 
         if ($this->request->is('post') || $this->request->is('put')) {
-            $success = $this->User->saveNotificationSettings($user_id, $this->request->data);
-            if (!empty($success)) {
+            $success = $this->User->saveNotificationSettings($user['id'], $this->request->data);
+            if ($success) {
+                $this->_refreshAuth();
                 $message = __('Notification settings saved');
                 $this->Flash->success($message);
                 $this->redirect(['action' => 'view', 'me']);
@@ -2789,32 +2780,38 @@ class UsersController extends AppController
                 $this->Flash->error($message);
             }
         }
-        $user['periodic_settings'] = $this->User->extractPeriodicSettingForUser($user);
-        $this->request->data = $user;
-        $this->set('user', $user);
+
+        $this->request->data = [
+            'User' => $user,
+            'periodic_settings' => $this->User->fetchPeriodicSettingForUser($user['id']),
+        ];
         $this->loadModel('Attribute');
-        $distributionData = $this->Attribute->fetchDistributionData($this->Auth->user());
+        $distributionData = $this->Attribute->fetchDistributionData($user);
         unset($distributionData['levels'][5]);
         $this->set('sharingGroups', $distributionData['sgs']);
         $this->set('distributionLevels', $distributionData['levels']);
-        $this->loadModel('Organisation');
-        $orgs = $this->Organisation->find('list', [
-            'conditions' => ['local' => 1],
+
+        $conditions = $this->User->Organisation->createConditions($user);
+        $conditions['local'] = true;
+        $orgs = $this->User->Organisation->find('list', [
+            'conditions' => $conditions,
             'fields' => ['id', 'name'],
             'order' => 'name',
         ]);
         $this->set('orgs', $orgs);
         $this->set('user', $user);
+        $this->set('title_for_layout', __('Notification settings'));
     }
 
     public function viewPeriodicSummary(string $period)
     {
-        $summary = $this->User->generatePeriodicSummary($this->Auth->user('id'), $period);
-        $periodic_settings = $this->User->extractPeriodicSettingForUser($this->Auth->user('id'));
-        $notification_settings = $this->User->getUsablePeriodicSettingForUser($periodic_settings, $period);
-        $this->set('periodic_settings', $periodic_settings);
+        $userId = $this->Auth->user('id');
+        $summary = $this->User->generatePeriodicSummary($userId, $period);
+        $periodicSettings = $this->User->fetchPeriodicSettingForUser($userId);
+        $this->set('periodic_settings', $periodicSettings);
         $this->set('summary', $summary);
         $this->set('period', $period);
+        $this->set('title_for_layout', __('Periodic summary'));
     }
 
     private function __canChangePassword()

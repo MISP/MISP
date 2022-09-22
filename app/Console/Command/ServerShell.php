@@ -14,6 +14,20 @@ class ServerShell extends AppShell
 {
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
 
+    public function getOptionParser()
+    {
+        $parser = parent::getOptionParser();
+        $parser->addSubcommand('fetchIndex', [
+            'help' => __('Fetch remote instance event index.'),
+            'parser' => array(
+                'arguments' => array(
+                    'server_id' => ['help' => __('Remote server ID.'), 'required' => true],
+                ),
+            )
+        ]);
+        return $parser;
+    }
+
     public function list()
     {
         $servers = $this->Server->find('all', [
@@ -53,6 +67,15 @@ class ServerShell extends AppShell
 
         $res = $this->Server->runConnectionTest($server, false);
         echo $this->json($res) . PHP_EOL;
+    }
+
+    public function fetchIndex()
+    {
+        $serverId = intval($this->args[0]);
+        $server = $this->getServer($serverId);
+        $serverSync = new ServerSyncTool($server, $this->Server->setupSyncRequest($server));
+        $index = $this->Server->getEventIndexFromServer($serverSync);
+        echo $this->json($index) . PHP_EOL;
     }
 
     public function pullAll()
@@ -575,7 +598,6 @@ class ServerShell extends AppShell
 
     public function sendPeriodicSummaryToUsers()
     {
-        $this->ConfigLoad->execute();
         $periods = $this->__getPeriodsForToday();
         $start_time = time();
         echo __n('Started periodic summary generation for the %s period', 'Started periodic summary generation for periods: %s', count($periods), implode(', ', $periods)) . PHP_EOL;
@@ -588,7 +610,7 @@ class ServerShell extends AppShell
                 $this->User->sendEmail($user, $emailTemplate, false, null);
             }
         }
-        echo __('All reports sent. Task took %s secondes', time() -  $start_time) . PHP_EOL;
+        echo __('All reports sent. Task took %s seconds', time() -  $start_time) . PHP_EOL;
     }
 
     private function __getPeriodsForToday(): array

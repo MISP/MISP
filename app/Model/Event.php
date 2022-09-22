@@ -689,26 +689,18 @@ class Event extends AppModel
     }
 
     /**
+     * Get related attributes for event
      * @param array $user
-     * @param int|array $id Event ID when $scope is 'event', Attribute ID when $scope is 'attribute'
-     * @param bool $shadowAttribute
-     * @param string $scope 'event' or 'attribute'
+     * @param int|array $eventIds Event IDs
      * @return array
      */
-    public function getRelatedAttributes(array $user, $id, $shadowAttribute = false, $scope = 'event')
+    public function getRelatedAttributes(array $user, $eventIds)
     {
-        if ($shadowAttribute) {
-            // no longer supported
-            return [];
-        } else {
-            $parentIdField = '1_attribute_id';
-            $correlationModelName = 'Correlation';
-        }
-        if (!isset($this->{$correlationModelName})) {
-            $this->{$correlationModelName} = ClassRegistry::init($correlationModelName);
+        if (!isset($this->Correlation)) {
+            $this->Correlation = ClassRegistry::init('Correlation');
         }
         $sgids = $this->SharingGroup->authorizedIds($user);
-        $relatedAttributes = $this->{$correlationModelName}->getAttributesRelatedToEvent($user, $id, $sgids);
+        $relatedAttributes = $this->Correlation->getAttributesRelatedToEvent($user, $eventIds, $sgids);
         return $relatedAttributes;
     }
 
@@ -2184,7 +2176,7 @@ class Event extends AppModel
         }
 
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        $clusters = $this->GalaxyCluster->getClusters($galaxyTags, $user, true, $fetchFullCluster);
+        $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, $fetchFullCluster);
 
         if (empty($clusters)) {
             return;
@@ -2202,7 +2194,7 @@ class Event extends AppModel
                 if (isset($clustersByTagIds[$tagId])) {
                     $cluster = $clustersByTagIds[$tagId];
                     $galaxyId = $cluster['Galaxy']['id'];
-                    $cluster['local'] = isset($eventTag['local']) ? $eventTag['local'] : false;
+                    $cluster['local'] = $eventTag['local'] ?? false;
                     if (isset($event['Galaxy'][$galaxyId])) {
                         unset($cluster['Galaxy']);
                         $event['Galaxy'][$galaxyId]['GalaxyCluster'][] = $cluster;
@@ -2226,7 +2218,7 @@ class Event extends AppModel
                         if (isset($clustersByTagIds[$tagId])) {
                             $cluster = $clustersByTagIds[$tagId];
                             $galaxyId = $cluster['Galaxy']['id'];
-                            $cluster['local'] = isset($attributeTag['local']) ? $attributeTag['local'] : false;
+                            $cluster['local'] = $attributeTag['local'] ?? false;
                             if (isset($attribute['Galaxy'][$galaxyId])) {
                                 unset($cluster['Galaxy']);
                                 $attribute['Galaxy'][$galaxyId]['GalaxyCluster'][] = $cluster;
@@ -4523,46 +4515,6 @@ class Event extends AppModel
         }
     }
 
-    public function generateLocked()
-    {
-        $this->User = ClassRegistry::init('User');
-        $this->User->recursive = -1;
-        $localOrgs = array();
-        $conditions = array();
-        $orgs = $this->User->find('all', array('fields' => array('DISTINCT org_id')));
-        foreach ($orgs as $k => $org) {
-            $orgs[$k]['User']['count'] = $this->User->getOrgMemberCount($orgs[$k]['User']['org_id']);
-            if ($orgs[$k]['User']['count'] > 1) {
-                $localOrgs[] = $orgs[$k]['User']['org_id'];
-                $conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org_id']);
-            } elseif ($orgs[$k]['User']['count'] == 1) {
-                // If we only have a single user for an org, check if that user is a sync user. If not, then it is a valid local org and the events created by him/her should be unlocked.
-                $this->User->recursive = 1;
-                $user = ($this->User->find('first', array(
-                        'fields' => array('id', 'role_id'),
-                        'conditions' => array('org_id' => $org['User']['org_id']),
-                        'contain' => array('Role' => array(
-                                'fields' => array('id', 'perm_sync'),
-                        ))
-                )));
-                if (!$user['Role']['perm_sync']) {
-                    $conditions['AND'][] = array('orgc !=' => $orgs[$k]['User']['org_id']);
-                }
-            }
-        }
-        // Don't lock stuff that's already locked
-        $conditions['AND'][] = array('locked !=' => true);
-        $this->recursive = -1;
-        $toBeUpdated = $this->find('count', array(
-                'conditions' => $conditions
-        ));
-        $this->updateAll(
-                array('Event.locked' => 1),
-                $conditions
-        );
-        return $toBeUpdated;
-    }
-
     public function reportValidationIssuesEvents()
     {
         $this->Behaviors->detach('Regexp');
@@ -4583,20 +4535,6 @@ class Event extends AppModel
             }
         }
         return array($result, $k);
-    }
-
-    public function generateThreatLevelFromRisk()
-    {
-        $risk = array('Undefined' => 4, 'Low' => 3, 'Medium' => 2, 'High' => 1);
-        $events = $this->find('all', array('recursive' => -1));
-        $k = 0;
-        foreach ($events as $k => $event) {
-            if ($event['Event']['threat_level_id'] == 0 && isset($event['Event']['risk'])) {
-                $event['Event']['threat_level_id'] = $risk[$event['Event']['risk']];
-                $this->save($event);
-            }
-        }
-        return $k;
     }
 
     // check two version strings. If version 1 is older than 2, return -1, if they are the same return 0, if version 2 is older return 1
@@ -6895,7 +6833,7 @@ class Event extends AppModel
             }
         }
 
-        $notCachedTags = array_diff_key($tagIds, isset($this->assetCache['tags']) ? $this->assetCache['tags'] : []);
+        $notCachedTags = array_diff_key($tagIds, $this->assetCache['tags'] ?? []);
         if (empty($notCachedTags)) {
             return;
         }

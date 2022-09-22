@@ -81,13 +81,13 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'fixed_event',
                 'label' => __('Target Event'),
-                'options' => ['Fixed Event', 'New Event Each Pull'],
+                'options' => [1 =>'Fixed Event', 0 => 'New Event Each Pull'],
                 'type' => 'dropdown',
                 'div' => ['id' => 'TargetDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'class' => 'form-control span6'
             ],
             [
-                'field' => 'target_event',
+                'field' => 'event_id',
                 'label' => __('Target Event ID'),
                 'placeholder' => __('Leave blank unless you want to reuse an existing event.'),
                 'div' => ['id' => 'TargetEventDiv', 'style' => 'display:none', 'class' => 'optionalField'],

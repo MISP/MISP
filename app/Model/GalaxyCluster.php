@@ -967,21 +967,17 @@ class GalaxyCluster extends AppModel
     }
 
     /**
-     * @param array $namesOrIds Cluster tag names or cluster IDs
+     * @param array $tagNames Cluster tag names with tag ID in key
      * @param array $user
      * @param bool $postProcess If true, self::postprocess method will be called.
      * @param bool $fetchFullCluster
      * @return array
      */
-    public function getClusters(array $namesOrIds, array $user, $postProcess = true, $fetchFullCluster = true)
+    public function getClustersByTags(array $tagNames, array $user, $postProcess = true, $fetchFullCluster = true)
     {
-        if (count(array_filter($namesOrIds, 'is_numeric')) === count($namesOrIds)) { // all elements are numeric
-            $conditions = array('GalaxyCluster.id' => $namesOrIds);
-        } else {
-            $conditions = array('GalaxyCluster.tag_name' => $namesOrIds);
-        }
-
-        $options = ['conditions' => $conditions];
+        $options = [
+            'conditions' => ['GalaxyCluster.tag_name' => $tagNames],
+        ];
         if (!$fetchFullCluster) {
             $options['contain'] = ['Galaxy', 'GalaxyElement'];
         }
@@ -989,17 +985,10 @@ class GalaxyCluster extends AppModel
         $clusters = $this->fetchGalaxyClusters($user, $options, $fetchFullCluster);
 
         if (!empty($clusters) && $postProcess) {
-            $tagNames = array_map('strtolower', array_column(array_column($clusters, 'GalaxyCluster'), 'tag_name'));
-            $tagIds = $this->Tag->find('list', [
-                'conditions' => ['LOWER(Tag.name)' => $tagNames],
-                'recursive' => -1,
-                'fields' => array('Tag.name', 'Tag.id'),
-            ]);
-            $tagIds = array_change_key_case($tagIds);
-
+            $tagIds = array_change_key_case(array_flip($tagNames));
             foreach ($clusters as $k => $cluster) {
                 $tagName = strtolower($cluster['GalaxyCluster']['tag_name']);
-                $clusters[$k] = $this->postprocess($cluster, isset($tagIds[$tagName]) ? $tagIds[$tagName] : null);
+                $clusters[$k] = $this->postprocess($cluster, $tagIds[$tagName] ?? null);
             }
         }
 
@@ -1142,7 +1131,7 @@ class GalaxyCluster extends AppModel
         }
 
         $this->Event = ClassRegistry::init('Event');
-        $sharingGroupData = $this->Event->__cacheSharingGroupData($user, false);
+        $sharingGroupData = $this->Event->__cacheSharingGroupData($user, true);
         foreach ($clusters as $i => $cluster) {
             if (!empty($cluster['GalaxyCluster']['sharing_group_id']) && isset($sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']])) {
                 $clusters[$i]['SharingGroup'] = $sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']];
