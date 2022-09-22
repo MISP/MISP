@@ -509,9 +509,10 @@ class Attribute extends AppModel
 
     public function beforeDelete($cascade = true)
     {
-        // delete attachments from the disk
-        $this->read(); // first read the attribute from the db
+        // first read the whole attribute from the db
+        $this->data = $this->fetchAttribute($this->id);
         if ($this->typeIsAttachment($this->data['Attribute']['type'])) {
+            // delete attachments from the disk
             $this->loadAttachmentTool()->delete($this->data['Attribute']['event_id'], $this->data['Attribute']['id']);
         }
         // update correlation..
