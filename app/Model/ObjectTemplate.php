@@ -273,8 +273,8 @@ class ObjectTemplate extends AppModel
                 $to_return['invalidTypes'][] = $attribute['Attribute']['type'];
             }
         }
-        $to_return['invalidTypes'] = array_unique($to_return['invalidTypes']);
-        $to_return['invalidTypesMultiple'] = array_unique($to_return['invalidTypesMultiple']);
+        $to_return['invalidTypes'] = array_unique($to_return['invalidTypes'], SORT_REGULAR);
+        $to_return['invalidTypesMultiple'] = array_unique($to_return['invalidTypesMultiple'], SORT_REGULAR);
         if (!empty($to_return['invalidTypesMultiple'])) {
             $to_return['valid'] = false;
         }
@@ -351,6 +351,10 @@ class ObjectTemplate extends AppModel
         return FileAccessTool::readJsonFromFile($path);
     }
 
+    /**
+     * @return Generator<array>
+     * @throws Exception
+     */
     private function readTemplatesFromDisk()
     {
         foreach ($this->getTemplateDirectoryPaths() as $dirpath) {
@@ -362,8 +366,13 @@ class ObjectTemplate extends AppModel
         }
     }
 
+    /**
+     * @param bool $fullPath
+     * @return array
+     */
     private function getTemplateDirectoryPaths($fullPath=true)
     {
+        App::uses('Folder', 'Utility');
         $dir = new Folder(self::OBJECTS_DIR, false);
         return $dir->read(true, false, $fullPath)[0];
     }
