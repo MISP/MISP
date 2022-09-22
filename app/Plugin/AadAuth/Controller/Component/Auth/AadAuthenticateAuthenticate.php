@@ -1,8 +1,7 @@
 <?php
 
 App::uses('BaseAuthenticate', 'Controller/Component/Auth');
-App::uses('RandomTool', 'Tools');
-App::uses('HttpSocket', 'Network/Http');
+App::uses('SyncTool', 'Tools');
 
 if (session_status() == PHP_SESSION_NONE) {
 	session_start();
@@ -99,6 +98,8 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 
 		$this->Log = ClassRegistry::init('Log');
 		$this->Log->create();
+
+		$this->SyncTool = new SyncTool();
 
 		$this->settings['fields'] = ['username' => 'email'];
 	}
@@ -214,7 +215,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 				];
 				$url = self::$auth_provider . self::$ad_tenant . "/oauth2/v2.0/token";
 
-				$response = (new HttpSocket())->post($url, $params, $options);
+				$response = $this->SyncTool->createHttpSocket()->post($url, $params, $options);
 
 				if (!$response->isOk()) {
 					$this->_log("warning", "Error received during Bearer token fetch (context).");
@@ -239,7 +240,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 				];
 				$url = self::$auth_provider_user . "/v1.0/me";
 
-				$response = (new HttpSocket())->get($url, null, $options);
+				$response = $this->SyncTool->createHttpSocket()->get($url, null, $options);
 
 				if (!$response->isOk()) {
 					$this->_log("warning", "Error received during user data fetch.");
@@ -307,7 +308,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 		$has_next_page = true;
 		$url = self::$auth_provider_user . "/v1.0/me/memberOf";
 		while ($has_next_page) {
-			$response = (new HttpSocket())->get($url, array(), $options);
+			$response = $this->SyncTool->createHttpSocket()->get($url, array(), $options);
 
 			if (!$response->isOk()) {
 				$this->_log("warning", "Error received during user group data fetch.");
