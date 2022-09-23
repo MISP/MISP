@@ -7598,6 +7598,10 @@ class Event extends AppModel
 
     public function getTrendsForTagsFromEvents(array $events, int $baseDayRange, int $rollingWindows=3, $tagFilterPrefixes=null): array
     {
+        $oldestTimestamp = $this->resolveTimeDelta($baseDayRange + $baseDayRange * $rollingWindows . 'd');
+        $events = array_filter($events, function($event) use ($oldestTimestamp) { // Filter out events having old modification compared to their publish_timestamp
+            return $event['Event']['timestamp'] >= $oldestTimestamp;
+        });
         App::uses('TrendingTool', 'Tools');
         $trendingTool = new TrendingTool($this);
         $trendAnalysis = $trendingTool->getTrendsForTags($events, $baseDayRange, $rollingWindows, $tagFilterPrefixes);
