@@ -46,6 +46,7 @@ foreach ($allUniqueTags as $i => $tag) {
         $chartData[$tag] = array_reverse($chartData[$tag]);
         $maxValue = max($maxValue, max($chartData[$tag]));
     }
+    $colorForTags[$tag] = $COLOR_PALETTE[$i];
 }
 $canvasWidth = 600;
 $canvasHeight = 150;
@@ -136,7 +137,7 @@ if (!function_exists('getColorFromYlOrBr')) {
                     <div>
                         <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, 0, -25) ?>"><?= h($maxValue) ?></span>
                         <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20) / 2, 0) ?>"><?= h(round($maxValue / 2, 2)) ?></span>
-                        <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20), 25) ?>"><?= 0 ?></span>
+                        <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20), 25) ?>">0</span>
                     </div>
                 </div>
                 <div class="canvas">
@@ -247,7 +248,6 @@ if (!function_exists('getColorFromYlOrBr')) {
                             $colorGradient[] = sprintf('%s %s%%', $color, $length);
                         }
                         ?>
-
                         <div class="heatbar" style="background: <?= sprintf('linear-gradient(90deg, %s);', implode(', ', $colorGradient)) ?>;"></div>
                     </td>
                 <?php endforeach; ?>

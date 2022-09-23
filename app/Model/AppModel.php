@@ -2622,7 +2622,7 @@ class AppModel extends Model
         return $remainingTime > 0 || $failThresholdReached;
     }
 
-    public function getUpdateFailNumber()
+    private function getUpdateFailNumber()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $updateFailNumber = $this->AdminSetting->getSetting('update_fail_number');
@@ -2635,7 +2635,7 @@ class AppModel extends Model
         $this->AdminSetting->changeSetting('update_fail_number', 0);
     }
 
-    public function __increaseUpdateFailNumber()
+    private function __increaseUpdateFailNumber()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $updateFailNumber = $this->AdminSetting->getSetting('update_fail_number');
@@ -2737,7 +2737,7 @@ class AppModel extends Model
         return true;
     }
 
-    public function removeDuplicatedUUIDs()
+    private function removeDuplicatedUUIDs()
     {
         $removedResults = array(
             'Event' => $this->removeDuplicateEventUUIDs(),
@@ -2782,7 +2782,7 @@ class AppModel extends Model
         return $counter;
     }
 
-    public function removeDuplicateAttributeUUIDs()
+    private function removeDuplicateAttributeUUIDs()
     {
         $this->Attribute = ClassRegistry::init('Attribute');
         $this->Log = ClassRegistry::init('Log');
@@ -2836,7 +2836,7 @@ class AppModel extends Model
         return $counter;
     }
 
-    public function removeDuplicateEventUUIDs()
+    private function removeDuplicateEventUUIDs()
     {
         $this->Event = ClassRegistry::init('Event');
         $this->Log = ClassRegistry::init('Log');

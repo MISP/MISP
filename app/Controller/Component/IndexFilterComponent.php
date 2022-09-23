@@ -10,6 +10,14 @@ class IndexFilterComponent extends Component
     public $Controller;
     public $isRest = null;
 
+    // Used for isApiFunction(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
+    // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
+    const AUTOMATION_ARRAY = array(
+        'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
+        'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
+        'objects' => array('restSearch'),
+    );
+
     public function initialize(Controller $controller)
     {
         $this->Controller = $controller;
@@ -121,6 +129,6 @@ class IndexFilterComponent extends Component
      */
     public function isApiFunction($controller, $action)
     {
-        return isset($this->Controller->automationArray[$controller]) && in_array($action, $this->Controller->automationArray[$controller], true);
+        return isset(self::AUTOMATION_ARRAY[$controller]) && in_array($action, self::AUTOMATION_ARRAY[$controller], true);
     }
 }
