@@ -1160,6 +1160,10 @@ class ObjectsController extends AppController
 
     public function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')
     {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
+        }
+
         $event = $this->MispObject->Event->find('first', array(
             'recursive' => -1,
             'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id', 'Event.publish_timestamp'),
@@ -1172,9 +1176,6 @@ class ObjectsController extends AppController
             throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $hard_delete_attribute = $event['Event']['publish_timestamp'] == 0;
-        if (!$this->request->is('ajax')) {
-            throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
-        }
         if ($this->request->is('post')) {
             $template = $this->MispObject->ObjectTemplate->find('first', array(
                 'recursive' => -1,
@@ -1184,22 +1185,22 @@ class ObjectsController extends AppController
                 throw new NotFoundException(__('Invalid template.'));
             }
             $distribution = $this->request->data['Object']['distribution'];
-            $sharing_group_id = $this->request->data['Object']['sharing_group_id'];
+            $sharingGroupId = $this->request->data['Object']['sharing_group_id'] ?? 0;
             $comment = $this->request->data['Object']['comment'];
-            $selected_attribute_ids = json_decode($this->request->data['Object']['selectedAttributeIds'], true);
-            $selected_object_relation_mapping = json_decode($this->request->data['Object']['selectedObjectRelationMapping'], true);
+            $selected_attribute_ids = $this->_jsonDecode($this->request->data['Object']['selectedAttributeIds']);
+            $selected_object_relation_mapping = $this->_jsonDecode($this->request->data['Object']['selectedObjectRelationMapping']);
             if ($distribution == 4) {
-                $sg = $this->MispObject->SharingGroup->fetchSG($sharing_group_id, $this->Auth->user());
+                $sg = $this->MispObject->SharingGroup->fetchSG($sharingGroupId, $this->Auth->user());
                 if (empty($sg)) {
                     throw new NotFoundException(__('Invalid sharing group.'));
                 }
             } else {
-                $sharing_group_id = 0;
+                $sharingGroupId = 0;
             }
             $object = array(
                 'Object' => array(
                     'distribution' => $distribution,
-                    'sharing_group_id' => $sharing_group_id,
+                    'sharing_group_id' => $sharingGroupId,
                     'comment' => $comment,
                 ),
                 'Attribute' => array()
@@ -1213,7 +1214,7 @@ class ObjectsController extends AppController
                 return $this->RestResponse->saveFailResponse('Objects', 'Created from Attributes', false, $error, $this->response->type());
             }
         } else {
-            $selected_attribute_ids = json_decode($selected_attribute_ids, true);
+            $selected_attribute_ids = $this->_jsonDecode($selected_attribute_ids);
             $selected_attributes = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array(
                 'Attribute.id' => $selected_attribute_ids,
                 'Attribute.event_id' => $event_id,
@@ -1233,7 +1234,7 @@ class ObjectsController extends AppController
             $conformity_result = $this->MispObject->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $selected_attributes);
             $skipped_attributes = 0;
             foreach ($selected_attributes as $i => $attribute) {
-                if (in_array($attribute['Attribute']['type'], $conformity_result['invalidTypes'])) {
+                if (in_array($attribute['Attribute']['type'], $conformity_result['invalidTypes'], true)) {
                     unset($selected_attributes[$i]);
                     $array_position = array_search($attribute['Attribute']['id'], $selected_attribute_ids);
                     unset($selected_attribute_ids[$array_position]);
