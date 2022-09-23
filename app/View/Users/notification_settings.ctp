@@ -68,6 +68,12 @@ echo $this->element('genericElements/Form/genericForm', [
                 'placeholder' => '["misp-galaxy:mitre-attack-pattern", "admiralty-scale"]',
             ],
             [
+                'field' => 'periodic_settings.trending_period_amount',
+                'label' => __('Trending Period Amount'),
+                'class' => 'span6',
+                'type' => 'number',
+            ],
+            [
                 'field' => 'periodic_settings.include_correlations',
                 'label' => __('Include events correlations'),
                 'default' => 0,

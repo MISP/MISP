@@ -1649,7 +1649,7 @@ class User extends AppModel
      */
     public function fetchPeriodicSettingForUser($userId, $decode = false): array
     {
-        $filterNames = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags', 'include_correlations'];
+        $filterNames = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags', 'include_correlations', 'trending_period_amount'];
         $filterToDecode = ['tags', 'trending_for_tags'];
         $defaultPeriodicSettings = [
             'orgc_id' => '',
@@ -1659,6 +1659,7 @@ class User extends AppModel
             'tags' => '[]',
             'trending_for_tags' => '[]',
             'include_correlations' => '',
+            'trending_period_amount' => 2,
         ];
 
         $periodicSettings = $this->UserSetting->find('first', [
@@ -1753,6 +1754,7 @@ class User extends AppModel
                 'tags' => $periodic_settings['tags'] ?? '[]',
                 'trending_for_tags' => $periodic_settings['trending_for_tags'] ?? '[]',
                 'include_correlations' => $periodic_settings['include_correlations'] ?? '',
+                'trending_period_amount' => $periodic_settings['trending_period_amount'] ?? 2,
             ];
             $new_user_setting = [
                 'UserSetting' => [
@@ -1824,7 +1826,7 @@ class User extends AppModel
         $finalContext = json_decode($finalContext->intoString(), true);
         $aggregated_context = $this->__renderAggregatedContext($finalContext);
 
-        $rollingWindows = 2;
+        $rollingWindows = $periodicSettings['trending_period_amount'] ?: 2;
         $trendAnalysis = $this->Event->getTrendsForTagsFromEvents($events, $this->periodToDays($period), $rollingWindows, $periodicSettings['trending_for_tags']);
         $tagFilterPrefixes = $periodicSettings['trending_for_tags'] ?: array_keys($trendAnalysis['all_tags']);
         $trendData = [

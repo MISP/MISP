@@ -243,6 +243,7 @@ if (!function_exists('getColorFromYlOrBr')) {
                         foreach ($reversedPeriods as $i => $period) {
                             $color = getColorFromYlOrBr(0, $maxValue, $clusteredTags[$period][$tagName]['occurence'] ?? 0);
                             $length = 100 * $i / (count($periods) - 1);
+                            $length = $i > 0 ? $length - 5 : $length; // Small offset to better align colors on the table period header
                             $colorGradient[] = sprintf('%s %s%%', $color, $length);
                         }
                         ?>
