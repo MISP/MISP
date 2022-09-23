@@ -427,7 +427,7 @@ function eventUnpublish() {
     $('.notPublished').show();
 }
 
-function updateIndex(id, context) {
+function updateIndex(id, context, callback) {
     var url, div;
     if (context === 'event') {
         if (typeof currentUri == 'undefined') {
@@ -442,8 +442,12 @@ function updateIndex(id, context) {
     }
     xhr({
         dataType: "html",
-        success:function (data) {
+        success: function (data) {
             $(div).html(data);
+            if (typeof callback !== "undefined") {
+                callback("success");
+            }
+
             if (typeof genericPopupCallback !== "undefined") {
                 genericPopupCallback("success");
             } else {
@@ -1277,10 +1281,8 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 $.get(baseurl + "/sightings/listSightings/" + id + "/attribute", function(data) {
                     $("#sightingsData").html(data);
                 }).fail(xhrFailCallback);
-                $('.sightingsToggle').removeClass('btn-primary');
-                $('.sightingsToggle').addClass('btn-inverse');
-                $('#sightingsListAllToggle').removeClass('btn-inverse');
-                $('#sightingsListAllToggle').addClass('btn-primary');
+                $('.sightingsToggle').removeClass('btn-primary').addClass('btn-inverse');
+                $('#sightingsListAllToggle').removeClass('btn-inverse').addClass('btn-primary');
             }
             if (referer === 'addEventReport' && typeof window.reloadEventReportTable === 'function') {
                 reloadEventReportTable()
@@ -1288,8 +1290,8 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             }
             if (
                 (
-                    context == 'event' &&
-                    (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference' || referer == 'quickAddAttributeForm')
+                    context === 'event' &&
+                    (referer === 'add' || referer === 'massEdit' || referer === 'replaceAttributes' || referer === 'addObjectReference' || referer === 'quickAddAttributeForm')
                 )
             ){
                 eventUnpublish();
@@ -1342,10 +1344,15 @@ function handleAjaxModalResponse(response, context_id, url, referer, context, co
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
     responseArray = response;
-    var message = null;
     var result = "fail";
     if (responseArray.saved) {
-        updateIndex(context_id, context);
+        var callback = function() {
+            // Scroll to edited object after index is updated
+            if (referer === 'quickAddAttributeForm') {
+                scrollToElementIfNotVisible($("#Object_" + context_id + "_tr"));
+            }
+        }
+        updateIndex(context_id, context, callback);
         if (responseArray.success) {
             showMessage("success", responseArray.success);
             result = "success";
@@ -1356,8 +1363,8 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
     } else {
         var savedArray = saveValuesForPersistance();
         $.ajax({
-            dataType:"html",
-            success:function (data, textStatus) {
+            dataType: "html",
+            success: function (data, textStatus) {
                 $("#popover_form").html(data);
                 openPopup("#popover_form");
                 var error_context = context.charAt(0).toUpperCase() + context.slice(1);
@@ -1371,7 +1378,7 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
                 recoverValuesFromPersistance(savedArray);
                 $(".loading").hide();
             },
-            url:url
+            url: url
         });
     }
     return result;
@@ -3666,6 +3673,24 @@ function pivotObjectReferences(url, uuid) {
         return; // object is on the same page, we don't need to reload page
     }
     fetchAttributes(currentUri, {"focus": uuid});
+}
+
+function scrollToElementIfNotVisible($el) {
+    var isInViewport = function($el) {
+        var elementTop = $el.offset().top;
+        var elementBottom = elementTop + $el.outerHeight();
+
+        var viewportTop = $(window).scrollTop();
+        var viewportBottom = viewportTop + $(window).height();
+
+        return elementBottom > viewportTop && elementTop < viewportBottom;
+    };
+
+    if ($el.length && !isInViewport($el)) {
+        $([document.documentElement, document.body]).animate({
+            scrollTop: $el.offset().top - 45, // 42px is #topBar size, so make little bit more space
+        });
+    }
 }
 
 // Attribute filtering
