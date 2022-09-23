@@ -207,7 +207,9 @@ $unique_tag_number = count($all_tag_amount);
 arsort($attribute_types);
 arsort($object_types);
 arsort($all_tag_amount);
-arsort($mitre_attack_techniques);
+uasort($mitre_attack_techniques, function($tag1, $tag2) use ($all_tag_amount) {
+    return ($all_tag_amount[$tag1['Tag']['name']] < $all_tag_amount[$tag2['Tag']['name']]) ? 1 : -1;
+});
 
 array_splice($attribute_types, 10);
 array_splice($object_types, 10);
