@@ -13,7 +13,7 @@
                                     'div' => false
                                 ));
                         ?>
-                            <div id="" class="hidden">
+                            <div class="hidden">
                                 <label for="ObjectReferenceRelationshipTypeSelect"><?php echo __('Relationship type');?></label>
                                 <?php
                                     echo $this->Form->input('relationship_type', array(
@@ -44,7 +44,7 @@
                                     'style' => 'width:320px;'
                                 ));
                             ?>
-                            <br />
+                            <br>
 
                             <?php
                                 $items = array();
@@ -115,7 +115,6 @@
                                 );
                                 echo $this->element('generic_picker', array('items' => $items, 'options' => $options));
                             ?>
-
                         </div>
                         <div class="span6">
                             <label for="selectedData"><?php echo __('Target Details');?></label>
@@ -146,7 +145,7 @@
 </div>
 <script type="text/javascript">
     var targetEvent = <?php echo json_encode($event); ?>;
-    $(document).ready(function() {
+    $(function() {
         $('#ObjectReferenceReferencedUuid').on('input', function() {
             objectReferenceInput();
         });
@@ -160,4 +159,3 @@
         $('#ObjectReferenceRelationshipTypeSelect').chosen({ width: "100%" });
     });
 </script>
-<?php echo $this->Js->writeBuffer(); // Write cached scripts

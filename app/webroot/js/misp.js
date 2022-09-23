@@ -13,6 +13,10 @@ if (!String.prototype.startsWith) {
 }
 
 function escapeHtml(unsafe) {
+    if (typeof unsafe === "boolean" || typeof unsafe === "number") {
+        return unsafe;
+    }
+
     return unsafe
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -4527,38 +4531,43 @@ function add_basic_auth() {
 }
 
 function changeObjectReferenceSelectOption(selected, additionalData) {
+    var keys = {
+        "uuid": "UUID",
+        "category": "Category",
+        "type": "Type",
+        "value": "Value",
+        "to_ids": "To IDS",
+        "name": "Name",
+        "meta-category": "Meta category",
+    };
+
     var uuid = selected;
     var type = additionalData.itemOptions[uuid].type;
     $('#ObjectReferenceReferencedUuid').val(uuid);
-    if (type == "Attribute") {
-        $('#targetData').html("");
+    var $targetData = $('#targetData');
+    if (type === "Attribute") {
+        $targetData.html("");
         for (var k in targetEvent[type][uuid]) {
             if ($.inArray(k, ['uuid', 'category', 'type', 'value', 'to_ids']) !== -1) {
-                $('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
-                $('#' + uuid + '_' + k + '_key').text(k);
-                $('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+                $targetData.append('<div><span class="bold">' + keys[k] +  '</span>: ' + escapeHtml(targetEvent[type][uuid][k]) + '</div>');
             }
         }
     } else {
-        $('#targetData').html("");
+        $targetData.html("");
         for (var k in targetEvent[type][uuid]) {
-            if (k == 'Attribute') {
-                $('#targetData').append('<br /><div><span id="header" class="bold">Attributes:</span>');
-                for (attribute in targetEvent[type][uuid]['Attribute']) {
-                    for (k2 in targetEvent[type][uuid]['Attribute'][attribute]) {
+            if (k === 'Attribute') {
+                $targetData.append('<br><div><span id="header" class="bold">Attributes:</span>');
+                for (var attribute in targetEvent[type][uuid]['Attribute']) {
+                    for (var k2 in targetEvent[type][uuid]['Attribute'][attribute]) {
                         if ($.inArray(k2, ['category', 'type', 'value', 'to_ids']) !== -1) {
-                            $('#targetData').append('<div class="indent"><span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key" class="bold"></span>: <span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data"></span></div>');
-                            $('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key').text(k2);
-                            $('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data').text(targetEvent[type][uuid]['Attribute'][attribute][k2]);
+                            $targetData.append('<div class="indent"><span class="bold">' + keys[k2] + '</span>: ' + escapeHtml(targetEvent[type][uuid]['Attribute'][attribute][k2]) + '</div>');
                         }
                     }
-                    $('#targetData').append('<br />');
+                    $targetData.append('<br>');
                 }
             } else {
                 if ($.inArray(k, ['name', 'uuid', 'meta-category']) !== -1) {
-                    $('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
-                    $('#' + uuid + '_' + k + '_key').text(k);
-                    $('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+                    $targetData.append('<div><span class="bold">' + keys[k] +  '</span>: ' + escapeHtml(targetEvent[type][uuid][k]) + '</div>');
                 }
             }
         }

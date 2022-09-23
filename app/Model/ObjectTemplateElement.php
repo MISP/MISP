@@ -30,7 +30,7 @@ class ObjectTemplateElement extends AppModel
         }
         $json_fields = array('categories', 'values_list', 'sane_default');
         foreach ($json_fields as $field) {
-            $this->data['ObjectTemplateElement'][$field] = empty($this->data['ObjectTemplateElement'][$field]) ? '[]' : json_encode($this->data['ObjectTemplateElement'][$field]);
+            $this->data['ObjectTemplateElement'][$field] = empty($this->data['ObjectTemplateElement'][$field]) ? '[]' : JsonTool::encode($this->data['ObjectTemplateElement'][$field]);
         }
         return true;
     }

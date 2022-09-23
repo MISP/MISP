@@ -9,10 +9,10 @@ class ObjectReferencesController extends AppController
     public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
-            'limit' => 20,
-            'order' => array(
-                    'ObjectReference.id' => 'desc'
-            ),
+        'limit' => 20,
+        'order' => array(
+            'ObjectReference.id' => 'desc'
+        ),
     );
 
     public function add($objectId = false)
@@ -23,7 +23,7 @@ class ObjectReferencesController extends AppController
             }
         }
         if (empty($objectId)) {
-            throw new MethodNotAllowedException('No object defined.');
+            throw new NotFoundException('No object defined.');
         }
         if (Validation::uuid($objectId)) {
             $conditions = ['Object.uuid' => $objectId];
@@ -91,65 +91,63 @@ class ObjectReferencesController extends AppController
         } else {
             if ($this->_isRest()) {
                 return $this->RestResponse->describe('ObjectReferences', 'add', false, $this->response->type());
-            } else {
-                $events = $this->ObjectReference->Object->Event->find('all', array(
-                    'conditions' => array(
-                        'OR' => array(
-                            'Event.id' => $object['Event']['id'],
-                            'AND' => array(
-                                'Event.uuid' => $object['Event']['extends_uuid'],
-                                $this->ObjectReference->Object->Event->createEventConditions($this->Auth->user())
-                            )
-                        ),
+            }
+
+            $events = $this->ObjectReference->Object->Event->find('all', array(
+                'conditions' => array(
+                    'OR' => array(
+                        'Event.id' => $object['Event']['id'],
+                        'AND' => array(
+                            'Event.uuid' => $object['Event']['extends_uuid'],
+                            $this->ObjectReference->Object->Event->createEventConditions($this->Auth->user())
+                        )
                     ),
-                    'recursive' => -1,
-                    'fields' => array('Event.id'),
-                    'contain' => array(
+                ),
+                'recursive' => -1,
+                'fields' => array('Event.id'),
+                'contain' => array(
+                    'Attribute' => array(
+                        'conditions' => array('Attribute.deleted' => 0, 'Attribute.object_id' => 0),
+                        'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
+                    ),
+                    'Object' => array(
+                        'conditions' => array('NOT' => array('Object.id' => $object['Object']['id']), 'Object.deleted' => 0),
+                        'fields' => array('Object.id', 'Object.uuid', 'Object.name', 'Object.meta-category'),
                         'Attribute' => array(
-                            'conditions' => array('Attribute.deleted' => 0, 'Attribute.object_id' => 0),
+                            'conditions' => array('Attribute.deleted' => 0),
                             'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
-                        ),
-                        'Object' => array(
-                            'conditions' => array('NOT' => array('Object.id' => $object['Object']['id']), 'Object.deleted' => 0),
-                            'fields' => array('Object.id', 'Object.uuid', 'Object.name', 'Object.meta-category'),
-                            'Attribute' => array(
-                                'conditions' => array('Attribute.deleted' => 0),
-                                'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
-                            )
                         )
                     )
-                ));
-                if (!empty($events)) {
-                    $event = $events[0];
-                }
-                for ($i=1; $i < count($events); $i++) { 
-                    $event['Attribute'] = array_merge($event['Attribute'], $events[$i]['Attribute']);
-                    $event['Object'] = array_merge($event['Object'], $events[$i]['Object']);
-                }
-                $toRearrange = array('Attribute', 'Object');
-                foreach ($toRearrange as $d) {
-                    if (!empty($event[$d])) {
-                        $temp = array();
-                        foreach ($event[$d] as $data) {
-                            $temp[$data['uuid']] = $data;
-                        }
-                        $event[$d] = $temp;
-                    }
-                }
-                $this->loadModel('ObjectRelationship');
-                $relationships = $this->ObjectRelationship->find('column', array(
-                    'recursive' => -1,
-                    'fields' => ['name'],
-                ));
-                $relationships = array_combine($relationships, $relationships);
-                $relationships['custom'] = 'custom';
-                ksort($relationships);
-                $this->set('relationships', $relationships);
-                $this->set('event', $event);
-                $this->set('objectId', $object['Object']['id']);
-                $this->layout = false;
-                $this->render('ajax/add');
+                )
+            ));
+            $event = $events[0];
+            for ($i = 1; $i < count($events); $i++) {
+                $event['Attribute'] = array_merge($event['Attribute'], $events[$i]['Attribute']);
+                $event['Object'] = array_merge($event['Object'], $events[$i]['Object']);
             }
+            $toRearrange = array('Attribute', 'Object');
+            foreach ($toRearrange as $d) {
+                if (!empty($event[$d])) {
+                    $temp = array();
+                    foreach ($event[$d] as $data) {
+                        $temp[$data['uuid']] = $data;
+                    }
+                    $event[$d] = $temp;
+                }
+            }
+            $this->loadModel('ObjectRelationship');
+            $relationships = $this->ObjectRelationship->find('column', array(
+                'recursive' => -1,
+                'fields' => ['name'],
+            ));
+            $relationships = array_combine($relationships, $relationships);
+            $relationships['custom'] = 'custom';
+            ksort($relationships);
+            $this->set('relationships', $relationships);
+            $this->set('event', $event);
+            $this->set('objectId', $object['Object']['id']);
+            $this->layout = false;
+            $this->render('ajax/add');
         }
     }
 
