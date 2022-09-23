@@ -5,13 +5,14 @@ $allTags = $trendAnalysis['all_tags'];
 $allTimestamps = $trendAnalysis['all_timestamps'];
 $currentPeriod = $allTimestamps[0];
 $previousPeriod = $allTimestamps[1];
-$previousPeriod2 = $allTimestamps[2];
-$periods = [$previousPeriod2, $previousPeriod, $currentPeriod];
+$periods = $allTimestamps;
+$reversedPeriods = array_reverse($periods);
+$periodCount = count($periods);
 
 $allUniqueTagsPerPeriod = array_map(function ($tags) {
     return array_keys($tags);
 }, $clusteredTags);
-$allUniqueTags = array_unique(array_merge($allUniqueTagsPerPeriod[$currentPeriod], $allUniqueTagsPerPeriod[$previousPeriod], $allUniqueTagsPerPeriod[$previousPeriod2]));
+$allUniqueTags = array_values(array_unique(Hash::extract($allUniqueTagsPerPeriod, '{n}.{n}')));
 App::uses('ColourPaletteTool', 'Tools');
 $paletteTool = new ColourPaletteTool();
 $COLOR_PALETTE = $paletteTool->createColourPalette(max(count($allUniqueTags), 1));
@@ -29,34 +30,33 @@ $trendColorMapping = [
     '?' => '#999999',
 ];
 $now = new DateTime();
-$currentPeriodDate = DateTime::createFromFormat('U', $currentPeriod);
-$previousPeriodDate = DateTime::createFromFormat('U', $previousPeriod);
-$previousPeriod2Date = DateTime::createFromFormat('U', $previousPeriod2);
 
 $colorForTags = [];
 $chartData = [];
 $maxValue = 0;
 foreach ($allUniqueTags as $i => $tag) {
-    if (
-        !empty($clusteredTags[$previousPeriod2][$tag]['occurence']) ||
-        !empty($clusteredTags[$previousPeriod][$tag]['occurence']) ||
-        !empty($clusteredTags[$currentPeriod][$tag]['occurence'])
-    ) {
+    $sumForTags = array_reduce($clusteredTags, function ($carry, $clusteredTagsPerPeriod) use ($tag) {
+        return $carry + ($clusteredTagsPerPeriod[$tag]['occurence'] ?? 0);
+    }, 0);
+    if ($sumForTags > 0) {
         $colorForTags[$tag] = $COLOR_PALETTE[$i];
-        $chartData[$tag] = [
-            $clusteredTags[$previousPeriod2][$tag]['occurence'] ?? 0,
-            $clusteredTags[$previousPeriod][$tag]['occurence'] ?? 0,
-            $clusteredTags[$currentPeriod][$tag]['occurence'] ?? 0,
-        ];
+        $chartData[$tag] = array_values(array_map(function ($clusteredTagsPerPeriod) use ($tag) {
+            return $clusteredTagsPerPeriod[$tag]['occurence'] ?? 0;
+        }, $clusteredTags));
+        $chartData[$tag] = array_reverse($chartData[$tag]);
         $maxValue = max($maxValue, max($chartData[$tag]));
     }
 }
 $canvasWidth = 600;
 $canvasHeight = 150;
 foreach (array_keys($chartData) as $tag) {
+    $lastIndex = count($chartData[$tag]) - 1;
+    $canvasSubWidth = $lastIndex;
     $chartData[$tag][0] = [0, $canvasHeight - ($chartData[$tag][0] / $maxValue) * $canvasHeight];
-    $chartData[$tag][1] = [$canvasWidth / 2, $canvasHeight - ($chartData[$tag][1] / $maxValue) * $canvasHeight];
-    $chartData[$tag][2] = [$canvasWidth, $canvasHeight - ($chartData[$tag][2] / $maxValue) * $canvasHeight];
+    for ($i = 1; $i < $lastIndex; $i++) {
+        $chartData[$tag][$i] = [$canvasWidth * ($i / $canvasSubWidth), $canvasHeight - ($chartData[$tag][$i] / $maxValue) * $canvasHeight];
+    }
+    $chartData[$tag][$lastIndex] = [$canvasWidth, $canvasHeight - ($chartData[$tag][$lastIndex] / $maxValue) * $canvasHeight];
 }
 
 if (!function_exists('reduceTag')) {
@@ -93,6 +93,17 @@ if (!function_exists('computeLinePositions')) {
     }
 }
 
+if (!function_exists('getColorFromYlOrBr')) {
+    function getColorFromYlOrBr(float $min, float $max, float $value): string
+    {
+        $YlOrBrPalette = ["#fff7bc", "#fee391", "#fec44f", "#fe9929", "#ec7014", "#cc4c02", "#993404", "#662506"];
+        $valuePercent = $value / ($max - $min);
+        $paletteRatio = $valuePercent * count($YlOrBrPalette);
+        $paletteIndex = max(round($paletteRatio - 1), 0);
+        return $YlOrBrPalette[$paletteIndex];
+    }
+}
+
 ?>
 
 <div style="display: flex; column-gap: 20px; justify-content: space-around; margin-bottom: 40px;">
@@ -101,19 +112,19 @@ if (!function_exists('computeLinePositions')) {
             <tbody>
                 <tr>
                     <td><?= __('Period duration') ?></td>
-                    <td><?= __('%s days', $currentPeriodDate->diff($now)->format('%a')); ?></td>
+                    <td><?= __('%s days', DateTime::createFromFormat('U', $currentPeriod)->diff($now)->format('%a')); ?></td>
+                </tr>
+                <tr>
+                    <td><?= __('Period number') ?></td>
+                    <td><?= count($periods) - 1 ?></td>
                 </tr>
                 <tr>
                     <td><?= __('Starting period') ?></td>
-                    <td><?= sprintf('%s', $currentPeriodDate->format('M d, o. (\W\e\e\k W)')); ?></td>
+                    <td><?= sprintf('%s', DateTime::createFromFormat('U', $currentPeriod)->format('M d, o. (\W\e\e\k W)')); ?></td>
                 </tr>
                 <tr>
-                    <td><?= __('Previous period') ?></td>
-                    <td><?= sprintf('%s', $previousPeriodDate->format('M d, o. (\W\e\e\k W)')); ?></td>
-                </tr>
-                <tr>
-                    <td><?= __('Period-2') ?></td>
-                    <td><?= sprintf('%s', $previousPeriod2Date->format('M d, o. (\W\e\e\k W)')); ?></td>
+                    <td><?= __('Last period') ?></td>
+                    <td><?= sprintf('%s', DateTime::createFromFormat('U', $periods[$periodCount - 1])->format('M d, o. (\W\e\e\k W)')); ?></td>
                 </tr>
             </tbody>
         </table>
@@ -130,7 +141,7 @@ if (!function_exists('computeLinePositions')) {
                 </div>
                 <div class="canvas">
                     <?php foreach ($chartData as $tag => $coords) : ?>
-                        <?php for ($i = 0; $i < 3; $i++) : ?>
+                        <?php for ($i = 0; $i < count($periods); $i++) : ?>
                             <?php
                             $coord = $coords[$i];
                             $previousCoord = isset($coords[$i - 1]) ? $coords[$i - 1] : false;
@@ -154,9 +165,9 @@ if (!function_exists('computeLinePositions')) {
                     <?php endforeach ?>
                 </div>
                 <div class="x-axis-container">
-                    <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', 0, 0) ?>"><?= __('Period-2') ?></span>
-                    <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', $canvasWidth / 2, 0) ?>"><?= __('Previous period') ?></span>
-                    <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', $canvasWidth, 0) ?>"><?= __('Starting period') ?></span>
+                    <?php foreach ($reversedPeriods as $i => $period) : ?>
+                        <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', $i * $canvasWidth / $canvasSubWidth, 0) ?>"><?= DateTime::createFromFormat('U', $period)->format('M. d, o') ?></span>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </div>
@@ -170,54 +181,24 @@ if (!function_exists('computeLinePositions')) {
         <thead>
             <tr>
                 <th></th>
-                <th>
-                    <span>
-                        <div><?= __('Period-2') ?></div>
-                        <div style="font-weight: normal;"><?= __('%s events', h($clusteredEvents[$previousPeriod2])) ?></div>
-                    </span>
-                    <table class="trending-table-data">
-                        <thead style="font-size: small;">
-                            <tr>
-                                <td>#</td>
-                                <td>⥮</td>
-                                <td>%</td>
-                                <td></td>
-                            </tr>
-                        </thead>
-                    </table>
-                </th>
-                <th>
-                    <span>
-                        <div><?= __('Previous period') ?></div>
-                        <div style="font-weight: normal;"><?= __('%s events', h($clusteredEvents[$previousPeriod])) ?></div>
-                    </span>
-                    <table class="trending-table-data">
-                        <thead style="font-size: small;">
-                            <tr>
-                                <td>#</td>
-                                <td>⥮</td>
-                                <td>%</td>
-                                <td></td>
-                            </tr>
-                        </thead>
-                    </table>
-                </th>
-                <th>
-                    <span>
-                        <div><?= __('Starting period') ?></div>
-                        <div style="font-weight: normal;"><?= __('%s events', h($clusteredEvents[$currentPeriod])) ?></div>
-                    </span>
-                    <table class="trending-table-data">
-                        <thead style="font-size: small;">
-                            <tr>
-                                <td>#</td>
-                                <td>⥮</td>
-                                <td>%</td>
-                                <td></td>
-                            </tr>
-                        </thead>
-                    </table>
-                </th>
+                <?php foreach ($reversedPeriods as $i => $period) : ?>
+                    <th>
+                        <span>
+                            <div><?= DateTime::createFromFormat('U', $period)->format('M. d, o') ?></div>
+                            <div style="font-weight: normal;"><?= __('%s events', h($clusteredEvents[$period])) ?></div>
+                        </span>
+                        <table class="trending-table-data">
+                            <thead style="font-size: small;">
+                                <tr>
+                                    <td title="<?= __('Occurence per events') ?>">#</td>
+                                    <td title="<?= __('Raw change') ?>">⥮</td>
+                                    <td title="<?= __('Percent change') ?>">%</td>
+                                    <td></td>
+                                </tr>
+                            </thead>
+                        </table>
+                    </th>
+                <?php endforeach; ?>
             </tr>
         </thead>
         <?php foreach ($tagFilterPrefixes as $tagPrefix) : ?>
@@ -238,55 +219,32 @@ if (!function_exists('computeLinePositions')) {
                             <span class="tag-legend" style="background-color: <?= $colorForTags[$tagName] ?>;"></span>
                             <code><?= h(reduceTag($tagName, count(explode(':', $tagPrefix)))) ?></code>
                         </td>
-                        <td>
-                            <table class="table-condensed no-border trending-table-data">
-                                <tbody>
-                                    <tr>
-                                        <td><?= h($clusteredTags[$previousPeriod2][$tagName]['occurence'] ?? '-') ?></td>
-                                        <td><?= h($clusteredTags[$previousPeriod2][$tagName]['raw_change'] ?? '-') ?></td>
-                                        <td><?= h($clusteredTags[$previousPeriod2][$tagName]['percent_change'] ?? '-') ?>%</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </td>
-                        <td>
-                            <table class="table-condensed no-border trending-table-data">
-                                <tbody>
-                                    <tr>
-                                        <td><?= h($clusteredTags[$previousPeriod][$tagName]['occurence'] ?? '-') ?></td>
-                                        <td><?= h($clusteredTags[$previousPeriod][$tagName]['raw_change'] ?? '-') ?></td>
-                                        <td><?= h($clusteredTags[$previousPeriod][$tagName]['percent_change'] ?? '-') ?>%</td>
-                                        <td style="font-size: large; color: <?= $trendColorMapping[$clusteredTags[$previousPeriod][$tagName]['change_sign'] ?? '?'] ?>"><?= $trendIconMapping[$clusteredTags[$previousPeriod][$tagName]['change_sign'] ?? '?'] ?></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </td>
-                        <td>
-                            <table class="table-condensed no-border trending-table-data">
-                                <tbody>
-                                    <tr>
-                                        <td><?= h($clusteredTags[$currentPeriod][$tagName]['occurence'] ?? '-') ?></td>
-                                        <td><?= h($clusteredTags[$currentPeriod][$tagName]['raw_change'] ?? '-') ?></td>
-                                        <td><?= h($clusteredTags[$currentPeriod][$tagName]['percent_change'] ?? '-') ?>%</td>
-                                        <td style="font-size: large; color: <?= $trendColorMapping[$clusteredTags[$currentPeriod][$tagName]['change_sign'] ?? '?'] ?>"><?= $trendIconMapping[$clusteredTags[$currentPeriod][$tagName]['change_sign'] ?? '?'] ?></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </td>
+                        <?php foreach ($reversedPeriods as $i => $period) : ?>
+                            <td>
+                                <table class="table-condensed no-border trending-table-data">
+                                    <tbody>
+                                        <tr>
+                                            <td title="<?= __('Occurence per events') ?>"><?= h($clusteredTags[$period][$tagName]['occurence'] ?? '-') ?></td>
+                                            <td title="<?= __('Raw change') ?>"><?= h($clusteredTags[$period][$tagName]['raw_change'] ?? '-') ?></td>
+                                            <td title="<?= __('Percent change') ?>"><?= h($clusteredTags[$period][$tagName]['percent_change'] ?? '-') ?>%</td>
+                                            <?php if ($i > 0) : ?>
+                                                <td title="<?= __('Evolution') ?>" style="font-size: large; color: <?= $trendColorMapping[$clusteredTags[$period][$tagName]['change_sign'] ?? '?'] ?>"><?= $trendIconMapping[$clusteredTags[$period][$tagName]['change_sign'] ?? '?'] ?></td>
+                                            <?php endif; ?>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        <?php endforeach; ?>
                     </tr>
                     <td style="padding: 0;"></td>
-                    <td colspan="3" style="padding: 0;">
+                    <td colspan="<?= count($periods) ?>" style="padding: 0;">
                         <?php
-                            $low = '#fee8c8';
-                            $medium = '#f09c8f';
-                            $high = '#bc2f1a';
-                            $colorGradient = [];
-                            foreach ($periods as $i => $period) {
-                                $ratio = ($clusteredTags[$period][$tagName]['occurence'] ?? 0) / $maxValue;
-                                $color = $ratio <= 0.33 ? $low : ($ratio >= 0.66 ? $high : $medium);
-                                $length = 100 * $i / (count($periods) - 1);
-                                $colorGradient[] = sprintf('%s %s%%', $color, $length);
-                            }
+                        $colorGradient = [];
+                        foreach ($reversedPeriods as $i => $period) {
+                            $color = getColorFromYlOrBr(0, $maxValue, $clusteredTags[$period][$tagName]['occurence'] ?? 0);
+                            $length = 100 * $i / (count($periods) - 1);
+                            $colorGradient[] = sprintf('%s %s%%', $color, $length);
+                        }
                         ?>
 
                         <div class="heatbar" style="background: <?= sprintf('linear-gradient(90deg, %s);', implode(', ', $colorGradient)) ?>;"></div>
@@ -301,6 +259,7 @@ if (!function_exists('computeLinePositions')) {
     table.trending-table table.trending-table-data {
         width: 150px;
     }
+
     table.trending-table th:not(:first-child) {
         width: 150px;
     }
@@ -367,7 +326,7 @@ if (!function_exists('computeLinePositions')) {
         padding-left: inherit;
     }
 
-    .y-axis-container > div {
+    .y-axis-container>div {
         position: relative;
         height: 100%;
     }
@@ -387,7 +346,7 @@ if (!function_exists('computeLinePositions')) {
     }
 
     .heatbar {
-        height: 3px; 
-        width: calc(100% - 10px); 
+        height: 3px;
+        width: calc(100% - 10px);
     }
 </style>
