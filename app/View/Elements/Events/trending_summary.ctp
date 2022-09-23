@@ -38,18 +38,18 @@ $chartData = [];
 $maxValue = 0;
 foreach ($allUniqueTags as $i => $tag) {
     if (
-        !empty($clusteredTags[$previousPeriod2][$tag]['occurence']) ||
-        !empty($clusteredTags[$previousPeriod][$tag]['occurence']) ||
-        !empty($clusteredTags[$currentPeriod][$tag]['occurence'])
+        !empty($clusteredTags[$previousPeriod2][$tag]['occurrence']) ||
+        !empty($clusteredTags[$previousPeriod][$tag]['occurrence']) ||
+        !empty($clusteredTags[$currentPeriod][$tag]['occurrence'])
     ) {
-        $colorForTags[$tag] = $COLOR_PALETTE[$i];
         $chartData[$tag] = [
-            $clusteredTags[$previousPeriod2][$tag]['occurence'] ?? 0,
-            $clusteredTags[$previousPeriod][$tag]['occurence'] ?? 0,
-            $clusteredTags[$currentPeriod][$tag]['occurence'] ?? 0,
+            $clusteredTags[$previousPeriod2][$tag]['occurrence'] ?? 0,
+            $clusteredTags[$previousPeriod][$tag]['occurrence'] ?? 0,
+            $clusteredTags[$currentPeriod][$tag]['occurrence'] ?? 0,
         ];
         $maxValue = max($maxValue, max($chartData[$tag]));
     }
+    $colorForTags[$tag] = $COLOR_PALETTE[$i];
 }
 $canvasWidth = 600;
 $canvasHeight = 150;
@@ -92,7 +92,6 @@ if (!function_exists('computeLinePositions')) {
         return $conf;
     }
 }
-
 ?>
 
 <div style="display: flex; column-gap: 20px; justify-content: space-around; margin-bottom: 40px;">
@@ -105,15 +104,15 @@ if (!function_exists('computeLinePositions')) {
                 </tr>
                 <tr>
                     <td><?= __('Starting period') ?></td>
-                    <td><?= sprintf('%s', $currentPeriodDate->format('M d, o. (\W\e\e\k W)')); ?></td>
+                    <td><?= $currentPeriodDate->format('M d, o. (\W\e\e\k W)'); ?></td>
                 </tr>
                 <tr>
                     <td><?= __('Previous period') ?></td>
-                    <td><?= sprintf('%s', $previousPeriodDate->format('M d, o. (\W\e\e\k W)')); ?></td>
+                    <td><?= $previousPeriodDate->format('M d, o. (\W\e\e\k W)'); ?></td>
                 </tr>
                 <tr>
                     <td><?= __('Period-2') ?></td>
-                    <td><?= sprintf('%s', $previousPeriod2Date->format('M d, o. (\W\e\e\k W)')); ?></td>
+                    <td><?= $previousPeriod2Date->format('M d, o. (\W\e\e\k W)'); ?></td>
                 </tr>
             </tbody>
         </table>
@@ -125,7 +124,7 @@ if (!function_exists('computeLinePositions')) {
                     <div>
                         <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, 0, -25) ?>"><?= h($maxValue) ?></span>
                         <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20) / 2, 0) ?>"><?= h(round($maxValue / 2, 2)) ?></span>
-                        <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20), 25) ?>"><?= 0 ?></span>
+                        <span class="y-axis-label" style="<?= sprintf('left: %spx; top: %spx; transform: translate(-100%%, %s%%)', 0, ($canvasHeight - 20), 25) ?>">0</span>
                     </div>
                 </div>
                 <div class="canvas">
@@ -242,7 +241,7 @@ if (!function_exists('computeLinePositions')) {
                             <table class="table-condensed no-border trending-table-data">
                                 <tbody>
                                     <tr>
-                                        <td><?= h($clusteredTags[$previousPeriod2][$tagName]['occurence'] ?? '-') ?></td>
+                                        <td><?= h($clusteredTags[$previousPeriod2][$tagName]['occurrence'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$previousPeriod2][$tagName]['raw_change'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$previousPeriod2][$tagName]['percent_change'] ?? '-') ?>%</td>
                                     </tr>
@@ -253,9 +252,9 @@ if (!function_exists('computeLinePositions')) {
                             <table class="table-condensed no-border trending-table-data">
                                 <tbody>
                                     <tr>
-                                        <td><?= h($clusteredTags[$previousPeriod][$tagName]['occurence'] ?? '-') ?></td>
+                                        <td><?= h($clusteredTags[$previousPeriod][$tagName]['occurrence'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$previousPeriod][$tagName]['raw_change'] ?? '-') ?></td>
-                                        <td><?= h($clusteredTags[$previousPeriod][$tagName]['percent_change'] ?? '-') ?>%</td>
+                                        <td><?= h($clusteredTags[$previousPeriod][$tagName]['percent_change'] ?? '-') ?>&nbsp;%</td>
                                         <td style="font-size: large; color: <?= $trendColorMapping[$clusteredTags[$previousPeriod][$tagName]['change_sign'] ?? '?'] ?>"><?= $trendIconMapping[$clusteredTags[$previousPeriod][$tagName]['change_sign'] ?? '?'] ?></td>
                                     </tr>
                                 </tbody>
@@ -265,9 +264,9 @@ if (!function_exists('computeLinePositions')) {
                             <table class="table-condensed no-border trending-table-data">
                                 <tbody>
                                     <tr>
-                                        <td><?= h($clusteredTags[$currentPeriod][$tagName]['occurence'] ?? '-') ?></td>
+                                        <td><?= h($clusteredTags[$currentPeriod][$tagName]['occurrence'] ?? '-') ?></td>
                                         <td><?= h($clusteredTags[$currentPeriod][$tagName]['raw_change'] ?? '-') ?></td>
-                                        <td><?= h($clusteredTags[$currentPeriod][$tagName]['percent_change'] ?? '-') ?>%</td>
+                                        <td><?= h($clusteredTags[$currentPeriod][$tagName]['percent_change'] ?? '-') ?>&nbsp;%</td>
                                         <td style="font-size: large; color: <?= $trendColorMapping[$clusteredTags[$currentPeriod][$tagName]['change_sign'] ?? '?'] ?>"><?= $trendIconMapping[$clusteredTags[$currentPeriod][$tagName]['change_sign'] ?? '?'] ?></td>
                                     </tr>
                                 </tbody>
@@ -282,13 +281,12 @@ if (!function_exists('computeLinePositions')) {
                             $high = '#bc2f1a';
                             $colorGradient = [];
                             foreach ($periods as $i => $period) {
-                                $ratio = ($clusteredTags[$period][$tagName]['occurence'] ?? 0) / $maxValue;
+                                $ratio = ($clusteredTags[$period][$tagName]['occurrence'] ?? 0) / $maxValue;
                                 $color = $ratio <= 0.33 ? $low : ($ratio >= 0.66 ? $high : $medium);
                                 $length = 100 * $i / (count($periods) - 1);
                                 $colorGradient[] = sprintf('%s %s%%', $color, $length);
                             }
                         ?>
-
                         <div class="heatbar" style="background: <?= sprintf('linear-gradient(90deg, %s);', implode(', ', $colorGradient)) ?>;"></div>
                     </td>
                 <?php endforeach; ?>
