@@ -284,12 +284,12 @@
                         'requirement' => $this->Acl->canAccess('servers', 'import'),
                     ),
                     array(
-                        'text' => __('List Servers'),
+                        'text' => __('Remote Servers'),
                         'url' => $baseurl . '/servers/index',
                         'requirement' => $this->Acl->canAccess('servers', 'index'),
                     ),
                     array(
-                        'text' => __('List Feeds'),
+                        'text' => __('Feeds'),
                         'url' => $baseurl . '/feeds/index',
                         'requirement' => $this->Acl->canAccess('feeds', 'index'),
                     ),
@@ -299,17 +299,12 @@
                         'requirement' => $this->Acl->canAccess('feeds', 'searchCaches'),
                     ),
                     array(
-                        'text' => __('List SightingDB Connections'),
+                        'text' => __('SightingDB'),
                         'url' => $baseurl . '/sightingdb/index',
                         'requirement' => $this->Acl->canAccess('sightingdb', 'index'),
                     ),
                     array(
-                        'text' => __('Add SightingDB Connection'),
-                        'url' => $baseurl . '/sightingdb/add',
-                        'requirement' => $this->Acl->canAccess('sightingdb', 'add'),
-                    ),
-                    array(
-                        'text' => __('List Communities'),
+                        'text' => __('Communities'),
                         'url' => $baseurl . '/communities/index',
                         'requirement' => $this->Acl->canAccess('communities', 'index'),
                     ),
