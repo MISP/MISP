@@ -3257,7 +3257,7 @@ class AppModel extends Model
         return $filter;
     }
 
-    public function convert_to_memory_limit_to_mb($val)
+    protected function convert_to_memory_limit_to_mb($val)
     {
         $val = trim($val);
         if ($val == -1) {
