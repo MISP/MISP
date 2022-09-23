@@ -84,7 +84,7 @@ class AppModel extends Model
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
-        93 => false, 94 => false, 95 => true, 96 => false, 97 => true,
+        93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1873,6 +1873,9 @@ class AppModel extends Model
                     ADD COLUMN `notification_weekly`    tinyint(1) NOT NULL DEFAULT 0,
                     ADD COLUMN `notification_monthly`   tinyint(1) NOT NULL DEFAULT 0
                 ;";
+                break;
+            case 98:
+                $this->__addIndex('object_template_elements', 'object_template_id');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
