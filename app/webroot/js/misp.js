@@ -52,7 +52,9 @@ function rgb2hex(rgb) {
 }
 
 function xhrFailCallback(xhr) {
-    if (xhr.status === 401) {
+    if (xhr.status === 0) {
+        showMessage('fail', 'Something went wrong – server is not responding.');
+    } if (xhr.status === 401) {
         showMessage('fail', 'Unauthorized. Please reload page to log again.');
     } else if (xhr.status === 403 || xhr.status === 405) {
         showMessage('fail', 'Not allowed.');
