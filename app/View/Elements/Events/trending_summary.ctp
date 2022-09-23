@@ -36,12 +36,12 @@ $chartData = [];
 $maxValue = 0;
 foreach ($allUniqueTags as $i => $tag) {
     $sumForTags = array_reduce($clusteredTags, function ($carry, $clusteredTagsPerPeriod) use ($tag) {
-        return $carry + ($clusteredTagsPerPeriod[$tag]['occurence'] ?? 0);
+        return $carry + ($clusteredTagsPerPeriod[$tag]['occurrence'] ?? 0);
     }, 0);
     if ($sumForTags > 0) {
         $colorForTags[$tag] = $COLOR_PALETTE[$i];
         $chartData[$tag] = array_values(array_map(function ($clusteredTagsPerPeriod) use ($tag) {
-            return $clusteredTagsPerPeriod[$tag]['occurence'] ?? 0;
+            return $clusteredTagsPerPeriod[$tag]['occurrence'] ?? 0;
         }, $clusteredTags));
         $chartData[$tag] = array_reverse($chartData[$tag]);
         $maxValue = max($maxValue, max($chartData[$tag]));
@@ -191,7 +191,7 @@ if (!function_exists('getColorFromYlOrBr')) {
                         <table class="trending-table-data">
                             <thead style="font-size: small;">
                                 <tr>
-                                    <td title="<?= __('Occurence per events') ?>">#</td>
+                                    <td title="<?= __('Occurrence per events') ?>">#</td>
                                     <td title="<?= __('Raw change') ?>">⥮</td>
                                     <td title="<?= __('Percent change') ?>">%</td>
                                     <td></td>
@@ -225,7 +225,7 @@ if (!function_exists('getColorFromYlOrBr')) {
                                 <table class="table-condensed no-border trending-table-data">
                                     <tbody>
                                         <tr>
-                                            <td title="<?= __('Occurence per events') ?>"><?= h($clusteredTags[$period][$tagName]['occurence'] ?? '-') ?></td>
+                                            <td title="<?= __('Occurrence per events') ?>"><?= h($clusteredTags[$period][$tagName]['occurrence'] ?? '-') ?></td>
                                             <td title="<?= __('Raw change') ?>"><?= h($clusteredTags[$period][$tagName]['raw_change'] ?? '-') ?></td>
                                             <td title="<?= __('Percent change') ?>"><?= h($clusteredTags[$period][$tagName]['percent_change'] ?? '-') ?>%</td>
                                             <?php if ($i > 0) : ?>
@@ -242,7 +242,7 @@ if (!function_exists('getColorFromYlOrBr')) {
                         <?php
                         $colorGradient = [];
                         foreach ($reversedPeriods as $i => $period) {
-                            $color = getColorFromYlOrBr(0, $maxValue, $clusteredTags[$period][$tagName]['occurence'] ?? 0);
+                            $color = getColorFromYlOrBr(0, $maxValue, $clusteredTags[$period][$tagName]['occurrence'] ?? 0);
                             $length = 100 * $i / (count($periods) - 1);
                             $length = $i > 0 ? $length - 5 : $length; // Small offset to better align colors on the table period header
                             $colorGradient[] = sprintf('%s %s%%', $color, $length);
