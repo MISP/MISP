@@ -1,30 +1,23 @@
 <?php
-
 App::uses('AppModel', 'Model');
 
 class ObjectTemplateElement extends AppModel
 {
     public $actsAs = array(
-            'Containable'
-    );
-
-    public $belongsTo = array(
-    );
-
-    public $validate = array(
+        'Containable'
     );
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as $k => $result) {
-            if (isset($results[$k]['ObjectTemplateElement']['categories'])) {
-                $results[$k]['ObjectTemplateElement']['categories'] = json_decode($results[$k]['ObjectTemplateElement']['categories'], true);
+        foreach ($results as &$result) {
+            if (isset($result['ObjectTemplateElement']['categories'])) {
+                $result['ObjectTemplateElement']['categories'] = json_decode($result['ObjectTemplateElement']['categories'], true);
             }
-            if (isset($results[$k]['ObjectTemplateElement']['values_list'])) {
-                $results[$k]['ObjectTemplateElement']['values_list'] = json_decode($results[$k]['ObjectTemplateElement']['values_list'], true);
+            if (isset($result['ObjectTemplateElement']['values_list'])) {
+                $result['ObjectTemplateElement']['values_list'] = json_decode($result['ObjectTemplateElement']['values_list'], true);
             }
-            if (isset($results[$k]['ObjectTemplateElement']['sane_default'])) {
-                $results[$k]['ObjectTemplateElement']['sane_default'] = json_decode($results[$k]['ObjectTemplateElement']['sane_default'], true);
+            if (isset($result['ObjectTemplateElement']['sane_default'])) {
+                $result['ObjectTemplateElement']['sane_default'] = json_decode($result['ObjectTemplateElement']['sane_default'], true);
             }
         }
         return $results;
@@ -42,8 +35,8 @@ class ObjectTemplateElement extends AppModel
         return true;
     }
 
-
-    public function getAllAvailableTypes() {
+    public function getAllAvailableTypes()
+    {
         $temp = $this->find('all', array(
             'recursive' => -1,
             'fields' => array('object_relation as type', 'description AS desc', 'categories'),

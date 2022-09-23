@@ -215,10 +215,13 @@ class ObjectTemplate extends AppModel
     {
         $to_return = array('valid' => true, 'missingTypes' => array());
         if (!empty($template['ObjectTemplate']['requirements'])) {
+            // construct array containing ObjectTemplateElement with object_relation as key for faster search
+            $elementsByObjectRelationName = array_column($template['ObjectTemplateElement'], null, 'object_relation');
+
             // check for all required attributes
             if (!empty($template['ObjectTemplate']['requirements']['required'])) {
                 foreach ($template['ObjectTemplate']['requirements']['required'] as $requiredField) {
-                    $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField))[0];
+                    $requiredType = $elementsByObjectRelationName[$requiredField]['type'];
                     $found = false;
                     foreach ($attributes as $attribute) {
                         if ($attribute['Attribute']['type'] === $requiredType) {
@@ -234,11 +237,10 @@ class ObjectTemplate extends AppModel
             // check for all required one of attributes
             if (!empty($template['ObjectTemplate']['requirements']['requiredOneOf'])) {
                 $found = false;
-                $all_required_type = array();
+                $allRequiredTypes = array();
                 foreach ($template['ObjectTemplate']['requirements']['requiredOneOf'] as $requiredField) {
-                    $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField));
-                    $requiredType = empty($requiredType) ? null : $requiredType[0];
-                    $all_required_type[] = $requiredType;
+                    $requiredType = $elementsByObjectRelationName[$requiredField]['type'] ?? null;
+                    $allRequiredTypes[] = $requiredType;
                     foreach ($attributes as $attribute) {
                         if ($attribute['Attribute']['type'] === $requiredType) {
                             $found = true;
@@ -247,7 +249,7 @@ class ObjectTemplate extends AppModel
                     }
                 }
                 if (!$found) {
-                    $to_return = array('valid' => false, 'missingTypes' => $all_required_type);
+                    $to_return = array('valid' => false, 'missingTypes' => $allRequiredTypes);
                 }
             }
         }

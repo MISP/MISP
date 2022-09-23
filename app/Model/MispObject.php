@@ -1261,11 +1261,11 @@ class MispObject extends AppModel
             'group' => 'ObjectTemplate.id',
         ));
 
-        $templates = $this->ObjectTemplate->find('all', array(
+        $templates = $this->ObjectTemplate->find('all', [
             'recursive' => -1,
-            'conditions' => array('id' => $potentialTemplateIds),
-            'contain' => 'ObjectTemplateElement'
-        ));
+            'conditions' => ['id' => $potentialTemplateIds],
+            'contain' => ['ObjectTemplateElement' => ['fields' => ['object_relation', 'type', 'multiple']]]
+        ]);
 
         foreach ($templates as $i => $template) {
             $res = $this->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributes);
