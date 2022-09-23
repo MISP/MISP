@@ -356,19 +356,20 @@ class ObjectsController extends AppController
 
     public function edit($id, $update_template_available=false, $onlyAddNewAttribute=false)
     {
-        $object = $this->MispObject->fetchObjects($this->Auth->user(), array(
+        $user = $this->Auth->user();
+        $object = $this->MispObject->fetchObjects($user, array(
             'conditions' => $this->__objectIdToConditions($id),
         ));
         if (empty($object)) {
             throw new NotFoundException(__('Invalid object.'));
         }
         $object = $object[0];
-        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $object['Event']['id']);
+        $event = $this->MispObject->Event->fetchSimpleEvent($user, $object['Event']['id']);
         if (!$this->__canModifyEvent($event)) {
             throw new ForbiddenException(__('Insufficient permissions to edit this object.'));
         }
         if (!$this->_isRest()) {
-            $this->MispObject->Event->insertLock($this->Auth->user(), $object['Event']['id']);
+            $this->MispObject->Event->insertLock($user, $object['Event']['id']);
         }
         if (!empty($object['Object']['template_uuid']) && !empty($object['Object']['template_version'])) {
             $template = $this->MispObject->ObjectTemplate->find('first', array(
@@ -425,7 +426,7 @@ class ObjectsController extends AppController
                 unset($this->request->data['Object']);
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
-            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute, $this->Auth->user());
+            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute, $user);
             $error_message = __('Object could not be saved.');
             $savedObject = array();
             if (!is_numeric($objectToSave)) {
@@ -435,10 +436,10 @@ class ObjectsController extends AppController
                 }
                 $error_message = __('Object could not be saved.') . PHP_EOL . implode(PHP_EOL, $object_validation_errors);
             } else {
-                $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $object['Object']['id'])));
+                $savedObject = $this->MispObject->fetchObjects($user, array('conditions' => array('Object.id' => $object['Object']['id'])));
                 if (isset($this->request->data['deleted']) && $this->request->data['deleted']) {
                     $this->MispObject->deleteObject($savedObject[0], $hard=false, $unpublish=false);
-                    $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $object['Object']['id']))); // make sure the object is deleted
+                    $savedObject = $this->MispObject->fetchObjects($user, array('conditions' => array('Object.id' => $object['Object']['id']))); // make sure the object is deleted
                 }
             }
             // we pre-validate the attributes before we create an object at this point
@@ -480,15 +481,15 @@ class ObjectsController extends AppController
             $enabledRows = array();
             $this->request->data['Object'] = $object['Object'];
             foreach ($template['ObjectTemplateElement'] as $k => $element) {
-                foreach ($object['Attribute'] as $k2 => $attribute) {
-                    if ($attribute['object_relation'] == $element['object_relation']) {
+                foreach ($object['Attribute'] as $attribute) {
+                    if ($attribute['object_relation'] === $element['object_relation']) {
                         $enabledRows[] = $k;
                         $this->request->data['Attribute'][$k] = $attribute;
                         if (!empty($element['values_list'])) {
                             $this->request->data['Attribute'][$k]['value_select'] = $attribute['value'];
                         } else {
                             if (!empty($element['sane_default'])) {
-                                if (in_array($attribute['value'], $element['sane_default'])) {
+                                if (in_array($attribute['value'], $element['sane_default'], true)) {
                                     $this->request->data['Attribute'][$k]['value_select'] = $attribute['value'];
                                 } else {
                                     $this->request->data['Attribute'][$k]['value_select'] = 'Enter value manually';
@@ -500,7 +501,7 @@ class ObjectsController extends AppController
             }
         }
         $this->set('enabledRows', $enabledRows);
-        $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+        $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($user);
         $this->set('distributionData', $distributionData);
         $this->set('event', $event);
         $this->set('ajax', false);
@@ -646,10 +647,9 @@ class ObjectsController extends AppController
     // Construct a template with valid object attributes to add to an object
     public function quickFetchTemplateWithValidObjectAttributes($id)
     {
-        $fields = array('template_uuid', 'template_version', 'id');
         $params = array(
             'conditions' => array('Object.id' => $id),
-            'fields' => $fields,
+            'fields' => array('template_uuid', 'template_version', 'id'),
             'flatten' => 1,
         );
         // fetchObjects restrict access based on user
@@ -664,11 +664,10 @@ class ObjectsController extends AppController
             $object = $object[0];
         }
         // get object attributes already set
-        $objectRelation = array();
-        foreach($object['Attribute'] as $attr) {
-            $objectRelation[$attr['object_relation']] = 1;
+        $existsObjectRelation = array();
+        foreach ($object['Attribute'] as $attr) {
+            $existsObjectRelation[$attr['object_relation']] = true;
         }
-        $objectRelation = array_keys($objectRelation);
         // get object attribute defined in the object's template
         $template = $this->MispObject->ObjectTemplate->find('first', array(
             'conditions' => array(
@@ -687,8 +686,8 @@ class ObjectsController extends AppController
             }
         }
         // unset object invalid object attribute
-        foreach($template['ObjectTemplateElement'] as $i => $objAttr) {
-            if (in_array($objAttr['object_relation'], $objectRelation) && !$objAttr['multiple']) {
+        foreach ($template['ObjectTemplateElement'] as $i => $objAttr) {
+            if (isset($existsObjectRelation[$objAttr['object_relation']]) && !$objAttr['multiple']) {
                 unset($template['ObjectTemplateElement'][$i]);
             }
         }
@@ -762,13 +761,13 @@ class ObjectsController extends AppController
                 throw new NotFoundException(__('Invalid template'));
             }
             if (empty($template['ObjectTemplateElement'])) {
-                throw new NotFoundException(__('Invalid fields') . ' `' . h($fieldName) . '`');
+                throw new NotFoundException(__('Invalid field `%s`', h($fieldName)));
             }
 
             // check if fields can be added
-            foreach($object['Attribute'] as $objAttr) {
+            foreach ($object['Attribute'] as $objAttr) {
                 $objectAttrFromTemplate = $template['ObjectTemplateElement'][0];
-                if ($objAttr['object_relation'] == $fieldName && !$objectAttrFromTemplate['multiple']) {
+                if ($objAttr['object_relation'] === $fieldName && !$objectAttrFromTemplate['multiple']) {
                     throw new NotFoundException(__('Invalid field'));
                 }
             }

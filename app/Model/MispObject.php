@@ -537,7 +537,6 @@ class MispObject extends AppModel
         $params = array(
             'conditions' => $this->buildConditions($user),
             'fields' => array(),
-            'recursive' => -1
         );
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
@@ -691,12 +690,14 @@ class MispObject extends AppModel
         return $results;
     }
 
-    /*
+    /**
      * Prepare the template form view's data, setting defaults, sorting elements
+     * @param array $template
+     * @param array $request
+     * @return array
      */
-    public function prepareTemplate($template, $request = array())
+    public function prepareTemplate(array $template, array $request = array())
     {
-        $temp = array();
         usort($template['ObjectTemplateElement'], function ($a, $b) {
             return $a['ui-priority'] < $b['ui-priority'];
         });
@@ -708,26 +709,28 @@ class MispObject extends AppModel
                 $request_rearranged[$attribute['object_relation']][] = $attribute;
             }
         }
-        foreach ($template_object_elements as $k => $v) {
+        $typeDefinitions = $this->Event->Attribute->typeDefinitions;
+        $categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
+        foreach ($template_object_elements as $v) {
             if (empty($request_rearranged[$v['object_relation']])) {
-                if (isset($this->Event->Attribute->typeDefinitions[$v['type']])) {
-                    $v['default_category'] = $this->Event->Attribute->typeDefinitions[$v['type']]['default_category'];
-                    $v['to_ids'] = $this->Event->Attribute->typeDefinitions[$v['type']]['to_ids'];
+                if (isset($typeDefinitions[$v['type']])) {
+                    $v['default_category'] = $typeDefinitions[$v['type']]['default_category'];
+                    $v['to_ids'] = $typeDefinitions[$v['type']]['to_ids'];
                     if (empty($v['categories'])) {
                         $v['categories'] = array();
-                        foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
-                            if (in_array($v['type'], $catv['types'])) {
+                        foreach ($categoryDefinitions as $catk => $catv) {
+                            if (in_array($v['type'], $catv['types'], true)) {
                                 $v['categories'][] = $catk;
                             }
                         }
                     }
                     $template['ObjectTemplateElement'][] = $v;
                 } else {
-                    $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template_object_elements[$k]['object_relation'] . '") that would not pass validation due to this.';
+                    $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $v['object_relation'] . '") that would not pass validation due to this.';
                 }
             } else {
                 foreach ($request_rearranged[$v['object_relation']] as $request_item) {
-                    if (isset($this->Event->Attribute->typeDefinitions[$v['type']])) {
+                    if (isset($typeDefinitions[$v['type']])) {
                         $v['default_category'] = $request_item['category'];
                         $v['value'] = $request_item['value'];
                         $v['to_ids'] = $request_item['to_ids'];
@@ -740,8 +743,8 @@ class MispObject extends AppModel
                         }
                         if (empty($v['categories'])) {
                             $v['categories'] = array();
-                            foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
-                                if (in_array($v['type'], $catv['types'])) {
+                            foreach ($categoryDefinitions as $catk => $catv) {
+                                if (in_array($v['type'], $catv['types'], true)) {
                                     $v['categories'][] = $catk;
                                 }
                             }
@@ -750,7 +753,7 @@ class MispObject extends AppModel
                         $template['ObjectTemplateElement'][] = $v;
                         unset($v['uuid']); // force creating a new attribute if template element entry gets reused
                     } else {
-                        $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template_object_elements[$k]['object_relation'] . '") that would not pass validation due to this.';
+                        $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $v['object_relation'] . '") that would not pass validation due to this.';
                     }
                 }
             }
@@ -1389,30 +1392,31 @@ class MispObject extends AppModel
             }
             $toReturn['updateable_attribute'] = $object['Attribute'];
             $toReturn['not_updateable_attribute'] = array();
-        } else {
-            $toReturn['newer_template_version'] = false;
-        }
-        if (!empty($template_difference)) { // older template not completely embeded in newer
-            foreach ($template_difference as $temp_diff_element) {
-                foreach ($object['Attribute'] as $i => $attribute) {
-                    if (
-                        $attribute['object_relation'] == $temp_diff_element['object_relation']
-                        && $attribute['type'] == $temp_diff_element['type']
-                    ) { // This attribute cannot be merged automatically
-                        $attribute['merge-possible'] = false;
-                        $toReturn['not_updateable_attribute'][] = $attribute;
-                        unset($toReturn['updateable_attribute'][$i]);
+
+            if (!empty($template_difference)) { // older template not completely embeded in newer
+                foreach ($template_difference as $temp_diff_element) {
+                    foreach ($object['Attribute'] as $i => $attribute) {
+                        if (
+                            $attribute['object_relation'] == $temp_diff_element['object_relation']
+                            && $attribute['type'] == $temp_diff_element['type']
+                        ) { // This attribute cannot be merged automatically
+                            $attribute['merge-possible'] = false;
+                            $toReturn['not_updateable_attribute'][] = $attribute;
+                            unset($toReturn['updateable_attribute'][$i]);
+                        }
                     }
                 }
             }
         }
+
         if ($update_template_available) { // template version bump requested
             $toReturn['template'] = $newer_template; // bump the template version
         }
         return $toReturn;
     }
 
-    public function reviseObject($revised_object, $object, $template) {
+    public function reviseObject($revised_object, $object, $template)
+    {
         $revised_object_both = array('mergeable' => array(), 'notMergeable' => array());
 
         // Loop through attributes to inject and perform the correct action
