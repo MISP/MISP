@@ -38,7 +38,8 @@
                 $passwordPopover = '<span class="blue bold">' . __('Minimal length') . '</span>: ' . h($length) . '<br>';
                 $passwordPopover .= '<span class="blue bold">' . __('Complexity') . '</span>: ' . h($complexity);
                 echo $this->Form->input('password', array(
-                    'label' => __('Password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) . '" class="fas fa-info-circle"></span>'
+                    'label' => __('Password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) . '" class="fas fa-info-circle"></span>',
+                    'autocomplete' => 'new-password'
                 ));
                 echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
             ?>
