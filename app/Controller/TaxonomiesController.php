@@ -59,7 +59,7 @@ class TaxonomiesController extends AppController
 
     public function view($id)
     {
-        $taxonomy = $this->Taxonomy->getTaxonomy($id, ['full' => $this->_isRest()]);
+        $taxonomy = $this->Taxonomy->getTaxonomy($id, $this->_isRest());
         if (empty($taxonomy)) {
             throw new NotFoundException(__('Taxonomy not found.'));
         }

@@ -177,15 +177,10 @@ class Taxonomy extends AppModel
 
     /**
      * @param int|string $id Taxonomy ID or namespace
-     * @param string|null $options
      * @return array|false
      */
-    private function __getTaxonomy($id, $options = array('full' => false, 'filter' => false))
+    private function __getTaxonomy($id)
     {
-        $filter = false;
-        if (isset($options['filter'])) {
-            $filter = $options['filter'];
-        }
         if (!is_numeric($id)) {
             $conditions = ['Taxonomy.namespace' => trim(mb_strtolower($id))];
         } else {
@@ -237,17 +232,10 @@ class Taxonomy extends AppModel
                 $entries[] = $temp;
             }
         }
-        $taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
-        if ($filter) {
-            $filter = mb_strtolower($filter);
-            $namespaceLength = strlen($taxonomy['Taxonomy']['namespace']);
-            foreach ($entries as $k => $entry) {
-                if (strpos(substr(mb_strtolower($entry['tag']), $namespaceLength), $filter) === false) {
-                    unset($entries[$k]);
-                }
-            }
-        }
-        $taxonomy['entries'] = $entries;
+        $taxonomy = [
+            'Taxonomy' => $taxonomy['Taxonomy'],
+            'entries' => $entries,
+        ];
         return $taxonomy;
     }
 
@@ -271,6 +259,7 @@ class Taxonomy extends AppModel
                 'TaxonomyEntry' => ['fields' => ['value']]],
             ],
         ]);
+
         $allTaxonomyTags = [];
         foreach ($taxonomies as $taxonomy) {
             $namespace = $taxonomy['Taxonomy']['namespace'];
@@ -331,7 +320,7 @@ class Taxonomy extends AppModel
 
     public function getTaxonomyTags($id, $upperCase = false, $existingOnly = false)
     {
-        $taxonomy = $this->__getTaxonomy($id, array('full' => true, 'filter' => false));
+        $taxonomy = $this->__getTaxonomy($id);
         if ($existingOnly) {
             $this->Tag = ClassRegistry::init('Tag');
             $tags = $this->Tag->find('list', array('fields' => array('name'), 'order' => array('UPPER(Tag.name) ASC')));
@@ -357,45 +346,31 @@ class Taxonomy extends AppModel
 
     /**
      * @param int|string $id Taxonomy ID or namespace
-     * @param array|null $options
+     * @param bool $full Add tag information to entries
      * @return array|false
      */
-    public function getTaxonomy($id, $options = array('full' => true))
+    public function getTaxonomy($id, $full = true)
     {
-        $taxonomy = $this->__getTaxonomy($id, $options);
+        $taxonomy = $this->__getTaxonomy($id);
         if (empty($taxonomy)) {
             return false;
         }
-        $this->Tag = ClassRegistry::init('Tag');
-        if (isset($options['full']) && $options['full']) {
+        if ($full) {
+            $this->Tag = ClassRegistry::init('Tag');
             $tagNames = array_column($taxonomy['entries'], 'tag');
             $tags = $this->Tag->getTagsByName($tagNames, false);
-            $filterActive = false;
-            if (isset($options['enabled'])) {
-                $filterActive = true;
-                $enabledTag = isset($options['enabled']) ? $options['enabled'] : null;
-            }
-            if (isset($taxonomy['entries'])) {
-                foreach ($taxonomy['entries'] as $key => $temp) {
-                    if (isset($tags[strtoupper($temp['tag'])])) {
-                        $existingTag = $tags[strtoupper($temp['tag'])];
-                        if ($filterActive && $options['enabled'] == $existingTag['Tag']['hide_tag']) {
-                            unset($taxonomy['entries'][$key]);
-                            continue;
-                        }
-                        $taxonomy['entries'][$key]['existing_tag'] = $existingTag;
-                        // numerical_value is overridden at tag level. Propagate the override further up
-                        if (isset($existingTag['Tag']['original_numerical_value'])) {
-                            $taxonomy['entries'][$key]['original_numerical_value'] = $existingTag['Tag']['original_numerical_value'];
-                            $taxonomy['entries'][$key]['numerical_value'] = $existingTag['Tag']['numerical_value'];
-                        }
-                    } else {
-                        if ($filterActive) {
-                            unset($taxonomy['entries'][$key]);
-                        } else {
-                            $taxonomy['entries'][$key]['existing_tag'] = false;
-                        }
+            foreach ($taxonomy['entries'] as $key => $temp) {
+                $tagLower = mb_strtolower($temp['tag']);
+                if (isset($tags[$tagLower])) {
+                    $existingTag = $tags[$tagLower];
+                    $taxonomy['entries'][$key]['existing_tag'] = $existingTag;
+                    // numerical_value is overridden at tag level. Propagate the override further up
+                    if (isset($existingTag['Tag']['original_numerical_value'])) {
+                        $taxonomy['entries'][$key]['original_numerical_value'] = $existingTag['Tag']['original_numerical_value'];
+                        $taxonomy['entries'][$key]['numerical_value'] = $existingTag['Tag']['numerical_value'];
                     }
+                } else {
+                    $taxonomy['entries'][$key]['existing_tag'] = false;
                 }
             }
         }
@@ -406,7 +381,7 @@ class Taxonomy extends AppModel
     {
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
-        $taxonomy = $this->__getTaxonomy($id, array('full' => true));
+        $taxonomy = $this->__getTaxonomy($id);
         $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
         $this->Tag = ClassRegistry::init('Tag');
         $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace'], false);
@@ -445,7 +420,7 @@ class Taxonomy extends AppModel
         $this->Tag = ClassRegistry::init('Tag');
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
-        $taxonomy = $this->__getTaxonomy($id, array('full' => true));
+        $taxonomy = $this->__getTaxonomy($id);
         if (empty($taxonomy)) {
             return false;
         }
@@ -491,7 +466,7 @@ class Taxonomy extends AppModel
         if ($tagList) {
             $tags = $tagList;
         } else {
-            $taxonomy = $this->__getTaxonomy($id, array('full' => true));
+            $taxonomy = $this->__getTaxonomy($id);
             foreach ($taxonomy['entries'] as $entry) {
                 $tags[] = $entry['tag'];
             }
@@ -518,7 +493,7 @@ class Taxonomy extends AppModel
         $this->Tag = ClassRegistry::init('Tag');
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
-        $taxonomy = $this->__getTaxonomy($id, array('full' => true));
+        $taxonomy = $this->__getTaxonomy($id);
         $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
         $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
         foreach ($taxonomy['entries'] as $k => $entry) {
@@ -551,7 +526,7 @@ class Taxonomy extends AppModel
         $this->Tag = ClassRegistry::init('Tag');
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
-        $taxonomy = $this->__getTaxonomy($id, array('full' => true));
+        $taxonomy = $this->__getTaxonomy($id);
         $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
         $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
         foreach ($taxonomy['entries'] as $k => $entry) {
