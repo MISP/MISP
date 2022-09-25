@@ -49,9 +49,8 @@ class GenericPickerHelper extends AppHelper
         } else { // fallback to default submit function
             if (!$ignoreFunction && $defaults['functionName'] !== '') {
                 $param_html .= 'onclick="submitFunction(this, ' . h($defaults['functionName']) . ')" ';
-                $param_html .= sprintf('onclick="submitFunction(this, %s)" ', h($defaults['functionName']));
             } else {
-                $param_html .= sprintf('data-endpoint="%s" onclick="fetchRequestedData(this); event.stopPropagation(); return false;" ', h($param['value']));;
+                $param_html .= sprintf('data-endpoint="%s" onclick="fetchRequestedData(this); event.stopPropagation(); return false;" ', h($param['value']));
             }
         }
 
