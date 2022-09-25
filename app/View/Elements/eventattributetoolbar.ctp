@@ -148,11 +148,11 @@
             array(
                 'children' => array(
                     array(
-                        'id' => 'template-button',
-                        'title' => __('Populate using a template'),
+                        'id' => 'object-button',
+                        'title' => __('Add Object'),
                         'fa-icon' => 'list',
-                        'onClick' => 'getPopup',
-                        'onClickParams' => array($eventId, 'templates', 'templateChoices'),
+                        'onClick' => 'popoverPopupNew',
+                        'onClickParams' => ['this', "$baseurl/objectTemplates/objectMetaChoice/$eventId"],
                         'requirement' => $mayModify
                     ),
                     array(
