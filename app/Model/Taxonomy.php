@@ -265,7 +265,11 @@ class Taxonomy extends AppModel
     {
         $taxonomies = $this->find('all', [
             'fields' => ['namespace'],
-            'contain' => ['TaxonomyPredicate' => ['TaxonomyEntry']],
+            'recursive' => -1,
+            'contain' => ['TaxonomyPredicate' => [
+                'fields' => ['value'],
+                'TaxonomyEntry' => ['fields' => ['value']]],
+            ],
         ]);
         $allTaxonomyTags = [];
         foreach ($taxonomies as $taxonomy) {
