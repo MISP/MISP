@@ -36,7 +36,7 @@
       );
       echo $this->Form->input('Attribute.' . $k . '.type', $formSettings);
       echo '<span class="bold">' . Inflector::humanize(h($element['object_relation'])) . '</span>';
-      if (!empty($template['ObjectTemplate']['requirements']['required']) && in_array($element['object_relation'], $template['ObjectTemplate']['requirements']['required'])) {
+      if (!empty($template['ObjectTemplate']['requirements']['required']) && in_array($element['object_relation'], $template['ObjectTemplate']['requirements']['required'], true)) {
         echo '<span class="red" style="vertical-align: super;font-size: 8px;margin-left: 2px;" title="' . __('Required') . '"><i class="fas fa-asterisk"></i></span>';
       }
       echo '<br>' . h($element['type']);
@@ -85,7 +85,8 @@
         'type' => 'checkbox',
         'checked' => $element['disable_correlation'],
         'label' => false,
-        'div' => false
+        'div' => false,
+        'disabled' => in_array($element['type'], Attribute::NON_CORRELATING_TYPES, true),
       ));
     ?>
   </td>
