@@ -4,6 +4,7 @@ App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
+App::uses('BetterCakeEventManager', 'Tools');
 
 /**
  * Application Controller
@@ -34,8 +35,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '136';
-    public $pyMispVersion = '2.4.152';
+    private $__queryVersion = '145';
+    public $pyMispVersion = '2.4.162';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -47,14 +48,6 @@ class AppController extends Controller
     public $sql_dump = false;
 
     public $restResponsePayload = null;
-
-    // Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
-    // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
-    public $automationArray = array(
-        'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
-        'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
-        'objects' => array('restSearch')
-    );
 
     protected $_legacyParams = array();
     /** @var array */
@@ -202,20 +195,7 @@ class AppController extends Controller
                 if (empty($dataToDecode)) {
                     return null;
                 }
-                try {
-                    if (defined('JSON_THROW_ON_ERROR')) {
-                        // JSON_THROW_ON_ERROR is supported since PHP 7.3
-                        return json_decode($dataToDecode, true, 512, JSON_THROW_ON_ERROR);
-                    } else {
-                        $decoded = json_decode($dataToDecode, true);
-                        if ($decoded === null) {
-                            throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
-                        }
-                        return $decoded;
-                    }
-                } catch (Exception $e) {
-                    throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
-                }
+                return $this->_jsonDecode($dataToDecode);
             };
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
@@ -376,7 +356,7 @@ class AppController extends Controller
     {
         // Notifications and homepage is not necessary for AJAX or REST requests
         $user = $this->Auth->user();
-        if ($user && !$this->_isRest() && !$this->request->is('ajax')) {
+        if ($user && !$this->_isRest() && isset($this->User) && !$this->request->is('ajax')) {
             $hasNotifications = $this->User->hasNotifications($user);
             $this->set('hasNotifications', $hasNotifications);
 
@@ -446,6 +426,10 @@ class AppController extends Controller
                             'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here,
                         );
                         $this->Log->save($log);
+                    }
+                    $storeAPITime = Configure::read('MISP.store_api_access_time');
+                    if (!empty($storeAPITime) && $storeAPITime) {
+                        $this->User->updateAPIAccessTime($user);
                     }
                     $this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user);
@@ -541,7 +525,7 @@ class AppController extends Controller
             return false;
         }
 
-        if ($user['disabled']) {
+        if ($user['disabled'] || (isset($user['logged_by_authkey']) && $user['logged_by_authkey']) && !$this->User->checkIfUserIsValid($user)) {
             if ($this->_shouldLog('disabled:' . $user['id'])) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], 'Login attempt by disabled user.');
@@ -823,8 +807,8 @@ class AppController extends Controller
             ConnectionManager::create('default', $db->config);
         }
         $dataSource = $dataSourceConfig['datasource'];
-        if (!in_array($dataSource, array('Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver'))) {
-            throw new Exception('datasource not supported: ' . $dataSource);
+        if (!in_array($dataSource, ['Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver', 'Database/MysqlExtended'], true)) {
+            throw new Exception('Datasource not supported: ' . $dataSource);
         }
     }
 
@@ -921,11 +905,11 @@ class AppController extends Controller
     /**
      * generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
      * @param array $options
-     * @param $exception
+     * @param CakeResponse $exception
      * @param array $data
-     * @return array|false|mixed
+     * @return array|false
      */
-    protected function _harvestParameters($options, &$exception = null, $data = array())
+    protected function _harvestParameters($options, &$exception = null, $data = [])
     {
         $request = $options['request'] ?? $this->request;
         if ($request->is('post')) {
@@ -971,14 +955,15 @@ class AppController extends Controller
                 }
             }
         }
-        foreach ($data as $k => $v) {
-            if (!is_array($data[$k])) {
-                $data[$k] = trim($data[$k]);
-                if (strpos($data[$k], '||')) {
-                    $data[$k] = explode('||', $data[$k]);
+        foreach ($data as &$v) {
+            if (is_string($v)) {
+                $v = trim($v);
+                if (strpos($v, '||')) {
+                    $v = explode('||', $v);
                 }
             }
         }
+        unset($v);
         if (!empty($options['additional_delimiters'])) {
             if (!is_array($options['additional_delimiters'])) {
                 $options['additional_delimiters'] = array($options['additional_delimiters']);
@@ -988,6 +973,7 @@ class AppController extends Controller
                 foreach ($options['additional_delimiters'] as $delim) {
                     if (strpos($v, $delim) !== false) {
                         $found = true;
+                        break;
                     }
                 }
                 if ($found) {
@@ -1270,17 +1256,17 @@ class AppController extends Controller
                 ]);
             }
         }
+        /** @var TmpFileTool $final */
         $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
-        if (!empty($renderView) && !empty($final)) {
+        if ($renderView) {
             $this->layout = false;
             $final = json_decode($final->intoString(), true);
-            foreach ($final as $key => $data) {
-                $this->set($key, $data);
-            }
+            $this->set($final);
             $this->render('/Events/module_views/' . $renderView);
         } else {
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
-            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType];
+            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
         }
     }
 
@@ -1306,9 +1292,36 @@ class AppController extends Controller
      * Returns true if user can modify given event.
      *
      * @param array $event
+     * @param array|null $user If empty, currently logged user will be used
      * @return bool
      */
-    protected function __canModifyEvent(array $event)
+    protected function __canModifyEvent(array $event, $user = null)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+
+        $user = $user ?: $this->Auth->user();
+
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($user['Role']['perm_modify_org'] && $event['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        if ($user['Role']['perm_modify'] && $event['Event']['user_id'] == $user['id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if user can publish the given event.
+     *
+     * @param array $event
+     * @return bool
+     */
+    protected function __canPublishEvent(array $event)
     {
         if (!isset($event['Event'])) {
             throw new InvalidArgumentException('Passed object does not contain an Event.');
@@ -1317,10 +1330,7 @@ class AppController extends Controller
         if ($this->userRole['perm_site_admin']) {
             return true;
         }
-        if ($this->userRole['perm_modify_org'] && $event['Event']['orgc_id'] == $this->Auth->user()['org_id']) {
-            return true;
-        }
-        if ($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user()['id']) {
+        if ($this->userRole['perm_publish'] && $event['Event']['orgc_id'] == $this->Auth->user()['org_id']) {
             return true;
         }
         return false;
@@ -1428,5 +1438,65 @@ class AppController extends Controller
             return new AppView($this);
         }
         return parent::_getViewObject();
+    }
+
+    public function getEventManager()
+    {
+        if (empty($this->_eventManager)) {
+            $this->_eventManager = new BetterCakeEventManager();
+            $this->_eventManager->attach($this->Components);
+            $this->_eventManager->attach($this);
+        }
+        return $this->_eventManager;
+    }
+
+    /**
+     * Close session without writing changes to them and return current user.
+     * @return array
+     */
+    protected function _closeSession()
+    {
+        $user = $this->Auth->user();
+        session_abort();
+        return $user;
+    }
+
+    /**
+     * Decode JSON with proper error handling.
+     * @param string $dataToDecode
+     * @return mixed
+     */
+    protected function _jsonDecode($dataToDecode)
+    {
+        try {
+            return JsonTool::decode($dataToDecode);
+        } catch (Exception $e) {
+            throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
+        }
+    }
+
+    /**
+     * Mimics what PaginateComponent::paginate() would do, when Model::paginate() is not called
+     *
+     * @param integer $page
+     * @param integer $limit
+     * @param integer $current
+     * @param string $type
+     * @return void
+     */
+    protected function __setPagingParams(int $page, int $limit, int $current, string $type = 'named')
+    {
+        $this->request->params['paging'] = [
+            'Correlation' => [
+                'page' => $page,
+                'limit' => $limit,
+                'current' => $current,
+                'pageCount' => 0,
+                'prevPage' => $page > 1,
+                'nextPage' => $current >= $limit,
+                'options' => [],
+                'paramType' => $type
+            ]
+        ];
     }
 }

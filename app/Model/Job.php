@@ -11,7 +11,8 @@ class Job extends AppModel
     const WORKER_EMAIL = 'email',
         WORKER_PRIO = 'prio',
         WORKER_DEFAULT = 'default',
-        WORKER_CACHE = 'cache';
+        WORKER_CACHE = 'cache',
+        WORKER_UPDATE = 'update';
 
     public $belongsTo = array(
         'Org' => array(
@@ -43,7 +44,7 @@ class Job extends AppModel
 
         $this->Event = ClassRegistry::init('Event');
 
-        if (in_array($type, array_keys($this->Event->export_types)) && $type !== 'bro') {
+        if (in_array($type, array_keys($this->Event->exportTypes())) && $type !== 'bro') {
 
             $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::CACHE_QUEUE,

@@ -13,29 +13,29 @@ class TagCollectionsController extends AppController
     );
 
     public $paginate = array(
-            'limit' => 60,
-            'order' => array(
-                    'TagCollection.name' => 'ASC'
+        'limit' => 60,
+        'order' => array(
+                'TagCollection.name' => 'ASC'
+        ),
+        'recursive' => -1,
+        'contain' => array(
+            'TagCollectionTag' => array(
+                'Tag'
             ),
-            'recursive' => -1,
-            'contain' => array(
-                'TagCollectionTag' => array(
-                    'Tag'
-                ),
-                'Organisation' => array(
-                    'fields' => array(
-                        'Organisation.id',
-                        'Organisation.name',
-                        'Organisation.uuid'
-                    )
-                ),
-                'User' => array(
-                    'fields' => array(
-                        'User.email',
-                        'User.id'
-                    )
+            'Organisation' => array(
+                'fields' => array(
+                    'Organisation.id',
+                    'Organisation.name',
+                    'Organisation.uuid'
+                )
+            ),
+            'User' => array(
+                'fields' => array(
+                    'User.email',
+                    'User.id'
                 )
             )
+        )
     );
 
     public function add()
@@ -387,7 +387,7 @@ class TagCollectionsController extends AppController
             $this->set('tag_id', $tag_id);
             $this->set('model', 'tag_collection');
             $this->set('model_name', $tagCollection['TagCollection']['name']);
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('/Attributes/ajax/tagRemoveConfirmation');
         } else {
             $rearrangeRules = array(
@@ -446,7 +446,6 @@ class TagCollectionsController extends AppController
 
     public function index()
     {
-        //$this->Auth->user('Role')['perm_site_admin']);
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
             $conditions = array(
@@ -512,9 +511,9 @@ class TagCollectionsController extends AppController
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($list, $this->response->type());
-        } else {
-            $this->set('list', $list);
         }
+        $this->set('list', $list);
+        $this->set('title_for_layout', __('Tag Collections'));
     }
 
     public function getRow($id)

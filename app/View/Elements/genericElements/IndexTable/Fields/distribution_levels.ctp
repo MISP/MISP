@@ -10,15 +10,13 @@ if ($quickedit) {
 $distributionLevel = (Hash::extract($row, $field['data_path'])[0]);
 
 echo sprintf('<div %s>', $quickedit ? sprintf(
-    " onmouseenter=\"quickEditHover(this, '%s', %s, 'distribution', %s);\"",
+    " onmouseenter=\"quickEditHover(this, '%s', %s, 'distribution');\"",
     $scope,
-    $objectId,
-    $event['id']
+    $objectId
 )  : '');
 
 if ($quickedit) {
-    echo sprintf("<div id='%s_%s_distribution_placeholder' class='inline-field-placeholder'></div>", $scope, $objectId);
-    echo sprintf("<div id='%s_%s_distribution_solid' class='inline-field-solid'>", $scope, $objectId);
+    echo "<div class='inline-field-solid'>";
 }
 
 echo sprintf(

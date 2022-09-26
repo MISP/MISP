@@ -18,6 +18,8 @@ class RestResponseComponent extends Component
         )
     );
 
+    public $signContents = false;
+
     private $__setup = false;
 
     /** @var array */
@@ -46,7 +48,7 @@ class RestResponseComponent extends Component
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
+                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'sharinggroup', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
                 'params' => array()
             ),
             'addTag' => array(
@@ -86,7 +88,7 @@ class RestResponseComponent extends Component
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags', 'threat_level_id'),
+                'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'event_tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'sharinggroup', 'excludeLocalTags', 'threat_level_id'),
                 'params' => array()
             ),
             'addTag' => array(
@@ -365,17 +367,31 @@ class RestResponseComponent extends Component
             $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
                 if ($this->ACL->canUserAccess($user, $controller, $action)) {
-                    $admin_routing = '';
-                    if (substr($action, 0, 6) === 'admin_') {
-                        $action = substr($action, 6);
-                        $admin_routing = 'admin/';
-                    }
-                    $url = $this->baseurl . '/' . $admin_routing . $controller . '/' . $action;
+                    $url = $this->generateUrl($controller, $action);
                     $result[$url] = $data;
                 }
             }
         }
         return $result;
+    }
+
+    /**
+     * @param array $user
+     * @return array
+     */
+    public function getAccessibleApis(array $user)
+    {
+        $output = [];
+        foreach ($this->__descriptions as $controller => $actions) {
+            $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
+            foreach ($actions as $action => $data) {
+                if ($this->ACL->canUserAccess($user, $controller, $action)) {
+                    $url = $this->generateUrl($controller, $action);
+                    $output[$controller][$action] = $url;
+                }
+            }
+        }
+        return $output;
     }
 
     public function getAllApis($user)
@@ -387,15 +403,10 @@ class RestResponseComponent extends Component
             $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
                 if ($this->ACL->canUserAccess($user, $controller, $action)) {
-                    $admin_routing = '';
-                    if (substr($action, 0, 6) === 'admin_') {
-                        $action = substr($action, 6);
-                        $admin_routing = 'admin/';
-                    }
                     $data['api_name'] = '[' . $controller . '] ' . $action;
                     $data['controller'] = $controller;
                     $data['action'] = $action;
-                    $data['body'] = array();
+                    $body = [];
                     $filter_types = array('mandatory', 'optional');
                     foreach ($filter_types as $filter_type) {
                         if (!empty($data[$filter_type])) {
@@ -405,16 +416,16 @@ class RestResponseComponent extends Component
                                 }
                                 foreach ($filter_items as $filter) {
                                     if ($filter === lcfirst($filter)) {
-                                        $data['body'][$filter] = $filter_type;
+                                        $body[$filter] = $filter_type;
                                     } else {
-                                        $data['body'][$filter] = array($filter_type);
+                                        $body[$filter] = array($filter_type);
                                     }
                                 }
                             }
                         }
                     }
-                    $data['body'] = json_encode($data['body'], JSON_PRETTY_PRINT);
-                    $url = $this->baseurl . '/' . $admin_routing . $controller . '/' . $action;
+                    $data['body'] = $body;
+                    $url = $this->generateUrl($controller, $action);;
                     $data['url'] = $url;
                     if (!empty($data['params'])) {
                         foreach ($data['params'] as $param) {
@@ -468,39 +479,70 @@ class RestResponseComponent extends Component
         return [];
     }
 
-    public function saveFailResponse($controller, $action, $id = false, $validationErrors, $format = false, $data = null)
+    /**
+     * @param string $controller
+     * @param string $action
+     * @param int|false $id
+     * @param mixed $validationErrors
+     * @param string|false $format
+     * @param mixed $data
+     * @return CakeResponse
+     * @throws Exception
+     */
+    public function saveFailResponse($controller, $action, $id, $validationErrors, $format = false, $data = null)
     {
-        $response = array();
         $action = $this->__dissectAdminRouting($action);
         $stringifiedAction = $action['action'];
-        if (isset(self::CONVERT_ACTION_TO_MESSAGE[$controller][$action['action']])) {
-            $stringifiedAction = self::CONVERT_ACTION_TO_MESSAGE[$controller][$action['action']];
+        if (isset(self::CONVERT_ACTION_TO_MESSAGE[$controller][$stringifiedAction])) {
+            $stringifiedAction = self::CONVERT_ACTION_TO_MESSAGE[$controller][$stringifiedAction];
         }
-        $response['saved'] = false;
-        $response['name'] = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
-        $response['message'] = $response['name'];
+        $message = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
+
+        $response = [
+            'saved' => false,
+            'name' => $message,
+            'message' => $message,
+            'url' => $this->__generateURL($action, $controller, $id),
+            'errors' => $validationErrors,
+        ];
         if ($data !== null) {
             $response['data'] = $data;
         }
-        $response['url'] = $this->__generateURL($action, $controller, $id);
-        $response['errors'] = $validationErrors;
+        if ($id) {
+            $response['id'] = $id;
+        }
         return $this->__sendResponse($response, 403, $format);
     }
 
+    /**
+     * @param string $controller
+     * @param string $action
+     * @param int|false $id
+     * @param string|false $format
+     * @param string|false $message
+     * @param mixed $data
+     * @return CakeResponse
+     * @throws Exception
+     */
     public function saveSuccessResponse($controller, $action, $id = false, $format = false, $message = false, $data = null)
     {
         $action = $this->__dissectAdminRouting($action);
         if (!$message) {
-            $message = Inflector::singularize($controller) . ' ' . $action['action'] . ((substr($action['action'], -1) == 'e') ? 'd' : 'ed');
+            $message = Inflector::singularize($controller) . ' ' . $action['action'] . ((substr($action['action'], -1) === 'e') ? 'd' : 'ed');
         }
-        $response['saved'] = true;
-        $response['success'] = true;
-        $response['name'] = $message;
-        $response['message'] = $response['name'];
+        $response = [
+            'saved' => true,
+            'success' => true,
+            'name' => $message,
+            'message' => $message,
+            'url' => $this->__generateURL($action, $controller, $id),
+        ];
         if ($data !== null) {
             $response['data'] = $data;
         }
-        $response['url'] = $this->__generateURL($action, $controller, $id);
+        if ($id) {
+            $response['id'] = $id;
+        }
         return $this->__sendResponse($response, 200, $format);
     }
 
@@ -516,7 +558,7 @@ class RestResponseComponent extends Component
      */
     private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
     {
-        $format = strtolower($format);
+        $format = !empty($format) ? strtolower($format) : 'json';
         if ($format === 'application/xml' || $format === 'xml') {
             if (!$raw) {
                 if (isset($response[0])) {
@@ -539,11 +581,7 @@ class RestResponseComponent extends Component
         } elseif ($format === 'csv' || $format === 'text/csv') {
             $type = 'csv';
         } else {
-            if (empty($format)) {
-                $type = 'json';
-            } else {
-                $type = $format;
-            }
+            $type = $format;
             $dumpSql = !empty($this->Controller->sql_dump) && Configure::read('debug') > 1;
             if (!$raw) {
                 if (is_string($response)) {
@@ -590,11 +628,36 @@ class RestResponseComponent extends Component
         }
 
         if ($response instanceof TmpFileTool) {
-            App::uses('CakeResponseFile', 'Tools');
-            $cakeResponse = new CakeResponseFile(['status' => $code, 'type' => $type]);
-            $cakeResponse->file($response);
+            if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+                $etag = '"' . $response->hash('sha1') . '"';
+                if ($_SERVER['HTTP_IF_NONE_MATCH'] === $etag) {
+                    return new CakeResponse(['status' => 304]);
+                }
+                $headers['ETag'] = $etag;
+            }
+            if ($this->signContents) {
+                $data = $response->intoString();
+                $headers['x-pgp-signature'] = $this->sign($data);
+                $cakeResponse = new CakeResponse(['body' => $data, 'status' => $code, 'type' => $type]);
+            } else {
+                App::uses('CakeResponseFile', 'Tools');
+                $cakeResponse = new CakeResponseFile(['status' => $code, 'type' => $type]);
+                $cakeResponse->file($response);
+            }
         } else {
-            $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+            // Check if resource was changed when `If-None-Match` header is send and return 304 Not Modified
+            if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+                $etag = '"' . sha1($response) . '"';
+                if ($_SERVER['HTTP_IF_NONE_MATCH'] === $etag) {
+                    return new CakeResponse(['status' => 304]);
+                }
+                // Generate etag just when HTTP_IF_NONE_MATCH is set
+                $headers['ETag'] = $etag;
+            }
+            $cakeResponse = new CakeResponse(['body' => $response, 'status' => $code, 'type' => $type]);
+            if ($this->signContents) {
+                $headers['x-pgp-signature'] = $this->sign($response);
+            }
         }
 
         if (Configure::read('Security.allow_cors')) {
@@ -616,6 +679,25 @@ class RestResponseComponent extends Component
             $cakeResponse->download($download);
         }
         return $cakeResponse;
+    }
+
+    /**
+     * @param string $response
+     * @return string Signature as base64 encoded string
+     * @throws Crypt_GPG_BadPassphraseException
+     * @throws Crypt_GPG_Exception
+     * @throws Crypt_GPG_KeyNotFoundException
+     * @throws Exception
+     */
+    private function sign($response)
+    {
+        /** @var CryptographicKey $cryptographicKey */
+        $cryptographicKey = ClassRegistry::init('CryptographicKey');
+        $signature = $cryptographicKey->signWithInstanceKey($response);
+        if (!$signature) {
+            throw new Exception('Could not sign data.');
+        }
+        return base64_encode($signature);
     }
 
     /**
@@ -719,13 +801,8 @@ class RestResponseComponent extends Component
             $scopes = array('Event', 'Attribute', 'Sighting');
             foreach ($scopes as $scope) {
                 $this->{$scope} = ClassRegistry::init($scope);
-                $this->__descriptions[$scope]['restSearch'] = array(
-                    'description' => $this->__descriptions[$scope]['restSearch']['description'],
-                    'returnFormat' => array_keys($this->{$scope}->validFormats),
-                    'mandatory' => $this->__descriptions[$scope]['restSearch']['mandatory'],
-                    'optional' => $this->__descriptions[$scope]['restSearch']['optional'],
-                    'params' => $this->__descriptions[$scope]['restSearch']['params']
-                );
+                $returnFormat = array_keys($this->{$scope}->validFormats);
+                $this->__descriptions[$scope]['restSearch']['returnFormat'] = $returnFormat;
             }
             $this->__configureFieldConstraints();
             $this->__setupFieldsConstraint();
@@ -1926,7 +2003,8 @@ class RestResponseComponent extends Component
         if ($values === null) {
             $tagModel = ClassRegistry::init("Tag");
             $tags = $tagModel->find('column', array(
-                'fields' => array('Tag.name')
+                'fields' => array('Tag.name'),
+                'callbacks' => false,
             ));
             $values = [];
             foreach ($tags as $tag) {
@@ -1951,19 +2029,40 @@ class RestResponseComponent extends Component
     private function __overwriteAction($scope, $action, &$field) {
         $field['values'] = array_keys(ClassRegistry::init("Log")->actionDefinitions);
     }
-    private function __overwriteRoleId($scope, $action, &$field) {
-        $this->{$scope} = ClassRegistry::init("Role");
-        $roles = $this->{$scope}->find('list', array(
-            'fields' => array('id', 'name')
-        ));
-        $field['values'] = [];
-        foreach ($roles as $id => $name) {
-            $field['values'][] = ['label' => $name, 'value' => $id];
+
+    private function __overwriteRoleId($scope, $action, &$field)
+    {
+        static $values;
+        if ($values === null) {
+            $roleModel = ClassRegistry::init("Role");
+            $roles = $roleModel->find('list', array(
+                'fields' => array('id', 'name')
+            ));
+            $values = [];
+            foreach ($roles as $id => $name) {
+                $values[] = ['label' => $name, 'value' => $id];
+            }
         }
+        $field['values'] = $values;
     }
     private function __overwriteSeen($scope, $action, &$field) {
         if ($action == 'restSearch') {
             $field['help'] = __('Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)');
         }
+    }
+
+    /**
+     * @param string $controller
+     * @param string $action
+     * @return string
+     */
+    private function generateUrl($controller, $action)
+    {
+        $admin_routing = '';
+        if (substr($action, 0, 6) === 'admin_') {
+            $action = substr($action, 6);
+            $admin_routing = 'admin/';
+        }
+        return '/' . $admin_routing . $controller . '/' . $action;
     }
 }

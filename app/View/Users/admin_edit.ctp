@@ -16,7 +16,7 @@
                 $password = false;
             } else {
                 $userType = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-                echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => $userType . ' user'));
+                echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => h($userType) . ' user'));
             }
             echo sprintf(
                 '<div class="clear"></div><div %s>%s</div>',
@@ -46,7 +46,8 @@
                 $passwordPopover = '<span class="blue bold">' . __('Length') .'</span>: ' . h($length) . '<br>';
                 $passwordPopover .= '<span class="blue bold">' . __('Complexity') .'</span>: ' . h($complexity);
                 echo $this->Form->input('password', array(
-                    'label' => __('Password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) .'" class="fas fa-info-circle"></span>'
+                    'label' => __('Password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) .'" class="fas fa-info-circle"></span>',
+                    'autocomplete' => 'new-password'
                 ));
                 echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
             ?>
@@ -95,6 +96,12 @@
         echo $this->Form->input('contactalert', array('label' => __('Receive email alerts from "Contact reporter" requests'), 'type' => 'checkbox'));
         echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Immediately disable this user account')));
         echo '</div>';
+    ?>
+    <h5><?= __('Subscribe to the following notification periods:') ?></h5>
+    <?php
+        echo $this->Form->input('notification_daily', array('label' => __('Daily notifications'), 'type' => 'checkbox'));
+        echo $this->Form->input('notification_weekly', array('label' => __('Weekly notifications'), 'type' => 'checkbox'));
+        echo $this->Form->input('notification_monthly', array('label' => __('Monthly notifications'), 'type' => 'checkbox'));
     ?>
     </fieldset>
     <div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>

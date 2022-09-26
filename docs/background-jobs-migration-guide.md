@@ -19,11 +19,10 @@ Run on your MISP instance the following commands.
 2. Install required PHP packages:
     ```
     cd /var/www/MISP/app
-    sudo -u www-data composer require --with-all-dependencies supervisorphp/supervisor:^4.0 \
+    sudo -u www-data php composer.phar require --with-all-dependencies supervisorphp/supervisor:^4.0 \
         guzzlehttp/guzzle \
         php-http/message  \
         lstrojny/fxmlrpc
-
     ```
 
 3. Add the following settings at the bottom of the **Supervisord** conf file, usually located in:
@@ -144,12 +143,20 @@ Run on your MISP instance the following commands.
 
 2. Update the `SimpleBackgroundJobs.supervisor_password` with the password you set in the _Install requirements_ section 3.
 
-3. Verify Redis and other settings are correct and then set `SimpleBackgroundJobs.enabled` to `true`.
+3. Update the `SimpleBackgroundJobs.supervisor_user` with the supervisord username. (default: supervisor)
 
-4. Use **MISP** normally and visit [Administration -> Jobs](/jobs/index) to check Jobs are running correctly. 
+4. Verify Redis and other settings are correct and then set `SimpleBackgroundJobs.enabled` to `true`.
+
+5. Use **MISP** normally and visit [Administration -> Jobs](/jobs/index) to check Jobs are running correctly. 
     If there are any issues check the logs:
     * /var/www/MISP/app/tmp/logs/misp-workers-errors.log
     * /var/www/MISP/app/tmp/logs/misp-workers.log
+
+5. Once the new workers are functioning as expected, you can remove the previous workers service:
+    ```bash
+    $ sudo systemctl stop --now misp-workers
+    $ sudo systemctl disable --now misp-workers
+    ```
 
 ### Notes
 Scheduled tasks (TasksController) are not supported with the new backend, however this feature is going to be deprecated, it is recommended to use cron jobs instead.

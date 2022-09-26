@@ -125,7 +125,7 @@ class CerebratesController extends AppController
             $this->set('title', __('Sync organisation information'));
             $this->set('question', __('Are you sure you want to download and add / update the remote organisations from the Cerebrate node?'));
             $this->set('actionName', __('Pull all'));
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('/genericTemplates/confirm');
         }
     }
@@ -165,7 +165,7 @@ class CerebratesController extends AppController
             $this->set('title', __('Sync sharing group information'));
             $this->set('question', __('Are you sure you want to download and add / update the remote sharing group from the Cerebrate node?'));
             $this->set('actionName', __('Pull all'));
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('/genericTemplates/confirm');
         }
     }
@@ -237,7 +237,7 @@ class CerebratesController extends AppController
             $this->set('title', __('Download organisation information'));
             $this->set('question', __('Are you sure you want to download and add / update the remote organisation?'));
             $this->set('actionName', __('Download'));
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('/genericTemplates/confirm');
         }
     }
@@ -309,7 +309,7 @@ class CerebratesController extends AppController
             $this->set('title', __('Download sharing group information'));
             $this->set('question', __('Are you sure you want to download and add / update the remote sharing group?'));
             $this->set('actionName', __('Download'));
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('/genericTemplates/confirm');
         }
     }

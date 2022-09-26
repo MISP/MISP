@@ -90,7 +90,8 @@ class CRUDComponent extends Component
             }
             /** @var Model $model */
             $model = $this->Controller->{$modelName};
-            if ($model->save($data)) {
+            $savedData = $model->save($data);
+            if ($savedData) {
                 if (isset($params['afterSave'])) {
                     $params['afterSave']($data);
                 }
@@ -100,15 +101,11 @@ class CRUDComponent extends Component
                         'id' => $model->id
                     ]
                 ]);
-                if (!empty($params['saveModelVariable'])) {
-                    foreach ($params['saveModelVariable'] as $var) {
-                        if (isset($model->$var)) {
-                            $data[$modelName][$var] = $model->$var;
-                        }
-                    }
+                if (empty($data)) {
+                    throw new Exception("Something went wrong, saved data not found in database.");
                 }
                 if (isset($params['afterFind'])) {
-                    $data = $params['afterFind']($data);
+                    $data = $params['afterFind']($data, $savedData);
                 }
                 $message = __('%s added.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
@@ -285,6 +282,12 @@ class CRUDComponent extends Component
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveFailResponse($modelName, 'delete', $id, $validationError);
                 }
+            }
+        }
+        if (isset($params['beforeDelete'])) {
+            $data = $params['beforeDelete']($data);
+            if (empty($data)) {
+                throw new MethodNotAllowedException('Something went wrong, delete action failed.');
             }
         }
         if ($validationError === null && $this->Controller->request->is('post') || $this->Controller->request->is('delete')) {

@@ -1,13 +1,7 @@
-<?php
-    if ($scope == 'event') {
-        $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
-        $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-    }
-    echo $this->Html->css('font-awesome');
-    echo $this->Html->css('correlation-graph');
-    echo $this->Html->script('d3');
-    echo $this->Html->script('correlation-graph');
-    echo $this->Html->script('font-awesome-helper');
+<?= $this->element('genericElements/assetLoader', [
+    'css' => ['font-awesome', 'correlation-graph'],
+    'js' => ['d3', 'correlation-graph', 'font-awesome-helper'],
+]);
 ?>
 <?php
     if (!$ajax):
@@ -17,20 +11,20 @@
     <span id="fullscreen-btn-correlation" class="fullscreen-btn-correlation btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
     <div id="chart" style="width:100%;height:100%"></div>
         <div id="hover-menu-container" class="menu-container">
-            <span class="bold hidden" id="hover-header"><?php echo __('Hover target');?></span><br />
+            <span class="bold hidden" id="hover-header"><?php echo __('Hover target');?></span><br>
             <ul id="hover-menu" class="menu">
             </ul>
         </div>
         <div id="selected-menu-container" class="menu-container">
-            <span class="bold hidden" id="selected-header"><?php echo __('Selected');?></span><br />
-            <ul id = "selected-menu" class="menu">
+            <span class="bold hidden" id="selected-header"><?php echo __('Selected');?></span><br>
+            <ul id="selected-menu" class="menu">
             </ul>
         </div>
         <ul id="context-menu" class="menu">
             <li id="expand"><?php echo __('Expand');?></li>
             <li id="context-delete"><?php echo __('Delete');?></li>
         </ul>
-        <button class="correlation-stop-btn btn btn-inverse" onClick="togglePhysics();" title="<?php echo __('Toggle the physics engine on/off.');?> ">Toggle physics</button>
+        <button class="correlation-stop-btn btn btn-inverse" onclick="togglePhysics();" title="<?php echo __('Toggle the physics engine on/off.');?>">Toggle physics</button>
 <?php
     if (!$ajax):
 ?>
@@ -48,11 +42,10 @@
         'menuList' => $scope_list[$scope],
         'menuItem' => 'viewGraph'
     );
-    if ($scope == 'event') {
+    if ($scope === 'event') {
         $params['mayModify'] = $mayModify;
         $params['mayPublish'] = $mayPublish;
-    }
-    if ($scope == 'tag') {
+    } else if ($scope === 'tag') {
         if (!empty($taxoomy)) {
             $params['taxonomy'] = $taxonomy['Taxonomy']['id'];
         }
@@ -61,4 +54,3 @@
     if (!$ajax) {
         echo $this->element('/genericElements/SideMenu/side_menu', $params);
     }
-?>

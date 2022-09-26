@@ -13,11 +13,11 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 
     ```bash
     # Please check the installer options first to make the best choice for your install
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
     bash /tmp/INSTALL.sh
 
     # This will install MISP Core
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
     bash /tmp/INSTALL.sh -c
     ```
     **The above does NOT work yet**
@@ -200,8 +200,8 @@ cd ${PATH_TO_MISP}/app/files/scripts/mixbox
 $SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-# install STIX2.0 library to support STIX 2.0 export:
-cd ${PATH_TO_MISP}/cti-python-stix2
+# Install misp-stix
+cd ${PATH_TO_MISP}/app/files/scripts/misp-stix
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP

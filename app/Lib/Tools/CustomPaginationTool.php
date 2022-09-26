@@ -83,14 +83,14 @@ class CustomPaginationTool
         $items = array_values($items);
     }
 
-    public function sortArray($items, $params, $escapeReindex = false)
+    public function sortArray(array $items, $params, $escapeReindex = false)
     {
         if (isset($params['sort'])) {
             $sortArray = array();
             foreach ($items as $k => $item) {
-                $sortArray[$k] = !empty(Hash::get($item, $params['sort'])) ? $item[$params['sort']] : '';
+                $sortArray[$k] = !empty($item[$params['sort']]) ? $item[$params['sort']] : '';
             }
-            if (empty($params['options']['direction']) || $params['options']['direction'] == 'asc') {
+            if (empty($params['options']['direction']) || $params['options']['direction'] === 'asc') {
                 asort($sortArray);
             } else {
                 arsort($sortArray);
@@ -107,12 +107,13 @@ class CustomPaginationTool
         return $items;
     }
 
-    public function applyRulesOnArray(&$items, $options, $model, $sort = 'id', $focusKey = 'uuid', $escapeReindex = false)
+    public function applyRulesOnArray(array &$items, $options, $model, $sort = 'id', $focusKey = 'uuid', $escapeReindex = false)
     {
         $params = $this->createPaginationRules($items, $options, $model, $sort, $focusKey);
         $items = $this->sortArray($items, $params, $escapeReindex);
+
         if (!empty($params['options']['focus'])) {
-            $focus =  $params['options']['focus'];
+            $focus = $params['options']['focus'];
             foreach ($items as $k => $item) {
                 if ($item[$focusKey] === $focus) {
                     $params['page'] = 1 + intval(floor($k / $params['limit']));
@@ -122,6 +123,7 @@ class CustomPaginationTool
             }
             unset($params['options']['focus']);
         }
+        // Start array from one
         array_unshift($items, 'dummy');
         unset($items[0]);
         $this->truncateByPagination($items, $params);

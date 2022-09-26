@@ -252,7 +252,7 @@
 
 	function filterEvent(tagName, tagId) {
 		$('#attributesFilterField').val(tagName);
-		filterAttributes('value', $('#attributesFilterField').data('eventid'));
+		filterAttributes('value');
 	}
 
 	function pickCell(cell, clusterId, recurseChosen) {

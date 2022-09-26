@@ -2,6 +2,7 @@
 
 App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 App::uses('RandomTool', 'Tools');
+App::uses('HttpSocket', 'Network/Http');
 
 if (session_status() == PHP_SESSION_NONE) {
 	session_start();
@@ -10,7 +11,8 @@ if (session_status() == PHP_SESSION_NONE) {
 //  Generating a new session will fail the further flow of AAD. 
 //	session_regenerate_id();
 
-class AadAuthenticateAuthenticate extends BaseAuthenticate {	
+class AadAuthenticateAuthenticate extends BaseAuthenticate
+{
 
 	/**
 	 * Holds the application ID
@@ -44,44 +46,43 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate {
 	 * Provider authentication URL
 	 *
 	 * @var string
-	 */	
+	 */
 	protected static $auth_provider;
 
 	/**
 	 * Provider URL for additional user details
 	 *
 	 * @var string
-	 */	
+	 */
 	protected static $auth_provider_user;
 
 	/**
 	 * Flag that indicates if we need to check for AD groups for defining MISP access
 	 *
 	 * @var bool
-	 */	
+	 */
 	protected static $check_ad_groups;
 
 	/**
 	 * AD group MISP user
 	 *
 	 * @var string
-	 */	
+	 */
 	protected static $misp_user;
 
 	/**
 	 * AD group MISP org admin
 	 *
 	 * @var string
-	 */		
+	 */
 	protected static $misp_orgadmin;
 
 	/**
 	 * AD group MISP siteadmin
 	 *
 	 * @var string
-	 */		
+	 */
 	protected static $misp_siteadmin;
-
 
 	public function __construct()
 	{
@@ -99,7 +100,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate {
 		$this->Log = ClassRegistry::init('Log');
 		$this->Log->create();
 
-		$this->settings['fields'] = array('username' => 'email');
+		$this->settings['fields'] = ['username' => 'email'];
 	}
 
 	/**
@@ -108,19 +109,34 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate {
 	 * @param string $level			Log level
 	 * @param string $logmessage	Message to log
 	 * @return bool result of the log action
-	 */	
-	private function _log($level, $logmessage) 
+	 */
+	private function _log($level, $logmessage)
 	{
-		$log = array(
+		$log = [
 			'org' => 'SYSTEM',
 			'model' => 'User',
 			'model_id' => 0,
 			'email' => false,
 			'action' => 'auth',
 			'title' => $logmessage
-		);
-		$this->Log->save($log);				
+		];
+		$this->Log->save($log);
 		CakeLog::write($level, $logmessage);
+
+		return true;
+	}
+
+	/**
+	 * Log non 200-ish HTTP responses
+	 * 
+	 * @param string 				$level			Log level
+	 * @param string 				$url			Requested URL
+	 * @param HttpSocketResponse 	$response		HTTP response
+	 * @return bool result of the log action
+	 */
+	private function _logHttpError(string $level, string $url, HttpSocketResponse $response)
+	{
+		$this->_log($level, "POST request to url: {$url} returned HTTP code: {$response->code} with response body: {$response->body}");
 
 		return true;
 	}
@@ -130,15 +146,14 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate {
 	 * 
 	 * @param CakeRequest $request The request that contains login information.
 	 * @return mixed False on login failure. An array of User data on success.
-	 */		
-	public function getUser(CakeRequest $request) 
+	 */
+	public function getUser(CakeRequest $request)
 	{
 		// we only proceed if called with a request to authenticate via AAD
 		if (array_key_exists('AzureAD', $request->query) and $request->query['AzureAD'] == 'enable') {
 			$user = $this->_getUserAad($request);
 			return $user;
-		}
-		elseif (array_key_exists('code', $request->query))  // in the Azure flow
+		} elseif (array_key_exists('code', $request->query))  // in the Azure flow
 		{
 			$user = $this->_getUserAad($request);
 			return $user;
@@ -152,8 +167,8 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate {
 	 * @param CakeRequest $request The request that contains login information.
 	 * @param CakeResponse $response Unused response object.
 	 * @return mixed False on login failure. An array of User data on success.
-	 */	
-	public function authenticate(CakeRequest $request, CakeResponse $response) 
+	 */
+	public function authenticate(CakeRequest $request, CakeResponse $response)
 	{
 		return self::getUser($request);
 	}
@@ -163,10 +178,10 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate {
 	 * 
 	 * @param CakeRequest $request The request that contains login information.
 	 * @return mixed False on login failure. An array of User data on success.
-	 */		
+	 */
 	private function _getUserAad(CakeRequest $request)
 	{
-		if (!headers_sent()) {			
+		if (!headers_sent()) {
 			if (!isset($_GET["code"]) and !isset($_GET["error"])) {
 				$url = self::$auth_provider . self::$ad_tenant . "/oauth2/v2.0/authorize?";
 				$url .= "state=" . session_id();
@@ -179,68 +194,68 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate {
 				$this->_log("info", "Redirect to Azure for authentication.");
 				exit; // we need to exit once the header to redirect to Azure is sent
 
-			} 
-			elseif (isset($_GET["error"])) {  //Second load of this page begins, but hopefully we end up to the next elseif section...
-				$this->_log("warning", "Return from Aure redirect. Error received at the beginning of second stage. _GET: " . http_build_query($_GET,'','  -  '));
+			} elseif (isset($_GET["error"])) {  //Second load of this page begins, but hopefully we end up to the next elseif section...
+				$this->_log("warning", "Return from Aure redirect. Error received at the beginning of second stage. _GET: " . http_build_query($_GET, '', '  -  '));
 				return false;
-			}
-			elseif (strcmp(session_id(), $_GET["state"]) == 0) {
+			} elseif (strcmp(session_id(), $_GET["state"]) == 0) {
 				//Verifying the received tokens with Azure and finalizing the authentication part
-				$content = "grant_type=authorization_code";
-				$content .= "&client_id=" . self::$client_id;
-				$content .= "&redirect_uri=" . urlencode(self::$redirect_uri);
-				$content .= "&code=" . $_GET["code"];
-				$content .= "&client_secret=" . urlencode(self::$client_secret);
-				$options = array(
-					"http" => array(  //Use "http" even if you send the request with https
-					"method"  => "POST",
-					"header"  => "Content-Type: application/x-www-form-urlencoded\r\n" .
-						"Content-Length: " . strlen($content) . "\r\n",
-					"content" => $content
-					)
-				);
-				
-				$context  = stream_context_create($options);
-				$json = file_get_contents(self::$auth_provider . self::$ad_tenant . "/oauth2/v2.0/token", false, $context);
-  				if ($json === false) {
-					$this->_log("warning", "Error received during Bearer token fetch (context).");
-					// For debug : "PHP_Error" => error_get_last(), "\$_GET[]" => $_GET, "HTTP_msg" => $options), "");
-					return false;
-				} 
+				$params = [
+					'grant_type' => 'authorization_code',
+					'client_id' => self::$client_id,
+					'redirect_uri' => self::$redirect_uri,
+					'code' => $_GET["code"],
+					'client_secret' => self::$client_secret
+				];
 
-  				$authdata = json_decode($json, true);
+				$options = [
+					'header'  => [
+						'Content-Type' => 'application/x-www-form-urlencoded'
+					]
+				];
+				$url = self::$auth_provider . self::$ad_tenant . "/oauth2/v2.0/token";
+
+				$response = (new HttpSocket())->post($url, $params, $options);
+
+				if (!$response->isOk()) {
+					$this->_log("warning", "Error received during Bearer token fetch (context).");
+					$this->_logHttpError("debug", $url, $response);
+					return false;
+				}
+
+				$authdata = json_decode($response->body, true);
 				if (isset($authdata["error"])) {
 					$this->_log("warning", "Error received during Bearer token fetch (authdata).");
-					// For debug : "\$authdata[]" => $authdata, "\$_GET[]" => $_GET, "HTTP_msg" => $options), $error_email);
+					$this->_log("debug", "Response: " . json_encode($authdata["error"]));
 					return false;
 				}
 
-				$options = array(
-					"http" => array(  //Use "http" even if you send the request with https
-					"method" => "GET",
-					"header" => "Accept: application/json\r\n" .
-						"Authorization: Bearer " . $authdata["access_token"] . "\r\n"
-					)
-				);
-
-				$context = stream_context_create($options); 
 				$this->_log("info", "Fetching user data from Azure.");
-				$json = file_get_contents(self::$auth_provider_user . "/v1.0/me", false, $context);
-				if ($json === false) {
+
+				$options = [
+					'header'  => [
+						'Accept' => 'application/json',
+						'Authorization' => 'Bearer ' . $authdata["access_token"]
+					]
+				];
+				$url = self::$auth_provider_user . "/v1.0/me";
+
+				$response = (new HttpSocket())->get($url, null, $options);
+
+				if (!$response->isOk()) {
 					$this->_log("warning", "Error received during user data fetch.");
-					// For debug : "PHP_Error" => error_get_last(), "\$_GET[]" => $_GET, "HTTP_msg" => $options), $error_email);
+					$this->_logHttpError("debug", $url, $response);
 					return false;
 				}
 
-				$userdata = json_decode($json, true);  //This should now contain your logged on user information
-				if (isset($userdata["error"])){
+				$userdata = json_decode($response->body, true);  //This should now contain your logged on user information
+				if (isset($userdata["error"])) {
 					$this->_log("warning", "User data fetch contained an error.");
-					// For debug : "\$userdata[]" => $userdata, "\$authdata[]" => $authdata, "\$_GET[]" => $_GET, "HTTP_msg" => $options), $error_email);
+					$this->_log("debug", "Response: " . json_encode($userdata["error"]));
 					return false;
-				} 
+				}
 
 				$mispUsername = false;
-				if (isset($userdata["userPrincipalName"])){
+				if (isset($userdata["userPrincipalName"])) {
 					$userPrincipalName = $userdata["userPrincipalName"];
 
 					/*
@@ -251,15 +266,19 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate {
 					if (self::$check_ad_groups) {
 						if ($this->_checkAdGroup($authdata)) {
 							$mispUsername = $userPrincipalName;
+							$this->_log("info", "Successful AAD group check for for ${mispUsername}");
 						}
-					}
-					else {
+					} else {
 						$mispUsername = $userPrincipalName;
 					}
 
 					if ($mispUsername) {
-						$this->_log("info", "Attempt authentication for ${mispUsername}");
-						return $this->_findUser($mispUsername);
+						$this->_log("info", "Attempt AAD authentication for ${mispUsername}");
+						$user = $this->_findUser($mispUsername);
+						if ($user) {
+							$this->_log("info", "AAD authentication successful for ${mispUsername}");
+						}
+						return $user;
 					}
 				}
 			}
@@ -274,48 +293,57 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate {
 	 * 
 	 * @param array $authdata The authdata array received from Azure
 	 * @return mixed False if no MISP groups have been found; String if a group was found
-	 */		
-	private function _checkAdGroup($authdata) 
+	 */
+	private function _checkAdGroup($authdata)
 	{
-		$options = array(
-			"http" => array( //Use "http" even if you send the request with https
-			  "method" => "GET",
-			  "header" => "Accept: application/json\r\n" .
-				"Authorization: Bearer " . $authdata["access_token"] . "\r\n"
-			)
-		  );
-
-		$context = stream_context_create($options);
 		$this->_log("info", "Fetching user group data from Azure.");
-		$json = file_get_contents(self::$auth_provider_user . "/v1.0/me/memberOf", false, $context);
-		if ($json === false) {
-			$this->_log("warning", "Error received during user group data fetch.");	
-			// For debug : "PHP_Error" => error_get_last(), "\$_GET[]" => $_GET, "HTTP_msg" => $options), $error_email);
-			return false;
-		} 
+		$options = [
+			'header'  => [
+				'Accept' => 'application/json',
+				'Authorization' => 'Bearer ' . $authdata["access_token"]
+			]
+		];
+				
+		$has_next_page = true;
+		$url = self::$auth_provider_user . "/v1.0/me/memberOf";
+		while ($has_next_page) {
+			$response = (new HttpSocket())->get($url, array(), $options);
 
-		$groupdata = json_decode($json, true);  //This should now contain your logged on user memberOf (groups) information
-		if (isset($groupdata["error"])) {
-			$this->_log("warning", "Group data fetch contained an error.");
-			// For debug : "\$groupdata[]" => $groupdata, "\$authdata[]" => $authdata, "\$_GET[]" => $_GET, "HTTP_msg" => $options), $error_email);
-			return false;
-		} 
-
-		// Now check if the user has any of the MISP AAD groups enabled
-		foreach ($groupdata["value"] as $group) {
-			$groupdisplayName = $group["displayName"];
-			if ($groupdisplayName == self::$misp_siteadmin) {
-				return self::$misp_siteadmin;
-			}			  
-			if ($groupdisplayName == self::$misp_orgadmin) {
-				return self::$misp_orgadmin;
+			if (!$response->isOk()) {
+				$this->_log("warning", "Error received during user group data fetch.");
+				$this->_logHttpError("debug", $url, $response);
+				return false;
 			}
-			if ($groupdisplayName == self::$misp_user) {
-				return self::$misp_user;
+
+			$groupdata = json_decode($response->body, true);  //This should now contain your logged on user memberOf (groups) information
+			if (isset($groupdata["error"])) {
+				$this->_log("warning", "Group data fetch contained an error.");
+				$this->_log("debug", "Response: " . json_encode($groupdata["error"]));
+				return false;
+			}
+
+			// Now check if the user has any of the MISP AAD groups enabled
+			foreach ($groupdata["value"] as $group) {
+				$groupdisplayName = $group["displayName"];
+				if ($groupdisplayName == self::$misp_siteadmin) {
+					return self::$misp_siteadmin;
+				}
+				if ($groupdisplayName == self::$misp_orgadmin) {
+					return self::$misp_orgadmin;
+				}
+				if ($groupdisplayName == self::$misp_user) {
+					return self::$misp_user;
+				}
+			}
+
+			$has_next_page = array_key_exists("@odata.nextLink", $groupdata);
+			if ($has_next_page) {
+				$url = $groupdata["@odata.nextLink"];
 			}
 		}
 
+		$this->_log("warning", "The user is not a member of any of the MISP AAD groups.");
+
 		return false;
 	}
-
 }

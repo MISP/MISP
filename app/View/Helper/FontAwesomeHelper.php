@@ -433,13 +433,13 @@ class FontAwesomeHelper extends AppHelper
         'youtube-square' => true,
         'zhihu' => true,
     );
-    
+
     public function getClass($icon)
     {
-        return $this->findNamespace($icon) . ' fa-' . $icon;
+        return self::findNamespace($icon) . ' fa-' . $icon;
     }
 
-    public function findNamespace($icon)
+    public static function findNamespace($icon)
     {
         return isset(self::FAB_ICONS[$icon]) ? 'fab' : 'fas';
     }

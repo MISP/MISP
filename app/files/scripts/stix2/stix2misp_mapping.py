@@ -4,28 +4,29 @@
 
 attributes_mapping = {
     'filename': '_parse_name',
-    'ip-src': '_parse_value',
-    'ip-dst': '_parse_value',
-    'hostname': '_parse_value',
-    'domain': '_parse_value',
+    'ip-src': '_parse_ip_value',
+    'ip-dst': '_parse_ip_value',
+    'hostname': '_parse_domain_value',
+    'domain': '_parse_domain_value',
     'domain|ip': '_parse_domain_ip_attribute',
-    'email-src': '_parse_value',
-    'email-dst': '_parse_value',
+    'email-src': '_parse_email_value',
+    'email-dst': '_parse_email_value',
     'email-attachment': '_parse_name',
-    'url': '_parse_value',
+    'url': '_parse_url_value',
     'regkey': '_parse_regkey_attribute',
     'regkey|value': '_parse_regkey_value',
     'malware-sample': '_parse_malware_sample',
     'mutex': '_parse_name',
-    'uri': '_parse_value',
+    'uri': '_parse_url_value',
     'port': '_parse_port',
     'ip-dst|port': '_parse_network_attribute',
     'ip-src|port': '_parse_network_attribute',
     'hostname|port': '_parse_network_attribute',
     'email-reply-to': '_parse_email_reply_to',
     'attachment': '_parse_attachment',
-    'mac-address': '_parse_value',
-    'AS': '_parse_number'
+    'mac-address': '_parse_mac_value',
+    'AS': '_parse_number',
+    'link': '_parse_url_value'
 }
 
 attributes_type_mapping = {
@@ -192,6 +193,8 @@ single_attribute_fields = ('type', 'value', 'to_ids')
 
 address_family_attribute_mapping = {'type': 'text','object_relation': 'address-family'}
 as_number_attribute_mapping = {'type': 'AS', 'object_relation': 'asn'}
+attack_pattern_id_attribute = {'type': 'text', 'object_relation': 'id'}
+attack_pattern_references_attribute = {'type': 'link', 'object_relation': 'references'}
 description_attribute_mapping = {'type': 'text', 'object_relation': 'description'}
 asn_subnet_attribute_mapping = {'type': 'ip-src', 'object_relation': 'subnet-announced'}
 cc_attribute_mapping = {'type': 'email-dst', 'object_relation': 'cc'}

@@ -68,7 +68,7 @@ class UserSetting extends AppModel
             )
         ),
         'homepage' => array(
-            'path' => '/events/index'
+            'placeholder' => ['path' => '/events/index'],
         ),
         'default_restsearch_parameters' => array(
             'placeholder' => array(
@@ -98,7 +98,16 @@ class UserSetting extends AppModel
             'placeholder' => ['clusters'],
         ],
         'oidc' => [ // Data saved by OIDC plugin
-            'restricted' => 'perm_site_admin',
+            'internal' => true,
+        ],
+        'periodic_notification_filters' => [
+            'placeholder' => [
+                'orgc_id' => '1',
+                'distribution' => '1',
+                'sharing_group_id' => '1',
+                'event_info' => 'phishing',
+                'tags' => '["tlp:red"]',
+            ],
         ],
     );
 
@@ -134,9 +143,51 @@ class UserSetting extends AppModel
         return $results;
     }
 
+    /**
+     * @param string $setting
+     * @return bool
+     */
     public function checkSettingValidity($setting)
     {
         return isset(self::VALID_SETTINGS[$setting]);
+    }
+
+    /**
+     * @param string $setting
+     * @return bool
+     */
+    public function isInternal($setting)
+    {
+        if (!isset(self::VALID_SETTINGS[$setting]['internal'])) {
+            return false;
+        }
+        return self::VALID_SETTINGS[$setting]['internal'];
+    }
+
+    /**
+     * @param array $user
+     * @return array
+     */
+    public function settingPlaceholders(array $user)
+    {
+        $output = [];
+        foreach (self::VALID_SETTINGS as $setting => $config) {
+            if ($this->checkSettingAccess($user, $setting) === true) {
+                $output[$setting] = $config['placeholder'];
+            }
+        }
+        return $output;
+    }
+
+    public function getInternalSettingNames()
+    {
+        $internal = [];
+        foreach (self::VALID_SETTINGS as $setting => $config) {
+            if (isset($config['internal']) && $config['internal']) {
+                $internal[] = $setting;
+            }
+        }
+        return $internal;
     }
 
     /**
@@ -146,6 +197,9 @@ class UserSetting extends AppModel
      */
     public function checkSettingAccess(array $user, $setting)
     {
+        if ($this->isInternal($setting)) {
+            return 'site_admin';
+        }
         if (!empty(self::VALID_SETTINGS[$setting]['restricted'])) {
             $roleCheck = self::VALID_SETTINGS[$setting]['restricted'];
             if (!is_array($roleCheck)) {
@@ -164,17 +218,24 @@ class UserSetting extends AppModel
         return true;
     }
 
-    /*
+    /**
      * canModify expects an auth user object or a user ID and a loaded setting as input parameters
      * check if the user can modify/remove the given entry
      * returns true for site admins
      * returns true for org admins if setting["User"]["org_id"] === $user["org_id"]
      * returns true for any user if setting["user_id"] === $user["id"]
+     * @param array|int $user Current user
+     * @param array $setting
+     * @param int $user_id
+     * @return bool
      */
-     public function checkAccess($user, $setting, $user_id = false)
+     public function checkAccess($user, array $setting, $user_id = false)
      {
          if (is_numeric($user)) {
              $user = $this->User->getAuthUser($user);
+         }
+         if ($this->isInternal($setting['UserSetting']['setting']) && !$user['Role']['perm_site_admin']) {
+             return false;
          }
          if (empty($setting) && !empty($user_id) && is_numeric($user_id)) {
              $userToCheck = $this->User->find('first', array(
@@ -393,7 +454,7 @@ class UserSetting extends AppModel
         if (empty($userSetting['user_id'])) {
             $userSetting['user_id'] = $user['id'];
         }
-        if (empty($data['UserSetting']['setting']) || !isset($data['UserSetting']['setting'])) {
+        if (empty($data['UserSetting']['setting'])) {
             throw new MethodNotAllowedException(__('This endpoint expects both a setting and a value to be set.'));
         }
         if (!$this->checkSettingValidity($data['UserSetting']['setting'])) {
@@ -429,22 +490,22 @@ class UserSetting extends AppModel
             'value' => $value,
         ];
 
-        $existingSetting = $this->find('first', array(
+        $existingSetting = $this->find('first', [
             'recursive' => -1,
-            'conditions' => array(
+            'conditions' => [
                 'UserSetting.user_id' => $userId,
                 'UserSetting.setting' => $setting,
-            ),
+            ],
             'fields' =>  ['UserSetting.id'],
             'callbacks' => false,
-        ));
+        ]);
         if (empty($existingSetting)) {
             $this->create();
         } else {
             $userSetting['id'] = $existingSetting['UserSetting']['id'];
         }
 
-        return $this->save($userSetting);
+        return $this->save($userSetting, ['skipAuditLog' => $this->isInternal($setting)]);
     }
 
     /**

@@ -92,6 +92,7 @@
             'actions' => array(
                 array(
                     'url' => '/galaxies/view',
+		    'title' => __('View'),
                     'url_params_data_paths' => array(
                         'Galaxy.id'
                     ),
@@ -136,6 +137,7 @@
                 ),
                 array(
                     'url' => '/galaxies/delete',
+		    'title' => __('Delete'),
                     'url_params_data_paths' => array(
                         'Galaxy.id'
                     ),

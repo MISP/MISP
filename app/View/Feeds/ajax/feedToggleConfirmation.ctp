@@ -8,7 +8,7 @@
         <table>
             <tr>
                 <td style="vertical-align:top">
-                    <span role="button" tabindex="0" aria-label="Publish" title="Publish" id="PromptYesButton" class="btn btn-primary" onClick="submitPublish()">Yes</span>
+                    <button role="button" tabindex="0" aria-label="Publish" title="Publish" id="PromptYesButton" class="btn btn-primary">Yes</button>
                 </td>
                 <td style="width:540px;">
                 </td>
@@ -18,7 +18,5 @@
             </tr>
         </table>
     </div>
-    <?php
-        echo $this->Form->end();
-    ?>
+    <?= $this->Form->end(); ?>
 </div>

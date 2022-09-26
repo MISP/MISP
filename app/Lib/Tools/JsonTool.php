@@ -26,7 +26,15 @@ class JsonTool
      */
     public static function decode($value)
     {
-        $flags = defined('JSON_THROW_ON_ERROR') ? JSON_THROW_ON_ERROR : 0; // Throw exception on error if supported
-        return json_decode($value, true, 512, $flags);
+        if (defined('JSON_THROW_ON_ERROR')) {
+            // JSON_THROW_ON_ERROR is supported since PHP 7.3
+            return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        }
+
+        $decoded = json_decode($value, true);
+        if ($decoded === null) {
+            throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
+        }
+        return $decoded;
     }
 }

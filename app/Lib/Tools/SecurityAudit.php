@@ -431,7 +431,7 @@ class SecurityAudit
         App::uses('CakeEmail', 'Network/Email');
         $email = new CakeEmail();
         $emailConfig = $email->config();
-        if ($emailConfig['transport'] === 'Smtp' && $emailConfig['port'] == 25 && !$emailConfig['tls']) {
+        if ($emailConfig['transport'] === 'Smtp' && $emailConfig['port'] == 25 && empty($emailConfig['tls'])) {
             $output['Email'][] = [
                 'warning',
                 __('STARTTLS is not enabled.'),

@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property Event $Event
+ * @property SharingGroup $SharingGroup
  */
 class EventReport extends AppModel
 {
@@ -46,7 +47,7 @@ class EventReport extends AppModel
     );
 
     const CAPTURE_FIELDS = array('uuid', 'name', 'content', 'distribution', 'sharing_group_id', 'timestamp', 'deleted', 'event_id');
-    public $defaultContain = array(
+    const DEFAULT_CONTAIN = array(
         'SharingGroup' => array('fields' => array('id', 'name', 'uuid')),
         'Event' => array(
             'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
@@ -249,10 +250,9 @@ class EventReport extends AppModel
      */
     public function buildACLConditions(array $user)
     {
-        $this->Event = ClassRegistry::init('Event');
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $eventConditions = $this->Event->createEventConditions($user);
             $conditions = array(
                 'AND' => array(
@@ -282,9 +282,8 @@ class EventReport extends AppModel
      */
     public function attachReportCountsToEvents(array $user, $events)
     {
-        $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
         }
         foreach ($events as $k => $event) {
             $conditions = [
@@ -355,7 +354,7 @@ class EventReport extends AppModel
     {
         $params = array(
             'conditions' => $this->buildACLConditions($user),
-            'contain' => $this->defaultContain,
+            'contain' => self::DEFAULT_CONTAIN,
             'recursive' => -1
         );
         if ($full) {
@@ -917,7 +916,7 @@ class EventReport extends AppModel
             'url' => $url
         ];
         if (!empty($module)) {
-            $result = $this->Module->queryModuleServer($modulePayload, false);
+            $result = $this->Module->queryModuleServer($modulePayload, false, 'Enrichment', false, []);
             if (empty($result['results'][0]['values'][0])) {
                 return '';
             }

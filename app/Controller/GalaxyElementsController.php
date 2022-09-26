@@ -53,7 +53,7 @@ class GalaxyElementsController extends AppController
             $this->set('JSONElements', $expanded);
         }
         if ($this->request->is('ajax')) {
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('ajax/index');
         }
     }
@@ -82,7 +82,7 @@ class GalaxyElementsController extends AppController
             if (!$this->request->is('ajax')) {
                 throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
             } else {
-                $this->layout = 'ajax';
+                $this->layout = false;
                 $this->set('elementId', $elementId);
                 $this->render('ajax/delete');
             }
@@ -110,7 +110,7 @@ class GalaxyElementsController extends AppController
         }
         $this->set('clusterId', $clusterId);
         if ($this->request->is('ajax')) {
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('ajax/flattenJson');
         }
     }

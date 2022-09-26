@@ -74,6 +74,11 @@ class Feed extends AppModel
         'url_params' => ''
     ];
 
+    const SUPPORTED_URL_PARAM_FILTERS = [
+        'timestamp',
+        'publish_timestamp',
+    ];
+
     const CACHE_DIR = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS;
 
     /*
@@ -126,12 +131,13 @@ class Feed extends AppModel
     public function urlOrExistingFilepath($fields)
     {
         if ($this->isFeedLocal($this->data)) {
+            $path = mb_ereg_replace("/\:\/\//", '', $this->data['Feed']['url']);
             if ($this->data['Feed']['source_format'] == 'misp') {
-                if (!is_dir($this->data['Feed']['url'])) {
+                if (!is_dir($path)) {
                     return 'For MISP type local feeds, please specify the containing directory.';
                 }
             } else {
-                if (!file_exists($this->data['Feed']['url'])) {
+                if (!file_exists($path)) {
                     return 'Invalid path or file not found. Make sure that the path points to an existing file that is readable and watch out for typos.';
                 }
             }
@@ -776,6 +782,10 @@ class Feed extends AppModel
                 }
             }
         }
+        $url_params = !empty($filterRules['url_params']) ? $filterRules['url_params'] : [];
+        if (!$this->passesURLParamFilters($url_params, $event['Event'])) {
+            return false;
+        }
         return true;
     }
 
@@ -813,7 +823,7 @@ class Feed extends AppModel
                     }
                 }
                 if (!$found) {
-                    unset($k);
+                    unset($events[$k]);
                     continue;
                 }
             }
@@ -828,12 +838,46 @@ class Feed extends AppModel
                         }
                     }
                     if ($found) {
-                        unset($k);
+                        unset($events[$k]);
                     }
                 }
             }
+            $url_params = !empty($filterRules['url_params']) ? $filterRules['url_params'] : [];
+            if (!$this->passesURLParamFilters($url_params, $event)) {
+                unset($events[$k]);
+            }
         }
         return $events;
+    }
+
+    private function passesURLParamFilters($url_params, $event): bool
+    {
+        $this->Attribute = ClassRegistry::init('Attribute');
+        if (!empty($url_params['timestamp'])) {
+            $timestamps = $this->Attribute->setTimestampConditions($url_params['timestamp'], [], '', true);
+            if (is_array($timestamps)) {
+                if ($event['timestamp'] < $timestamps[0] || $event['timestamp'] > $timestamps[1]) {
+                    return false;
+                }
+            } else {
+                if ($event['timestamp'] < $timestamps) {
+                    return false;
+                }
+            }
+        }
+        if (!empty($url_params['publish_timestamp'])) {
+            $timestamps = $this->Attribute->setTimestampConditions($url_params['publish_timestamp'], [], '', true);
+            if (is_array($timestamps)) {
+                if ($event['timestamp'] < $timestamps[0] || $event['timestamp'] > $timestamps[1]) {
+                    return false;
+                }
+            } else {
+                if ($event['timestamp'] < $timestamps) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
@@ -961,25 +1005,41 @@ class Feed extends AppModel
             }
         }
         if ($feed['Feed']['tag_id']) {
+            if (empty($feed['Tag']['name'])) {
+                $feed_tag = $this->Tag->find('first', [
+                    'conditions' => [
+                        'Tag.id' => $feed['Feed']['tag_id']
+                    ],
+                    'recursive' => -1,
+                    'fields' => ['Tag.name', 'Tag.colour', 'Tag.id']
+                ]);
+                $feed['Tag'] = $feed_tag['Tag'];
+            }
             if (!isset($event['Event']['Tag'])) {
                 $event['Event']['Tag'] = array();
             }
-            $found = false;
-            foreach ($event['Event']['Tag'] as $tag) {
-                if (strtolower($tag['name']) === strtolower($feed['Tag']['name'])) {
-                    $found = true;
-                    break;
+
+            $feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable')));
+            if (!empty($feedTag)) {
+                $found = false;
+                foreach ($event['Event']['Tag'] as $tag) {
+                    if (strtolower($tag['name']) === strtolower($feedTag['Tag']['name'])) {
+                        $found = true;
+                        break;
+                    }
                 }
-            }
-            if (!$found) {
-                $feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable')));
-                if (!empty($feedTag)) {
+                if (!$found) {
                     $event['Event']['Tag'][] = $feedTag['Tag'];
                 }
             }
         }
         if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) {
             return 'blocked';
+        }
+        if (!empty($feed['Feed']['settings'])) {
+            if (!empty($feed['Feed']['settings']['disable_correlation'])) {
+                $event['Event']['disable_correlation'] = (bool) $feed['Feed']['settings']['disable_correlation'];
+            }
         }
         return $event;
     }
@@ -997,6 +1057,7 @@ class Feed extends AppModel
             if ($filterRules === null) {
                 throw new Exception('Could not parse feed filter rules JSON: ' . json_last_error_msg(), json_last_error());
             }
+            $filterRules['url_params'] = !empty($filterRules['url_params']) ? $this->jsonDecode($filterRules['url_params']) : [];
         }
         return $filterRules;
     }
@@ -1180,6 +1241,10 @@ class Feed extends AppModel
             if (!empty($feed['Feed']['orgc_id'])) {
                 $orgc_id = $feed['Feed']['orgc_id'];
             }
+            $disableCorrelation = false;
+            if (!empty($feed['Feed']['settings'])) {
+                $disableCorrelation = (bool) $feed['Feed']['settings']['disable_correlation'] ?? false;
+            }
             $event = array(
                 'info' => $feed['Feed']['name'] . ' feed',
                 'analysis' => 2,
@@ -1189,7 +1254,8 @@ class Feed extends AppModel
                 'date' => date('Y-m-d'),
                 'distribution' => $feed['Feed']['distribution'],
                 'sharing_group_id' => $feed['Feed']['sharing_group_id'],
-                'user_id' => $user['id']
+                'user_id' => $user['id'],
+                'disable_correlation' => $disableCorrelation,
             );
             $result = $this->Event->save($event);
             if (!$result) {
@@ -1929,6 +1995,7 @@ class Feed extends AppModel
     private function feedGetUri($feed, $uri, HttpSocket $HttpSocket = null)
     {
         if ($this->isFeedLocal($feed)) {
+            $uri = mb_ereg_replace("/\:\/\//", '', $uri);
             if (file_exists($uri)) {
                 return FileAccessTool::readFromFile($uri);
             } else {

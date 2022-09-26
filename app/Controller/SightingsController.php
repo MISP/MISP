@@ -315,7 +315,7 @@ class SightingsController extends AppController
         }
 
         $this->set('csv', $statistics['csv']['all']);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/view_sightings');
     }
 

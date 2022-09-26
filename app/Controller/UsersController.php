@@ -74,6 +74,7 @@ class UsersController extends AppController
         } else {
             $this->set('user', $user);
             $this->set('admin_view', false);
+            $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
         }
     }
 
@@ -118,6 +119,24 @@ class UsersController extends AppController
         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')), 'status'=>200, 'type' => 'json'));
     }
 
+    public function unsubscribe($code)
+    {
+        $user = $this->Auth->user();
+
+        if (!hash_equals($this->User->unsubscribeCode($user), rtrim($code, '.'))) {
+            $this->Flash->error(__('Invalid unsubscribe code.'));
+            $this->redirect(['action' => 'view', 'me']);
+        }
+
+        if ($user['autoalert']) {
+            $this->User->updateField($this->Auth->user(), 'autoalert', false);
+            $this->Flash->success(__('Successfully unsubscribed from event alert.'));
+        } else {
+            $this->Flash->info(__('Already unsubscribed from event alert.'));
+        }
+        $this->redirect(['action' => 'view', 'me']);
+    }
+
     public function edit()
     {
         $currentUser = $this->User->find('first', array(
@@ -154,7 +173,7 @@ class UsersController extends AppController
                     }
                 }
             }
-            if (!$abortPost && !$this->_isRest()) {
+            if (!$abortPost && (!$this->_isRest() || empty($this->request->header('Authorization')))) {
                 if (Configure::read('Security.require_password_confirmation')) {
                     if (!empty($this->request->data['User']['current_password'])) {
                         $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
@@ -171,7 +190,7 @@ class UsersController extends AppController
             }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
-                $fieldList = array('autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled', 'date_modified');
+                $fieldList = array('autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled', 'date_modified', 'notification_daily', 'notification_weekly', 'notification_monthly');
                 if ($this->__canChangeLogin()) {
                     $fieldList[] = 'email';
                 }
@@ -427,6 +446,7 @@ class UsersController extends AppController
             'expiration',
             'current_login',
             'last_login',
+            'last_api_access',
             'force_logout',
             'date_created',
             'date_modified'
@@ -450,6 +470,7 @@ class UsersController extends AppController
         } else {
             $this->set('urlparams', $urlParams);
             $this->set('passedArgsArray', $passedArgsArray);
+            $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
             $conditions = array();
             if ($this->_isSiteAdmin()) {
                 $users = $this->paginate();
@@ -541,7 +562,7 @@ class UsersController extends AppController
         $rules = $this->_arrayToValuesIndexArray($rules);
         $this->set('rules', $rules);
         $this->set('baseurl', Configure::read('MISP.baseurl'));
-        $this->layout = 'ajax';
+        $this->layout = false;
     }
 
     public function admin_view($id = null)
@@ -590,6 +611,7 @@ class UsersController extends AppController
         $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
         $this->set('id', $id);
         $this->set('user2', $user2);
+        $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
         $this->set('admin_view', true);
         $this->render('view');
     }
@@ -631,21 +653,19 @@ class UsersController extends AppController
                 if (isset($this->request->data['User']['password'])) {
                     $this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
                 }
-                $default_publish_alert = Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : 0;
                 $defaults = array(
-                        'external_auth_required' => 0,
-                        'external_auth_key' => '',
-                        'server_id' => 0,
-                        'gpgkey' => '',
-                        'certif_public' => '',
-                        'autoalert' => $default_publish_alert,
-                        'contactalert' => 0,
-                        'disabled' => 0,
-                        'newsread' => 0,
-                        'change_pw' => 1,
-                        'authkey' => (new RandomTool())->random_str(true, 40),
-                        'termsaccepted' => 0,
-                        'org_id' => $this->Auth->user('org_id')
+                    'external_auth_required' => 0,
+                    'external_auth_key' => '',
+                    'server_id' => 0,
+                    'gpgkey' => '',
+                    'certif_public' => '',
+                    'autoalert' => $this->User->defaultPublishAlert(),
+                    'contactalert' => 0,
+                    'disabled' => 0,
+                    'newsread' => 0,
+                    'change_pw' => 1,
+                    'termsaccepted' => 0,
+                    'org_id' => $this->Auth->user('org_id'),
                 );
                 foreach ($defaults as $key => $value) {
                     if (!isset($this->request->data['User'][$key])) {
@@ -654,15 +674,14 @@ class UsersController extends AppController
                 }
             }
             $this->request->data['User']['date_created'] = time();
-            $this->request->data['User']['date_modified'] = time();
             if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) {
                 $this->request->data['User']['server_id'] = 0;
             }
             $this->User->create();
             // set invited by
-            $this->loadModel('Role');
-            $this->Role->recursive = -1;
-            $chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
+            $chosenRole = $this->User->Role->find('first', [
+                'conditions' => ['id' => $this->request->data['User']['role_id']],
+            ]);
             if (empty($chosenRole)) {
                 throw new MethodNotAllowedException('Invalid role');
             }
@@ -682,9 +701,6 @@ class UsersController extends AppController
             $this->request->data['User']['newsread'] = 0;
             if (!$this->_isSiteAdmin()) {
                 $this->request->data['User']['org_id'] = $this->Auth->user('org_id');
-                $this->loadModel('Role');
-                $this->Role->recursive = -1;
-                $chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
                 if (
                     $chosenRole['Role']['perm_site_admin'] == 1 ||
                     $chosenRole['Role']['perm_regexp_access'] == 1 ||
@@ -804,8 +820,7 @@ class UsersController extends AppController
             $this->set('isSiteAdmin', $this->_isSiteAdmin());
             $this->set('default_role_id', $default_role_id);
             $this->set('servers', $servers);
-            $this->set(compact('roles'));
-            $this->set(compact('syncRoles'));
+            $this->set(compact('roles', 'syncRoles'));
         }
     }
 
@@ -853,7 +868,7 @@ class UsersController extends AppController
                 $this->request->data['User'] = $this->request->data;
             }
             $abortPost = false;
-            if (!$this->_isRest()) {
+            if (!$this->_isRest() || empty($this->request->header('Authorization'))) {
                 if (Configure::read('Security.require_password_confirmation')) {
                     if (!empty($this->request->data['User']['current_password'])) {
                         $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
@@ -932,9 +947,9 @@ class UsersController extends AppController
                     $fields[] = 'role_id';
                 }
                 if (!$this->_isSiteAdmin() && isset($this->request->data['User']['role_id'])) {
-                    $this->loadModel('Role');
-                    $this->Role->recursive = -1;
-                    $chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
+                    $chosenRole = $this->User->Role->find('first', [
+                        'conditions' => ['id' => $this->request->data['User']['role_id']],
+                    ]);
                     if (empty($chosenRole) || (($chosenRole['Role']['id'] != $allowedRole) && ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1))) {
                         throw new Exception('You are not authorised to assign that role to a user.');
                     }
@@ -1047,8 +1062,7 @@ class UsersController extends AppController
         $this->set('servers', $servers);
         $this->set('orgs', $orgs);
         $this->set('id', $id);
-        $this->set(compact('roles'));
-        $this->set(compact('syncRoles'));
+        $this->set(compact('roles', 'syncRoles'));
         $this->set('canChangeLogin', $this->__canChangeLogin());
         $this->set('canChangePassword', $this->__canChangePassword());
     }
@@ -1057,9 +1071,6 @@ class UsersController extends AppController
     {
         if (!$this->request->is('post') && !$this->request->is('delete')) {
             throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
-        }
-        if (!$this->_isAdmin()) {
-            throw new Exception('Administrators only.');
         }
         $this->User->id = $id;
         $conditions = array('User.id' => $id);
@@ -1383,16 +1394,16 @@ class UsersController extends AppController
 
     public function histogram($selected = null)
     {
-        //if (!$this->request->is('ajax') && !$this->_isRest()) throw new MethodNotAllowedException('This function can only be accessed via AJAX or the API.');
+        $user = $this->_closeSession();
         if ($selected == '[]') {
             $selected = null;
         }
         $selectedTypes = array();
         if ($selected) {
-            $selectedTypes = json_decode($selected);
+            $selectedTypes = $this->_jsonDecode($selected);
         }
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
-            $org_ids = array($this->Auth->user('org_id'));
+            $org_ids = array($user['org_id']);
         } else {
             $org_ids = $this->User->Event->find('column', array(
                 'fields' => array('Event.orgc_id'),
@@ -1403,12 +1414,7 @@ class UsersController extends AppController
             'fields' => array('Organisation.id', 'Organisation.name'),
             'conditions' => array('Organisation.id' => $org_ids)
         ));
-        $orgs = array(0 => 'All organisations');
-        foreach ($org_ids as $v) {
-            if (!empty($orgs_temp[$v])) {
-                $orgs[$v] = $orgs_temp[$v];
-            }
-        }
+        $orgs = array(0 => 'All organisations') + $orgs_temp;
         $data = array();
         $max = 1;
         foreach ($orgs as $org_id => $org_name) {
@@ -1481,7 +1487,7 @@ class UsersController extends AppController
 
         $this->set('typeDb', $typeDb);
         $this->set('sigTypes', $sigTypes);
-        $this->layout = 'ajax';
+        $this->layout = false;
     }
 
     public function terms()
@@ -1491,17 +1497,36 @@ class UsersController extends AppController
             $this->Flash->success(__('You accepted the Terms and Conditions.'));
             $this->redirect(array('action' => 'routeafterlogin'));
         }
+
+        $termsFile = Configure::read('MISP.terms_file');
+        if (empty($termsFile)) {
+            throw new NotFoundException(__("MISP Terms and Conditions are not defined"));
+        }
+
+        $termsDownload = (bool)Configure::read('MISP.terms_download');
+        if (!$termsDownload) {
+            $termsFilePath = APP . 'files' . DS . 'terms' . DS .  basename($termsFile);
+            try {
+                $termsContent = FileAccessTool::readFromFile($termsFilePath);
+            } catch (Exception $e) {
+                $termsContent = false;
+            }
+            $this->set("termsContent", $termsContent);
+        }
+
+        $this->set("termsDownload", $termsDownload);
         $this->set('termsaccepted', $this->Auth->user('termsaccepted'));
     }
 
     public function downloadTerms()
     {
-        if (!Configure::read('MISP.terms_file')) {
-            $termsFile = APP ."View/Users/terms";
-        } else {
-            $termsFile = APP . 'files' . DS . 'terms' . DS .  Configure::read('MISP.terms_file');
+        $termsFile = Configure::read('MISP.terms_file');
+        if (empty($termsFile)) {
+            throw new NotFoundException(__("MISP Terms and Conditions are not defined"));
         }
-        $this->response->file($termsFile, array('download' => true, 'name' => Configure::read('MISP.terms_file')));
+
+        $termsFilePath = APP . 'files' . DS . 'terms' . DS . basename($termsFile);
+        $this->response->file($termsFilePath, ['download' => true, 'name' => $termsFile]);
         return $this->response;
     }
 
@@ -1588,9 +1613,6 @@ class UsersController extends AppController
 
     public function admin_email($isPreview=false)
     {
-        if (!$this->_isAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         $isPostOrPut = $this->request->is('post') || $this->request->is('put');
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
@@ -1600,17 +1622,11 @@ class UsersController extends AppController
         // harvest parameters
         if ($isPostOrPut) {
             $recipient = $this->request->data['User']['recipient'];
-        } else {
-            $recipient = isset($this->params['named']['recipient']) ? $this->params['named']['recipient'] : null;
-        }
-        if ($isPostOrPut) {
             $recipientEmailList = $this->request->data['User']['recipientEmailList'];
-        } else {
-            $recipientEmailList = isset($this->params['named']['recipientEmailList']) ? $this->params['named']['recipientEmailList'] : null;
-        }
-        if ($isPostOrPut) {
             $orgNameList = $this->request->data['User']['orgNameList'];
         } else {
+            $recipient = isset($this->params['named']['recipient']) ? $this->params['named']['recipient'] : null;
+            $recipientEmailList = isset($this->params['named']['recipientEmailList']) ? $this->params['named']['recipientEmailList'] : null;
             $orgNameList = isset($this->params['named']['orgNameList']) ? $this->params['named']['orgNameList'] : null;
         }
 
@@ -1637,7 +1653,7 @@ class UsersController extends AppController
             $users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
             // User has filled in his contact form, send out the email.
             if ($isPostOrPut) {
-                $this->request->data['User']['message'] = $this->User->adminMessageResolve($this->request->data['User']['message']);
+                $this->request->data['User']['message'] = $this->__replaceEmailVariables($this->request->data['User']['message']);
                 $failures = '';
                 foreach ($users as $user) {
                     $password = $this->User->generateRandomPassword();
@@ -1684,11 +1700,11 @@ class UsersController extends AppController
             $textsToFetch = array('newUserText', 'passwordResetText');
             $this->loadModel('Server');
             foreach ($textsToFetch as $text) {
-                ${$text} = Configure::read('MISP.' . $text);
-                if (!${$text}) {
-                    ${$text} = $this->Server->serverSettings['MISP'][$text]['value'];
+                $value = Configure::read('MISP.' . $text);
+                if (!$value) {
+                    $value = $this->Server->serverSettings['MISP'][$text]['value'];
                 }
-                $this->set($text, ${$text});
+                $this->set($text, $value);
             }
         }
     }
@@ -1723,7 +1739,7 @@ class UsersController extends AppController
                 $error = 'No encryption key found for the user and the instance posture blocks non encrypted e-mails from being sent.';
             }
             $this->set('error', $error);
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->set('user', $user);
             $this->set('firstTime', $firstTime);
             $this->render('ajax/passwordResetConfirmationForm');
@@ -1780,9 +1796,7 @@ class UsersController extends AppController
 
             // Email construction
             $body = Configure::read('Security.email_otp_text') ?: $this->Server->serverSettings['Security']['email_otp_text']['value'];
-            $body = str_replace('$misp', Configure::read('MISP.baseurl'), $body);
-            $body = str_replace('$org', Configure::read('MISP.org'), $body);
-            $body = str_replace('$contact', Configure::read('MISP.contact'), $body);
+            $body = $this->__replaceEmailVariables($body);
             $body = str_replace('$validity', $validity, $body);
             $body = str_replace('$otp', $otp, $body);
             $body = str_replace('$ip', $this->__getClientIP(), $body);
@@ -2051,7 +2065,6 @@ class UsersController extends AppController
     private function __statisticsUsers($params = array())
     {
         $this->loadModel('Organisation');
-        $this->loadModel('User');
         $this_month = strtotime(date('Y/m') . '/01');
         $this_year = strtotime(date('Y') . '/01/01');
         $ranges = array(
@@ -2103,12 +2116,13 @@ class UsersController extends AppController
 
     public function tagStatisticsGraph()
     {
+        $this->_closeSession();
         $this->loadModel('EventTag');
         $tags = $this->EventTag->getSortedTagList();
         $this->loadModel('Taxonomy');
         $taxonomies = $this->Taxonomy->find('list', array(
-                'conditions' => array('enabled' => true),
-                'fields' => array('Taxonomy.namespace')
+            'conditions' => array('enabled' => true),
+            'fields' => array('Taxonomy.namespace')
         ));
         $flatData = array();
         $tagIds = $this->EventTag->Tag->find('list', array('fields' => array('Tag.name', 'Tag.id')));
@@ -2138,7 +2152,6 @@ class UsersController extends AppController
             }
             $treemap['children'][] = $newElement;
         }
-        $taxonomyColourCodes = array();
         $taxonomies = array_merge(array('custom'), $taxonomies);
         if ($this->_isRest()) {
             $data = array(
@@ -2147,12 +2160,11 @@ class UsersController extends AppController
             );
             return $this->RestResponse->viewData($data, $this->response->type());
         } else {
-            $this->set('taxonomyColourCodes', $taxonomyColourCodes);
             $this->set('taxonomies', $taxonomies);
             $this->set('flatData', $flatData);
             $this->set('treemap', $treemap);
             $this->set('tags', $tags);
-            $this->layout = 'treemap';
+            $this->layout = false;
             $this->render('ajax/tag_statistics_graph');
         }
     }
@@ -2337,6 +2349,7 @@ class UsersController extends AppController
 
     public function searchGpgKey($email = false)
     {
+        session_abort();
         if (!$email) {
             throw new NotFoundException('No email provided.');
         }
@@ -2345,7 +2358,6 @@ class UsersController extends AppController
             throw new NotFoundException('No keys found for given email at keyserver.');
         }
         $this->set('keys', $keys);
-        $this->autorender = false;
         $this->layout = false;
         $this->render('ajax/fetchpgpkey');
     }
@@ -2752,6 +2764,56 @@ class UsersController extends AppController
         }
     }
 
+    public function notificationSettings()
+    {
+        $user = $this->Auth->user();
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $success = $this->User->saveNotificationSettings($user['id'], $this->request->data);
+            if ($success) {
+                $this->_refreshAuth();
+                $message = __('Notification settings saved');
+                $this->Flash->success($message);
+                $this->redirect(['action' => 'view', 'me']);
+            } else {
+                $message = __('Notification settings could not be saved');
+                $this->Flash->error($message);
+            }
+        }
+
+        $this->request->data = [
+            'User' => $user,
+            'periodic_settings' => $this->User->fetchPeriodicSettingForUser($user['id']),
+        ];
+        $this->loadModel('Attribute');
+        $distributionData = $this->Attribute->fetchDistributionData($user);
+        unset($distributionData['levels'][5]);
+        $this->set('sharingGroups', $distributionData['sgs']);
+        $this->set('distributionLevels', $distributionData['levels']);
+
+        $conditions = $this->User->Organisation->createConditions($user);
+        $conditions['local'] = true;
+        $orgs = $this->User->Organisation->find('list', [
+            'conditions' => $conditions,
+            'fields' => ['id', 'name'],
+            'order' => 'name',
+        ]);
+        $this->set('orgs', $orgs);
+        $this->set('user', $user);
+        $this->set('title_for_layout', __('Notification settings'));
+    }
+
+    public function viewPeriodicSummary(string $period)
+    {
+        $userId = $this->Auth->user('id');
+        $summary = $this->User->generatePeriodicSummary($userId, $period);
+        $periodicSettings = $this->User->fetchPeriodicSettingForUser($userId);
+        $this->set('periodic_settings', $periodicSettings);
+        $this->set('summary', $summary);
+        $this->set('period', $period);
+        $this->set('title_for_layout', __('Periodic summary'));
+    }
+
     private function __canChangePassword()
     {
         return $this->ACL->canUserAccess($this->Auth->user(), 'users', 'change_pw');
@@ -2763,5 +2825,18 @@ class UsersController extends AppController
             return true;
         }
         return !Configure::read('MISP.disable_user_login_change');
+    }
+
+    /**
+     * Replaces $misp, $org and $contact variables in emails
+     * @param string $body
+     * @return string
+     */
+    private function __replaceEmailVariables($body)
+    {
+        $body = str_replace('$misp', Configure::read('MISP.baseurl'), $body);
+        $body = str_replace('$org', Configure::read('MISP.org'), $body);
+        $body = str_replace('$contact', Configure::read('MISP.contact'), $body);
+        return $body;
     }
 }

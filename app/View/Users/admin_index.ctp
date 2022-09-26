@@ -1,5 +1,4 @@
 <?php
-    $multiSelectField = array();
     if (!$this->request->is('ajax')) {
         // Allow reset Keys, filtering and searching if viewing the /users/index page
         echo '<div class="index">';
@@ -24,25 +23,25 @@
                             'class' => 'hidden mass-select',
                             'text' => __('Disable selected users'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '1')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '1', '#UserUserIds')
                         ),
                         array(
                             'class' => 'hidden mass-select',
                             'text' => __('Enable selected users'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '0')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '0', '#UserUserIds')
                         ),
                         array(
                             'class' => 'hidden mass-select',
                             'text' => __('Disable publish emailing'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '0')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '0', '#UserUserIds')
                         ),
                         array(
                             'class' => 'hidden mass-select',
                             'text' => __('Enable publish emailing'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '1')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '1', '#UserUserIds')
                         ),
                     )
                 ),
@@ -98,6 +97,7 @@
     } else {
         $description = '';
         $topBar = [];
+        $multiSelectField = array();
     }
     echo $this->element('/genericElements/IndexTable/index_table', array(
         'data' => array(
@@ -143,21 +143,38 @@
                         'element' => 'boolean',
                         'sort' => 'User.autoalert',
                         'class' => 'short',
-                        'data_path' => 'User.autoalert'
+                        'data_path' => 'User.autoalert',
+                        'colors' => true,
                     ),
                     array(
                         'name' => __('Contact alert'),
                         'element' => 'boolean',
                         'sort' => 'User.contactalert',
                         'class' => 'short',
-                        'data_path' => 'User.contactalert'
+                        'data_path' => 'User.contactalert',
+                        'colors' => true,
+                    ),
+                    array(
+                        'name' => __('Periodic notif.'),
+                        'element' => 'custom',
+                        'class' => 'short',
+                        'function' => function (array $user) use ($periodic_notifications) {
+                            $period_subscriptions = [];
+                            foreach ($periodic_notifications as $period) {
+                                if (!empty($user['User'][$period])) {
+                                    $period_subscriptions[] = substr($period, 13, 1);
+                                }
+                            }
+                            return implode('/', $period_subscriptions);
+                        }
                     ),
                     array(
                         'name' => __('PGP Key'),
                         'element' => 'boolean',
                         'sort' => 'User.gpgkey',
                         'class' => 'short',
-                        'data_path' => 'User.gpgkey'
+                        'data_path' => 'User.gpgkey',
+                        'colors' => true,
                     ),
                     array(
                         'name' => __('S/MIME'),
@@ -178,7 +195,8 @@
                         'element' => 'boolean',
                         'sort' => 'User.termsaccepted',
                         'class' => 'short',
-                        'data_path' => 'User.termsaccepted'
+                        'data_path' => 'User.termsaccepted',
+                        'colors' => true,
                     ),
                     array(
                         'name' => __('Last Login'),
@@ -196,12 +214,20 @@
                         'data_path' => 'User.date_created'
                     ),
                     array(
+                        'name' => __('Last API Access'),
+                        'sort' => 'User.last_api_access',
+                        'element' => 'datetime',
+                        'class' => 'short',
+                        'data_path' => 'User.last_api_access',
+                        'requirement' => !empty(Configure::read('MISP.store_api_access_time')) && Configure::read('MISP.store_api_access_time', false)
+                    ),
+                    array(
                         'name' => (Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : __('External Auth')),
                         'sort' => 'User.external_auth_required',
                         'element' => 'boolean',
                         'class' => 'short',
                         'data_path' => 'User.external_auth_required',
-                        'requirement' => (Configure::read('Plugin.CustomAuth_enable') && empty(Configure::read('Plugin.CustomAuth_required')))
+                        'requirement' => Configure::read('Plugin.CustomAuth_enable') && empty(Configure::read('Plugin.CustomAuth_required'))
                     ),
                     array(
                         'name' => __('Monitored'),
@@ -220,7 +246,8 @@
                         'element' => 'boolean',
                         'sort' => 'User.disabled',
                         'class' => 'short',
-                        'data_path' => 'User.disabled'
+                        'data_path' => 'User.disabled',
+                        'colors' => true,
                     )
                 )
             ),
@@ -233,19 +260,14 @@
                     'onclick_params_data_path' => 'User.id',
                     'title' => __('Create new credentials and inform user'),
                     'complex_requirement' => array(
-                        'options' => array(
-                            'datapath' => array('User.org_id'),
-                            'me' => $me,
-                            'isSiteAdmin' => $isSiteAdmin
-                        ),
-                        'function' => function($row, $options)
+                        'function' => function($row) use ($me, $isSiteAdmin)
                         {
                             return (
                                 (
-                                    $options['me']['Role']['perm_admin'] &&
-                                    ($row['User']['org_id'] == $options['me']['org_id'])
+                                    $me['Role']['perm_admin'] &&
+                                    ($row['User']['org_id'] == $me['org_id'])
                                 ) ||
-                                $options['isSiteAdmin']
+                                $isSiteAdmin
                             );
                         }
                     )

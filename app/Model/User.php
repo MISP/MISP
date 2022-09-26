@@ -4,6 +4,7 @@ App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
 App::uses('GpgTool', 'Tools');
 App::uses('SendEmail', 'Tools');
+App::uses('SendEmailTemplate', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 
 /**
@@ -17,6 +18,9 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
  */
 class User extends AppModel
 {
+    private const PERIODIC_USER_SETTING_KEY = 'periodic_notification_filters';
+    public const PERIODIC_NOTIFICATIONS = ['notification_daily', 'notification_weekly', 'notification_monthly'];
+
     public $displayField = 'email';
 
     public $validate = array(
@@ -56,7 +60,6 @@ class User extends AppModel
                 //'on' => 'create', // Limit validation to 'create' or 'update' operations
             ),
         ),
-
         'org_id' => array(
             'valueNotEmpty' => array(
                 'rule' => array('valueNotEmpty'),
@@ -226,6 +229,9 @@ class User extends AppModel
         'Containable'
     );
 
+    /** @var CryptGpgExtended|null|false */
+    private $gpg;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -238,28 +244,23 @@ class User extends AppModel
         }
     }
 
-    /** @var CryptGpgExtended|null|false */
-    private $gpg;
-
     public function beforeValidate($options = array())
     {
-        if (!isset($this->data['User']['id'])) {
-            if ((isset($this->data['User']['enable_password']) && (!$this->data['User']['enable_password'])) || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password']))) {
-                $this->data['User']['password'] = $this->generateRandomPassword();
-                $this->data['User']['confirm_password'] = $this->data['User']['password'];
+        $user = &$this->data['User'];
+        if (!isset($user['id'])) {
+            if ((isset($user['enable_password']) && !$user['enable_password']) || (empty($user['password']) && empty($user['confirm_password']))) {
+                $user['password'] = $this->generateRandomPassword();
+                $user['confirm_password'] = $user['password'];
             }
         }
-        if (!isset($this->data['User']['certif_public']) || empty($this->data['User']['certif_public'])) {
-            $this->data['User']['certif_public'] = '';
+        if (empty($user['certif_public'])) {
+            $user['certif_public'] = '';
         }
-        if (!isset($this->data['User']['authkey']) || empty($this->data['User']['authkey'])) {
-            $this->data['User']['authkey'] = $this->generateAuthKey();
+        if (empty($user['authkey'])) {
+            $user['authkey'] = $this->generateAuthKey();
         }
-        if (!isset($this->data['User']['nids_sid']) || empty($this->data['User']['nids_sid'])) {
-            $this->data['User']['nids_sid'] = mt_rand(1000000, 9999999);
-        }
-        if (isset($this->data['User']['newsread']) && $this->data['User']['newsread'] === null) {
-            $this->data['User']['newsread'] = 0;
+        if (empty($user['nids_sid'])) {
+            $user['nids_sid'] = mt_rand(1000000, 9999999);
         }
         return true;
     }
@@ -271,6 +272,27 @@ class User extends AppModel
             $passwordHasher = new BlowfishConstantPasswordHasher();
             $this->data[$this->alias]['password'] = $passwordHasher->hash($this->data[$this->alias]['password']);
         }
+        $user = $this->data;
+        $action = empty($this->id) ? 'add' : 'edit';
+        $user_id = $action == 'add' ? 0 : $user['User']['id'];
+        $trigger_id = 'user-before-save';
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'User',
+            'action' => $action,
+            'id' => $user_id,
+            'message' => __('The workflow `%s` prevented the saving of user %s', $trigger_id, $user_id),
+        ];
+        if (
+            empty($user['User']['action']) ||
+            (
+                $user['User']['action'] != 'logout' &&
+                $user['User']['action'] != 'login'
+            )
+        ) {
+            $success = $this->executeTrigger($trigger_id, $user['User'], $workflowErrors, $logging);
+            return !empty($success);
+        }
         return true;
     }
 
@@ -278,6 +300,23 @@ class User extends AppModel
     {
         $pubToZmq = $this->pubToZmq('user');
         $kafkaTopic = $this->kafkaTopic('user');
+        $action = empty($created) ? 'edit' : 'add';
+        $user = $this->data;
+        if (
+            empty($user['User']['action']) ||
+            (
+                $user['User']['action'] != 'logout' &&
+                $user['User']['action'] != 'login'
+            )
+        ) {
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'User',
+                'action' => $action,
+                'id' => $user['User']['id'],
+            ];
+            $this->executeTrigger('user-after-save', $user['User'], $workflowErrors, $logging);
+        }
         if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->data)) {
                 $user = $this->data;
@@ -413,21 +452,14 @@ class User extends AppModel
 
     public function identicalFieldValues($field = array(), $compareField = null)
     {
-        foreach ($field as $key => $value) {
-            $v1 = $value;
-            $v2 = $this->data[$this->name][$compareField];
-            if ($v1 !== $v2) {
-                return false;
-            } else {
-                continue;
-            }
-        }
-        return true;
+        $v1 = array_values($field)[0];
+        $v2 = $this->data[$this->name][$compareField];
+        return $v1 === $v2;
     }
 
     public function generateAuthKey()
     {
-        return (new RandomTool())->random_str(true, 40);
+        return RandomTool::random_str(true, 40);
     }
 
     /**
@@ -435,18 +467,18 @@ class User extends AppModel
      *
      * @param int $passwordLength
      * @return string
+     * @throws Exception
      */
     public function generateRandomPassword($passwordLength = 40)
     {
         // makes sure, the password policy isn't undermined by setting a manual passwordLength
-        $policyPasswordLength = Configure::read('Security.password_policy_length') ? Configure::read('Security.password_policy_length') : false;
+        $policyPasswordLength = Configure::read('Security.password_policy_length') ?: false;
         if (is_int($policyPasswordLength) && $policyPasswordLength > $passwordLength) {
             $passwordLength = $policyPasswordLength;
         }
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-+=!@#$%^&*()<>/?';
-        return (new RandomTool())->random_str(true, $passwordLength, $characters);
+        return RandomTool::random_str(true, $passwordLength, $characters);
     }
-
 
     public function checkAndCorrectPgps()
     {
@@ -459,23 +491,6 @@ class User extends AppModel
             }
         }
         return $fails;
-    }
-
-    public function getOrgs()
-    {
-        $orgs = $this->Organisation->find('list', array(
-            'recursive' => -1,
-            'fields' => array('name'),
-        ));
-        return $orgs;
-    }
-
-    public function getOrgMemberCount($org)
-    {
-        return $this->find('count', array(
-                'conditions' => array(
-                        'org =' => $org,
-                )));
     }
 
     /**
@@ -733,6 +748,9 @@ class User extends AppModel
         $user['User']['Role'] = $user['Role'];
         $user['User']['Organisation'] = $user['Organisation'];
         $user['User']['Server'] = $user['Server'];
+        if (isset($user['UserSetting'])) {
+            $user['User']['UserSetting'] = $user['UserSetting'];
+        }
         return $user['User'];
     }
 
@@ -812,7 +830,7 @@ class User extends AppModel
      * @param array $user
      * @param SendEmailTemplate|string $body
      * @param string|false $bodyNoEnc
-     * @param string $subject
+     * @param string|null $subject
      * @param array|false $replyToUser
      * @return bool
      * @throws Crypt_GPG_BadPassphraseException
@@ -820,7 +838,7 @@ class User extends AppModel
      */
     public function sendEmail(array $user, $body, $bodyNoEnc = false, $subject, $replyToUser = false)
     {
-        if ($user['User']['disabled']) {
+        if ($user['User']['disabled'] || !$this->checkIfUserIsValid($user['User'])) {
             return true;
         }
 
@@ -862,16 +880,6 @@ class User extends AppModel
             'change' => null,
         ));
         return true;
-    }
-
-    public function adminMessageResolve($message)
-    {
-        $resolveVars = array('$contact' => 'MISP.contact', '$org' => 'MISP.org', '$misp' => 'MISP.baseurl');
-        foreach ($resolveVars as $k => $v) {
-            $v = Configure::read($v);
-            $message = str_replace($k, $v, $message);
-        }
-        return $message;
     }
 
     /**
@@ -952,24 +960,15 @@ class User extends AppModel
     public function initiatePasswordReset($user, $firstTime = false, $simpleReturn = false, $fixedPassword = false)
     {
         $org = Configure::read('MISP.org');
-        $options = array('newUserText', 'passwordResetText');
         $subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
-        $textToFetch = $options[($firstTime ? 0 : 1)];
         $subject = $subjects[($firstTime ? 0 : 1)];
         $this->Server = ClassRegistry::init('Server');
-        $body = Configure::read('MISP.' . $textToFetch);
-        if (!$body) {
-            $body = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
-        }
-        $body = $this->adminMessageResolve($body);
         if ($fixedPassword) {
             $password = $fixedPassword;
         } else {
             $password = $this->generateRandomPassword();
         }
-        $body = str_replace('$password', $password, $body);
-        $body = str_replace('$username', $user['User']['email'], $body);
-        $body = str_replace('\n', PHP_EOL, $body);
+        $body = $this->preparePasswordResetEmail($user, $password, $firstTime, $subject);
         $result = $this->sendEmail($user, $body, false, $subject);
         if ($result) {
             $this->id = $user['User']['id'];
@@ -986,6 +985,22 @@ class User extends AppModel
         } else {
             return array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200);
         }
+    }
+
+    private function preparePasswordResetEmail($user, $password, $firstTime, $subject)
+    {
+        $textToFetch = $firstTime ? 'newUserText': 'passwordResetText';
+        $this->Server = ClassRegistry::init('Server');
+        $bodyTemplate = Configure::read('MISP.' . $textToFetch);
+        if (!$bodyTemplate) {
+            $bodyTemplate = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
+        }
+        $template = new SendEmailTemplate('password_reset');
+        $template->set('body', $bodyTemplate);
+        $template->set('user', $user);
+        $template->set('password', $password);
+        $template->subject($subject);
+        return $template;
     }
 
     public function getOrgAdminsForOrg($org_id, $excludeUserId = false)
@@ -1220,13 +1235,12 @@ class User extends AppModel
         }
 
         // query
-        $this->Log = ClassRegistry::init('Log');
-        $result = $this->Log->createLogEntry($user, $action, $model, $modelId, $description, $fieldsResult);
+        $result = $this->loadLog()->createLogEntry($user, $action, $model, $modelId, $description, $fieldsResult);
 
         // write to syslogd as well
         App::import('Lib', 'SysLog.SysLog');
         $syslog = new SysLog();
-        $syslog->write('notice', "$description -- $action" . (empty($fieldsResult) ? '' : ' -- ' . $result['Log']['change']));
+        $syslog->write(LOG_NOTICE, "$description -- $action" . (empty($fieldsResult) ? '' : ' -- ' . $result['Log']['change']));
     }
 
     /**
@@ -1303,20 +1317,21 @@ class User extends AppModel
         return $data;
     }
 
-    public function registerUser($added_by, $registration, $org_id, $role_id) {
+    public function registerUser($added_by, $registration, $org_id, $role_id)
+    {
         $user = array(
-                'email' => $registration['data']['email'],
-                'gpgkey' => empty($registration['data']['pgp']) ? '' : $registration['data']['pgp'],
-                'disabled' => 0,
-                'newsread' => 0,
-                'change_pw' => 1,
-                'authkey' => $this->generateAuthKey(),
-                'termsaccepted' => 0,
-                'org_id' => $org_id,
-                'role_id' => $role_id,
-                'invited_by' => $added_by['id'],
-                'contactalert' => 1,
-                'autoalert' => Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : 1
+            'email' => $registration['data']['email'],
+            'gpgkey' => empty($registration['data']['pgp']) ? '' : $registration['data']['pgp'],
+            'disabled' => 0,
+            'newsread' => 0,
+            'change_pw' => 1,
+            'authkey' => $this->generateAuthKey(),
+            'termsaccepted' => 0,
+            'org_id' => $org_id,
+            'role_id' => $role_id,
+            'invited_by' => $added_by['id'],
+            'contactalert' => 1,
+            'autoalert' => $this->defaultPublishAlert(),
         );
         $this->create();
         $this->Log = ClassRegistry::init('Log');
@@ -1385,6 +1400,22 @@ class User extends AppModel
     }
 
     /**
+     * Updates `last_api_access` time in database.
+     *
+     * @param array $user
+     * @return array|bool
+     * @throws Exception
+     */
+    public function updateAPIAccessTime(array $user)
+    {
+        if (!isset($user['id'])) {
+            throw new InvalidArgumentException("Invalid user object provided.");
+        }
+        $user['last_api_access'] = time();
+        return $this->save($user, true, array('id', 'last_api_access'));
+    }
+
+    /**
      * Update field in user model and also set `date_modified`
      *
      * @param array $user
@@ -1404,6 +1435,29 @@ class User extends AppModel
         if (!$success) {
             throw new RuntimeException("Could not save setting $name for user {$user['id']}.");
         }
+    }
+
+    /**
+     * Check if user still valid at identity provider.
+     * @param array $user
+     * @return bool
+     * @throws Exception
+     */
+    public function checkIfUserIsValid(array $user)
+    {
+        $auth = Configure::read('Security.auth');
+        if (!$auth) {
+            return true;
+        }
+        if (!is_array($auth)) {
+            throw new Exception("`Security.auth` config value must be array.");
+        }
+        if (!in_array('OidcAuth.Oidc', $auth, true)) {
+            return true; // this method currently makes sense just for OIDC auth provider
+        }
+        App::uses('Oidc', 'OidcAuth.Lib');
+        $oidc = new Oidc($this);
+        return $oidc->isUserValid($user);
     }
 
     /**
@@ -1506,6 +1560,14 @@ class User extends AppModel
     }
 
     /**
+     * @return bool
+     */
+    public function defaultPublishAlert()
+    {
+        return (bool)Configure::read('MISP.default_publish_alert');
+    }
+
+    /**
      * @param array $user
      * @return bool
      */
@@ -1567,5 +1629,297 @@ class User extends AppModel
             'recursive' => -1,
             'conditions' => array('EventDelegation.org_id' => $user['org_id'])
         ));
+    }
+
+    /**
+     * Generate code that is used in event alert unsubscribe link.
+     * @return string
+     */
+    public function unsubscribeCode(array $user)
+    {
+        $salt = Configure::read('Security.salt');
+        return substr(hash('sha256', "{$user['id']}|$salt"), 0, 8);
+    }
+
+    /**
+     * @param int $userId
+     * @param bool $decode
+     * @return array
+     * @throws JsonException
+     */
+    public function fetchPeriodicSettingForUser($userId, $decode = false): array
+    {
+        $filterNames = ['orgc_id', 'distribution', 'sharing_group_id', 'event_info', 'tags', 'trending_for_tags', 'include_correlations', 'trending_period_amount'];
+        $filterToDecode = ['tags', 'trending_for_tags'];
+        $defaultPeriodicSettings = [
+            'orgc_id' => '',
+            'distribution' => -1,
+            'sharing_group_id' => '',
+            'event_info' => '',
+            'tags' => '[]',
+            'trending_for_tags' => '[]',
+            'include_correlations' => '',
+            'trending_period_amount' => 2,
+        ];
+
+        $periodicSettings = $this->UserSetting->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'user_id' => $userId,
+                'setting' => self::PERIODIC_USER_SETTING_KEY,
+            ],
+            'fields' => ['value'],
+        ]);
+        if (empty($periodicSettings)) {
+            $periodicSettings = $defaultPeriodicSettings;
+        } else {
+            $periodicSettings = $periodicSettings['UserSetting']['value'];
+        }
+        $periodicSettingsIndexed = [];
+        foreach ($filterNames as $filterName) {
+            $periodicSettingsIndexed[$filterName] = $periodicSettings[$filterName] ?? $defaultPeriodicSettings[$filterName];
+        }
+        if ($decode) {
+            foreach ($filterToDecode as $filter) {
+                if (!empty($periodicSettingsIndexed[$filter])) {
+                    $periodicSettingsIndexed[$filter] = JsonTool::decode($periodicSettingsIndexed[$filter]);
+                }
+            }
+        }
+        return $periodicSettingsIndexed;
+    }
+
+    /**
+     * @param array $period_filters
+     * @param string $period
+     * @return array
+     */
+    private function getUsablePeriodicSettingForUser(array $period_filters, $period='daily'): array
+    {
+        $filters = [
+            'last' => $this->__genTimerangeFilter($period),
+            'published' => true,
+        ];
+        if (!empty($period_filters['orgc_id'])) {
+            $filters['orgc_id'] = $period_filters['orgc_id'];
+        }
+        if (isset($period_filters['distribution']) && $period_filters['distribution'] >= 0) {
+            $filters['distribution'] = intval($period_filters['distribution']);
+        }
+        if (!empty($period_filters['sharing_group_id'])) {
+            $filters['sharing_group_id'] = $period_filters['sharing_group_id'];
+        }
+        if (!empty($period_filters['event_info'])) {
+            $filters['event_info'] = $period_filters['event_info'];
+        }
+        if (!empty($period_filters['tags'])) {
+            $filters['tags'] = $period_filters['tags'];
+        }
+        return $filters;
+    }
+
+    public function saveNotificationSettings(int $userId, array $data): bool
+    {
+        $existingUser = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['User.id' => $userId],
+        ]);
+        if (empty($existingUser)) {
+            return false;
+        }
+        foreach (self::PERIODIC_NOTIFICATIONS as $notification_period) {
+            $existingUser['User'][$notification_period] = $data['User'][$notification_period];
+        }
+        $success = $this->save($existingUser, [
+            'fieldList' => array_merge(self::PERIODIC_NOTIFICATIONS, ['date_modified']),
+        ]);
+        if ($success) {
+            $periodic_settings = $data['periodic_settings'];
+            $param_to_decode = ['tags', 'trending_for_tags'];
+            foreach ($param_to_decode as $param) {
+                if (empty($periodic_settings[$param])) {
+                    $periodic_settings[$param] = '[]';
+                } else {
+                    $decodedTags = json_decode($periodic_settings[$param], true);
+                    if ($decodedTags === null) {
+                        return false;
+                    }
+                }
+            }
+            $notification_filters = [
+                'orgc_id' => $periodic_settings['orgc_id'] ?? [],
+                'distribution' => $periodic_settings['distribution'] ?? '',
+                'sharing_group_id' => $periodic_settings['distribution'] != 4 ? '' : ($periodic_settings['sharing_group_id'] ?? []),
+                'event_info' => $periodic_settings['event_info'] ?? '',
+                'tags' => $periodic_settings['tags'] ?? '[]',
+                'trending_for_tags' => $periodic_settings['trending_for_tags'] ?? '[]',
+                'include_correlations' => $periodic_settings['include_correlations'] ?? '',
+                'trending_period_amount' => $periodic_settings['trending_period_amount'] ?? 2,
+            ];
+            $new_user_setting = [
+                'UserSetting' => [
+                    'user_id' => $existingUser['User']['id'],
+                    'setting' => self::PERIODIC_USER_SETTING_KEY,
+                    'value' => $notification_filters
+                ]
+            ];
+            $success = $this->UserSetting->setSetting($existingUser['User'], $new_user_setting);
+        }
+        return !empty($success);
+    }
+
+    public function getSubscribedUsersForPeriod(string $period): array
+    {
+        return $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                "notification_$period" => true,
+                'disabled' => false,
+            ],
+        ]);
+    }
+
+    /**
+     * generatePeriodicSummary
+     *
+     * @param int $userId
+     * @param string $period Can be 'daily', 'weekly' or 'monthly'
+     * @param bool $rendered When false, instance of SendEmailTemplate will returned
+     * @return string|SendEmailTemplate
+     * @throws NotFoundException
+     * @throws InvalidArgumentException
+     */
+    public function generatePeriodicSummary(int $userId, string $period, $rendered=true)
+    {
+        $allowedPeriods = array_map(function($period) {
+            return substr($period, strlen('notification_'));
+        }, self::PERIODIC_NOTIFICATIONS);
+        if (!in_array($period, $allowedPeriods, true)) {
+            throw new InvalidArgumentException(__('Invalid period. Must be one of %s', JsonTool::encode(self::PERIODIC_NOTIFICATIONS)));
+        }
+
+        $user = $this->getAuthUser($userId);
+        App::import('Tools', 'SendEmail');
+        $periodicSettings = $this->fetchPeriodicSettingForUser($userId, true);
+        $filters = $this->getUsablePeriodicSettingForUser($periodicSettings, $period);
+        $filtersForRestSearch = $filters; // filters for restSearch are slightly different than fetchEvent
+        $filters['last'] = $this->resolveTimeDelta($filters['last']);
+        $filters['sgReferenceOnly'] = true;
+        $filters['includeEventCorrelations'] = !empty($periodicSettings['include_correlations']);
+        $filters['includeGranularCorrelations'] = !empty($periodicSettings['include_correlations']);
+        $filters['noSightings'] = true;
+        $filters['fetchFullClusters'] = false;
+        $filters['includeScoresOnEvent'] = true;
+        $events = $this->Event->fetchEvent($user, $filters);
+
+        $elementCounter = 0;
+        $renderView = false;
+        $filtersForRestSearch['publish_timestamp'] = $filtersForRestSearch['last'];
+        $filtersForRestSearch['returnFormat'] = 'context';
+        $filtersForRestSearch['staticHtml'] = true;
+        unset($filtersForRestSearch['last']);
+        if (!empty($filtersForRestSearch['tags'])) {
+            $filtersForRestSearch['event_tags'] = $filtersForRestSearch['tags'];
+            unset($filtersForRestSearch['tags']);
+        }
+        $finalContext = $this->Event->restSearch($user, 'context', $filtersForRestSearch, false, false, $elementCounter, $renderView);
+        $finalContext = JsonTool::decode($finalContext->intoString());
+        $aggregated_context = $this->__renderAggregatedContext($finalContext);
+        $rollingWindows = $periodicSettings['trending_period_amount'] ?: 2;
+        $trendAnalysis = $this->Event->getTrendsForTagsFromEvents($events, $this->periodToDays($period), $rollingWindows, $periodicSettings['trending_for_tags']);
+        $tagFilterPrefixes = $periodicSettings['trending_for_tags'] ?: array_keys($trendAnalysis['all_tags']);
+        $trendData = [
+            'trendAnalysis' => $trendAnalysis,
+            'tagFilterPrefixes' => $tagFilterPrefixes,
+        ];
+        $trending_summary = $this->__renderTrendingSummary($trendData);
+
+        $emailTemplate = $this->prepareEmailTemplate($period);
+        $emailTemplate->set('baseurl', $this->Event->__getAnnounceBaseurl());
+        $emailTemplate->set('events', $events);
+        $emailTemplate->set('filters', $filters);
+        $emailTemplate->set('periodicSettings', $periodicSettings);
+        $emailTemplate->set('period_days', $this->periodToDays($period));
+        $emailTemplate->set('period', $period);
+        $emailTemplate->set('aggregated_context', $aggregated_context);
+        $emailTemplate->set('trending_summary', $trending_summary);
+        $emailTemplate->set('analysisLevels', $this->Event->analysisLevels);
+        $emailTemplate->set('distributionLevels', $this->Event->distributionLevels);
+        if ($rendered) {
+            $summary = $emailTemplate->render();
+            return $summary->format() === 'text' ? $summary->text : $summary->html;
+        }
+        return $emailTemplate;
+    }
+
+    private function __renderAggregatedContext(array $restSearchOutput): string
+    {
+        return $this->__renderGeneric('Events' . DS . 'module_views', 'context_view', $restSearchOutput);
+    }
+
+    private function __renderTrendingSummary(array $trendData): string
+    {
+        return $this->__renderGeneric('Elements' . DS . 'Events', 'trendingSummary', $trendData);
+    }
+
+    private function __renderGeneric(string $viewPath, string $viewFile, array $viewVars): string
+    {
+        $view = new View();
+        $view->autoLayout = false;
+        $view->helpers = ['TextColour'];
+        $view->loadHelpers();
+
+        $view->set($viewVars);
+        $view->set('baseurl', $this->Event->__getAnnounceBaseurl());
+        $view->viewPath = $viewPath;
+        return $view->render($viewFile, false);
+    }
+
+    private function __getUsableFilters(array $period_filters, string $period='daily'): array
+    {
+        $filters = [
+            'last' => $this->__genTimerangeFilter($period),
+            'published' => true,
+            'includeScoresOnEvent' => true,
+        ];
+        if (!empty($period_filters['orgc_id'])) {
+            $filters['orgc_id'] = $period_filters['orgc_id'];
+        }
+        if (isset($period_filters['distribution']) && $period_filters['distribution'] >= 0) {
+            $filters['distribution'] = intval($period_filters['distribution']);
+        }
+        if (!empty($period_filters['sharing_group_id'])) {
+            $filters['sharing_group_id'] = $period_filters['sharing_group_id'];
+        }
+        if (!empty($period_filters['event_info'])) {
+            $filters['event_info'] = $period_filters['event_info'];
+        }
+        if (!empty($period_filters['tags'])) {
+            $filters['tags'] = $period_filters['tags'];
+        }
+        return $filters;
+    }
+    private function __genTimerangeFilter(string $period='daily'): string
+    {
+        return $this->periodToDays($period) . 'd';
+    }
+
+    private function periodToDays(string $period='daily'): int
+    {
+        if ($period === 'daily') {
+            return 1;
+        } else if ($period === 'weekly') {
+            return 7;
+        } else {
+            return 31;
+        }
+    }
+
+    private function prepareEmailTemplate(string $period = 'daily'): SendEmailTemplate
+    {
+        $subject = sprintf('[%s MISP] %s %s', Configure::read('MISP.org'), Inflector::humanize($period), __('Notification - %s', (new DateTime())->format('Y-m-d')));
+        $template = new SendEmailTemplate("notification_$period");
+        $template->subject($subject);
+        return $template;
     }
 }

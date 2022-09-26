@@ -10,7 +10,7 @@ if (!isset($contactAlert)) {
 if ($hideDetails) { // Used when GnuPG.bodyonlyencrypted is enabled and e-mail cannot be send in encrypted form
     $eventUrl = $baseurl . "/events/view/" . $event['Event']['id'];
     echo __("A new or modified event was just published on %s", $eventUrl) . PHP_EOL . PHP_EOL;
-    echo __("If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via %s", $baseurl . '/users/edit');
+    echo __("If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via %s", $unsubscribe);
     return;
 }
 
@@ -112,5 +112,5 @@ You receive this e-mail because the e-mail address <?= $user['email'] ?> is set
 to receive <?= $contactAlert ? 'contact' : 'publish' ?> alerts on the MISP instance at <?= $baseurl ?>.
 
 If you would like to unsubscribe from receiving such alert e-mails, simply
-disable <?= $contactAlert ? 'contact' : 'publish' ?> alerts via <?= $baseurl ?>/users/edit
+disable <?= $contactAlert ? 'contact' : 'publish' ?> alerts via <?= $unsubscribe ?>.
 ==============================================

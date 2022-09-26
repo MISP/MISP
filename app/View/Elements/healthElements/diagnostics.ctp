@@ -281,6 +281,12 @@
         )); ?>
     </div>
 
+    <?php if (!empty($dbConfiguration)): ?>
+    <?= $this->element('/healthElements/db_config_diagnostic', array(
+        'dbConfiguration' => $dbConfiguration
+    )); ?>
+    <?php endif; ?>
+
     <h3><?= __("Redis info") ?></h3>
     <div class="diagnostics-box">
         <b><?= __('PHP extension version') ?>:</b> <?= $redisInfo['extensionVersion'] ?: ('<span class="red bold">' . __('Not installed.') . '</span>') ?><br>
@@ -445,24 +451,21 @@
     ?>
     </div>
 
-    <h3><?php echo __('Session table');?></h3>
-    <p><?php echo __('This tool checks how large your database\'s session table is. <br />Sessions in CakePHP rely on PHP\'s garbage collection for clean-up and in certain distributions this can be disabled by default resulting in an ever growing cake session table. <br />If you are affected by this, just click the clean session table button below.');?></p>
+    <h3><?php echo __('PHP Sessions');?></h3>
     <div class="diagnostics-box">
-        <?php
-            $colour = 'green';
-            $message = $sessionErrors[$sessionStatus];
-            $sessionColours = array(0 => 'green', 1 => 'red', 2 => 'orange', 3 => 'red');
-            $colour = $sessionColours[$sessionStatus];
-            echo __('Expired sessions') . '…<span style="color:' . $colour . ';">' . $sessionCount . ' (' . $message . ')' . '</span>';
-        ?>
+    <?php
+        $sessionColours = array(0 => 'green', 1 => 'red', 2 => 'orange', 3 => 'red', 9 => 'red');
+        $colour = $sessionColours[$sessionStatus['error_code']];
+        echo sprintf('<p><b>%s:</b> %s</p>', __('Session handler'), $sessionStatus['handler']);
+        echo sprintf('<span style="color:%s;">%s</span>', $colour, __($sessionErrors[$sessionStatus['error_code']]));
+        if($sessionStatus['handler'] === 'database'){
+            echo sprintf('<br><span style="color:%s;">%s: %s</span>',$colour, __('Expired sessions'), $sessionStatus['expired_count']);
+            if ($sessionStatus['error_code'] === 1){
+                echo sprintf('<br><a href="<?php echo $baseurl;?>/servers/purgeSessions"><span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">%s</span></a>', __('Purge sessions'));
+            }
+        }
+    ?>
     </div>
-    <?php
-        if ($sessionStatus < 2):
-    ?>
-    <a href="<?php echo $baseurl;?>/servers/purgeSessions"><span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;"><?php echo __('Purge sessions');?></span></a>
-    <?php
-        endif;
-    ?>
     <h3><?php echo __('Upgrade authkeys keys to the advanced keys format'); ?><a id="advanced_authkey_update">&nbsp</a></h3>
     <p>
         <?php

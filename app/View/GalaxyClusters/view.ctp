@@ -56,7 +56,7 @@ $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['Galax
 $table_data[] = array(
     'key' => __('Source'),
     'html' => filter_var($cluster['GalaxyCluster']['source'], FILTER_VALIDATE_URL) ?
-        '<a href="' . $cluster['GalaxyCluster']['source'] . '" rel="noreferrer noopener">' . h($cluster['GalaxyCluster']['source']) :
+        '<a href="' . h($cluster['GalaxyCluster']['source']) . '" rel="noreferrer noopener">' . h($cluster['GalaxyCluster']['source']) :
         h($cluster['GalaxyCluster']['source']),
 );
 $table_data[] = array('key' => __('Authors'), 'value' => !empty($cluster['GalaxyCluster']['authors']) ? implode(', ', $cluster['GalaxyCluster']['authors']) : __('N/A'));
@@ -119,13 +119,14 @@ if (!empty($extendedByHtml)) {
     ?>
     <div id="elements_content"></div>
 </div>
-<?= $this->element('genericElements/assetLoader', array(
-    'js' => array(
+<?= $this->element('genericElements/assetLoader', [
+    'js' => [
         'markdown-it',
-    ),
-));
+        'jquery-ui.min',
+    ],
+]);
 ?>
-<script type="text/javascript">
+<script>
 $(function () {
     $.get("<?= $baseurl ?>/galaxy_elements/index/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
         $("#elements_content").html(data);

@@ -127,7 +127,7 @@ class AttackExport
         $result['galaxyId'] = $this->__galaxy_id;
         $matrixGalaxies = $this->__GalaxyModel->getAllowedMatrixGalaxies();
         $result['matrixGalaxies'] = $matrixGalaxies;
-        return json_encode($result);
+        return JsonTool::encode($result);
     }
 
     public function separator()

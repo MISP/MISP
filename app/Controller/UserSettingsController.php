@@ -97,6 +97,11 @@ class UserSettingsController extends AppController
                 );
             }
         }
+        // Do not show internal settings
+        if (!$this->_isSiteAdmin()) {
+            $conditions['AND'][] = ['NOT' => ['UserSetting.setting' => $this->UserSetting->getInternalSettingNames()]];
+        }
+
         if ($this->_isRest()) {
             $params = array(
                 'conditions' => $conditions
@@ -127,9 +132,12 @@ class UserSettingsController extends AppController
 
     public function view($id)
     {
+        if (!$this->_isRest()) {
+            throw new BadRequestException("This endpoint is accessible just by REST requests.");
+        }
         // check if the ID is valid and whether a user setting with the given ID exists
         if (empty($id) || !is_numeric($id)) {
-            throw new InvalidArgumentException(__('Invalid ID passed.'));
+            throw new BadRequestException(__('Invalid ID passed.'));
         }
         $userSetting = $this->UserSetting->find('first', array(
             'recursive' => -1,
@@ -145,18 +153,14 @@ class UserSettingsController extends AppController
         if (!$checkAccess) {
             throw new NotFoundException(__('Invalid user setting.'));
         }
-        if ($this->_isRest()) {
-            unset($userSetting['User']);
-            return $this->RestResponse->viewData($userSetting, $this->response->type());
-        } else {
-            $this->set($data, $userSetting);
-        }
+        unset($userSetting['User']);
+        return $this->RestResponse->viewData($userSetting, $this->response->type());
     }
 
     public function setSetting($user_id = false, $setting = false)
     {
         if (!empty($setting)) {
-            if (!$this->UserSetting->checkSettingValidity($setting)) {
+            if (!$this->UserSetting->checkSettingValidity($setting) || $this->UserSetting->isInternal($setting)) {
                 throw new MethodNotAllowedException(__('Invalid setting.'));
             }
             $settingPermCheck = $this->UserSetting->checkSettingAccess($this->Auth->user(), $setting);
@@ -177,10 +181,6 @@ class UserSettingsController extends AppController
             if (!empty($setting)) {
                 $this->request->data['UserSetting']['setting'] = $setting;
             }
-            // force our user's ID as the user ID in all cases
-            $userSetting = array(
-                'user_id' => $this->Auth->user('id')
-            );
             $result = $this->UserSetting->setSetting($this->Auth->user(), $this->request->data);
             if ($result) {
                 // if we've managed to save our setting
@@ -213,29 +213,28 @@ class UserSettingsController extends AppController
         if ($this->_isRest()) {
             // GET request via the API should describe the endpoint
             return $this->RestResponse->describe('UserSettings', 'setSetting', false, $this->response->type());
-        } else {
-            // load the valid settings from the model
-            if ($this->_isSiteAdmin()) {
-                $users = $this->UserSetting->User->find('list', array(
-                    'recursive' => -1,
-                    'fields' => array('User.id', 'User.email')
-                ));
-            } else if ($this->_isAdmin()) {
-                $users = $this->UserSetting->User->find('list', array(
-                    'recursive' => -1,
-                    'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
-                    'fields' => array('User.id', 'User.email')
-                ));
-            } else {
-                $users = array($this->Auth->user('id') => $this->Auth->user('email'));
-            }
-            if (!empty($user_id) && $this->request->is('get')) {
-                $this->request->data['UserSetting']['user_id'] = $user_id;
-            }
-            $this->set('setting', $setting);
-            $this->set('users', $users);
-            $this->set('validSettings', UserSetting::VALID_SETTINGS);
         }
+
+        // load the valid settings from the model
+        if ($this->_isSiteAdmin()) {
+            $users = $this->UserSetting->User->find('list', array(
+                'fields' => array('User.id', 'User.email')
+            ));
+        } else if ($this->_isAdmin()) {
+            $users = $this->UserSetting->User->find('list', array(
+                'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
+                'fields' => array('User.id', 'User.email')
+            ));
+        } else {
+            $users = array($this->Auth->user('id') => $this->Auth->user('email'));
+        }
+        if (!empty($user_id) && $this->request->is('get')) {
+            $this->request->data['UserSetting']['user_id'] = $user_id;
+        }
+        $this->set('setting', $setting);
+        $this->set('users', $users);
+        $this->set('validSettings', $this->UserSetting->settingPlaceholders($this->Auth->user()));
+        $this->set('title_for_layout', __('Set User Setting'));
     }
 
     public function getSetting($userId = null, $setting = null)
@@ -252,7 +251,7 @@ class UserSettingsController extends AppController
             }
         }
 
-        if (!$this->UserSetting->checkSettingValidity($setting)) {
+        if (!$this->UserSetting->checkSettingValidity($setting) || $this->UserSetting->isInternal($setting)) {
             throw new NotFoundException(__('Invalid setting.'));
         }
 
@@ -365,7 +364,7 @@ class UserSettingsController extends AppController
                 'UserSetting' => array(
                     'user_id' => $this->Auth->user('id'),
                     'setting' => 'homepage',
-                    'value' => json_encode(array('path' => $this->request->data['path']))
+                    'value' => ['path' => $this->request->data['path']],
                 )
             );
             $result = $this->UserSetting->setSetting($this->Auth->user(), $setting);
@@ -393,13 +392,13 @@ class UserSettingsController extends AppController
             $hideColumns[] = $columnName;
         }
 
-        $setting = array(
-            'UserSetting' => array(
+        $setting = [
+            'UserSetting' => [
                 'user_id' => $this->Auth->user()['id'],
                 'setting' => 'event_index_hide_columns',
-                'value' => json_encode($hideColumns)
-            )
-        );
+                'value' => $hideColumns,
+            ]
+        ];
         $this->UserSetting->setSetting($this->Auth->user(), $setting);
         return $this->RestResponse->saveSuccessResponse('UserSettings', 'eventIndexColumnToggle', false, 'json', 'Column visibility switched');
     }

@@ -36,12 +36,10 @@ class Bruteforce extends AppModel
 
     public function clean()
     {
-        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-        $dataSource = $dataSourceConfig['datasource'];
         $expire = date('Y-m-d H:i:s', time());
-        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $sql = 'DELETE FROM bruteforces WHERE `expire` <= "' . $expire . '";';
-        } elseif ($dataSource == 'Database/Postgres') {
+        } else {
             $sql = 'DELETE FROM bruteforces WHERE expire <= \'' . $expire . '\';';
         }
         $this->query($sql);
