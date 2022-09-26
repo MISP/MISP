@@ -43,6 +43,7 @@ $objectId = intval($object['id']);
   <?php
     endif;
   ?>
+  <?php if ($includeOrgColumn): ?>
   <td class="short">
     <?php
       if ($extended):
@@ -50,6 +51,7 @@ $objectId = intval($object['id']);
       endif;
     ?>
   </td>
+  <?php endif; ?>
   <td colspan="<?= $includeRelatedTags ? 6 : 5 ?>">
     <span class="bold"><?php echo __('Object name: ');?></span><?php echo h($object['name']);?>
     <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $objectId ?>_collapsible"></span>

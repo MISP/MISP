@@ -1303,6 +1303,7 @@ class EventsController extends AppController
         }
 
         // remove galaxies tags
+        $containsProposals = !empty($event['ShadowAttribute']);;
         $this->loadModel('Taxonomy');
         foreach ($event['Object'] as $k => $object) {
             if (isset($object['Attribute'])) {
@@ -1312,6 +1313,9 @@ class EventsController extends AppController
 
                         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
                         $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
+                    }
+                    if (!$containsProposals && !empty($attribute['ShadowAttribute'])) {
+                        $containsProposals = true;
                     }
                 }
             }
@@ -1323,6 +1327,9 @@ class EventsController extends AppController
 
                 $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
                 $attribute['tagConflicts'] = $tagConflicts;
+            }
+            if (!$containsProposals && !empty($attribute['ShadowAttribute'])) {
+                $containsProposals = true;
             }
         }
         if (empty($this->passedArgs['sort'])) {
@@ -1338,6 +1345,7 @@ class EventsController extends AppController
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
+        $this->set('includeOrgColumn', (isset($conditions['extended']) || $containsProposals));
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('deleted', isset($filters['deleted']) && $filters['deleted'] != 0);
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
@@ -1387,31 +1395,10 @@ class EventsController extends AppController
 
         $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
         $this->set('emptyEvent', $emptyEvent);
-        $attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
-        $objectCount = isset($event['Object']) ? count($event['Object']) : 0;
-        $oldest_timestamp = false;
+
         // set the data for the contributors / history field
         $contributors = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
         $this->set('contributors', $contributors);
-
-        if ($this->__canPublishEvent($event, $user)) {
-            $proposalStatus = false;
-            if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute'])) {
-                $proposalStatus = true;
-            }
-            if (!$proposalStatus && !empty($event['Attribute'])) {
-                foreach ($event['Attribute'] as $temp) {
-                    if (!empty($temp['ShadowAttribute'])) {
-                        $proposalStatus = true;
-                        break;
-                    }
-                }
-            }
-            $mess = $this->Session->read('Message');
-            if ($proposalStatus && empty($mess)) {
-                $this->Flash->info('This event has active proposals for you to accept or discard.');
-            }
-        }
 
         // set the pivot data
         $this->helpers[] = 'Pivot';
@@ -1436,7 +1423,7 @@ class EventsController extends AppController
             }
         }
         foreach ($relatedEventCorrelationCount as $key => $relation) {
-            $relatedEventCorrelationCount[$key] = count($relatedEventCorrelationCount[$key]);
+            $relatedEventCorrelationCount[$key] = count($relation);
         }
 
         $this->Event->removeGalaxyClusterTags($event);
@@ -1450,11 +1437,15 @@ class EventsController extends AppController
         }
         $this->set('tagConflicts', $tagConflicts);
 
+        $attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
+        $objectCount = isset($event['Object']) ? count($event['Object']) : 0;
+        $oldestTimestamp = PHP_INT_MAX;
+        $containsProposals = !empty($event['ShadowAttribute']);
         $modDate = date("Y-m-d", $event['Event']['timestamp']);
         $modificationMap = array($modDate => 1);
         foreach ($event['Attribute'] as $k => $attribute) {
-            if ($oldest_timestamp === false || $oldest_timestamp > $attribute['timestamp']) {
-                $oldest_timestamp = $attribute['timestamp'];
+            if ($oldestTimestamp > $attribute['timestamp']) {
+                $oldestTimestamp = $attribute['timestamp'];
             }
             $modDate = date("Y-m-d", $attribute['timestamp']);
             $modificationMap[$modDate] = !isset($modificationMap[$modDate]) ? 1 : $modificationMap[$modDate] + 1;
@@ -1471,10 +1462,10 @@ class EventsController extends AppController
                 }
                 $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
             }
+            if (!$containsProposals && !empty($attribute['ShadowAttribute'])) {
+                $containsProposals = true;
+            }
         }
-        $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event);
-        $this->set('attributeTags', array_values($attributeTagsName['tags']));
-        $this->set('attributeClusters', array_values($attributeTagsName['clusters']));
 
         foreach ($event['Object'] as $k => $object) {
             $modDate = date("Y-m-d", $object['timestamp']);
@@ -1482,8 +1473,8 @@ class EventsController extends AppController
             if (!empty($object['Attribute'])) {
                 $attributeCount += count($object['Attribute']);
                 foreach ($object['Attribute'] as $k2 => $attribute) {
-                    if ($oldest_timestamp === false || $oldest_timestamp > $attribute['timestamp']) {
-                        $oldest_timestamp = $attribute['timestamp'];
+                    if ($oldestTimestamp > $attribute['timestamp']) {
+                        $oldestTimestamp = $attribute['timestamp'];
                     }
 
                     $modDate = date("Y-m-d", $attribute['timestamp']);
@@ -1501,9 +1492,24 @@ class EventsController extends AppController
                         }
                         $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                     }
+                    if (!$containsProposals && !empty($attribute['ShadowAttribute'])) {
+                        $containsProposals = true;
+                    }
                 }
             }
         }
+
+        if ($containsProposals && $this->__canPublishEvent($event, $user)) {
+            $mess = $this->Session->read('Message');
+            if (empty($mess)) {
+                $this->Flash->info(__('This event has active proposals for you to accept or discard.'));
+            }
+        }
+
+        $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event);
+        $this->set('attributeTags', array_values($attributeTagsName['tags']));
+        $this->set('attributeClusters', array_values($attributeTagsName['clusters']));
+
         $this->set('warningTagConflicts', $warningTagConflicts);
         $filters['sort'] = 'timestamp';
         $filters['direction'] = 'desc';
@@ -1585,9 +1591,10 @@ class EventsController extends AppController
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($user));
         }
+        $this->set('includeOrgColumn', $this->viewVars['extended'] || $containsProposals);
         $this->set('includeSightingdb', !empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable'));
         $this->set('relatedEventCorrelationCount', $relatedEventCorrelationCount);
-        $this->set('oldest_timestamp', $oldest_timestamp);
+        $this->set('oldest_timestamp', $oldestTimestamp === PHP_INT_MAX ? false : $oldestTimestamp);
         $this->set('missingTaxonomies', $this->Event->missingTaxonomies($event));
         $this->set('currentUri', $attributeUri);
         $this->set('filters', $filters);

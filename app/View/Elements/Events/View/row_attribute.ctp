@@ -85,6 +85,7 @@
       <?php
         endif;
       ?>
+      <?php if ($includeOrgColumn): ?>
       <td class="short">
         <?php
           if (!empty($extended)):
@@ -92,6 +93,7 @@
           endif;
         ?>
       </td>
+      <?php endif; ?>
       <td class="short"<?= $quickEdit('category') ?>>
         <div class="inline-field-solid">
           <?php echo h($object['category']); ?>
