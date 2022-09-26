@@ -523,7 +523,7 @@ array_splice($mitre_attack_techniques, 10);
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-    ?>
+    <?php endif; ?>
 
     <?php if ($this->fetch('trending-summary')) : ?>
         <?= $this->fetch('trending-summary'); ?>
