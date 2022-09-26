@@ -3904,11 +3904,6 @@ function mergeOrganisationTypeToggle() {
     }
 }
 
-function feedDistributionChange() {
-    if ($('#FeedDistribution').val() == 4) $('#SGContainer').show();
-    else $('#SGContainer').hide();
-}
-
 function checkUserPasswordEnabled() {
     if ($('#UserEnablePassword').is(':checked')) {
         $('#PasswordDiv').show();
@@ -4189,7 +4184,7 @@ function feedFormUpdate() {
         $('#DeleteLocalFileDiv').hide();
         $('#HeadersDiv').show();
     }
-    feedDistributionChange();
+    checkSharingGroup('Feed');
 }
 
 function setContextFields() {
