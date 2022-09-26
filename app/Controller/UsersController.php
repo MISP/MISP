@@ -74,6 +74,7 @@ class UsersController extends AppController
         } else {
             $this->set('user', $user);
             $this->set('admin_view', false);
+            $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
         }
     }
 
@@ -189,7 +190,7 @@ class UsersController extends AppController
             }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
-                $fieldList = array('autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled', 'date_modified');
+                $fieldList = array('autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled', 'date_modified', 'notification_daily', 'notification_weekly', 'notification_monthly');
                 if ($this->__canChangeLogin()) {
                     $fieldList[] = 'email';
                 }
@@ -469,6 +470,7 @@ class UsersController extends AppController
         } else {
             $this->set('urlparams', $urlParams);
             $this->set('passedArgsArray', $passedArgsArray);
+            $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
             $conditions = array();
             if ($this->_isSiteAdmin()) {
                 $users = $this->paginate();
@@ -609,6 +611,7 @@ class UsersController extends AppController
         $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
         $this->set('id', $id);
         $this->set('user2', $user2);
+        $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
         $this->set('admin_view', true);
         $this->render('view');
     }
@@ -2759,6 +2762,56 @@ class UsersController extends AppController
             $this->Flash->success($message);
             $this->redirect($this->referer());
         }
+    }
+
+    public function notificationSettings()
+    {
+        $user = $this->Auth->user();
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $success = $this->User->saveNotificationSettings($user['id'], $this->request->data);
+            if ($success) {
+                $this->_refreshAuth();
+                $message = __('Notification settings saved');
+                $this->Flash->success($message);
+                $this->redirect(['action' => 'view', 'me']);
+            } else {
+                $message = __('Notification settings could not be saved');
+                $this->Flash->error($message);
+            }
+        }
+
+        $this->request->data = [
+            'User' => $user,
+            'periodic_settings' => $this->User->fetchPeriodicSettingForUser($user['id']),
+        ];
+        $this->loadModel('Attribute');
+        $distributionData = $this->Attribute->fetchDistributionData($user);
+        unset($distributionData['levels'][5]);
+        $this->set('sharingGroups', $distributionData['sgs']);
+        $this->set('distributionLevels', $distributionData['levels']);
+
+        $conditions = $this->User->Organisation->createConditions($user);
+        $conditions['local'] = true;
+        $orgs = $this->User->Organisation->find('list', [
+            'conditions' => $conditions,
+            'fields' => ['id', 'name'],
+            'order' => 'name',
+        ]);
+        $this->set('orgs', $orgs);
+        $this->set('user', $user);
+        $this->set('title_for_layout', __('Notification settings'));
+    }
+
+    public function viewPeriodicSummary(string $period)
+    {
+        $userId = $this->Auth->user('id');
+        $summary = $this->User->generatePeriodicSummary($userId, $period);
+        $periodicSettings = $this->User->fetchPeriodicSettingForUser($userId);
+        $this->set('periodic_settings', $periodicSettings);
+        $this->set('summary', $summary);
+        $this->set('period', $period);
+        $this->set('title_for_layout', __('Periodic summary'));
     }
 
     private function __canChangePassword()

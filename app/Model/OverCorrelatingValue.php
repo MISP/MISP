@@ -5,10 +5,29 @@ class OverCorrelatingValue extends AppModel
 {
     public $recursive = -1;
 
-    public $actsAs = array(
-        'Containable'
-    );
+    public function beforeValidate($options = array())
+    {
+        $this->data['OverCorrelatingValue']['value'] = self::truncate($this->data['OverCorrelatingValue']['value']);
+        return true;
+    }
 
+    public function beforeSave($options = array())
+    {
+        $this->data['OverCorrelatingValue']['value'] = self::truncate($this->data['OverCorrelatingValue']['value']);
+        return true;
+    }
+
+    public static function truncate(string $value): string
+    {
+        return mb_substr($value, 0, 191);
+    }
+
+    public static function truncateValues(array $values): array
+    {
+        return array_map(function(string $value) {
+            return self::truncate($value);
+        }, $values);
+    }
 
     /**
      * @param string $value
@@ -36,7 +55,7 @@ class OverCorrelatingValue extends AppModel
     {
         $this->deleteAll(
             [
-                'OverCorrelatingValue.value' => $value
+                'OverCorrelatingValue.value' => self::truncate($value)
             ],
             false
         );
@@ -47,7 +66,7 @@ class OverCorrelatingValue extends AppModel
      */
     public function getLimit()
     {
-        return Configure::check('MISP.correlation_limit') ? Configure::read('MISP.correlation_limit') : 20;
+        return Configure::read('MISP.correlation_limit') ?: 20;
     }
 
     public function getOverCorrelations($query)
@@ -64,9 +83,13 @@ class OverCorrelatingValue extends AppModel
         return $data;
     }
 
-    public function checkValue($value)
+    public function findOverCorrelatingValues(array $valuesToCheck): array
     {
-        return $this->hasAny(['value' => $value]);
+        $valuesToCheck = array_unique(self::truncateValues($valuesToCheck), SORT_REGULAR);
+        return $this->find('column', [
+            'conditions' => ['value' => $valuesToCheck],
+            'fields' => ['value'],
+        ]);
     }
 
     public function generateOccurrencesRouter()
@@ -106,14 +129,23 @@ class OverCorrelatingValue extends AppModel
         ]);
         $this->Attribute = ClassRegistry::init('Attribute');
         foreach ($overCorrelations as &$overCorrelation) {
+            $value = $overCorrelation['OverCorrelatingValue']['value'] . '%';
             $count = $this->Attribute->find('count', [
                 'recursive' => -1,
                 'conditions' => [
                     'OR' => [
-                        'Attribute.value1' => $overCorrelation['OverCorrelatingValue']['value'],
-                        'Attribute.value2' => $overCorrelation['OverCorrelatingValue']['value']
-                    ]
-                ]
+                        'Attribute.value1 LIKE' => $value,
+                        'AND' => [
+                            'Attribute.value2 LIKE' => $value,
+                            'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
+                        ],
+                    ],
+                    'NOT' => ['Attribute.type' => Attribute::NON_CORRELATING_TYPES],
+                    'Attribute.disable_correlation' => 0,
+                    'Event.disable_correlation' => 0,
+                    'Attribute.deleted' => 0,
+                ],
+                'contain' => ['Event'],
             ]);
             $overCorrelation['OverCorrelatingValue']['occurrence'] = $count;
         }

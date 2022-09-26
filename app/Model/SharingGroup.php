@@ -1004,4 +1004,16 @@ class SharingGroup extends AppModel
         }
         return $sg[0];
     }
+
+    /**
+     * fetchAllSharingGroup collect all saved sharing group ignore ACL checks
+     *
+     * @return array
+     */
+    public function fetchAllSharingGroup(): array
+    {
+        return $this->find('all', [
+            'recursive' => -1,
+        ]);
+    }
 }

@@ -59,22 +59,22 @@ echo $this->Form->create('Object', array('url' => $baseurl . '/objects/groupAttr
                 <th><?php echo __('Distribution'); ?></th>
             </tr>
         </thead>
-        <tbody id='attributeMappingBody'>
+        <tbody id="attributeMappingBody">
             <?php foreach ($attributes as $attribute): ?>
                 <tr>
-                    <td id="isAttributeId"><?php echo h($attribute['Attribute']['id']); ?></td>
+                    <td class="attributeId"><?= intval($attribute['Attribute']['id']); ?></td>
                     <td>
                         <span style="display: block;">
-                            <select id="isAttributeMapping" style="margin-bottom: 5px;" onchange="updateObjectRelationDescription(this);">
+                            <select class="attributeMapping" style="margin-bottom: 5px;">
                                 <?php foreach ($object_relations[$attribute['Attribute']['type']] as $object_relation): ?>
                                     <option value="<?php echo h($object_relation['object_relation']); ?>" title="<?php echo h($object_relation['description']); ?>"><?php echo h($object_relation['object_relation']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                             :: <?php echo h($attribute['Attribute']['type']); ?>
                         </span>
-                        <i id="objectRelationDescription" class="apply_css_arrow"><?php echo h($object_relations[$attribute['Attribute']['type']][0]['description']); ?></i>
+                        <i class="objectRelationDescription apply_css_arrow"><?php echo h($object_relations[$attribute['Attribute']['type']][0]['description']); ?></i>
                     </td>
-                    <td style="min-width: 75px;"><?php echo h(date('Y-m-d', $attribute['Attribute']['timestamp'])); ?></td>
+                    <td style="min-width: 75px;"><?= $this->Time->date($attribute['Attribute']['timestamp']); ?></td>
                     <td><?php echo h($attribute['Attribute']['category']); ?></td>
                     <td style="white-space: nowrap;"><?php echo h($attribute['Attribute']['value']); ?></td>
                     <td><?php echo h($distributionLevels[$attribute['Attribute']['distribution']]); ?></td>
@@ -126,7 +126,7 @@ echo $this->Form->create('Object', array('url' => $baseurl . '/objects/groupAttr
         <button class="btn btn-primary" onclick="submitMergeAttributeIntoObjectForm(this);"><?php echo __('Merge above Attributes into an Object'); ?></button>
     </div>
     <span class="red bold" data-original-title="" title="">
-        <?php echo sprintf(__('Selected Attributes will be %s deleted'), '<strong style="font-size: medium">' . ($hard_delete_attribute ? __('hard') : __('soft')) . '</strong>'); ?>
+        <?php echo __('Selected Attributes will be %s deleted', '<strong style="font-size: medium">' . ($hard_delete_attribute ? __('hard') : __('soft')) . '</strong>'); ?>
     </span>
 </div>
 
@@ -135,25 +135,31 @@ $(".Object_distribution_select").change(function() {
     checkAndEnable($(this).parent().find('.Object_sharing_group_id_select'), $(this).val() == 4);
 });
 
+$(".attributeMapping").change(function() {
+    var $select = $(this);
+    var text = $select.find(":selected").attr('title');
+    $select.parent().parent().find('.objectRelationDescription').text(text);
+});
+
 function submitMergeAttributeIntoObjectForm(btn) {
     var $btn = $(btn);
     var $form = $('#ObjectGroupAttributesIntoObjectForm');
     var attribute_mapping = {};
     $('#attributeMappingBody').find('tr').each(function() {
         var $tr = $(this);
-        var attr_id = $tr.find('#isAttributeId').text();
-        var attr_mapping = $tr.find('#isAttributeMapping').val();
+        var attr_id = $tr.find('.attributeId').text();
+        var attr_mapping = $tr.find('.attributeMapping').val();
         attribute_mapping[attr_id] = attr_mapping;
     });
     $('#ObjectSelectedObjectRelationMapping').val(JSON.stringify(attribute_mapping));
     var btn_text_backup = '';
     $.ajax({
         data: $form.serialize(),
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             btn_text_backup = $btn.text();
             $btn.html('<it class="fa fa-spinner fa-spin"></it>');
         },
-        success:function (data, textStatus) {
+        success: function (data) {
             if (data.errors !== undefined) {
                 showMessage('fail', responseArray.errors);
                 $btn.text(btn_text_backup);
@@ -162,18 +168,12 @@ function submitMergeAttributeIntoObjectForm(btn) {
                 location.reload();
             }
         },
-        error:function() {
+        error: function() {
             showMessage('fail', 'Could not merge Attributes into an Object.');
             showObjectProposition();
         },
-        type:"post",
+        type: "post",
         url: $form.attr('action')
     });
-}
-
-function updateObjectRelationDescription(changed) {
-    var $select = $(changed);
-    var text = $select.find(":selected").attr('title');
-    $select.parent().parent().find('#objectRelationDescription').text(text);
 }
 </script>

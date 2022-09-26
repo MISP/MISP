@@ -967,21 +967,17 @@ class GalaxyCluster extends AppModel
     }
 
     /**
-     * @param array $namesOrIds Cluster tag names or cluster IDs
+     * @param array $tagNames Cluster tag names with tag ID in key
      * @param array $user
      * @param bool $postProcess If true, self::postprocess method will be called.
      * @param bool $fetchFullCluster
      * @return array
      */
-    public function getClusters(array $namesOrIds, array $user, $postProcess = true, $fetchFullCluster = true)
+    public function getClustersByTags(array $tagNames, array $user, $postProcess = true, $fetchFullCluster = true)
     {
-        if (count(array_filter($namesOrIds, 'is_numeric')) === count($namesOrIds)) { // all elements are numeric
-            $conditions = array('GalaxyCluster.id' => $namesOrIds);
-        } else {
-            $conditions = array('GalaxyCluster.tag_name' => $namesOrIds);
-        }
-
-        $options = ['conditions' => $conditions];
+        $options = [
+            'conditions' => ['GalaxyCluster.tag_name' => $tagNames],
+        ];
         if (!$fetchFullCluster) {
             $options['contain'] = ['Galaxy', 'GalaxyElement'];
         }
@@ -989,17 +985,10 @@ class GalaxyCluster extends AppModel
         $clusters = $this->fetchGalaxyClusters($user, $options, $fetchFullCluster);
 
         if (!empty($clusters) && $postProcess) {
-            $tagNames = array_map('strtolower', array_column(array_column($clusters, 'GalaxyCluster'), 'tag_name'));
-            $tagIds = $this->Tag->find('list', [
-                'conditions' => ['LOWER(Tag.name)' => $tagNames],
-                'recursive' => -1,
-                'fields' => array('Tag.name', 'Tag.id'),
-            ]);
-            $tagIds = array_change_key_case($tagIds);
-
+            $tagIds = array_change_key_case(array_flip($tagNames));
             foreach ($clusters as $k => $cluster) {
                 $tagName = strtolower($cluster['GalaxyCluster']['tag_name']);
-                $clusters[$k] = $this->postprocess($cluster, isset($tagIds[$tagName]) ? $tagIds[$tagName] : null);
+                $clusters[$k] = $this->postprocess($cluster, $tagIds[$tagName] ?? null);
             }
         }
 
@@ -1142,7 +1131,7 @@ class GalaxyCluster extends AppModel
         }
 
         $this->Event = ClassRegistry::init('Event');
-        $sharingGroupData = $this->Event->__cacheSharingGroupData($user, false);
+        $sharingGroupData = $this->Event->__cacheSharingGroupData($user, true);
         foreach ($clusters as $i => $cluster) {
             if (!empty($cluster['GalaxyCluster']['sharing_group_id']) && isset($sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']])) {
                 $clusters[$i]['SharingGroup'] = $sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']];
@@ -1404,48 +1393,39 @@ class GalaxyCluster extends AppModel
     }
 
     /**
-     * fetchClusterById Simple ACL-aware method to fetch a cluster by Id or UUID
+     * Simple ACL-aware method to fetch a cluster by Id or UUID
      *
-     * @param  array $user
-     * @param  int|string $clusterId
-     * @param  bool  $full
+     * @param array $user
+     * @param int|string $clusterId Cluster ID or UUID
+     * @param bool $throwErrors
+     * @param bool $full
      * @return array
      */
     public function fetchClusterById(array $user, $clusterId, $throwErrors=true, $full=false)
     {
         $alias = $this->alias;
         if (Validation::uuid($clusterId)) {
-            $temp = $this->find('first', array(
-                'recursive' => -1,
-                'fields' => array("${alias}.id", "${alias}.uuid"),
-                'conditions' => array("${alias}.uuid" => $clusterId)
-            ));
-            if (empty($temp)) {
-                if ($throwErrors) {
-                    throw new NotFoundException(__('Invalid galaxy cluster'));
-                }
-                return array();
-            }
-            $clusterId = $temp[$alias]['id'];
-        } elseif (!is_numeric($clusterId)) {
+            $conditions = array("${alias}.uuid" => $clusterId);
+        } elseif (is_numeric($clusterId)) {
+            $conditions = array("${alias}.id" => $clusterId);
+        } else{
             if ($throwErrors) {
                 throw new NotFoundException(__('Invalid galaxy cluster'));
             }
             return array();
         }
-        $conditions = array('conditions' => array("${alias}.id" => $clusterId));
-        $cluster = $this->fetchGalaxyClusters($user, $conditions, $full=$full);
-        return $cluster;
+
+        return $this->fetchGalaxyClusters($user, ['conditions' => $conditions], $full=$full);
     }
 
 
     /**
-     * fetchIfAuthorized Fetches a cluster and checks if the user has the authorization to perform the requested operation
+     * Fetches a cluster and checks if the user has the authorization to perform the requested operation
      *
      * @param  array $user
      * @param  int|string|array $cluster
      * @param  mixed $authorizations the requested actions to be performed on the cluster
-     * @param  bool  $throwErrors Should the function throws excpetion if users is not allowed to perform the action
+     * @param  bool  $throwErrors Should the function throws exception if users is not allowed to perform the action
      * @param  bool  $full
      * @return array The cluster or an error message
      */
@@ -1474,7 +1454,7 @@ class GalaxyCluster extends AppModel
             return $cluster;
         }
 
-        if (in_array('view', $authorizations) && count($authorizations) == 1) {
+        if (in_array('view', $authorizations) && count($authorizations) === 1) {
             return $cluster;
         } else {
             if (!$user['Role']['perm_galaxy_editor']) {

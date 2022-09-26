@@ -25,6 +25,7 @@ App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('RandomTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('RedisTool', 'Tools');
 App::uses('BetterCakeEventManager', 'Tools');
 
 class AppModel extends Model
@@ -38,15 +39,15 @@ class AppModel extends Model
     /** @var BackgroundJobsTool */
     private static $loadedBackgroundJobsTool;
 
-    /** @var null|Redis */
-    private static $__redisConnection;
-
     private $__profiler = array();
 
     public $elasticSearchClient;
 
     /** @var AttachmentTool|null */
     private $attachmentTool;
+
+    /** @var Workflow|null */
+    private $Workflow;
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
@@ -83,7 +84,7 @@ class AppModel extends Model
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
-        93 => false,
+        93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -243,6 +244,9 @@ class AppModel extends Model
                     "SHOW INDEX FROM default_correlations WHERE Key_name = 'unique_correlation';"
                 );
                 if (empty($existing_index)) {
+                    // If there are duplicate entries, the query creating the `unique_correlation` index will result in an integrity constraint violation.
+                    // The query below cleans up potential duplicates before creating the constraint.
+                    $this->removeDuplicateCorrelationEntries('default_correlations');
                     $this->query(
                         "ALTER TABLE default_correlations
                         ADD CONSTRAINT unique_correlation
@@ -253,6 +257,7 @@ class AppModel extends Model
                     "SHOW INDEX FROM no_acl_correlations WHERE Key_name = 'unique_correlation';"
                 );
                 if (empty($existing_index)) {
+                    $this->removeDuplicateCorrelationEntries('no_acl_correlations');
                     $this->query(
                         "ALTER TABLE no_acl_correlations
                         ADD CONSTRAINT unique_correlation
@@ -260,6 +265,10 @@ class AppModel extends Model
                     );
                 }
                 $dbUpdateSuccess = true;
+                break;
+            case 96:
+                $this->removeDuplicatedUUIDs();
+                $dbUpdateSuccess = $this->updateDatabase('createUUIDsConstraints');
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -1851,6 +1860,23 @@ class AppModel extends Model
                 $this->__dropIndex('default_correlations', '1_event_sharing_group_id');
                 $this->__dropIndex('default_correlations', '1_org_id');
                 break;
+            case 94:
+                $sqlArray[] = "UPDATE `over_correlating_values` SET `value` = SUBSTR(`value`, 1, 191);"; // truncate then migrate
+                $sqlArray[] = "ALTER TABLE `over_correlating_values` MODIFY `value` varchar(191) NOT NULL;";
+                break;
+            case 95:
+                $sqlArray[] = "ALTER TABLE `servers` ADD `remove_missing_tags` tinyint(1) NOT NULL DEFAULT 0 AFTER `skip_proxy`;";
+                break;
+            case 97:
+                $sqlArray[] = "ALTER TABLE `users`
+                    ADD COLUMN `notification_daily`     tinyint(1) NOT NULL DEFAULT 0,
+                    ADD COLUMN `notification_weekly`    tinyint(1) NOT NULL DEFAULT 0,
+                    ADD COLUMN `notification_monthly`   tinyint(1) NOT NULL DEFAULT 0
+                ;";
+                break;
+            case 98:
+                $this->__addIndex('object_template_elements', 'object_template_id');
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1918,6 +1944,15 @@ class AppModel extends Model
                     ;";
                 $indexArray[] = array('shadow_attributes', 'first_seen');
                 $indexArray[] = array('shadow_attributes', 'last_seen');
+                break;
+            case 'createUUIDsConstraints':
+                $tables_to_check = ['events', 'attributes', 'objects', 'sightings', 'dashboards', 'inbox', 'organisations', 'tag_collections'];
+                foreach ($tables_to_check as $table) {
+                    if (!$this->__checkIndexExists($table, 'uuid', true)) {
+                        $this->__dropIndex($table, 'uuid');
+                        $this->__addIndex($table, 'uuid', null, true);
+                    }
+                }
                 break;
             default:
                 return false;
@@ -2169,6 +2204,18 @@ class AppModel extends Model
         return $additionResult;
     }
 
+    private function __checkIndexExists($table, $column_name, $is_unique = false): bool
+    {
+        $query = sprintf(
+            'SHOW INDEX FROM %s WHERE Column_name = \'%s\' and Non_unique = %s;',
+            $table,
+            $column_name,
+            !empty($is_unique) ? '0' : '1'
+        );
+        $existing_index = $this->query($query);
+        return !empty($existing_index);
+    }
+
     public function cleanCacheFiles()
     {
         Cache::clear();
@@ -2334,14 +2381,14 @@ class AppModel extends Model
                     $job = ClassRegistry::init('Job');
                     $jobId = $job->createJob(
                             'SYSTEM',
-                            Job::WORKER_PRIO,
+                            Job::WORKER_UPDATE,
                             'run_updates',
                             'command: ' . implode(',', $updates),
                             'Updating.'
                         );
 
                     $this->getBackgroundJobsTool()->enqueue(
-                        BackgroundJobsTool::PRIO_QUEUE,
+                        BackgroundJobsTool::UPDATE_QUEUE,
                         BackgroundJobsTool::CMD_ADMIN,
                         [
                             'runUpdates',
@@ -2578,7 +2625,7 @@ class AppModel extends Model
         return $remainingTime > 0 || $failThresholdReached;
     }
 
-    public function getUpdateFailNumber()
+    private function getUpdateFailNumber()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $updateFailNumber = $this->AdminSetting->getSetting('update_fail_number');
@@ -2591,7 +2638,7 @@ class AppModel extends Model
         $this->AdminSetting->changeSetting('update_fail_number', 0);
     }
 
-    public function __increaseUpdateFailNumber()
+    private function __increaseUpdateFailNumber()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $updateFailNumber = $this->AdminSetting->getSetting('update_fail_number');
@@ -2693,6 +2740,143 @@ class AppModel extends Model
         return true;
     }
 
+    private function removeDuplicatedUUIDs()
+    {
+        $removedResults = array(
+            'Event' => $this->removeDuplicateEventUUIDs(),
+            'Attribute' => $this->removeDuplicateAttributeUUIDs(),
+            'Object' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('MispObject'), 'timestamp'),
+            'Sighting' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Sighting'), 'date_sighting'),
+            'Dashboard' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Dashboard'), 'timestamp'),
+            'Inbox' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('Inbox'), 'timestamp'),
+            'TagCollection' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('TagCollection')),
+            // 'GalaxyCluster' => $this->__removeDuplicateUUIDsGeneric(ClassRegistry::init('GalaxyCluster')),
+        );
+        $this->Log->createLogEntry('SYSTEM', 'update_database', 'Server', 0, __('Removed duplicated UUIDs'), __('Event: %s, Attribute: %s, Object: %s, Sighting: %s, Dashboard: %s, Inbox: %s, TagCollection: %s', h($removedResults['Event']), h($removedResults['Attribute']), h($removedResults['Object']), h($removedResults['Sighting']), h($removedResults['Dashboard']), h($removedResults['Inbox']), h($removedResults['TagCollection'])));
+    }
+
+    private function __removeDuplicateUUIDsGeneric($model, $sort_by=false): int
+    {
+        $className = get_class($model);
+        $alias = $model->alias;
+        $this->Log = ClassRegistry::init('Log');
+        $duplicates = $model->find('all', array(
+            'fields' => array('uuid', 'count(uuid) as occurrence'),
+            'recursive' => -1,
+            'group' => array('uuid HAVING occurrence > 1'),
+        ));
+        $counter = 0;
+        foreach ($duplicates as $duplicate) {
+            $options = [
+                'recursive' => -1,
+                'conditions' => array('uuid' => $duplicate[$alias]['uuid']),
+            ];
+            if (!empty($sort_by)) {
+                $options['order'] = "$sort_by DESC";
+            }
+            $fetched_duplicates = $model->find('all', $options);
+            unset($fetched_duplicates[0]);
+            foreach ($fetched_duplicates as $fetched_duplicate) {
+                $model->delete($fetched_duplicate[$alias]['id']);
+                $this->Log->createLogEntry('SYSTEM', 'delete', $className, $fetched_duplicate[$alias]['id'], __('Removed %s (%s)', $className, $fetched_duplicate[$alias]['id']), __('%s\'s UUID duplicated (%s)', $className, $fetched_duplicate[$alias]['uuid']));
+                $counter++;
+            }
+        }
+        return $counter;
+    }
+
+    private function removeDuplicateAttributeUUIDs()
+    {
+        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Log = ClassRegistry::init('Log');
+        $duplicates = $this->Attribute->find('all', array(
+            'fields' => array('Attribute.uuid', 'count(Attribute.uuid) as occurrence'),
+            'recursive' => -1,
+            'group' => array('Attribute.uuid HAVING occurrence > 1'),
+            'order' => false,
+        ));
+        $counter = 0;
+        foreach ($duplicates as $duplicate) {
+            $attributes = $this->Attribute->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('uuid' => $duplicate['Attribute']['uuid']),
+                'contain' => array(
+                    'AttributeTag' => array(
+                        'fields' => array('tag_id')
+                    )
+                ),
+                'order' => 'timestamp DESC',
+            ));
+            $tagIDsOfFirstAttribute = Hash::extract($attributes[0]['AttributeTag'], '{n}.tag_id');
+            $eventIDOfFirstAttribute = $attributes[0]['Attribute']['event_id'];
+            unset($attributes[0]);
+            foreach ($attributes as $attribute) {
+                $tagIDs = Hash::extract($attribute['AttributeTag'], '{n}.tag_id');
+                $logTag = false;
+                $logEventID = false;
+                if (empty(array_diff($tagIDs, $tagIDsOfFirstAttribute))) {
+                    $logTag = true;
+                }
+                if ($eventIDOfFirstAttribute != $attribute['Attribute']['event_id']) {
+                    $logEventID = true;
+                }
+                $success = $this->Attribute->delete($attribute['Attribute']['id']);
+                if (empty($success)) {
+                    $this->Log->createLogEntry('SYSTEM', 'delete', 'Attribute', $attribute['Attribute']['id'], __('Could not remove attribute (%s)', $attribute['Attribute']['id']), __('Deletion was rejected.'));
+                    continue;
+                }
+                $logMessage = __('Attribute\'s UUID duplicated (%s).', $attribute['Attribute']['uuid']);
+                if ($logEventID) {
+                    $logMessage .= __(' Was part of another event_id (%s) than the one that was kept (%s).', $attribute['Attribute']['event_id'], $eventIDOfFirstAttribute);
+                } else if ($logTag) {
+                    $logMessage .= __(' Tag IDs attached [%s]', implode($tagIDs));
+                } else {
+                }
+                $this->Log->createLogEntry('SYSTEM', 'delete', 'Attribute', $attribute['Attribute']['id'], __('Removed attribute (%s)', $attribute['Attribute']['id']), $logMessage);
+                $counter++;
+            }
+        }
+        return $counter;
+    }
+
+    private function removeDuplicateEventUUIDs()
+    {
+        $this->Event = ClassRegistry::init('Event');
+        $this->Log = ClassRegistry::init('Log');
+        $duplicates = $this->Event->find('all', array(
+                'fields' => array('Event.uuid', 'count(Event.uuid) as occurrence'),
+                'recursive' => -1,
+                'group' => array('Event.uuid HAVING occurrence > 1'),
+        ));
+        $counter = 0;
+
+        // load this so we can remove the blocklist item that will be created, this is the one case when we do not want it.
+        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+        }
+
+        foreach ($duplicates as $duplicate) {
+            $events = $this->Event->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('uuid' => $duplicate['Event']['uuid']),
+                'order' => 'timestamp DESC',
+            ));
+            unset($events[0]);
+            foreach ($events as $event) {
+                $uuid = $event['Event']['uuid'];
+                $this->Event->delete($event['Event']['id']);
+                $this->Log->createLogEntry('SYSTEM', 'delete', 'Event', $event['Event']['id'], __('Removed event (%s)', $event['Event']['id']), __('Event\'s UUID duplicated (%s)', $event['Event']['uuid']));
+                $counter++;
+                // remove the blocklist entry that we just created with the event deletion, if the feature is enabled
+                // We do not want to block the UUID, since we just deleted a copy
+                if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+                    $this->EventBlocklist->deleteAll(array('EventBlocklist.event_uuid' => $uuid));
+                }
+            }
+        }
+        return $counter;
+    }
+
     public function checkFilename($filename)
     {
         return preg_match('@^([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+$@i', $filename);
@@ -2702,37 +2886,11 @@ class AppModel extends Model
      * Similar method as `setupRedis`, but this method throw exception if Redis cannot be reached.
      * @return Redis
      * @throws Exception
+     * @deprecated
      */
     public function setupRedisWithException()
     {
-        if (self::$__redisConnection) {
-            return self::$__redisConnection;
-        }
-
-        if (!class_exists('Redis')) {
-            throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
-        }
-
-        $host = Configure::read('MISP.redis_host') ?: '127.0.0.1';
-        $port = Configure::read('MISP.redis_port') ?: 6379;
-        $database = Configure::read('MISP.redis_database') ?: 13;
-        $pass = Configure::read('MISP.redis_password');
-
-        $redis = new Redis();
-        if (!$redis->connect($host, (int) $port)) {
-            throw new Exception("Could not connect to Redis: {$redis->getLastError()}");
-        }
-        if (!empty($pass)) {
-            if (!$redis->auth($pass)) {
-                throw new Exception("Could not authenticate to Redis: {$redis->getLastError()}");
-            }
-        }
-        if (!$redis->select($database)) {
-            throw new Exception("Could not select Redis database $database: {$redis->getLastError()}");
-        }
-
-        self::$__redisConnection = $redis;
-        return $redis;
+        return RedisTool::init();
     }
 
     /**
@@ -2744,7 +2902,7 @@ class AppModel extends Model
     public function setupRedis()
     {
         try {
-            return $this->setupRedisWithException();
+            return RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
@@ -3102,7 +3260,7 @@ class AppModel extends Model
         return $filter;
     }
 
-    public function convert_to_memory_limit_to_mb($val)
+    protected function convert_to_memory_limit_to_mb($val)
     {
         $val = trim($val);
         if ($val == -1) {
@@ -3556,22 +3714,6 @@ class AppModel extends Model
         return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSourceName === 'Database/MysqlExtended' || $dataSource instanceof Mysql;
     }
 
-    public function getCorrelationModelName()
-    {
-        if (!empty(Configure::read('MISP.correlation_engine'))) {
-            return Configure::read('MISP.correlation_engine');
-        }
-        return 'Default';
-    }
-
-    public function loadCorrelationModel()
-    {
-        if (!empty(Configure::read('MISP.correlation_engine'))) {
-            return ClassRegistry::init(Configure::read('MISP.correlation_engine'));
-        }
-        return ClassRegistry::init('Correlation');
-    }
-
     /**
      * executeTrigger
      *
@@ -3583,9 +3725,6 @@ class AppModel extends Model
      */
     public function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
     {
-        if ($this->Workflow === null) {
-            $this->Workflow = ClassRegistry::init('Workflow');
-        }
         if ($this->isTriggerCallable($trigger_id)) {
            $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
            if (!empty($logging) && empty($success)) {
@@ -3607,13 +3746,6 @@ class AppModel extends Model
             $this->Workflow->checkTriggerListenedTo($trigger_id);
     }
 
-    public function addPendingLogEntry($logEntry)
-    {
-        $logEntries = Configure::read('pendingLogEntries');
-        $logEntries[] = $logEntry;
-        Configure::write('pendingLogEntries', $logEntries);
-    }
-
     /**
      * Use different CakeEventManager to fix memory leak
      * @return CakeEventManager
@@ -3628,7 +3760,8 @@ class AppModel extends Model
         return $this->_eventManager;
     }
 
-    private function __retireOldCorrelationEngine($user = null) {
+    private function __retireOldCorrelationEngine($user = null)
+    {
         if ($user === null) {
             $user = [
                 'id' => 0,
@@ -3683,5 +3816,25 @@ class AppModel extends Model
                 $jobId
             );
         }
+    }
+
+    public function removeDuplicateCorrelationEntries($table_name = 'default_correlations')
+    {
+        // If there are duplicate entries, the query creating the `unique_correlation` index will result in an integrity constraint violation.
+        // The query below cleans up potential duplicates before creating the constraint.
+        return $this->query("
+            DELETE FROM `$table_name` WHERE id in (
+                SELECT m_id FROM (
+                    SELECT MAX(corr_a.id) as m_id, CONCAT(corr_a.attribute_id, \" - \", corr_a.1_attribute_id, \" - \", corr_a.value_id) as uniq FROM `$table_name` corr_a
+                    INNER JOIN `$table_name` corr_b on corr_a.attribute_id = corr_b.attribute_id
+                    WHERE
+                        corr_a.attribute_id = corr_b.attribute_id AND
+                        corr_a.1_attribute_id = corr_b.1_attribute_id AND
+                        corr_a.value_id = corr_b.value_id AND
+                        corr_a.id <> corr_b.id
+                    GROUP BY uniq
+                ) as c
+            );
+        ");
     }
 }

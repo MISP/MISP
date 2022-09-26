@@ -4864,13 +4864,13 @@
             },
             {
                 "column_name": "value",
-                "is_nullable": "YES",
-                "data_type": "text",
-                "character_maximum_length": "65535",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
-                "column_type": "text",
-                "column_default": "NULL",
+                "column_type": "varchar(191)",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -5717,6 +5717,17 @@
                 "collation_name": null,
                 "column_type": "tinyint(1)",
                 "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "remove_missing_tags",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
                 "extra": ""
             },
             {
@@ -8179,6 +8190,39 @@
                 "column_type": "int(11)",
                 "column_default": "0",
                 "extra": ""
+            },
+            {
+                "column_name": "notification_daily",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "notification_weekly",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "notification_monthly",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
             }
         ],
         "user_settings": [
@@ -8687,7 +8731,7 @@
             "restrict_to_org_id": false,
             "restrict_to_permission_flag": false,
             "user_id": false,
-            "uuid": false
+            "uuid": true
         },
         "decaying_models": {
             "all_orgs": false,
@@ -8825,7 +8869,7 @@
             "title": false,
             "type": false,
             "user_agent_sha256": false,
-            "uuid": false
+            "uuid": true
         },
         "jobs": {
             "id": true
@@ -8894,7 +8938,8 @@
         "object_template_elements": {
             "id": true,
             "object_relation": false,
-            "type": false
+            "type": false,
+            "object_template_id": false
         },
         "organisations": {
             "id": true,
@@ -9018,7 +9063,7 @@
             "id": true,
             "org_id": false,
             "user_id": false,
-            "uuid": false
+            "uuid": true
         },
         "tag_collection_tags": {
             "id": true,
@@ -9105,5 +9150,5 @@
             "uuid": false
         }
     },
-    "db_version": "93"
+    "db_version": "98"
 }

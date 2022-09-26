@@ -34,7 +34,7 @@ class Module_tag_operation extends WorkflowBaseActionModule
             'order' => ['name asc'],
             'fields' => ['Tag.id', 'Tag.name']
         ]);
-        $tags = array_column(array_column($tags, 'Tag'), 'name', 'id');
+        $tags = array_column(array_column($tags, 'Tag'), 'name');
         $this->params = [
             [
                 'id' => 'scope',
@@ -73,6 +73,7 @@ class Module_tag_operation extends WorkflowBaseActionModule
         $params = $this->getParamsWithValues($node);
 
         $rData = $roamingData->getData();
+        $user = $roamingData->getUser();
 
         if ($this->filtersEnabled($node)) {
             $filters = $this->getFilters($node);
@@ -84,7 +85,7 @@ class Module_tag_operation extends WorkflowBaseActionModule
         } else {
             $matchingItems = $rData;
             if ($params['scope']['value'] == 'attribute') {
-                $matchingItems = Hash::extract($matchingItems, '_AttributeFlattened.{n}');
+                $matchingItems = Hash::extract($matchingItems, 'Event._AttributeFlattened.{n}');
             }
         }
         $result = false;
@@ -92,23 +93,23 @@ class Module_tag_operation extends WorkflowBaseActionModule
             if ($params['action']['value'] == 'remove') {
                 $result = $this->__removeTagsFromEvent($matchingItems, $params['tags']['value']);
             } else {
-                $result = $this->__addTagsToEvent($matchingItems, $params['tags']['value']);
+                $result = $this->__addTagsToEvent($matchingItems, $params['tags']['value'], $user);
             }
         } else {
             if ($params['action']['value'] == 'remove') {
                 $result = $this->__removeTagsFromAttributes($matchingItems, $params['tags']['value']);
             } else {
-                $result = $this->__addTagsToAttributes($matchingItems, $params['tags']['value']);
+                $result = $this->__addTagsToAttributes($matchingItems, $params['tags']['value'], $user);
             }
         }
         return $result;
     }
 
-    private function __addTagsToAttributes(array $attributes, array $tags): bool
+    private function __addTagsToAttributes(array $attributes, array $tags, array $user): bool
     {
         $success = false;
         foreach ($attributes as $attribute) {
-            $saveSuccess = $this->Attribute->attachTagsFromAttributeAndTouch($attribute['id'], $attribute['event_id'], $tags);
+            $saveSuccess = $this->Attribute->attachTagsFromAttributeAndTouch($attribute['id'], $attribute['event_id'], $tags, $user);
             $success = $success || !empty($saveSuccess);
         }
         return $success;
@@ -124,9 +125,9 @@ class Module_tag_operation extends WorkflowBaseActionModule
         return $success;
     }
 
-    private function __addTagsToEvent(array $event, array $tags): bool
+    private function __addTagsToEvent(array $event, array $tags, array $user): bool
     {
-        return !empty($this->Event->attachTagsToEventAndTouch($event['Event']['id'], $tags));
+        return !empty($this->Event->attachTagsToEventAndTouch($event['Event']['id'], $tags, $user));
     }
 
     private function __removeTagsFromEvent(array $event, array $tags): bool

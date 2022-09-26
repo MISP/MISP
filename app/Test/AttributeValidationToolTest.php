@@ -135,6 +135,12 @@ class AttributeValidationToolTest extends TestCase
         $this->assertEquals('xn--hkyrky-ptac70bc.cz|127.0.0.1', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'HÁČKYČÁRKY.CZ|127.0.0.1'));
     }
 
+    public function testSssdeep()
+    {
+        $this->shouldBeValid('ssdeep', ["768:+OFu8Q3w6QzfR5Jni6SQD7qSFDs6P93/q0XIc/UB5EPABWX:RFu8QAFzffJui79f13/AnB5EPAkX"]);
+        $this->shouldBeInvalid('ssdeep', ["768:+OFu8Q3w6QzfR5Jni6SQD7qSFDs6P93/q0XIc/UB5EPABWX\n\n:RFu8QAFzffJui79f13/AnB5EPAkX"]);
+    }
+
     private function shouldBeValid($type, array $values)
     {
         foreach ($values as $value) {

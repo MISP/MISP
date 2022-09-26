@@ -35,8 +35,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '143';
-    public $pyMispVersion = '2.4.160';
+    private $__queryVersion = '145';
+    public $pyMispVersion = '2.4.162';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -48,14 +48,6 @@ class AppController extends Controller
     public $sql_dump = false;
 
     public $restResponsePayload = null;
-
-    // Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
-    // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
-    public $automationArray = array(
-        'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
-        'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
-        'objects' => array('restSearch')
-    );
 
     protected $_legacyParams = array();
     /** @var array */

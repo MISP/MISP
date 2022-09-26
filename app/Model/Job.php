@@ -11,7 +11,8 @@ class Job extends AppModel
     const WORKER_EMAIL = 'email',
         WORKER_PRIO = 'prio',
         WORKER_DEFAULT = 'default',
-        WORKER_CACHE = 'cache';
+        WORKER_CACHE = 'cache',
+        WORKER_UPDATE = 'update';
 
     public $belongsTo = array(
         'Org' => array(

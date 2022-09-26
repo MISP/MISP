@@ -995,6 +995,15 @@ a.proposal_link_red:hover {
     border-radius: 3px 0 3px 0;
 }
 
+.report-container {
+    margin: 0 auto;
+    max-width: 1500px;
+    justify-content: center;
+    padding: 10px 15px;
+    overflow-y: auto;
+    box-shadow: 0 2px 6px 6px #eee;
+}
+
 .modal-body-long {
     max-height: 600px;
 }

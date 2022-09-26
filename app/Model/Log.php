@@ -402,6 +402,8 @@ class Log extends AppModel
             }
             if (!empty($data['Log']['description'])) {
                 $entry .= " -- {$data['Log']['description']}";
+            } else if (!empty($data['Log']['change'])) {
+                $entry .= " -- " . json_encode($data['Log']['change']);
             }
             $this->syslog->write($action, $entry);
         }

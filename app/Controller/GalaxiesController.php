@@ -437,10 +437,11 @@ class GalaxiesController extends AppController
         )), 'GalaxyCluster');
         $synonyms = $this->Galaxy->GalaxyCluster->GalaxyElement->find('all', array(
             'conditions' => array(
-                'GalaxyElement.galaxy_cluster_id' => array_column($data, 'id'),
-                'GalaxyElement.key' => 'synonyms'
+                'GalaxyElement.key' => 'synonyms',
+                $conditions
             ),
             'fields' => ['GalaxyElement.galaxy_cluster_id', 'GalaxyElement.value'],
+            'contain' => 'GalaxyCluster',
             'recursive' => -1
         ));
         $sortedSynonyms = array();

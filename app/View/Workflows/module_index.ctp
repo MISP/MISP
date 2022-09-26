@@ -13,7 +13,7 @@
             'sort' => 'name',
             'data_path' => 'name',
             'element' => 'custom',
-            'class' => 'bold short',
+            'class' => 'bold shortish',
             'function' => function ($row) use ($baseurl) {
                 if (!empty($row['icon'])) {
                     return sprintf('<i class="fa-fw %s"></i> %s', $this->FontAwesome->getClass($row['icon']), h($row['name']));

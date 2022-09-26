@@ -629,6 +629,10 @@ class BackgroundJobsTool
             ];
         }
 
+        if (!isset($this->settings['supervisor_host'])) {
+            throw new RuntimeException("Required option `supervisor_host` for BackgroundJobsTool is not set.");
+        }
+
         $host = null;
         if (substr($this->settings['supervisor_host'], 0, 5) === 'unix:') {
             if (!defined('CURLOPT_UNIX_SOCKET_PATH')) {

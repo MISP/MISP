@@ -723,9 +723,9 @@ function loadWorkflow(workflow) {
     Object.values(workflow.data).forEach(function (node) {
         var module = all_modules_by_id[node.data.id] || all_triggers_by_id[node.data.id]
         if (!module) {
-            console.error('Tried to add node for unknown module ' + node.data.module_data.id + ' (' + node.id + ')')
+            console.error('Tried to add node for unknown module ' + node.data.id + ' (' + node.id + ')')
             var html = window['dotBlock_error']({
-                error: 'Invalid module id`' + node.data.module_data.id + '` (' + node.id + ')',
+                error: 'Invalid module id`' + node.data.id + '` (' + node.id + ')',
                 data: JSON.stringify(node.data.indexed_params, null, 2)
             })
             editor.addNode(
@@ -1213,6 +1213,13 @@ function deleteSelectedNode() {
     editor.removeNodeId(getSelectedNodeID())
 }
 
+function getNodeFromContainedHtml(htmlNode) {
+    var $drawflowNode = $(htmlNode).closest('.drawflow-node')
+    var nodeStringId = $drawflowNode.attr('id')
+    var nodeId = nodeStringId ? parseInt(nodeStringId.split('-')[1]) : null 
+    return nodeId !== null ? editor.getNodeFromId(nodeId) : null
+}
+
 function deleteSelectedNodes(fromDelKey) {
     selection.getSelection().forEach(function(node) {
         if (fromDelKey && getSelectedNodeID() !== null && getSelectedNodeID() == node.id) {
@@ -1335,6 +1342,7 @@ function genNodeParamHtml(node, forNode = true) {
 function afterNodeDrawCallback() {
     var $nodes = $drawflow.find('.drawflow-node')
     $nodes.find('.start-chosen').chosen()
+    toggleDisplayOnFields()
 }
 
 function afterModalShowCallback() {
@@ -1356,6 +1364,34 @@ function afterModalShowCallback() {
             cm.save()
             handleInputChange(cm.getTextArea())
         })
+    })
+}
+
+function toggleDisplayOnFields() {
+    var $nodes = $drawflow.find('.drawflow-node')
+    $nodes.find('div.node-param-container.display-on').each(function() {
+        var $container = $(this)
+        var node = getNodeFromContainedHtml($container)
+        var param_id = $container.attr('param-id')
+        var node_param_config = node.data.module_data.params.filter(function(param_config) {
+            return param_config.id == param_id
+        })
+        var showContainer = false
+        if (node_param_config) {
+            node_param_config = node_param_config[0]
+            Object.keys(node_param_config.display_on).forEach(function(target_param_id) {
+                var target_param_values = node_param_config.display_on[target_param_id]
+                var node_param_value = node.data.indexed_params[target_param_id]
+                if (target_param_values == node_param_value) {
+                    showContainer = true
+                }
+            });
+        }
+        if (showContainer) {
+            $container.show()
+        } else {
+            $container.hide()
+        }
     })
 }
 
@@ -1381,6 +1417,11 @@ function genParameterWarning(options) {
 
 function genSelect(options, forNode = true) {
     var $container = $('<div>')
+        .addClass('node-param-container')
+        .attr('param-id', options.id)
+    if (options.display_on) {
+        $container.addClass('display-on')
+    }
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
@@ -1450,6 +1491,8 @@ function genPicker(options, forNode = true) {
 
 function genInput(options, isTextArea, forNode = true) {
     var $container = $('<div>')
+        .addClass('node-param-container')
+        .data('param-id', options.id)
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
@@ -1513,6 +1556,8 @@ function genCheckbox(options, forNode = true) {
     }
     $label.append($input)
     var $container = $('<div>')
+        .addClass('node-param-container')
+        .data('param-id', options.id)
         .addClass('checkbox')
         .append($label)
     return $container
@@ -1520,6 +1565,8 @@ function genCheckbox(options, forNode = true) {
 
 function genRadio(options, forNode = true) {
     var $container = $('<div>')
+        .addClass('node-param-container')
+        .data('param-id', options.id)
     var $rootLabel = $('<label>')
         .css({
             marginLeft: '0.25em',
@@ -1577,6 +1624,7 @@ function handleInputChange(changed) {
     var node = getNodeFromNodeInput($input)
     var node_data = setParamValueForInput($input, node.data)
     editor.updateNodeDataFromId(node.id, node_data)
+    toggleDisplayOnFields()
     invalidateContentCache()
 }
 
@@ -1585,6 +1633,7 @@ function handleSelectChange(changed) {
     var node = getNodeFromNodeInput($input)
     var node_data = setParamValueForInput($input, node.data)
     editor.updateNodeDataFromId(node.id, node_data)
+    toggleDisplayOnFields()
     invalidateContentCache()
 }
 
@@ -1598,6 +1647,9 @@ function saveFilteringForModule() {
             $('<div></div>').addClass('alert alert-danger').text('Some fields cannot be empty')
         )
     } else {
+        if (selector.length == 0 && value.length == 0 && path.length == 0) {
+            operator = ''
+        }
         var node_id = $blockFilteringModal.data('selected-node-id')
         var block = $blockFilteringModal.data('selected-block')
         block.saved_filters = {

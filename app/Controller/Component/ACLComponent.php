@@ -729,6 +729,7 @@ class ACLComponent extends Component
                 'initiatePasswordReset' => ['AND' => ['perm_admin', 'password_change_enabled']],
                 'login' => array('*'),
                 'logout' => array('*'),
+                'notificationSettings' => ['*'],
                 'register' => array('*'),
                 'registrations' => array(),
                 'resetAllSyncAuthKeys' => array(),
@@ -743,6 +744,7 @@ class ACLComponent extends Component
                 'verifyCertificate' => array(),
                 'verifyGPG' => array(),
                 'view' => array('*'),
+                'viewPeriodicSummary' => ['*'],
                 'getGpgPublicKey' => array('*'),
                 'unsubscribe' => ['*'],
             ),
@@ -784,6 +786,7 @@ class ACLComponent extends Component
                 'executeWorkflow'=> [],
                 'debugToggleField'=> [],
                 'massToggleField'=> [],
+                'moduleStatelessExecution'=> [],
             ],
             'workflowBlueprints' => [
                 'add' => [],

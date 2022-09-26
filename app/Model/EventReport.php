@@ -916,7 +916,7 @@ class EventReport extends AppModel
             'url' => $url
         ];
         if (!empty($module)) {
-            $result = $this->Module->queryModuleServer($modulePayload, false);
+            $result = $this->Module->queryModuleServer($modulePayload, false, 'Enrichment', false, []);
             if (empty($result['results'][0]['values'][0])) {
                 return '';
             }

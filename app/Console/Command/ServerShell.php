@@ -14,6 +14,20 @@ class ServerShell extends AppShell
 {
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
 
+    public function getOptionParser()
+    {
+        $parser = parent::getOptionParser();
+        $parser->addSubcommand('fetchIndex', [
+            'help' => __('Fetch remote instance event index.'),
+            'parser' => array(
+                'arguments' => array(
+                    'server_id' => ['help' => __('Remote server ID.'), 'required' => true],
+                ),
+            )
+        ]);
+        return $parser;
+    }
+
     public function list()
     {
         $servers = $this->Server->find('all', [
@@ -55,9 +69,17 @@ class ServerShell extends AppShell
         echo $this->json($res) . PHP_EOL;
     }
 
+    public function fetchIndex()
+    {
+        $serverId = intval($this->args[0]);
+        $server = $this->getServer($serverId);
+        $serverSync = new ServerSyncTool($server, $this->Server->setupSyncRequest($server));
+        $index = $this->Server->getEventIndexFromServer($serverSync);
+        echo $this->json($index) . PHP_EOL;
+    }
+
     public function pullAll()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['PullAll'] . PHP_EOL);
         }
@@ -367,7 +389,6 @@ class ServerShell extends AppShell
 
     public function enqueuePull()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue pull'] . PHP_EOL);
         }
@@ -430,7 +451,6 @@ class ServerShell extends AppShell
 
     public function enqueueFeedFetch()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue feed fetch'] . PHP_EOL);
         }
@@ -480,7 +500,6 @@ class ServerShell extends AppShell
 
     public function enqueueFeedCache()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue feed cache'] . PHP_EOL);
         }
@@ -537,7 +556,6 @@ class ServerShell extends AppShell
 
     public function enqueuePush()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue push'] . PHP_EOL);
         }
@@ -576,6 +594,36 @@ class ServerShell extends AppShell
         }
         $this->Task->id = $task['Task']['id'];
         $this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');
+    }
+
+    public function sendPeriodicSummaryToUsers()
+    {
+        $periods = $this->__getPeriodsForToday();
+        $start_time = time();
+        echo __n('Started periodic summary generation for the %s period', 'Started periodic summary generation for periods: %s', count($periods), implode(', ', $periods)) . PHP_EOL;
+        foreach ($periods as $period) {
+            $users = $this->User->getSubscribedUsersForPeriod($period);
+            echo __n('%s user has subscribed for the `%s` period', '%s users has subscribed for the `%s` period', count($users), count($users), $period) . PHP_EOL;
+            foreach ($users as $user) {
+                echo __('Sending `%s` report to `%s`', $period, $user['User']['email']) . PHP_EOL;
+                $emailTemplate = $this->User->generatePeriodicSummary($user['User']['id'], $period, false);
+                $this->User->sendEmail($user, $emailTemplate, false, null);
+            }
+        }
+        echo __('All reports sent. Task took %s seconds', time() -  $start_time) . PHP_EOL;
+    }
+
+    private function __getPeriodsForToday(): array
+    {
+        $today = new DateTime();
+        $periods = ['daily'];
+        if ($today->format('j') == 1) {
+            $periods[] = 'monthly';
+        }
+        if ($today->format('N') == 1) {
+            $periods[] = 'weekly';
+        }
+        return $periods;
     }
 
     /**
