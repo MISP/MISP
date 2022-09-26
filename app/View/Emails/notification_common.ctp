@@ -54,7 +54,6 @@ $eventLink = sprintf('%s/events/index/searchpublished:1/searchPublishTimestamp:%
 
 $processed_correlations = [];
 $new_correlations = [];
-
 foreach ($events as $event) {
     $unique_tag_per_event = [];
     $attribute_number += count($event['Attribute']);
@@ -213,6 +212,7 @@ uasort($mitre_attack_techniques, function($tag1, $tag2) use ($all_tag_amount) {
 
 array_splice($attribute_types, 10);
 array_splice($object_types, 10);
+array_splice($all_tag_amount, 10);
 array_splice($mitre_attack_techniques, 10);
 ?>
 
@@ -453,7 +453,6 @@ array_splice($mitre_attack_techniques, 10);
             <?php endif; ?>
 
             <?php if ($this->fetch('detailed-summary-correlations')) : ?>
-                <?= $this->fetch('detailed-summary-correlations'); ?>
             <?php else: ?>
                 <?php if (!empty($new_correlations)) : ?>
                     <h4><?= __('New correlations') ?><small style="color: #999999;"><?= sprintf(' (%s)', count($new_correlations)) ?></small></h4>
@@ -524,8 +523,6 @@ array_splice($mitre_attack_techniques, 10);
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-    </div>
-    <?php endif; // detailed-summary-full 
     ?>
 
     <?php if ($this->fetch('trending-summary')) : ?>
