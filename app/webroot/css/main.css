@@ -2613,6 +2613,10 @@ ul.correlations li span, ul.correlations li a {
     margin-right:3px;
 }
 
+ul.correlations li .popover span {
+    margin-right: 0;
+}
+
 .break-word {
     word-wrap: break-word;
 }
