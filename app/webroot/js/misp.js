@@ -913,10 +913,18 @@ function toggleAllTaxonomyCheckboxes() {
 function attributeListAnyAttributeCheckBoxesChecked() {
     if ($('.select_attribute:checked').length > 0) {
         $('.mass-select').removeClass('hidden');
-        $('#create-button').removeClass('last');
+        if ($("#object-button").length) {
+            $("#object-button").removeClass('last');
+        } else {
+            $('#create-button').removeClass('last');
+        }
     } else {
         $('.mass-select').addClass('hidden');
-        $('#create-button').addClass('last');
+        if ($("#object-button").length) {
+            $("#object-button").addClass('last');
+        } else {
+            $('#create-button').addClass('last');
+        }
     }
 }
 
