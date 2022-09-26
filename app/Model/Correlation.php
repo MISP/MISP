@@ -6,7 +6,8 @@ App::uses('AppModel', 'Model');
  * @property Event $Event
  * @property CorrelationValue $CorrelationValue
  * @method saveCorrelations(array $correlations)
- * @method runBeforeSaveCorrelation
+ * @method createCorrelationEntry(string $value, array $a, array $b)
+ * @method runBeforeSaveCorrelation(array $attribute)
  * @method fetchRelatedEventIds(array $user, int $eventId, array $sgids)
  * @method getFieldRules
  * @method getContainRules($filter = null)
@@ -15,8 +16,6 @@ class Correlation extends AppModel
 {
     const CACHE_NAME = 'misp:top_correlations',
         CACHE_AGE = 'misp:top_correlations_age';
-
-    private $__compositeTypes = [];
 
     public $belongsTo = array(
         'Attribute' => [
@@ -56,9 +55,6 @@ class Correlation extends AppModel
     /** @var array */
     private $cidrListCache;
 
-    /** @var string */
-    private $__correlationEngine;
-
     private $__tempContainCache = [];
 
     /** @var OverCorrelatingValue */
@@ -67,10 +63,10 @@ class Correlation extends AppModel
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-        $this->__correlationEngine = $this->getCorrelationModelName();
-        $deadlockAvoidance = Configure::check('MISP.deadlock_avoidance') ? Configure::read('MISP.deadlock_avoidance') : false;
+        $correlationEngine = $this->getCorrelationModelName();
+        $deadlockAvoidance = Configure::read('MISP.deadlock_avoidance') ?: false;
         // load the currently used correlation engine
-        $this->Behaviors->load($this->__correlationEngine . 'Correlation', ['deadlockAvoidance' => $deadlockAvoidance]);
+        $this->Behaviors->load($correlationEngine . 'Correlation', ['deadlockAvoidance' => $deadlockAvoidance]);
         // getTableName() needs to be implemented by the engine - this points us to the table to be used
         $this->useTable = $this->getTableName();
         $this->advancedCorrelationEnabled = (bool)Configure::read('MISP.enable_advanced_correlations');
@@ -183,17 +179,6 @@ class Correlation extends AppModel
         return $correlatingAttributes;
     }
 
-    /**
-     * @param string $value
-     * @param array $a Attribute A
-     * @param array $b Attribute B
-     * @return array
-     */
-    private function __createCorrelationEntry($value, $a, $b)
-    {
-        return $this->createCorrelationEntry($value, $a, $b);
-    }
-
     public function correlateValue($value, $jobId = false)
     {
         $correlatingAttributes = $this->__getMatchingAttributes($value);
@@ -216,7 +201,7 @@ class Correlation extends AppModel
                 if ($correlatingAttribute['Attribute']['event_id'] === $correlatingAttribute2['Attribute']['event_id']) {
                     continue;
                 }
-                $correlations[] = $this->__createCorrelationEntry($value, $correlatingAttribute, $correlatingAttribute2);
+                $correlations[] = $this->createCorrelationEntry($value, $correlatingAttribute, $correlatingAttribute2);
             }
             $extraCorrelations = $this->__addAdvancedCorrelations($correlatingAttribute);
             if (!empty($extraCorrelations)) {
@@ -224,8 +209,8 @@ class Correlation extends AppModel
                     if ($correlatingAttribute['Attribute']['event_id'] === $extraCorrelation['Attribute']['event_id']) {
                         continue;
                     }
-                    $correlations[] = $this->__createCorrelationEntry($value, $correlatingAttribute, $extraCorrelation);
-                    //$correlations = $this->__createCorrelationEntry($value, $extraCorrelation, $correlatingAttribute, $correlations);
+                    $correlations[] = $this->createCorrelationEntry($value, $correlatingAttribute, $extraCorrelation);
+                    //$correlations = $this->createCorrelationEntry($value, $extraCorrelation, $correlatingAttribute, $correlations);
                 }
             }
             if ($jobId && $k % 100 === 0) {
@@ -252,17 +237,16 @@ class Correlation extends AppModel
         }
     }
 
-    public function correlateAttribute(array $attribute)
-    {
-        $this->runBeforeSaveCorrelation($attribute);
-        $this->afterSaveCorrelation($attribute);
-    }
-
     public function beforeSaveCorrelation(array $attribute)
     {
         $this->runBeforeSaveCorrelation($attribute);
     }
 
+    /**
+     * @param string $scope
+     * @param int $id
+     * @return false|array
+     */
     private function __cachedGetContainData($scope, $id)
     {
         if (!empty($this->getContainRules($scope))) {
@@ -374,13 +358,13 @@ class Correlation extends AppModel
                 // If we have more correlations for the value than the limit, set the block entry and stop the correlation process
                 $this->OverCorrelatingValue->block($cV);
                 return true;
-            } else {
+            } else if ($count !== 0) {
                 // If we have fewer hits than the limit, proceed with the correlation, but first make sure we remove any existing blockers
                 $this->OverCorrelatingValue->unblock($cV);
             }
             foreach ($correlatingAttributes as $b) {
                 // On a full correlation, only correlate with attributes that have a higher ID to avoid duplicate correlations
-                if ($full && $b['Attribute']['id'] < $b['Attribute']['id']) {
+                if ($full && $a['Attribute']['id'] < $b['Attribute']['id']) {
                     continue;
                 }
                 if (isset($b['Attribute']['value1'])) {
@@ -390,9 +374,9 @@ class Correlation extends AppModel
                     $value = $cV;
                 }
                 if ($a['Attribute']['id'] > $b['Attribute']['id']) {
-                    $correlations[] = $this->__createCorrelationEntry($value, $a, $b);
+                    $correlations[] = $this->createCorrelationEntry($value, $a, $b);
                 } else {
-                    $correlations[] = $this->__createCorrelationEntry($value, $b, $a);
+                    $correlations[] = $this->createCorrelationEntry($value, $b, $a);
                 }
             }
         }
@@ -842,7 +826,7 @@ class Correlation extends AppModel
      */
     public function getRelatedAttributes($user, $sgids, $attribute, $fields=[], $includeEventData = false)
     {
-        if (in_array($attribute['type'], Attribute::NON_CORRELATING_TYPES)) {
+        if (in_array($attribute['type'], Attribute::NON_CORRELATING_TYPES, true)) {
             return [];
         }
         return $this->runGetRelatedAttributes($user, $sgids, $attribute, $fields, $includeEventData);
@@ -850,7 +834,7 @@ class Correlation extends AppModel
     
     /**
      * @param array $user User array
-     * @param int $eventId List of event IDs
+     * @param int $eventId Event ID
      * @param array $sgids List of sharing group IDs
      * @return array
      */
@@ -877,16 +861,19 @@ class Correlation extends AppModel
      */
     public function attachCorrelationExclusion(array $attributes)
     {
-        if (!isset($this->__compositeTypes)) {
-            $this->__compositeTypes = $this->Attribute->getCompositeTypes();
-        }
-
+        $compositeTypes = $this->Attribute->getCompositeTypes();
         $valuesToCheck = [];
         foreach ($attributes as &$attribute) {
-            if (in_array($attribute['type'], $this->__compositeTypes, true)) {
+            if ($attribute['disable_correlation'] || in_array($attribute['type'],Attribute::NON_CORRELATING_TYPES, true)) {
+                continue;
+            }
+            $primaryOnly = in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true);
+            if (in_array($attribute['type'], $compositeTypes, true)) {
                 $values = explode('|', $attribute['value']);
                 $valuesToCheck[$values[0]] = true;
-                $valuesToCheck[$values[1]] = true;
+                if (!$primaryOnly) {
+                    $valuesToCheck[$values[1]] = true;
+                }
             } else {
                 $values = [$attribute['value']];
                 $valuesToCheck[$values[0]] = true;
@@ -894,7 +881,7 @@ class Correlation extends AppModel
 
             if ($this->__preventExcludedCorrelations($values[0])) {
                 $attribute['correlation_exclusion'] = true;
-            } elseif (!empty($values[1]) && $this->__preventExcludedCorrelations($values[1])) {
+            } elseif (!empty($values[1]) && !$primaryOnly && $this->__preventExcludedCorrelations($values[1])) {
                 $attribute['correlation_exclusion'] = true;
             }
         }
@@ -903,16 +890,20 @@ class Correlation extends AppModel
         unset($valuesToCheck);
 
         foreach ($attributes as &$attribute) {
-            if (in_array($attribute['type'], $this->__compositeTypes, true)) {
-                $values = explode('|', $attribute['value']);
-            } else {
-                $values = [$attribute['value']];
+            if ($attribute['disable_correlation'] || in_array($attribute['type'],Attribute::NON_CORRELATING_TYPES, true)) {
+                continue;
             }
-            $values = $this->OverCorrelatingValue->truncateValues($values);
+            $primaryOnly = in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true);
+            if (in_array($attribute['type'], $compositeTypes, true)) {
+                $values = explode('|', $attribute['value']);
+                $values = OverCorrelatingValue::truncateValues($values);
+            } else {
+                $values = [OverCorrelatingValue::truncate($attribute['value'])];
+            }
 
             if (isset($overCorrelatingValues[$values[0]])) {
                 $attribute['over_correlation'] = true;
-            } elseif (!empty($values[1]) && isset($overCorrelatingValues[$values[1]])) {
+            } elseif (!empty($values[1])  && !$primaryOnly && isset($overCorrelatingValues[$values[1]])) {
                 $attribute['over_correlation'] = true;
             }
         }
@@ -922,40 +913,42 @@ class Correlation extends AppModel
 
     public function collectMetrics()
     {
-        $results['engine'] = $this->getCorrelationModelName();
-        $results['db'] = [
-            'Default' => [
-                'name' => __('Default correlation engine'),
-                'tables' => [
-                    'default_correlations' => [
-                        'id_limit' => 4294967295
-                    ],
-                    'correlation_values' => [
-                        'id_limit' => 4294967295
+        $results = [
+            'engine' => $this->getCorrelationModelName(),
+            'db' => [
+                'Default' => [
+                    'name' => __('Default correlation engine'),
+                    'tables' => [
+                        'default_correlations' => [
+                            'id_limit' => 4294967295
+                        ],
+                        'correlation_values' => [
+                            'id_limit' => 4294967295
+                        ]
+                    ]
+                ],
+                'NoAcl' => [
+                    'name' => __('No ACL correlation engine'),
+                    'tables' => [
+                        'no_acl_correlations' => [
+                            'id_limit' => 4294967295
+                        ],
+                        'correlation_values' => [
+                            'id_limit' => 4294967295
+                        ]
+                    ]
+                ],
+                'Legacy' => [
+                    'name' => __('Legacy correlation engine (< 2.4.160)'),
+                    'tables' => [
+                        'correlations' => [
+                            'id_limit' => 2147483647
+                        ]
                     ]
                 ]
             ],
-            'NoAcl' => [
-                'name' => __('No ACL correlation engine'),
-                'tables' => [
-                    'no_acl_correlations' => [
-                        'id_limit' => 4294967295
-                    ],
-                    'correlation_values' => [
-                        'id_limit' => 4294967295
-                    ]
-                ]
-            ],
-            'Legacy' => [
-                'name' => __('Legacy correlation engine (< 2.4.160)'),
-                'tables' => [
-                    'correlations' => [
-                        'id_limit' => 2147483647
-                    ]
-                ]
-            ]
+            'over_correlations' => $this->OverCorrelatingValue->find('count'),
         ];
-        $results['over_correlations'] = $this->OverCorrelatingValue->find('count');
         $this->CorrelationExclusion = ClassRegistry::init('CorrelationExclusion');
         $results['excluded_correlations'] = $this->CorrelationExclusion->find('count');
         foreach ($results['db'] as &$result) {
@@ -995,5 +988,13 @@ class Correlation extends AppModel
             );
         }
         return $result === true;
+    }
+
+    /**
+     * @return string
+     */
+    private function getCorrelationModelName()
+    {
+        return Configure::read('MISP.correlation_engine') ?: 'Default';
     }
 }

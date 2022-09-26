@@ -25,6 +25,7 @@ App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('RandomTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('RedisTool', 'Tools');
 App::uses('BetterCakeEventManager', 'Tools');
 
 class AppModel extends Model
@@ -38,15 +39,15 @@ class AppModel extends Model
     /** @var BackgroundJobsTool */
     private static $loadedBackgroundJobsTool;
 
-    /** @var null|Redis */
-    private static $__redisConnection;
-
     private $__profiler = array();
 
     public $elasticSearchClient;
 
     /** @var AttachmentTool|null */
     private $attachmentTool;
+
+    /** @var Workflow|null */
+    private $Workflow;
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
@@ -83,7 +84,7 @@ class AppModel extends Model
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
-        93 => false, 94 => false, 95 => true, 96 => false, 97 => true,
+        93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1873,6 +1874,9 @@ class AppModel extends Model
                     ADD COLUMN `notification_monthly`   tinyint(1) NOT NULL DEFAULT 0
                 ;";
                 break;
+            case 98:
+                $this->__addIndex('object_template_elements', 'object_template_id');
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2621,7 +2625,7 @@ class AppModel extends Model
         return $remainingTime > 0 || $failThresholdReached;
     }
 
-    public function getUpdateFailNumber()
+    private function getUpdateFailNumber()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $updateFailNumber = $this->AdminSetting->getSetting('update_fail_number');
@@ -2634,7 +2638,7 @@ class AppModel extends Model
         $this->AdminSetting->changeSetting('update_fail_number', 0);
     }
 
-    public function __increaseUpdateFailNumber()
+    private function __increaseUpdateFailNumber()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $updateFailNumber = $this->AdminSetting->getSetting('update_fail_number');
@@ -2736,7 +2740,7 @@ class AppModel extends Model
         return true;
     }
 
-    public function removeDuplicatedUUIDs()
+    private function removeDuplicatedUUIDs()
     {
         $removedResults = array(
             'Event' => $this->removeDuplicateEventUUIDs(),
@@ -2781,7 +2785,7 @@ class AppModel extends Model
         return $counter;
     }
 
-    public function removeDuplicateAttributeUUIDs()
+    private function removeDuplicateAttributeUUIDs()
     {
         $this->Attribute = ClassRegistry::init('Attribute');
         $this->Log = ClassRegistry::init('Log');
@@ -2835,7 +2839,7 @@ class AppModel extends Model
         return $counter;
     }
 
-    public function removeDuplicateEventUUIDs()
+    private function removeDuplicateEventUUIDs()
     {
         $this->Event = ClassRegistry::init('Event');
         $this->Log = ClassRegistry::init('Log');
@@ -2882,37 +2886,11 @@ class AppModel extends Model
      * Similar method as `setupRedis`, but this method throw exception if Redis cannot be reached.
      * @return Redis
      * @throws Exception
+     * @deprecated
      */
     public function setupRedisWithException()
     {
-        if (self::$__redisConnection) {
-            return self::$__redisConnection;
-        }
-
-        if (!class_exists('Redis')) {
-            throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
-        }
-
-        $host = Configure::read('MISP.redis_host') ?: '127.0.0.1';
-        $port = Configure::read('MISP.redis_port') ?: 6379;
-        $database = Configure::read('MISP.redis_database') ?: 13;
-        $pass = Configure::read('MISP.redis_password');
-
-        $redis = new Redis();
-        if (!$redis->connect($host, (int) $port)) {
-            throw new Exception("Could not connect to Redis: {$redis->getLastError()}");
-        }
-        if (!empty($pass)) {
-            if (!$redis->auth($pass)) {
-                throw new Exception("Could not authenticate to Redis: {$redis->getLastError()}");
-            }
-        }
-        if (!$redis->select($database)) {
-            throw new Exception("Could not select Redis database $database: {$redis->getLastError()}");
-        }
-
-        self::$__redisConnection = $redis;
-        return $redis;
+        return RedisTool::init();
     }
 
     /**
@@ -2924,7 +2902,7 @@ class AppModel extends Model
     public function setupRedis()
     {
         try {
-            return $this->setupRedisWithException();
+            return RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
@@ -3282,7 +3260,7 @@ class AppModel extends Model
         return $filter;
     }
 
-    public function convert_to_memory_limit_to_mb($val)
+    protected function convert_to_memory_limit_to_mb($val)
     {
         $val = trim($val);
         if ($val == -1) {
@@ -3736,22 +3714,6 @@ class AppModel extends Model
         return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSourceName === 'Database/MysqlExtended' || $dataSource instanceof Mysql;
     }
 
-    public function getCorrelationModelName()
-    {
-        if (!empty(Configure::read('MISP.correlation_engine'))) {
-            return Configure::read('MISP.correlation_engine');
-        }
-        return 'Default';
-    }
-
-    public function loadCorrelationModel()
-    {
-        if (!empty(Configure::read('MISP.correlation_engine'))) {
-            return ClassRegistry::init(Configure::read('MISP.correlation_engine'));
-        }
-        return ClassRegistry::init('Correlation');
-    }
-
     /**
      * executeTrigger
      *
@@ -3763,9 +3725,6 @@ class AppModel extends Model
      */
     public function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
     {
-        if ($this->Workflow === null) {
-            $this->Workflow = ClassRegistry::init('Workflow');
-        }
         if ($this->isTriggerCallable($trigger_id)) {
            $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
            if (!empty($logging) && empty($success)) {
@@ -3787,13 +3746,6 @@ class AppModel extends Model
             $this->Workflow->checkTriggerListenedTo($trigger_id);
     }
 
-    public function addPendingLogEntry($logEntry)
-    {
-        $logEntries = Configure::read('pendingLogEntries');
-        $logEntries[] = $logEntry;
-        Configure::write('pendingLogEntries', $logEntries);
-    }
-
     /**
      * Use different CakeEventManager to fix memory leak
      * @return CakeEventManager
@@ -3808,7 +3760,8 @@ class AppModel extends Model
         return $this->_eventManager;
     }
 
-    private function __retireOldCorrelationEngine($user = null) {
+    private function __retireOldCorrelationEngine($user = null)
+    {
         if ($user === null) {
             $user = [
                 'id' => 0,

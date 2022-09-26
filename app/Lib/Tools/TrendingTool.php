@@ -44,7 +44,7 @@ class TrendingTool
                 }
                 $allTags[$tag] = true;
                 $trendAnalysis[$timestamp][$tag] = [
-                    'occurence' => round($amount / $eventNumberPerRollingWindow[$timestamp], 2),
+                    'occurrence' => round($amount / $eventNumberPerRollingWindow[$timestamp], 2),
                     'raw_change' => $rawChange,
                     'percent_change' => $percentChange,
                     'change_sign' => $rawChange > 0 ? 1 : ($rawChange < 0 ? -1 : 0),
@@ -54,9 +54,9 @@ class TrendingTool
                 foreach (array_keys($trendAnalysis[$timestamp]) as $tag) {
                     if (empty($trendAnalysis[$previousTimestamp][$tag])) {
                         $trendAnalysis[$previousTimestamp][$tag] = [
-                            'occurence' => 0,
+                            'occurrence' => 0,
                             'raw_change' => -$amount,
-                            'percent_change' => 100 * (-$amount / $amount),
+                            'percent_change' => round(100 * (-$amount / $amount), 2),
                             'change_sign' => -$amount > 0 ? 1 : (-$amount < 0 ? -1 : 0),
                         ];
                     }

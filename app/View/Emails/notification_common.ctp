@@ -9,6 +9,7 @@
  *  - `detailed-summary-type`
  *  - `detailed-summary-tags`
  *  - `detailed-summary-events`
+ *  - `detailed-summary-correlations`
  *  - `aggregated-context`
  * 
  * Additional variables:
@@ -21,6 +22,8 @@ if (empty($this->__vars)) {
 $default_vars = [
     'event_table_include_basescore' => true,
     'event_table_max_event_count' => 30,
+    'correlation_table_advanced_ui' => 10,
+    'correlation_table_max_count' => 50,
     'additional_taxonomy_event_list' => [
         'PAP' => 'PAP:'
     ],
@@ -28,7 +31,7 @@ $default_vars = [
 $vars = array_merge($default_vars, $this->__vars);
 
 $now = new DateTime();
-$start_date = new DateTime('7 days ago');
+$start_date = new DateTime($period_days . ' days ago');
 $event_number = count($events);
 $attribute_number = 0;
 $object_number = 0;
@@ -49,6 +52,8 @@ $mitre_galaxy_tag_prefix = 'misp-galaxy:mitre-attack-pattern="';
 $reportLink = sprintf('%s/users/viewPeriodicSummary/%s', $baseurl, $period);
 $eventLink = sprintf('%s/events/index/searchpublished:1/searchPublishTimestamp:%s/searchPublishTimestamp:%s', $baseurl, h($start_date->format('Y-m-d H:i:s')), h($now->format('Y-m-d H:i:s')));
 
+$processed_correlations = [];
+$new_correlations = [];
 foreach ($events as $event) {
     $unique_tag_per_event = [];
     $attribute_number += count($event['Attribute']);
@@ -56,11 +61,10 @@ foreach ($events as $event) {
     $event_report_number += count($event['EventReport']);
     $proposal_number += count($event['ShadowAttribute']);
 
-
     foreach ($event['EventTag'] as $event_tag) {
         $tag = $event_tag['Tag'];
 
-        if (!empty($unique_tag_per_event[$tag['name']])) {
+        if (isset($unique_tag_per_event[$tag['name']])) {
             continue; // Only one instance of tag per event
         }
         $unique_tag_per_event[$tag['name']] = true;
@@ -69,24 +73,29 @@ foreach ($events as $event) {
             $all_tag_amount[$tag['name']] = 0;
             $tag_color_mapping[$tag['name']] = $tag['colour'];
         }
-        $all_tag_amount[$tag['name']] += 1;
+        $all_tag_amount[$tag['name']]++;
 
-        if (!empty($tag['is_galaxy']) && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
+        if ($tag['is_galaxy'] && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
             $technique = substr($tag['name'], strlen($mitre_galaxy_tag_prefix), strlen($tag['name']) - strlen($mitre_galaxy_tag_prefix) - 1);
             $mitre_attack_techniques[$technique] = $event_tag;
         }
     }
 
+    $attribute_light_by_id = [];
     foreach ($event['Attribute'] as $attribute) {
+        $attribute_light_by_id[$attribute['id']] = [
+            'timestamp' => $attribute['timestamp'],
+            'type' => $attribute['type'],
+        ];
         if (empty($attribute_types[$attribute['type']])) {
             $attribute_types[$attribute['type']] = 0;
         }
-        $attribute_types[$attribute['type']] += 1;
+        $attribute_types[$attribute['type']]++;
 
         foreach ($attribute['AttributeTag'] as $attribute_tag) {
             $tag = $attribute_tag['Tag'];
 
-            if (!empty($unique_tag_per_event[$tag['name']])) {
+            if (isset($unique_tag_per_event[$tag['name']])) {
                 continue; // Only one instance of tag per event
             }
             $unique_tag_per_event[$tag['name']] = true;
@@ -95,9 +104,9 @@ foreach ($events as $event) {
                 $all_tag_amount[$tag['name']] = 0;
                 $tag_color_mapping[$tag['name']] = $tag['colour'];
             }
-            $all_tag_amount[$tag['name']] += 1;
+            $all_tag_amount[$tag['name']]++;
 
-            if (!empty($tag['is_galaxy']) && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
+            if ($tag['is_galaxy'] && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
                 $technique = substr($tag['name'], strlen($mitre_galaxy_tag_prefix), strlen($tag['name']) - strlen($mitre_galaxy_tag_prefix) - 1);
                 $mitre_attack_techniques[$technique] = $attribute_tag;
             }
@@ -108,19 +117,23 @@ foreach ($events as $event) {
         if (empty($object_types[$object['name']])) {
             $object_types[$object['name']] = 0;
         }
-        $object_types[$object['name']] += 1;
+        $object_types[$object['name']]++;
 
         $attribute_number += count($object['Attribute']);
         foreach ($object['Attribute'] as $attribute) {
+            $attribute_light_by_id[$attribute['id']] = [
+                'timestamp' => $attribute['timestamp'],
+                'type' => $attribute['type'],
+            ];
             if (empty($attribute_types[$attribute['type']])) {
                 $attribute_types[$attribute['type']] = 0;
             }
-            $attribute_types[$attribute['type']] += 1;
+            $attribute_types[$attribute['type']]++;
 
             foreach ($attribute['AttributeTag'] as $attribute_tag) {
                 $tag = $attribute_tag['Tag'];
 
-                if (!empty($unique_tag_per_event[$tag['name']])) {
+                if (isset($unique_tag_per_event[$tag['name']])) {
                     continue; // Only one instance of tag per event
                 }
                 $unique_tag_per_event[$tag['name']] = true;
@@ -129,9 +142,9 @@ foreach ($events as $event) {
                     $all_tag_amount[$tag['name']] = 0;
                     $tag_color_mapping[$tag['name']] = $tag['colour'];
                 }
-                $all_tag_amount[$tag['name']] += 1;
+                $all_tag_amount[$tag['name']]++;
 
-                if (!empty($tag['is_galaxy']) && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
+                if ($tag['is_galaxy'] && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
                     $technique = substr($tag['name'], strlen($mitre_galaxy_tag_prefix), strlen($tag['name']) - strlen($mitre_galaxy_tag_prefix) - 1);
                     $mitre_attack_techniques[$technique] = $attribute_tag;
                 }
@@ -147,6 +160,33 @@ foreach ($events as $event) {
             'event_info' => $event['Event']['info'],
         ];
     }
+
+    if (!empty($event['RelatedEvent'])) {
+        $related_event_by_id = [];
+        foreach ($event['RelatedEvent'] as $related_event) {
+            $related_event_by_id[$related_event['Event']['id']] = $related_event['Event'];
+        }
+
+        foreach ($event['RelatedAttribute'] as $attribute_id => $related_attributes) {
+            $has_attribute_been_modified_since_last_period = intval($attribute_light_by_id[$attribute_id]['timestamp']) >= intval($start_date->format('U'));
+            foreach ($related_attributes as $related_attribute) {
+                $correlation_id = sprintf('%s-%s', $related_attribute['attribute_id'], $attribute_id);
+                $reversed_correlation_id = sprintf('%s-%s', $attribute_id, $related_attribute['attribute_id']);
+                $has_correlation_been_processed = isset($processed_correlations[$correlation_id]); // We already added the correlation the other way around
+                if ($has_attribute_been_modified_since_last_period && !$has_correlation_been_processed) {
+                    $source_event = $event['Event'];
+                    $source_event['Orgc'] = $event['Orgc'];
+                    $new_correlations[] = [
+                        'source_event' => $source_event,
+                        'target_event' => $related_event_by_id[$related_attribute['id']],
+                        'attribute_value' => $related_attribute['value'],
+                        'attribute_type' => $attribute_light_by_id[$attribute_id]['type'],
+                    ];
+                    $processed_correlations[$reversed_correlation_id] = true;
+                }
+            }
+        }
+    }
 }
 
 if (!function_exists('findAndBuildTag')) {
@@ -161,12 +201,14 @@ if (!function_exists('findAndBuildTag')) {
     }
 }
 
-$unique_tag_number = count(array_keys($all_tag_amount));
+$unique_tag_number = count($all_tag_amount);
 
 arsort($attribute_types);
 arsort($object_types);
 arsort($all_tag_amount);
-arsort($mitre_attack_techniques);
+uasort($mitre_attack_techniques, function($tag1, $tag2) use ($all_tag_amount) {
+    return ($all_tag_amount[$tag1['Tag']['name']] < $all_tag_amount[$tag2['Tag']['name']]) ? 1 : -1;
+});
 
 array_splice($attribute_types, 10);
 array_splice($object_types, 10);
@@ -180,7 +222,7 @@ array_splice($mitre_attack_techniques, 10);
 
 <?php if ($this->fetch('table-overview')) : ?>
     <?= $this->fetch('table-overview'); ?>
-<?php else : ?>
+<?php else: ?>
     <div class="panel">
         <div class="panel-header">
             <?= __('Data at a glance') ?>
@@ -190,18 +232,16 @@ array_splice($mitre_attack_techniques, 10);
                 <tbody>
                     <tr>
                         <td><?= __('Summary period') ?></td>
-                        <td><?= h($period) ?></td>
+                        <td><?= h(ucfirst($period)) ?></td>
                     </tr>
                     <tr>
                         <td><?= __('Summary for dates') ?></td>
                         <td>
-                            <?=
-                            sprintf('<strong>%s</strong> (Week %s) ➞ <strong>%s</strong> (Week %s)',
+                            <?= __('<strong>%s</strong> (Week %s) ➞ <strong>%s</strong> (Week %s)',
                                 $start_date->format('M d, o'),
                                 $start_date->format('W'),
                                 $now->format('M d, o'),
-                                $now->format('W'),
-                                $start_date->format('M d, o')
+                                $now->format('W')
                             )
                             ?>
                         </td>
@@ -211,7 +251,7 @@ array_splice($mitre_attack_techniques, 10);
                         <td><?= date("c"); ?></td>
                     </tr>
                     <tr>
-                        <td><?= __('Events #') ?></td>
+                        <td><?= __('Published Events #') ?></td>
                         <td><?= $event_number ?></td>
                     </tr>
                     <tr>
@@ -234,6 +274,12 @@ array_splice($mitre_attack_techniques, 10);
                         <td><?= __('Unique tags #') ?></td>
                         <td><?= $unique_tag_number ?></td>
                     </tr>
+                    <?php if (!empty($periodicSettings['include_correlations'])): ?>
+                        <tr>
+                            <td><?= __('New correlation #') ?></td>
+                            <td><?= count($new_correlations) ?></td>
+                        </tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
             ⮞ <a href="<?= h($reportLink) ?>"><?= __('View this report in MISP') ?></a>
@@ -243,7 +289,7 @@ array_splice($mitre_attack_techniques, 10);
 
 <?php if ($this->fetch('detailed-summary-full')) : ?>
     <?= $this->fetch('detailed-summary-full'); ?>
-<?php else : ?>
+<?php else: ?>
     <div class="panel">
         <div class="panel-header">
             <?= __('Detailed summary') ?>
@@ -251,9 +297,9 @@ array_splice($mitre_attack_techniques, 10);
         <div class="panel-body">
             <?php if ($this->fetch('detailed-summary-mitre-attack')) : ?>
                 <?= $this->fetch('detailed-summary-mitre-attack'); ?>
-            <?php else : ?>
+            <?php else: ?>
                 <?php if (!empty($mitre_attack_techniques)) : ?>
-                    <h4><?= __('Top 10 Mitre Att&ck techniques') ?></h4>
+                    <h4><?= __('Top 10 MITRE ATT&CK techniques') ?></h4>
                     <ul>
                         <?php foreach ($mitre_attack_techniques as $technique => $tag) : ?>
                             <li>
@@ -272,7 +318,7 @@ array_splice($mitre_attack_techniques, 10);
 
             <?php if ($this->fetch('detailed-summary-type')) : ?>
                 <?= $this->fetch('detailed-summary-type'); ?>
-            <?php else : ?>
+            <?php else: ?>
                 <?php if (!empty($attribute_types)) : ?>
                     <h4><?= __('Top 10 Attribute types') ?></h4>
                     <ul>
@@ -307,10 +353,10 @@ array_splice($mitre_attack_techniques, 10);
 
             <?php if ($this->fetch('detailed-summary-tags')) : ?>
                 <?= $this->fetch('detailed-summary-tags'); ?>
-            <?php else : ?>
+            <?php else: ?>
                 <h4><?= __('Top 10 Tags') ?></h4>
                 <ul>
-                    <?php foreach ($all_tag_amount as $tag_name => $amount) : ?>
+                    <?php array_splice($all_tag_amount, 10); foreach ($all_tag_amount as $tag_name => $amount) : ?>
                         <li>
                             <span class="tag" style="background-color: #999; color: #fff; border-radius: 9px; padding: 2px 8px;">
                                 <?= $amount ?>
@@ -323,7 +369,7 @@ array_splice($mitre_attack_techniques, 10);
 
             <?php if ($this->fetch('detailed-summary-events')) : ?>
                 <?= $this->fetch('detailed-summary-events'); ?>
-            <?php else : ?>
+            <?php else: ?>
                 <?php if (!empty($events)) : ?>
                     <h4><?= __('Event list') ?> <small style="color: #999999;"><?= sprintf(' (%s)', count($events)) ?></small></h4>
                     <table class="table table-condensed">
@@ -380,7 +426,7 @@ array_splice($mitre_attack_techniques, 10);
                                                         </tr>
                                                     <?php endforeach; ?>
                                                 </table>
-                                            <?php else : ?>
+                                            <?php else: ?>
                                                 &nbsp;
                                             <?php endif; ?>
                                         </td>
@@ -390,7 +436,7 @@ array_splice($mitre_attack_techniques, 10);
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                <?php else : ?>
+                <?php else: ?>
                     <p><?= __('No events.') ?></p>
                 <?php endif; ?>
                 <?php if (count($events) > $vars['event_table_max_event_count']) : ?>
@@ -405,14 +451,83 @@ array_splice($mitre_attack_techniques, 10);
                     <a href="<?= h($eventLink) ?>"><?= __('View all events in MISP') ?></a>
                 <?php endif; ?>
             <?php endif; ?>
+
+            <?php if ($this->fetch('detailed-summary-correlations')) : ?>
+            <?php else: ?>
+                <?php if (!empty($new_correlations)) : ?>
+                    <h4><?= __('New correlations') ?><small style="color: #999999;"><?= sprintf(' (%s)', count($new_correlations)) ?></small></h4>
+                    <div>
+                        <?php if (count($new_correlations) < $vars['correlation_table_advanced_ui']) : ?>
+                            <?php foreach ($new_correlations as $correlation): ?>
+                                <div style="display: flex; flex-wrap: nowrap; align-items: center; margin-top: 0.5em;">
+                                    <span>
+                                        <span class="correlating-event-container">
+                                            <span>
+                                                <a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['source_event']['id'])) ?>"><?= h($correlation['source_event']['info']) ?></a>
+                                            </span>
+                                            <span class="org-date">
+                                                <span><?= h($correlation['source_event']['date']) ?></span>
+                                                <span><?= h($correlation['source_event']['Orgc']['name']) ?></span>
+                                            </span>
+                                        </span>
+                                    </span>
+                                    <span class="correlating-attribute-container">
+                                        <span class="correlating-attribute">
+                                            <?= h($correlation['attribute_type']); ?> :: <b><?= h($correlation['attribute_value']) ?></b>
+                                        </span>
+                                    </span>
+                                    <span>
+                                        <span class="correlating-event-container">
+                                            <span>
+                                                <a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['target_event']['id'])) ?>"><?= h($correlation['target_event']['info']) ?></a>
+                                            </span>
+                                            <span class="org-date">
+                                                <span><?= h($correlation['target_event']['date']) ?></span>
+                                                <span><?= h($correlation['target_event']['Orgc']['name']) ?></span>
+                                            </span>
+                                        </span>
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <table class="table table-xcondensed">
+                                <thead>
+                                    <tr>
+                                        <th><?= __('First event info') ?></th>
+                                        <th><?= __('Value') ?></th>
+                                        <th><?= __('Second event info') ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach (array_slice($new_correlations, 0, $vars['correlation_table_max_count']) as $correlation): ?>
+                                        <tr>
+                                            <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['source_event']['id'])) ?>"><?= h($correlation['source_event']['info']) ?></a></td>
+                                            <td><b><?= h($correlation['attribute_value']) ?></b></td>
+                                            <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['target_event']['id'])) ?>"><?= h($correlation['target_event']['info']) ?></a></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                            <?php
+                            if (count($new_correlations) > $vars['correlation_table_max_count']) {
+                                echo '⮞ ' . __n(
+                                    '%s correlation not displayed.',
+                                    '%s correlations not displayed.',
+                                    count($new_correlations) - $vars['correlation_table_max_count'],
+                                    sprintf('<strong>%s</strong>', count($new_correlations) - $vars['correlation_table_max_count'])
+                                );
+                            }
+                            ?>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
         </div>
-    </div>
-    <?php endif; // detailed-summary-full 
     ?>
 
     <?php if ($this->fetch('trending-summary')) : ?>
         <?= $this->fetch('trending-summary'); ?>
-    <?php else : ?>
+    <?php else: ?>
         <div class="panel">
             <div class="panel-header">
                 <?= __('Tag trendings') ?>
@@ -425,7 +540,7 @@ array_splice($mitre_attack_techniques, 10);
 
     <?php if ($this->fetch('aggregated-context')) : ?>
         <?= $this->fetch('aggregated-context'); ?>
-    <?php else : ?>
+    <?php else: ?>
         <div class="panel">
             <div class="panel-header">
                 <?= __('Context summary') ?>
@@ -486,6 +601,41 @@ array_splice($mitre_attack_techniques, 10);
             line-height: 14px;
             margin-right: 2px;
             border-radius: 3px;
+        }
+
+        .correlating-attribute {
+            padding: 3px 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+        .correlating-attribute-container {
+            display: flex;
+            box-sizing: border-box;
+            margin: 0 0;
+            align-items: center;
+            min-width: 400px;
+        }
+        .correlating-attribute-container::before,
+        .correlating-attribute-container::after {
+            display: inline-block;
+            content: ' ';
+            height: 2px;
+            width: 100%;
+            background-color: #ccc;
+        }
+
+        .correlating-event-container {
+            display: flex;
+            flex-direction: column;
+            min-width: 180px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 3px 5px;
+        }
+        .correlating-event-container > .org-date {
+            display: flex;
+            justify-content: space-between;
         }
 
         .no-overflow {

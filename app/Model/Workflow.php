@@ -723,7 +723,7 @@ class Workflow extends AppModel
      * @return array
      * @throws ModuleNotFoundException
      */
-    public function getModuleConfigByType($module_type, $id, $throwException=false): array
+    public function getModuleConfigByType($module_type, $id, $throwException=false): ?array
     {
         $this->loadAllWorkflowModules();
         $moduleConfig = $this->loaded_modules[$module_type][$id] ?? null;

@@ -10,7 +10,7 @@
                 array(
                     'div' => 'clear',
                     'class' => 'input input-xxlarge',
-                    'options' => array($users),
+                    'options' => $users,
                     'disabled' => count($users) === 1
                 )
             ),
@@ -40,18 +40,16 @@
 ?>
 <script type="text/javascript">
     var validSettings = <?= json_encode($validSettings); ?>;
+
     $(function() {
         loadUserSettingValue();
         changeUserSettingPlaceholder();
-        $('#UserSettingSetting').on('change', function() {
-            loadUserSettingValue();
-            changeUserSettingPlaceholder();
-        });
-        $('#UserSettingUserId').on('change', function() {
+        $('#UserSettingSetting, #UserSettingUserId').on('change', function() {
             loadUserSettingValue();
             changeUserSettingPlaceholder();
         });
     });
+
     function loadUserSettingValue() {
         var user_id = $('#UserSettingUserId').val();
         var setting = $('#UserSettingSetting').val();
@@ -66,6 +64,13 @@
                     data = JSON.stringify(data, undefined, 4);
                 }
                 $('#UserSettingValue').val(data);
+            },
+            error: function (xhr) {
+                if (xhr.status === 404) {
+                    $('#UserSettingValue').val('');
+                } else {
+                    xhrFailCallback(xhr);
+                }
             }
         });
     }

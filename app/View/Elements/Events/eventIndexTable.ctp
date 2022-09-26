@@ -7,9 +7,7 @@
         <?php else: ?>
             <th style="padding-left:0;padding-right:0;">&nbsp;</th>
         <?php endif;?>
-        <th class="filter">
-            <?php echo $this->Paginator->sort('published');?>
-        </th>
+        <th class="filter" title="<?= __('Published') ?>"><?= $this->Paginator->sort('published', '<i class="fa fa-upload"></i>', ['escape' => false]) ?></th>
         <?php
             if (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg')):
         ?>
@@ -37,7 +35,7 @@
         <?php if (in_array('creator_user', $columns, true)): ?><th><?= $this->Paginator->sort('user_id', __('Creator user')) ?></th><?php endif; ?>
         <th class="filter"><?= $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
         <?php if (in_array('timestamp', $columns, true)): ?><th title="<?= __('Last modified at') ?>"><?= $this->Paginator->sort('timestamp', __('Last modified at')) ?></th><?php endif; ?>
-        <?php if (in_array('publish_timestamp', $columns, true)): ?><th title="<?= __('Last modified at') ?>"><?= $this->Paginator->sort('publish_timestamp', __('Published at')) ?></th><?php endif; ?>
+        <?php if (in_array('publish_timestamp', $columns, true)): ?><th title="<?= __('Published at') ?>"><?= $this->Paginator->sort('publish_timestamp', __('Published at')) ?></th><?php endif; ?>
         <th class="filter"><?= $this->Paginator->sort('info');?></th>
         <th title="<?= $eventDescriptions['distribution']['desc'];?>"><?= $this->Paginator->sort('distribution');?></th>
         <th class="actions"><?php echo __('Actions');?></th>
@@ -45,13 +43,13 @@
     <?php foreach ($events as $event): $eventId = (int)$event['Event']['id']; ?>
     <tr id="event_<?= $eventId ?>">
         <?php if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):?>
-        <td style="width:10px;">
+        <td style="width:10px">
             <input class="select" type="checkbox" data-id="<?= $eventId ?>" data-uuid="<?= h($event['Event']['uuid']) ?>">
         </td>
         <?php else: ?>
         <td style="padding-left:0;padding-right:0;"></td>
         <?php endif; ?>
-        <td class="short dblclickElement">
+        <td class="dblclickElement" style="width:30px">
             <a href="<?= "$baseurl/events/view/$eventId" ?>" title="<?= __('View') ?>" aria-label="<?= __('View') ?>">
                 <i class="fa <?= $event['Event']['published'] ? 'fa-check green' : 'fa-times grey' ?>"></i>
             </a>
@@ -98,53 +96,53 @@
         <?php if (in_array('tags', $columns, true)): ?>
         <td class="shortish">
             <?= $this->element('ajaxTags', [
-                    'event' => $event,
-                    'tags' => $event['EventTag'],
-                    'tagAccess' => false,
-                    'localTagAccess' => false,
-                    'missingTaxonomies' => false,
-                    'columnised' => true,
-                    'static_tags_only' => 1,
-                    'tag_display_style' => Configure::check('MISP.full_tags_on_event_index') ? Configure::read('MISP.full_tags_on_event_index') : 1
-                ]);
+                'event' => $event,
+                'tags' => $event['EventTag'],
+                'tagAccess' => false,
+                'localTagAccess' => false,
+                'missingTaxonomies' => false,
+                'columnised' => true,
+                'static_tags_only' => 1,
+                'tag_display_style' => Configure::check('MISP.full_tags_on_event_index') ? Configure::read('MISP.full_tags_on_event_index') : 1,
+            ]);
             ?>
         </td>
         <?php endif; ?>
         <?php if (in_array('attribute_count', $columns, true)): ?>
-        <td class="dblclickElement" style="width:30px;">
+        <td class="dblclickElement" style="width:30px">
             <?= $event['Event']['attribute_count']; ?>
         </td>
         <?php endif; ?>
         <?php if (in_array('correlations', $columns, true)): ?>
-        <td class="bold" style="width:30px;">
+        <td class="bold" style="width:30px">
             <?php if (!empty($event['Event']['correlation_count'])): ?>
-                <a href="<?php echo $baseurl."/events/view/" . $eventId . '/correlation:1';?>" title="<?= __n('%s correlation', '%s correlations', $event['Event']['correlation_count'], $event['Event']['correlation_count']), '. ' . __('Show filtered event with correlation only.');?>">
-                    <?php echo h($event['Event']['correlation_count']); ?>
+                <a href="<?= "$baseurl/events/view/$eventId/correlation:1" ?>" title="<?= __n('%s correlation', '%s correlations', $event['Event']['correlation_count'], $event['Event']['correlation_count']), '. ' . __('Show filtered event with correlation only.');?>">
+                    <?= intval($event['Event']['correlation_count']); ?>
                 </a>
             <?php endif; ?>
         </td>
         <?php endif; ?>
         <?php if (in_array('report_count', $columns, true)): ?>
-        <td class="bold" style="width:30px;">
+        <td class="bold" style="width:30px">
             <?= $event['Event']['report_count']; ?>
         </td>
         <?php endif; ?>
         <?php if (in_array('sightings', $columns, true)): ?>
-        <td class="bold" style="width:30px;">
+        <td class="bold" style="width:30px">
             <?php if (!empty($event['Event']['sightings_count'])): ?>
-                <a href="<?php echo $baseurl."/events/view/" . $eventId . '/sighting:1';?>" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . ' sighting(s). Show filtered event with sighting(s) only.';?>">
+                <a href="<?= "$baseurl/events/view/$eventId/sighting:1" ?>" title="<?= __n("1 sighting. Show filtered event with sighting only.", "%s sightings. Show filtered event with sightings only.", $event['Event']['sightings_count'], intval($event['Event']['sightings_count'])) ?>">
                     <?= intval($event['Event']['sightings_count']) ?>
                 </a>
             <?php endif; ?>
         </td>
         <?php endif; ?>
         <?php if (in_array('proposals', $columns, true)): ?>
-        <td class="bold dblclickElement" style="width:30px;" title="<?= __n('%s proposal', '%s proposals', $event['Event']['proposals_count'], $event['Event']['proposals_count']) ?>">
+        <td class="bold dblclickElement" style="width:30px" title="<?= __n('%s proposal', '%s proposals', $event['Event']['proposals_count'], $event['Event']['proposals_count']) ?>">
             <?= !empty($event['Event']['proposals_count']) ? intval($event['Event']['proposals_count']) : ''; ?>
         </td>
         <?php endif;?>
         <?php if (in_array('discussion', $columns, true)): ?>
-        <td class="bold dblclickElement" style="width:30px;">
+        <td class="bold dblclickElement" style="width:30px">
             <?php
                 if (!empty($event['Event']['post_count'])) {
                     $post_count = h($event['Event']['post_count']);
@@ -179,7 +177,7 @@
         <td class="dblclickElement">
             <?= nl2br(h($event['Event']['info']), false) ?>
         </td>
-        <td class="short dblclickElement<?php if ($event['Event']['distribution'] == 0) echo ' privateRedText';?>" title="<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : __('All');?>">
+        <td class="short dblclickElement<?php if ($event['Event']['distribution'] == 0) echo ' privateRedText';?>" title="<?= $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : __('All');?>">
             <?php if ($event['Event']['distribution'] == 4):?>
                 <a href="<?php echo $baseurl;?>/sharingGroups/view/<?= intval($event['SharingGroup']['id']); ?>"><?= h($event['SharingGroup']['name']) ?></a>
             <?php else:
@@ -191,7 +189,7 @@
                 '<it type="button" title="%s" class="%s" aria-hidden="true" style="font-size: x-small;" data-event-distribution="%s" data-event-distribution-name="%s" data-scope-id="%s"></it>',
                 __('Toggle advanced sharing network viewer'),
                 'fa fa-share-alt useCursorPointer distributionNetworkToggle',
-                h($event['Event']['distribution']),
+                intval($event['Event']['distribution']),
                 $event['Event']['distribution'] == 4 ? h($event['SharingGroup']['name']) : h($shortDist[$event['Event']['distribution']]),
                 $eventId
             )

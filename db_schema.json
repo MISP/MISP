@@ -8938,7 +8938,8 @@
         "object_template_elements": {
             "id": true,
             "object_relation": false,
-            "type": false
+            "type": false,
+            "object_template_id": false
         },
         "organisations": {
             "id": true,
@@ -9149,5 +9150,5 @@
             "uuid": false
         }
     },
-    "db_version": "97"
+    "db_version": "98"
 }

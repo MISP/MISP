@@ -723,9 +723,9 @@ function loadWorkflow(workflow) {
     Object.values(workflow.data).forEach(function (node) {
         var module = all_modules_by_id[node.data.id] || all_triggers_by_id[node.data.id]
         if (!module) {
-            console.error('Tried to add node for unknown module ' + node.data.module_data.id + ' (' + node.id + ')')
+            console.error('Tried to add node for unknown module ' + node.data.id + ' (' + node.id + ')')
             var html = window['dotBlock_error']({
-                error: 'Invalid module id`' + node.data.module_data.id + '` (' + node.id + ')',
+                error: 'Invalid module id`' + node.data.id + '` (' + node.id + ')',
                 data: JSON.stringify(node.data.indexed_params, null, 2)
             })
             editor.addNode(

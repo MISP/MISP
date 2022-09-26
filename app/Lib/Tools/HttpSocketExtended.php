@@ -66,6 +66,14 @@ class HttpSocketJsonException extends Exception
 class HttpSocketResponseExtended extends HttpSocketResponse
 {
     /**
+     * @return bool
+     */
+    public function isNotModified()
+    {
+        return $this->code == 304;
+    }
+
+    /**
      * @param string $message
      * @throws SocketException
      */

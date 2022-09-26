@@ -48,29 +48,28 @@
         <h2><?= __('Galaxy Clusters') ?></h2>
         <div>
             <?php
-            $htmlClusters = '';
             foreach ($clusters as $tagname => $entries) {
-                $htmlClusters .= sprintf(
+                echo sprintf(
                     '<div><h4>%s %s</h4></div>',
                     sprintf('<i class="%s"></i>', $this->FontAwesome->getClass($entries[0]['Galaxy']['icon'])),
                     h($entries[0]['Galaxy']['name'])
                 );
                 if (!empty($entries[0]['Galaxy']['description'])) {
-                    $htmlClusters .= sprintf('<div><i>%s</i></div>', h($entries[0]['Galaxy']['description']));
+                    echo sprintf('<div><i>%s</i></div>', h($entries[0]['Galaxy']['description']));
                 }
-                $htmlClusters .= '<ul>';
+                echo '<ul>';
                 foreach ($entries as $cluster) {
-                    $htmlClusters .= sprintf(
+                    $description = $this->Markdown->toText($cluster['GalaxyCluster']['description']);
+                    echo sprintf(
                         '<li><strong><a href="%s" target="_blank">%s</a></strong></li> %s',
                         $baseurl . '/galaxy_clusters/view/' . h($cluster['GalaxyCluster']['id']),
                         h($cluster['GalaxyCluster']['value']),
-                        strlen(h($cluster['GalaxyCluster']['description'])) > 300 ?
-                            (substr(h($cluster['GalaxyCluster']['description']), 0, 300) . '...') : h($cluster['GalaxyCluster']['description'])
+                        strlen($description) > 300 ?
+                            (h(mb_substr($description, 0, 300)) . '...') : h($description)
                     );
                 }
-                $htmlClusters .= '</ul>';
+                echo '</ul>';
             }
-            echo $htmlClusters;
             ?>
         </div>
     <?php endif; ?>
