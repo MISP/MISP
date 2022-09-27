@@ -2211,7 +2211,7 @@ class Event extends AppModel
             foreach ($event['Attribute'] as &$attribute) {
                 if (isset($attribute['AttributeTag'])) {
                     foreach ($attribute['AttributeTag'] as $attributeTag) {
-                        if (!$attributeTag['Tag']['is_galaxy']) {
+                        if (isset($attributeTag['Tag']['is_galaxy']) && !$attributeTag['Tag']['is_galaxy']) {
                             continue;
                         }
                         $tagId = $attributeTag['Tag']['id'];
