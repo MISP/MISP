@@ -475,7 +475,7 @@ function updateFieldOnSuccess($td, type, id, field) {
                 $(".loading").show();
             }
         },
-        dataType:"html",
+        dataType: "html",
         cache: false,
         success: function (data) {
             if (field !== 'timestamp') {

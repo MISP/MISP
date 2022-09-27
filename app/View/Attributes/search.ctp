@@ -15,7 +15,8 @@
                 'label' => __('From the following organisation(s)'),
                 'div' => 'input clear',
                 'rows' => 2,
-                'class' => 'input-xxlarge'));
+                'class' => 'input-xxlarge'
+            ));
             $typeFormInfo = $this->element('genericElements/Form/formInfo', [
                 'field' => [
                     'field' => 'type'
@@ -44,7 +45,8 @@
         <?php
             echo $this->Form->input('to_ids', array(
                 'type' => 'checkbox',
-                'label' => __('Only find IOCs flagged as to IDS')
+                'label' => __('Only find IOCs flagged as to IDS'),
+                'style' => 'margin-top:1em'
             ));
             echo $this->Form->input('first_seen', array(
                 'type' => 'text',
@@ -64,7 +66,7 @@
     </fieldset>
     <div id="bothSeenSliderContainer"></div>
     <div class="clear"></div>
-    <button class="btn btn-primary" type="submit"><?= __("Search") ?></button>
+    <button class="btn btn-primary" style="margin-top: 1em" type="submit"><?= __("Search") ?></button>
     <?php echo $this->Form->end(); ?>
 </div>
 <?php echo $this->element('form_seen_input'); ?>
@@ -73,7 +75,7 @@ var category_type_mapping = <?= json_encode(array_map(function(array $value) {
     return $value['types'];
 }, $categoryDefinitions)); ?>;
 
-function formTypeChanged() {
+function searchFormTypeChanged() {
     var $categorySelect = $('#AttributeCategory');
     var alreadySelected = $categorySelect.val();
     // empty the categories
@@ -104,12 +106,13 @@ $(function() {
     }).change();
 
     $("#AttributeType").change(function () {
-        formTypeChanged();
+        searchFormTypeChanged();
         $("#AttributeCategory").chosen('destroy').chosen();
     }).change();
 
+    // Submit textarea on CTRL+ENTER
     $('.input-xxlarge').keydown(function (e) {
-        if (e.ctrlKey && e.keyCode == 13) {
+        if (e.ctrlKey && e.keyCode === 13) {
             $('#AttributeSearchForm').submit();
         }
     });
