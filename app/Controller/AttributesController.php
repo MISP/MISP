@@ -2006,23 +2006,27 @@ class AttributesController extends AppController
 
     public function fetchEditForm($id, $field = null)
     {
-        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'first_seen', 'last_seen');
-        if (!isset($field) || !in_array($field, $validFields)) {
-            throw new MethodNotAllowedException(__('Invalid field requested.'));
-        }
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This function can only be accessed via AJAX.'));
         }
-        $fields = array('id', 'distribution', 'event_id');
-        if ($field == 'category' || $field == 'type') {
-            $fields[] = 'type';
-            $fields[] = 'category';
+
+        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'first_seen', 'last_seen');
+        if (!isset($field) || !in_array($field, $validFields, true)) {
+            throw new NotFoundException(__('Invalid field requested.'));
+        }
+        $fieldsToFetch = array('id', 'event_id');
+        if ($field === 'category' || $field === 'type') {
+            $fieldsToFetch[] = 'type';
+            $fieldsToFetch[] = 'category';
+            if ($field === 'type') {
+                $fieldsToFetch[] = 'value';
+            }
         } else {
-            $fields[] = $field;
+            $fieldsToFetch[] = $field;
         }
         $params = array(
             'conditions' => array('Attribute.id' => $id),
-            'fields' => $fields,
+            'fields' => $fieldsToFetch,
             'flatten' => 1,
             'contain' => array(
                 'Event' => array(
@@ -2044,15 +2048,28 @@ class AttributesController extends AppController
             unset($distributionLevels[4]);
             $this->set('distributionLevels', $distributionLevels);
         } elseif ($field === 'category') {
-            $typeCategory = array();
+            $possibleCategories = [];
             foreach ($this->Attribute->categoryDefinitions as $k => $category) {
-                foreach ($category['types'] as $type) {
-                    $typeCategory[$type][] = $k;
+                if (in_array($attribute['Attribute']['type'], $category['types'], true)) {
+                    $possibleCategories[] = $k;
                 }
             }
-            $this->set('typeCategory', $typeCategory);
+            $this->set('possibleCategories', $possibleCategories);
         } elseif ($field === 'type') {
-            $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+            $possibleTypes = $this->Attribute->categoryDefinitions[$attribute['Attribute']['category']]['types'];
+            $validTypes = AttributeValidationTool::validTypesForValue($possibleTypes, $this->Attribute->getCompositeTypes(), $attribute['Attribute']['value']);
+            $options = [];
+            foreach ($possibleTypes as $possibleType) {
+                if ($this->Attribute->typeIsAttachment($possibleType)) {
+                    continue; // skip attachment types
+                }
+                $options[] = [
+                    'name' => $possibleType,
+                    'value' => $possibleType,
+                    'disabled' => !in_array($possibleType, $validTypes, true),
+                ];
+            }
+            $this->set('options', $options);
         }
         $this->set('object', $attribute['Attribute']);
         $fieldURL = ucfirst($field);

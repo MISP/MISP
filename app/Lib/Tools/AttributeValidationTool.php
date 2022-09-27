@@ -584,6 +584,28 @@ class AttributeValidationTool
     }
 
     /**
+     * This method will generate all valid types for given value.
+     * @param array $types Typos to check
+     * @param array $compositeTypes Composite types
+     * @param string $value Values to check
+     * @return array
+     */
+    public static function validTypesForValue(array $types, array $compositeTypes, $value)
+    {
+        $possibleTypes = [];
+        foreach ($types as $type) {
+            if (in_array($type, $compositeTypes, true) && substr_count($value, '|') !== 1) {
+                continue; // value is not in composite format
+            }
+            $modifiedValue = AttributeValidationTool::modifyBeforeValidation($type, $value);
+            if (AttributeValidationTool::validate($type, $modifiedValue) === true) {
+                $possibleTypes[] = $type;
+            }
+        }
+        return $possibleTypes;
+    }
+
+    /**
      * @param string $value
      * @return bool
      */
