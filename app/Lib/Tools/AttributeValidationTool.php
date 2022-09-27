@@ -202,7 +202,7 @@ class AttributeValidationTool
                     $value = substr($value, 2); // remove 'AS'
                 }
                 if (strpos($value, '.') !== false) { // maybe value is in asdot notation
-                    $parts = explode('.', $value);
+                    $parts = explode('.', $value, 2);
                     if (self::isPositiveInteger($parts[0]) && self::isPositiveInteger($parts[1])) {
                         return $parts[0] * 65536 + $parts[1];
                     }
