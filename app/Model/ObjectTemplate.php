@@ -206,18 +206,27 @@ class ObjectTemplate extends AppModel
         return true;
     }
 
-    public function checkTemplateConformityBasedOnTypes($template, $attributes)
+    /**
+     * @param array $template
+     * @param array $attributes
+     * @return array
+     */
+    public function checkTemplateConformityBasedOnTypes(array $template, array $attributes)
     {
         $to_return = array('valid' => true, 'missingTypes' => array());
         if (!empty($template['ObjectTemplate']['requirements'])) {
+            // construct array containing ObjectTemplateElement with object_relation as key for faster search
+            $elementsByObjectRelationName = array_column($template['ObjectTemplateElement'], null, 'object_relation');
+
             // check for all required attributes
             if (!empty($template['ObjectTemplate']['requirements']['required'])) {
                 foreach ($template['ObjectTemplate']['requirements']['required'] as $requiredField) {
-                    $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField))[0];
+                    $requiredType = $elementsByObjectRelationName[$requiredField]['type'];
                     $found = false;
                     foreach ($attributes as $attribute) {
-                        if ($attribute['Attribute']['type'] == $requiredType) {
+                        if ($attribute['Attribute']['type'] === $requiredType) {
                             $found = true;
+                            break;
                         }
                     }
                     if (!$found) {
@@ -228,24 +237,24 @@ class ObjectTemplate extends AppModel
             // check for all required one of attributes
             if (!empty($template['ObjectTemplate']['requirements']['requiredOneOf'])) {
                 $found = false;
-                $all_required_type = array();
+                $allRequiredTypes = array();
                 foreach ($template['ObjectTemplate']['requirements']['requiredOneOf'] as $requiredField) {
-                    $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField));
-                    $requiredType = empty($requiredType) ? NULL : $requiredType[0];
-                    $all_required_type[] = $requiredType;
+                    $requiredType = $elementsByObjectRelationName[$requiredField]['type'] ?? null;
+                    $allRequiredTypes[] = $requiredType;
                     foreach ($attributes as $attribute) {
-                        if ($attribute['Attribute']['type'] == $requiredType) {
+                        if ($attribute['Attribute']['type'] === $requiredType) {
                             $found = true;
+                            break;
                         }
                     }
                 }
                 if (!$found) {
-                    $to_return = array('valid' => false, 'missingTypes' => $all_required_type);
+                    $to_return = array('valid' => false, 'missingTypes' => $allRequiredTypes);
                 }
             }
         }
 
-        // at this point, an object could created; checking if all attribute are valids
+        // at this point, an object could created; checking if all attribute are valid
         $valid_types = array();
         $to_return['invalidTypes'] = array();
         $to_return['invalidTypesMultiple'] = array();
@@ -266,8 +275,8 @@ class ObjectTemplate extends AppModel
                 $to_return['invalidTypes'][] = $attribute['Attribute']['type'];
             }
         }
-        $to_return['invalidTypes'] = array_unique($to_return['invalidTypes']);
-        $to_return['invalidTypesMultiple'] = array_unique($to_return['invalidTypesMultiple']);
+        $to_return['invalidTypes'] = array_unique($to_return['invalidTypes'], SORT_REGULAR);
+        $to_return['invalidTypesMultiple'] = array_unique($to_return['invalidTypesMultiple'], SORT_REGULAR);
         if (!empty($to_return['invalidTypesMultiple'])) {
             $to_return['valid'] = false;
         }
@@ -344,6 +353,10 @@ class ObjectTemplate extends AppModel
         return FileAccessTool::readJsonFromFile($path);
     }
 
+    /**
+     * @return Generator<array>
+     * @throws Exception
+     */
     private function readTemplatesFromDisk()
     {
         foreach ($this->getTemplateDirectoryPaths() as $dirpath) {
@@ -355,8 +368,13 @@ class ObjectTemplate extends AppModel
         }
     }
 
+    /**
+     * @param bool $fullPath
+     * @return array
+     */
     private function getTemplateDirectoryPaths($fullPath=true)
     {
+        App::uses('Folder', 'Utility');
         $dir = new Folder(self::OBJECTS_DIR, false);
         return $dir->read(true, false, $fullPath)[0];
     }

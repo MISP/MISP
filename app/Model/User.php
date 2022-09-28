@@ -1825,7 +1825,6 @@ class User extends AppModel
         $finalContext = $this->Event->restSearch($user, 'context', $filtersForRestSearch, false, false, $elementCounter, $renderView);
         $finalContext = JsonTool::decode($finalContext->intoString());
         $aggregated_context = $this->__renderAggregatedContext($finalContext);
-
         $rollingWindows = $periodicSettings['trending_period_amount'] ?: 2;
         $trendAnalysis = $this->Event->getTrendsForTagsFromEvents($events, $this->periodToDays($period), $rollingWindows, $periodicSettings['trending_for_tags']);
         $tagFilterPrefixes = $periodicSettings['trending_for_tags'] ?: array_keys($trendAnalysis['all_tags']);
@@ -1876,6 +1875,30 @@ class User extends AppModel
         return $view->render($viewFile, false);
     }
 
+    private function __getUsableFilters(array $period_filters, string $period='daily'): array
+    {
+        $filters = [
+            'last' => $this->__genTimerangeFilter($period),
+            'published' => true,
+            'includeScoresOnEvent' => true,
+        ];
+        if (!empty($period_filters['orgc_id'])) {
+            $filters['orgc_id'] = $period_filters['orgc_id'];
+        }
+        if (isset($period_filters['distribution']) && $period_filters['distribution'] >= 0) {
+            $filters['distribution'] = intval($period_filters['distribution']);
+        }
+        if (!empty($period_filters['sharing_group_id'])) {
+            $filters['sharing_group_id'] = $period_filters['sharing_group_id'];
+        }
+        if (!empty($period_filters['event_info'])) {
+            $filters['event_info'] = $period_filters['event_info'];
+        }
+        if (!empty($period_filters['tags'])) {
+            $filters['tags'] = $period_filters['tags'];
+        }
+        return $filters;
+    }
     private function __genTimerangeFilter(string $period='daily'): string
     {
         return $this->periodToDays($period) . 'd';
