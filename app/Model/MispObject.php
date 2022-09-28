@@ -851,6 +851,14 @@ class MispObject extends AppModel
         return $object;
     }
 
+    /**
+     * @param array $object
+     * @param array $objectToSave
+     * @param bool $onlyAddNewAttribute
+     * @param array $user
+     * @return array|int
+     * @throws JsonException
+     */
     public function deltaMerge(array $object, array $objectToSave, $onlyAddNewAttribute=false, array $user)
     {
         if (!isset($objectToSave['Object'])) {
@@ -965,7 +973,6 @@ class MispObject extends AppModel
             }
         } else { // we only add the new attribute
             $newAttribute = $objectToSave['Attribute'][0];
-            $this->Event->Attribute->create();
             $newAttribute['event_id'] = $object['Object']['event_id'];
             $newAttribute['object_id'] = $object['Object']['id'];
             // Set seen of object at attribute level
@@ -980,10 +987,9 @@ class MispObject extends AppModel
                 (!array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
             ) {
                 $newAttribute['last_seen'] = $object['Object']['last_seen'];
-                $different = true;
             }
             $saveAttributeResult = $this->Attribute->saveAttributes(array($newAttribute), $user);
-            return $saveAttributeResult ? $this->id : $this->validationErrors;
+            return $saveAttributeResult ? $this->id : $this->Attribute->validationErrors;
         }
         return $this->id;
     }

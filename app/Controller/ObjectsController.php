@@ -431,7 +431,7 @@ class ObjectsController extends AppController
             $savedObject = array();
             if (!is_numeric($objectToSave)) {
                 $object_validation_errors = array();
-                foreach($objectToSave as $field => $field_errors) {
+                foreach ($objectToSave as $field => $field_errors) {
                     $object_validation_errors[] = sprintf('%s: %s', $field,  implode(', ', $field_errors));
                 }
                 $error_message = __('Object could not be saved.') . PHP_EOL . implode(PHP_EOL, $object_validation_errors);
@@ -458,12 +458,10 @@ class ObjectsController extends AppController
                     return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $id, $this->response->type());
                 }
             } else {
-                $message = __('Object attributes saved.');
                 if ($this->request->is('ajax')) {
-                    $this->autoRender = false;
                     if (is_numeric($objectToSave)) {
                         $this->MispObject->Event->unpublishEvent($event);
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Object attributes saved.'))), 'status'=>200, 'type' => 'json'));
                     } else {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $error_message)), 'status'=>200, 'type' => 'json'));
                     }
