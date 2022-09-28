@@ -5594,6 +5594,10 @@ class Event extends AppModel
         return $resultArray;
     }
 
+    /**
+     * @param array $result
+     * @return array
+     */
     public function handleMispFormatFromModuleResult(&$result)
     {
         $defaultDistribution = $this->Attribute->defaultDistribution();
@@ -5607,7 +5611,7 @@ class Event extends AppModel
             $event['Attribute'] = $attributes;
         }
         if (!empty($result['results']['Object'])) {
-            $object = array();
+            $objects = array();
             foreach ($result['results']['Object'] as $tmp_object) {
                 $tmp_object['distribution'] = (isset($tmp_object['distribution']) ? (int)$tmp_object['distribution'] : $defaultDistribution);
                 $tmp_object['sharing_group_id'] = (isset($tmp_object['sharing_group_id']) ? (int)$tmp_object['sharing_group_id'] : 0);
@@ -5631,6 +5635,11 @@ class Event extends AppModel
         return $event;
     }
 
+    /**
+     * @param array $attribute
+     * @param int $defaultDistribution
+     * @return array
+     */
     private function __fillAttribute($attribute, $defaultDistribution)
     {
         if (is_array($attribute['type'])) {

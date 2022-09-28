@@ -6,7 +6,8 @@ class Module extends AppModel
 {
     public $useTable = false;
 
-    private $__validTypes = array(
+    // private
+    const VALID_TYPES = array(
         'Enrichment' => array('hover', 'expansion'),
         'Import' => array('import'),
         'Export' => array('export'),
@@ -14,6 +15,7 @@ class Module extends AppModel
         'Cortex' => array('cortex')
     );
 
+    // private
     const TYPE_TO_FAMILY = array(
         'Import' => 'Import',
         'Export' => 'Export',
@@ -23,7 +25,7 @@ class Module extends AppModel
         'Cortex' => 'Cortex'
     );
 
-    public $configTypes = array(
+    const CONFIG_TYPES = array(
         'IP' => array(
             'validation' => 'validateIPField',
             'field' => 'text',
@@ -351,7 +353,7 @@ class Module extends AppModel
         $result = array();
         if (is_array($modules)) {
             foreach ($modules as $module) {
-                if (array_intersect($this->__validTypes[$moduleFamily], $module['meta']['module-type'])) {
+                if (array_intersect(self::VALID_TYPES[$moduleFamily], $module['meta']['module-type'])) {
                     $moduleSettings = [
                         [
                             'name' => 'enabled',

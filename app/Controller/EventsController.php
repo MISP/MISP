@@ -5302,7 +5302,7 @@ class EventsController extends AppController
         }
     }
 
-    public function importModule($module, $eventId)
+    public function importModule($moduleName, $eventId)
     {
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
         if (!$event) {
@@ -5312,8 +5312,7 @@ class EventsController extends AppController
         $eventId = $event['Event']['id'];
 
         $this->loadModel('Module');
-        $moduleName = $module;
-        $module = $this->Module->getEnabledModule($module, 'Import');
+        $module = $this->Module->getEnabledModule($moduleName, 'Import');
         if (!is_array($module)) {
             throw new MethodNotAllowedException($module);
         }
@@ -5321,10 +5320,11 @@ class EventsController extends AppController
             $module['mispattributes']['inputSource'] = array('paste');
         }
         if ($this->request->is('post')) {
+            $requestData = $this->request->data['Event'];
             $fail = false;
             $modulePayload = array(
-                    'module' => $module['name'],
-                    'event_id' => $eventId,
+                'module' => $module['name'],
+                'event_id' => $eventId,
             );
             if (isset($module['meta']['config'])) {
                 foreach ($module['meta']['config'] as $conf) {
@@ -5332,11 +5332,11 @@ class EventsController extends AppController
                 }
             }
             if ($moduleName === 'csvimport') {
-                if (empty($this->request->data['Event']['config']['header']) && $this->request->data['Event']['config']['has_header'] === '1') {
-                    $this->request->data['Event']['config']['header'] = ' ';
+                if (empty($requestData['config']['header']) && $requestData['config']['has_header'] === '1') {
+                    $requestData['config']['header'] = ' ';
                 }
-                if (empty($this->request->data['Event']['config']['special_delimiter'])) {
-                    $this->request->data['Event']['config']['special_delimiter'] = ' ';
+                if (empty($requestData['config']['special_delimiter'])) {
+                    $requestData['config']['special_delimiter'] = ' ';
                 }
             }
             if (isset($module['mispattributes']['userConfig'])) {
@@ -5347,18 +5347,19 @@ class EventsController extends AppController
                                 $validation = true;
                             }
                         } else {
-                            $validation = call_user_func_array(array($this->Module, $this->Module->configTypes[$config['type']]['validation']), array($this->request->data['Event']['config'][$configName]));
+                            $validationMethod = Module::CONFIG_TYPES[$config['type']]['validation'];
+                            $validation = $this->Module->{$validationMethod}($requestData['config'][$configName]);
                         }
                         if ($validation !== true) {
                             $fail = ucfirst($configName) . ': ' . $validation;
                         } else {
                             if (isset($config['regex']) && !empty($config['regex'])) {
-                                $fail = preg_match($config['regex'], $this->request->data['Event']['config'][$configName]) ? false : ucfirst($configName) . ': ' . 'Invalid setting' . ($config['errorMessage'] ? ' - ' . $config['errorMessage'] : '');
+                                $fail = preg_match($config['regex'], $requestData['config'][$configName]) ? false : ucfirst($configName) . ': ' . 'Invalid setting' . ($config['errorMessage'] ? ' - ' . $config['errorMessage'] : '');
                                 if (!empty($fail)) {
-                                    $modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
+                                    $modulePayload['config'][$configName] = $requestData['config'][$configName];
                                 }
                             } else {
-                                $modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
+                                $modulePayload['config'][$configName] = $requestData['config'][$configName];
                             }
                         }
                     }
@@ -5366,31 +5367,29 @@ class EventsController extends AppController
             }
             if (!$fail) {
                 if (!empty($module['mispattributes']['inputSource'])) {
-                    if (!isset($this->request->data['Event']['source'])) {
+                    if (!isset($requestData['source'])) {
                         if (in_array('paste', $module['mispattributes']['inputSource'])) {
-                            $this->request->data['Event']['source'] = '0';
+                            $requestData['source'] = '0';
                         } else {
-                            $this->request->data['Event']['source'] = '1';
+                            $requestData['source'] = '1';
                         }
                     }
-                    if ($this->request->data['Event']['source'] == '1') {
-                        if (isset($this->request->data['Event']['data'])) {
-                            $modulePayload['data'] = base64_decode($this->request->data['Event']['data']);
-                        } elseif (!isset($this->request->data['Event']['fileupload']) || empty($this->request->data['Event']['fileupload'])) {
-                            $fail = 'Invalid file upload.';
+                    if ($requestData['source'] == '1') {
+                        if (isset($requestData['data'])) {
+                            $modulePayload['data'] = base64_decode($requestData['data']);
+                        } elseif (empty($requestData['fileupload'])) {
+                            $fail = __('Invalid file upload.');
                         } else {
-                            $fileupload = $this->request->data['Event']['fileupload'];
-                            $tmpfile = new File($fileupload['tmp_name']);
-                            if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($tmpfile->path)) {
+                            $fileupload = $requestData['fileupload'];
+                            if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($fileupload['tmp_name'])) {
                                 $filename = basename($fileupload['name']);
-                                App::uses('FileAccessTool', 'Tools');
-                                $modulePayload['data'] = FileAccessTool::readFromFile($fileupload['tmp_name'], $fileupload['size']);
+                                $modulePayload['data'] = FileAccessTool::readAndDelete($fileupload['tmp_name']);
                             } else {
-                                $fail = 'Invalid file upload.';
+                                $fail = __('Invalid file upload.');
                             }
                         }
                     } else {
-                        $modulePayload['data'] = $this->request->data['Event']['paste'];
+                        $modulePayload['data'] = $requestData['paste'];
                     }
                 } else {
                     $modulePayload['data'] = '';
@@ -5445,13 +5444,10 @@ class EventsController extends AppController
                         $this->set('typeCategoryMapping', $typeCategoryMapping);
                         $render_name = 'resolved_attributes';
                     }
-                    $distributions = $this->Event->Attribute->distributionLevels;
-                    $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
-                    if (empty($sgs)) {
-                        unset($distributions[4]);
-                    }
-                    $this->set('distributions', $distributions);
-                    $this->set('sgs', $sgs);
+
+                    $distributionData = $this->Event->Attribute->fetchDistributionData($this->Auth->user());
+                    $this->set('distributions', $distributionData['levels']);
+                    $this->set('sgs', $distributionData['sgs']);
                     $this->set('title', __('Import Results'));
                     $this->set('title_for_layout', __('Import Results'));
                     $this->set('importComment', $importComment);
@@ -5462,7 +5458,7 @@ class EventsController extends AppController
                 $this->Flash->error($fail);
             }
         }
-        $this->set('configTypes', $this->Module->configTypes);
+        $this->set('configTypes', Module::CONFIG_TYPES);
         $this->set('module', $module);
         $this->set('eventId', $eventId);
         $this->set('event', $event);
