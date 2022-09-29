@@ -652,10 +652,6 @@ $divider = '<li class="divider"></li>';
                         'url' => $baseurl . '/user_settings/setSetting',
                         'text' => __('Set Setting')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/dashboards',
-                        'text' => __('Dashboard')
-                    ));
                     if ($this->Acl->canAccess('organisations', 'index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'indexOrg',
