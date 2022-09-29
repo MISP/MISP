@@ -69,11 +69,12 @@ foreach ($events as $event) {
         }
         $unique_tag_per_event[$tag['name']] = true;
 
-        if (empty($all_tag_amount[$tag['name']])) {
-            $all_tag_amount[$tag['name']] = 0;
+        if (!isset($all_tag_amount[$tag['name']])) {
+            $all_tag_amount[$tag['name']] = 1;
             $tag_color_mapping[$tag['name']] = $tag['colour'];
+        } else {
+            $all_tag_amount[$tag['name']]++;
         }
-        $all_tag_amount[$tag['name']]++;
 
         if ($tag['is_galaxy'] && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
             $technique = substr($tag['name'], strlen($mitre_galaxy_tag_prefix), strlen($tag['name']) - strlen($mitre_galaxy_tag_prefix) - 1);
@@ -100,11 +101,12 @@ foreach ($events as $event) {
             }
             $unique_tag_per_event[$tag['name']] = true;
 
-            if (empty($all_tag_amount[$tag['name']])) {
-                $all_tag_amount[$tag['name']] = 0;
+            if (!isset($all_tag_amount[$tag['name']])) {
+                $all_tag_amount[$tag['name']] = 1;
                 $tag_color_mapping[$tag['name']] = $tag['colour'];
+            } else {
+                $all_tag_amount[$tag['name']]++;
             }
-            $all_tag_amount[$tag['name']]++;
 
             if ($tag['is_galaxy'] && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
                 $technique = substr($tag['name'], strlen($mitre_galaxy_tag_prefix), strlen($tag['name']) - strlen($mitre_galaxy_tag_prefix) - 1);
@@ -138,11 +140,12 @@ foreach ($events as $event) {
                 }
                 $unique_tag_per_event[$tag['name']] = true;
 
-                if (empty($all_tag_amount[$tag['name']])) {
-                    $all_tag_amount[$tag['name']] = 0;
+                if (!isset($all_tag_amount[$tag['name']])) {
+                    $all_tag_amount[$tag['name']] = 1;
                     $tag_color_mapping[$tag['name']] = $tag['colour'];
+                } else {
+                    $all_tag_amount[$tag['name']]++;
                 }
-                $all_tag_amount[$tag['name']]++;
 
                 if ($tag['is_galaxy'] && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
                     $technique = substr($tag['name'], strlen($mitre_galaxy_tag_prefix), strlen($tag['name']) - strlen($mitre_galaxy_tag_prefix) - 1);
@@ -212,7 +215,6 @@ uasort($mitre_attack_techniques, function($tag1, $tag2) use ($all_tag_amount) {
 
 array_splice($attribute_types, 10);
 array_splice($object_types, 10);
-array_splice($all_tag_amount, 10);
 array_splice($mitre_attack_techniques, 10);
 ?>
 
@@ -301,7 +303,7 @@ array_splice($mitre_attack_techniques, 10);
                 <?php if (!empty($mitre_attack_techniques)) : ?>
                     <h4><?= __('Top 10 MITRE ATT&CK techniques') ?></h4>
                     <ul>
-                        <?php foreach ($mitre_attack_techniques as $technique => $tag) : ?>
+                        <?php foreach ($mitre_attack_techniques as $technique => $tag): ?>
                             <li>
                                 <span class="tag" style="background-color: #999; color: #fff; border-radius: 9px; padding: 2px 8px;">
                                     <?= $all_tag_amount[$tag['Tag']['name']] ?>
