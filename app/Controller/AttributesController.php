@@ -1989,7 +1989,7 @@ class AttributesController extends AppController
         $attribute = $attribute[0];
         $result = $attribute['Attribute'][$field];
         if ($field === 'distribution') {
-            $result = $this->Attribute->shortDist[$result];
+            $this->set('shortDist', $this->Attribute->shortDist);
         } elseif ($field === 'value') {
             $this->loadModel('Warninglist');
             $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);

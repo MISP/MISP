@@ -595,7 +595,7 @@ class ObjectsController extends AppController
         $object = $object[0];
         $result = $object['Object'][$field];
         if ($field === 'distribution') {
-            $result = $this->MispObject->shortDist[$result];
+            $this->set('shortDist', $this->Attribute->shortDist);
         }
         $this->set('value', $result);
         $this->set('field', $field);
@@ -632,7 +632,7 @@ class ObjectsController extends AppController
             throw new NotFoundException(__('Invalid object'));
         }
         $this->layout = false;
-        if ($field == 'distribution') {
+        if ($field === 'distribution') {
             $distributionLevels = $this->MispObject->shortDist;
             unset($distributionLevels[4]);
             $this->set('distributionLevels', $distributionLevels);
