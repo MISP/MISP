@@ -138,17 +138,19 @@ $objectId = intval($object['id']);
   </td>
 </tr>
 <?php
-  if (!empty($object['Attribute'])) {
+if (!empty($object['Attribute'])) {
     end($object['Attribute']);
     $lastElement = key($object['Attribute']);
     foreach ($object['Attribute'] as $attrKey => $attribute) {
-      echo $this->element('/Events/View/row_' . $attribute['objectType'], array(
-        'object' => $attribute,
-        'mayModify' => $mayModify,
-        'mayChangeCorrelation' => $mayChangeCorrelation,
-        'fieldCount' => $fieldCount,
-        'child' => $attrKey == $lastElement ? 'last' : true
-      ));
+        echo $this->element('/Events/View/row_' . $attribute['objectType'], array(
+            'object' => $attribute,
+            'mayModify' => $mayModify,
+            'mayChangeCorrelation' => $mayChangeCorrelation,
+            'fieldCount' => $fieldCount,
+            'child' => $attrKey === $lastElement ? 'last' : true,
+        ));
     }
-    echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') .'" data-popover-popup="' . $baseurl . '/objects/quickFetchTemplateWithValidObjectAttributes/' . $objectId .'"></span></td></tr>';
-  }
+    if ($mayModify) {
+        echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') . '" data-popover-popup="' . $baseurl . '/objects/quickFetchTemplateWithValidObjectAttributes/' . $objectId . '"></span></td></tr>';
+    }
+}
