@@ -4,11 +4,5 @@ if ($field === 'value') {
 } elseif ($field === 'timestamp') {
     echo $this->Time->date($value);
 } else {
-    if ($value === 'No') {
-        echo '<input type="checkbox" disabled>';
-    } else if ($value === 'Yes') {
-        echo '<input type="checkbox" checked disabled>';
-    } else {
-        echo nl2br(h($value), false);
-    }
+    echo nl2br(h($value), false);
 }

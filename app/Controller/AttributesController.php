@@ -1961,7 +1961,7 @@ class AttributesController extends AppController
     public function fetchViewValue($id, $field = null)
     {
         $user = $this->_closeSession();
-        $validFields = ['value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp', 'first_seen', 'last_seen'];
+        $validFields = ['value', 'comment', 'type', 'category', 'distribution', 'timestamp', 'first_seen', 'last_seen'];
         if (!isset($field) || !in_array($field, $validFields, true)) {
             throw new MethodNotAllowedException(__('Invalid field requested.'));
         }
@@ -1990,8 +1990,6 @@ class AttributesController extends AppController
         $result = $attribute['Attribute'][$field];
         if ($field === 'distribution') {
             $result = $this->Attribute->shortDist[$result];
-        } elseif ($field === 'to_ids') {
-            $result = $result == 0 ? 'No' : 'Yes';
         } elseif ($field === 'value') {
             $this->loadModel('Warninglist');
             $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);
