@@ -778,7 +778,7 @@ class ACLComponent extends Component
                 'eventIndexColumnToggle' => ['*'],
             ),
             'warninglists' => array(
-                'checkValue' => array('perm_auth'),
+                'checkValue' => ['*'],
                 'delete' => ['perm_warninglist'],
                 'enableWarninglist' => ['perm_warninglist'],
                 'getToggleField' => ['perm_warninglist'],
