@@ -1653,6 +1653,7 @@ class EventsController extends AppController
             $cortex_modules = $this->Module->getEnabledModules($user, false, 'Cortex');
             $this->set('cortex_modules', $cortex_modules);
         }
+        $this->set('sightingsDbEnabled', (bool)Configure::read('Plugin.Sightings_sighting_db_enable'));
     }
 
     public function view($id = null, $continue = false, $fromEvent = null)

@@ -207,9 +207,10 @@
                         'title' => __('Show SightingDB lookup results'),
                         'fa-icon' => 'binoculars',
                         'text' => __('SightingDB'),
-                        'active' => empty($includeSightingdb) ? false : true,
+                        'active' => !empty($includeSightingdb),
                         'onClick' => 'toggleBoolFilter',
-                        'onClickParams' => array('includeSightingdb')
+                        'onClickParams' => array('includeSightingdb'),
+                        'requirement' => $sightingsDbEnabled,
                     ),
                     array(
                         'id' => 'show_attribute_context',
