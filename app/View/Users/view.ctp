@@ -1,32 +1,48 @@
 <?php
-    $periodic_notification_settings_html = '<table>';
-    foreach ($periodic_notifications as $periodic_notification) {
-        $active_html = $this->element('genericElements/IndexTable/Fields/boolean', [
-            'row' => ['active' => !empty($user['User'][$periodic_notification])],
-            'field' => ['data_path' => 'active', 'colors' => true, ],
-        ]);
-        $periodic_notification_settings_html .= sprintf('<tr><td>%s</td><td>%s<td></tr>', Inflector::humanize($periodic_notification), $active_html);
-    }
-    $periodic_notification_settings_html .= '</table>';
-    $table_data = array();
-    $table_data[] = array('key' => __('ID'), 'value' => $user['User']['id']);
-    $table_data[] = array(
-        'key' => __('Email'),
-        'html' => h($user['User']['email']) . ($admin_view ? sprintf(
-            ' <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s"></a>',
-            $baseurl,
-            h($user['User']['id']),
-            __('Send email to user')
-        ) : ''),
-    );
-    $table_data[] = array(
-        'key' => __('Organisation'),
-        'html' => $this->OrgImg->getNameWithImg($user),
-    );
-    $table_data[] = array('key' => __('Role'), 'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])));
-    $table_data[] = array('key' => __('Event alert enabled'), 'boolean' => $user['User']['autoalert']);
-    $table_data[] = array('key' => __('Periodic Notifications'), 'html' => $periodic_notification_settings_html);
-    $table_data[] = array('key' => __('Contact alert enabled'), 'boolean' => $user['User']['contactalert']);
+
+$notificationTypes = [
+    'autoalert' => __('Event published notification'),
+    'notification_daily' => __('Daily notifications'),
+    'notification_weekly' => __('Weekly notifications'),
+    'notification_monthly' => __('Monthly notifications'),
+];
+
+$notificationsHtml = '<table>';
+foreach ($notificationTypes as $notificationType => $description) {
+    $isEnabled = !empty($user['User'][$notificationType]);
+    $boolean = sprintf(
+        '<span class="%s">%s</span>',
+            $isEnabled ? 'label label-success label-padding' : 'label label-important label-padding',
+        $isEnabled ? __('Yes') : __('No'));
+    $notificationsHtml .= '<tr><td>' . $description . '</td><td>' . $boolean . '</td>';
+}
+$notificationsHtml .= '</table>';
+
+    $table_data = [
+        array('key' => __('ID'), 'value' => $user['User']['id']),
+        array(
+            'key' => __('Email'),
+            'html' => h($user['User']['email']) . ($admin_view ? sprintf(
+                    ' <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s"></a>',
+                    $baseurl,
+                    h($user['User']['id']),
+                    __('Send email to user')
+                ) : ''),
+        ),
+        array(
+            'key' => __('Organisation'),
+            'html' => $this->OrgImg->getNameWithImg($user),
+        ),
+        array(
+            'key' => __('Role'),
+            'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])),
+        ),
+        array(
+            'key' => __('Email notifications'),
+            'html' => $notificationsHtml,
+        ),
+        array('key' => __('Contact alert enabled'), 'boolean' => $user['User']['contactalert'])
+    ];
 
     if (!$admin_view && !$user['Role']['perm_auth']) {
         $table_data[] = array(
@@ -160,6 +176,4 @@
         'admin_view' => ['menuList' => 'admin', 'menuItem' => 'viewUser'],
         'view' => ['menuList' => 'globalActions', 'menuItem' => 'view']
     ];
-    ?>
-    <?php
     echo $this->element('/genericElements/SideMenu/side_menu', $current_menu[$admin_view ? 'admin_view' : 'view']);

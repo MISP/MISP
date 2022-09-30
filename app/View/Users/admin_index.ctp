@@ -140,16 +140,6 @@
                     ),
                     array(
                         'name' => '',
-                        'header_title' => __('Event publish alert'),
-                        'icon' => 'envelope',
-                        'element' => 'boolean',
-                        'sort' => 'User.autoalert',
-                        'class' => 'short',
-                        'data_path' => 'User.autoalert',
-                        'colors' => true,
-                    ),
-                    array(
-                        'name' => '',
                         'header_title' => __('Contact alert'),
                         'icon' => 'handshake',
                         'element' => 'boolean',
@@ -160,18 +150,21 @@
                     ),
                     array(
                         'name' => '',
-                        'header_title' => __('Periodic notification'),
+                        'header_title' => __('Notification'),
                         'icon' => 'clock',
                         'element' => 'custom',
                         'class' => 'short',
                         'function' => function (array $user) use ($periodic_notifications) {
-                            $period_subscriptions = [];
+                            $subscriptions = [];
+                            if ($user['User']['autoalert']) {
+                                $subscriptions[] = 'e';
+                            }
                             foreach ($periodic_notifications as $period) {
                                 if (!empty($user['User'][$period])) {
-                                    $period_subscriptions[] = substr($period, 13, 1);
+                                    $subscriptions[] = substr($period, 13, 1);
                                 }
                             }
-                            return implode('/', $period_subscriptions);
+                            return implode('/', $subscriptions);
                         }
                     ),
                     array(
