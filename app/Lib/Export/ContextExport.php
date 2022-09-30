@@ -43,6 +43,7 @@ class ContextExport
         App::uses('AttackExport', 'Export');
         $this->AttackExport = new AttackExport();
         $this->__passedOptions = $options;
+        $this->AttackExport->handler([], $options);
 
         return '';
     }

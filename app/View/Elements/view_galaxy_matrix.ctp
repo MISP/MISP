@@ -56,7 +56,7 @@ if (isset($interpolation) && !empty($interpolation)) {
             $interpolation[$k] .= ' 3%';
         }
     }
-    $colorScale = implode($interpolation, ', ');
+    $colorScale = implode(', ', $interpolation);
 } else {
     $colorScale = 'black';
 }
