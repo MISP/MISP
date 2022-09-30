@@ -1,5 +1,5 @@
-<div class="footer <?php echo $debugMode;?>">
-    <div id="shortcutsListContainer" class="<?php echo $debugMode == 'debugOn' ? 'hidden': ''; ?>">
+<div class="footer <?= $debugMode;?>">
+    <div id="shortcutsListContainer" class="<?= $debugMode === 'debugOn' ? 'hidden': ''; ?>">
         <div id="triangle" title="<?= __('Show keyboard shortcuts help') ?>"></div>
         <div id="shortcutsList">
             <?= __('Keyboard shortcuts for this page') ?>:<br>
@@ -8,7 +8,7 @@
     </div>
     <div id="footerContainer" class="navbar navbar-inverse">
         <div class="navbar-inner">
-            <div class="pull-left footerText" style="float:left;position:absolute;padding-top:12px;z-index:2;">
+            <div class="pull-left footerText" style="position:absolute;padding-top:12px;z-index:2;">
                 <?php
                 $gpgpath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'gpg.asc';
                 if (Configure::read("MISP.download_gpg_from_homedir")) { ?>

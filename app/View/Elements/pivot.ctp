@@ -1,4 +1,3 @@
-<?= $this->Html->css('tree'); ?>
 <div>
     <div class="tree">
         <?= $this->Pivot->convertPivotToHTML($pivot, $event['Event']['id']); ?>

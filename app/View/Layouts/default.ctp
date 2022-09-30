@@ -22,7 +22,6 @@
         }
         $js = [
             'jquery',
-            'misp-touch',
             'chosen.jquery.min',
         ];
         if (!empty($additionalCss)) {
@@ -56,28 +55,13 @@
     </div>
     <div id="flashContainer" style="padding-top:<?php echo $topPadding; ?>px; !important;">
         <div id="main-view-container" class="container-fluid">
-            <?php
-                echo $this->Flash->render();
-            ?>
+            <?= $this->Flash->render() ?>
         </div>
     </div>
     <div>
-        <?php
-            echo $this->fetch('content');
-        ?>
+        <?= $this->fetch('content') ?>
     </div>
     <?php
-    echo $this->element('genericElements/assetLoader', array(
-        'js' => array(
-            'bootstrap',
-            'bootstrap-timepicker',
-            'bootstrap-datepicker',
-            'bootstrap-colorpicker',
-            'misp',
-            'keyboard-shortcuts-definition',
-            'keyboard-shortcuts',
-        )
-    ));
     echo $this->element('footer');
     echo $this->element('sql_dump');
     ?>
@@ -91,6 +75,18 @@
         <div class="spinner"></div>
         <div class="loadingText"><?php echo __('Loading');?></div>
     </div>
+    <?= $this->element('genericElements/assetLoader', array(
+        'js' => array(
+            'misp-touch',
+            'bootstrap',
+            'bootstrap-timepicker',
+            'bootstrap-datepicker',
+            'bootstrap-colorpicker',
+            'misp',
+            'keyboard-shortcuts-definition',
+            'keyboard-shortcuts',
+        )
+    )); ?>
     <script>
     <?php
         if (!isset($debugMode)):

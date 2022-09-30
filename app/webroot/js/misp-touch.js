@@ -2,7 +2,7 @@
  * support for touch devices without the need
  */
 
-$(document).ready(function() {
+$(function() {
 	var touchStartTime = 0;
 	var touchTarget = null;
 
@@ -35,5 +35,4 @@ $(document).ready(function() {
 			}
 		}
 	}, false);
-
 });
