@@ -102,12 +102,12 @@ $notificationsHtml .= '</table>';
         $table_data[] = array('key' => __('Terms accepted'), 'boolean' => $user['User']['termsaccepted']);
         $table_data[] = array('key' => __('Must change password'), 'boolean' => $user['User']['change_pw']);
     }
-    $table_data[] = array(
-        'key' => __('PGP key'),
-        'element' => 'genericElements/key',
-        'element_params' => array('key' => $user['User']['gpgkey']),
-    );
     if (!empty($user['User']['gpgkey'])) {
+        $table_data[] = array(
+            'key' => __('PGP key'),
+            'element' => 'genericElements/key',
+            'element_params' => array('key' => $user['User']['gpgkey']),
+        );
         $table_data[] = array(
             'key' => __('PGP key fingerprint'),
             'value_class' => 'quickSelect',
@@ -117,6 +117,11 @@ $notificationsHtml .= '</table>';
             'key' => __('PGP key status'),
             'value_class' => (empty($user['User']['pgp_status']) || $user['User']['pgp_status'] !== 'OK') ? 'red': '',
             'value' => !empty($user['User']['pgp_status']) ? $user['User']['pgp_status'] : 'N/A'
+        );
+    } else {
+        $table_data[] = array(
+            'key' => __('PGP key'),
+            'boolean' => false,
         );
     }
     if (Configure::read('SMIME.enabled')) {
