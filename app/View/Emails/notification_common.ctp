@@ -210,10 +210,10 @@ uasort($mitre_attack_techniques, function($tag1, $tag2) use ($all_tag_amount) {
     return ($all_tag_amount[$tag1['Tag']['name']] < $all_tag_amount[$tag2['Tag']['name']]) ? 1 : -1;
 });
 
-array_splice($attribute_types, 10);
-array_splice($object_types, 10);
-array_splice($all_tag_amount, 10);
-array_splice($mitre_attack_techniques, 10);
+$top_attribute_types = array_slice($attribute_types, 0, 10);
+$top_object_types = array_slice($object_types, 0, 10);
+$top_all_tag_amount = array_slice($all_tag_amount, 0, 10);
+$top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
 ?>
 
 <?php if ($this->fetch('prepend-html')) : ?>
@@ -298,10 +298,10 @@ array_splice($mitre_attack_techniques, 10);
             <?php if ($this->fetch('detailed-summary-mitre-attack')) : ?>
                 <?= $this->fetch('detailed-summary-mitre-attack'); ?>
             <?php else: ?>
-                <?php if (!empty($mitre_attack_techniques)) : ?>
+                <?php if (!empty($top_mitre_attack_techniques)) : ?>
                     <h4><?= __('Top 10 MITRE ATT&CK techniques') ?></h4>
                     <ul>
-                        <?php foreach ($mitre_attack_techniques as $technique => $tag) : ?>
+                        <?php foreach ($top_mitre_attack_techniques as $technique => $tag) : ?>
                             <li>
                                 <span class="tag" style="background-color: #999; color: #fff; border-radius: 9px; padding: 2px 8px;">
                                     <?= $all_tag_amount[$tag['Tag']['name']] ?>
@@ -319,19 +319,19 @@ array_splice($mitre_attack_techniques, 10);
             <?php if ($this->fetch('detailed-summary-type')) : ?>
                 <?= $this->fetch('detailed-summary-type'); ?>
             <?php else: ?>
-                <?php if (!empty($attribute_types)) : ?>
+                <?php if (!empty($top_attribute_types)) : ?>
                     <h4><?= __('Top 10 Attribute types') ?></h4>
                     <ul>
-                        <?php foreach ($attribute_types as $type => $amount) : ?>
+                        <?php foreach ($top_attribute_types as $type => $amount) : ?>
                             <li><strong><?= h($type) ?></strong>: <?= $amount ?></li>
                         <?php endforeach; ?>
                     </ul>
                 <?php endif; ?>
 
-                <?php if (!empty($object_types)) : ?>
+                <?php if (!empty($top_object_types)) : ?>
                     <h4><?= __('Top 10 MISP Object names') ?></h4>
                     <ul>
-                        <?php foreach ($object_types as $name => $amount) : ?>
+                        <?php foreach ($top_object_types as $name => $amount) : ?>
                             <li><strong><?= h($name) ?></strong>: <?= $amount ?></li>
                         <?php endforeach; ?>
                     </ul>
@@ -356,7 +356,7 @@ array_splice($mitre_attack_techniques, 10);
             <?php else: ?>
                 <h4><?= __('Top 10 Tags') ?></h4>
                 <ul>
-                    <?php array_splice($all_tag_amount, 10); foreach ($all_tag_amount as $tag_name => $amount) : ?>
+                    <?php foreach ($top_all_tag_amount as $tag_name => $amount) : ?>
                         <li>
                             <span class="tag" style="background-color: #999; color: #fff; border-radius: 9px; padding: 2px 8px;">
                                 <?= $amount ?>
