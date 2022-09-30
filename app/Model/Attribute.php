@@ -841,8 +841,8 @@ class Attribute extends AppModel
             $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
             // Clean thumbnail cache
             if ($this->isImage($attribute) && Configure::read('MISP.thumbnail_in_redis')) {
-                $redis = $this->setupRedisWithException();
-                $redis->del($redis->keys("misp:thumbnail:attribute:{$attribute['id']}:*"));
+                $redis = RedisTool::init();
+                RedisTool::deleteKeysByPattern($redis, "misp:thumbnail:attribute:{$attribute['id']}:*");
             }
         }
         return $result;

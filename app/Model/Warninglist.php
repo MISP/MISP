@@ -425,26 +425,21 @@ class Warninglist extends AppModel
      * This allows us to enable/disable a single warninglist without regenerating all caches.
      * @param int|null $id
      * @return bool
+     * @throws RedisException
      */
     public function regenerateWarninglistCaches($id = null)
     {
-        $redis = $this->setupRedis();
-        if ($redis === false) {
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
             return false;
         }
 
-        // Unlink is non blocking way how to delete keys from Redis, but it must be supported by PHP extension and
-        // Redis itself
-        $unlinkSupported = method_exists($redis, 'unlink') && $redis->unlink(null) !== false;
-        if ($unlinkSupported) {
-            $redis->unlink($redis->keys('misp:wlc:*'));
-        } else {
-            $redis->del($redis->keys('misp:wlc:*'));
-        }
+        RedisTool::deleteKeysByPattern($redis, 'misp:wlc:*');
 
         if ($id === null) {
             // delete all cached entries when regenerating whole cache
-            $redis->del($redis->keys('misp:warninglist_entries_cache:*'));
+            RedisTool::deleteKeysByPattern($redis, 'misp:warninglist_entries_cache:*');
         }
 
         $warninglists = $this->getEnabledAndCacheWarninglist();
