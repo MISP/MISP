@@ -525,170 +525,172 @@ array_splice($mitre_attack_techniques, 10);
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-    <?php endif; ?>
+    </div>
+<?php endif; ?>
 
-    <?php if ($this->fetch('trending-summary')) : ?>
-        <?= $this->fetch('trending-summary'); ?>
-    <?php else: ?>
-        <div class="panel">
-            <div class="panel-header">
-                <?= __('Tag trendings') ?>
-            </div>
-            <div class="panel-body">
-                <?= $trending_summary; ?>
-            </div>
+
+<?php if ($this->fetch('trending-summary')) : ?>
+    <?= $this->fetch('trending-summary'); ?>
+<?php else: ?>
+    <div class="panel">
+        <div class="panel-header">
+            <?= __('Tag trendings') ?>
         </div>
-    <?php endif; ?>
-
-    <?php if ($this->fetch('aggregated-context')) : ?>
-        <?= $this->fetch('aggregated-context'); ?>
-    <?php else: ?>
-        <div class="panel">
-            <div class="panel-header">
-                <?= __('Context summary') ?>
-            </div>
-            <div class="panel-body">
-                <?= $aggregated_context; ?>
-            </div>
+        <div class="panel-body">
+            <?= $trending_summary; ?>
         </div>
-    <?php endif; ?>
+    </div>
+<?php endif; ?>
 
-    <?= $this->fetch('content'); ?>
+<?php if ($this->fetch('aggregated-context')) : ?>
+    <?= $this->fetch('aggregated-context'); ?>
+<?php else: ?>
+    <div class="panel">
+        <div class="panel-header">
+            <?= __('Context summary') ?>
+        </div>
+        <div class="panel-body">
+            <?= $aggregated_context; ?>
+        </div>
+    </div>
+<?php endif; ?>
 
-    <style>
-        .mw-50 {
-            max-width: 50%;
-        }
+<?= $this->fetch('content'); ?>
 
-        .panel {
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            margin-bottom: 20px;
-            box-shadow: 0px 5px 10px 0 #00000033;
-        }
+<style>
+    .mw-50 {
+        max-width: 50%;
+    }
 
-        .panel-header {
-            border-bottom: 1px solid #ccc;
-            padding: 4px 10px;
-            background-color: #cccccc22;
-            font-weight: bold;
-            font-size: 25px;
-            clear: both;
-            line-height: 40px;
-        }
+    .panel {
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 10px 0 #00000033;
+    }
 
-        .panel-body {
-            padding: 15px;
-            position: relative;
-        }
+    .panel-header {
+        border-bottom: 1px solid #ccc;
+        padding: 4px 10px;
+        background-color: #cccccc22;
+        font-weight: bold;
+        font-size: 25px;
+        clear: both;
+        line-height: 40px;
+    }
 
-        .panel h4 {
-            margin-top: 0.75em;
-        }
+    .panel-body {
+        padding: 15px;
+        position: relative;
+    }
 
-        .panel h4::before {
-            content: '▲';
-            transform: rotate(90deg);
-            display: inline-block;
-            margin-right: 0.25em;
-            color: #ccc;
-            text-shadow: 0px 0px #999;
-        }
+    .panel h4 {
+        margin-top: 0.75em;
+    }
 
-        .tag {
-            display: inline-block;
-            padding: 2px 4px;
-            font-size: 12px;
-            font-weight: bold;
-            line-height: 14px;
-            margin-right: 2px;
-            border-radius: 3px;
-        }
+    .panel h4::before {
+        content: '▲';
+        transform: rotate(90deg);
+        display: inline-block;
+        margin-right: 0.25em;
+        color: #ccc;
+        text-shadow: 0 0 #999;
+    }
 
-        .correlating-attribute {
-            padding: 3px 5px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            white-space: nowrap;
-        }
-        .correlating-attribute-container {
-            display: flex;
-            box-sizing: border-box;
-            margin: 0 0;
-            align-items: center;
-            min-width: 400px;
-        }
-        .correlating-attribute-container::before,
-        .correlating-attribute-container::after {
-            display: inline-block;
-            content: ' ';
-            height: 2px;
-            width: 100%;
-            background-color: #ccc;
-        }
+    .tag {
+        display: inline-block;
+        padding: 2px 4px;
+        font-size: 12px;
+        font-weight: bold;
+        line-height: 14px;
+        margin-right: 2px;
+        border-radius: 3px;
+    }
 
-        .correlating-event-container {
-            display: flex;
-            flex-direction: column;
-            min-width: 180px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            padding: 3px 5px;
-        }
-        .correlating-event-container > .org-date {
-            display: flex;
-            justify-content: space-between;
-        }
+    .correlating-attribute {
+        padding: 3px 5px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        white-space: nowrap;
+    }
+    .correlating-attribute-container {
+        display: flex;
+        box-sizing: border-box;
+        margin: 0 0;
+        align-items: center;
+        min-width: 400px;
+    }
+    .correlating-attribute-container::before,
+    .correlating-attribute-container::after {
+        display: inline-block;
+        content: ' ';
+        height: 2px;
+        width: 100%;
+        background-color: #ccc;
+    }
 
-        .no-overflow {
-            display: inline-block;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            overflow: hidden
-        }
+    .correlating-event-container {
+        display: flex;
+        flex-direction: column;
+        min-width: 180px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 3px 5px;
+    }
+    .correlating-event-container > .org-date {
+        display: flex;
+        justify-content: space-between;
+    }
 
-        .table {
-            width: 100%;
-            margin-bottom: 20px;
-        }
+    .no-overflow {
+        display: inline-block;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden
+    }
 
-        .table.table-condensed td,
-        .table.table-condensed th {
-            padding: 4px 5px;
-        }
+    .table {
+        width: 100%;
+        margin-bottom: 20px;
+    }
 
-        .table-xcondensed td,
-        .table-xcondensed th {
-            padding: 0px 2px !important;
-        }
+    .table.table-condensed td,
+    .table.table-condensed th {
+        padding: 4px 5px;
+    }
 
-        .table th,
-        .table td {
-            padding: 8px;
-            line-height: 20px;
-            text-align: left;
-            vertical-align: top;
-            border-top: 1px solid #dddddd;
-        }
+    .table-xcondensed td,
+    .table-xcondensed th {
+        padding: 0 2px !important;
+    }
 
-        .table thead th {
-            vertical-align: bottom;
-        }
+    .table th,
+    .table td {
+        padding: 8px;
+        line-height: 20px;
+        text-align: left;
+        vertical-align: top;
+        border-top: 1px solid #dddddd;
+    }
 
-        .table caption+thead tr:first-child th,
-        .table caption+thead tr:first-child td,
-        .table colgroup+thead tr:first-child th,
-        .table colgroup+thead tr:first-child td,
-        .table thead:first-child tr:first-child th,
-        .table thead:first-child tr:first-child td {
-            border-top: 0;
-        }
+    .table thead th {
+        vertical-align: bottom;
+    }
 
-        table.no-border td {
-            border-top: 0;
-        }
+    .table caption+thead tr:first-child th,
+    .table caption+thead tr:first-child td,
+    .table colgroup+thead tr:first-child th,
+    .table colgroup+thead tr:first-child td,
+    .table thead:first-child tr:first-child th,
+    .table thead:first-child tr:first-child td {
+        border-top: 0;
+    }
 
-        .table.no-border tbody+tbody {
-            border-top: 0;
-        }
-    </style>
+    table.no-border td {
+        border-top: 0;
+    }
+
+    .table.no-border tbody+tbody {
+        border-top: 0;
+    }
+</style>
