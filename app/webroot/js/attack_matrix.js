@@ -1,13 +1,11 @@
 (function () {
-	var clusterNameToIdMapping = new Map();
-	var typeaheadDataMatrixSearch;
 	var pickedGalaxies = [];
 
 	var chosen_options = {
 		width: '100%',
 	};
 
-	$(document).ready(function() {
+	$(function() {
 
 		$('#attack-matrix-tabscontroller span').off('click.tab').on('click.tab', function (e) {
 			$(this).tab('show');
@@ -36,11 +34,11 @@
 			var tagId = $(this).attr('data-cluster-id');
 			// trigger contextual menu
 			var target = event.target.getBoundingClientRect();
-			var parentDom = document.getElementById('matrix_container').getBoundingClientRect();
+			//var parentDom = document.getElementById('matrix_container').getBoundingClientRect();
 			var x = target.width/2 - 30;
 			var y = target.height/2 - 14;
 			matrixContextualMenu(event.target, x, y, tagName, tagId, [
-				'Tag event',
+				'Attach cluster to event',
 				'Filter event',
 				'Pick cell'
 			]);
@@ -58,7 +56,7 @@
 		var scoredCells = $('.statistics_attack_matrix .heatCell').filter(function() {
 			return $(this).attr('data-score') > 0;
 		});
-		$('.statistics_attack_matrix .matrix-interaction').off('click.interaction').on('click.interaction', function(event) {
+		$('.statistics_attack_matrix .matrix-interaction').off('click.interaction').on('click.interaction', function() {
 			var clusterId = $(this).attr('data-cluster-id');
 			window.location = baseurl + '/galaxy_clusters/view/' + clusterId;
 		});
@@ -107,10 +105,10 @@
 	function toggleAttackMatrixCells(jfilterOrig) {
 		// get active tab
 		var activeTableId = $('#attack-matrix-tabscontroller > li.active > span').attr('href');
-		jfilter = jfilterOrig === undefined ? activeTableId : jfilterOrig+' '+activeTableId;
+		var jfilter = jfilterOrig === undefined ? activeTableId : jfilterOrig+' '+activeTableId;
 
 		var visibilityVal, displayVal;
-		if($(jfilterOrig+' #checkbox_attackMatrix_showAll').prop('checked')) {
+		if ($(jfilterOrig+' #checkbox_attackMatrix_showAll').prop('checked')) {
 			visibilityVal = 'visible';
 			displayVal = 'table-cell';
 			displayVal = '';
@@ -174,7 +172,6 @@
 
 	function matrixContextualMenu(cell, x, y, tagName, tagId, func_name) {
 		// get menu if already created
-		var should_append = false;
 		var div = document.getElementById('matrixContextualMenu');
 		if (div !== null) {
 			div.remove();
@@ -193,9 +190,9 @@
 			span.addClass('icon-matrix-contextual-menu');
 			span.attr('title', func_name[i]);
 			switch(func_name[i]) {
-				case 'Tag event':
+				case 'Attach cluster to event':
 					span.addClass('fa fa-tag');
-					span.click(function(evt) {
+					span.click(function() {
 						if(confirm('Are you sure you want to attach ' + tagName + ' to this event?')) {
 							makeTagging([tagId]);
 						}
@@ -204,7 +201,7 @@
 					break;
 				case 'Filter event':
 					span.addClass('fa fa-filter');
-					span.click(function(evt) {
+					span.click(function() {
 						filterEvent(tagName, tagId);
 						div.remove();
 					});
@@ -215,14 +212,14 @@
 					} else {
 						span.addClass('fa fa-check');
 					}
-					span.click(function(evt) {
+					span.click(function() {
 						pickCell($(cell), tagId);
 						div.remove();
 					});
 					break;
 				default:
 					span.addClass('fa fa-filter');
-					span.click(function(evt) {
+					span.click(function() {
 						filterEvent(tagName, tagId);
 						div.remove();
 					});
@@ -231,13 +228,13 @@
 			div.append(span);
 		}
 		// register onClick on matrixTable to dismiss the menu
-		$('.matrix-table > tbody > tr > td ').off('click.dismissCM').one('click.dismissCM', function(e) {
+		$('.matrix-table > tbody > tr > td').off('click.dismissCM').one('click.dismissCM', function() {
 			if (!$(this).hasClass('heatCell')) {
 				div.remove();
 			}
 		});
 		// register onLeave on the cell to dismiss the menu
-		$(cell).off('mouseleave.dismissCM').one('mouseleave.dismissCM', function(e) {
+		$(cell).off('mouseleave.dismissCM').one('mouseleave.dismissCM', function() {
 			div.remove();
 		});
 	}
