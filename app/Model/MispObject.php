@@ -562,7 +562,7 @@ class MispObject extends AppModel
     //     conditions
     //     order
     //     group
-    public function fetchObjects($user, $options = array())
+    public function fetchObjects(array $user, array $options = array())
     {
         $attributeConditions = array();
         if (!$user['Role']['perm_site_admin']) {
@@ -608,8 +608,6 @@ class MispObject extends AppModel
         }
         if (isset($options['contain'])) {
             $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
-        } else {
-            $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
         }
         if (
             empty($options['metadata']) &&
@@ -662,7 +660,6 @@ class MispObject extends AppModel
         if ($options['enforceWarninglist'] && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
         }
-        $results = array_values($results);
         $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
         if (empty($options['metadata'])) {
             foreach ($results as $key => $object) {

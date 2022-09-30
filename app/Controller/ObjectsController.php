@@ -730,7 +730,7 @@ class ObjectsController extends AppController
                 'fields' => array('template_uuid', 'template_version', 'id', 'event_id'),
                 'flatten' => 1,
                 'contain' => array(
-                    'Event'
+                    'Event' => ['fields' => ['id', 'user_id', 'org_id', 'orgc_id']]
                 )
             );
             // fetchObjects restrict access based on user
