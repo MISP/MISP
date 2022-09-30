@@ -523,7 +523,8 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-    <?php endif; ?>
+    </div>
+<?php endif; ?>
 
     <?php if ($this->fetch('trending-summary')) : ?>
         <?= $this->fetch('trending-summary'); ?>
