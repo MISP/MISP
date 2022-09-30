@@ -396,7 +396,7 @@
                     ),
                     array(
                         'type' => 'separator',
-                        'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
+                        'requirement' => $isSiteAdmin
                     ),
                     array(
                         'text' => __('Jobs'),
@@ -404,22 +404,9 @@
                         'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
                     ),
                     array(
-                        'type' => 'separator',
-                        'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
-                    ),
-                    array(
                         'text' => __('Scheduled Tasks'),
                         'url' => $baseurl . '/tasks',
                         'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
-                    ),
-                    array(
-                        'text' => __('Event Block Rules'),
-                        'url' => $baseurl . '/servers/eventBlockRule',
-                        'requirement' => $isSiteAdmin
-                    ),
-                    array(
-                        'type' => 'separator',
-                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
                     ),
                     array(
                         'html' => sprintf(
@@ -432,29 +419,20 @@
                     ),
                     array(
                         'type' => 'separator',
-                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
+                        'requirement' => $isSiteAdmin
                     ),
                     array(
-                        'text' => __('Blocklist Event'),
-                        'url' => $baseurl . '/eventBlocklists/add',
-                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
+                        'text' => __('Event Block Rules'),
+                        'url' => $baseurl . '/servers/eventBlockRule',
+                        'requirement' => $isSiteAdmin
                     ),
                     array(
-                        'text' => __('Manage Event Blocklists'),
+                        'text' => __('Event Blocklists'),
                         'url' => $baseurl . '/eventBlocklists',
                         'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
                     ),
                     array(
-                        'type' => 'separator',
-                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
-                    ),
-                    array(
-                        'text' => __('Blocklist Organisation'),
-                        'url' => $baseurl . '/orgBlocklists/add',
-                        'requirement' => Configure::read('MISP.enableOrgBlocklisting') !== false && $isSiteAdmin
-                    ),
-                    array(
-                        'text' => __('Manage Org Blocklists'),
+                        'text' => __('Org Blocklists'),
                         'url' => $baseurl . '/orgBlocklists',
                         'requirement' => Configure::read('MISP.enableOrgBlocklisting') !== false && $isSiteAdmin
                     ),
