@@ -2923,3 +2923,15 @@ Query builder
 .warninglist-comment {
     color: gray;
 }
+
+/* Resolved attributes template */
+.freetext_row select, .freetext_row input[type=text] {
+    padding: 0;
+    margin-bottom: 0;
+    height: 20px;
+}
+
+.freetext_row input[type=text] {
+    padding-left: 3px;
+    padding-right: 3px;
+}

@@ -10,14 +10,6 @@
         }
     ?>
     <?php
-        $instanceDefault = 5;
-        if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
-            if (Configure::read('MISP.default_attribute_distribution') == 'event') {
-                $instanceDefault = 5;
-            } else {
-                $instanceDefault = Configure::read('MISP.default_attribute_distribution');
-            }
-        }
         echo $this->Form->create('Attribute', array('url' => $baseurl . '/events/saveFreeText/' . $event['Event']['id'], 'class' => 'mainForm'));
         if ($isSiteAdmin) {
             echo $this->Form->input('force', array(
@@ -79,7 +71,7 @@
                     echo $this->Form->input('Attribute' . $k . 'Value', array(
                         'label' => false,
                         'value' => $item['value'],
-                        'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;min-width:400px;',
+                        'style' => 'width:90%;min-width:400px;',
                         'div' => false
                     ));
                 ?>
@@ -123,14 +115,14 @@
                         else $default = array_search($item['categories'][0], $typeCategoryMapping[$item['default_type']]);
                     }
                 ?>
-                <select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;' class="categoryToggle">
+                <select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style="width: 180px" class="categoryToggle">
                     <?php
                         foreach ($typeCategoryMapping[$item['default_type']] as $category) {
                             if (isset($item['categories']) && !in_array($category, $item['categories'])) {
                                 continue;
                             }
                             echo '<option';
-                            if ($category == $default) echo ' selected="selected"';
+                            if ($category == $default) echo ' selected';
                             echo '>' . $category . '</option>';
                         }
                     ?>
@@ -150,12 +142,12 @@
                     }
                 ?>
                 <div id="<?php echo 'Attribute' . $k . 'TypeStatic'; ?>" <?php echo $divVisibility; ?> ><?php echo h($item['default_type']); ?></div>
-                <select id="<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>'>
+                <select id="<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='<?php echo $selectVisibility; ?>'>
                     <?php
                         if (!empty($item['types'])) {
                             foreach ($item['types'] as $type) {
                                 echo '<option';
-                                echo ($type === $item['default_type'] ? ' selected="selected"' : '') . '>' . h($type) . '</option>';
+                                echo ($type === $item['default_type'] ? ' selected' : '') . '>' . h($type) . '</option>';
                             }
                         }
                     ?>
@@ -168,17 +160,17 @@
                 <input type="checkbox" id="<?php echo 'Attribute' . $k . 'Disable_correlation'; ?>" <?php if (!empty($item['disable_correlation'])) echo 'checked'; ?> class="dcCheckbox">
             </td>
             <td class="short" style="width:40px;text-align:center;">
-                <select id="<?php echo 'Attribute' . $k . 'Distribution'; ?>" class='distributionToggle' style='padding:0px;height:20px;margin-bottom:0px;'>
+                <select id="<?php echo 'Attribute' . $k . 'Distribution'; ?>" class='distributionToggle'>
                     <?php
                         foreach ($distributions as $distKey => $distValue) {
-                            $default = isset($item['distribution']) ? $item['distribution'] : $instanceDefault;
+                            $default = $item['distribution'] ?? $defaultAttributeDistribution;
                             echo '<option value="' . $distKey . '" ';
                             echo ($distKey == $default ? 'selected="selected"' : '') . '>' . $distValue . '</option>';
                         }
                     ?>
                 </select>
                 <div style="display:none;">
-                    <select id="<?php echo 'Attribute' . $k . 'SharingGroupId'; ?>" class='sgToggle' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+                    <select id="<?php echo 'Attribute' . $k . 'SharingGroupId'; ?>" class='sgToggle' style='margin-top:3px;'>
                         <?php
                             foreach ($sgs as $sgKey => $sgValue) {
                                 echo '<option value="' . h($sgKey) . '">' . h($sgValue) . '</option>';
@@ -188,10 +180,10 @@
                 </div>
             </td>
             <td class="short">
-                <input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . h($item['comment']) . '"'?>>
+                <input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . h($item['comment']) . '"'?>>
             </td>
             <td class="short">
-                <input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . h(implode(",",$item['tags'])) . '"'?>>
+                <input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" <?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . h(implode(",",$item['tags'])) . '"'?>>
             </td>
             <td class="action short">
                 <span class="fa fa-times useCursorPointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onclick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>

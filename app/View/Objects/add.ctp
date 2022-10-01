@@ -231,7 +231,7 @@
                                 <span class="bold"><?php echo __('Template version') . ':'; ?></span>
                                 <span><?php echo h($object['Object']['template_version']); ?></span>
                                 <?php if ($original_template_unkown): ?>
-                                    <span class="label label-important" title="<?= __('The original object\'s template is unkown and some attributes might be lost. Please review carefully'); ?>">
+                                    <span class="label label-important" title="<?= __('The original object\'s template is unknown and some attributes might be lost. Please review carefully'); ?>">
                                     <?= __('Unkown original template'); ?>
                                     </span>
                                 <?php endif; ?>
