@@ -1141,23 +1141,8 @@ class ObjectsController extends AppController
 
         $selectedAttributes = $this->_jsonDecode($selectedAttributes);
         $res = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $eventId, $selectedAttributes);
-        $potentialTemplates = $res['templates'];
-        $attributeTypes = $res['types'];
-        usort($potentialTemplates, function($a, $b) {
-            if ($a['ObjectTemplate']['id'] == $b['ObjectTemplate']['id']) {
-                return 0;
-            } else if (is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
-                return count($a['ObjectTemplate']['compatibility']) > count($b['ObjectTemplate']['compatibility']) ? 1 : -1;
-            } else if (is_array($a['ObjectTemplate']['compatibility']) && !is_array($b['ObjectTemplate']['compatibility'])) {
-                return 1;
-            } else if (!is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
-                return -1;
-            } else { // sort based on invalidTypes count
-                return count($a['ObjectTemplate']['invalidTypes']) > count($b['ObjectTemplate']['invalidTypes']) ? 1 : -1;
-            }
-        });
-        $this->set('potential_templates', $potentialTemplates);
-        $this->set('selected_types', $attributeTypes);
+        $this->set('potential_templates', $res['templates']);
+        $this->set('selected_types', $res['types']);
         $this->set('event_id', $eventId);
     }
 
@@ -1234,7 +1219,8 @@ class ObjectsController extends AppController
             if (empty($template)) {
                 throw new NotFoundException(__('Invalid template.'));
             }
-            $conformity_result = $this->MispObject->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $selected_attributes);
+            $attributeTypes = array_column(array_column($selected_attributes, 'Attribute'), 'type');
+            $conformity_result = $this->MispObject->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributeTypes);
             $skipped_attributes = 0;
             foreach ($selected_attributes as $i => $attribute) {
                 if (in_array($attribute['Attribute']['type'], $conformity_result['invalidTypes'], true)) {

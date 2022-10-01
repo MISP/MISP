@@ -1235,51 +1235,14 @@ class MispObject extends AppModel
                 'Attribute.event_id' => $eventId,
                 'Attribute.object_id' => 0,
             ],
+            'fields' => ['Attribute.type'],
         ]);
         if (empty($attributes)) {
             return array('templates' => array(), 'types' => array());
         }
-        $attributeTypes = array();
-        foreach ($attributes as $i => $attribute) {
-            $attributeTypes[$attribute['Attribute']['type']] = true;
-            $attributes[$i]['Attribute']['object_relation'] = $attribute['Attribute']['type'];
-        }
-        $attributeTypes = array_keys($attributeTypes);
 
-        $potentialTemplateIds = $this->ObjectTemplate->find('column', array(
-            'recursive' => -1,
-            'fields' => array(
-                'ObjectTemplate.id',
-            ),
-            'conditions' => array(
-                'ObjectTemplate.active' => true,
-                'ObjectTemplateElement.type' => $attributeTypes,
-            ),
-            'joins' => array(
-                array(
-                    'table' => 'object_template_elements',
-                    'alias' => 'ObjectTemplateElement',
-                    'type' => 'RIGHT',
-                    'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
-                    'conditions' => array('ObjectTemplate.id = ObjectTemplateElement.object_template_id')
-                )
-            ),
-            'group' => 'ObjectTemplate.id',
-        ));
-
-        $templates = $this->ObjectTemplate->find('all', [
-            'recursive' => -1,
-            'conditions' => ['id' => $potentialTemplateIds],
-            'contain' => ['ObjectTemplateElement' => ['fields' => ['object_relation', 'type', 'multiple']]]
-        ]);
-
-        foreach ($templates as $i => $template) {
-            $res = $this->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributes);
-            $templates[$i]['ObjectTemplate']['compatibility'] = $res['valid'] ? true : $res['missingTypes'];
-            $templates[$i]['ObjectTemplate']['invalidTypes'] = $res['invalidTypes'];
-            $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
-        }
-        return array('templates' => $templates, 'types' => $attributeTypes);
+        $attributeTypes = array_column(array_column($attributes, 'Attribute'), 'type');
+        return $this->ObjectTemplate->fetchPossibleTemplatesBasedOnTypes($attributeTypes);
     }
 
     public function groupAttributesIntoObject(array $user, $event_id, array $object, $template, array $selected_attribute_ids, array $selected_object_relation_mapping, $hard_delete_attribute)
