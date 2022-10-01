@@ -797,6 +797,7 @@ class Server extends AppModel
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
+     * @throws RedisException
      */
     public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false)
     {
@@ -838,7 +839,7 @@ class Server extends AppModel
             $data = RedisTool::serialize([$response->headers["ETag"], $eventIndex]);
             $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
         } else if ($indexFromCache) {
-            $redis->del("misp:event_index:{$serverSync->serverId()}");
+            RedisTool::unlink($redis, "misp:event_index:{$serverSync->serverId()}");
         }
 
         return $eventIndex;
