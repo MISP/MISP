@@ -43,6 +43,32 @@ class RedisTool
     }
 
     /**
+     * @param Redis $redis
+     * @param string $pattern
+     * @return int Number of deleted keys
+     * @throws RedisException
+     */
+    public static function deleteKeysByPattern(Redis $redis, $pattern)
+    {
+        // Unlink is non blocking way how to delete keys from Redis, but it must be supported by PHP extension and
+        // Redis itself
+        $unlinkSupported = method_exists($redis, 'unlink') && $redis->unlink(null) !== false;
+        $iterator = null;
+        $allKeys = [];
+        while (false !== ($keys = $redis->scan($iterator, $pattern))) {
+            foreach ($keys as $key) {
+                $allKeys[] = $key;
+            }
+        }
+
+        if (empty($allKeys)) {
+            return 0;
+        }
+
+        return $unlinkSupported ? $redis->unlink($allKeys) : $redis->del($allKeys);
+    }
+
+    /**
      * @param mixed $data
      * @return string
      * @throws JsonException
