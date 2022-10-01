@@ -343,10 +343,16 @@ class ObjectsController extends AppController
         $template = $this->MispObject->prepareTemplate($template);
         $element = array();
         foreach ($template['ObjectTemplateElement'] as $templateElement) {
-            if ($templateElement['object_relation'] == $object_relation) {
+            if ($templateElement['object_relation'] === $object_relation) {
                 $element = $templateElement;
+                break;
             }
         }
+
+        if (empty($element)) {
+            throw new NotFoundException(__("Object template do not contains object relation $object_relation"));
+        }
+
         $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
         $this->layout = false;
         $this->set('distributionData', $distributionData);
