@@ -89,7 +89,8 @@ class AppModel extends Model
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
-        81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false
+        81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
+        87 => false
     );
 
     public $advanced_updates_description = array(
@@ -1683,6 +1684,10 @@ class AppModel extends Model
                 break;
             case 86:
                 $this->__addIndex('attributes', 'timestamp');
+                break;
+            case 87:
+                $sqlArray[] = "ALTER TABLE `event_tags` ADD `relationship_type` varchar(191) NOT NULL DEFAULT '';";
+                $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `relationship_type` varchar(191) NOT NULL DEFAULT '';";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

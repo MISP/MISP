@@ -121,7 +121,8 @@ class AttributeTag extends AppModel
     {
         if (empty($tag['deleted'])) {
             $local = isset($tag['local']) ? $tag['local'] : false;
-            $this->attachTagToAttribute($attribute_id, $event_id, $tag['id'], $local);
+            $relationship_type = isset($tag['relationship_type']) ? $tag['relationship_type'] : false;
+            $this->attachTagToAttribute($attribute_id, $event_id, $tag['id'], $local, $relationship_type);
         } else {
             $this->detachTagFromAttribute($attribute_id, $event_id, $tag['id']);
         }
@@ -135,23 +136,30 @@ class AttributeTag extends AppModel
      * @return bool
      * @throws Exception
      */
-    public function attachTagToAttribute($attribute_id, $event_id, $tag_id, $local = false)
+    public function attachTagToAttribute($attribute_id, $event_id, $tag_id, $local = false, $relationship_type = false)
     {
-        $existingAssociation = $this->hasAny([
-            'tag_id' => $tag_id,
-            'attribute_id' => $attribute_id,
+        $existingAssociation = $this->find('first', [
+            'conditions' => [
+                'tag_id' => $tag_id,
+                'attribute_id' => $attribute_id,
+            ],
+            'recursive' => -1
         ]);
-        if (!$existingAssociation) {
+        if (empty($existingAssociation)) {
             $data = [
                 'attribute_id' => $attribute_id,
                 'event_id' => $event_id,
                 'tag_id' => $tag_id,
                 'local' => $local ? 1 : 0,
+                'relationship_type' => $relationship_type ? $relationship_type : null,
             ];
             $this->create();
             if (!$this->save($data)) {
                 return false;
             }
+        } else if ($existingAssociation['AttributeTag']['relationship_type'] != $relationship_type) {
+            $existingAssociation['AttributeTag']['relationship_type'] = $relationship_type;
+            $this->save($existingAssociation);
         }
         return true;
     }

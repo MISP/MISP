@@ -2917,6 +2917,7 @@ class Attribute extends AppModel
                             'attribute_id' => $this->id,
                             'event_id' => $eventId,
                             'tag_id' => $tag_id,
+                            'relationship_type' => empty($tag['relationship_type']) ? null : $tag['relationship_type']
                         ];
                         $this->AttributeTag->save($at);
                     }
