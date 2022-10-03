@@ -204,12 +204,18 @@
     </table>
     <span>
         <div class="btn-toolbar" style="float:left;">
-            <button class="btn btn-primary" onclick="freetextImportResultsSubmit(<?= $event['Event']['id']; ?>, <?= count($resultArray) ?>);"><?= __('Submit %s', $scope);?></button>
+            <button class="btn btn-primary" onclick="freetextImportResultsSubmit(<?= $event['Event']['id']; ?>);"><?= __('Submit %s', $scope);?></button>
             <div class="btn-group createObject" style="display: none">
-              <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-                <?= __('Create object') ?>
-                <span class="caret"></span>
-              </a>
+                <?php
+                echo $this->Form->create('Object', ['url' => $baseurl . '/objects/createFromFreetext/' . $event['Event']['id'], 'class' => 'hidden']);
+                echo $this->Form->input('selectedTemplateId', ['label' => false]);
+                echo $this->Form->input('attributes', ['label' => false]);
+                echo $this->Form->end();
+                ?>
+                  <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+                      <?= __('Create object') ?>
+                      <span class="caret"></span>
+                  </a>
               <ul class="dropdown-menu">
               </ul>
             </div>
@@ -239,7 +245,7 @@
                         endforeach;
                     ?>
                 </select>
-                <span role="button" tabindex="0" aria-label="<?php echo __('Apply changes to all applicable resolved attributes');?>" title="<?php echo __('Apply changes to all applicable resolved attributes');?>" class="btn btn-inverse" onClick="changeFreetextImportExecute();"><?php echo __('Change all');?></span><br />
+                <span role="button" tabindex="0" aria-label="<?php echo __('Apply changes to all applicable resolved attributes');?>" title="<?php echo __('Apply changes to all applicable resolved attributes');?>" class="btn btn-inverse" onClick="changeFreetextImportExecute();"><?php echo __('Change all');?></span><br>
             <?php endif; ?>
             <input type="text" id="changeComments" style="margin-left:50px;margin-top:10px;width:446px;" placeholder="<?php echo __('Update all comment fields');?>">
             <span role="button" tabindex="0" aria-label="<?php echo __('Change all');?>" title="<?php echo __('Change all');?>" class="btn btn-inverse" onClick="changeFreetextImportCommentExecute();"><?php echo __('Change all');?></span>
@@ -250,7 +256,7 @@
         var options = <?php echo json_encode($optionsRearranged);?>;
         var typeCategoryMapping = <?php echo json_encode($typeCategoryMapping); ?>;
         $(function() {
-            possibleObjectTemplates();
+            freetextPossibleObjectTemplates();
             popoverStartup();
             $('.typeToggle').on('change', function() {
                 var currentId = $(this).attr('id');
@@ -258,7 +264,7 @@
                 currentId = currentId.replace('Type', 'Category');
                 var currentOptions = typeCategoryMapping[selected];
 
-                possibleObjectTemplates();
+                freetextPossibleObjectTemplates();
 
                 /*
                 // Coming soon - restrict further if a list of categories is passed by the modules / freetext import tool

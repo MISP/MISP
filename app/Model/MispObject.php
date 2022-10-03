@@ -452,7 +452,37 @@ class MispObject extends AppModel
         return false;
     }
 
-    public function saveObject(array $object, $eventId, $template = false, $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
+    /**
+     * @param array $object
+     * @param array $template
+     * @return array
+     */
+    public function fillObjectDataFromTemplate(array $object, array $template)
+    {
+        $templateFields = array(
+            'name' => 'name',
+            'meta-category' => 'meta-category',
+            'description' => 'description',
+            'template_version' => 'version',
+            'template_uuid' => 'uuid'
+        );
+        foreach ($templateFields as $objectField => $templateField) {
+            $object['Object'][$objectField] = $template['ObjectTemplate'][$templateField];
+        }
+        return $object;
+    }
+
+    /**
+     * @param array $object
+     * @param int $eventId
+     * @param array $template
+     * @param array $user
+     * @param string $errorBehaviour
+     * @param bool $breakOnDuplicate
+     * @return array|array[]|bool|int|mixed|string
+     * @throws Exception
+     */
+    public function saveObject(array $object, $eventId, $template = false, array $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
     {
         $templateFields = array(
             'name' => 'name',

@@ -2772,9 +2772,10 @@ function importChoiceSelect(url, elementId, ajax) {
     }
 }
 
-function freetextImportResultsSubmit(event_id, count) {
+function freetextSerializeAttributes() {
     var attributeArray = [];
-    for (var i = 0; i < count; i++) {
+    $('.freetext_row').each(function() {
+        var i = $(this).data('row');
         if ($('#Attribute' + i + 'Save').val() == 1) {
             attributeArray.push({
                 value:$('#Attribute' + i + 'Value').val(),
@@ -2790,7 +2791,12 @@ function freetextImportResultsSubmit(event_id, count) {
                 tags:$('#Attribute' + i + 'Tags').val()
             })
         }
-    }
+    });
+    return attributeArray;
+}
+
+function freetextImportResultsSubmit(event_id, count) {
+    var attributeArray = freetextSerializeAttributes();
     $("#AttributeJsonObject").val(JSON.stringify(attributeArray));
     var formData = $(".mainForm").serialize();
     xhr({
@@ -2808,20 +2814,37 @@ function freetextRemoveRow(id, event_id) {
     $('#Attribute' + id + 'Save').attr("value", "0");
     if ($(".freetext_row:visible").length == 0) {
         window.location = baseurl + "/events/" + event_id;
+    } else {
+        freetextPossibleObjectTemplates();
     }
 }
 
-function possibleObjectTemplates() {
+function freetextCreateObject(objectId) {
+    var attributeArray = freetextSerializeAttributes();
+    $('#ObjectSelectedTemplateId').val(objectId);
+    $('#ObjectAttributes').val(JSON.stringify(attributeArray));
+    $('#ObjectFreeTextImportForm').submit();
+}
+
+function freetextPossibleObjectTemplates() {
     var allTypes = [];
     $('.freetext_row').each(function () {
         var rowId = $(this).data('row');
         if ($('#Attribute' + rowId + 'Save').val() === "1") {
-            allTypes.push($(this).find('.typeToggle').val());
+            var type = $(this).find('.typeToggle').val();
+            if (type === 'ip-src/ip-dst') {
+                allTypes.push('ip-src', 'ip-dst');
+            } else if (type === 'ip-src|port/ip-dst|port') {
+                allTypes.push('ip-src|port', 'ip-dst|port');
+            } else {
+                allTypes.push(type);
+            }
         }
     });
 
     if (allTypes.length < 2) {
         $('.createObject').hide();
+        return;
     }
 
     $.ajax({
@@ -2830,24 +2853,28 @@ function possibleObjectTemplates() {
         success: function (data) {
             if (data.length === 0) {
                 $('.createObject').hide();
-            } else {
-                var $menu = $('.createObject ul');
-                $menu.find('li').remove();
-
-                $.each(data, function (i, template) {
-                    var a = document.createElement('a');
-                    a.href = '#';
-                    a.textContent = template.name;
-                    a.title = template.description;
-
-                    var li = document.createElement('li');
-                    li.appendChild(a);
-
-                    $menu.append(li);
-                });
-
-                $('.createObject').show();
+                return;
             }
+
+            var $menu = $('.createObject ul');
+            $menu.find('li').remove();
+
+            $.each(data, function (i, template) {
+                var a = document.createElement('a');
+                a.href = '#';
+                a.onclick = function () {
+                    freetextCreateObject(template['id']);
+                };
+                a.textContent = template.name;
+                a.title = template.description;
+
+                var li = document.createElement('li');
+                li.appendChild(a);
+
+                $menu.append(li);
+            });
+
+            $('.createObject').show();
         },
         type: "post",
         url: baseurl + "/objectTemplates/possibleObjectTemplates",

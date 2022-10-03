@@ -436,6 +436,7 @@ class ACLComponent extends Component
                     'groupAttributesIntoObject' => array('perm_add'),
                     'revise_object' => array('perm_add'),
                     'view' => array('*'),
+                'createFromFreetext' => ['perm_add'],
             ),
             'objectReferences' => array(
                 'add' => array('perm_add'),

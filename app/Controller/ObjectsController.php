@@ -1240,6 +1240,124 @@ class ObjectsController extends AppController
         }
     }
 
+    public function createFromFreetext($eventId)
+    {
+        $this->request->allowMethod(['post']);
+
+        $event = $this->MispObject->Event->find('first', array(
+            'recursive' => -1,
+            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id', 'Event.publish_timestamp'),
+            'conditions' => array('Event.id' => $eventId)
+        ));
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
+        }
+
+        $requestData = $this->request->data['Object'];
+        $selectedTemplateId = $requestData['selectedTemplateId'];
+        $template = $this->MispObject->ObjectTemplate->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'ObjectTemplate.id' => $selectedTemplateId,
+                'ObjectTemplate.active' => true,
+            ),
+            'contain' => ['ObjectTemplateElement'],
+        ));
+        if (empty($template)) {
+            throw new NotFoundException(__('Invalid template.'));
+        }
+
+        if (isset($requestData['selectedObjectRelationMapping'])) {
+            $distribution = $requestData['distribution'];
+            $sharingGroupId = $requestData['sharing_group_id'] ?? 0;
+            $comment = $requestData['comment'];
+            if ($distribution == 4) {
+                $sg = $this->MispObject->SharingGroup->fetchSG($sharingGroupId, $this->Auth->user());
+                if (empty($sg)) {
+                    throw new NotFoundException(__('Invalid sharing group.'));
+                }
+            } else {
+                $sharingGroupId = 0;
+            }
+
+            $attributes = $this->_jsonDecode($requestData['attributes']);
+            $selectedObjectRelationMapping = $this->_jsonDecode($requestData['selectedObjectRelationMapping']);
+
+            // Attach object relation to attributes and fix tag format
+            foreach ($attributes as $k => &$attribute) {
+                $attribute['object_relation'] = $selectedObjectRelationMapping[$k];
+                if (!empty($attribute['tags'])) {
+                    $attribute['Tag'] = [];
+                    foreach (explode(",", $attribute['tags']) as $tagName) {
+                        $attribute['Tag'][] = [
+                            'name' => trim($tagName),
+                        ];
+                    }
+                    unset($attribute['tags']);
+                }
+            }
+
+            $object = [
+               'Object' => [
+                   'event_id' => $eventId,
+                   'distribution' => $distribution,
+                   'sharing_group_id' => $sharingGroupId,
+                   'comment' => $comment,
+                   'Attribute' => $attributes,
+               ],
+            ];
+
+            $object = $this->MispObject->fillObjectDataFromTemplate($object, $template);
+            $result = $this->MispObject->captureObject($object, $eventId, $this->Auth->user(), true, false, $event);
+            if ($result === true) {
+                return $this->RestResponse->saveSuccessResponse('Objects', 'Created from Attributes', $result, 'json');
+            } else {
+                $error = __('Failed to create an Object from Attributes. Error: ') . PHP_EOL . h($result);
+                return $this->RestResponse->saveFailResponse('Objects', 'Created from Attributes', false, $error, 'json');
+            }
+        } else {
+            $attributes = $this->_jsonDecode($requestData['attributes']);
+
+            $processedAttributes = [];
+            foreach ($attributes as $attribute) {
+                if ($attribute['type'] === 'ip-src/ip-dst') {
+                    $types = array('ip-src', 'ip-dst');
+                } elseif ($attribute['type'] === 'ip-src|port/ip-dst|port') {
+                    $types = array('ip-src|port', 'ip-dst|port');
+                } else {
+                    $types = [$attribute['type']];
+                }
+                foreach ($types as $type) {
+                    $attribute['type'] = $type;
+                    $processedAttributes[] = $attribute;
+                }
+            }
+
+            $attributeTypes = array_column($processedAttributes, 'type');
+            $conformityResult = $this->MispObject->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributeTypes);
+
+            if ($conformityResult['valid'] !== true || !empty($conformityResult['invalidTypes'])) {
+                throw new NotFoundException(__('Invalid template.'));
+            }
+
+            $objectRelations = [];
+            foreach ($template['ObjectTemplateElement'] as $templateElement) {
+                $objectRelations[$templateElement['type']][] = $templateElement;
+            }
+
+            $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+            $this->set('event', $event);
+            $this->set('distributionData', $distributionData);
+            $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
+            $this->set('template', $template);
+            $this->set('objectRelations', $objectRelations);
+            $this->set('attributes', $processedAttributes);
+        }
+    }
+
     private function __objectIdToConditions($id)
     {
         if (is_numeric($id)) {
