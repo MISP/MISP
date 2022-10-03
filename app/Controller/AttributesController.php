@@ -71,7 +71,8 @@ class AttributesController extends AppController
 
     public function index()
     {
-        $this->paginate['conditions']['AND'][] = $this->Attribute->buildConditions($this->Auth->user());
+        $user = $this->Auth->user();
+        $this->paginate['conditions']['AND'][] = $this->Attribute->buildConditions($user);
         $attributes = $this->paginate();
 
         if ($this->_isRest()) {
@@ -84,13 +85,27 @@ class AttributesController extends AppController
             'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
         ]);
         $orgTable = Hash::combine($orgTable, '{n}.Orgc.id', '{n}.Orgc');
+        $sgids = $this->Attribute->SharingGroup->authorizedIds($user);
         foreach ($attributes as &$attribute) {
             if (isset($orgTable[$attribute['Event']['orgc_id']])) {
                 $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
             }
+            $temp = $this->Attribute->Correlation->getRelatedAttributes(
+                $user,
+                $sgids,
+                $attribute['Attribute'],
+                [],
+                true
+            );
+            foreach ($temp as &$t) {
+                $t['info'] = $t['Event']['info'];
+                $t['org_id'] = $t['Event']['org_id'];
+                $t['date'] = $t['Event']['date'];
+            }
+            $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $temp;
         }
 
-        list($attributes, $sightingsData) = $this->__searchUI($attributes);
+        list($attributes, $sightingsData) = $this->__searchUI($attributes, $user);
         $this->set('isSearch', 0);
         $this->set('sightingsData', $sightingsData);
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
@@ -732,12 +747,20 @@ class AttributesController extends AppController
                 }
             }
             $dateObj = new DateTime();
-            $existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
+            $existingAttribute = $this->Attribute->find('first', [
+                    'conditions' => [
+                        'Attribute.uuid' => $this->Attribute->data['Attribute']['uuid']
+                    ],
+                    'recursive' => -1
+                ]
+            );
             // check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
             // check which attribute is newer
             if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
                 $this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
                 $this->request->data['Attribute']['event_id'] = $existingAttribute['Attribute']['event_id'];
+                $this->request->data['Attribute']['object_id'] = $existingAttribute['Attribute']['object_id'];
+                $this->request->data['Attribute']['uuid'] = $existingAttribute['Attribute']['uuid'];
                 $skipTimeCheck = false;
                 if (!isset($this->request->data['Attribute']['timestamp'])) {
                     $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp();
@@ -770,7 +793,7 @@ class AttributesController extends AppController
                 }
                 $this->Attribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
             } else {
-                $result = $this->Attribute->save($this->request->data);
+                $result = $this->Attribute->save($this->request->data, array('fieldList' => Attribute::EDITABLE_FIELDS));
                 if ($result) {
                     $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $attribute['Event']['id'], $capture=true);
                 }
@@ -828,7 +851,10 @@ class AttributesController extends AppController
                 }
             }
         } else {
-            $this->request->data = $this->Attribute->read(null, $id);
+            $this->request->data = $this->Attribute->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Attribute.id' => $id]
+            ]);
         }
         $this->set('attribute', $this->request->data);
         if (!empty($this->request->data['Attribute']['object_id'])) {
@@ -877,7 +903,9 @@ class AttributesController extends AppController
     // ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
     public function editField($id)
     {
-        $attribute = $this->__fetchAttribute($id);
+        $attribute = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
+            'conditions' => ['Attribute.id' => $id],
+        ]);
         if (empty($attribute)) {
             return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status' => 200, 'type' => 'json'));
         }
@@ -1459,57 +1487,64 @@ class AttributesController extends AppController
         return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
     }
 
+    private function __getSearchFilters(&$exception)
+    {
+        if (isset($this->request->data['Attribute'])) {
+            $this->request->data = $this->request->data['Attribute'];
+        }
+        $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category', 'first_seen', 'last_seen');
+        foreach ($checkForEmpty as $field) {
+            if (empty($this->request->data[$field]) || $this->request->data[$field] === 'ALL') {
+                unset($this->request->data[$field]);
+            }
+        }
+        if (empty($this->request->data['to_ids'])) {
+            unset($this->request->data['to_ids']);
+            $this->request->data['ignore'] = 1;
+        }
+        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'first_seen', 'last_seen');
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->request->params['named'],
+            'paramArray' => $paramArray,
+            'additional_delimiters' => PHP_EOL
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if (!empty($filters['uuid'])) {
+            if (!is_array($filters['uuid'])) {
+                $filters['uuid'] = array($filters['uuid']);
+            }
+            $uuid = array();
+            $ids = array();
+            foreach ($filters['uuid'] as $k => $filter) {
+                if ($filter[0] === '!') {
+                    $filter = substr($filter, 1);
+                }
+                if (Validation::uuid($filter)) {
+                    $uuid[] = $filters['uuid'][$k];
+                } else {
+                    $ids[] = $filters['uuid'][$k];
+                }
+            }
+            if (empty($uuid)) {
+                unset($filters['uuid']);
+            } else {
+                $filters['uuid'] = $uuid;
+            }
+            if (!empty($ids)) {
+                $filters['eventid'] = $ids;
+            }
+        }
+        return $filters;
+    }
+
     public function search($continue = false)
     {
+        $user = $this->Auth->user();
+        $exception = null;
+        $filters = $this->__getSearchFilters($exception);
         if ($this->request->is('post') || !empty($this->request->params['named']['tags'])) {
-            if (isset($this->request->data['Attribute'])) {
-                $this->request->data = $this->request->data['Attribute'];
-            }
-            $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category', 'first_seen', 'last_seen');
-            foreach ($checkForEmpty as $field) {
-                if (empty($this->request->data[$field]) || $this->request->data[$field] === 'ALL') {
-                    unset($this->request->data[$field]);
-                }
-            }
-            if (empty($this->request->data['to_ids'])) {
-                unset($this->request->data['to_ids']);
-                $this->request->data['ignore'] = 1;
-            }
-            $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'first_seen', 'last_seen');
-            $filterData = array(
-                'request' => $this->request,
-                'named_params' => $this->request->params['named'],
-                'paramArray' => $paramArray,
-                'additional_delimiters' => PHP_EOL
-            );
-            $exception = false;
-            $filters = $this->_harvestParameters($filterData, $exception);
-            if (!empty($filters['uuid'])) {
-                if (!is_array($filters['uuid'])) {
-                    $filters['uuid'] = array($filters['uuid']);
-                }
-                $uuid = array();
-                $ids = array();
-                foreach ($filters['uuid'] as $k => $filter) {
-                    if ($filter[0] === '!') {
-                        $filter = substr($filter, 1);
-                    }
-                    if (Validation::uuid($filter)) {
-                        $uuid[] = $filters['uuid'][$k];
-                    } else {
-                        $ids[] = $filters['uuid'][$k];
-                    }
-                }
-                if (empty($uuid)) {
-                    unset($filters['uuid']);
-                } else {
-                    $filters['uuid'] = $uuid;
-                }
-                if (!empty($ids)) {
-                    $filters['eventid'] = $ids;
-                }
-            }
-            unset($filterData);
             if ($filters === false) {
                 return $exception;
             }
@@ -1536,8 +1571,9 @@ class AttributesController extends AppController
 
             $this->Session->write('search_attributes_filters', null);
         }
-        if (isset($filters)) {
-            $params = $this->Attribute->restSearch($this->Auth->user(), 'json', $filters, true);
+        if (!empty($filters)) {
+            $filters['includeCorrelations'] = 1;
+            $params = $this->Attribute->restSearch($user, 'json', $filters, true);
             if (!isset($params['conditions']['Attribute.deleted'])) {
                 $params['conditions']['Attribute.deleted'] = 0;
             }
@@ -1555,6 +1591,7 @@ class AttributesController extends AppController
                 'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
             ]);
             $orgTable = array_column(array_column($orgTable, 'Orgc'), null, 'id');
+            $sgids = $this->Attribute->SharingGroup->authorizedIds($user);
             foreach ($attributes as &$attribute) {
                 if (isset($orgTable[$attribute['Event']['orgc_id']])) {
                     $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
@@ -1562,12 +1599,27 @@ class AttributesController extends AppController
                 if (isset($orgTable[$attribute['Event']['org_id']])) {
                     $attribute['Event']['Org'] = $orgTable[$attribute['Event']['org_id']];
                 }
+                if (isset($filters['includeCorrelations'])) {
+                    $temp = $this->Attribute->Correlation->getRelatedAttributes(
+                        $user,
+                        $sgids,
+                        $attribute['Attribute'],
+                        [],
+                        true
+                    );
+                    foreach ($temp as &$t) {
+                        $t['info'] = $t['Event']['info'];
+                        $t['org_id'] = $t['Event']['org_id'];
+                        $t['date'] = $t['Event']['date'];
+                    }
+                    $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $temp;
+                }
             }
             if ($this->_isRest()) {
                 return $this->RestResponse->viewData($attributes, $this->response->type());
             }
 
-            list($attributes, $sightingsData) = $this->__searchUI($attributes);
+            list($attributes, $sightingsData) = $this->__searchUI($attributes, $user);
             $this->set('sightingsData', $sightingsData);
 
             if (isset($filters['tags']) && !empty($filters['tags'])) {
@@ -1603,7 +1655,12 @@ class AttributesController extends AppController
         }
     }
 
-    private function __searchUI(array $attributes)
+    /**
+     * @param array $attributes
+     * @param array $user
+     * @return array|array[]
+     */
+    private function __searchUI(array $attributes, array $user)
     {
         if (empty($attributes)) {
             return [[], []];
@@ -1613,11 +1670,8 @@ class AttributesController extends AppController
 
         $this->loadModel('Sighting');
         $this->loadModel('AttachmentScan');
-        $user = $this->Auth->user();
-        $attributeIds = [];
         $galaxyTags = [];
         foreach ($attributes as &$attribute) {
-            $attributeIds[] = $attribute['Attribute']['id'];
             if ($this->Attribute->isImage($attribute['Attribute'])) {
                 if (extension_loaded('gd')) {
                     // if extension is loaded, the data is not passed to the view because it is asynchronously fetched
@@ -1637,8 +1691,8 @@ class AttributesController extends AppController
 
             $attribute['Attribute']['AttributeTag'] = $attribute['AttributeTag'];
             foreach ($attribute['Attribute']['AttributeTag'] as $at) {
-                if (substr($at['Tag']['name'], 0, 12) === 'misp-galaxy:') {
-                    $galaxyTags[] = $at['Tag']['name'];
+                if ($at['Tag']['is_galaxy']) {
+                    $galaxyTags[$at['Tag']['id']] = $at['Tag']['name'];
                 }
             }
             unset($attribute['AttributeTag']);
@@ -1648,14 +1702,11 @@ class AttributesController extends AppController
         // Fetch galaxy clusters in one query
         if (!empty($galaxyTags)) {
             $this->loadModel('GalaxyCluster');
-            $clusters = $this->GalaxyCluster->getClusters($galaxyTags, $user, true, false);
+            $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, false);
             $clusters = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
         } else {
             $clusters = [];
         }
-
-        // Fetch correlations in one query
-        $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, false, 'attribute');
 
         // `attachFeedCorrelations` method expects different attribute format, so we need to transform that, then process
         // and then take information back to original attribute structure.
@@ -1671,7 +1722,7 @@ class AttributesController extends AppController
                 }
                 $cluster = $clusters[$attributeTag['Tag']['id']];
                 $galaxyId = $cluster['Galaxy']['id'];
-                $cluster['local'] = isset($attributeTag['local']) ? $attributeTag['local'] : false;
+                $cluster['local'] = $attributeTag['local'] ?? false;
                 if (isset($attribute['Attribute']['Galaxy'][$galaxyId])) {
                     unset($cluster['Galaxy']);
                     $galaxies[$galaxyId]['GalaxyCluster'][] = $cluster;
@@ -1687,12 +1738,9 @@ class AttributesController extends AppController
             if (isset($attributesWithFeedCorrelations[$k]['Feed'])) {
                 $attributes[$k]['Attribute']['Feed'] = $attributesWithFeedCorrelations[$k]['Feed'];
             }
-            if (isset($correlations[$attribute['Attribute']['id']])) {
-                $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attribute['Attribute']['id']];
-            }
         }
         $sightingsData = $this->Sighting->attributesStatistics($attributes, $user);
-        return array($attributes, $sightingsData);
+        return [$attributes, $sightingsData];
     }
 
     public function checkComposites()
@@ -1877,36 +1925,38 @@ class AttributesController extends AppController
 
     public function generateCorrelation()
     {
-        $this->request->allowMethod(['post']);
+        if ($this->request->is('post')) {
+            if (!Configure::read('MISP.background_jobs')) {
+                $k = $this->Attribute->generateCorrelation();
+                $this->Flash->success(__('All done. %s attributes processed.', $k));
+                $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+            } else {
+                /** @var Job $job */
+                $job = ClassRegistry::init('Job');
+                $jobId = $job->createJob(
+                    'SYSTEM',
+                    Job::WORKER_DEFAULT,
+                    'generate correlation',
+                    'All attributes',
+                    'Job created.'
+                );
 
-        if (!Configure::read('MISP.background_jobs')) {
-            $k = $this->Attribute->generateCorrelation();
-            $this->Flash->success(__('All done. %s attributes processed.', $k));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        } else {
-            /** @var Job $job */
-            $job = ClassRegistry::init('Job');
-            $jobId = $job->createJob(
-                'SYSTEM',
-                Job::WORKER_DEFAULT,
-                'generate correlation',
-                'All attributes',
-                'Job created.'
-            );
-
-            $this->Attribute->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_ADMIN,
-                [
-                    'jobGenerateCorrelation',
+                $this->Attribute->getBackgroundJobsTool()->enqueue(
+                    BackgroundJobsTool::DEFAULT_QUEUE,
+                    BackgroundJobsTool::CMD_ADMIN,
+                    [
+                        'jobGenerateCorrelation',
+                        $jobId
+                    ],
+                    true,
                     $jobId
-                ],
-                true,
-                $jobId
-            );
+                );
 
-            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (Administration -> Jobs).'));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+                $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (Administration -> Jobs).'));
+                $this->redirect(Router::url($this->referer(), true));
+            }
+        } else {
+            $this->render('ajax/recorrelationConfirmation');
         }
     }
 
@@ -2417,7 +2467,7 @@ class AttributesController extends AppController
             } else {
                 $data[$attribute[0]['Attribute']['type']] = $attribute[0]['Attribute']['value'];
             }
-            $result = $this->Module->queryModuleServer($data, true);
+            $result = $this->Module->queryModuleServer($data, true, 'Enrichment', false, $attribute[0]);
             if ($result) {
                 if (!is_array($result)) {
                     $resultArray[$type] = ['error' => $result];
@@ -2770,14 +2820,18 @@ class AttributesController extends AppController
                 $tag_id = $this->request->data['tag'];
             }
             $this->Attribute->id = $id;
-            if (!$this->Attribute->exists()) {
+            $attribute = $this->__fetchAttribute($id);
+            $attribute = $this->Attribute->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Attribute.id' => $id],
+                'fields' => ['Attribute.deleted', 'Attribute.event_id', 'Attribute.id', 'Attribute.object_id']
+            ]);
+            if (empty($attribute)) {
                 throw new NotFoundException(__('Invalid attribute'));
             }
-            $this->Attribute->read();
-            if ($this->Attribute->data['Attribute']['deleted']) {
+            if ($attribute['Attribute']['deleted']) {
                 throw new NotFoundException(__('Invalid attribute'));
             }
-            $eventId = $this->Attribute->data['Attribute']['event_id'];
             if (empty($tag_id)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200, 'type' => 'json'));
             }
@@ -2792,12 +2846,13 @@ class AttributesController extends AppController
                 $id = $this->request->data['Attribute']['id'];
             }
 
-            $this->Attribute->Event->recursive = -1;
-            $event = $this->Attribute->Event->read(array(), $eventId);
+            $event = $this->Attribute->Event->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Event.id' => $attribute['Attribute']['event_id']]
+            ]);
             if (!$this->_isRest()) {
-                $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
+                $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
             }
-            $this->Attribute->recursive = -1;
             $attributeTag = $this->Attribute->AttributeTag->find('first', array(
                 'conditions' => array(
                     'attribute_id' => $id,
@@ -2825,11 +2880,11 @@ class AttributesController extends AppController
                     $date = new DateTime();
                     $event['Event']['timestamp'] = $date->getTimestamp();
                     $this->Attribute->Event->save($event);
-                    if ($this->Attribute->data['Attribute']['object_id'] != 0) {
-                        $this->Attribute->Object->updateTimestamp($this->Attribute->data['Attribute']['object_id'], $date->getTimestamp());
+                    if ($attribute['Attribute']['object_id'] != 0) {
+                        $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
                     }
-                    $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
-                    $this->Attribute->save($this->Attribute->data);
+                    $attribute['Attribute']['timestamp'] = $date->getTimestamp();
+                    $this->Attribute->save($attribute);
                 }
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
@@ -2945,6 +3000,7 @@ class AttributesController extends AppController
     /**
      * @param int|string $id Attribute ID or UUID
      * @return array
+     * @throws Exception
      */
     private function __fetchAttribute($id)
     {

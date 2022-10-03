@@ -2,7 +2,6 @@
 
 $modules = isset($modules) ? $modules : null;
 $cortex_modules = isset($cortex_modules) ? $cortex_modules : null;
-
 echo '<div class="index">';
 echo $this->element('/genericElements/IndexTable/index_table', [
     'data' => [

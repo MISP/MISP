@@ -13,6 +13,10 @@ if (!String.prototype.startsWith) {
 }
 
 function escapeHtml(unsafe) {
+    if (typeof unsafe === "boolean" || typeof unsafe === "number") {
+        return unsafe;
+    }
+
     return unsafe
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -52,7 +56,9 @@ function rgb2hex(rgb) {
 }
 
 function xhrFailCallback(xhr) {
-    if (xhr.status === 401) {
+    if (xhr.status === 0) {
+        showMessage('fail', 'Something went wrong – server is not responding.');
+    } if (xhr.status === 401) {
         showMessage('fail', 'Unauthorized. Please reload page to log again.');
     } else if (xhr.status === 403 || xhr.status === 405) {
         showMessage('fail', 'Not allowed.');
@@ -425,7 +431,7 @@ function eventUnpublish() {
     $('.notPublished').show();
 }
 
-function updateIndex(id, context) {
+function updateIndex(id, context, callback) {
     var url, div;
     if (context === 'event') {
         if (typeof currentUri == 'undefined') {
@@ -440,8 +446,12 @@ function updateIndex(id, context) {
     }
     xhr({
         dataType: "html",
-        success:function (data) {
+        success: function (data) {
             $(div).html(data);
+            if (typeof callback !== "undefined") {
+                callback("success");
+            }
+
             if (typeof genericPopupCallback !== "undefined") {
                 genericPopupCallback("success");
             } else {
@@ -939,7 +949,7 @@ function multiSelectToggleFeeds(on, cache) {
     $.get(baseurl + "/feeds/toggleSelected/" + on + "/" + cache + "/" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
 }
 
-function multiSelectToggleField(scope, action, fieldName, enabled) {
+function multiSelectToggleField(scope, action, fieldName, enabled, inputID) {
     var selected = [];
     $(".select:checked").each(function() {
         var temp = $(this).data("id");
@@ -949,7 +959,8 @@ function multiSelectToggleField(scope, action, fieldName, enabled) {
     });
     $.get(baseurl + "/" + scope + "/" + action + "/" + fieldName + "/" + enabled, function(data) {
         var $formData = $(data);
-        $formData.find("#UserUserIds").val(JSON.stringify(selected));
+        $('body').append($formData)
+        $formData.find(inputID).val(JSON.stringify(selected));
         $formData.find("form")[0].submit();
     }).fail(xhrFailCallback);
 }
@@ -1274,10 +1285,8 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 $.get(baseurl + "/sightings/listSightings/" + id + "/attribute", function(data) {
                     $("#sightingsData").html(data);
                 }).fail(xhrFailCallback);
-                $('.sightingsToggle').removeClass('btn-primary');
-                $('.sightingsToggle').addClass('btn-inverse');
-                $('#sightingsListAllToggle').removeClass('btn-inverse');
-                $('#sightingsListAllToggle').addClass('btn-primary');
+                $('.sightingsToggle').removeClass('btn-primary').addClass('btn-inverse');
+                $('#sightingsListAllToggle').removeClass('btn-inverse').addClass('btn-primary');
             }
             if (referer === 'addEventReport' && typeof window.reloadEventReportTable === 'function') {
                 reloadEventReportTable()
@@ -1285,8 +1294,8 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             }
             if (
                 (
-                    context == 'event' &&
-                    (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference' || referer == 'quickAddAttributeForm')
+                    context === 'event' &&
+                    (referer === 'add' || referer === 'massEdit' || referer === 'replaceAttributes' || referer === 'addObjectReference' || referer === 'quickAddAttributeForm')
                 )
             ){
                 eventUnpublish();
@@ -1339,10 +1348,15 @@ function handleAjaxModalResponse(response, context_id, url, referer, context, co
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
     responseArray = response;
-    var message = null;
     var result = "fail";
     if (responseArray.saved) {
-        updateIndex(context_id, context);
+        var callback = function() {
+            // Scroll to edited object after index is updated
+            if (referer === 'quickAddAttributeForm') {
+                scrollToElementIfNotVisible($("#Object_" + context_id + "_tr"));
+            }
+        }
+        updateIndex(context_id, context, callback);
         if (responseArray.success) {
             showMessage("success", responseArray.success);
             result = "success";
@@ -1353,8 +1367,8 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
     } else {
         var savedArray = saveValuesForPersistance();
         $.ajax({
-            dataType:"html",
-            success:function (data, textStatus) {
+            dataType: "html",
+            success: function (data, textStatus) {
                 $("#popover_form").html(data);
                 openPopup("#popover_form");
                 var error_context = context.charAt(0).toUpperCase() + context.slice(1);
@@ -1368,7 +1382,7 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
                 recoverValuesFromPersistance(savedArray);
                 $(".loading").hide();
             },
-            url:url
+            url: url
         });
     }
     return result;
@@ -3665,6 +3679,24 @@ function pivotObjectReferences(url, uuid) {
     fetchAttributes(currentUri, {"focus": uuid});
 }
 
+function scrollToElementIfNotVisible($el) {
+    var isInViewport = function($el) {
+        var elementTop = $el.offset().top;
+        var elementBottom = elementTop + $el.outerHeight();
+
+        var viewportTop = $(window).scrollTop();
+        var viewportBottom = viewportTop + $(window).height();
+
+        return elementBottom > viewportTop && elementTop < viewportBottom;
+    };
+
+    if ($el.length && !isInViewport($el)) {
+        $([document.documentElement, document.body]).animate({
+            scrollTop: $el.offset().top - 45, // 42px is #topBar size, so make little bit more space
+        });
+    }
+}
+
 // Attribute filtering
 function filterAttributes(filter) {
     var data;
@@ -4499,38 +4531,43 @@ function add_basic_auth() {
 }
 
 function changeObjectReferenceSelectOption(selected, additionalData) {
+    var keys = {
+        "uuid": "UUID",
+        "category": "Category",
+        "type": "Type",
+        "value": "Value",
+        "to_ids": "To IDS",
+        "name": "Name",
+        "meta-category": "Meta category",
+    };
+
     var uuid = selected;
     var type = additionalData.itemOptions[uuid].type;
     $('#ObjectReferenceReferencedUuid').val(uuid);
-    if (type == "Attribute") {
-        $('#targetData').html("");
+    var $targetData = $('#targetData');
+    if (type === "Attribute") {
+        $targetData.html("");
         for (var k in targetEvent[type][uuid]) {
             if ($.inArray(k, ['uuid', 'category', 'type', 'value', 'to_ids']) !== -1) {
-                $('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
-                $('#' + uuid + '_' + k + '_key').text(k);
-                $('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+                $targetData.append('<div><span class="bold">' + keys[k] +  '</span>: ' + escapeHtml(targetEvent[type][uuid][k]) + '</div>');
             }
         }
     } else {
-        $('#targetData').html("");
+        $targetData.html("");
         for (var k in targetEvent[type][uuid]) {
-            if (k == 'Attribute') {
-                $('#targetData').append('<br /><div><span id="header" class="bold">Attributes:</span>');
-                for (attribute in targetEvent[type][uuid]['Attribute']) {
-                    for (k2 in targetEvent[type][uuid]['Attribute'][attribute]) {
+            if (k === 'Attribute') {
+                $targetData.append('<br><div><span id="header" class="bold">Attributes:</span>');
+                for (var attribute in targetEvent[type][uuid]['Attribute']) {
+                    for (var k2 in targetEvent[type][uuid]['Attribute'][attribute]) {
                         if ($.inArray(k2, ['category', 'type', 'value', 'to_ids']) !== -1) {
-                            $('#targetData').append('<div class="indent"><span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key" class="bold"></span>: <span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data"></span></div>');
-                            $('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key').text(k2);
-                            $('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data').text(targetEvent[type][uuid]['Attribute'][attribute][k2]);
+                            $targetData.append('<div class="indent"><span class="bold">' + keys[k2] + '</span>: ' + escapeHtml(targetEvent[type][uuid]['Attribute'][attribute][k2]) + '</div>');
                         }
                     }
-                    $('#targetData').append('<br />');
+                    $targetData.append('<br>');
                 }
             } else {
                 if ($.inArray(k, ['name', 'uuid', 'meta-category']) !== -1) {
-                    $('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
-                    $('#' + uuid + '_' + k + '_key').text(k);
-                    $('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+                    $targetData.append('<div><span class="bold">' + keys[k] +  '</span>: ' + escapeHtml(targetEvent[type][uuid][k]) + '</div>');
                 }
             }
         }
@@ -4831,7 +4868,9 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
     xhr({
         dataType: "html",
         success: function (data) {
-            $(paginatorTarget).html(data);
+            var $target = $(paginatorTarget);
+            destroyPopovers($target);
+            $target.html(data);
         },
         url: $(this).attr('href'),
     });
@@ -4848,6 +4887,12 @@ $(document.body).on('click', '[data-popover-popup]', function (e) {
     var url = $(this).data('popover-popup');
     popoverPopupNew(this, url);
 });
+
+function destroyPopovers($element) {
+    $element.find('[data-dismissid]').each(function() {
+        $(this).popover('destroy');
+    });
+}
 
 function queryEventLock(event_id, timestamp) {
     var interval = null;
@@ -5552,3 +5597,33 @@ $('td.rotate').hover(function() {
     var t = parseInt($(this).index()) + 1;
     $table.find('td:nth-child(' + t + ')').css('background-color', '');
 });
+
+function enableWorkflowDebugMode(workflow_id, currentEnabledState, callback) {
+    var enabled = currentEnabledState ? false : true
+    var url = baseurl + '/workflows/debugToggleField/' + workflow_id + '/' + (enabled ? '1' : '0')
+    fetchFormDataAjax(url, function (formData) {
+        var $formData = $(formData);
+        $.ajax({
+            data: $formData.find('form').serialize(),
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
+                showMessage('success', data.message);
+                if (callback) {
+                    callback(data)
+                }
+            },
+            error: function () {
+                showMessage('fail', 'Could not toggle debug mode.');
+            },
+            complete: function () {
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+            },
+            type: "post",
+            url: $formData.find('form').attr('action')
+        });
+    });
+}

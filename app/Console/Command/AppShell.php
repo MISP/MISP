@@ -32,9 +32,10 @@ class AppShell extends Shell
 
     public function initialize()
     {
-        parent::initialize();
         $this->ConfigLoad = $this->Tasks->load('ConfigLoad');
         $this->ConfigLoad->execute();
+
+        parent::initialize();
     }
 
     public function perform()

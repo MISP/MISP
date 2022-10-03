@@ -33,6 +33,7 @@ class AuditLog extends AppModel
 
     public $actsAs = [
         'Containable',
+        'LightPaginator'
     ];
 
     /** @var array|null */

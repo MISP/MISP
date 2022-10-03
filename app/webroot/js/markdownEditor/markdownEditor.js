@@ -137,6 +137,36 @@ function initMarkdownIt() {
     if (typeof markdownItCustomPostInit === 'function') {
         markdownItCustomPostInit()
     }
+    // patch md.fence to support mermaid
+    md.mermaid = mermaid
+    const fenceBackup = md.renderer.rules.fence.bind(md.renderer.rules)
+    // https://github.com/tylingsoft/markdown-it-mermaid/blob/master/src/index.js
+    md.renderer.rules.fence = function (tokens, idx, options, env, slf) {
+        const token = tokens[idx]
+        const code = token.content.trim()
+        if (token.info === 'mermaid') {
+            return renderMermaid(code)
+        }
+        const firstLine = code.split(/\n/)[0].trim()
+        if (firstLine === 'gantt' || firstLine === 'sequenceDiagram' || firstLine.match(/^graph (?:TB|BT|RL|LR|TD);?$/)) {
+            return renderMermaid(code)
+        }
+        return fenceBackup(tokens, idx, options, env, slf)
+    }
+    var mermaidTheme = 'neutral'
+    mermaid.mermaidAPI.initialize({
+        startOnLoad: false,
+        theme: mermaidTheme,
+    })
+}
+
+function renderMermaid(code) {
+    try {
+        var result = mermaid.mermaidAPI.render('mermaid-graph', code)
+        return '<div class="mermaid">' + (result !== undefined ? result : '- error while parsing mermaid graph -') + '</div>'
+    } catch (err) {
+        return '<pre>' + 'mermaid error:\n' + err.message + '</pre>'
+    }
 }
 
 function initCodeMirror() {

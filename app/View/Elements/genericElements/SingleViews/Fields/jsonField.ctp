@@ -4,9 +4,10 @@
     if (is_array($value) && count($value) === 1 && isset($value[0])) {
         $value = $value[0];
     }
+    $containerClassSuffix = Inflector::variable(h($field['key']));
     echo sprintf(
         '<div class="json_container_%s"></div>',
-        h($field['key'])
+        $containerClassSuffix
     );
     if (is_string($value)) {
         $value = json_decode($value);
@@ -14,6 +15,6 @@
 ?>
 <script type="text/javascript">
 $(document).ready(function() {
-    $('.json_container_<?php echo h($field['key']);?>').html(syntaxHighlightJson(<?php echo json_encode($value); ?>, 4));
+    $('.json_container_<?= $containerClassSuffix ?>').html(syntaxHighlightJson(<?php echo json_encode($value); ?>, 4));
 });
 </script>

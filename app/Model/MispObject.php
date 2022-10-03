@@ -300,6 +300,31 @@ class MispObject extends AppModel
 
     public function afterSave($created, $options = array())
     {
+        if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
+            $object = $this->data['Object'];
+            $this->Attribute->Correlation->updateContainedCorrelations($object, 'object');
+        }
+        if (!empty($this->data['Object']['deleted']) && !$created) {
+            $attributes_to_delete = $this->Attribute->find('all', [
+                'recursive' => -1,
+                'conditions' => [
+                    'Attribute.object_id' => $this->id,
+                    'Attribute.deleted' => 0
+                ]
+            ]);
+            foreach ($attributes_to_delete as &$attribute_to_delete) {
+                $attribute_to_delete['Attribute']['deleted'] = 1;
+                unset($attribute_to_delete['Attribute']['timestamp']);
+            }
+            $this->Attribute->saveMany($attributes_to_delete);
+        }
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'Object',
+            'action' => $created ? 'add' : 'edit',
+            'id' => $this->data['Object']['id'],
+        ];
+        $this->executeTrigger('object-after-save', $this->data, $workflowErrors, $logging);
         $pubToZmq = $this->pubToZmq('object') && empty($this->data['Object']['skip_zmq']);
         $kafkaTopic = $this->kafkaTopic('object');
         $pubToKafka = $kafkaTopic && empty($this->data['Object']['skip_kafka']);
@@ -427,7 +452,7 @@ class MispObject extends AppModel
         return false;
     }
 
-    public function saveObject($object, $eventId, $template = false, $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
+    public function saveObject(array $object, $eventId, $template = false, $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
     {
         $templateFields = array(
             'name' => 'name',
@@ -457,7 +482,6 @@ class MispObject extends AppModel
             }
         }
         $this->create();
-        $result = false;
         if ($this->save($object)) {
             $result = $this->id;
             foreach ($object['Attribute'] as $k => $attribute) {
@@ -513,7 +537,6 @@ class MispObject extends AppModel
         $params = array(
             'conditions' => $this->buildConditions($user),
             'fields' => array(),
-            'recursive' => -1
         );
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
@@ -667,12 +690,14 @@ class MispObject extends AppModel
         return $results;
     }
 
-    /*
+    /**
      * Prepare the template form view's data, setting defaults, sorting elements
+     * @param array $template
+     * @param array $request
+     * @return array
      */
-    public function prepareTemplate($template, $request = array())
+    public function prepareTemplate(array $template, array $request = array())
     {
-        $temp = array();
         usort($template['ObjectTemplateElement'], function ($a, $b) {
             return $a['ui-priority'] < $b['ui-priority'];
         });
@@ -684,26 +709,28 @@ class MispObject extends AppModel
                 $request_rearranged[$attribute['object_relation']][] = $attribute;
             }
         }
-        foreach ($template_object_elements as $k => $v) {
+        $typeDefinitions = $this->Event->Attribute->typeDefinitions;
+        $categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
+        foreach ($template_object_elements as $v) {
             if (empty($request_rearranged[$v['object_relation']])) {
-                if (isset($this->Event->Attribute->typeDefinitions[$v['type']])) {
-                    $v['default_category'] = $this->Event->Attribute->typeDefinitions[$v['type']]['default_category'];
-                    $v['to_ids'] = $this->Event->Attribute->typeDefinitions[$v['type']]['to_ids'];
+                if (isset($typeDefinitions[$v['type']])) {
+                    $v['default_category'] = $typeDefinitions[$v['type']]['default_category'];
+                    $v['to_ids'] = $typeDefinitions[$v['type']]['to_ids'];
                     if (empty($v['categories'])) {
                         $v['categories'] = array();
-                        foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
-                            if (in_array($v['type'], $catv['types'])) {
+                        foreach ($categoryDefinitions as $catk => $catv) {
+                            if (in_array($v['type'], $catv['types'], true)) {
                                 $v['categories'][] = $catk;
                             }
                         }
                     }
                     $template['ObjectTemplateElement'][] = $v;
                 } else {
-                    $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template_object_elements[$k]['object_relation'] . '") that would not pass validation due to this.';
+                    $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $v['object_relation'] . '") that would not pass validation due to this.';
                 }
             } else {
                 foreach ($request_rearranged[$v['object_relation']] as $request_item) {
-                    if (isset($this->Event->Attribute->typeDefinitions[$v['type']])) {
+                    if (isset($typeDefinitions[$v['type']])) {
                         $v['default_category'] = $request_item['category'];
                         $v['value'] = $request_item['value'];
                         $v['to_ids'] = $request_item['to_ids'];
@@ -716,8 +743,8 @@ class MispObject extends AppModel
                         }
                         if (empty($v['categories'])) {
                             $v['categories'] = array();
-                            foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
-                                if (in_array($v['type'], $catv['types'])) {
+                            foreach ($categoryDefinitions as $catk => $catv) {
+                                if (in_array($v['type'], $catv['types'], true)) {
                                     $v['categories'][] = $catk;
                                 }
                             }
@@ -726,7 +753,7 @@ class MispObject extends AppModel
                         $template['ObjectTemplateElement'][] = $v;
                         unset($v['uuid']); // force creating a new attribute if template element entry gets reused
                     } else {
-                        $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template_object_elements[$k]['object_relation'] . '") that would not pass validation due to this.';
+                        $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $v['object_relation'] . '") that would not pass validation due to this.';
                     }
                 }
             }
@@ -1004,6 +1031,9 @@ class MispObject extends AppModel
         $objectId = $this->id;
         if (!empty($object['Object']['Attribute'])) {
             foreach ($object['Object']['Attribute'] as $attribute) {
+                if (!empty($object['Object']['deleted'])) {
+                    $attribute['deleted'] = 1;
+                }
                 $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
             }
         }
@@ -1088,6 +1118,9 @@ class MispObject extends AppModel
         }
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
+                if (!empty($object['deleted'])) {
+                    $attribute['deleted'] = 1;
+                }
                 $result = $this->Attribute->editAttribute($attribute, $event, $user, $object['id'], false, $force);
             }
         }
@@ -1184,36 +1217,40 @@ class MispObject extends AppModel
         return count($orphans);
     }
 
-    public function validObjectsFromAttributeTypes($user, $event_id, $selected_attribute_ids)
+    /**
+     * @param array $user
+     * @param int $eventId
+     * @param array $selectedAttributeIds
+     * @return array|array[]
+     * @throws Exception
+     */
+    public function validObjectsFromAttributeTypes(array $user, $eventId, array $selectedAttributeIds)
     {
-        $attributes = $this->Attribute->fetchAttributes($user,
-            array(
-                'conditions' => array(
-                    'Attribute.id' => $selected_attribute_ids,
-                    'Attribute.event_id' => $event_id,
-                    'Attribute.object_id' => 0
-                ),
-            )
-        );
+        $attributes = $this->Attribute->fetchAttributesSimple($user, [
+            'conditions' => [
+                'Attribute.id' => $selectedAttributeIds,
+                'Attribute.event_id' => $eventId,
+                'Attribute.object_id' => 0,
+            ],
+        ]);
         if (empty($attributes)) {
             return array('templates' => array(), 'types' => array());
         }
-        $attribute_types = array();
+        $attributeTypes = array();
         foreach ($attributes as $i => $attribute) {
-            $attribute_types[$attribute['Attribute']['type']] = 1;
+            $attributeTypes[$attribute['Attribute']['type']] = true;
             $attributes[$i]['Attribute']['object_relation'] = $attribute['Attribute']['type'];
         }
-        $attribute_types = array_keys($attribute_types);
+        $attributeTypes = array_keys($attributeTypes);
 
-        $potential_templates = $this->ObjectTemplate->find('list', array(
+        $potentialTemplateIds = $this->ObjectTemplate->find('column', array(
             'recursive' => -1,
             'fields' => array(
                 'ObjectTemplate.id',
-                'COUNT(ObjectTemplateElement.type) as type_count'
             ),
             'conditions' => array(
                 'ObjectTemplate.active' => true,
-                'ObjectTemplateElement.type' => $attribute_types
+                'ObjectTemplateElement.type' => $attributeTypes,
             ),
             'joins' => array(
                 array(
@@ -1225,15 +1262,13 @@ class MispObject extends AppModel
                 )
             ),
             'group' => 'ObjectTemplate.id',
-            'order' => 'type_count DESC'
         ));
 
-        $potential_template_ids = array_keys($potential_templates);
-        $templates = $this->ObjectTemplate->find('all', array(
+        $templates = $this->ObjectTemplate->find('all', [
             'recursive' => -1,
-            'conditions' => array('id' => $potential_template_ids),
-            'contain' => 'ObjectTemplateElement'
-        ));
+            'conditions' => ['id' => $potentialTemplateIds],
+            'contain' => ['ObjectTemplateElement' => ['fields' => ['object_relation', 'type', 'multiple']]]
+        ]);
 
         foreach ($templates as $i => $template) {
             $res = $this->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributes);
@@ -1241,20 +1276,15 @@ class MispObject extends AppModel
             $templates[$i]['ObjectTemplate']['invalidTypes'] = $res['invalidTypes'];
             $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
         }
-        return array('templates' => $templates, 'types' => $attribute_types);
+        return array('templates' => $templates, 'types' => $attributeTypes);
     }
 
-    public function groupAttributesIntoObject($user, $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping, $hard_delete_attribute)
+    public function groupAttributesIntoObject(array $user, $event_id, array $object, $template, array $selected_attribute_ids, array $selected_object_relation_mapping, $hard_delete_attribute)
     {
         $saved_object_id = $this->saveObject($object, $event_id, $template, $user);
         if (!is_numeric($saved_object_id)) {
             return $saved_object_id;
         }
-
-        $saved_object = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Object.id' => $saved_object_id)
-        ));
 
         $existing_attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array(
             'Attribute.id' => $selected_attribute_ids,
@@ -1268,7 +1298,7 @@ class MispObject extends AppModel
         $event = array('Event' => $existing_attributes[0]['Event']);
 
         // Duplicate the attribute and its context, otherwise connected instances will drop the duplicated UUID
-        foreach ($existing_attributes as $i => $existing_attribute) {
+        foreach ($existing_attributes as $existing_attribute) {
             if (isset($selected_object_relation_mapping[$existing_attribute['Attribute']['id']])) {
                 $sightings = $this->Event->Sighting->attachToEvent($event, $user, $existing_attribute['Attribute']['id']);
                 $object_relation = $selected_object_relation_mapping[$existing_attribute['Attribute']['id']];
@@ -1277,20 +1307,18 @@ class MispObject extends AppModel
                 unset($created_attribute['id']);
                 unset($created_attribute['uuid']);
                 $created_attribute['object_relation'] = $object_relation;
-                $created_attribute['object_id'] = $saved_object['Object']['id'];
+                $created_attribute['object_id'] = $saved_object_id;
                 if (isset($existing_attribute['AttributeTag'])) {
                     $created_attribute['AttributeTag'] = $existing_attribute['AttributeTag'];
                 }
                 if (!empty($sightings)) {
                     $created_attribute['Sighting'] = $sightings;
                 }
-                $saved_object['Attribute'][$i] = $created_attribute;
-                $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object['Object']['id']);
+                $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object_id);
                 $this->Attribute->deleteAttribute($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
             }
         }
-        return $saved_object['Object']['id'];
-
+        return $saved_object_id;
     }
 
     public function resolveUpdatedTemplate($template, $object, $update_template_available = false)
@@ -1364,30 +1392,31 @@ class MispObject extends AppModel
             }
             $toReturn['updateable_attribute'] = $object['Attribute'];
             $toReturn['not_updateable_attribute'] = array();
-        } else {
-            $toReturn['newer_template_version'] = false;
-        }
-        if (!empty($template_difference)) { // older template not completely embeded in newer
-            foreach ($template_difference as $temp_diff_element) {
-                foreach ($object['Attribute'] as $i => $attribute) {
-                    if (
-                        $attribute['object_relation'] == $temp_diff_element['object_relation']
-                        && $attribute['type'] == $temp_diff_element['type']
-                    ) { // This attribute cannot be merged automatically
-                        $attribute['merge-possible'] = false;
-                        $toReturn['not_updateable_attribute'][] = $attribute;
-                        unset($toReturn['updateable_attribute'][$i]);
+
+            if (!empty($template_difference)) { // older template not completely embeded in newer
+                foreach ($template_difference as $temp_diff_element) {
+                    foreach ($object['Attribute'] as $i => $attribute) {
+                        if (
+                            $attribute['object_relation'] == $temp_diff_element['object_relation']
+                            && $attribute['type'] == $temp_diff_element['type']
+                        ) { // This attribute cannot be merged automatically
+                            $attribute['merge-possible'] = false;
+                            $toReturn['not_updateable_attribute'][] = $attribute;
+                            unset($toReturn['updateable_attribute'][$i]);
+                        }
                     }
                 }
             }
         }
+
         if ($update_template_available) { // template version bump requested
             $toReturn['template'] = $newer_template; // bump the template version
         }
         return $toReturn;
     }
 
-    public function reviseObject($revised_object, $object, $template) {
+    public function reviseObject($revised_object, $object, $template)
+    {
         $revised_object_both = array('mergeable' => array(), 'notMergeable' => array());
 
         // Loop through attributes to inject and perform the correct action

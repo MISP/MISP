@@ -399,7 +399,7 @@ class Tag extends AppModel
         if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false || $tag['Tag']['numerical_value'] !== $numerical_value || ($tag['Tag']['local_only'] !== $local_only && $local_only !== -1)) {
             $tag['Tag']['name'] = $name;
             $tag['Tag']['colour'] = $colour;
-            if ($tag['Tag']['local_only'] !== -1) {
+            if ($local_only !== -1) {
                 $tag['Tag']['local_only'] = $local_only;
             }
             if ($hide !== false) {
@@ -583,7 +583,8 @@ class Tag extends AppModel
         $changedTags = $this->AttributeTag->getAffectedRows();
         $this->EventTag->updateAll(['tag_id' => $destinationTag['Tag']['id']], ['tag_id' => $sourceTag['Tag']['id']]);
         $changedTags += $this->EventTag->getAffectedRows();
-
+        $this->GalaxyClusterRelationTag->updateAll(['tag_id' => $destinationTag['Tag']['id']], ['tag_id' => $sourceTag['Tag']['id']]);
+        $changedTags += $this->GalaxyClusterRelationTag->getAffectedRows();
         $this->delete($sourceTag['Tag']['id']);
 
         return [

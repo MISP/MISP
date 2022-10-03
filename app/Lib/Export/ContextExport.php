@@ -1,8 +1,6 @@
 <?php
 class ContextExport
 {
-    private $__attack_export_tool = null;
-
     public $additional_params = [
         'flatten' => 1,
         'includeEventTags' => 1,
@@ -12,18 +10,42 @@ class ContextExport
         'noShadowAttributes' => true,
         'sgReferenceOnly' => true,
         'includeEventCorrelations' => false,
+        'fetchFullClusters' => false,
     ];
+
     private $__eventTags = [];
+    /** @var array Tag name => Galaxy */
     private $__eventGalaxies = [];
 
     private $__aggregatedTags = [];
     private $__aggregatedClusters = [];
 
     private $__taxonomyFetched = [];
-    private $__galaxyFetched = [];
+
+    private $__passedOptions = [];
 
     public $non_restrictive_export = true;
     public $renderView = 'context_view';
+
+    /** @var AttackExport */
+    private $AttackExport;
+
+    /** @var Taxonomy */
+    private $Taxonomy;
+
+    /** @var Galaxy */
+    private $Galaxy;
+
+    public function header($options = array())
+    {
+        $this->Taxonomy = ClassRegistry::init('Taxonomy');
+        $this->Galaxy = ClassRegistry::init('Galaxy');
+        App::uses('AttackExport', 'Export');
+        $this->AttackExport = new AttackExport();
+        $this->__passedOptions = $options;
+
+        return '';
+    }
 
     public function handler($data, $options = array())
     {
@@ -33,29 +55,20 @@ class ContextExport
                 $this->__aggregate($attribute, Hash::extract($attribute, 'AttributeTag.{n}.Tag'));
             }
         }
-
-        $this->__attack_export_tool->handler($data, $options);
-        return '';
-    }
-
-    public function header($options = array())
-    {
-        $this->__TaxonomyModel = ClassRegistry::init('Taxonomy');
-        $this->__GalaxyModel = ClassRegistry::init('Galaxy');
-        App::uses('AttackExport', 'Export');
-        $this->__attack_export_tool = new AttackExport();
-        $this->__attack_export_tool->handler($options);
-
+        $this->AttackExport->handler($data, $options);
         return '';
     }
 
     public function footer()
     {
-        $attackFinal = $this->__attack_export_tool->footer();
+        $attackFinal = $this->AttackExport->footer();
         $this->__aggregateTagsPerTaxonomy();
         $this->__aggregateClustersPerGalaxy();
-        $attackData = json_decode($attackFinal, true);
-        return json_encode([
+        $attackData = $attackFinal === '' ? [] : JsonTool::decode($attackFinal);
+        if (!empty($attackData) && !empty($this->__passedOptions['filters']['staticHtml'])) {
+            $attackData['static'] = true;
+        }
+        return JsonTool::encode([
             'attackData' => $attackData,
             'tags' => $this->__aggregatedTags,
             'clusters' => $this->__aggregatedClusters,
@@ -64,17 +77,15 @@ class ContextExport
 
     public function separator()
     {
-        $this->__attack_export_tool->separator();
         return '';
     }
 
-    private function __aggregate($entity, $tags)
+    private function __aggregate(array $entity, array $tags)
     {
         if (!empty($entity['Galaxy'])) {
             foreach ($entity['Galaxy'] as $galaxy) {
                 foreach ($galaxy['GalaxyCluster'] as $galaxyCluster) {
                     $this->__eventGalaxies[$galaxyCluster['tag_name']] = $galaxyCluster;
-                    $this->fetchGalaxyForTag($galaxyCluster['tag_name']);
                 }
             }
         }
@@ -89,42 +100,50 @@ class ContextExport
         }
     }
 
-    private function fetchTaxonomyForTag($tagname)
+    /**
+     * @param string $tagName
+     * @return void
+     * @throws RedisException
+     */
+    private function fetchTaxonomyForTag($tagName)
     {
-        $splits = $this->__TaxonomyModel->splitTagToComponents($tagname);
+        $splits = $this->Taxonomy->splitTagToComponents($tagName);
+        if ($splits === null) {
+            return; // tag is not taxonomy tag
+        }
         if (!isset($this->__taxonomyFetched[$splits['namespace']])) {
-            $fetchedTaxonomy = $this->__TaxonomyModel->getTaxonomyForTag($tagname, false, true);
+            $fetchedTaxonomy = $this->Taxonomy->getTaxonomyForTag($tagName, false, true);
             if (!empty($fetchedTaxonomy)) {
-                $this->__taxonomyFetched[$splits['namespace']]['Taxonomy'] = $fetchedTaxonomy['Taxonomy'];
-                $this->__taxonomyFetched[$splits['namespace']]['TaxonomyPredicate'] = [];
+                $fetched = [
+                    'Taxonomy' => $fetchedTaxonomy['Taxonomy'],
+                    'TaxonomyPredicate' => [],
+                ];
                 foreach ($fetchedTaxonomy['TaxonomyPredicate'] as $predicate) {
-                    $this->__taxonomyFetched[$splits['namespace']]['TaxonomyPredicate'][$predicate['value']] = $predicate;
+                    $fetched['TaxonomyPredicate'][$predicate['value']] = $predicate;
                     if (!empty($predicate['TaxonomyEntry'])) {
-                        $this->__taxonomyFetched[$splits['namespace']]['TaxonomyPredicate'][$predicate['value']]['TaxonomyEntry'] = [];
+                        $fetched['TaxonomyPredicate'][$predicate['value']]['TaxonomyEntry'] = [];
                         foreach ($predicate['TaxonomyEntry'] as $entry) {
-                            $this->__taxonomyFetched[$splits['namespace']]['TaxonomyPredicate'][$predicate['value']]['TaxonomyEntry'][$entry['value']] = $entry;
+                            $fetched['TaxonomyPredicate'][$predicate['value']]['TaxonomyEntry'][$entry['value']] = $entry;
                         }
                     }
                 }
+                $this->__taxonomyFetched[$splits['namespace']] = $fetched;
+            } else {
+                // Do not try to fetch non existing taxonomy again
+                $this->__taxonomyFetched[$splits['namespace']] = false;
             }
         }
-    }
-
-    private function fetchGalaxyForTag($tagname)
-    {
-        $splits = $this->__TaxonomyModel->splitTagToComponents($tagname);
-        $galaxy = $this->__GalaxyModel->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.type' => $splits['predicate'])
-        ));
-        $this->__galaxyFetched[$splits['predicate']] = $galaxy;
     }
 
     private function __aggregateTagsPerTaxonomy()
     {
         ksort($this->__eventTags);
         foreach ($this->__eventTags as $tagname => $tagData) {
-            $splits = $this->__TaxonomyModel->splitTagToComponents($tagname);
+            $splits = $this->Taxonomy->splitTagToComponents($tagname);
+            if ($splits === null) {
+                $this->__aggregatedTags['Custom Tags'][]['Tag'] = $tagData;
+                continue;
+            }
             $taxonomy = [];
             if (!empty($this->__taxonomyFetched[$splits['namespace']])) {
                 $taxonomy = $this->__taxonomyFetched[$splits['namespace']];
@@ -132,7 +151,7 @@ class ContextExport
             if (!empty($taxonomy['TaxonomyPredicate'][$splits['predicate']])) {
                 $predicate = $taxonomy['TaxonomyPredicate'][$splits['predicate']];
                 $entry = null;
-                if (!empty($splits['value'])) {
+                if (!empty($splits['value']) && isset($predicate['TaxonomyEntry'][$splits['value']])) {
                     $entry = $predicate['TaxonomyEntry'][$splits['value']];
                 }
                 unset($predicate['TaxonomyEntry']);
@@ -150,12 +169,24 @@ class ContextExport
 
     private function __aggregateClustersPerGalaxy()
     {
+        $galaxyTypes = [];
+        foreach ($this->__eventGalaxies as $tagName => $foo) {
+            $splits = $this->Taxonomy->splitTagToComponents($tagName);
+            $galaxyTypes[$splits['predicate']] = true;
+        }
+
+        $fetchedGalaxies = $this->Galaxy->find('all', [
+            'recursive' => -1,
+            'conditions' => array('Galaxy.type' => array_keys($galaxyTypes)),
+        ]);
+        $fetchedGalaxies = array_column(array_column($fetchedGalaxies, 'Galaxy'), null, 'type');
+
         ksort($this->__eventGalaxies);
-        foreach ($this->__eventGalaxies as $tagname => $cluster) {
-            $splits = $this->__TaxonomyModel->splitTagToComponents($tagname);
-            $galaxy = $this->__galaxyFetched[$splits['predicate']];
+        foreach ($this->__eventGalaxies as $tagName => $cluster) {
+            $splits = $this->Taxonomy->splitTagToComponents($tagName);
+            $galaxy = $fetchedGalaxies[$splits['predicate']];
             $this->__aggregatedClusters[$splits['predicate']][] = [
-                'Galaxy' => $galaxy['Galaxy'],
+                'Galaxy' => $galaxy,
                 'GalaxyCluster' => $cluster,
             ];
         }

@@ -11,7 +11,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'class' => 'input span6',
                 'div' => 'input clear',
                 'type' => 'select',
-                'options' => array_combine($exportFormats, $exportFormats),
+                'options' => $exportFormats,
             ],
         ],
         'submit' => [

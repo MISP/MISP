@@ -115,7 +115,7 @@ class Warninglist extends AppModel
         }
 
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             // fallback to default implementation when redis is not available
             $eventWarnings = [];
@@ -182,10 +182,10 @@ class Warninglist extends AppModel
                 }
 
                 $attributeKey = $keysToGet[$pos];
-                $saveToCache[$attributeKey] = empty($store) ? '' : json_encode($store);
+                $saveToCache[$attributeKey] = empty($store) ? '' : RedisTool::serialize($store);
 
             } elseif (!empty($result)) { // skip empty string that means no warning list match
-                $matchedWarningList = json_decode($result, true);
+                $matchedWarningList = RedisTool::deserialize($result);
                 foreach ($matchedWarningList as $warninglistId => $matched) {
                     $attributes[$redisResultToAttributePos[$pos]]['warnings'][] = [
                         'value' => $matched[0],
@@ -425,34 +425,24 @@ class Warninglist extends AppModel
      * This allows us to enable/disable a single warninglist without regenerating all caches.
      * @param int|null $id
      * @return bool
+     * @throws RedisException
      */
     public function regenerateWarninglistCaches($id = null)
     {
-        $redis = $this->setupRedis();
-        if ($redis === false) {
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
             return false;
         }
 
-        // Unlink is non blocking way how to delete keys from Redis, but it must be supported by PHP extension and
-        // Redis itself
-        $unlinkSupported = method_exists($redis, 'unlink') && $redis->unlink(null) !== false;
-        if ($unlinkSupported) {
-            $redis->unlink($redis->keys('misp:wlc:*'));
-        } else {
-            $redis->del($redis->keys('misp:wlc:*'));
-        }
+        RedisTool::deleteKeysByPattern($redis, 'misp:wlc:*');
 
         if ($id === null) {
             // delete all cached entries when regenerating whole cache
-            $redis->del($redis->keys('misp:warninglist_entries_cache:*'));
+            RedisTool::deleteKeysByPattern($redis, 'misp:warninglist_entries_cache:*');
         }
 
-        $warninglists = $this->find('all', array(
-            'contain' => array('WarninglistType'),
-            'conditions' => array('enabled' => 1),
-            'fields' => ['id', 'name', 'type', 'category'],
-        ));
-        $this->cacheWarninglists($warninglists);
+        $warninglists = $this->getEnabledAndCacheWarninglist();
 
         foreach ($warninglists as $warninglist) {
             if ($id && $warninglist['Warninglist']['id'] != $id) {
@@ -467,17 +457,34 @@ class Warninglist extends AppModel
         return true;
     }
 
-    private function cacheWarninglists(array $warninglists)
+    /**
+     * Get enable warninglists and cache them.
+     * @return array
+     */
+    private function getEnabledAndCacheWarninglist()
     {
-        $redis = $this->setupRedis();
-        if ($redis !== false) {
-            $redis->del('misp:warninglist_cache');
-            foreach ($warninglists as $warninglist) {
-                $redis->sAdd('misp:warninglist_cache', json_encode($warninglist));
+        $warninglists = $this->find('all', [
+            'contain' => ['WarninglistType'],
+            'conditions' => ['enabled' => 1],
+            'fields' => ['id', 'name', 'type', 'category'],
+        ]);
+
+        // Convert type to array
+        foreach ($warninglists as &$warninglist) {
+            $warninglist['types'] = [];
+            foreach ($warninglist['WarninglistType'] as $wt) {
+                $warninglist['types'][] = $wt['type'];
             }
-            return true;
+            unset($warninglist['WarninglistType']);
         }
-        return false;
+
+        try {
+            $redis = RedisTool::init();
+            $redis->set('misp:warninglist_cache', RedisTool::serialize($warninglists));
+        } catch (Exception $e) {
+        }
+
+        return $warninglists;
     }
 
     private function cacheWarninglistEntries(array $warninglistEntries, $id)
@@ -500,6 +507,7 @@ class Warninglist extends AppModel
 
     /**
      * @return array
+     * @throws JsonException
      */
     public function getEnabled()
     {
@@ -507,28 +515,18 @@ class Warninglist extends AppModel
             return $this->enabledCache;
         }
 
-        $redis = $this->setupRedis();
-        if ($redis !== false && $redis->exists('misp:warninglist_cache')) {
-            $warninglists = $redis->sMembers('misp:warninglist_cache');
-            foreach ($warninglists as $k => $v) {
-                $warninglists[$k] = json_decode($v, true);
-            }
-        } else {
-            $warninglists = $this->find('all', array(
-                'contain' => ['WarninglistType'],
-                'conditions' => ['enabled' => 1],
-                'fields' => ['id', 'name', 'type', 'category'],
-            ));
-            $this->cacheWarninglists($warninglists);
+        try {
+            $redis = RedisTool::init();
+            $warninglists = RedisTool::deserialize($redis->get('misp:warninglist_cache'));
+        } catch (Exception $e) {
+            $warninglists = false;
         }
 
-        foreach ($warninglists as &$warninglist) {
-            $warninglist['types'] = [];
-            foreach ($warninglist['WarninglistType'] as $wt) {
-                $warninglist['types'][] = $wt['type'];
-            }
-            unset($warninglist['WarninglistType']);
+        // $warninglists is false when nothing is cached
+        if ($warninglists === false) {
+            $warninglists = $this->getEnabledAndCacheWarninglist();
         }
+
         $this->enabledCache = $warninglists;
         return $warninglists;
     }
@@ -539,17 +537,20 @@ class Warninglist extends AppModel
      */
     private function getWarninglistEntries($id)
     {
-        $redis = $this->setupRedis();
-        if ($redis !== false && $redis->exists('misp:warninglist_entries_cache:' . $id)) {
-            return $redis->sMembers('misp:warninglist_entries_cache:' . $id);
-        } else {
-            $entries = $this->WarninglistEntry->find('column', array(
-                'conditions' => array('warninglist_id' => $id),
-                'fields' => array('WarninglistEntry.value')
-            ));
-            $this->cacheWarninglistEntries($entries, $id);
-            return $entries;
-        }
+        try {
+            $redis = RedisTool::init();
+            $entries = $redis->sMembers('misp:warninglist_entries_cache:' . $id);
+            if (!empty($entries)) {
+                return $entries;
+            }
+        } catch (Exception $e) {}
+
+        $entries = $this->WarninglistEntry->find('column', array(
+            'conditions' => array('warninglist_id' => $id),
+            'fields' => array('WarninglistEntry.value')
+        ));
+        $this->cacheWarninglistEntries($entries, $id);
+        return $entries;
     }
 
     /**

@@ -16,6 +16,8 @@ class CorrelationExclusion extends AppModel
         'Containable',
     );
 
+    private $__redis = null;
+
     public $validate = [
         'value' => [
             'uniqueValue' => [
@@ -52,15 +54,15 @@ class CorrelationExclusion extends AppModel
     public function cacheValues()
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $this->__redis = $this->setupRedisWithException();
         } catch (Exception $e) {
             return false;
         }
-        $redis->del($this->key);
+        $this->__redis->del($this->key);
         $exclusions = $this->find('column', [
             'fields' => ['value']
         ]);
-        $redis->sAddArray($this->key, $exclusions);
+        $this->__redis->sAddArray($this->key, $exclusions);
     }
 
     public function cleanRouter($user)
@@ -97,19 +99,16 @@ class CorrelationExclusion extends AppModel
             $this->Job = ClassRegistry::init('Job');
             $this->Job->id = $jobId;
         }
-        $query = sprintf(
-            'DELETE FROM correlations where (%s) or (%s);',
-            sprintf(
-                'value IN (%s)',
-                'SELECT correlation_exclusions.value FROM correlation_exclusions WHERE correlations.value = correlation_exclusions.value'
-            ),
-            sprintf(
-                'EXISTS (SELECT NULL FROM correlation_exclusions WHERE (%s) OR (%s))',
-                "correlations.value LIKE CONCAT('%', correlation_exclusions.value)",
-                "correlations.value LIKE CONCAT(correlation_exclusions.value, '%')"
-            )
-        );
-        $this->query($query);
-        $this->Job->saveProgress($jobId, 'Job done.', 100);
+        $values = $this->find('column', [
+            'recursive' => -1,
+            'fields' => ['value']
+        ]);
+        $this->Correlation = ClassRegistry::init('Correlation');
+        foreach ($values as $value) {
+            $this->Correlation->purgeByValue($value);
+        }
+        if ($jobId) {
+            $this->Job->saveProgress($jobId, 'Job done.', 100);
+        }
     }
 }

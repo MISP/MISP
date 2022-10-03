@@ -23,25 +23,25 @@
                             'class' => 'hidden mass-select',
                             'text' => __('Disable selected users'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '1')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '1', '#UserUserIds')
                         ),
                         array(
                             'class' => 'hidden mass-select',
                             'text' => __('Enable selected users'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '0')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '0', '#UserUserIds')
                         ),
                         array(
                             'class' => 'hidden mass-select',
                             'text' => __('Disable publish emailing'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '0')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '0', '#UserUserIds')
                         ),
                         array(
                             'class' => 'hidden mass-select',
                             'text' => __('Enable publish emailing'),
                             'onClick' => "multiSelectToggleField",
-                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '1')
+                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '1', '#UserUserIds')
                         ),
                     )
                 ),
@@ -155,6 +155,20 @@
                         'colors' => true,
                     ),
                     array(
+                        'name' => __('Periodic notif.'),
+                        'element' => 'custom',
+                        'class' => 'short',
+                        'function' => function (array $user) use ($periodic_notifications) {
+                            $period_subscriptions = [];
+                            foreach ($periodic_notifications as $period) {
+                                if (!empty($user['User'][$period])) {
+                                    $period_subscriptions[] = substr($period, 13, 1);
+                                }
+                            }
+                            return implode('/', $period_subscriptions);
+                        }
+                    ),
+                    array(
                         'name' => __('PGP Key'),
                         'element' => 'boolean',
                         'sort' => 'User.gpgkey',
@@ -198,6 +212,14 @@
                         'element' => 'datetime',
                         'class' => 'short',
                         'data_path' => 'User.date_created'
+                    ),
+                    array(
+                        'name' => __('Last API Access'),
+                        'sort' => 'User.last_api_access',
+                        'element' => 'datetime',
+                        'class' => 'short',
+                        'data_path' => 'User.last_api_access',
+                        'requirement' => !empty(Configure::read('MISP.store_api_access_time')) && Configure::read('MISP.store_api_access_time', false)
                     ),
                     array(
                         'name' => (Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : __('External Auth')),

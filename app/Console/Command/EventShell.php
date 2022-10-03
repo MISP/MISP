@@ -15,7 +15,6 @@ require_once 'AppShell.php';
 class EventShell extends AppShell
 {
     public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation', 'Tag');
-    public $tasks = array('ConfigLoad');
 
     public function getOptionParser()
     {
@@ -39,6 +38,9 @@ class EventShell extends AppShell
                 'arguments' => [
                     'event_id' => ['help' => __('Event ID'), 'required' => true],
                     'user_id' => ['help' => __('User ID'), 'required' => true],
+                ],
+                'options' => [
+                    'send' => ['help' => __('Send email to given user'), 'boolean' => true],
                 ],
             ],
         ]);
@@ -118,7 +120,6 @@ class EventShell extends AppShell
 
     public function doPublish()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Do publish'] . PHP_EOL);
         }
@@ -154,7 +155,6 @@ class EventShell extends AppShell
 
     public function correlateValue()
     {
-        $this->ConfigLoad->execute();
         $value = $this->args[0];
 
         if (!empty($this->args[1])) {
@@ -179,7 +179,6 @@ class EventShell extends AppShell
 
     public function cache()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache event'] . PHP_EOL);
         }
@@ -220,7 +219,6 @@ class EventShell extends AppShell
 
     private function __runCaching($user, $typeData, $id, $export_type, $subType = '')
     {
-        $this->ConfigLoad->execute();
         $export_type = strtolower($typeData['type']);
         $final = $this->{$typeData['scope']}->restSearch($user, $typeData['params']['returnFormat'], $typeData['params'], false, $id);
         $dir = new Folder(APP . 'tmp/cached_exports/' . $export_type, true, 0750);
@@ -237,7 +235,6 @@ class EventShell extends AppShell
 
     public function cachebro()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache bro'] . PHP_EOL);
         }
@@ -278,7 +275,6 @@ class EventShell extends AppShell
 
     public function alertemail()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Alert email'] . PHP_EOL);
         }
@@ -311,7 +307,6 @@ class EventShell extends AppShell
 
     public function postsemail()
     {
-        $this->ConfigLoad->execute();
         if (
             empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
             empty($this->args[3]) || empty($this->args[4]) || empty($this->args[5])
@@ -345,7 +340,6 @@ class EventShell extends AppShell
 
     public function enqueueCaching()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Enqueue caching'] . PHP_EOL);
         }
@@ -402,7 +396,6 @@ class EventShell extends AppShell
 
     public function publish()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish event'] . PHP_EOL);
         }
@@ -462,7 +455,6 @@ class EventShell extends AppShell
 
     public function publish_galaxy_clusters()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || !array_key_exists(3, $this->args)) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish Galaxy clusters'] . PHP_EOL);
         }
@@ -489,7 +481,6 @@ class EventShell extends AppShell
 
     public function enrichment()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run enrichment'] . PHP_EOL);
         }
@@ -585,7 +576,6 @@ class EventShell extends AppShell
 
     public function recoverEvent()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Recover event'] . PHP_EOL);
         }
@@ -607,6 +597,7 @@ class EventShell extends AppShell
     public function testEventNotificationEmail()
     {
         list($eventId, $userId) = $this->args;
+        $send = $this->param('send');
 
         $user = $this->getUser($userId);
         $eventForUser = $this->Event->fetchEvent($user, [
@@ -626,10 +617,16 @@ class EventShell extends AppShell
         App::uses('SendEmail', 'Tools');
         App::uses('GpgTool', 'Tools');
         $sendEmail = new SendEmail(GpgTool::initializeGpg());
-        $sendEmail->setTransport('Debug');
+        if (!$send) {
+            $sendEmail->setTransport('Debug');
+        }
         $result = $sendEmail->sendToUser(['User' => $user], null, $emailTemplate);
 
-        echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
+        if ($send) {
+            var_dump($result);
+        } else {
+            echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
+        }
     }
 
     /**

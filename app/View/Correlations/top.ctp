@@ -2,7 +2,7 @@
     echo sprintf('<div%s>', empty($ajax) ? ' class="index"' : '');
     echo $this->element('genericElements/IndexTable/index_table', [
         'data' => [
-            'stupid_pagination' => 1,
+            'light_paginator' => 1,
             'data' => $data,
             'top_bar' => [
                 'children' => [

@@ -35,6 +35,31 @@ form button.btn[disabled] {
     border-bottom-right-radius: 4px;
 }
 
+.dropdown-submenu.submenu-right > .dropdown-menu {
+    left: auto;
+    right: 100%;
+    margin-top: -6px;
+    margin-right: -1px;
+    margin-left: 0;
+    -webkit-border-radius: 6px 0 6px 6px;
+    -moz-border-radius: 6px 0 6px 6px;
+    border-radius: 6px 0 6px 6px;
+}
+
+.dropdown-submenu.submenu-right > a:after {
+    float: left;
+    margin-right: 0;
+    margin-left: -10px;
+    border-left-color: transparent !important;
+    border-right-color: #cccccc;
+    border-style: solid;
+    border-width: 5px 5px 5px 0;
+}
+
+.dropdown-submenu.disabled > .dropdown-menu {
+    display: none;
+}
+
 /*.close{
     float:none;
 }*/
@@ -146,6 +171,10 @@ th.filter {
 }
 th.filter a {
     cursor: pointer;
+}
+
+th.pagination_link {
+    white-space: nowrap;
 }
 
 td.searchLabel{
@@ -652,7 +681,7 @@ dd {
 .footerCenterText {
     padding-top:12px;
     position: absolute;
-    width:100%;
+    width: calc(100% - 21px);
     text-align:center;
 }
 
@@ -964,6 +993,15 @@ a.proposal_link_red:hover {
     border: 1px solid #ddd;
     color: #6b6b6b;
     border-radius: 3px 0 3px 0;
+}
+
+.report-container {
+    margin: 0 auto;
+    max-width: 1500px;
+    justify-content: center;
+    padding: 10px 15px;
+    overflow-y: auto;
+    box-shadow: 0 2px 6px 6px #eee;
 }
 
 .modal-body-long {
@@ -1821,7 +1859,7 @@ span.success {
     color:white;
 }
 
-input.select, input.select_attribute {
+input.select, input.select_attribute, input.select-all {
     margin-top: 0; /* remove top margin for checkboxes in index table */
 }
 

@@ -4,14 +4,23 @@ info:
   description: |
 
     ### Getting Started
-    Automation functionality is designed to automatically generate signatures for intrusion detection systems. 
-    To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes. 
-    Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature 
-    generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artefacts. 
-    Support for more attribute types is planned. To make this functionality available for automated tools an authentication 
-    key is used. This makes it easier for your tools to access the data without further form-based-authentication. 
-    The [API](https://www.circl.lu/doc/misp/GLOSSARY.html#api) key can be found and managed under My Profile page (/users/view/me) 
-    on a MISP instance.
+
+    MISP API allows you to query, create, modify data models, such as [Events](https://www.circl.lu/doc/misp/GLOSSARY.html#misp-event),
+    [Objects](https://www.circl.lu/doc/misp/misp-objects/), [Attributes](https://www.circl.lu/doc/misp/GLOSSARY.html#misp-attribute).
+    This is extremly useful for interconnecting MISP with external tools and feeding other systems with threat intel data.
+
+    It also lets you perform administrative tasks such as creating users, organisations, altering MISP settings, and much more.
+
+    To get an API key there are several options:
+    * **[UI]** Go to [Administration -> Auth Keys](/auth_keys/index) page and click on `+ Add authentication key`
+    
+    * **[UI]** Go to the the [Administration -> List Users -> View](/admin/users/view/[id]) page of the user you want to create an auth key for and on the `Auth keys` section click on `+ Add authentication key`
+
+    * **[CLI]** Use the following command: `./app/Console/cake user change_authkey [e-mail/user_id]`
+
+    * **API** Provided you already have an admin level API key, you can create an API key for another user using the `[POST]/auth_keys/add/{{user_id}}` endpoint.
+
+    > **NOTE:** The authentication key will only be displayed once, so take note of it or store it properly in your application secrets.
 
     #### Accept and Content-Type headers 
     When performing your request, depending on the type of request, you might need to explicitly specify in what content 
@@ -2822,6 +2831,10 @@ components:
           $ref: "#/components/schemas/LimitSearchFilter"
         value:
           $ref: "#/components/schemas/AttributeValue"
+        value1:
+          $ref: "#/components/schemas/AttributeValue"
+        value2:
+          $ref: "#/components/schemas/AttributeValue"
         type:
           $ref: "#/components/schemas/AttributeType"
         category:
@@ -4520,7 +4533,7 @@ components:
       properties:
         input:
           type: string
-          example: "cd $(git rev-parse --show-toplevel) && git checkout app\/composer.json 2>&1"
+          example: "cd $(git rev-parse --show-toplevel) && git checkout app/composer.json 2>&1"
         output:
           type: array
           items:
@@ -6193,6 +6206,8 @@ components:
                   - $ref: "#/components/schemas/OrganisationId"
                   - $ref: "#/components/schemas/OrganisationName"
               tags:
+                $ref: "#/components/schemas/TagsRestSearchFilter"
+              event_tags:
                 $ref: "#/components/schemas/TagsRestSearchFilter"
               searchall:
                 description: "Search events by matching any tag names, event descriptions, attribute values or attribute comments"

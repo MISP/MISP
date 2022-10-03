@@ -2,7 +2,7 @@
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
-        'title' => 'Sharing Group Blueprint view',
+        'title' => __('Sharing Group Blueprint view'),
         'data' => $data,
         'fields' => [
             [

@@ -128,4 +128,15 @@ Add the information we made a note of earlier when creating the `App Registation
 
 All fields need to match explicitly without any leading or trailing whitespace, if you added the groups these are case sensitive.
 
+### Disable users password change
+By default MISP will still create a password for the user, when enrolling a new user on MISP, uncheck the _"Send credentials automatically"_ checkbox.
 
+![Send credentials automatically](.images/Picture39.png)
+
+Additionally, it is recommended to set the following settings in the MISP config:
+
+* `MISP.disableUserSelfManagement => true`: Removes the ability of users to change their user settings and reset their authentication keys.
+* `MISP.disable_user_login_change => true`: Removes the ability of users to change their username (email), except for site admins.
+* `MISP.disable_user_password_change => true`: Removes the ability of users to change their own password.
+
+This way users will not be able to change their passwords and by-pass the AAD login flow.

@@ -484,6 +484,10 @@ class SendEmail
             ]);
         }
 
+        if ($body instanceof SendEmailTemplate && $body->listUnsubscribe()) {
+            $email->addHeaders(['List-Unsubscribe' => "<{$body->listUnsubscribe()}>"]);
+        }
+
         $signed = false;
         if (Configure::read('GnuPG.sign')) {
             if (!$this->gpg) {

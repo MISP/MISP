@@ -126,6 +126,9 @@ class Taxonomy extends AppModel
         return (int)$result;
     }
 
+    /**
+     * @throws Exception
+     */
     private function __updateVocab(array $vocab, array $current)
     {
         $enabled = 0;
@@ -149,6 +152,9 @@ class Taxonomy extends AppModel
         }
         if (!empty($vocab['values'])) {
             foreach ($vocab['values'] as $value) {
+                if (!isset($predicateLookup[$value['predicate']])) {
+                    throw new Exception("Invalid taxonomy `{$vocab['namespace']}` provided. Predicate `{$value['predicate']}` is missing.");
+                }
                 $predicatePosition = $predicateLookup[$value['predicate']];
                 if (empty($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'])) {
                     $taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'] = $value['entry'];
@@ -194,30 +200,34 @@ class Taxonomy extends AppModel
         foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
             if (isset($predicate['TaxonomyEntry']) && !empty($predicate['TaxonomyEntry'])) {
                 foreach ($predicate['TaxonomyEntry'] as $entry) {
-                    $temp = array('tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value'] . '="' . $entry['value'] . '"');
-                    $temp['expanded'] = (!empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value']) . ': ' . (!empty($entry['expanded']) ? $entry['expanded'] : $entry['value']);
-                    if (isset($entry['description']) && !empty($entry['description'])) {
+                    $temp = [
+                        'tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value'] . '="' . $entry['value'] . '"',
+                        'expanded' => (!empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value']) . ': ' . (!empty($entry['expanded']) ? $entry['expanded'] : $entry['value']),
+                        'exclusive_predicate' => $predicate['exclusive'],
+                    ];
+                    if (!empty($entry['description'])) {
                         $temp['description'] = $entry['description'];
                     }
-                    if (isset($entry['colour']) && !empty($entry['colour'])) {
+                    if (!empty($entry['colour'])) {
                         $temp['colour'] = $entry['colour'];
                     }
-                    if (isset($entry['numerical_value']) && $entry['numerical_value'] !== null) {
+                    if (isset($entry['numerical_value'])) {
                         $temp['numerical_value'] = $entry['numerical_value'];
                     }
-                    $temp['exclusive_predicate'] = $predicate['exclusive'];
                     $entries[] = $temp;
                 }
             } else {
-                $temp = array('tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value']);
-                $temp['expanded'] = !empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value'];
-                if (isset($predicate['description']) && !empty($predicate['description'])) {
+                $temp = [
+                    'tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value'],
+                    'expanded' => !empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value']
+                ];
+                if (!empty($predicate['description'])) {
                     $temp['description'] = $predicate['description'];
                 }
-                if (isset($predicate['colour']) && !empty($predicate['colour'])) {
+                if (!empty($predicate['colour'])) {
                     $temp['colour'] = $predicate['colour'];
                 }
-                if (isset($predicate['numerical_value']) && $predicate['numerical_value'] !== null) {
+                if (isset($predicate['numerical_value'])) {
                     $temp['numerical_value'] = $predicate['numerical_value'];
                 }
                 $entries[] = $temp;
@@ -589,9 +599,9 @@ class Taxonomy extends AppModel
             return false; // not taxonomy tag
         }
 
-        $key = 'taxonomies_cache:tagName=' . $tagName . "&" . "metaOnly=$metaOnly" . "&" . "fullTaxonomy=$fullTaxonomy";
+        $key = "taxonomies_cache:tagName=$tagName&metaOnly=$metaOnly&fullTaxonomy=$fullTaxonomy";
         $redis = $this->setupRedis();
-        $taxonomy = $redis ? json_decode($redis->get($key), true) : null;
+        $taxonomy = $redis ? RedisTool::deserialize($redis->get($key)) : null;
 
         if (!$taxonomy) {
             if (isset($splits['value'])) {
@@ -634,7 +644,7 @@ class Taxonomy extends AppModel
             }
 
             if ($redis) {
-                $redis->setex($key, 1800, json_encode($taxonomy));
+                $redis->setex($key, 1800, RedisTool::serialize($taxonomy));
             }
         }
 
@@ -753,7 +763,7 @@ class Taxonomy extends AppModel
 
     /**
      * @param string $tag
-     * @return array|null
+     * @return array|null Returns null if tag is not in taxonomy format
      */
     public function splitTagToComponents($tag)
     {
@@ -769,5 +779,78 @@ class Taxonomy extends AppModel
             $splits['value'] = $matches[4];
         }
         return $splits;
+    }
+
+    private function __craftTaxonomiesTags()
+    {
+        $taxonomies = $this->find('all', [
+            'fields' => ['namespace'],
+            'contain' => ['TaxonomyPredicate' => ['TaxonomyEntry']],
+        ]);
+        $allTaxonomyTags = [];
+        foreach ($taxonomies as $taxonomy) {
+            $namespace = $taxonomy['Taxonomy']['namespace'];
+            foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+                if (isset($predicate['TaxonomyEntry']) && !empty($predicate['TaxonomyEntry'])) {
+                    foreach ($predicate['TaxonomyEntry'] as $entry) {
+                        $tag = $namespace . ':' . $predicate['value'] . '="' . $entry['value'] . '"';
+                        $allTaxonomyTags[$tag] = true;
+                    }
+                } else {
+                    $tag = $namespace . ':' . $predicate['value'];
+                    $allTaxonomyTags[$tag] = true;
+                }
+            }
+        }
+        return $allTaxonomyTags;
+    }
+
+    /**
+     * normalizeCustomTagsToTaxonomyFormat Transform all custom tags into their taxonomy version.
+     *
+     * @return int The number of converted tag
+     */
+    public function normalizeCustomTagsToTaxonomyFormat(): array
+    {
+        $tagConverted = 0;
+        $rowUpdated = 0;
+        $craftedTags = $this->__craftTaxonomiesTags();
+        $allTaxonomyTagsByName = Hash::combine($this->getAllTaxonomyTags(false, false, true, false, true), '{n}.Tag.name', '{n}.Tag.id');
+        $tagsToMigrate = array_diff_key($allTaxonomyTagsByName, $craftedTags);
+        foreach ($tagsToMigrate as $tagToMigrate_name => $tagToMigrate_id) {
+            foreach (array_keys($craftedTags) as $craftedTag) {
+                if (strcasecmp($craftedTag, $tagToMigrate_name) == 0) {
+                    $result = $this->__updateTagToNormalized(intval($tagToMigrate_id), intval($allTaxonomyTagsByName[$craftedTag]));
+                    $tagConverted += 1;
+                    $rowUpdated += $result['changed'];
+                }
+            }
+        }
+        return [
+            'tag_converted' => $tagConverted,
+            'row_updated' => $rowUpdated,
+        ];
+    }
+
+    /**
+     * __updateTagToNormalized Change the link of element having $source_id tag attached to them for the $target_id one.
+     * Updated:
+     * - event_tags
+     * - attribute_tags
+     * - galaxy_cluster_relation_tags
+     *
+     * Ignored: As this is defined by users, let them do the migration themselves
+     * - tag_collection_tags
+     * - template_tags
+     * - favorite_tags
+     *
+     * @param int $source_id
+     * @param int $target_id
+     * @return array
+     * @throws Exception
+     */
+    private function __updateTagToNormalized($source_id, $target_id): array
+    {
+        return $this->Tag->mergeTag($source_id, $target_id);
     }
 }

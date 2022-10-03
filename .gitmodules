@@ -48,3 +48,6 @@
 [submodule "app/files/scripts/python-maec"]
 	path = app/files/scripts/python-maec
 	url = https://github.com/MAECProject/python-maec
+[submodule "app/files/misp-workflow-blueprints"]
+	path = app/files/misp-workflow-blueprints
+	url = https://github.com/MISP/misp-workflow-blueprints

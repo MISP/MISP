@@ -1,5 +1,6 @@
 <?php
 App::uses('SyncTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 class ServerSyncTool
 {
@@ -8,8 +9,11 @@ class ServerSyncTool
         FEATURE_ORG_RULE = 'org_rule',
         FEATURE_FILTER_SIGHTINGS = 'filter_sightings',
         FEATURE_PROPOSALS = 'proposals',
+        FEATURE_PROTECTED_EVENT = 'protected_event',
         FEATURE_POST_TEST = 'post_test',
-        FEATURE_PROTECTED_EVENT = 'protected_event';
+        FEATURE_EDIT_OF_GALAXY_CLUSTER = 'edit_of_galaxy_cluster',
+        PERM_SYNC = 'perm_sync',
+        PERM_GALAXY_EDITOR = 'perm_galaxy_editor';
 
     /** @var array */
     private $server;
@@ -68,12 +72,14 @@ class ServerSyncTool
 
     /**
      * @param array $params
+     * @param string|null $etag
+     * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      */
-    public function eventIndex($params = [])
+    public function eventIndex($params = [], $etag = null)
     {
-        return $this->post('/events/index', $params);
+        return $this->post('/events/index', $params, null, $etag);
     }
 
     /**
@@ -87,6 +93,17 @@ class ServerSyncTool
         $url = "/events/view/$eventId";
         $url .= $this->createParams($params);
         return $this->get($url);
+    }
+
+    /**
+     * @param array $events
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function filterEventIdsForPush(array $events)
+    {
+        return $this->post('/events/filterEventIdsForPush', $events);
     }
 
     /**
@@ -162,6 +179,39 @@ class ServerSyncTool
     public function attributeSearch(array $rules)
     {
         return $this->post('/attributes/restSearch.json', $rules);
+    }
+
+    /**
+     * @param array $rules
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function galaxyClusterSearch(array $rules)
+    {
+        return $this->post('/galaxy_clusters/restSearch', $rules);
+    }
+
+    /**
+     * @param int|string $galaxyClusterId Galaxy Cluster ID or UUID
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function fetchGalaxyCluster($galaxyClusterId)
+    {
+        return $this->get('/galaxy_clusters/view/' . $galaxyClusterId);
+    }
+
+    /**
+     * @param array $cluster
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function pushGalaxyCluster(array $cluster)
+    {
+        $logMessage = "Pushing Galaxy Cluster #{$cluster['GalaxyCluster']['id']} to Server #{$this->serverId()}";
+        return $this->post('/galaxies/pushCluster', [$cluster], $logMessage);
     }
 
     /**
@@ -332,6 +382,12 @@ class ServerSyncTool
             case self::FEATURE_PROTECTED_EVENT:
                 $version = explode('.', $info['version']);
                 return $version[0] == 2 && $version[1] == 4 && $version[2] > 155;
+            case self::FEATURE_EDIT_OF_GALAXY_CLUSTER:
+                return isset($info['perm_galaxy_editor']);
+            case self::PERM_SYNC:
+                return isset($info['perm_sync']) && $info['perm_sync'];
+            case self::PERM_GALAXY_EDITOR:
+                return isset($info['perm_galaxy_editor']) && $info['perm_galaxy_editor'];
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
@@ -366,14 +422,16 @@ class ServerSyncTool
      * @param string $url Relative URL
      * @param mixed $data
      * @param string|null $logMessage
+     * @param string|null $etag
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
+     * @throws JsonException
      */
-    private function post($url, $data, $logMessage = null)
+    private function post($url, $data, $logMessage = null, $etag = null)
     {
         $protectedMode = !empty($data['Event']['protected']);
-        $data = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $data = JsonTool::encode($data);
 
         if ($logMessage && !empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
@@ -391,6 +449,16 @@ class ServerSyncTool
             $request['header']['x-pgp-signature'] = $this->signEvent($data);
         }
 
+        if ($etag) {
+            // Remove compression marks that adds Apache for compressed content
+            $etagWithoutQuotes = trim($etag, '"');
+            $dashPos = strrpos($etagWithoutQuotes, '-');
+            if ($dashPos && in_array(substr($etagWithoutQuotes, $dashPos + 1), ['br', 'gzip'], true)) {
+                $etag = '"' . substr($etagWithoutQuotes, 0, $dashPos) . '"';
+            }
+            $request['header']['If-None-Match'] = $etag;
+        }
+
         if (strlen($data) > 1024) { // do not compress small body
             if ($this->isSupported(self::FEATURE_BR) && function_exists('brotli_compress')) {
                 $request['header']['Content-Encoding'] = 'br';
@@ -404,6 +472,9 @@ class ServerSyncTool
         $start = microtime(true);
         $response = $this->socket->post($url, $data, $request);
         $this->log($start, 'POST', $url, $response);
+        if ($etag && $response->isNotModified()) {
+            return $response; // if etag was provided and response code is 304, it is valid response
+        }
         if (!$response->isOk()) {
             throw new HttpSocketHttpException($response, $url);
         }
@@ -461,7 +532,7 @@ class ServerSyncTool
     }
 
     /**
-     * @param float $start
+     * @param float $start Microtime when request was send
      * @param string $method HTTP method
      * @param string $url
      * @param HttpSocketResponse $response
@@ -471,7 +542,7 @@ class ServerSyncTool
         $duration = round(microtime(true) - $start, 3);
         $responseSize = strlen($response->body);
         $ce = $response->getHeader('Content-Encoding');
-        $logEntry = '[' . date("Y-m-d H:i:s") . "] \"$method $url\" {$response->code} $responseSize $duration $ce\n";
+        $logEntry = '[' . date('Y-m-d H:i:s', intval($start)) . "] \"$method $url\" {$response->code} $responseSize $duration $ce\n";
         file_put_contents(APP . 'tmp/logs/server-sync.log', $logEntry, FILE_APPEND | LOCK_EX);
     }
 }

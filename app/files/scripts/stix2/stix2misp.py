@@ -143,6 +143,8 @@ class StixParser():
             for attribute in self.misp_event.attributes:
                 if attribute.uuid in self.marking_refs:
                     for marking_uuid in self.marking_refs[attribute.uuid]:
+                        if marking_uuid not in self.marking_definition:
+                            continue
                         attribute.add_tag(self.marking_definition[marking_uuid]['object'])
                         self.marking_definition[marking_uuid]['used'] = True
         if self.marking_definition:
@@ -645,14 +647,20 @@ class StixFromMISPParser(StixParser):
 
     def _parse_attachment(self, observable):
         if len(observable) > 1:
-            return self._parse_name(observable, index='1'), self._parse_payload(observable)
+            return self._parse_name(observable), self._parse_payload(observable)
         return self._parse_name(observable)
 
     def parse_credential_observable(self, observable):
         return self.fill_observable_attributes(observable['0'], 'credential_mapping')
 
     def _parse_domain_ip_attribute(self, observable):
-        return f'{self._parse_value(observable)}|{self._parse_value(observable, index="1")}'
+        return f'{self._parse_domain_value(observable)}|{self._parse_ip_value(observable)}'
+
+    @staticmethod
+    def _parse_domain_value(observables):
+        for observable in observables.values():
+            if observable.type == 'domain-name':
+                return observable.value
 
     @staticmethod
     def parse_domain_ip_observable(observable):
@@ -680,6 +688,12 @@ class StixFromMISPParser(StixParser):
     @staticmethod
     def _parse_email_reply_to(observable):
         return observable['0'].additional_header_fields.get('Reply-To')
+
+    @staticmethod
+    def _parse_email_value(observables):
+        for observable in observables.values():
+            if observable.type == 'email-addr':
+                return observable.value
 
     def parse_file_observable(self, observable):
         file, references = self.filter_main_object(observable, 'File')
@@ -711,15 +725,17 @@ class StixFromMISPParser(StixParser):
                 })
         return attributes
 
-    def _parse_filename_hash(self, observable, attribute_type, index='0'):
+    def _parse_filename_hash(self, observable, attribute_type):
         hash_type = attribute_type.split('|')[1]
-        filename = self._parse_name(observable, index=index)
-        hash_value = self._parse_hash(observable, hash_type, index=index)
+        filename = self._parse_name(observable)
+        hash_value = self._parse_hash(observable, hash_type)
         return f'{filename}|{hash_value}'
 
-    def _parse_hash(self, observable, attribute_type, index='0'):
+    def _parse_hash(self, observables, attribute_type):
         hash_type = self._define_hash_type(attribute_type)
-        return observable[index]['hashes'].get(hash_type)
+        for observable in observables.values():
+            if observable.type == 'file':
+                return observable.hashes.get(hash_type)
 
     def parse_ip_port_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
@@ -739,19 +755,33 @@ class StixFromMISPParser(StixParser):
             attributes.append(attribute)
         return attributes
 
+    @staticmethod
+    def _parse_ip_value(observables):
+        for observable in observables.values():
+            if observable.type in ('ipv4-addr', 'ipv6-addr'):
+                return observable.value
+
+    @staticmethod
+    def _parse_mac_value(observables):
+        for observable in observables.values():
+            if observable.type == 'mac-addr':
+                return observable.value
+
     def _parse_malware_sample(self, observable):
         if len(observable) > 1:
-            value = self._parse_filename_hash(observable, 'filename|md5', '1')
+            value = self._parse_filename_hash(observable, 'filename|md5')
             return value, self._parse_payload(observable)
         return self._parse_filename_hash(observable, 'filename|md5')
 
     @staticmethod
-    def _parse_name(observable, index='0'):
-        return observable[index].get('name')
+    def _parse_name(observables):
+        for observable in observables.values():
+            if observable.type == 'file':
+                return observable.name
 
     def _parse_network_attribute(self, observable):
-        port = self._parse_port(observable, index='1')
-        return f'{self._parse_value(observable)}|{port}'
+        port = self._parse_port(observable)
+        return f'{self._parse_ip_value(observable)}|{port}'
 
     def parse_network_connection_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
@@ -798,8 +828,10 @@ class StixFromMISPParser(StixParser):
         return observable['0'].get('number')
 
     @staticmethod
-    def _parse_payload(observable):
-        return observable['0'].payload_bin
+    def _parse_payload(observables):
+        for observable in observables.values():
+            if observable.type == 'artifact':
+                return observable.payload_bin
 
     def parse_pe_observable(self, observable):
         key = self._fetch_file_observable(observable)
@@ -808,9 +840,10 @@ class StixFromMISPParser(StixParser):
         return self.parse_file_observable(observable), pe_uuid
 
     @staticmethod
-    def _parse_port(observable, index='0'):
-        port_observable = observable[index]
-        return port_observable['src_port'] if 'src_port' in port_observable else port_observable['dst_port']
+    def _parse_port(observables):
+        for observable in observables.values():
+            if observable.type == 'network-traffic':
+                return observable.src_port if hasattr(observable, 'src_port') else observable.dst_port
 
     def parse_process_observable(self, observable):
         process, references = self.filter_main_object(observable, 'Process', test_function='_process_test_filter')
@@ -881,6 +914,12 @@ class StixFromMISPParser(StixParser):
             attributes.append(attribute)
         return attributes
 
+    @staticmethod
+    def parse_url_value(observables):
+        for observable in observables.items():
+            if observable.type == 'url':
+                return observable.value
+
     def parse_user_account_observable(self, observable):
         observable = observable['0']
         attributes = self.fill_observable_attributes(observable, 'user_account_mapping')
@@ -890,10 +929,6 @@ class StixFromMISPParser(StixParser):
                 attributes.extend(self._parse_user_account_groups(extension['groups']))
             attributes.extend(self.fill_observable_attributes(extension, 'user_account_mapping'))
         return attributes
-
-    @staticmethod
-    def _parse_value(observable, index='0'):
-        return observable[index].get('value')
 
     def _parse_x509_attribute(self, observable, attribute_type):
         hash_type = attribute_type.split('-')[-1]
@@ -1290,12 +1325,19 @@ class ExternalStixParser(StixParser):
         else:
             misp_object = self.create_misp_object(attack_pattern)
             if hasattr(attack_pattern, 'external_references'):
+                references = defaultdict(set)
                 for reference in attack_pattern.external_references:
-                    source_name = reference['source_name']
-                    value = reference['external_id'].split('-')[1] if source_name == 'capec' else reference['url']
-                    attribute = deepcopy(stix2misp_mapping.attack_pattern_references_mapping[source_name]) if source_name in stix2misp_mapping.attack_pattern_references_mapping else stix2misp_mapping.references_attribute_mapping
-                    attribute['value'] = value
-                    misp_object.add_attribute(**attribute)
+                    if hasattr(reference, 'url'):
+                        references['references'].add(reference.url)
+                    if hasattr(reference, 'external_id'):
+                        external_id = reference.external_id
+                        references['id'].add(external_id.split('-')[1] if external_id.startswith('CAPEC-') else external_id)
+                if references:
+                    for feature, values in references.items():
+                        for value in values:
+                            attribute = {'value': value}
+                            attribute.update(getattr(stix2misp_mapping, f'attack_pattern_{feature}_attribute'))
+                            misp_object.add_attribute(**attribute)
             self.fill_misp_object(misp_object, attack_pattern, 'attack_pattern_mapping')
             self.misp_event.add_object(**misp_object)
 

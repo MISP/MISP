@@ -157,6 +157,18 @@ abstract class DecayingModelBase
         return $scores;
     }
 
+    final public function computeEventScore($model, $event, $base_score = false)
+    {
+        $base_score = $this->computeBasescore($model, $event)['base_score'];
+        $last_timestamp = $event['Event']['publish_timestamp'];
+        $timestamp = time();
+        $scores = array(
+            'score' => $this->computeScore($model, $event, $base_score, $timestamp - $last_timestamp),
+            'base_score' => $base_score
+        );
+        return $scores;
+    }
+
     // Compute the score for the provided attribute according to the elapsed time with the provided model
     abstract public function computeScore($model, $attribute, $base_score, $elapsed_time);
     // Return a True if the attribute should be marked as decayed

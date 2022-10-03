@@ -706,6 +706,8 @@ class EventGraph {
             if ( node.node_type == 'object' ) {
                 var group =  'object';
                 var label = dataHandler.generate_label(node);
+                var labelHtml = label + '</br><i>' + escapeHtml(node.comment) + '</i>'
+                label += ' ' + escapeHtml(node.comment)
                 var striped_value = that.strip_text_value(label);
                 node_conf = {
                     id: node.id,
@@ -713,7 +715,7 @@ class EventGraph {
                     Attribute: node.Attribute,
                     event_id: node.event_id,
                     label: striped_value,
-                    title: label,
+                    title: labelHtml,
                     group: group,
                     mass: 5,
                     icon: {
@@ -762,13 +764,15 @@ class EventGraph {
             } else {
                 group =  'attribute';
                 label = node.type + ': ' + node.label;
+                label += ' ' + escapeHtml(node.comment)
+                var labelHtml = label + '</br><i>' + escapeHtml(node.comment) + '</i>'
                 var striped_value = that.strip_text_value(label);
                 node_conf = {
                     id: node.id,
                     uuid: node.uuid,
                     event_id: node.event_id,
                     label: striped_value,
-                    title: label,
+                    title: labelHtml,
                     group: group,
                     mass: 5,
                 };

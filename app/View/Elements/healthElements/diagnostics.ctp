@@ -281,6 +281,12 @@
         )); ?>
     </div>
 
+    <?php if (!empty($dbConfiguration)): ?>
+    <?= $this->element('/healthElements/db_config_diagnostic', array(
+        'dbConfiguration' => $dbConfiguration
+    )); ?>
+    <?php endif; ?>
+
     <h3><?= __("Redis info") ?></h3>
     <div class="diagnostics-box">
         <b><?= __('PHP extension version') ?>:</b> <?= $redisInfo['extensionVersion'] ?: ('<span class="red bold">' . __('Not installed.') . '</span>') ?><br>

@@ -96,7 +96,7 @@ class FileAccessTool
      * @param bool $createFolder
      * @throws Exception
      */
-    public static function writeToFile($file, $content, $createFolder = false)
+    public static function writeToFile($file, $content, $createFolder = false, $append = false)
     {
         $dir = dirname($file);
         if ($createFolder && !is_dir($dir)) {
@@ -105,7 +105,7 @@ class FileAccessTool
             }
         }
 
-        if (file_put_contents($file, $content, LOCK_EX) === false) {
+        if (file_put_contents($file, $content, LOCK_EX | (!empty($append) ? FILE_APPEND : 0)) === false) {
             $freeSpace = disk_free_space($dir);
             throw new Exception("An error has occurred while attempt to write to file `$file`. Maybe not enough space? ($freeSpace bytes left)");
         }

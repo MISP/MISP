@@ -228,20 +228,20 @@
     <div class="pagination">
         <ul>
             <?php
-            $paginator = $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            $paginator .= $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            $paginator .= $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $paginator = $this->LightPaginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $paginator .= $this->LightPaginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+            $paginator .= $this->LightPaginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $paginator;
             ?>
         </ul>
     </div>
     <table class="table table-striped table-hover table-condensed">
         <tr>
-            <th><?= $this->Paginator->sort('created') ?></th>
-            <th><?= $this->Paginator->sort('user_id', __('User')) ?></th>
-            <th><?= $this->Paginator->sort('ip', __('IP')) ?></th>
-            <th><?= $this->Paginator->sort('org_id', __('Org')) ?></th>
-            <th><?= $this->Paginator->sort('action') ?></th>
+            <th><?= $this->LightPaginator->sort('created') ?></th>
+            <th><?= $this->LightPaginator->sort('user_id', __('User')) ?></th>
+            <th><?= $this->LightPaginator->sort('ip', __('IP')) ?></th>
+            <th><?= $this->LightPaginator->sort('org_id', __('Org')) ?></th>
+            <th><?= $this->LightPaginator->sort('action') ?></th>
             <th><?= __('Model') ?></th>
             <th><?= __('Title') ?></th>
             <th><?= __('Change') ?></th>
@@ -287,10 +287,6 @@
         <?php endforeach; ?>
     </table>
     <p>
-    <?= $this->Paginator->counter(array(
-        'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-    ));
-    ?>
     </p>
     <div class="pagination">
         <ul>

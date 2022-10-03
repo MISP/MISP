@@ -322,7 +322,8 @@ class ServersController extends AppController
                         'json' => '[]',
                         'push_rules' => $defaultPushRules,
                         'pull_rules' => $defaultPullRules,
-                        'self_signed' => 0
+                        'self_signed' => 0,
+                        'remove_missing_tags' => 0
                     );
                     foreach ($defaults as $default => $dvalue) {
                         if (!isset($this->request->data['Server'][$default])) {
@@ -514,7 +515,7 @@ class ServersController extends AppController
             }
             if (!$fail) {
                 // say what fields are to be updated
-                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
+                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
                 $this->request->data['Server']['id'] = $id;
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
@@ -948,7 +949,14 @@ class ServersController extends AppController
     public function serverSettingsReloadSetting($setting, $id)
     {
         $pathToSetting = explode('.', $setting);
-        if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false || strpos($setting, 'Plugin.Cortex') !== false) {
+        if (
+            strpos($setting, 'Plugin.Enrichment') !== false ||
+            strpos($setting, 'Plugin.Import') !== false ||
+            strpos($setting, 'Plugin.Export') !== false ||
+            strpos($setting, 'Plugin.Cortex') !== false ||
+            strpos($setting, 'Plugin.Action') !== false ||
+            strpos($setting, 'Plugin.Workflow') !== false
+        ) {
             $settingObject = $this->Server->getCurrentServerSettings();
         } else {
             $settingObject = $this->Server->serverSettings;
@@ -1065,6 +1073,11 @@ class ServersController extends AppController
         $diagnostic_errors = 0;
         App::uses('File', 'Utility');
         App::uses('Folder', 'Utility');
+        if ($tab === 'correlations') {
+            $this->loadModel('Correlation');
+            $correlation_metrics = $this->Correlation->collectMetrics();
+            $this->set('correlation_metrics', $correlation_metrics);
+        }
         if ($tab === 'files') {
             $files = $this->Server->grabFiles();
             $this->set('files', $files);
@@ -1146,6 +1159,7 @@ class ServersController extends AppController
             // get the DB diagnostics
             $dbDiagnostics = $this->Server->dbSpaceUsage();
             $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
+            $dbConfiguration = $this->Server->dbConfiguration();
 
             $redisInfo = $this->Server->redisInfo();
 
@@ -1166,7 +1180,7 @@ class ServersController extends AppController
 
             $securityAudit = (new SecurityAudit())->run($this->Server);
 
-            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan', 'securityAudit');
+            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'dbConfiguration', 'redisInfo', 'attachmentScan', 'securityAudit');
         } else {
             $view = [];
         }
@@ -1207,6 +1221,7 @@ class ServersController extends AppController
                 'readableFiles' => $readableFiles,
                 'dbDiagnostics' => $dbDiagnostics,
                 'dbSchemaDiagnostics' => $dbSchemaDiagnostics,
+                'dbConfiguration' => $dbConfiguration,
                 'redisInfo' => $redisInfo,
                 'finalSettings' => $dumpResults,
                 'extensions' => $extensions,
@@ -1444,7 +1459,6 @@ class ServersController extends AppController
             }
             $this->set('id', $id);
         }
-
         $setting = $this->Server->getSettingData($settingName);
         if ($setting === false) {
             throw new NotFoundException(__('Setting %s is invalid.', $settingName));
@@ -1916,7 +1930,7 @@ class ServersController extends AppController
         $dbVersion = $this->AdminSetting->getSetting('db_version');
         $updateProgress = $this->Server->getUpdateProgress();
         $updateProgress['db_version'] = $dbVersion;
-        $maxUpdateNumber = max(array_keys($this->Server->db_changes));
+        $maxUpdateNumber = max(array_keys(Server::DB_CHANGES));
         $updateProgress['complete_update_remaining'] = max($maxUpdateNumber - $dbVersion, 0);
         $updateProgress['update_locked'] = $this->Server->isUpdateLocked();
         $updateProgress['lock_remaining_time'] = $this->Server->getLockRemainingTime();
@@ -2051,7 +2065,7 @@ class ServersController extends AppController
         }
         if (Configure::read('Security.advanced_authkeys')) {
             $this->loadModel('AuthKey');
-            $authkey = $this->AuthKey->createnewkey($this->Auth->user('id'), __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
+            $authkey = $this->AuthKey->createnewkey($this->Auth->user('id'), null, __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
         } else {
             $this->loadModel('User');
             $authkey = $this->User->find('column', [
@@ -2202,6 +2216,17 @@ class ServersController extends AppController
             $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
             $this->set('indexes', $dbSchemaDiagnostics['indexes']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
+        }
+    }
+
+    public function dbConfiguration()
+    {
+        $dbConfiguration = $this->Server->dbConfiguration();
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($dbConfiguration, $this->response->type());
+        } else {
+            $this->set('dbConfiguration', $dbConfiguration);
+            $this->render('/Elements/healthElements/db_config_diagnostic');
         }
     }
 

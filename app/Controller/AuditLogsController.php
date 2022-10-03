@@ -52,6 +52,7 @@ class AuditLogsController extends AppController
         'GalaxyClusterRelation',
         'News',
         'Warninglist',
+        'Workflow',
     ];
 
     public $paginate = [
@@ -67,9 +68,9 @@ class AuditLogsController extends AppController
         ],
     ];
 
-    public function __construct($id = false, $table = null, $ds = null)
+    public function __construct($request = null, $response = null)
     {
-        parent::__construct($id, $table, $ds);
+        parent::__construct($request, $response);
         $this->actions = [
             AuditLog::ACTION_ADD => __('Add'),
             AuditLog::ACTION_EDIT => __('Edit'),
@@ -344,7 +345,7 @@ class AuditLogsController extends AppController
             return ['event_id' => $event['Event']['id']];
         }
 
-        $event = $this->Event->fetchEvent($this->Auth->user(), [
+        $event = $this->AuditLog->Event->fetchEvent($this->Auth->user(), [
             'eventid' => $event['Event']['id'],
             'sgReferenceOnly' => 1,
             'deleted' => [0, 1],

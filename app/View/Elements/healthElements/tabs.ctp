@@ -15,7 +15,7 @@
     foreach ($tabs as $k => $tab) {
         $data['children'][0]['children'][] = array(
             'html' => sprintf(
-                __('%s settings%s'),
+                __('%s %s'),
                 ucfirst(h($k)),
                 ($tab['errors'] == 0) ? '' : sprintf(
                     ' (<span>%s%s</span>)',
@@ -27,6 +27,17 @@
             'active' => $k == $active_tab
         );
     }
+
+    $data['children'][0]['children'][] = array(
+        'url' => $baseurl . '/servers/serverSettings/correlations',
+        'html' => sprintf(
+            '<span style="display: flex;"><span>%s</span><span class="label label-info" style="margin-left: 0.5em;">%s</span></span>',
+            __('Correlations'),
+            __('new')
+        ),
+        'active' => $active_tab === 'correlations'
+    );
+
     $data['children'][0]['children'][] = array(
         'url' => $baseurl . '/servers/serverSettings/diagnostics',
         'html' => sprintf(

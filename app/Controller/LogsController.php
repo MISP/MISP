@@ -30,17 +30,17 @@ class LogsController extends AppController
 
     public function admin_index()
     {
+        $paramArray = array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip');
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => $paramArray,
+            'ordered_url_params' => func_get_args()
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        unset($filterData);
         if ($this->_isRest()) {
-            $paramArray = array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip');
-            $filterData = array(
-                'request' => $this->request,
-                'named_params' => $this->params['named'],
-                'paramArray' => $paramArray,
-                'ordered_url_params' => func_get_args()
-            );
-            $exception = false;
-            $filters = $this->_harvestParameters($filterData, $exception);
-            unset($filterData);
             if ($filters === false) {
                 return $exception;
             }
@@ -99,6 +99,9 @@ class LogsController extends AppController
             }
             if (isset($this->params['named']['filter']) && in_array($this->params['named']['filter'], array_keys($validFilters))) {
                 $this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
+            }
+            foreach ($filters as $key => $value) {
+                $this->paginate['conditions']["Log.$key"] = $value;
             }
             $this->set('validFilters', $validFilters);
             $this->set('filter', isset($this->params['named']['filter']) ? $this->params['named']['filter'] : false);
@@ -389,6 +392,7 @@ class LogsController extends AppController
                 'Galaxy',
                 'GalaxyCluster',
                 'GalaxyClusterRelation',
+                'Workflow',
             ];
             sort($models);
             $models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);

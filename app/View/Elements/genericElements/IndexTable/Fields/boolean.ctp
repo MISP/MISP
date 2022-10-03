@@ -63,7 +63,7 @@
         sprintf(
             ' <span data-toggle="popover" title="%s" data-content="%s">(%s)</span>',
             __('Filter rules'),
-            $rules_raw,
+            h($rules_raw),
             __('Rules')
         )
     );

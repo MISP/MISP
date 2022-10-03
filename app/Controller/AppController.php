@@ -4,6 +4,7 @@ App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
+App::uses('BetterCakeEventManager', 'Tools');
 
 /**
  * Application Controller
@@ -34,8 +35,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '141';
-    public $pyMispVersion = '2.4.159';
+    private $__queryVersion = '145';
+    public $pyMispVersion = '2.4.162';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -47,14 +48,6 @@ class AppController extends Controller
     public $sql_dump = false;
 
     public $restResponsePayload = null;
-
-    // Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
-    // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
-    public $automationArray = array(
-        'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
-        'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
-        'objects' => array('restSearch')
-    );
 
     protected $_legacyParams = array();
     /** @var array */
@@ -433,6 +426,10 @@ class AppController extends Controller
                             'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here,
                         );
                         $this->Log->save($log);
+                    }
+                    $storeAPITime = Configure::read('MISP.store_api_access_time');
+                    if (!empty($storeAPITime) && $storeAPITime) {
+                        $this->User->updateAPIAccessTime($user);
                     }
                     $this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user);
@@ -1259,17 +1256,17 @@ class AppController extends Controller
                 ]);
             }
         }
+        /** @var TmpFileTool $final */
         $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
-        if (!empty($renderView) && !empty($final)) {
+        if ($renderView) {
             $this->layout = false;
             $final = json_decode($final->intoString(), true);
-            foreach ($final as $key => $data) {
-                $this->set($key, $data);
-            }
+            $this->set($final);
             $this->render('/Events/module_views/' . $renderView);
         } else {
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
-            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType];
+            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
         }
     }
 
@@ -1443,6 +1440,16 @@ class AppController extends Controller
         return parent::_getViewObject();
     }
 
+    public function getEventManager()
+    {
+        if (empty($this->_eventManager)) {
+            $this->_eventManager = new BetterCakeEventManager();
+            $this->_eventManager->attach($this->Components);
+            $this->_eventManager->attach($this);
+        }
+        return $this->_eventManager;
+    }
+
     /**
      * Close session without writing changes to them and return current user.
      * @return array
@@ -1462,18 +1469,34 @@ class AppController extends Controller
     protected function _jsonDecode($dataToDecode)
     {
         try {
-            if (defined('JSON_THROW_ON_ERROR')) {
-                // JSON_THROW_ON_ERROR is supported since PHP 7.3
-                return json_decode($dataToDecode, true, 512, JSON_THROW_ON_ERROR);
-            } else {
-                $decoded = json_decode($dataToDecode, true);
-                if ($decoded === null) {
-                    throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
-                }
-                return $decoded;
-            }
+            return JsonTool::decode($dataToDecode);
         } catch (Exception $e) {
             throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
         }
+    }
+
+    /**
+     * Mimics what PaginateComponent::paginate() would do, when Model::paginate() is not called
+     *
+     * @param integer $page
+     * @param integer $limit
+     * @param integer $current
+     * @param string $type
+     * @return void
+     */
+    protected function __setPagingParams(int $page, int $limit, int $current, string $type = 'named')
+    {
+        $this->request->params['paging'] = [
+            'Correlation' => [
+                'page' => $page,
+                'limit' => $limit,
+                'current' => $current,
+                'pageCount' => 0,
+                'prevPage' => $page > 1,
+                'nextPage' => $current >= $limit,
+                'options' => [],
+                'paramType' => $type
+            ]
+        ];
     }
 }

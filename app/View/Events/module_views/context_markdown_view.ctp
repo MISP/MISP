@@ -5,6 +5,9 @@
     $md[] = sprintf('## %s', __('Tags and Taxonomies'));
     $mdTags = [];
     foreach ($tags as $namespace => $entries) {
+        if (empty($entries[0]['Taxonomy'])) {
+            continue;
+        }
         $mdTags[] = sprintf('#### %s', h($namespace));
         if (!empty($entries[0]['Taxonomy']['description'])) {
         $mdTags[] = sprintf('*%s*', h($entries[0]['Taxonomy']['description']));

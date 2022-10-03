@@ -136,7 +136,7 @@ class AttributeTag extends AppModel
      * @return bool
      * @throws Exception
      */
-    public function attachTagToAttribute($attribute_id, $event_id, $tag_id, $local = false, $relationship_type = false)
+    public function attachTagToAttribute($attribute_id, $event_id, $tag_id, $local = false, $relationship_type = false, &$nothingToChange = false)
     {
         $existingAssociation = $this->find('first', [
             'conditions' => [
@@ -157,14 +157,17 @@ class AttributeTag extends AppModel
             if (!$this->save($data)) {
                 return false;
             }
-        } else if ($existingAssociation['AttributeTag']['relationship_type'] != $relationship_type) {
-            $existingAssociation['AttributeTag']['relationship_type'] = $relationship_type;
-            $this->save($existingAssociation);
+        } else {
+            if ($existingAssociation['AttributeTag']['relationship_type'] != $relationship_type) {
+                $existingAssociation['AttributeTag']['relationship_type'] = $relationship_type;
+                $this->save($existingAssociation);
+            }
+            $nothingToChange = true;
         }
         return true;
     }
 
-    public function detachTagFromAttribute($attribute_id, $event_id, $tag_id)
+    public function detachTagFromAttribute($attribute_id, $event_id, $tag_id, &$nothingToChange = false)
     {
         $existingAssociation = $this->find('first', array(
             'recursive' => -1,
@@ -181,6 +184,8 @@ class AttributeTag extends AppModel
             if ($result) {
                 return true;
             }
+        } else {
+            $nothingToChange = true;
         }
         return false;
     }
