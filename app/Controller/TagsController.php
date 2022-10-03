@@ -1076,4 +1076,70 @@ class TagsController extends AppController
         }
         return $this->RestResponse->viewData($tags, $this->response->type());
     }
+
+    public function modifyTagRelationship($scope, $id) {
+        $validScopes = ['event', 'attribute'];
+        if (!in_array($scope, $validScopes)) {
+            throw new InvalidArgumentException(__('Invalid scope. Valid options: %s', implode(', ', $validScopes)));
+        }
+        $model_name = Inflector::classify($scope) . 'Tag';
+        $tagConnector = $this->Tag->$model_name->find('first', [
+            'conditions' => [$model_name . '.id' => $id],
+            'recursive' => -1,
+            'contain' => 'Tag'
+        ]);
+        if ($this->request->is('post')) {
+            if (isset($this->request->data['Tag']['relationship_type'])) {
+                $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type'];
+            } else {
+                $tagConnector[$model_name]['relationship_type'] = '';
+            }
+            $result = $this->Tag->$model_name->save($tagConnector);
+            if ($result) {
+                $message = __('Relationship updated.');
+                if ($this->_isRest()) {
+
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect($this->referer());
+                }
+            } else {
+                $message = __('Relationship could not be updated.');
+                if ($this->_isRest()) {
+
+                } else {
+                    $this->Flash->error($message);
+                    $this->redirect($this->referer());
+                }
+            }
+
+        } else {
+            $this->loadModel('ObjectRelationship');
+            $relationships = $this->ObjectRelationship->find('column', array(
+                'recursive' => -1,
+                'fields' => ['name'],
+            ));
+            $relationships = array_combine($relationships, $relationships);
+            $relationships['custom'] = 'custom';
+            $relationships[null] = 'Unspecified';
+            ksort($relationships);
+            $this->set('title', __('Modify Tag Relationship'));
+            $this->set(
+                'description',
+                __(
+                    'Modify the relationship between %s #%s and Tag "%s" (#%s):',
+                    $scope,
+                    $tagConnector[$model_name][$scope . '_id'],
+                    $tagConnector['Tag']['name'],
+                    $tagConnector['Tag']['id']
+                )
+            );
+            $this->set('options', $relationships);
+            $this->set('default', $tagConnector[$model_name]['relationship_type']);
+            $this->set('model', 'Tag');
+            $this->set('field', 'relationship_type');
+            $this->layout = false;
+            $this->render('/genericTemplates/select');
+        }
+    }
 }

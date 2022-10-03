@@ -723,7 +723,7 @@ class EventsController extends AppController
             'fields' => array('ThreatLevel.name')
         ];
         $this->paginate['contain']['EventTag'] = [
-            'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local'],
+            'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local', 'EventTag.relationship_type'],
         ];
         if ($this->_isSiteAdmin()) {
             $this->paginate['contain'][] = 'User.email';
@@ -1475,7 +1475,6 @@ class EventsController extends AppController
 
         $modDate = date("Y-m-d", $event['Event']['timestamp']);
         $modificationMap = array($modDate => 1);
-
         foreach ($event['Attribute'] as $k => $attribute) {
             if ($oldest_timestamp === false || $oldest_timestamp > $attribute['timestamp']) {
                 $oldest_timestamp = $attribute['timestamp'];
@@ -1789,7 +1788,6 @@ class EventsController extends AppController
             throw new NotFoundException(__('Invalid event'));
         }
         $event = $results[0];
-
         // Attach related attributes to proper attribute
         if (!empty($namedParams['includeGranularCorrelations']) && !empty($event['RelatedAttribute'])) {
             foreach ($event['RelatedAttribute'] as $attribute_id => $relation) {
