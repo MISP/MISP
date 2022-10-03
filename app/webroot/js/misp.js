@@ -2111,14 +2111,6 @@ function templateFileUploadTriggerBrowse(id) {
     $('#upload_' + id + '_file').click();
 }
 
-function freetextRemoveRow(id, event_id) {
-    $('#row_' + id).hide();
-    $('#Attribute' + id + 'Save').attr("value", "0");
-    if ($(".freetext_row:visible").length == 0) {
-        window.location = baseurl + "/events/" + event_id;
-    }
-}
-
 function indexEvaluateFiltering() {
     if (filterContext == "event") {
         if (filtering.published != 2) {
@@ -2808,6 +2800,57 @@ function freetextImportResultsSubmit(event_id, count) {
         success: function () {
             window.location = baseurl + '/events/view/' + event_id;
         },
+    });
+}
+
+function freetextRemoveRow(id, event_id) {
+    $('.freetext_row[data-row=' + id + ']').hide();
+    $('#Attribute' + id + 'Save').attr("value", "0");
+    if ($(".freetext_row:visible").length == 0) {
+        window.location = baseurl + "/events/" + event_id;
+    }
+}
+
+function possibleObjectTemplates() {
+    var allTypes = [];
+    $('.freetext_row').each(function () {
+        var rowId = $(this).data('row');
+        if ($('#Attribute' + rowId + 'Save').val() === "1") {
+            allTypes.push($(this).find('.typeToggle').val());
+        }
+    });
+
+    if (allTypes.length < 2) {
+        $('.createObject').hide();
+    }
+
+    $.ajax({
+        dataType: "json",
+        data: {"attributeTypes": allTypes},
+        success: function (data) {
+            if (data.length === 0) {
+                $('.createObject').hide();
+            } else {
+                var $menu = $('.createObject ul');
+                $menu.find('li').remove();
+
+                $.each(data, function (i, template) {
+                    var a = document.createElement('a');
+                    a.href = '#';
+                    a.textContent = template.name;
+                    a.title = template.description;
+
+                    var li = document.createElement('li');
+                    li.appendChild(a);
+
+                    $menu.append(li);
+                });
+
+                $('.createObject').show();
+            }
+        },
+        type: "post",
+        url: baseurl + "/objectTemplates/possibleObjectTemplates",
     });
 }
 

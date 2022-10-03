@@ -48,7 +48,7 @@
             $options = array();
             foreach ($resultArray as $k => $item):
         ?>
-        <tr id="row_<?php echo $k; ?>" class="freetext_row">
+        <tr data-row="<?= $k ?>" class="freetext_row">
             <?php
                 echo $this->Form->input('Attribute' . $k . 'Save', array(
                     'label' => false,
@@ -118,7 +118,7 @@
                 <select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style="width: 180px" class="categoryToggle">
                     <?php
                         foreach ($typeCategoryMapping[$item['default_type']] as $category) {
-                            if (isset($item['categories']) && !in_array($category, $item['categories'])) {
+                            if (isset($item['categories']) && !in_array($category, $item['categories'], true)) {
                                 continue;
                             }
                             echo '<option';
@@ -186,7 +186,7 @@
                 <input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" <?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . h(implode(",",$item['tags'])) . '"'?>>
             </td>
             <td class="action short">
-                <span class="fa fa-times useCursorPointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onclick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+                <span class="fa fa-times useCursorPointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onclick="freetextRemoveRow(<?php echo $k; ?>, <?php echo $event['Event']['id']; ?>);"></span>
             </td>
         </tr>
     <?php
@@ -203,7 +203,18 @@
     ?>
     </table>
     <span>
-        <button class="btn btn-primary" style="float:left;" onclick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', <?= count($resultArray) ?>);"><?php echo __('Submit %s', $scope);?></button>
+        <div class="btn-toolbar" style="float:left;">
+            <button class="btn btn-primary" onclick="freetextImportResultsSubmit(<?= $event['Event']['id']; ?>, <?= count($resultArray) ?>);"><?= __('Submit %s', $scope);?></button>
+            <div class="btn-group createObject" style="display: none">
+              <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+                <?= __('Create object') ?>
+                <span class="caret"></span>
+              </a>
+              <ul class="dropdown-menu">
+              </ul>
+            </div>
+        </div>
+
         <span style="float:right">
             <?php
                 if (!empty($optionsRearranged)):
@@ -239,12 +250,16 @@
         var options = <?php echo json_encode($optionsRearranged);?>;
         var typeCategoryMapping = <?php echo json_encode($typeCategoryMapping); ?>;
         $(function() {
+            possibleObjectTemplates();
             popoverStartup();
             $('.typeToggle').on('change', function() {
                 var currentId = $(this).attr('id');
                 var selected = $(this).val();
                 currentId = currentId.replace('Type', 'Category');
                 var currentOptions = typeCategoryMapping[selected];
+
+                possibleObjectTemplates();
+
                 /*
                 // Coming soon - restrict further if a list of categories is passed by the modules / freetext import tool
                 if ($('#' + currentId)).data('category-restrictions') {

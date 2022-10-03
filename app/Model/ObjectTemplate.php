@@ -207,7 +207,7 @@ class ObjectTemplate extends AppModel
     }
 
     /**
-     * @param array $attributeTypes
+     * @param array $attributeTypes Array of attribute types to check, can contains multiple types
      * @return array
      */
     public function fetchPossibleTemplatesBasedOnTypes(array $attributeTypes)

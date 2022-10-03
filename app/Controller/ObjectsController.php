@@ -137,9 +137,8 @@ class ObjectsController extends AppController
         }
     }
 
-
     /**
-   * Create an object using a template
+     * Create an object using a template
      * POSTing will take the input and validate it against the template
      * GETing will return the template
      */

@@ -22,9 +22,10 @@ class ObjectTemplatesController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        if (in_array($this->request->action, ['objectMetaChoice', 'objectChoice'], true)) {
+        if (in_array($this->request->action, ['objectMetaChoice', 'objectChoice', 'possibleObjectTemplates'], true)) {
             $this->Security->doNotGenerateToken = true;
         }
+        $this->Security->unlockedActions = ['possibleObjectTemplates'];
     }
 
     public function objectMetaChoice($eventId)
@@ -162,16 +163,6 @@ class ObjectTemplatesController extends AppController
         $this->redirect($this->referer());
     }
 
-    public function viewElements($id, $context = 'all')
-    {
-        $elements = $this->ObjectTemplate->ObjectTemplateElement->find('all', array(
-            'conditions' => array('ObjectTemplateElement.object_template_id' => $id)
-        ));
-        $this->set('list', $elements);
-        $this->layout = false;
-        $this->render('ajax/view_elements');
-    }
-
     public function index($all = false)
     {
         $passedArgsArray = array();
@@ -183,11 +174,12 @@ class ObjectTemplatesController extends AppController
             $this->set('all', true);
         }
         if (!empty($this->params['named']['searchall'])) {
+            $searchTerm = '%' . strtolower($this->request->params['named']['searchall']) . '%';
             $this->paginate['conditions']['AND']['OR'] = array(
-                'ObjectTemplate.uuid LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%',
-                'LOWER(ObjectTemplate.name) LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%',
-                'ObjectTemplate.meta-category LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%',
-                'LOWER(ObjectTemplate.description) LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%'
+                'ObjectTemplate.uuid LIKE' => $searchTerm,
+                'LOWER(ObjectTemplate.name) LIKE' => $searchTerm,
+                'ObjectTemplate.meta-category LIKE' => $searchTerm,
+                'LOWER(ObjectTemplate.description) LIKE' => $searchTerm,
             );
         }
         if ($this->_isRest()) {
@@ -196,11 +188,11 @@ class ObjectTemplatesController extends AppController
             unset($rules['order']);
             $objectTemplates = $this->ObjectTemplate->find('all', $rules);
             return $this->RestResponse->viewData($objectTemplates, $this->response->type());
-        } else {
-            $this->paginate['order'] = array('ObjectTemplate.name' => 'ASC');
-            $objectTemplates = $this->paginate();
-            $this->set('list', $objectTemplates);
         }
+
+        $this->paginate['order'] = array('ObjectTemplate.name' => 'ASC');
+        $objectTemplates = $this->paginate();
+        $this->set('list', $objectTemplates);
         $this->set('passedArgs', json_encode($passedArgs));
         $this->set('passedArgsArray', $passedArgsArray);
     }
@@ -314,5 +306,29 @@ class ObjectTemplatesController extends AppController
             throw new NotFoundException(__('Template not found'));
         }
         return $this->RestResponse->viewData($template, $this->response->type());
+    }
+
+    public function possibleObjectTemplates()
+    {
+        session_abort();
+        $this->request->allowMethod(['post']);
+
+        $attributeTypes = $this->request->data['attributeTypes'];
+        $templates = $this->ObjectTemplate->fetchPossibleTemplatesBasedOnTypes($attributeTypes)['templates'];
+
+        $results = [];
+        foreach ($templates as $template) {
+            $template = $template['ObjectTemplate'];
+            if ($template['compatibility'] === true && empty($template['invalidTypes'])) {
+                $results[] = [
+                    'id' => $template['id'],
+                    'name' => $template['name'],
+                    'description' => $template['description'],
+                    'meta-category' => $template['meta-category'],
+                ];
+            }
+        }
+
+        return $this->RestResponse->viewData($results, 'json');
     }
 }

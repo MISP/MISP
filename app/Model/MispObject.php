@@ -761,7 +761,7 @@ class MispObject extends AppModel
     /**
      * Clean the attribute list up from artifacts introduced by the object form
      * @param array $attributes
-     * @return string|array
+     * @return array
      * @throws InternalErrorException
      * @throws Exception
      */

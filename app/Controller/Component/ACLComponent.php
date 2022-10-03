@@ -453,9 +453,9 @@ class ACLComponent extends Component
                 'objectChoice' => array('*'),
                 'objectMetaChoice' => array('perm_add'),
                 'view' => array('*'),
-                'viewElements' => array('*'),
                 'index' => array('*'),
-                'update' => array()
+                'update' => array(),
+                'possibleObjectTemplates' => ['*'],
             ),
             'objectTemplateElements' => array(
                 'viewElements' => array('*')
