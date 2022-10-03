@@ -26,7 +26,7 @@ $tableData = [
     echo $this->Form->create('Object', array('id', 'url' => $url));
     $formSettings = array(
       'type' => 'hidden',
-      'value' => json_encode($data),
+      'value' => JsonTool::encode($data),
       'label' => false,
       'div' => false
     );
@@ -49,7 +49,7 @@ $tableData = [
         <table id="attribute_table" class="table table-condensed table-striped">
           <thead>
           <tr>
-            <th><?php echo __('Attribute');?></th>
+            <th><?php echo __('Object name');?></th>
             <th><?php echo __('Category');?></th>
             <th><?php echo __('Type');?></th>
             <th><?php echo __('Value');?></th>
@@ -103,7 +103,7 @@ $tableData = [
     <?= $this->Form->button($action === 'add' ? __('Create new object') : __('Update object'), array('class' => 'btn btn-primary')); ?>
     <a href="#" style="margin-left:10px;" class="btn btn-inverse" onclick="window.history.back();"><?php echo __('Back to review');?></a>
     <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse"><?php echo __('Cancel');?></a>
-    <?php if (!empty($similar_objects) && $action !== 'edit'): ?>
+    <?php if (!empty($similar_objects)): ?>
         <?php echo '<h3 style="margin-top: 20px;">' . __('This event contains similar objects.') . '</h3>'; ?>
         <?php echo '<h5>' . __('Instead of creating a new object, would you like to merge your new object into one of the following?') . '</h5>'; ?>
         <div class="row" style="margin-bottom: 20px;">
@@ -112,7 +112,6 @@ $tableData = [
                 echo $this->element('Objects/object_similarities', array(
                     'object' => $object,
                     'template' => $template,
-                    'similar_object_similarity_amount' => $similar_object_similarity_amount,
                     'simple_flattened_attribute_noval' => $simple_flattened_attribute_noval,
                     'simple_flattened_attribute' => $simple_flattened_attribute,
                     'merge_button_functionname' => 'setMergeObject'
@@ -123,7 +122,7 @@ $tableData = [
             <div class="span5" style="margin-top: 20px;display: inline-block;float: unset;">
                 <div class="alert alert-info">
                     <h4><?php echo __('All similar objects not displayed...'); ?></h4>
-                    <?php echo sprintf(__('%s Similar objects found. %s not displayed'), $similar_objects_count, $similar_objects_count-$similar_objects_display_threshold); ?>
+                    <?php echo __('%s Similar objects found. %s not displayed', $similar_objects_count, $similar_objects_count-$similar_objects_display_threshold); ?>
                 </div>
             </div>
         <?php endif; ?>
@@ -172,7 +171,7 @@ function highlight_rows($panel, state) {
 }
 
 var un_highlight_time;
-$(document).ready(function() {
+$(function() {
     $('.similarObjectPanel').hover(
         function() {
             var $panel = $(this);

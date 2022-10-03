@@ -809,6 +809,61 @@ class MispObject extends AppModel
         return $attributes;
     }
 
+    /**
+     * @param array $user
+     * @param int $eventId
+     * @param array $attributes
+     * @param array $template
+     * @param int $threshold
+     * @return array
+     */
+    public function findSimilarObjects(array $user, $eventId, array $attributes, array $template, $threshold = 15)
+    {
+        $attributeValues = array_column($attributes, 'value');
+        $conditions = array(
+            'event_id' => $eventId,
+            'value1' => $attributeValues,
+            'object_id !=' => 0,
+        );
+        $similarObjects = $this->Attribute->find('all', array(
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => 'object_id, count(object_id) as similarity_amount',
+            'group' => 'object_id',
+            'order' => 'similarity_amount DESC'
+        ));
+
+        if (empty($similarObjects)) {
+            return [0, []];
+        }
+
+        $similar_object_ids = array();
+        $similar_object_similarity_amount = array();
+        foreach ($similarObjects as $obj) {
+            $similar_object_ids[] = $obj['Attribute']['object_id'];
+            $similar_object_similarity_amount[$obj['Attribute']['object_id']] = $obj[0]['similarity_amount'];
+        }
+        $similar_objects_count = count($similar_object_ids);
+        $similar_object_ids = array_slice($similar_object_ids, 0, $threshold); // slice to honor the threshold
+        $similar_objects = $this->fetchObjects($user, array(
+            'conditions' => array(
+                'Object.id' => $similar_object_ids,
+                'Object.template_uuid' => $template['ObjectTemplate']['uuid']
+            )
+        ));
+        foreach ($similar_objects as $key => $obj) {
+            $similar_objects[$key]['Object']['similarity_amount'] = $similar_object_similarity_amount[$obj['Object']['id']]; // sorting function cannot use external variables
+        }
+        usort($similar_objects, function ($a, $b) { // fetch Object returns object sorted by IDs, force the sort by the similarity amount
+            if ($a['Object']['similarity_amount'] == $b['Object']['similarity_amount']) {
+                return 0;
+            }
+            return ($a['Object']['similarity_amount'] > $b['Object']['similarity_amount']) ? -1 : 1;
+        });
+
+        return [$similar_objects_count, $similar_objects];
+    }
+
     // Set Object's *-seen (and ObjectAttribute's *-seen and ObjectAttribute's value if requested) to the provided *-seen value
     // Therefore, synchronizing the 3 values
     public function syncObjectAndAttributeSeen($object, $forcedSeenOnElements, $applyOnAttribute=True) {

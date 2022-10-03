@@ -60,33 +60,13 @@ class ObjectsController extends AppController
             $sgs = $this->MispObject->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', false, array_keys($sharing_groups));
             $this->set('sharing_groups', $sgs);
         }
-        $multiple_template_elements = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[multiple=true]'));
+        $multiple_template_elements = Hash::extract($template['ObjectTemplateElement'],'{n}[multiple=true]');
         $multiple_attribute_allowed = array();
         foreach ($multiple_template_elements as $template_element) {
             $relation_type = $template_element['object_relation'] . ':' . $template_element['type'];
             $multiple_attribute_allowed[$relation_type] = true;
         }
         $this->set('multiple_attribute_allowed', $multiple_attribute_allowed);
-        // try to fetch similar objects
-        $cur_attrs = Hash::extract($this->request->data, 'Attribute.{n}.value');
-        $conditions = array(
-            'event_id' => $event_id,
-            'value1' => $cur_attrs,
-            'object_id !=' => '0'
-        );
-        $similar_objects = $this->MispObject->Attribute->find('all', array(
-            'conditions' => $conditions,
-            'recursive' => -1,
-            'fields' => 'object_id, count(object_id) as similarity_amount',
-            'group' => 'object_id',
-            'order' => 'similarity_amount DESC'
-        ));
-        $similar_object_ids = array();
-        $similar_object_similarity_amount = array();
-        foreach ($similar_objects as $obj) {
-            $similar_object_ids[] = $obj['Attribute']['object_id'];
-            $similar_object_similarity_amount[$obj['Attribute']['object_id']] = $obj[0]['similarity_amount'];
-        }
 
         if (isset($this->request->data['Attribute'])) {
             foreach ($this->request->data['Attribute'] as &$attribute) {
@@ -113,27 +93,20 @@ class ObjectsController extends AppController
             'cur_object_tmp_uuid' => $curObjectTmpUuid,
             'data' => $this->request->data
         ));
-        if (!empty($similar_object_ids)) {
-            $this->set('similar_objects_count', count($similar_object_ids));
-            $similar_object_ids = array_slice($similar_object_ids, 0, $similar_objects_display_threshold); // slice to honor the threshold
-            $similar_objects = $this->MispObject->fetchObjects($this->Auth->user(), array(
-                'conditions' => array(
-                    'Object.id' => $similar_object_ids,
-                    'Object.template_uuid' => $template['ObjectTemplate']['uuid']
-                )
-            ));
-            foreach ($similar_objects as $key => $obj) {
-                $similar_objects[$key]['Object']['similarity_amount'] = $similar_object_similarity_amount[$obj['Object']['id']]; // sorting function cannot use external variables
+
+        if ($action === 'add') {
+            list($similar_objects_count, $similar_objects) = $this->MispObject->findSimilarObjects(
+                $this->Auth->user(),
+                $event_id,
+                $this->request->data['Attribute'],
+                $template,
+                $similar_objects_display_threshold
+            );
+            if ($similar_objects_count) {
+                $this->set('similar_objects_count', $similar_objects_count);
+                $this->set('similar_objects', $similar_objects);
+                $this->set('similar_objects_display_threshold', $similar_objects_display_threshold);
             }
-            usort($similar_objects, function ($a, $b) { // fetch Object returns object sorted by IDs, force the sort by the similarity amount
-                if ($a['Object']['similarity_amount'] == $b['Object']['similarity_amount']) {
-                    return 0;
-                }
-                return ($a['Object']['similarity_amount'] > $b['Object']['similarity_amount']) ? -1 : 1;
-            });
-            $this->set('similar_objects', $similar_objects);
-            $this->set('similar_object_similarity_amount', $similar_object_similarity_amount);
-            $this->set('similar_objects_display_threshold', $similar_objects_display_threshold);
         }
     }
 

@@ -14,8 +14,6 @@
         - meta_fields => The fields to be displayed from the object meta.
             Default: [`id`, `name`, `description`, `distribution`, `template_version`]
 
-        - similar_object_similarity_amount => The amount of attributes both contained in `object` and the object to compare to
-
         - simple_flattened_attribute => array containing the aggregate of multiple fields used for the comparison. Has the format:
                 array(
                     'object_relation1.type1.val1' => attribute_id1,
@@ -88,18 +86,16 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
                 <?php if (isset($merge_button_functionname)): ?>
                     <input type="button" class="btn <?php echo $btn_style; ?>" onclick="<?php echo h($merge_button_functionname); ?>(this)" data-objectid="<?php echo h($object['Object']['id']) ?>" data-updatetemplate="<?php echo $temp_comparison == 'below' ? 'true' : 'false'; ?>" value="<?php echo $temp_text; ?>" <?php echo $temp_comparison == 'above' ? 'disabled' : ''; ?>>
                 <?php endif; ?>
-                <?php if (isset($similar_object_similarity_amount[$object['Object']['id']])): ?>
-                    <span class="badge badge-inverse" style="position: absolute; right: 0;" title="<?php echo __('Similarity amount') ?>">
-                        <?php echo number_format(intval($similar_object_similarity_amount[$object['Object']['id']]) / count($data['Attribute']), 2)*100 . '%'; ?>
-                    </span>
-                <?php endif; ?>
+                <span class="badge badge-inverse" style="position: absolute; right: 0;" title="<?php echo __('Similarity amount') ?>">
+                    <?php echo number_format(intval($object['Object']['similarity_amount']) / count($data['Attribute']), 2)*100 . '%'; ?>
+                </span>
             </div>
             <?php foreach ($meta_fields as $field): ?>
                 <?php if (isset($object['Object'][$field])): ?>
                     <?php switch ($field):
                         case 'id': ?>
                             <div>
-                                <span class="bold"><?php echo h(Inflector::humanize($field)) . ':'; ?></span>
+                                <span class="bold">ID</span>
                                 <a href="<?php echo $baseurl . '/objects/edit/' . h($object['Object'][$field]); ?>" style="color: white;"><?php echo h($object['Object'][$field]); ?></a>
                             </div>
                             <?php break; ?>
