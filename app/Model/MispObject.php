@@ -864,14 +864,14 @@ class MispObject extends AppModel
         ));
 
         if (empty($similarObjects)) {
-            return [0, []];
+            return [0, [], [], []];
         }
 
         $similar_object_ids = array();
         $similar_object_similarity_amount = array();
         foreach ($similarObjects as $obj) {
             $similar_object_ids[] = $obj['Attribute']['object_id'];
-            $similar_object_similarity_amount[$obj['Attribute']['object_id']] = $obj[0]['similarity_amount'];
+            $similar_object_similarity_amount[$obj['Attribute']['object_id']] = (int)$obj[0]['similarity_amount'];
         }
         $similar_objects_count = count($similar_object_ids);
         $similar_object_ids = array_slice($similar_object_ids, 0, $threshold); // slice to honor the threshold
@@ -891,7 +891,16 @@ class MispObject extends AppModel
             return ($a['Object']['similarity_amount'] > $b['Object']['similarity_amount']) ? -1 : 1;
         });
 
-        return [$similar_objects_count, $similar_objects];
+        $simple_flattened_attribute = [];
+        $simple_flattened_attribute_noval = [];
+        foreach ($attributes as $k => $attribute) {
+            $curFlat = $attribute['object_relation'] . '.' . $attribute['type'] . '.' .$attribute['value'];
+            $simple_flattened_attribute[$curFlat] = $k;
+            $curFlatNoval = $attribute['object_relation'] . '.' . $attribute['type'];
+            $simple_flattened_attribute_noval[$curFlatNoval] = $k;
+        }
+
+        return [$similar_objects_count, $similar_objects, $simple_flattened_attribute, $simple_flattened_attribute_noval];
     }
 
     // Set Object's *-seen (and ObjectAttribute's *-seen and ObjectAttribute's value if requested) to the provided *-seen value

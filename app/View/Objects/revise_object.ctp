@@ -61,15 +61,11 @@ $tableData = [
           </thead>
           <tbody>
             <?php
-              $simple_flattened_attribute = array();
-              $simple_flattened_attribute_noval = array();
               $attributeFields = array('category', 'type', 'value', 'to_ids' , 'comment', 'uuid', 'distribution');
               if (!empty($data['Attribute'])):
                 foreach ($data['Attribute'] as $id => $attribute):
-                  $cur_flat = h($attribute['object_relation']) . '.' . h($attribute['type']) . '.' .h($attribute['value']);
-                  $cur_flat_noval = h($attribute['object_relation']) . '.' . h($attribute['type']);
-                  $simple_flattened_attribute[$cur_flat] = $id;
-                  $simple_flattened_attribute_noval[$cur_flat_noval] = $id;
+                  $cur_flat = $simple_flattened_attribute[$id] ?? '';
+                  $cur_flat_noval = $simple_flattened_attribute_noval[$id] ?? '';
                   echo sprintf('<tr data-curflat="%s" data-curflatnoval="%s">', h($cur_flat), h($cur_flat_noval));
                   echo '<td>' . h($attribute['object_relation']) . '</td>';
                   foreach ($attributeFields as $field) {
@@ -104,13 +100,14 @@ $tableData = [
     <a href="#" style="margin-left:10px;" class="btn btn-inverse" onclick="window.history.back();"><?php echo __('Back to review');?></a>
     <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse"><?php echo __('Cancel');?></a>
     <?php if (!empty($similar_objects)): ?>
-        <?php echo '<h3 style="margin-top: 20px;">' . __('This event contains similar objects.') . '</h3>'; ?>
-        <?php echo '<h5>' . __('Instead of creating a new object, would you like to merge your new object into one of the following?') . '</h5>'; ?>
+        <h3 style="margin-top: 20px;"><?= __('This event contains similar objects.') ?></h3>
+        <h5><?= __('Instead of creating a new object, would you like to merge your new object into one of the following?') ?></h5>
         <div class="row" style="margin-bottom: 20px;">
         <?php foreach ($similar_objects as $object): ?>
             <?php
                 echo $this->element('Objects/object_similarities', array(
                     'object' => $object,
+                    'attributes' => $data['Attribute'],
                     'template' => $template,
                     'simple_flattened_attribute_noval' => $simple_flattened_attribute_noval,
                     'simple_flattened_attribute' => $simple_flattened_attribute,

@@ -4,6 +4,7 @@
 
     Required  Args:
         - object => The object to be drawed
+        - attributes
 
     Optional Args:
         - template => The template used to compare the object with
@@ -45,8 +46,8 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
         $simple_flattened_attribute_noval = array();
         $simple_flattened_attribute = array();
         foreach ($target_comparison_object['Attribute'] as $id => $attribute) {
-            $cur_flat = h($attribute['object_relation']) . '.' . h($attribute['type']) . '.' .h($attribute['value']);
-            $cur_flat_noval = h($attribute['object_relation']) . '.' . h($attribute['type']);
+            $cur_flat = $attribute['object_relation'] . '.' . $attribute['type'] . '.' .$attribute['value'];
+            $cur_flat_noval = $attribute['object_relation'] . '.' . $attribute['type'];
             $simple_flattened_attribute[$cur_flat] = $id;
             $simple_flattened_attribute_noval[$cur_flat_noval] = $id;
         }
@@ -87,7 +88,7 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
                     <input type="button" class="btn <?php echo $btn_style; ?>" onclick="<?php echo h($merge_button_functionname); ?>(this)" data-objectid="<?php echo h($object['Object']['id']) ?>" data-updatetemplate="<?php echo $temp_comparison == 'below' ? 'true' : 'false'; ?>" value="<?php echo $temp_text; ?>" <?php echo $temp_comparison == 'above' ? 'disabled' : ''; ?>>
                 <?php endif; ?>
                 <span class="badge badge-inverse" style="position: absolute; right: 0;" title="<?php echo __('Similarity amount') ?>">
-                    <?php echo number_format(intval($object['Object']['similarity_amount']) / count($data['Attribute']), 2)*100 . '%'; ?>
+                    <?php echo number_format(intval($object['Object']['similarity_amount']) / count($attributes), 2)*100 . '%'; ?>
                 </span>
             </div>
             <?php foreach ($meta_fields as $field): ?>
@@ -143,8 +144,8 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
                     $classname = '';
                     $title = '';
                     if ($flag_comparison_enabled) { // Comparison enabled
-                        $simple_flattened_similar_attribute = h($attribute['object_relation']) . '.' . h($attribute['type']) . '.' .h($attribute['value']);
-                        $simple_flattened_similar_attribute_noval = h($attribute['object_relation']) . '.' . h($attribute['type']);
+                        $simple_flattened_similar_attribute = $attribute['object_relation'] . '.' . $attribute['type'] . '.' .$attribute['value'];
+                        $simple_flattened_similar_attribute_noval = $attribute['object_relation'] . '.' . $attribute['type'];
                         $flattened_ids_in_similar_object[$simple_flattened_similar_attribute_noval] = $attribute['id'];
                         if (
                             isset($simple_flattened_attribute_noval[$simple_flattened_similar_attribute_noval])
@@ -195,7 +196,7 @@ if (!isset($simple_flattened_attribute_noval) || !isset($simple_flattened_attrib
             ?>
             <?php if (!empty($attribute_ids_to_inject)): ?>
                 <?php foreach ($attribute_ids_to_inject as $i => $attribute_id): ?>
-                    <?php $attribute = $data['Attribute'][$attribute_id]; ?>
+                    <?php $attribute = $attributes[$attribute_id]; ?>
                     <tr class="success" title="<?php echo __('This attribute will be added to this similar object during the merge.'); ?>" style="<?php echo $i == 0 ? 'border-top: 2px dashed #3465a4' : ''; ?>">
                         <?php foreach ($attribute_fields as $field): ?>
                             <?php if (isset($attribute[$field])): ?>

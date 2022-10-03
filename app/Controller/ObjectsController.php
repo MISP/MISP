@@ -60,13 +60,6 @@ class ObjectsController extends AppController
             $sgs = $this->MispObject->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', false, array_keys($sharing_groups));
             $this->set('sharing_groups', $sgs);
         }
-        $multiple_template_elements = Hash::extract($template['ObjectTemplateElement'],'{n}[multiple=true]');
-        $multiple_attribute_allowed = array();
-        foreach ($multiple_template_elements as $template_element) {
-            $relation_type = $template_element['object_relation'] . ':' . $template_element['type'];
-            $multiple_attribute_allowed[$relation_type] = true;
-        }
-        $this->set('multiple_attribute_allowed', $multiple_attribute_allowed);
 
         if (isset($this->request->data['Attribute'])) {
             foreach ($this->request->data['Attribute'] as &$attribute) {
@@ -95,7 +88,7 @@ class ObjectsController extends AppController
         ));
 
         if ($action === 'add') {
-            list($similar_objects_count, $similar_objects) = $this->MispObject->findSimilarObjects(
+            list($similar_objects_count, $similar_objects, $simple_flattened_attribute, $simple_flattened_attribute_noval) = $this->MispObject->findSimilarObjects(
                 $this->Auth->user(),
                 $event_id,
                 $this->request->data['Attribute'],
@@ -106,6 +99,16 @@ class ObjectsController extends AppController
                 $this->set('similar_objects_count', $similar_objects_count);
                 $this->set('similar_objects', $similar_objects);
                 $this->set('similar_objects_display_threshold', $similar_objects_display_threshold);
+                $this->set('simple_flattened_attribute', $simple_flattened_attribute);
+                $this->set('simple_flattened_attribute_noval', $simple_flattened_attribute_noval);
+
+                $multiple_template_elements = Hash::extract($template['ObjectTemplateElement'],'{n}[multiple=true]');
+                $multiple_attribute_allowed = array();
+                foreach ($multiple_template_elements as $template_element) {
+                    $relation_type = $template_element['object_relation'] . ':' . $template_element['type'];
+                    $multiple_attribute_allowed[$relation_type] = true;
+                }
+                $this->set('multiple_attribute_allowed', $multiple_attribute_allowed);
             }
         }
     }
@@ -1348,6 +1351,11 @@ class ObjectsController extends AppController
                 $objectRelations[$templateElement['type']][] = $templateElement;
             }
 
+            // Attach first object_relation according to attribute type that will be considered as default
+            foreach ($processedAttributes as &$attribute) {
+                $attribute['object_relation'] = $objectRelations[$attribute['type']][0]['object_relation'];
+            }
+
             $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
             $this->set('event', $event);
             $this->set('distributionData', $distributionData);
@@ -1355,6 +1363,28 @@ class ObjectsController extends AppController
             $this->set('template', $template);
             $this->set('objectRelations', $objectRelations);
             $this->set('attributes', $processedAttributes);
+
+            list($similar_objects_count, $similar_objects, $simple_flattened_attribute, $simple_flattened_attribute_noval) = $this->MispObject->findSimilarObjects(
+                $this->Auth->user(),
+                $eventId,
+                $processedAttributes,
+                $template
+            );
+            if ($similar_objects_count) {
+                $this->set('similar_objects_count', $similar_objects_count);
+                $this->set('similar_objects', $similar_objects);
+                $this->set('similar_objects_display_threshold', 15);
+                $this->set('simple_flattened_attribute', $simple_flattened_attribute);
+                $this->set('simple_flattened_attribute_noval', $simple_flattened_attribute_noval);
+
+                $multiple_template_elements = Hash::extract($template['ObjectTemplateElement'],'{n}[multiple=true]');
+                $multiple_attribute_allowed = array();
+                foreach ($multiple_template_elements as $template_element) {
+                    $relation_type = $template_element['object_relation'] . ':' . $template_element['type'];
+                    $multiple_attribute_allowed[$relation_type] = true;
+                }
+                $this->set('multiple_attribute_allowed', $multiple_attribute_allowed);
+            }
         }
     }
 

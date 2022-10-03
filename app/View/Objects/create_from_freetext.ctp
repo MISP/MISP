@@ -1,5 +1,5 @@
 <div class="index">
-    <h3><?php echo __('Create object');?></h3>
+    <h2><?php echo __('Create object');?></h2>
     <?= $this->Form->create('Object', array('url' => $baseurl . '/objects/createFromFreetext/' . $event['Event']['id'])); ?>
     <dl style="margin-top: 10px;">
         <dt><?php echo __('Object Template');?></dt>
@@ -64,7 +64,7 @@
                 <tr>
                     <td>
                         <span style="display: block;">
-                            <select class="attributeMapping" style="margin-bottom: 5px;">
+                            <select class="attributeMapping" style="margin-bottom: 5px;"<?= count($objectRelations[$attribute['type']]) === 1 ? ' disabled' : '' ?>>
                                 <?php foreach ($objectRelations[$attribute['type']] as $object_relation): ?>
                                     <option title="<?= h($object_relation['description']); ?>"><?= h($object_relation['object_relation']); ?></option>
                                 <?php endforeach; ?>
@@ -85,9 +85,35 @@
         </table>
     </div>
 
-    <div style="margin-top: 15px; text-align: center;">
+    <div style="margin-top: 15px">
         <button class="btn btn-primary" onclick="submitCreateFromFreetext();"><?= __('Create Object'); ?></button>
     </div>
+
+    <?php if (!empty($similar_objects)): ?>
+        <h3 style="margin-top: 20px;"><?= __('This event already contains similar objects') ?></h3>
+        <div class="row" style="margin-bottom: 20px;">
+            <?php foreach ($similar_objects as $object): ?>
+                <?php
+                echo $this->element('Objects/object_similarities', array(
+                    'object' => $object,
+                    'attributes' => $attributes,
+                    'template' => $template,
+                    'simple_flattened_attribute_noval' => $simple_flattened_attribute_noval,
+                    'simple_flattened_attribute' => $simple_flattened_attribute,
+                   // 'merge_button_functionname' => 'setMergeObject'
+                ));
+                ?>
+            <?php endforeach; ?>
+            <?php if ($similar_objects_count > $similar_objects_display_threshold): ?>
+                <div class="span5" style="margin-top: 20px;display: inline-block;float: unset;">
+                    <div class="alert alert-info">
+                        <h4><?php echo __('All similar objects not displayed...'); ?></h4>
+                        <?php echo __('%s Similar objects found. %s not displayed', $similar_objects_count, $similar_objects_count-$similar_objects_display_threshold); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 </div>
 
 <script>
