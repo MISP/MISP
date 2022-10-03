@@ -2764,7 +2764,7 @@ function exportChoiceSelect(e) {
     document.location.href = url;
 }
 
-function importChoiceSelect(url, elementId, ajax) {
+function importChoiceSelect(url, ajax) {
     if (ajax == 'false') {
         document.location.href = url;
     } else {
