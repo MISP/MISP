@@ -1879,8 +1879,8 @@ class AppModel extends Model
                 $this->__addIndex('object_template_elements', 'object_template_id');
                 break;
             case 99: 
-                $sqlArray[] = "ALTER TABLE `event_tags` ADD `relationship_type` varchar(191) NOT NULL DEFAULT '';";
-                $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `relationship_type` varchar(191) NOT NULL DEFAULT '';";
+                $sqlArray[] = "ALTER TABLE `event_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
+                $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
