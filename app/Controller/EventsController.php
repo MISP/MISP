@@ -3958,6 +3958,7 @@ class EventsController extends AppController
             $complexTypeTool = new ComplexTypeTool();
             $this->loadModel('Warninglist');
             $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+            $complexTypeTool->setSecurityVendorDomains($this->Warninglist->fetchSecurityVendorDomains());
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }

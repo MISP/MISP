@@ -40,7 +40,13 @@ class ComplexTypeTool
         128 => ['single' => ['sha512'], 'composite' => ['filename|sha512']],
     ];
 
-    private $__tlds = null;
+    private $__tlds;
+
+    /**
+     * Hardcoded list if properly warninglist is not available
+     * @var string[]
+     */
+    private $securityVendorDomains = ['virustotal.com', 'hybrid-analysis.com'];
 
     public static function refangValue($value, $type)
     {
@@ -58,6 +64,14 @@ class ComplexTypeTool
         foreach ($tlds as $tld) {
             $this->__tlds[$tld] = true;
         }
+    }
+
+    public function setSecurityVendorDomains(array $securityVendorDomains)
+    {
+        if (empty($securityVendorDomains)) {
+            return; // if provided warninglist is empty, keep hardcoded domains
+        }
+        $this->securityVendorDomains = $securityVendorDomains;
     }
 
     public function checkComplexRouter($input, $type, $settings = array())
@@ -478,8 +492,7 @@ class ComplexTypeTool
                 // Adding http:// infront of the input in case it was left off. github.com/MISP/MISP should still be counted as a valid link
                 if (count($temp) > 1 && (filter_var($input['refanged_no_port'], FILTER_VALIDATE_URL) || filter_var('http://' . $input['refanged_no_port'], FILTER_VALIDATE_URL))) {
                     // Even though some domains are valid, we want to exclude them as they are known security vendors / etc
-                    // TODO, replace that with the appropriate warninglist.
-                    if (preg_match('/^(https:\/\/(www.)?virustotal.com\/|https:\/\/www\.hybrid-analysis\.com\/)/i', $input['refanged_no_port'])) {
+                    if ($this->isLink($input['refanged_no_port'])) {
                         return array('types' => array('link'), 'default_type' => 'link', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
                     }
                     if (strpos($input['refanged_no_port'], '/')) {
@@ -547,6 +560,29 @@ class ComplexTypeTool
             $this->setTLDs($this->__generateTLDList());
         }
         return isset($this->__tlds[strtolower($tld)]);
+    }
+
+    /**
+     * Check if URL should be considered as link attribute type
+     * @param string $value
+     * @return bool
+     */
+    private function isLink($value)
+    {
+        if (!preg_match('/^https:\/\/([^\/]*)/i', $value, $matches)) {
+            return false;
+        }
+
+        $domainToCheck = '';
+        $domainParts = array_reverse(explode('.', strtolower($matches[1])));
+        foreach ($domainParts as $domainPart) {
+            $domainToCheck = $domainPart . $domainToCheck;
+            if (in_array($domainToCheck, $this->securityVendorDomains, true)) {
+                return true;
+            }
+            $domainToCheck = '.' . $domainToCheck;
+        }
+        return false;
     }
 
     private function __generateTLDList()

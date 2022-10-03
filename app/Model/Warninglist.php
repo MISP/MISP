@@ -733,14 +733,31 @@ class Warninglist extends AppModel
                 'conditions' => array('WarninglistEntry.warninglist_id' => $tldLists),
                 'fields' => array('WarninglistEntry.value')
             ));
-            foreach ($tlds as $key => $value) {
-                $tlds[$key] = strtolower($value);
-            }
+            $tlds = array_map('strtolower', $tlds);
         }
         if (!in_array('onion', $tlds, true)) {
             $tlds[] = 'onion';
         }
         return $tlds;
+    }
+
+    /**
+     * @return array
+     */
+    public function fetchSecurityVendorDomains()
+    {
+        $securityVendorList = $this->find('column', array(
+            'conditions' => array('Warninglist.name' => 'List of known domains used by automated malware analysis services & security vendors'),
+            'fields' => array('Warninglist.id')
+        ));
+        if (!empty($securityVendorList)) {
+            return $this->WarninglistEntry->find('column', array(
+                'conditions' => array('WarninglistEntry.warninglist_id' => $securityVendorList),
+                'fields' => array('WarninglistEntry.value')
+            ));
+        } else {
+            return [];
+        }
     }
 
     /**
