@@ -130,4 +130,37 @@ class GalaxyElement extends AppModel
         $expanded = Hash::expand($keyedValue);
         return $expanded;
     }
+
+    /**
+     * getClusterIDsFromMatchingElements
+     *
+     * @param array $user
+     * @param array $elements an associative array containg the elements to search for
+     *  Example: {"synonyms": "apt42"}
+     * @return array
+     */
+    public function getClusterIDsFromMatchingElements(array $user, array $elements): array
+    {
+        $elementConditions = [];
+        foreach ($elements as $key => $value) {
+            $elementConditions[] = [
+                'GalaxyElement.key' => $key,
+                'GalaxyElement.value' => $value,
+            ];
+        }
+        $conditions = [
+            $this->buildACLConditions($user),
+            $elementConditions,
+        ];
+        $elements = $this->find('all', [
+            'conditions' => $conditions,
+            'contain' => ['GalaxyCluster' => ['fields' => ['id', 'distribution', 'org_id']]],
+            'recursive' => -1
+        ]);
+        $clusterIDs = [];
+        foreach ($elements as $element) {
+            $clusterIDs[] = $element['GalaxyElement']['galaxy_cluster_id'];
+        }
+        return $clusterIDs;
+    }
 }

@@ -155,7 +155,7 @@ class RestResponseComponent extends Component
             ),
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. This API allows pagination via the page and limit parameters.",
-                'optional' => array('page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org_id', 'orgc_id', 'tag_name', 'custom', 'minimal', 'published', 'value', 'extends_uuid'),
+                'optional' => array('page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org_id', 'orgc_id', 'tag_name', 'custom', 'minimal', 'published', 'value', 'elements', 'extends_uuid'),
                 'params' => array()
             ),
         ),
@@ -1034,6 +1034,12 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
                 'values' => array(0 => 'dist1'),
+            ),
+            'elements' => array(
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => array('equal'),
+                'help' => __('Allow providing a JSON containing the keys and values to search for. Example: {"synonyms": "apt42"}'),
             ),
             'email' => array(
                 'input' => 'text',
