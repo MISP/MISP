@@ -412,12 +412,12 @@ class AttributeValidationTool
                 }
                 return __('Email address has an invalid format. Please double check the value or select type "other".');
             case 'vulnerability':
-                if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,}$#", $value)) {
+                if (preg_match("#^CVE-[0-9]{4}-[0-9]{4,}$#", $value)) {
                     return true;
                 }
                 return __('Invalid format. Expected: CVE-xxxx-xxxx...');
             case 'weakness':
-                if (preg_match("#^(CWE-)[0-9]{1,}$#", $value)) {
+                if (preg_match("#^CWE-[0-9]+$#", $value)) {
                     return true;
                 }
                 return __('Invalid format. Expected: CWE-x...');
