@@ -552,6 +552,19 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
         </div>
     <?php endif; ?>
 
+    <?php if ($this->fetch('security-recommendations')) : ?>
+        <?= $this->fetch('security-recommendations'); ?>
+    <?php else: ?>
+        <div class="panel">
+            <div class="panel-header">
+                <?= __('Security Recommendations') ?>
+            </div>
+            <div class="panel-body">
+                <?= $security_recommendations; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <?= $this->fetch('content'); ?>
 
     <style>

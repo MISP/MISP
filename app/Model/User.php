@@ -1808,7 +1808,8 @@ class User extends AppModel
         $filters['includeEventCorrelations'] = !empty($periodicSettings['include_correlations']);
         $filters['includeGranularCorrelations'] = !empty($periodicSettings['include_correlations']);
         $filters['noSightings'] = true;
-        $filters['fetchFullClusters'] = false;
+        $filters['fetchFullClusters'] = true;
+        $filters['fetchFullClusterRelationship'] = true;
         $filters['includeScoresOnEvent'] = true;
         $events = $this->Event->fetchEvent($user, $filters);
 
@@ -1833,6 +1834,10 @@ class User extends AppModel
             'tagFilterPrefixes' => $tagFilterPrefixes,
         ];
         $trending_summary = $this->__renderTrendingSummary($trendData);
+        $securityRecommendationsData = [
+            'course_of_action' => $this->Event->extractRelatedCourseOfActions($events),
+        ];
+        $security_recommendations = $this->__renderSecurityRecommenrations($securityRecommendationsData);
 
         $emailTemplate = $this->prepareEmailTemplate($period);
         $emailTemplate->set('baseurl', $this->Event->__getAnnounceBaseurl());
@@ -1843,6 +1848,7 @@ class User extends AppModel
         $emailTemplate->set('period', $period);
         $emailTemplate->set('aggregated_context', $aggregated_context);
         $emailTemplate->set('trending_summary', $trending_summary);
+        $emailTemplate->set('security_recommendations', $security_recommendations);
         $emailTemplate->set('analysisLevels', $this->Event->analysisLevels);
         $emailTemplate->set('distributionLevels', $this->Event->distributionLevels);
         if ($rendered) {
@@ -1860,6 +1866,11 @@ class User extends AppModel
     private function __renderTrendingSummary(array $trendData): string
     {
         return $this->__renderGeneric('Elements' . DS . 'Events', 'trendingSummary', $trendData);
+    }
+
+    private function __renderSecurityRecommenrations(array $data): string
+    {
+        return $this->__renderGeneric('Elements' . DS . 'Events', 'securityRecommendations', $data);
     }
 
     private function __renderGeneric(string $viewPath, string $viewFile, array $viewVars): string

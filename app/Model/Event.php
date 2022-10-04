@@ -1635,6 +1635,9 @@ class Event extends AppModel
         if (!isset($options['fetchFullClusters'])) {
             $options['fetchFullClusters'] = true;
         }
+        if (!isset($options['fetchFullClusterRelationship'])) {
+            $options['fetchFullClusterRelationship'] = false;
+        }
         foreach ($possibleOptions as $opt) {
             if (!isset($options[$opt])) {
                 $options[$opt] = false;
@@ -1983,7 +1986,7 @@ class Event extends AppModel
                 $event['warnings'] = $eventWarnings;
             }
             $this->__attachTags($event, $justExportableTags);
-            $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters']);
+            $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters'], $options['fetchFullClusterRelationship']);
             $event = $this->Orgc->attachOrgs($event, $fieldsOrg);
             if (!$sharingGroupReferenceOnly && $event['Event']['sharing_group_id']) {
                 if (isset($sharingGroupData[$event['Event']['sharing_group_id']])) {
@@ -2147,7 +2150,7 @@ class Event extends AppModel
      * @param bool $excludeGalaxy
      * @param bool $fetchFullCluster
      */
-    private function __attachGalaxies(array &$event, array $user, $excludeGalaxy, $fetchFullCluster)
+    private function __attachGalaxies(array &$event, array $user, $excludeGalaxy, $fetchFullCluster, $fetchFullRelationship=false)
     {
         $galaxyTags = [];
         $event['Galaxy'] = [];
@@ -2176,7 +2179,7 @@ class Event extends AppModel
         }
 
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, $fetchFullCluster);
+        $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, $fetchFullCluster, $fetchFullRelationship);
 
         if (empty($clusters)) {
             return;
@@ -7613,5 +7616,53 @@ class Event extends AppModel
             'all_tags' => $clusteredTags['allTagsPerPrefix'],
             'all_timestamps' => array_keys($clusteredTags['eventNumberPerRollingWindow']),
         ];
+    }
+
+    public function extractRelatedCourseOfActions(array $events): array
+    {
+        $mitre_attack_galaxy_type = 'mitre-attack-pattern';
+        $mitre_coa_galaxy_type = 'mitre-course-of-action';
+        $allowedRelationTypes = ['mitigates'];
+        $coa = [];
+        foreach ($events as $event) {
+            foreach ($event['Galaxy'] as $galaxy) {
+                foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                    foreach ($cluster['GalaxyClusterRelation'] as $relation) {
+                        if (in_array($relation['referenced_galaxy_cluster_type'], $allowedRelationTypes) && $relation['TargetCluster']['type'] == $mitre_coa_galaxy_type) {
+                            if (!isset($coa[$relation['TargetCluster']['tag_name']])) {
+                                $coa[$relation['TargetCluster']['tag_name']] = $relation['TargetCluster'];
+                                $coa[$relation['TargetCluster']['tag_name']]['occurrence'] = 0;
+                                $coa[$relation['TargetCluster']['tag_name']]['techniques'] = [];
+                            }
+                            $coa[$relation['TargetCluster']['tag_name']]['occurrence'] += 1;
+                            if ($cluster['type'] == $mitre_attack_galaxy_type) {
+                                $coa[$relation['TargetCluster']['tag_name']]['techniques'][$cluster['tag_name']] = $cluster;
+                            }
+                        }
+                    }
+                    if (!empty($cluster['TargetingClusterRelation'])) {
+                        foreach ($cluster['TargetingClusterRelation'] as $relation) {
+                            if (in_array($relation['referenced_galaxy_cluster_type'], $allowedRelationTypes) && $relation['GalaxyCluster']['type'] == $mitre_coa_galaxy_type) {
+                                if (!isset($coa[$relation['GalaxyCluster']['tag_name']])) {
+                                    $coa[$relation['GalaxyCluster']['tag_name']] = $relation['GalaxyCluster'];
+                                    $coa[$relation['GalaxyCluster']['tag_name']]['techniques'] = [];
+                                    $coa[$relation['GalaxyCluster']['tag_name']]['occurrence'] = 0;
+                                }
+                                $coa[$relation['GalaxyCluster']['tag_name']]['occurrence'] += 1;
+                                if ($cluster['type'] == $mitre_attack_galaxy_type
+                                ) {
+                                    $coa[$relation['GalaxyCluster']['tag_name']]['techniques'][$cluster['tag_name']] = $cluster;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        uasort($coa, function ($a, $b) {
+            return $a['occurrence'] > $b['occurrence'] ? -1 : 1;
+        });
+
+        return $coa;
     }
 }
