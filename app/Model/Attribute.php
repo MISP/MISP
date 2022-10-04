@@ -370,11 +370,38 @@ class Attribute extends AppModel
                 $attribute['value1'] = $attribute['value'];
                 $attribute['value2'] = '';
             }
+
+            if ($attribute['type'] === 'attachment') {
+                $this->checkAttachmentExtension($attribute);
+            }
         }
 
         $this->data = $this->ISODatetimeToUTC($this->data, $this->alias);
         // always return true after a beforeSave()
         return true;
+    }
+
+    /**
+     * @param array $attribute
+     * @return void
+     */
+    private function checkAttachmentExtension(array &$attribute)
+    {
+        if (pathinfo($attribute['value1'], PATHINFO_EXTENSION) !== '' || empty($attribute['data_raw'])) {
+            return;
+        }
+
+        if (!defined('FILEINFO_EXTENSION')) {
+            return;
+        }
+
+        $finfo = new finfo(FILEINFO_EXTENSION);
+        $extension = explode('/', $finfo->buffer($attribute['data_raw']))[0];
+
+        // Append recognized extension, that are considered as safe
+        if (in_array($extension, ['png', 'jpeg', 'zip', 'gif', 'webp'], true)) {
+            $attribute['value1'] = rtrim($attribute['value1'], '.') . $extension;
+        }
     }
 
     /**
