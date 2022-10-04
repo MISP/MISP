@@ -2652,7 +2652,7 @@ ul.correlations li .popover span {
 }
 
 #notice_message {
-   margin: 10px;
+   margin-bottom: 10px;
 }
 
 .alert form {
