@@ -66,7 +66,7 @@ class ContextExport
         $this->__aggregateTagsPerTaxonomy();
         $this->__aggregateClustersPerGalaxy();
         $attackData = $attackFinal === '' ? [] : JsonTool::decode($attackFinal);
-        if (!empty($this->__passedOptions['filters']['staticHtml'])) {
+        if (!empty($attackData) && !empty($this->__passedOptions['filters']['staticHtml'])) {
             $attackData['static'] = true;
         }
         return JsonTool::encode([

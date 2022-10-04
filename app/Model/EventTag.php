@@ -102,12 +102,32 @@ class EventTag extends AppModel
             'tag_id' => $tag['id'],
             'event_id' => $event_id,
         ]);
+        $existingAssociation = $this->find('first', [
+            'conditions' => [
+                'tag_id' => $tag['id'],
+                'event_id' => $event_id,
+            ],
+            'recursive' => -1
+        ]);
         if (!$existingAssociation) {
             $this->create();
-            if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag['id'], 'local' => !empty($tag['local'])))) {
+            if (
+                !$this->save(
+                    [
+                        'event_id' => $event_id,
+                        'tag_id' => $tag['id'],
+                        'relationship_type' => !empty($tag['relationship_type']) ? $tag['relationship_type'] : null,
+                        'local' => !empty($tag['local'])
+                    ]
+                )
+            ) {
                 return false;
             }
         } else {
+            if (isset($tag['relationship_type']) && $existingAssociation['EventTag']['relationship_type'] != $tag['relationship_type']) {
+                $existingAssociation['EventTag']['relationship_type'] = $tag['relationship_type'];
+                $this->save($existingAssociation);
+            }
             $nothingToChange = true;
         }
         return true;

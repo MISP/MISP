@@ -1859,7 +1859,7 @@ span.success {
     color:white;
 }
 
-input.select, input.select_attribute {
+input.select, input.select_attribute, input.select-all {
     margin-top: 0; /* remove top margin for checkboxes in index table */
 }
 

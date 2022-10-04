@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
+<html lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -8,22 +8,20 @@
     <title><?= $title_for_layout, ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
         $css = [
-            'bootstrap',
-            //'bootstrap4',
-            'bootstrap-datepicker',
-            'bootstrap-colorpicker',
-            'font-awesome',
-            'chosen.min',
-            'main',
+            ['bootstrap', ['preload' => true]],
+            ['bootstrap-datepicker', ['preload' => true]],
+            ['bootstrap-colorpicker', ['preload' => true]],
+            ['font-awesome', ['preload' => true]],
+            ['chosen.min', ['preload' => true]],
+            ['main', ['preload' => true]],
             ['print', ['media' => 'print']],
         ];
         if (Configure::read('MISP.custom_css')) {
             $css[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
         }
         $js = [
-            'jquery',
-            'misp-touch',
-            'chosen.jquery.min',
+            ['jquery', ['preload' => true]],
+            ['chosen.jquery.min', ['preload' => true]],
         ];
         if (!empty($additionalCss)) {
             $css = array_merge($css, $additionalCss);
@@ -67,8 +65,9 @@
         ?>
     </div>
     <?php
-    echo $this->element('genericElements/assetLoader', array(
-        'js' => array(
+    echo $this->element('genericElements/assetLoader', [
+        'js' => [
+            'misp-touch',
             'bootstrap',
             'bootstrap-timepicker',
             'bootstrap-datepicker',
@@ -76,8 +75,8 @@
             'misp',
             'keyboard-shortcuts-definition',
             'keyboard-shortcuts',
-        )
-    ));
+        ],
+    ]);
     echo $this->element('footer');
     echo $this->element('sql_dump');
     ?>

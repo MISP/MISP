@@ -69,11 +69,12 @@ foreach ($events as $event) {
         }
         $unique_tag_per_event[$tag['name']] = true;
 
-        if (empty($all_tag_amount[$tag['name']])) {
-            $all_tag_amount[$tag['name']] = 0;
+        if (!isset($all_tag_amount[$tag['name']])) {
+            $all_tag_amount[$tag['name']] = 1;
             $tag_color_mapping[$tag['name']] = $tag['colour'];
+        } else {
+            $all_tag_amount[$tag['name']]++;
         }
-        $all_tag_amount[$tag['name']]++;
 
         if ($tag['is_galaxy'] && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
             $technique = substr($tag['name'], strlen($mitre_galaxy_tag_prefix), strlen($tag['name']) - strlen($mitre_galaxy_tag_prefix) - 1);
@@ -100,11 +101,12 @@ foreach ($events as $event) {
             }
             $unique_tag_per_event[$tag['name']] = true;
 
-            if (empty($all_tag_amount[$tag['name']])) {
-                $all_tag_amount[$tag['name']] = 0;
+            if (!isset($all_tag_amount[$tag['name']])) {
+                $all_tag_amount[$tag['name']] = 1;
                 $tag_color_mapping[$tag['name']] = $tag['colour'];
+            } else {
+                $all_tag_amount[$tag['name']]++;
             }
-            $all_tag_amount[$tag['name']]++;
 
             if ($tag['is_galaxy'] && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
                 $technique = substr($tag['name'], strlen($mitre_galaxy_tag_prefix), strlen($tag['name']) - strlen($mitre_galaxy_tag_prefix) - 1);
@@ -138,11 +140,12 @@ foreach ($events as $event) {
                 }
                 $unique_tag_per_event[$tag['name']] = true;
 
-                if (empty($all_tag_amount[$tag['name']])) {
-                    $all_tag_amount[$tag['name']] = 0;
+                if (!isset($all_tag_amount[$tag['name']])) {
+                    $all_tag_amount[$tag['name']] = 1;
                     $tag_color_mapping[$tag['name']] = $tag['colour'];
+                } else {
+                    $all_tag_amount[$tag['name']]++;
                 }
-                $all_tag_amount[$tag['name']]++;
 
                 if ($tag['is_galaxy'] && substr($tag['name'], 0, strlen($mitre_galaxy_tag_prefix)) === $mitre_galaxy_tag_prefix) {
                     $technique = substr($tag['name'], strlen($mitre_galaxy_tag_prefix), strlen($tag['name']) - strlen($mitre_galaxy_tag_prefix) - 1);
@@ -206,7 +209,7 @@ $unique_tag_number = count($all_tag_amount);
 arsort($attribute_types);
 arsort($object_types);
 arsort($all_tag_amount);
-uasort($mitre_attack_techniques, function($tag1, $tag2) use ($all_tag_amount) {
+uasort($mitre_attack_techniques, function ($tag1, $tag2) use ($all_tag_amount) {
     return ($all_tag_amount[$tag1['Tag']['name']] < $all_tag_amount[$tag2['Tag']['name']]) ? 1 : -1;
 });
 
@@ -222,7 +225,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
 
 <?php if ($this->fetch('table-overview')) : ?>
     <?= $this->fetch('table-overview'); ?>
-<?php else: ?>
+<?php else : ?>
     <div class="panel">
         <div class="panel-header">
             <?= __('Data at a glance') ?>
@@ -237,7 +240,8 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
                     <tr>
                         <td><?= __('Summary for dates') ?></td>
                         <td>
-                            <?= __('<strong>%s</strong> (Week %s) ➞ <strong>%s</strong> (Week %s)',
+                            <?= __(
+                                '<strong>%s</strong> (Week %s) ➞ <strong>%s</strong> (Week %s)',
                                 $start_date->format('M d, o'),
                                 $start_date->format('W'),
                                 $now->format('M d, o'),
@@ -274,7 +278,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
                         <td><?= __('Unique tags #') ?></td>
                         <td><?= $unique_tag_number ?></td>
                     </tr>
-                    <?php if (!empty($periodicSettings['include_correlations'])): ?>
+                    <?php if (!empty($periodicSettings['include_correlations'])) : ?>
                         <tr>
                             <td><?= __('New correlation #') ?></td>
                             <td><?= count($new_correlations) ?></td>
@@ -289,7 +293,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
 
 <?php if ($this->fetch('detailed-summary-full')) : ?>
     <?= $this->fetch('detailed-summary-full'); ?>
-<?php else: ?>
+<?php else : ?>
     <div class="panel">
         <div class="panel-header">
             <?= __('Detailed summary') ?>
@@ -297,7 +301,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
         <div class="panel-body">
             <?php if ($this->fetch('detailed-summary-mitre-attack')) : ?>
                 <?= $this->fetch('detailed-summary-mitre-attack'); ?>
-            <?php else: ?>
+            <?php else : ?>
                 <?php if (!empty($top_mitre_attack_techniques)) : ?>
                     <h4><?= __('Top 10 MITRE ATT&CK techniques') ?></h4>
                     <ul>
@@ -318,7 +322,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
 
             <?php if ($this->fetch('detailed-summary-type')) : ?>
                 <?= $this->fetch('detailed-summary-type'); ?>
-            <?php else: ?>
+            <?php else : ?>
                 <?php if (!empty($top_attribute_types)) : ?>
                     <h4><?= __('Top 10 Attribute types') ?></h4>
                     <ul>
@@ -353,7 +357,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
 
             <?php if ($this->fetch('detailed-summary-tags')) : ?>
                 <?= $this->fetch('detailed-summary-tags'); ?>
-            <?php else: ?>
+            <?php else : ?>
                 <h4><?= __('Top 10 Tags') ?></h4>
                 <ul>
                     <?php foreach ($top_all_tag_amount as $tag_name => $amount) : ?>
@@ -369,7 +373,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
 
             <?php if ($this->fetch('detailed-summary-events')) : ?>
                 <?= $this->fetch('detailed-summary-events'); ?>
-            <?php else: ?>
+            <?php else : ?>
                 <?php if (!empty($events)) : ?>
                     <h4><?= __('Event list') ?> <small style="color: #999999;"><?= sprintf(' (%s)', count($events)) ?></small></h4>
                     <table class="table table-condensed">
@@ -392,7 +396,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
                         <tbody>
                             <?php foreach ($events as $i => $event) : ?>
                                 <?php
-                                if ($i > $vars['event_table_max_event_count']-1) {
+                                if ($i > $vars['event_table_max_event_count'] - 1) {
                                     break;
                                 }
                                 $workflowTag = findAndBuildTag($event['EventTag'], 'workflow:', $this);
@@ -426,7 +430,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
                                                         </tr>
                                                     <?php endforeach; ?>
                                                 </table>
-                                            <?php else: ?>
+                                            <?php else : ?>
                                                 &nbsp;
                                             <?php endif; ?>
                                         </td>
@@ -436,7 +440,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                <?php else: ?>
+                <?php else : ?>
                     <p><?= __('No events.') ?></p>
                 <?php endif; ?>
                 <?php if (count($events) > $vars['event_table_max_event_count']) : ?>
@@ -447,18 +451,18 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
                             count($events) - $vars['event_table_max_event_count'],
                             sprintf('<strong>%s</strong>', count($events) - $vars['event_table_max_event_count'])
                         )
-                    ?>
+                        ?>
                     <a href="<?= h($eventLink) ?>"><?= __('View all events in MISP') ?></a>
                 <?php endif; ?>
             <?php endif; ?>
 
             <?php if ($this->fetch('detailed-summary-correlations')) : ?>
-            <?php else: ?>
+            <?php else : ?>
                 <?php if (!empty($new_correlations)) : ?>
                     <h4><?= __('New correlations') ?><small style="color: #999999;"><?= sprintf(' (%s)', count($new_correlations)) ?></small></h4>
                     <div>
                         <?php if (count($new_correlations) < $vars['correlation_table_advanced_ui']) : ?>
-                            <?php foreach ($new_correlations as $correlation): ?>
+                            <?php foreach ($new_correlations as $correlation) : ?>
                                 <div style="display: flex; flex-wrap: nowrap; align-items: center; margin-top: 0.5em;">
                                     <span>
                                         <span class="correlating-event-container">
@@ -489,7 +493,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
                                     </span>
                                 </div>
                             <?php endforeach; ?>
-                        <?php else: ?>
+                        <?php else : ?>
                             <table class="table table-xcondensed">
                                 <thead>
                                     <tr>
@@ -499,7 +503,7 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach (array_slice($new_correlations, 0, $vars['correlation_table_max_count']) as $correlation): ?>
+                                    <?php foreach (array_slice($new_correlations, 0, $vars['correlation_table_max_count']) as $correlation) : ?>
                                         <tr>
                                             <td><a href="<?= sprintf('%s/events/view/%s', $baseurl, h($correlation['source_event']['id'])) ?>"><?= h($correlation['source_event']['info']) ?></a></td>
                                             <td><b><?= h($correlation['attribute_value']) ?></b></td>
@@ -526,181 +530,184 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
     </div>
 <?php endif; ?>
 
-    <?php if ($this->fetch('trending-summary')) : ?>
-        <?= $this->fetch('trending-summary'); ?>
-    <?php else: ?>
-        <div class="panel">
-            <div class="panel-header">
-                <?= __('Tag trendings') ?>
-            </div>
-            <div class="panel-body">
-                <?= $trending_summary; ?>
-            </div>
+<?php if ($this->fetch('trending-summary')) : ?>
+    <?= $this->fetch('trending-summary'); ?>
+<?php else : ?>
+    <div class="panel">
+        <div class="panel-header">
+            <?= __('Tag trendings') ?>
         </div>
-    <?php endif; ?>
-
-    <?php if ($this->fetch('aggregated-context')) : ?>
-        <?= $this->fetch('aggregated-context'); ?>
-    <?php else: ?>
-        <div class="panel">
-            <div class="panel-header">
-                <?= __('Context summary') ?>
-            </div>
-            <div class="panel-body">
-                <?= $aggregated_context; ?>
-            </div>
+        <div class="panel-body">
+            <?= $trending_summary; ?>
         </div>
-    <?php endif; ?>
+    </div>
+<?php endif; ?>
 
-    <?php if ($this->fetch('security-recommendations')) : ?>
-        <?= $this->fetch('security-recommendations'); ?>
-    <?php else: ?>
-        <div class="panel">
-            <div class="panel-header">
-                <?= __('Security Recommendations') ?>
-            </div>
-            <div class="panel-body">
-                <?= $security_recommendations; ?>
-            </div>
+<?php if ($this->fetch('aggregated-context')) : ?>
+    <?= $this->fetch('aggregated-context'); ?>
+<?php else : ?>
+    <div class="panel">
+        <div class="panel-header">
+            <?= __('Context summary') ?>
         </div>
-    <?php endif; ?>
+        <div class="panel-body">
+            <?= $aggregated_context; ?>
+        </div>
+    </div>
+<?php endif; ?>
 
-    <?= $this->fetch('content'); ?>
+<?php if ($this->fetch('security-recommendations')) : ?>
+    <?= $this->fetch('security-recommendations'); ?>
+<?php else : ?>
+    <div class="panel">
+        <div class="panel-header">
+            <?= __('Security Recommendations') ?>
+        </div>
+        <div class="panel-body">
+            <?= $security_recommendations; ?>
+        </div>
+    </div>
+<?php endif; ?>
 
-    <style>
-        .mw-50 {
-            max-width: 50%;
-        }
+<?= $this->fetch('content'); ?>
 
-        .panel {
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            margin-bottom: 20px;
-            box-shadow: 0px 5px 10px 0 #00000033;
-        }
+<style>
+    .mw-50 {
+        max-width: 50%;
+    }
 
-        .panel-header {
-            border-bottom: 1px solid #ccc;
-            padding: 4px 10px;
-            background-color: #cccccc22;
-            font-weight: bold;
-            font-size: 25px;
-            clear: both;
-            line-height: 40px;
-        }
+    .panel {
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 10px 0 #00000033;
+    }
 
-        .panel-body {
-            padding: 15px;
-            position: relative;
-        }
+    .panel-header {
+        border-bottom: 1px solid #ccc;
+        padding: 4px 10px;
+        background-color: #cccccc22;
+        font-weight: bold;
+        font-size: 25px;
+        clear: both;
+        line-height: 40px;
+    }
 
-        .panel h4 {
-            margin-top: 0.75em;
-        }
+    .panel-body {
+        padding: 15px;
+        position: relative;
+    }
 
-        .panel h4::before {
-            content: '▲';
-            transform: rotate(90deg);
-            display: inline-block;
-            margin-right: 0.25em;
-            color: #ccc;
-            text-shadow: 0px 0px #999;
-        }
+    .panel h4 {
+        margin-top: 0.75em;
+    }
 
-        .tag {
-            display: inline-block;
-            padding: 2px 4px;
-            font-size: 12px;
-            font-weight: bold;
-            line-height: 14px;
-            margin-right: 2px;
-            border-radius: 3px;
-        }
+    .panel h4::before {
+        content: '▲';
+        transform: rotate(90deg);
+        display: inline-block;
+        margin-right: 0.25em;
+        color: #ccc;
+        text-shadow: 0 0 #999;
+    }
 
-        .correlating-attribute {
-            padding: 3px 5px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            white-space: nowrap;
-        }
-        .correlating-attribute-container {
-            display: flex;
-            box-sizing: border-box;
-            margin: 0 0;
-            align-items: center;
-            min-width: 400px;
-        }
-        .correlating-attribute-container::before,
-        .correlating-attribute-container::after {
-            display: inline-block;
-            content: ' ';
-            height: 2px;
-            width: 100%;
-            background-color: #ccc;
-        }
+    .tag {
+        display: inline-block;
+        padding: 2px 4px;
+        font-size: 12px;
+        font-weight: bold;
+        line-height: 14px;
+        margin-right: 2px;
+        border-radius: 3px;
+    }
 
-        .correlating-event-container {
-            display: flex;
-            flex-direction: column;
-            min-width: 180px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            padding: 3px 5px;
-        }
-        .correlating-event-container > .org-date {
-            display: flex;
-            justify-content: space-between;
-        }
+    .correlating-attribute {
+        padding: 3px 5px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        white-space: nowrap;
+    }
 
-        .no-overflow {
-            display: inline-block;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            overflow: hidden
-        }
+    .correlating-attribute-container {
+        display: flex;
+        box-sizing: border-box;
+        margin: 0 0;
+        align-items: center;
+        min-width: 400px;
+    }
 
-        .table {
-            width: 100%;
-            margin-bottom: 20px;
-        }
+    .correlating-attribute-container::before,
+    .correlating-attribute-container::after {
+        display: inline-block;
+        content: ' ';
+        height: 2px;
+        width: 100%;
+        background-color: #ccc;
+    }
 
-        .table.table-condensed td,
-        .table.table-condensed th {
-            padding: 4px 5px;
-        }
+    .correlating-event-container {
+        display: flex;
+        flex-direction: column;
+        min-width: 180px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 3px 5px;
+    }
 
-        .table-xcondensed td,
-        .table-xcondensed th {
-            padding: 0px 2px !important;
-        }
+    .correlating-event-container>.org-date {
+        display: flex;
+        justify-content: space-between;
+    }
 
-        .table th,
-        .table td {
-            padding: 8px;
-            line-height: 20px;
-            text-align: left;
-            vertical-align: top;
-            border-top: 1px solid #dddddd;
-        }
+    .no-overflow {
+        display: inline-block;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden
+    }
 
-        .table thead th {
-            vertical-align: bottom;
-        }
+    .table {
+        width: 100%;
+        margin-bottom: 20px;
+    }
 
-        .table caption+thead tr:first-child th,
-        .table caption+thead tr:first-child td,
-        .table colgroup+thead tr:first-child th,
-        .table colgroup+thead tr:first-child td,
-        .table thead:first-child tr:first-child th,
-        .table thead:first-child tr:first-child td {
-            border-top: 0;
-        }
+    .table.table-condensed td,
+    .table.table-condensed th {
+        padding: 4px 5px;
+    }
 
-        table.no-border td {
-            border-top: 0;
-        }
+    .table-xcondensed td,
+    .table-xcondensed th {
+        padding: 0 2px !important;
+    }
 
-        .table.no-border tbody+tbody {
-            border-top: 0;
-        }
-    </style>
+    .table th,
+    .table td {
+        padding: 8px;
+        line-height: 20px;
+        text-align: left;
+        vertical-align: top;
+        border-top: 1px solid #dddddd;
+    }
+
+    .table thead th {
+        vertical-align: bottom;
+    }
+
+    .table caption+thead tr:first-child th,
+    .table caption+thead tr:first-child td,
+    .table colgroup+thead tr:first-child th,
+    .table colgroup+thead tr:first-child td,
+    .table thead:first-child tr:first-child th,
+    .table thead:first-child tr:first-child td {
+        border-top: 0;
+    }
+
+    table.no-border td {
+        border-top: 0;
+    }
+
+    .table.no-border tbody+tbody {
+        border-top: 0;
+    }
+</style>
