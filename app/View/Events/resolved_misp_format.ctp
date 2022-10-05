@@ -1,9 +1,9 @@
-<div class="index" style="margin-bottom: 2em">
+<div class="index">
     <h2><?php echo h($title); ?></h2>
     <?php
         $event_id = $event['Event']['id'];
         $url = $baseurl . '/events/handleModuleResults/' . $event_id;
-        echo $this->Form->create('Event', array('url' => $url, 'class' => 'mainForm'));
+        echo $this->Form->create('Event', array('url' => $url, 'class' => 'mainForm hidden'));
         echo $this->Form->input('data', array(
             'type' => 'hidden',
             'value' => JsonTool::encode($event)
@@ -11,16 +11,15 @@
         echo $this->Form->input('JsonObject', array(
             'label' => false,
             'type' => 'text',
-            'style' => 'display:none;',
             'value' => ''
         ));
         echo $this->Form->input('default_comment', array(
             'label' => false,
             'type' => 'text',
-            'style' => 'display:none;',
             'value' => $importComment
         ));
         echo $this->Form->end();
+
         $objects_array = array();
         foreach (array('Attribute', 'Object') as $field) {
             if (!empty($event[$field])) {
