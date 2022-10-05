@@ -2284,7 +2284,12 @@ class EventsController extends AppController
         foreach ($analysisLevels as $key => $value) {
             $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
-        $this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
+
+        if (Configure::read('MISP.unpublishedprivate')) {
+            $this->Flash->info(__('The event created will be visible only to your organisation until it is published.'));
+        } else {
+            $this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
+        }
         $this->set('fieldDesc', $fieldDesc);
         if (isset($this->params['named']['extends'])) {
             $this->set('extends_uuid', $this->params['named']['extends']);
