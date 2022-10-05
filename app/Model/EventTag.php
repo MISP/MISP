@@ -84,7 +84,7 @@ class EventTag extends AppModel
         if (empty($tag['deleted'])) {
             $result = $this->attachTagToEvent($event_id, $tag, $nothingToChange);
         } else {
-            $result = $this->detachTagFromEvent($event_id, $tag['id'], $nothingToChange);
+            $result = $this->detachTagFromEvent($event_id, $tag['id'], null, $nothingToChange);
         }
         return $result;
     }
@@ -98,10 +98,6 @@ class EventTag extends AppModel
      */
     public function attachTagToEvent($event_id, array $tag, &$nothingToChange = false)
     {
-        $existingAssociation = $this->hasAny([
-            'tag_id' => $tag['id'],
-            'event_id' => $event_id,
-        ]);
         $existingAssociation = $this->find('first', [
             'conditions' => [
                 'tag_id' => $tag['id'],
@@ -139,15 +135,19 @@ class EventTag extends AppModel
      * @param bool $nothingToChange
      * @return bool
      */
-    public function detachTagFromEvent($event_id, $tag_id, &$nothingToChange = false)
+    public function detachTagFromEvent($event_id, $tag_id, $local, &$nothingToChange = false)
     {
+        $conditions = [
+            'tag_id' => $tag_id,
+            'event_id' => $event_id,
+        ];
+        if (!is_null($local)) {
+            $conditions['local'] = !empty($local);
+        }
         $existingAssociation = $this->find('first', array(
             'recursive' => -1,
             'fields' => ['id'],
-            'conditions' => array(
-                'tag_id' => $tag_id,
-                'event_id' => $event_id
-            )
+            'conditions' => $conditions,
         ));
 
         if ($existingAssociation) {

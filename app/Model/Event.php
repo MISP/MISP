@@ -516,8 +516,11 @@ class Event extends AppModel
         return $this->save($event, true, ['timestamp', 'published']);
     }
 
-    public function attachTagsToEventAndTouch($event_id, $tags, array $user)
+    public function attachTagsToEventAndTouch($event_id, array $options, array $user)
     {
+        $tags = $options['tags'];
+        $local = $options['local'];
+        $relationship = $options['relationship_type'];
         $touchEvent = false;
         $success = false;
         $capturedTags = [];
@@ -530,7 +533,12 @@ class Event extends AppModel
                 $user,
                 $capturedTags
             );
-            $success = $success || $this->EventTag->attachTagToEvent($event_id, ['id' => $tag_id], $nothingToChange);
+            $tag = [
+                'id' => $tag_id,
+                'local' => $local,
+                'relationship_type' => $relationship,
+            ];
+            $success = $success || $this->EventTag->attachTagToEvent($event_id, $tag, $nothingToChange);
             $touchEvent = $touchEvent || !$nothingToChange;
         }
         if ($touchEvent) {
@@ -539,8 +547,10 @@ class Event extends AppModel
         return $success;
     }
 
-    public function detachTagsFromEventAndTouch($event_id, $tags)
+    public function detachTagsFromEventAndTouch($event_id, array $options)
     {
+        $tags = $options['tags'];
+        $local = $options['local'];
         $touchEvent = false;
         $success = false;
         foreach ($tags as $tag_name) {
@@ -550,7 +560,7 @@ class Event extends AppModel
                 $success = $success || true;
                 continue;
             }
-            $success = $success || $this->EventTag->detachTagFromEvent($event_id, $tag_id, $nothingToChange);
+            $success = $success || $this->EventTag->detachTagFromEvent($event_id, $tag_id, $local, $nothingToChange);
             $touchEvent = $touchEvent || !$nothingToChange;
         }
         if ($touchEvent) {

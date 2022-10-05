@@ -124,7 +124,7 @@ class AttributeTag extends AppModel
             $relationship_type = isset($tag['relationship_type']) ? $tag['relationship_type'] : false;
             $this->attachTagToAttribute($attribute_id, $event_id, $tag['id'], $local, $relationship_type);
         } else {
-            $this->detachTagFromAttribute($attribute_id, $event_id, $tag['id']);
+            $this->detachTagFromAttribute($attribute_id, $event_id, null, $tag['id']);
         }
     }
 
@@ -167,16 +167,20 @@ class AttributeTag extends AppModel
         return true;
     }
 
-    public function detachTagFromAttribute($attribute_id, $event_id, $tag_id, &$nothingToChange = false)
+    public function detachTagFromAttribute($attribute_id, $event_id, $tag_id, $local, &$nothingToChange = false)
     {
+        $conditions = [
+            'tag_id' => $tag_id,
+            'event_id' => $event_id,
+            'attribute_id' => $attribute_id,
+        ];
+        if (!is_null($local)) {
+            $conditions['local'] = !empty($local);
+        }
         $existingAssociation = $this->find('first', array(
             'recursive' => -1,
             'fields' => ['id'],
-            'conditions' => array(
-                'tag_id' => $tag_id,
-                'event_id' => $event_id,
-                'attribute_id' => $attribute_id
-            )
+            'conditions' => $conditions
         ));
 
         if (!empty($existingAssociation)) {

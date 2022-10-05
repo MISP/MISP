@@ -2093,8 +2093,11 @@ class Attribute extends AppModel
         return $saveSucces && $this->Event->save($event, true, ['timestamp', 'published']);
     }
 
-    public function attachTagsFromAttributeAndTouch($attribute_id, $event_id, array $tags, array $user)
+    public function attachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options, array $user)
     {
+        $tags = $options['tags'];
+        $local = $options['local'];
+        $relationship = $options['relationship_type'];
         $touchAttribute = false;
         $success = false;
         $capturedTags = [];
@@ -2107,7 +2110,7 @@ class Attribute extends AppModel
                 $user,
                 $capturedTags
             );
-            $saveSuccess = $this->AttributeTag->attachTagToAttribute($attribute_id, $event_id, $tag_id, false, $nothingToChange);
+            $saveSuccess = $this->AttributeTag->attachTagToAttribute($attribute_id, $event_id, $tag_id, $local, $relationship, $nothingToChange);
             $success = $success || !empty($saveSuccess);
             $touchAttribute = $touchAttribute || !$nothingToChange;
         }
@@ -2117,19 +2120,20 @@ class Attribute extends AppModel
         return $success;
     }
 
-    public function detachTagsFromAttributeAndTouch($attribute_id, $event_id, $tags)
+    public function detachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options)
     {
+        $tags = $options['tags'];
+        $local = $options['local'];
         $touchAttribute = false;
         $success = false;
         foreach ($tags as $tag_name) {
             $nothingToChange = false;
             $tag_id = $this->AttributeTag->Tag->lookupTagIdFromName($tag_name);
-            debug($tag_id);
             if ($tag_id == -1) {
                 $success = $success || true;
                 continue;
             }
-            $saveSuccess = $this->AttributeTag->detachTagFromAttribute($attribute_id, $event_id, $tag_id, $nothingToChange);
+            $saveSuccess = $this->AttributeTag->detachTagFromAttribute($attribute_id, $event_id, $tag_id, $local, $nothingToChange);
             $success = $success || !empty($saveSuccess);
             $touchAttribute = $touchAttribute || !$nothingToChange;
         }
