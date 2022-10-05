@@ -303,7 +303,7 @@
               <input type="checkbox" class="AttributeDisableCorrelation"<?php if (!empty($attribute['disable_correlation'])) echo ' checked'; ?>>
             </td>
             <td class="short">
-              <input type="text" class="AttributeComment" style="padding:0;height:20px;margin-bottom:0;" placeholder="<?php echo h($importComment); ?>"<?php if (!empty($attribute['comment'])) echo ' value="' . h($attribute['comment']) . '"';?>>
+              <input type="text" class="AttributeComment" style="padding:0;height:20px;margin-bottom:0;"<?php if (!empty($attribute['comment'])) echo ' value="' . h($attribute['comment']) . '"';?>>
             </td>
             <td class="short" style="width:40px;text-align:center;">
               <select class="AttributeDistribution" style="padding:0;height:20px;margin-bottom:0;">

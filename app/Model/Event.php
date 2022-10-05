@@ -6424,8 +6424,7 @@ class Event extends AppModel
                 }
                 if ($jobId) {
                     $processedAttributes++;
-                    $this->Job->saveField('message', 'Attribute ' . $processedAttributes . '/' . $total_attributes);
-                    $this->Job->saveField('progress', ($processedAttributes * 100 / $items_count));
+                    $this->Job->saveProgress($jobId, "Attribute $processedAttributes/$total_attributes", $processedAttributes * 100 / $items_count);
                 }
             }
         } else {
@@ -6470,7 +6469,7 @@ class Event extends AppModel
                             if (isset($initial_attributes[$object_relation]) && in_array($object_attribute['value'], $initial_attributes[$object_relation])) {
                                 continue;
                             }
-                            if ($this->__saveObjectAttribute($object_attribute, $default_comment, $event, $initial_object_id, $user)) {
+                            if ($this->__saveObjectAttribute($object_attribute, null, $event, $initial_object_id, $user)) {
                                 $saved_object_attributes++;
                             } else {
                                 $failed_object_attributes++;
@@ -6503,7 +6502,7 @@ class Event extends AppModel
                             if ($this->Object->save($object)) {
                                 $object_id = $this->Object->id;
                                 foreach ($object['Attribute'] as $object_attribute) {
-                                    if ($this->__saveObjectAttribute($object_attribute, $default_comment, $event, $object_id, $user)) {
+                                    if ($this->__saveObjectAttribute($object_attribute, null, $event, $object_id, $user)) {
                                         $saved_object_attributes++;
                                     } else {
                                         $failed_object_attributes++;
@@ -6538,8 +6537,7 @@ class Event extends AppModel
                 }
                 if ($jobId) {
                     $processedObjects++;
-                    $this->Job->saveField('message', 'Object ' . $processedObjects . '/' . $total_objects);
-                    $this->Job->saveField('progress', (($processedObjects + $total_attributes) * 100 / $items_count));
+                    $this->Job->saveProgress($jobId, "Object $processedObjects/$total_objects", ($processedObjects + $total_attributes) * 100 / $items_count);
                 }
             }
 
@@ -6606,8 +6604,7 @@ class Event extends AppModel
                 }
                 if ($jobId) {
                     $current = ($i + 1);
-                    $this->Job->saveField('message', 'EventReport ' . $current . '/' . $total_reports);
-                    $this->Job->saveField('progress', ($current * 100 / $items_count));
+                    $this->Job->saveProgress($jobId, "EventReport $current/$total_reports", $current * 100 / $items_count);
                 }
             }
         }
@@ -6674,8 +6671,7 @@ class Event extends AppModel
             $message .= $failed_reports . $reason;
         }
         if ($jobId) {
-            $this->Job->saveField('message', 'Processing complete. ' . $message);
-            $this->Job->saveField('progress', 100);
+            $this->Job->saveStatus($jobId, true, 'Processing complete. ' . $message);
             $eventLock->deleteBackgroundJobLock($event['Event']['id'], $jobId);
         }
         return $message;
@@ -6765,7 +6761,7 @@ class Event extends AppModel
 
     /**
      * @param array $attribute
-     * @param string $default_comment
+     * @param string|null $default_comment
      * @param array $event
      * @param int $object_id
      * @param array $user
@@ -6776,7 +6772,7 @@ class Event extends AppModel
     {
         $attribute['object_id'] = $object_id;
         $attribute['event_id'] = $event['Event']['id'];
-        if (empty($attribute['comment'])) {
+        if (empty($attribute['comment']) && $default_comment) {
             $attribute['comment'] = $default_comment;
         }
         if (!empty($attribute['data']) && !empty($attribute['encrypt'])) {
