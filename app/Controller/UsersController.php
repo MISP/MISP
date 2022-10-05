@@ -667,6 +667,11 @@ class UsersController extends AppController
                     'termsaccepted' => 0,
                     'org_id' => $this->Auth->user('org_id'),
                 );
+
+                if (Configure::read('CustomAuth_enable') && Configure::read('CustomAuth_required')) {
+                    $defaults['change_pw'] = 0;
+                }
+
                 foreach ($defaults as $key => $value) {
                     if (!isset($this->request->data['User'][$key])) {
                         $this->request->data['User'][$key] = $value;
