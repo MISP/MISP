@@ -378,6 +378,30 @@ class Attribute extends AppModel
     }
 
     /**
+     * Append extension to filename if no extension provided. This is typical for attachments imported from STIX file.
+     * @param array $attribute
+     * @return void
+     */
+    private function checkAttachmentExtension(array &$attribute)
+    {
+        if (pathinfo($attribute['value'], PATHINFO_EXTENSION) !== '' || empty($attribute['data_raw'])) {
+            return;
+        }
+
+        if (!class_exists('finfo')) {
+            return;
+        }
+
+        $finfo = new finfo(FILEINFO_EXTENSION);
+        $extension = explode('/', $finfo->buffer($attribute['data_raw']))[0];
+
+        // Append recognized extension, that are considered as safe
+        if (in_array($extension, ['png', 'jpeg', 'zip', 'gif', 'webp'], true)) {
+            $attribute['value'] = rtrim($attribute['value'], '.') . $extension;
+        }
+    }
+
+    /**
      * @param int $event_id
      * @param bool $increment True for increment, false for decrement,
      * @return bool
@@ -640,6 +664,17 @@ class Attribute extends AppModel
         if (!isset($attribute['to_ids'])) {
             $attribute['to_ids'] = $this->typeDefinitions[$type]['to_ids'];
         }
+
+        if ($type === 'attachment') {
+            $this->checkAttachmentExtension($attribute);
+
+            // Disable correlation for image attachment filename that often leads to false positive correlation becuase of
+            // generic names
+            if (!isset($attribute['disable_correlation']) && $this->isImage($attribute)) {
+                $attribute['disable_correlation'] = true;
+            }
+        }
+
         // return true, otherwise the object cannot be saved
         return true;
     }
