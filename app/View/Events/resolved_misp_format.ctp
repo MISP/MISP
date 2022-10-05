@@ -264,7 +264,7 @@
               <span class="ObjectRelation bold"><?php echo h($attribute['object_relation']); ?></span>
               <span class="AttributeType"><?php echo h($attribute['type']); ?></span>
             </td>
-            <td class="AttributeValue limitedWidth"><?= $this->element('Events/View/value_field', ['object' => $attribute]); ?></td>
+            <td class="AttributeValue limitedWidth" data-value="<?= h($attribute['value']) ?>"><?= $this->element('Events/View/value_field', ['object' => $attribute]); ?></td>
             <?php
                 if (in_array($attribute['type'], $typesWithData, true)) {
                     if (!empty($attribute['data'])) {
@@ -374,7 +374,7 @@
                     }
                 }
           ?>
-          <td class="AttributeValue limitedWidth"><?= $this->element('Events/View/value_field', ['object' => $attribute]); ?></td>
+          <td class="AttributeValue limitedWidth" data-value="<?= h($attribute['value']) ?>"><?= $this->element('Events/View/value_field', ['object' => $attribute]); ?></td>
           <?php
                 if (in_array($attribute['type'], $typesWithData, true)) {
                     if (!empty($attribute['data'])) {

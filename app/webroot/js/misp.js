@@ -2882,14 +2882,6 @@ function freetextPossibleObjectTemplates() {
 }
 
 function moduleResultsSubmit(id) {
-    var attributeValue = function ($attributeValue) {
-        if ($attributeValue.find("[data-full]").length) {
-            return $attributeValue.find("[data-full]").data('full');
-        } else {
-            return $attributeValue.text()
-        }
-    }
-
     var typesWithData = ['attachment', 'malware-sample'];
     var data_collected = {};
     var temp;
@@ -2960,7 +2952,7 @@ function moduleResultsSubmit(id) {
                         object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
                         type: attribute_type,
-                        value: attributeValue($(this).find('.AttributeValue')),
+                        value: $(this).find('.AttributeValue').data('value'),
                         uuid: $(this).find('.AttributeUuid').text(),
                         to_ids: $(this).find('.AttributeToIds')[0].checked,
                         disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
@@ -3020,7 +3012,7 @@ function moduleResultsSubmit(id) {
                 import_attribute: $(this).find('.ImportMISPAttribute')[0].checked,
                 category: category_value,
                 type: type_value,
-                value: attributeValue($(this).find('.AttributeValue')),
+                value: $(this).find('.AttributeValue').data('value'),
                 uuid: $(this).find('.AttributeUuid').text(),
                 to_ids: $(this).find('.AttributeToIds')[0].checked,
                 disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
