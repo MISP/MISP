@@ -55,7 +55,7 @@ class Correlation extends AppModel
     /** @var array */
     private $cidrListCache;
 
-    private $__tempContainCache = [];
+    private $containCache = [];
 
     /** @var OverCorrelatingValue */
     public $OverCorrelatingValue;
@@ -245,25 +245,28 @@ class Correlation extends AppModel
     /**
      * @param string $scope
      * @param int $id
-     * @return false|array
+     * @return bool|array Returns array if object is found, false if object doesn't exists or true if object is not required
      */
     private function __cachedGetContainData($scope, $id)
     {
-        if (!empty($this->getContainRules($scope))) {
-            if (empty($this->__tempContainCache[$scope][$id])) {
+        $rules = $this->getContainRules($scope);
+        if (!empty($rules)) {
+            if (!isset($this->containCache[$scope][$id])) {
                 $temp = $this->Attribute->$scope->find('first', array(
                     'recursive' => -1,
-                    'fields' => $this->getContainRules($scope)['fields'],
+                    'fields' => $rules['fields'],
                     'conditions' => ['id' => $id],
                     'order' => array(),
                 ));
-                $temp = empty($temp) ? false : $temp[$scope];
-                $this->__tempContainCache[$scope][$id] = $temp;
-                return $temp;
-            } else {
-                return $this->__tempContainCache[$scope][$id];
+                if (empty($temp)) {
+                    return false;
+                }
+                return $this->containCache[$scope][$id] = $temp[$scope];
             }
+            return $this->containCache[$scope][$id];
         }
+
+        return true;
     }
 
     /**

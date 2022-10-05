@@ -16,6 +16,7 @@ logger = logging.getLogger('pymisp')
 
 
 from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting, Distribution, ThreatLevel, Analysis, MISPEventReport, MISPServerError
+from pymisp.tools import DomainIPObject
 
 # Load access information for env variables
 url = "http://" + os.environ["HOST"]
@@ -536,9 +537,34 @@ class TestComprehensive(unittest.TestCase):
             for event in (first, second):
                 check_response(self.admin_misp_connector.delete_event(event))
 
+    def test_correlations_object(self):
+        first = create_simple_event()
+        dom_ip_obj = DomainIPObject({'ip': ['10.0.0.1']})
+        first.add_object(dom_ip_obj)
+        first = check_response(self.admin_misp_connector.add_event(first))
+
+        second = create_simple_event()
+        dom_ip_obj = DomainIPObject({'ip': ['10.0.0.1']})
+        second.add_object(dom_ip_obj)
+        second = check_response(self.admin_misp_connector.add_event(second))
+
+        # Reload to get event data with related events
+        first = check_response(self.admin_misp_connector.get_event(first))
+
+        try:
+            self.assertEqual(1, len(first.RelatedEvent), first.RelatedEvent)
+            self.assertEqual(1, len(second.RelatedEvent), second.RelatedEvent)
+        except:
+            raise
+        finally:
+            # Delete events
+            for event in (first, second):
+                check_response(self.admin_misp_connector.delete_event(event))
+
     def test_correlations_noacl(self):
         with MISPSetting(self.admin_misp_connector, {"MISP.correlation_engine": "NoAcl"}):
             self.test_correlations()
+            self.test_correlations_object()
 
     def test_advanced_correlations(self):
         with MISPSetting(self.admin_misp_connector, {"MISP.enable_advanced_correlations": True}):
@@ -898,7 +924,6 @@ class TestComprehensive(unittest.TestCase):
 
         self.admin_misp_connector.delete_event(event)
 
-
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
@@ -910,6 +935,7 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector._check_response(response)
         check_response(response)
         return response
+
 
 if __name__ == '__main__':
     unittest.main()
