@@ -1039,7 +1039,7 @@ class RestResponseComponent extends Component
                 'input' => 'text',
                 'type' => 'string',
                 'operators' => array('equal'),
-                'help' => __('Allow providing a JSON containing the keys and values to search for. Example: {"synonyms": "apt42"}'),
+                'help' => __('Allow providing a JSON containing the keys and values to search for. Example: {"synonyms": "apt42"} (all condition are ANDed)'),
             ),
             'email' => array(
                 'input' => 'text',

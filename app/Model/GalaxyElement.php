@@ -141,20 +141,25 @@ class GalaxyElement extends AppModel
      */
     public function getClusterIDsFromMatchingElements(array $user, array $elements): array
     {
+        $conditionCount = 0;
         $elementConditions = [];
         foreach ($elements as $key => $value) {
-            $elementConditions[] = [
+            $elementConditions['OR'][] = [
                 'GalaxyElement.key' => $key,
                 'GalaxyElement.value' => $value,
             ];
+            $conditionCount += is_array($value) ? count($value) : 1;
         }
         $conditions = [
             $this->buildACLConditions($user),
             $elementConditions,
         ];
         $elements = $this->find('all', [
+            'fields' => ['GalaxyElement.galaxy_cluster_id'],
             'conditions' => $conditions,
             'contain' => ['GalaxyCluster' => ['fields' => ['id', 'distribution', 'org_id']]],
+            'group' => ['GalaxyElement.galaxy_cluster_id'],
+            'having' => ['COUNT(GalaxyElement.id) =' => $conditionCount],
             'recursive' => -1
         ]);
         $clusterIDs = [];
