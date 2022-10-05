@@ -46,7 +46,7 @@
             echo $this->Form->input('to_ids', array(
                 'type' => 'checkbox',
                 'label' => __('Only find IOCs flagged as to IDS'),
-                'style' => 'margin-top:1em'
+                'div' => ['style' => 'margin-top:1em'],
             ));
             echo $this->Form->input('first_seen', array(
                 'type' => 'text',
@@ -60,9 +60,9 @@
             ));
         ?>
         <div class="clear">
-        <h3><?php echo __('First seen and Last seen'); ?></h3>
-        <p><?php echo __('Attributes not having first seen or last seen set might not appear in the search'); ?></p>
-    </div>
+            <h3><?php echo __('First seen and Last seen'); ?></h3>
+            <p><?php echo __('Attributes not having first seen or last seen set might not appear in the search'); ?></p>
+        </div>
     </fieldset>
     <div id="bothSeenSliderContainer"></div>
     <div class="clear"></div>
@@ -102,20 +102,13 @@ $(function() {
 
     $("#AttributeCategory").change(function () {
         formCategoryChanged("Attribute");
-        $("#AttributeType").chosen('destroy').chosen();
+        $("#AttributeType").trigger("chosen:updated");
     }).change();
 
     $("#AttributeType").change(function () {
         searchFormTypeChanged();
-        $("#AttributeCategory").chosen('destroy').chosen();
+        $("#AttributeCategory").trigger("chosen:updated");
     }).change();
-
-    // Submit textarea on CTRL+ENTER
-    $('.input-xxlarge').keydown(function (e) {
-        if (e.ctrlKey && e.keyCode === 13) {
-            $('#AttributeSearchForm').submit();
-        }
-    });
 });
 </script>
 <?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'searchAttributes'));
