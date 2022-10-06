@@ -53,7 +53,7 @@ class Oidc
         $organisationUuidProperty = $this->getConfig('organisation_uuid_property', 'organization_uuid');
         $organisationUuid = $claims->{$organisationUuidProperty} ?? null;
 
-        $organisationId = $this->checkOrganization($organisationName, $organisationUuid, $user, $mispUsername);
+        $organisationId = $this->checkOrganization($organisationName, $organisationUuid, $mispUsername);
         if (!$organisationId) {
             if ($user) {
                 $this->block($user);
@@ -117,7 +117,7 @@ class Oidc
             return $user;
         }
 
-        $this->log($mispUsername, 'Not found in database.');
+        $this->log($mispUsername, 'User not found in database.');
 
         $time = time();
         $userData = [
@@ -129,6 +129,7 @@ class Oidc
             'change_pw' => 0,
             'date_created' => $time,
             'sub' => $sub,
+            'enable_password' => false, // do not generate default password for user
         ];
 
         if (!$this->User->save($userData)) {
@@ -138,7 +139,7 @@ class Oidc
         $refreshToken = $this->getConfig('offline_access', false) ? $oidc->getRefreshToken() : null;
         $this->storeMetadata($this->User->id, $claims, $refreshToken);
 
-        $this->log($mispUsername, "Saved in database with ID {$this->User->id}");
+        $this->log($mispUsername, "User saved in database with ID {$this->User->id}");
         $this->log($mispUsername, 'Logged in.');
         $user = $this->_findUser($settings, ['User.id' => $this->User->id]);
 
@@ -234,7 +235,7 @@ class Oidc
         $organisationUuidProperty = $this->getConfig('organisation_uuid_property', 'organization_uuid');
         $organisationUuid = $claims->{$organisationUuidProperty} ?? null;
 
-        $organisationId = $this->checkOrganization($organisationName, $organisationUuid, $user, $user['email']);
+        $organisationId = $this->checkOrganization($organisationName, $organisationUuid, $user['email']);
         if (!$organisationId) {
             return false;
         }
@@ -312,12 +313,11 @@ class Oidc
     /**
      * @param string $orgName Organisation name or UUID
      * @param string|null $orgUuid Organisation UUID
-     * @param array|null $user User that will be used as org creator
      * @param string $mispUsername
      * @return int
      * @throws Exception
      */
-    private function checkOrganization($orgName, $orgUuid, $user, $mispUsername)
+    private function checkOrganization($orgName, $orgUuid, $mispUsername)
     {
         if (empty($orgName)) {
             $this->log($mispUsername, "Organisation name not provided.");
@@ -352,8 +352,7 @@ class Oidc
                 return false;
             }
 
-            $orgUserId = $user ? $user['id'] : 1; // By default created by the admin
-            $orgId = $this->User->Organisation->createOrgFromName($orgName, $orgUserId, true, $orgUuid);
+            $orgId = $this->User->Organisation->createOrgFromName($orgName, 0, true, $orgUuid);
             $this->log($mispUsername, "User organisation `$orgName` created with ID $orgId.");
         } else {
             $orgId = $orgAux['Organisation']['id'];
