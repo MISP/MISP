@@ -731,6 +731,11 @@ $divider = '<li class="divider"></li>';
                         'text' => __('User Guide')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'categoriesAndTypes',
+                        'url' => $baseurl . '/pages/display/doc/categories_and_types',
+                        'text' => __('Categories & Types'),
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/users/terms',
                         'text' => __('Terms & Conditions')
                     ));
