@@ -124,7 +124,7 @@ class AttributeTag extends AppModel
             $relationship_type = isset($tag['relationship_type']) ? $tag['relationship_type'] : false;
             $this->attachTagToAttribute($attribute_id, $event_id, $tag['id'], $local, $relationship_type);
         } else {
-            $this->detachTagFromAttribute($attribute_id, $event_id, null, $tag['id']);
+            $this->detachTagFromAttribute($attribute_id, $event_id, $tag['id'], null);
         }
     }
 
