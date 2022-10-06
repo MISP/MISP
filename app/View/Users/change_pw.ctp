@@ -6,9 +6,13 @@
         $passwordPopover = '<span class="blue bold">' . __('Minimal length') . '</span>: ' . h($length) . '<br>';
         $passwordPopover .= '<span class="blue bold">' . __('Complexity') . '</span>: ' . h($complexity);
         echo $this->Form->input('password', array(
-            'label' => __('Password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) . '" class="fas fa-info-circle"></span>', 'autofocus'
+            'label' => __('New password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) . '" class="fas fa-info-circle"></span>', 'autofocus'
         ));
-        echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
+        echo $this->Form->input('confirm_password', [
+            'type' => 'password',
+            'label' => __('Confirm new password'),
+            'div' => array('class' => 'input password required'),
+        ]);
     ?>
     </fieldset>
     <div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>
@@ -24,6 +28,4 @@ echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'change_pw'));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'change_pw'));

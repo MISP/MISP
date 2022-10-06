@@ -639,6 +639,7 @@ class ACLComponent extends Component
                 'delete' => array(),
                 'edit' => array(),
                 'index' => array('*'),
+                'modifyTagRelationship' => ['perm_tagger'],
                 'quickAdd' => array('perm_tag_editor'),
                 'removeTagFromObject' => array('perm_tagger'),
                 'search' => array('*'),

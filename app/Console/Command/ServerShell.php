@@ -238,6 +238,7 @@ class ServerShell extends AppShell
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $feedId = $this->args[1];
+        Configure::write('CurrentUserId', $userId);
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];
         } else {

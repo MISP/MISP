@@ -1492,7 +1492,10 @@ function genPicker(options, forNode = true) {
 function genInput(options, isTextArea, forNode = true) {
     var $container = $('<div>')
         .addClass('node-param-container')
-        .data('param-id', options.id)
+        .attr('param-id', options.id)
+    if (options.display_on) {
+        $container.addClass('display-on')
+    }
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
@@ -1560,6 +1563,9 @@ function genCheckbox(options, forNode = true) {
         .data('param-id', options.id)
         .addClass('checkbox')
         .append($label)
+    if (options.display_on) {
+        $container.addClass('display-on')
+    }
     return $container
 }
 
@@ -1567,6 +1573,9 @@ function genRadio(options, forNode = true) {
     var $container = $('<div>')
         .addClass('node-param-container')
         .data('param-id', options.id)
+    if (options.display_on) {
+        $container.addClass('display-on')
+    }
     var $rootLabel = $('<label>')
         .css({
             marginLeft: '0.25em',

@@ -516,8 +516,11 @@ class Event extends AppModel
         return $this->save($event, true, ['timestamp', 'published']);
     }
 
-    public function attachTagsToEventAndTouch($event_id, $tags, array $user)
+    public function attachTagsToEventAndTouch($event_id, array $options, array $user)
     {
+        $tags = $options['tags'];
+        $local = $options['local'];
+        $relationship = $options['relationship_type'];
         $touchEvent = false;
         $success = false;
         $capturedTags = [];
@@ -530,7 +533,12 @@ class Event extends AppModel
                 $user,
                 $capturedTags
             );
-            $success = $success || $this->EventTag->attachTagToEvent($event_id, ['id' => $tag_id], $nothingToChange);
+            $tag = [
+                'id' => $tag_id,
+                'local' => $local,
+                'relationship_type' => $relationship,
+            ];
+            $success = $success || $this->EventTag->attachTagToEvent($event_id, $tag, $nothingToChange);
             $touchEvent = $touchEvent || !$nothingToChange;
         }
         if ($touchEvent) {
@@ -539,8 +547,10 @@ class Event extends AppModel
         return $success;
     }
 
-    public function detachTagsFromEventAndTouch($event_id, $tags)
+    public function detachTagsFromEventAndTouch($event_id, array $options)
     {
+        $tags = $options['tags'];
+        $local = $options['local'];
         $touchEvent = false;
         $success = false;
         foreach ($tags as $tag_name) {
@@ -550,7 +560,7 @@ class Event extends AppModel
                 $success = $success || true;
                 continue;
             }
-            $success = $success || $this->EventTag->detachTagFromEvent($event_id, $tag_id, $nothingToChange);
+            $success = $success || $this->EventTag->detachTagFromEvent($event_id, $tag_id, $local, $nothingToChange);
             $touchEvent = $touchEvent || !$nothingToChange;
         }
         if ($touchEvent) {
@@ -1635,6 +1645,9 @@ class Event extends AppModel
         if (!isset($options['fetchFullClusters'])) {
             $options['fetchFullClusters'] = true;
         }
+        if (!isset($options['fetchFullClusterRelationship'])) {
+            $options['fetchFullClusterRelationship'] = false;
+        }
         foreach ($possibleOptions as $opt) {
             if (!isset($options[$opt])) {
                 $options[$opt] = false;
@@ -1983,7 +1996,7 @@ class Event extends AppModel
                 $event['warnings'] = $eventWarnings;
             }
             $this->__attachTags($event, $justExportableTags);
-            $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters']);
+            $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters'], $options['fetchFullClusterRelationship']);
             $event = $this->Orgc->attachOrgs($event, $fieldsOrg);
             if (!$sharingGroupReferenceOnly && $event['Event']['sharing_group_id']) {
                 if (isset($sharingGroupData[$event['Event']['sharing_group_id']])) {
@@ -2147,7 +2160,7 @@ class Event extends AppModel
      * @param bool $excludeGalaxy
      * @param bool $fetchFullCluster
      */
-    private function __attachGalaxies(array &$event, array $user, $excludeGalaxy, $fetchFullCluster)
+    private function __attachGalaxies(array &$event, array $user, $excludeGalaxy, $fetchFullCluster, $fetchFullRelationship=false)
     {
         $galaxyTags = [];
         $event['Galaxy'] = [];
@@ -2176,7 +2189,7 @@ class Event extends AppModel
         }
 
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, $fetchFullCluster);
+        $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, $fetchFullCluster, $fetchFullRelationship);
 
         if (empty($clusters)) {
             return;
@@ -2184,7 +2197,6 @@ class Event extends AppModel
 
         $clustersByTagIds = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
         unset($clusters);
-
         if (isset($event['EventTag'])) {
             foreach ($event['EventTag'] as $eventTag) {
                 if (!$eventTag['Tag']['is_galaxy']) {
@@ -2194,7 +2206,9 @@ class Event extends AppModel
                 if (isset($clustersByTagIds[$tagId])) {
                     $cluster = $clustersByTagIds[$tagId];
                     $galaxyId = $cluster['Galaxy']['id'];
+                    $cluster['event_tag_id'] = $eventTag['id'];
                     $cluster['local'] = $eventTag['local'] ?? false;
+                    $cluster['relationship_type'] = !empty($eventTag['relationship_type']) ? $eventTag['relationship_type'] : false;
                     if (isset($event['Galaxy'][$galaxyId])) {
                         unset($cluster['Galaxy']);
                         $event['Galaxy'][$galaxyId]['GalaxyCluster'][] = $cluster;
@@ -2211,14 +2225,16 @@ class Event extends AppModel
             foreach ($event['Attribute'] as &$attribute) {
                 if (isset($attribute['AttributeTag'])) {
                     foreach ($attribute['AttributeTag'] as $attributeTag) {
-                        if (!$attributeTag['Tag']['is_galaxy']) {
+                        if (isset($attributeTag['Tag']['is_galaxy']) && !$attributeTag['Tag']['is_galaxy']) {
                             continue;
                         }
                         $tagId = $attributeTag['Tag']['id'];
                         if (isset($clustersByTagIds[$tagId])) {
                             $cluster = $clustersByTagIds[$tagId];
                             $galaxyId = $cluster['Galaxy']['id'];
+                            $cluster['attribute_tag_id'] = $attributeTag['id'];
                             $cluster['local'] = $attributeTag['local'] ?? false;
+                            $cluster['relationship_type'] = !empty($attributeTag['relationship_type']) ? $attributeTag['relationship_type'] : false;
                             if (isset($attribute['Galaxy'][$galaxyId])) {
                                 unset($cluster['Galaxy']);
                                 $attribute['Galaxy'][$galaxyId]['GalaxyCluster'][] = $cluster;
@@ -6201,7 +6217,8 @@ class Event extends AppModel
                         foreach ($attribute['Tag'] as $tag) {
                             $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
                             if ($tag_id) {
-                                $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $id, $tag_id, !empty($tag['local']));
+                                $relationship_type = empty($tag['relationship_type']) ? false : $tag['relationship_type'];
+                                $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $id, $tag_id, !empty($tag['local']), $relationship_type);
                             }
                         }
                     }
@@ -6583,8 +6600,9 @@ class Event extends AppModel
             if (!empty($attribute['Tag'])) {
                 foreach ($attribute['Tag'] as $tag) {
                     $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
+                    $relationship_type = empty($tag['relationship_type']) ? false : $tag['relationship_type'];
                     if ($tag_id) {
-                        $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $event_id, $tag_id, !empty($tag['local']));
+                        $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $event_id, $tag_id, !empty($tag['local']), $relationship_type);
                     }
                 }
             }
@@ -6769,7 +6787,7 @@ class Event extends AppModel
         }
         $ats = $this->Attribute->AttributeTag->find('all', [
             'conditions' => $conditions,
-            'fields' => ['AttributeTag.attribute_id', 'AttributeTag.tag_id', 'AttributeTag.local'], // we don't need id or event_id
+            'fields' => ['AttributeTag.id', 'AttributeTag.attribute_id', 'AttributeTag.tag_id', 'AttributeTag.local', 'AttributeTag.relationship_type'], // we don't need id or event_id
             'recursive' => -1,
         ]);
         if (empty($ats)) {
@@ -6865,6 +6883,7 @@ class Event extends AppModel
                 $tag = $this->__getCachedTag($eventTag['tag_id'], $justExportable);
                 if ($tag !== null) {
                     $tag['local'] = empty($eventTag['local']) ? 0 : 1;
+                    $tag['relationship_type'] = empty($eventTag['relationship_type']) ? null : $eventTag['relationship_type'];
                     $event['EventTag'][$etk]['Tag'] = $tag;
                 } else {
                     unset($event['EventTag'][$etk]);
@@ -6879,6 +6898,7 @@ class Event extends AppModel
                         $tag = $this->__getCachedTag($attributeTag['tag_id'], $justExportable);
                         if ($tag !== null) {
                             $tag['local'] = empty($attributeTag['local']) ? 0 : 1;
+                            $tag['relationship_type'] = empty($attributeTag['relationship_type']) ? null : $attributeTag['relationship_type'];
                             $event['Attribute'][$ak]['AttributeTag'][$atk]['Tag'] = $tag;
                         } else {
                             unset($event['Attribute'][$ak]['AttributeTag'][$atk]);
@@ -7613,5 +7633,53 @@ class Event extends AppModel
             'all_tags' => $clusteredTags['allTagsPerPrefix'],
             'all_timestamps' => array_keys($clusteredTags['eventNumberPerRollingWindow']),
         ];
+    }
+
+    public function extractRelatedCourseOfActions(array $events): array
+    {
+        $mitre_attack_galaxy_type = 'mitre-attack-pattern';
+        $mitre_coa_galaxy_type = 'mitre-course-of-action';
+        $allowedRelationTypes = ['mitigates'];
+        $coa = [];
+        foreach ($events as $event) {
+            foreach ($event['Galaxy'] as $galaxy) {
+                foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                    foreach ($cluster['GalaxyClusterRelation'] as $relation) {
+                        if (in_array($relation['referenced_galaxy_cluster_type'], $allowedRelationTypes) && $relation['TargetCluster']['type'] == $mitre_coa_galaxy_type) {
+                            if (!isset($coa[$relation['TargetCluster']['tag_name']])) {
+                                $coa[$relation['TargetCluster']['tag_name']] = $relation['TargetCluster'];
+                                $coa[$relation['TargetCluster']['tag_name']]['occurrence'] = 0;
+                                $coa[$relation['TargetCluster']['tag_name']]['techniques'] = [];
+                            }
+                            $coa[$relation['TargetCluster']['tag_name']]['occurrence'] += 1;
+                            if ($cluster['type'] == $mitre_attack_galaxy_type) {
+                                $coa[$relation['TargetCluster']['tag_name']]['techniques'][$cluster['tag_name']] = $cluster;
+                            }
+                        }
+                    }
+                    if (!empty($cluster['TargetingClusterRelation'])) {
+                        foreach ($cluster['TargetingClusterRelation'] as $relation) {
+                            if (in_array($relation['referenced_galaxy_cluster_type'], $allowedRelationTypes) && $relation['GalaxyCluster']['type'] == $mitre_coa_galaxy_type) {
+                                if (!isset($coa[$relation['GalaxyCluster']['tag_name']])) {
+                                    $coa[$relation['GalaxyCluster']['tag_name']] = $relation['GalaxyCluster'];
+                                    $coa[$relation['GalaxyCluster']['tag_name']]['techniques'] = [];
+                                    $coa[$relation['GalaxyCluster']['tag_name']]['occurrence'] = 0;
+                                }
+                                $coa[$relation['GalaxyCluster']['tag_name']]['occurrence'] += 1;
+                                if ($cluster['type'] == $mitre_attack_galaxy_type
+                                ) {
+                                    $coa[$relation['GalaxyCluster']['tag_name']]['techniques'][$cluster['tag_name']] = $cluster;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        uasort($coa, function ($a, $b) {
+            return $a['occurrence'] > $b['occurrence'] ? -1 : 1;
+        });
+
+        return $coa;
     }
 }

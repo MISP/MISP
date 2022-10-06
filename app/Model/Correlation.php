@@ -55,7 +55,7 @@ class Correlation extends AppModel
     /** @var array */
     private $cidrListCache;
 
-    private $__tempContainCache = [];
+    private $containCache = [];
 
     /** @var OverCorrelatingValue */
     public $OverCorrelatingValue;
@@ -245,25 +245,28 @@ class Correlation extends AppModel
     /**
      * @param string $scope
      * @param int $id
-     * @return false|array
+     * @return bool|array Returns array if object is found, false if object doesn't exists or true if object is not required
      */
     private function __cachedGetContainData($scope, $id)
     {
-        if (!empty($this->getContainRules($scope))) {
-            if (empty($this->__tempContainCache[$scope][$id])) {
+        $rules = $this->getContainRules($scope);
+        if (!empty($rules)) {
+            if (!isset($this->containCache[$scope][$id])) {
                 $temp = $this->Attribute->$scope->find('first', array(
                     'recursive' => -1,
-                    'fields' => $this->getContainRules($scope)['fields'],
+                    'fields' => $rules['fields'],
                     'conditions' => ['id' => $id],
                     'order' => array(),
                 ));
-                $temp = empty($temp) ? false : $temp[$scope];
-                $this->__tempContainCache[$scope][$id] = $temp;
-                return $temp;
-            } else {
-                return $this->__tempContainCache[$scope][$id];
+                if (empty($temp)) {
+                    return false;
+                }
+                return $this->containCache[$scope][$id] = $temp[$scope];
             }
+            return $this->containCache[$scope][$id];
         }
+
+        return true;
     }
 
     /**
@@ -627,7 +630,7 @@ class Correlation extends AppModel
     public function generateTopCorrelations($jobId = false)
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             throw new NotFoundException(__('No redis connection found.'));
         }
@@ -652,7 +655,7 @@ class Correlation extends AppModel
         }
         $maxId = $maxId[0]['max_id'];
 
-        $redis->del(self::CACHE_NAME);
+        RedisTool::unlink($redis, self::CACHE_NAME);
         $redis->set(self::CACHE_AGE, time());
         $chunkSize = 1000000;
         $maxPage = ceil($maxId / $chunkSize);
@@ -682,7 +685,7 @@ class Correlation extends AppModel
     public function findTop(array $query)
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
@@ -712,7 +715,7 @@ class Correlation extends AppModel
     public function getTopTime()
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
@@ -754,22 +757,22 @@ class Correlation extends AppModel
      */
     public function updateCidrList()
     {
-        $redis = $this->setupRedisWithException();
+        $redis = RedisTool::init();
         $cidrList = [];
         $this->cidrListCache = null;
         if ($redis) {
             $cidrList = $this->getCidrListFromDatabase();
 
-            $redis->pipeline();
-            $redis->del('misp:cidr_cache_list');
+            RedisTool::unlink($redis, 'misp:cidr_cache_list');
             if (method_exists($redis, 'saddArray')) {
                 $redis->sAddArray('misp:cidr_cache_list', $cidrList);
             } else {
+                $redis->pipeline();
                 foreach ($cidrList as $cidr) {
                     $redis->sadd('misp:cidr_cache_list', $cidr);
                 }
+                $redis->exec();
             }
-            $redis->exec();
         }
         return $cidrList;
     }
@@ -791,16 +794,17 @@ class Correlation extends AppModel
             return $this->cidrListCache;
         }
 
-        $redis = $this->setupRedisWithException();
-        if ($redis) {
+        try {
+            $redis = RedisTool::init();
             if (!$redis->exists('misp:cidr_cache_list')) {
                 $cidrList = $this->updateCidrList();
             } else {
                 $cidrList = $redis->smembers('misp:cidr_cache_list');
             }
-        } else {
+        } catch (Exception $e) {
             $cidrList = $this->getCidrListFromDatabase();
         }
+
         $this->cidrListCache = $cidrList;
         return $cidrList;
     }

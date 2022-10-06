@@ -378,6 +378,30 @@ class Attribute extends AppModel
     }
 
     /**
+     * Append extension to filename if no extension provided. This is typical for attachments imported from STIX file.
+     * @param array $attribute
+     * @return void
+     */
+    private function checkAttachmentExtension(array &$attribute)
+    {
+        if (pathinfo($attribute['value'], PATHINFO_EXTENSION) !== '' || empty($attribute['data_raw'])) {
+            return;
+        }
+
+        if (!class_exists('finfo')) {
+            return;
+        }
+
+        $finfo = new finfo(FILEINFO_EXTENSION);
+        $extension = explode('/', $finfo->buffer($attribute['data_raw']))[0];
+
+        // Append recognized extension, that are considered as safe
+        if (in_array($extension, ['png', 'jpeg', 'zip', 'gif', 'webp'], true)) {
+            $attribute['value'] = rtrim($attribute['value'], '.') . $extension;
+        }
+    }
+
+    /**
      * @param int $event_id
      * @param bool $increment True for increment, false for decrement,
      * @return bool
@@ -640,6 +664,17 @@ class Attribute extends AppModel
         if (!isset($attribute['to_ids'])) {
             $attribute['to_ids'] = $this->typeDefinitions[$type]['to_ids'];
         }
+
+        if ($type === 'attachment') {
+            $this->checkAttachmentExtension($attribute);
+
+            // Disable correlation for image attachment filename that often leads to false positive correlation becuase of
+            // generic names
+            if (!isset($attribute['disable_correlation']) && $this->isImage($attribute)) {
+                $attribute['disable_correlation'] = true;
+            }
+        }
+
         // return true, otherwise the object cannot be saved
         return true;
     }
@@ -841,8 +876,8 @@ class Attribute extends AppModel
             $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
             // Clean thumbnail cache
             if ($this->isImage($attribute) && Configure::read('MISP.thumbnail_in_redis')) {
-                $redis = $this->setupRedisWithException();
-                $redis->del($redis->keys("misp:thumbnail:attribute:{$attribute['id']}:*"));
+                $redis = RedisTool::init();
+                RedisTool::deleteKeysByPattern($redis, "misp:thumbnail:attribute:{$attribute['id']}:*");
             }
         }
         return $result;
@@ -2093,8 +2128,11 @@ class Attribute extends AppModel
         return $saveSucces && $this->Event->save($event, true, ['timestamp', 'published']);
     }
 
-    public function attachTagsFromAttributeAndTouch($attribute_id, $event_id, array $tags, array $user)
+    public function attachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options, array $user)
     {
+        $tags = $options['tags'];
+        $local = $options['local'];
+        $relationship = $options['relationship_type'];
         $touchAttribute = false;
         $success = false;
         $capturedTags = [];
@@ -2107,7 +2145,7 @@ class Attribute extends AppModel
                 $user,
                 $capturedTags
             );
-            $saveSuccess = $this->AttributeTag->attachTagToAttribute($attribute_id, $event_id, $tag_id, false, $nothingToChange);
+            $saveSuccess = $this->AttributeTag->attachTagToAttribute($attribute_id, $event_id, $tag_id, $local, $relationship, $nothingToChange);
             $success = $success || !empty($saveSuccess);
             $touchAttribute = $touchAttribute || !$nothingToChange;
         }
@@ -2117,19 +2155,20 @@ class Attribute extends AppModel
         return $success;
     }
 
-    public function detachTagsFromAttributeAndTouch($attribute_id, $event_id, $tags)
+    public function detachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options)
     {
+        $tags = $options['tags'];
+        $local = $options['local'];
         $touchAttribute = false;
         $success = false;
         foreach ($tags as $tag_name) {
             $nothingToChange = false;
             $tag_id = $this->AttributeTag->Tag->lookupTagIdFromName($tag_name);
-            debug($tag_id);
             if ($tag_id == -1) {
                 $success = $success || true;
                 continue;
             }
-            $saveSuccess = $this->AttributeTag->detachTagFromAttribute($attribute_id, $event_id, $tag_id, $nothingToChange);
+            $saveSuccess = $this->AttributeTag->detachTagFromAttribute($attribute_id, $event_id, $tag_id, $local, $nothingToChange);
             $success = $success || !empty($saveSuccess);
             $touchAttribute = $touchAttribute || !$nothingToChange;
         }
@@ -2572,6 +2611,7 @@ class Attribute extends AppModel
                             'attribute_id' => $this->id,
                             'event_id' => $eventId,
                             'tag_id' => $tag_id,
+                            'relationship_type' => empty($tag['relationship_type']) ? null : $tag['relationship_type']
                         ];
                         $this->AttributeTag->save($at);
                     }

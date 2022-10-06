@@ -973,7 +973,7 @@ class GalaxyCluster extends AppModel
      * @param bool $fetchFullCluster
      * @return array
      */
-    public function getClustersByTags(array $tagNames, array $user, $postProcess = true, $fetchFullCluster = true)
+    public function getClustersByTags(array $tagNames, array $user, $postProcess = true, $fetchFullCluster = true, $fetchFullRelationship = false)
     {
         $options = [
             'conditions' => ['GalaxyCluster.tag_name' => $tagNames],
@@ -982,7 +982,7 @@ class GalaxyCluster extends AppModel
             $options['contain'] = ['Galaxy', 'GalaxyElement'];
         }
 
-        $clusters = $this->fetchGalaxyClusters($user, $options, $fetchFullCluster);
+        $clusters = $this->fetchGalaxyClusters($user, $options, $fetchFullCluster, $fetchFullRelationship);
 
         if (!empty($clusters) && $postProcess) {
             $tagIds = array_change_key_case(array_flip($tagNames));
@@ -1028,7 +1028,7 @@ class GalaxyCluster extends AppModel
      * @param  bool  $full
      * @return array
      */
-    public function fetchGalaxyClusters(array $user, array $options, $full=false)
+    public function fetchGalaxyClusters(array $user, array $options, $full=false, $includeFullClusterRelationship=false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -1047,6 +1047,9 @@ class GalaxyCluster extends AppModel
                 'Org',
                 'SharingGroup'
             );
+        }
+        if (!empty($includeFullClusterRelationship)) {
+            $params['contain']['GalaxyClusterRelation'][] = 'TargetCluster';
         }
         if (!empty($options['contain'])) {
             $params['contain'] = $options['contain'];
@@ -1125,6 +1128,9 @@ class GalaxyCluster extends AppModel
                 unset($targetingClusterRelation['GalaxyClusterRelationTag']);
                 if (!empty($targetingClusterRelation['SharingGroup']['id'])) {
                     $targetingClusterRelation['TargetingClusterRelation']['SharingGroup'] = $targetingClusterRelation['SharingGroup'];
+                }
+                if ($includeFullClusterRelationship) {
+                    $targetingClusterRelation['TargetingClusterRelation']['GalaxyCluster'] = $targetingClusterRelation['SourceCluster'];
                 }
                 $targetingClusterRelations[$k] = $targetingClusterRelation['TargetingClusterRelation'];
             }
@@ -1319,8 +1325,13 @@ class GalaxyCluster extends AppModel
             }
         }
 
+        if (isset($filters['elements'])) {
+            $matchingIDs = $this->GalaxyElement->getClusterIDsFromMatchingElements($user, $filters['elements']);
+            $filters['id'] = $matchingIDs;
+        }
+
         $simpleParams = array(
-            'uuid', 'galaxy_id', 'version', 'distribution', 'type', 'value', 'default', 'extends_uuid', 'tag_name', 'published'
+            'uuid', 'galaxy_id', 'version', 'distribution', 'type', 'value', 'default', 'extends_uuid', 'tag_name', 'published', 'id',
         );
         foreach ($simpleParams as $k => $simpleParam) {
             if (isset($filters[$simpleParam])) {
@@ -1527,6 +1538,7 @@ class GalaxyCluster extends AppModel
                 if (isset($clustersByTagName[$tagName])) {
                     $cluster = $this->postprocess($clustersByTagName[$tagName], $eventTag['Tag']['id']);
                     $cluster['GalaxyCluster']['local'] = $eventTag['local'];
+                    $cluster['GalaxyCluster']['relationship_type'] = $eventTag['relationship_type'];
                     $events[$k]['GalaxyCluster'][] = $cluster['GalaxyCluster'];
                     if ($replace) {
                         unset($events[$k]['EventTag'][$k2]);

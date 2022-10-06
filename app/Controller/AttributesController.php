@@ -1580,7 +1580,7 @@ class AttributesController extends AppController
 
             // Force index for performance reasons see #3321
             if (isset($filters['value'])) {
-                $this->paginate['useIndexHint'] = '(value1, value2)';
+                $this->paginate['forceIndexHint'] = '(value1, value2)';
             }
 
             $this->paginate['conditions'] = $params['conditions'];
