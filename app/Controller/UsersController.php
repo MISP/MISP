@@ -667,7 +667,6 @@ class UsersController extends AppController
                     'termsaccepted' => 0,
                     'org_id' => $this->Auth->user('org_id'),
                 );
-
                 foreach ($defaults as $key => $value) {
                     if (!isset($this->request->data['User'][$key])) {
                         $this->request->data['User'][$key] = $value;
