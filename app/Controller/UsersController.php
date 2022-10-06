@@ -620,7 +620,7 @@ class UsersController extends AppController
     {
         $params = null;
         if (!$this->_isSiteAdmin()) {
-            $params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
+            $params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1, 'restricted_to_site_admin' => 0));
         }
         $this->loadModel('AdminSetting');
         $default_role_id = $this->AdminSetting->getSetting('default_role');
@@ -950,7 +950,16 @@ class UsersController extends AppController
                     $chosenRole = $this->User->Role->find('first', [
                         'conditions' => ['id' => $this->request->data['User']['role_id']],
                     ]);
-                    if (empty($chosenRole) || (($chosenRole['Role']['id'] != $allowedRole) && ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1))) {
+                    if (
+                        empty($chosenRole) ||
+                        (
+                            ($chosenRole['Role']['id'] != $allowedRole) && 
+                            ($chosenRole['Role']['perm_site_admin'] == 1 ||
+                            $chosenRole['Role']['perm_regexp_access'] == 1 ||
+                            $chosenRole['Role']['perm_sync'] == 1) ||
+                            $chosenRole['Role']['restricted_to_site_admin'] == 1
+                        )
+                    ) {
                         throw new Exception('You are not authorised to assign that role to a user.');
                     }
                 }
