@@ -668,10 +668,6 @@ class UsersController extends AppController
                     'org_id' => $this->Auth->user('org_id'),
                 );
 
-                if (Configure::read('CustomAuth_enable') && Configure::read('CustomAuth_required')) {
-                    $defaults['change_pw'] = 0;
-                }
-
                 foreach ($defaults as $key => $value) {
                     if (!isset($this->request->data['User'][$key])) {
                         $this->request->data['User'][$key] = $value;
@@ -702,6 +698,9 @@ class UsersController extends AppController
             }
             if (!isset($this->request->data['User']['disabled'])) {
                 $this->request->data['User']['disabled'] = false;
+            }
+            if (Configure::read('CustomAuth_enable') && Configure::read('CustomAuth_required')) {
+                $this->request->data['User']['change_pw'] = 0;
             }
             $this->request->data['User']['newsread'] = 0;
             if (!$this->_isSiteAdmin()) {
