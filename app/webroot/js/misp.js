@@ -3515,8 +3515,8 @@ function gpgSelect(fingerprint) {
     });
 }
 
-function lookupPGPKey(emailFieldName) {
-    var email = $('#' + emailFieldName).val();
+function lookupPGPKey() {
+    var email = $('#UserEmail').val();
     simplePopup(baseurl + "/users/searchGpgKey/" + email);
 }
 

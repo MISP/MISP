@@ -6004,7 +6004,14 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
-                )
+                ),
+                'key_fetching_disabled' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('When disabled, user could not fetch his PGP key from CIRCL key server. Key fetching requires internet connection.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
             ),
             'SMIME' => array(
                 'branch' => 1,
