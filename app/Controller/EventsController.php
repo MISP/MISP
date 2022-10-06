@@ -2357,13 +2357,14 @@ class EventsController extends AppController
                     $results = $this->Event->addMISPExportFile($this->Auth->user(), $data, $isXml, $takeOwnership, $publish);
                 } catch (Exception $e) {
                     $this->log("Exception during processing MISP file import: {$e->getMessage()}");
-                    $this->Flash->error(__('Could not process MISP export file. Probably file content is invalid.'));
+                    $this->Flash->error(__('Could not process MISP export file. %s.', $e->getMessage()));
                     $this->redirect(['controller' => 'events', 'action' => 'add_misp_export']);
                 }
             }
             $this->set('results', $results);
             $this->render('add_misp_export_result');
         }
+        $this->set('title_for_layout', __('Import from MISP Export File'));
     }
 
     public function upload_stix($stix_version = '1', $publish = false)
