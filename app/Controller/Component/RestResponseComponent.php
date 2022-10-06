@@ -748,9 +748,10 @@ class RestResponseComponent extends Component
     public function sendFile($path, $type = null, $download = false, $name = 'download')
     {
         App::uses('CakeResponseFile', 'Tools');
-        $cakeResponse = new CakeResponseFile([
-            'type' => $type
-        ]);
+        $cakeResponse = new CakeResponseFile();
+        // if $type will not recognized, default type will be 'application/octet-stream' and not text/html
+        $cakeResponse->type('application/octet-stream');
+        $cakeResponse->type($type);
         $cakeResponse->file($path, ['name' => $name, 'download' => $download]);
         if (Configure::read('Security.disable_browser_cache')) {
             $cakeResponse->disableCache();
