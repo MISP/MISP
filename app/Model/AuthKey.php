@@ -284,7 +284,7 @@ class AuthKey extends AppModel
      */
     public function getKeyUsage($id)
     {
-        $redis = $this->setupRedisWithException();
+        $redis = RedisTool::init();
         $data = $redis->hGetAll("misp:authkey_usage:$id");
 
         $output = [];
@@ -314,7 +314,7 @@ class AuthKey extends AppModel
      */
     public function getLastUsageForKeys(array $ids)
     {
-        $redis = $this->setupRedisWithException();
+        $redis = RedisTool::init();
         $keys = array_map(function($id) {
             return "misp:authkey_last_usage:$id";
         }, $ids);
@@ -358,6 +358,22 @@ class AuthKey extends AppModel
     public function userExists(array $check)
     {
         return $this->User->hasAny(['id' => $check['user_id']]);
+    }
+
+    /**
+     * Check if given user has valid advanced auth key.
+     * @param int $userId
+     * @return bool
+     */
+    public function userHasAuthKey($userId)
+    {
+        return $this->hasAny([
+            'user_id' => $userId,
+            'OR' => [
+                'expiration >' => time(),
+                'expiration' => 0
+            ],
+        ]);
     }
 
     /**

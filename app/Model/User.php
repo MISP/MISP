@@ -1933,4 +1933,12 @@ class User extends AppModel
         $template->subject($subject);
         return $template;
     }
+
+    /**
+     * @return bool
+     */
+    public function advancedAuthkeysEnabled()
+    {
+        return !empty(Configure::read("Security.advanced_authkeys"));
+    }
 }
