@@ -608,6 +608,9 @@ class ServerShell extends AppShell
             foreach ($users as $user) {
                 echo __('Sending `%s` report to `%s`', $period, $user['User']['email']) . PHP_EOL;
                 $emailTemplate = $this->User->generatePeriodicSummary($user['User']['id'], $period, false);
+                if ($emailTemplate === null) {
+                    continue; // no new event for this user
+                }
                 $this->User->sendEmail($user, $emailTemplate, false, null);
             }
         }
