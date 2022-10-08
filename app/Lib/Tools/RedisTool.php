@@ -84,6 +84,29 @@ class RedisTool
     }
 
     /**
+     * @param Redis $redis
+     * @param string $prefix
+     * @return array[int, int]
+     * @throws RedisException
+     */
+    public static function sizeByPrefix(Redis $redis, $prefix)
+    {
+        $keyCount = 0;
+        $size = 0;
+        $it = null;
+        while ($keys = $redis->scan($it, $prefix, 1000)) {
+            $redis->pipeline();
+            foreach ($keys as $key) {
+                $redis->rawCommand("memory", "usage", $key);
+            }
+            $result = $redis->exec();
+            $keyCount += count($keys);
+            $size += array_sum($result);
+        }
+        return [$keyCount, $size];
+    }
+
+    /**
      * @param mixed $data
      * @return string
      * @throws JsonException

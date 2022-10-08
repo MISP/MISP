@@ -397,8 +397,7 @@ class Correlation extends AppModel
     {
         if ($this->exclusions === null) {
             try {
-                $redis = $this->setupRedisWithException();
-                $this->exclusions = $redis->sMembers('misp:correlation_exclusions');
+                $this->exclusions = RedisTool::init()->sMembers('misp:correlation_exclusions');
             } catch (Exception $e) {
                 return false;
             }

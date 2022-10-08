@@ -489,20 +489,22 @@ class Warninglist extends AppModel
 
     private function cacheWarninglistEntries(array $warninglistEntries, $id)
     {
-        $redis = $this->setupRedis();
-        if ($redis !== false) {
-            $key = 'misp:warninglist_entries_cache:' . $id;
-            $redis->del($key);
-            if (method_exists($redis, 'saddArray')) {
-                $redis->sAddArray($key, $warninglistEntries);
-            } else {
-                foreach ($warninglistEntries as $entry) {
-                    $redis->sAdd($key, $entry);
-                }
-            }
-            return true;
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
+            return false;
         }
-        return false;
+
+        $key = 'misp:warninglist_entries_cache:' . $id;
+        RedisTool::unlink($redis, $key);
+        if (method_exists($redis, 'saddArray')) {
+            $redis->sAddArray($key, $warninglistEntries);
+        } else {
+            foreach ($warninglistEntries as $entry) {
+                $redis->sAdd($key, $entry);
+            }
+        }
+        return true;
     }
 
     /**
