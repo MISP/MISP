@@ -2771,7 +2771,7 @@ class Server extends AppModel
         );
 
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
             $output['connection'] = true;
             $output = array_merge($output, $redis->info());
         } catch (Exception $e) {
