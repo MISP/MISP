@@ -294,10 +294,10 @@ class AppController extends Controller
             $this->set('isAclTemplate', $role['perm_template']);
             $this->set('isAclGalaxyEditor', !empty($role['perm_galaxy_editor']));
             $this->set('isAclSharingGroup', $role['perm_sharing_group']);
-            $this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
-            $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
-            $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
-            $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
+            $this->set('isAclSighting', $role['perm_sighting'] ?? false);
+            $this->set('isAclZmq', $role['perm_publish_zmq'] ?? false);
+            $this->set('isAclKafka', $role['perm_publish_kafka'] ?? false);
+            $this->set('isAclDecaying', $role['perm_decaying'] ?? false);
             $this->set('aclComponent', $this->ACL);
             $this->userRole = $role;
 
@@ -543,7 +543,7 @@ class AppController extends Controller
 
         // Check if auth key is not expired. Make sense when Security.authkey_keep_session is enabled.
         if (isset($user['authkey_expiration']) && $user['authkey_expiration']) {
-            $time = isset($_SERVER['REQUEST_TIME']) ? $_SERVER['REQUEST_TIME'] : time();
+            $time = $_SERVER['REQUEST_TIME'] ?? time();
             if ($user['authkey_expiration'] < $time) {
                 if ($this->_shouldLog('expired:' . $user['authkey_id'])) {
                     $this->Log = ClassRegistry::init('Log');
@@ -644,7 +644,7 @@ class AppController extends Controller
         // Log key usage if enabled
         if (isset($user['authkey_id']) && Configure::read('MISP.log_user_ips_authkeys')) {
             // Use request time if defined
-            $time = isset($_SERVER['REQUEST_TIME']) ? $_SERVER['REQUEST_TIME'] : time();
+            $time = $_SERVER['REQUEST_TIME'] ?? time();
             $hashKey = date("Y-m-d", $time) . ":$remoteAddress";
             $pipe->hIncrBy("misp:authkey_usage:{$user['authkey_id']}", $hashKey, 1);
             // delete after one year of inactivity
@@ -792,7 +792,7 @@ class AppController extends Controller
         return $this->RestResponse->viewData($this->ACL->$debugType($content), 'json');
     }
 
-    /*
+    /**
      * Setup & validate the database connection configuration
      * @throws Exception if the configured database is not supported.
      */
