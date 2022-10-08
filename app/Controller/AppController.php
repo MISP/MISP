@@ -756,7 +756,6 @@ class AppController extends Controller
             $user,
             $this->request->params['controller'],
             $this->request->action,
-            $this->User,
             $info,
             $this->response->type()
         );
