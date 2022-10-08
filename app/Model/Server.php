@@ -5811,7 +5811,7 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true,
                     'afterHook' => function () {
-                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:event_lock:*', 'misp:event_index:*'];
+                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:event_lock:*', 'misp:event_index:*', 'misp:dashboard:*'];
                         $redis = RedisTool::init();
                         foreach ($keysToDelete as $key) {
                             RedisTool::deleteKeysByPattern($redis, $key);
