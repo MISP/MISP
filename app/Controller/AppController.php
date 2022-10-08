@@ -595,7 +595,7 @@ class AppController extends Controller
         // Check if user must read news
         if (!$this->_isControllerAction(['news' => ['index'], 'users' => ['terms', 'change_pw', 'login', 'logout']])) {
             $this->loadModel('News');
-            $latestNewsCreated = $this->News->field('date_created', array(), 'date_created DESC');
+            $latestNewsCreated = $this->News->latestNewsTimestamp();
             if ($latestNewsCreated && $user['newsread'] < $latestNewsCreated) {
                 $this->redirect(array('controller' => 'news', 'action' => 'index', 'admin' => false));
                 return false;
