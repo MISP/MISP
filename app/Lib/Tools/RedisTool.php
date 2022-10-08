@@ -52,7 +52,7 @@ class RedisTool
     {
         $iterator = null;
         $allKeys = [];
-        while (false !== ($keys = $redis->scan($iterator, $pattern))) {
+        while (false !== ($keys = $redis->scan($iterator, $pattern, 1000))) {
             foreach ($keys as $key) {
                 $allKeys[] = $key;
             }
