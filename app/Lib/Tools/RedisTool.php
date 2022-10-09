@@ -38,23 +38,31 @@ class RedisTool
         if (!$redis->select($database)) {
             throw new Exception("Could not select Redis database $database: {$redis->getLastError()}");
         }
+        // By default retry scan if empty results are returned
+        $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
         self::$connection = $redis;
         return $redis;
     }
 
     /**
      * @param Redis $redis
-     * @param string $pattern
+     * @param string|array $pattern
      * @return int|Redis Number of deleted keys or instance of Redis if used in MULTI mode
      * @throws RedisException
      */
     public static function deleteKeysByPattern(Redis $redis, $pattern)
     {
-        $iterator = null;
+        if (is_string($pattern)) {
+            $pattern = [$pattern];
+        }
+
         $allKeys = [];
-        while (false !== ($keys = $redis->scan($iterator, $pattern, 1000))) {
-            foreach ($keys as $key) {
-                $allKeys[] = $key;
+        foreach ($pattern as $p) {
+            $iterator = null;
+            while (false !== ($keys = $redis->scan($iterator, $p, 1000))) {
+                foreach ($keys as $key) {
+                    $allKeys[] = $key;
+                }
             }
         }
 

@@ -435,12 +435,12 @@ class Warninglist extends AppModel
             return false;
         }
 
-        RedisTool::deleteKeysByPattern($redis, 'misp:wlc:*');
-
+        $keysToDelete = ['misp:wlc:*'];
         if ($id === null) {
             // delete all cached entries when regenerating whole cache
-            RedisTool::deleteKeysByPattern($redis, 'misp:warninglist_entries_cache:*');
+            $keysToDelete[] = 'misp:warninglist_entries_cache:*';
         }
+        RedisTool::deleteKeysByPattern($redis, $keysToDelete);
 
         $warninglists = $this->getEnabledAndCacheWarninglist();
 

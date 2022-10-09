@@ -981,7 +981,6 @@ class AdminShell extends AppShell
     public function redisMemoryUsage()
     {
         $redis = RedisTool::init();
-        $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
 
         $output = [];
 
