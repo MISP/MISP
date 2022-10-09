@@ -1457,9 +1457,9 @@ class Feed extends AppModel
         if ($scope !== 'all') {
             if (is_numeric($scope)) {
                 $params['conditions']['id'] = $scope;
-            } elseif ($scope == 'freetext' || $scope == 'csv') {
+            } elseif ($scope === 'freetext' || $scope === 'csv') {
                 $params['conditions']['source_format'] = array('csv', 'freetext');
-            } elseif ($scope == 'misp') {
+            } elseif ($scope === 'misp') {
                 $params['conditions']['source_format'] = 'misp';
             } else {
                 throw new InvalidArgumentException("Invalid value for scope, it must be integer or 'freetext', 'csv', 'misp' or 'all' string.");
@@ -1495,11 +1495,11 @@ class Feed extends AppModel
             return $feeds;
         }
 
-        $pipe = $redis->pipeline();
-        foreach ($feeds as $feed) {
-            $pipe->get('misp:cache_timestamp:F' . $feed['Feed']['id']);
-        }
-        $result = $redis->exec();
+        $redisKeys = array_map(function($feed) {
+            return 'misp:cache_timestamp:F' . $feed['Feed']['id'];
+        }, $feeds);
+
+        $result = $redis->mGet($redisKeys);
         foreach ($feeds as $k => $feed) {
             $feeds[$k]['Feed']['cache_timestamp'] = $result[$k];
         }
@@ -1723,7 +1723,7 @@ class Feed extends AppModel
                     'overlap_percentage' => round(100 * count($intersect) / $feeds[$k]['Feed']['values']),
                 ));
             }
-            foreach ($servers as $k2 => $server) {
+            foreach ($servers as $server) {
                 $intersect = $redis->sInter('misp:cache:F' . $feed['Feed']['id'], 'misp:cache:S' . $server['Server']['id']);
                 $feeds[$k]['Feed']['ComparedFeed'][] = array_merge(array_intersect_key($server['Server'], $fields), array(
                     'overlap_count' => count($intersect),
@@ -1732,7 +1732,7 @@ class Feed extends AppModel
             }
         }
         foreach ($servers as $k => $server) {
-            foreach ($feeds as $k2 => $feed2) {
+            foreach ($feeds as $feed2) {
                 $intersect = $redis->sInter('misp:cache:S' . $server['Server']['id'], 'misp:cache:F' . $feed2['Feed']['id']);
                 $servers[$k]['Server']['ComparedFeed'][] = array_merge(array_intersect_key($feed2['Feed'], $fields), array(
                     'overlap_count' => count($intersect),
@@ -1750,7 +1750,7 @@ class Feed extends AppModel
                 ));
             }
         }
-        foreach ($servers as $k => $server) {
+        foreach ($servers as $server) {
             $server['Feed'] = $server['Server'];
             unset($server['Server']);
             $feeds[] = $server;
@@ -1833,8 +1833,9 @@ class Feed extends AppModel
 
     public function getFeedCoverage($id, $source_scope = 'feed', $dataset = 'all')
     {
-        $redis = $this->setupRedis();
-        if ($redis === false) {
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
             return 'Could not reach Redis.';
         }
         $this->Server = ClassRegistry::init('Server');
@@ -1879,8 +1880,8 @@ class Feed extends AppModel
             call_user_func_array(array($redis, 'sinterstore'), array('misp:feed_temp:' . $temp_store . '_intersect', 'misp:cache:F' . $id, 'misp:feed_temp:' . $temp_store));
             $cardinality_intersect = $redis->scard('misp:feed_temp:' . $temp_store . '_intersect');
             $coverage = round(100 * $cardinality_intersect / $feed_element_count, 2);
-            $redis->del('misp:feed_temp:' . $temp_store);
-            $redis->del('misp:feed_temp:' . $temp_store . '_intersect');
+            // Cleanup
+            RedisTool::unlink(['misp:feed_temp:' . $temp_store, 'misp:feed_temp:' . $temp_store . '_intersect']);
         } else {
             $coverage = 0;
         }
@@ -2400,7 +2401,7 @@ class Feed extends AppModel
         }
 
         // Delete old keys
-        $redis->del('misp:feed_cache:combined', 'misp:server_cache:combined');
+        RedisTool::unlink($redis, ['misp:feed_cache:combined', 'misp:server_cache:combined']);
         RedisTool::deleteKeysByPattern($redis, 'misp:feed_cache_timestamp:*');
         RedisTool::deleteKeysByPattern($redis, 'misp:server_cache_timestamp:*');
     }
