@@ -294,10 +294,10 @@ class AppController extends Controller
             $this->set('isAclTemplate', $role['perm_template']);
             $this->set('isAclGalaxyEditor', !empty($role['perm_galaxy_editor']));
             $this->set('isAclSharingGroup', $role['perm_sharing_group']);
-            $this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
-            $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
-            $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
-            $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
+            $this->set('isAclSighting', $role['perm_sighting'] ?? false);
+            $this->set('isAclZmq', $role['perm_publish_zmq'] ?? false);
+            $this->set('isAclKafka', $role['perm_publish_kafka'] ?? false);
+            $this->set('isAclDecaying', $role['perm_decaying'] ?? false);
             $this->set('aclComponent', $this->ACL);
             $this->userRole = $role;
 
@@ -355,8 +355,11 @@ class AppController extends Controller
     public function beforeRender()
     {
         // Notifications and homepage is not necessary for AJAX or REST requests
-        $user = $this->Auth->user();
-        if ($user && !$this->_isRest() && isset($this->User) && !$this->request->is('ajax')) {
+        if (!$this->_isRest() && isset($this->User) && !$this->request->is('ajax')) {
+            $user = $this->Auth->user();
+            if (!$user) {
+                return;
+            }
             $hasNotifications = $this->User->hasNotifications($user);
             $this->set('hasNotifications', $hasNotifications);
 
@@ -543,7 +546,7 @@ class AppController extends Controller
 
         // Check if auth key is not expired. Make sense when Security.authkey_keep_session is enabled.
         if (isset($user['authkey_expiration']) && $user['authkey_expiration']) {
-            $time = isset($_SERVER['REQUEST_TIME']) ? $_SERVER['REQUEST_TIME'] : time();
+            $time = $_SERVER['REQUEST_TIME'] ?? time();
             if ($user['authkey_expiration'] < $time) {
                 if ($this->_shouldLog('expired:' . $user['authkey_id'])) {
                     $this->Log = ClassRegistry::init('Log');
@@ -595,7 +598,7 @@ class AppController extends Controller
         // Check if user must read news
         if (!$this->_isControllerAction(['news' => ['index'], 'users' => ['terms', 'change_pw', 'login', 'logout']])) {
             $this->loadModel('News');
-            $latestNewsCreated = $this->News->field('date_created', array(), 'date_created DESC');
+            $latestNewsCreated = $this->News->latestNewsTimestamp();
             if ($latestNewsCreated && $user['newsread'] < $latestNewsCreated) {
                 $this->redirect(array('controller' => 'news', 'action' => 'index', 'admin' => false));
                 return false;
@@ -644,7 +647,7 @@ class AppController extends Controller
         // Log key usage if enabled
         if (isset($user['authkey_id']) && Configure::read('MISP.log_user_ips_authkeys')) {
             // Use request time if defined
-            $time = isset($_SERVER['REQUEST_TIME']) ? $_SERVER['REQUEST_TIME'] : time();
+            $time = $_SERVER['REQUEST_TIME'] ?? time();
             $hashKey = date("Y-m-d", $time) . ":$remoteAddress";
             $pipe->hIncrBy("misp:authkey_usage:{$user['authkey_id']}", $hashKey, 1);
             // delete after one year of inactivity
@@ -756,7 +759,6 @@ class AppController extends Controller
             $user,
             $this->request->params['controller'],
             $this->request->action,
-            $this->User,
             $info,
             $this->response->type()
         );
@@ -793,7 +795,7 @@ class AppController extends Controller
         return $this->RestResponse->viewData($this->ACL->$debugType($content), 'json');
     }
 
-    /*
+    /**
      * Setup & validate the database connection configuration
      * @throws Exception if the configured database is not supported.
      */

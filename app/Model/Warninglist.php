@@ -435,12 +435,12 @@ class Warninglist extends AppModel
             return false;
         }
 
-        RedisTool::deleteKeysByPattern($redis, 'misp:wlc:*');
-
+        $keysToDelete = ['misp:wlc:*'];
         if ($id === null) {
             // delete all cached entries when regenerating whole cache
-            RedisTool::deleteKeysByPattern($redis, 'misp:warninglist_entries_cache:*');
+            $keysToDelete[] = 'misp:warninglist_entries_cache:*';
         }
+        RedisTool::deleteKeysByPattern($redis, $keysToDelete);
 
         $warninglists = $this->getEnabledAndCacheWarninglist();
 
@@ -489,20 +489,22 @@ class Warninglist extends AppModel
 
     private function cacheWarninglistEntries(array $warninglistEntries, $id)
     {
-        $redis = $this->setupRedis();
-        if ($redis !== false) {
-            $key = 'misp:warninglist_entries_cache:' . $id;
-            $redis->del($key);
-            if (method_exists($redis, 'saddArray')) {
-                $redis->sAddArray($key, $warninglistEntries);
-            } else {
-                foreach ($warninglistEntries as $entry) {
-                    $redis->sAdd($key, $entry);
-                }
-            }
-            return true;
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
+            return false;
         }
-        return false;
+
+        $key = 'misp:warninglist_entries_cache:' . $id;
+        RedisTool::unlink($redis, $key);
+        if (method_exists($redis, 'saddArray')) {
+            $redis->sAddArray($key, $warninglistEntries);
+        } else {
+            foreach ($warninglistEntries as $entry) {
+                $redis->sAdd($key, $entry);
+            }
+        }
+        return true;
     }
 
     /**

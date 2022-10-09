@@ -38,23 +38,31 @@ class RedisTool
         if (!$redis->select($database)) {
             throw new Exception("Could not select Redis database $database: {$redis->getLastError()}");
         }
+        // By default retry scan if empty results are returned
+        $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
         self::$connection = $redis;
         return $redis;
     }
 
     /**
      * @param Redis $redis
-     * @param string $pattern
+     * @param string|array $pattern
      * @return int|Redis Number of deleted keys or instance of Redis if used in MULTI mode
      * @throws RedisException
      */
     public static function deleteKeysByPattern(Redis $redis, $pattern)
     {
-        $iterator = null;
+        if (is_string($pattern)) {
+            $pattern = [$pattern];
+        }
+
         $allKeys = [];
-        while (false !== ($keys = $redis->scan($iterator, $pattern))) {
-            foreach ($keys as $key) {
-                $allKeys[] = $key;
+        foreach ($pattern as $p) {
+            $iterator = null;
+            while (false !== ($keys = $redis->scan($iterator, $p, 1000))) {
+                foreach ($keys as $key) {
+                    $allKeys[] = $key;
+                }
             }
         }
 
@@ -81,6 +89,29 @@ class RedisTool
             $unlinkSupported = method_exists($redis, 'unlink') && $redis->unlink(null) === 0;
         }
         return $unlinkSupported ? $redis->unlink($keys) : $redis->del($keys);
+    }
+
+    /**
+     * @param Redis $redis
+     * @param string $prefix
+     * @return array[int, int]
+     * @throws RedisException
+     */
+    public static function sizeByPrefix(Redis $redis, $prefix)
+    {
+        $keyCount = 0;
+        $size = 0;
+        $it = null;
+        while ($keys = $redis->scan($it, $prefix, 1000)) {
+            $redis->pipeline();
+            foreach ($keys as $key) {
+                $redis->rawCommand("memory", "usage", $key);
+            }
+            $result = $redis->exec();
+            $keyCount += count($keys);
+            $size += array_sum($result);
+        }
+        return [$keyCount, $size];
     }
 
     /**
