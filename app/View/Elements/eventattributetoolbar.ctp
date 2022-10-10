@@ -76,6 +76,15 @@
                         ],
                     ),
                     array(
+                        'id' => 'multi-local-tag-button',
+                        'title' => __('Add Local tag on selected Attributes'),
+                        'class' => 'mass-select hidden',
+                        'fa-icon' => 'user',
+                        'data' => [
+                            'popover-popup' => $baseurl . '/tags/selectTaxonomy/local:1/selected/attribute',
+                        ],
+                    ),
+                    array(
                         'id' => 'multi-galaxy-button',
                         'title' => __('Add new cluster to selected Attributes'),
                         'class' => 'mass-select hidden',
