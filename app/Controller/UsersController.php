@@ -254,6 +254,7 @@ class UsersController extends AppController
         $this->set('id', $id);
         $this->set('canChangePassword', $this->__canChangePassword());
         $this->set('canChangeLogin', $this->__canChangeLogin());
+        $this->set('canFetchPgpKey', $this->__canFetchPgpKey());
     }
 
     public function change_pw()
@@ -824,6 +825,7 @@ class UsersController extends AppController
             $this->set('default_role_id', $default_role_id);
             $this->set('servers', $servers);
             $this->set(compact('roles', 'syncRoles'));
+            $this->set('canFetchPgpKey', $this->__canFetchPgpKey());
         }
     }
 
@@ -1077,6 +1079,7 @@ class UsersController extends AppController
         $this->set(compact('roles', 'syncRoles'));
         $this->set('canChangeLogin', $this->__canChangeLogin());
         $this->set('canChangePassword', $this->__canChangePassword());
+        $this->set('canFetchPgpKey', $this->__canFetchPgpKey());
     }
 
     public function admin_delete($id = null)
@@ -2361,7 +2364,10 @@ class UsersController extends AppController
 
     public function searchGpgKey($email = false)
     {
-        session_abort();
+        $this->_closeSession();
+        if (!$this->__canFetchPgpKey()) {
+            throw new ForbiddenException(__('Key fetching is disabled.'));
+        }
         if (!$email) {
             throw new NotFoundException('No email provided.');
         }
@@ -2376,6 +2382,9 @@ class UsersController extends AppController
 
     public function fetchGpgKey($fingerprint = null)
     {
+        if (!$this->__canFetchPgpKey()) {
+            throw new ForbiddenException(__('Key fetching is disabled.'));
+        }
         if (!$fingerprint) {
             throw new NotFoundException('No fingerprint provided.');
         }
@@ -2383,7 +2392,7 @@ class UsersController extends AppController
         if (!$key) {
             throw new NotFoundException('No key with given fingerprint found.');
         }
-        return new CakeResponse(array('body' => $key));
+        return new CakeResponse(['body' => $key]);
     }
 
     public function getGpgPublicKey()
@@ -2850,5 +2859,13 @@ class UsersController extends AppController
         $body = str_replace('$org', Configure::read('MISP.org'), $body);
         $body = str_replace('$contact', Configure::read('MISP.contact'), $body);
         return $body;
+    }
+
+    /**
+     * @return bool
+     */
+    private function __canFetchPgpKey()
+    {
+        return !Configure::read('GnuPG.key_fetching_disabled');
     }
 }

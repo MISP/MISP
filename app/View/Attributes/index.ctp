@@ -103,7 +103,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'name' => __('Distribution'),
                 'element' => 'distribution_levels',
                 'data_path' => 'Attribute.distribution',
-                'distributionLevels' => $distributionLevels,
+                'distributionLevels' => $shortDist,
                 'data' => [
                     'object' => [
                         'value_path' => 'Attribute'

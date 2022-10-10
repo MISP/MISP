@@ -2771,7 +2771,7 @@ class Server extends AppModel
         );
 
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
             $output['connection'] = true;
             $output = array_merge($output, $redis->info());
         } catch (Exception $e) {
@@ -5811,11 +5811,8 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true,
                     'afterHook' => function () {
-                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:event_lock:*', 'misp:event_index:*'];
-                        $redis = RedisTool::init();
-                        foreach ($keysToDelete as $key) {
-                            RedisTool::deleteKeysByPattern($redis, $key);
-                        }
+                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:event_lock:*', 'misp:event_index:*', 'misp:dashboard:*'];
+                        RedisTool::deleteKeysByPattern(RedisTool::init(), $keysToDelete);
                         return true;
                     },
                 ],
@@ -6004,7 +6001,14 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
-                )
+                ),
+                'key_fetching_disabled' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('When disabled, user could not fetch his PGP key from CIRCL key server. Key fetching requires internet connection.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
             ),
             'SMIME' => array(
                 'branch' => 1,
