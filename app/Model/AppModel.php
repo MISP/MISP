@@ -3728,7 +3728,7 @@ class AppModel extends Model
      * @param array $logging If the execution failure should be logged
      * @return boolean If the execution for the blocking path was a success
      */
-    public function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
+    protected function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
     {
         if ($this->isTriggerCallable($trigger_id)) {
            $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
@@ -3742,8 +3742,17 @@ class AppModel extends Model
         return true;
     }
 
-    public function isTriggerCallable($trigger_id): bool
+    protected function isTriggerCallable($trigger_id): bool
     {
+        static $workflowEnabled;
+        if ($workflowEnabled === null) {
+            $workflowEnabled = (bool)Configure::read('Plugin.Workflow_enable');
+        }
+
+        if (!$workflowEnabled) {
+            return false;
+        }
+
         if ($this->Workflow === null) {
             $this->Workflow = ClassRegistry::init('Workflow');
         }
