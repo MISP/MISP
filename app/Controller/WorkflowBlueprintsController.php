@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property WorkflowBlueprint $WorkflowBlueprint
+ */
 class WorkflowBlueprintsController extends AppController
 {
     public $components = array(
@@ -14,10 +17,9 @@ class WorkflowBlueprintsController extends AppController
         $message = __('Default workflow blueprints updated');
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('WorkflowBlueprint', 'update', false, $this->response->type(), $message);
-        } else {
-            $this->Flash->success($message);
-            $this->redirect(array('controller' => 'workflowBlueprints', 'action' => 'index'));
         }
+        $this->Flash->success($message);
+        $this->redirect(array('controller' => 'workflowBlueprints', 'action' => 'index'));
     }
 
     public function index()
@@ -69,9 +71,7 @@ class WorkflowBlueprintsController extends AppController
 
     public function delete($id)
     {
-        $params = [
-        ];
-        $this->CRUD->delete($id, $params);
+        $this->CRUD->delete($id);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
@@ -82,16 +82,15 @@ class WorkflowBlueprintsController extends AppController
     {
         $filters = $this->IndexFilter->harvestParameters(['format']);
         if (!empty($filters['format'])) {
-            if ($filters['format'] == 'dot') {
+            if ($filters['format'] === 'dot') {
                 $dot = $this->WorkflowBlueprint->getDotNotation($id);
                 return $this->RestResponse->viewData($dot, $this->response->type());
-            } else if ($filters['format'] == 'mermaid') {
+            } else if ($filters['format'] === 'mermaid') {
                 $mermaid = $this->WorkflowBlueprint->getMermaid($id);
                 return $this->RestResponse->viewData($mermaid, $this->response->type());
             }
         }
-        $this->CRUD->view($id, [
-        ]);
+        $this->CRUD->view($id);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
@@ -102,7 +101,7 @@ class WorkflowBlueprintsController extends AppController
     public function import()
     {
         if ($this->request->is('post') || $this->request->is('put')) {
-            $workflowBlueprintData = JsonTool::decode($this->request->data['WorkflowBlueprint']['data']);
+            $workflowBlueprintData = JsonTool::decode($this->request->data['WorkflowBlueprint']['json']);
             if ($workflowBlueprintData === null) {
                 throw new MethodNotAllowedException(__('Error while decoding JSON'));
             }
@@ -118,7 +117,7 @@ class WorkflowBlueprintsController extends AppController
                 'id' => $id,
             ]
         ]);
-        $content = JsonTool::encode($workflowBlueprint, JSON_PRETTY_PRINT);
+        $content = JsonTool::encode($workflowBlueprint, true);
         $this->response->body($content);
         $this->response->type('json');
         $this->response->download(sprintf('blueprint_%s_%s.json', str_replace(' ', '-', strtolower($workflowBlueprint['WorkflowBlueprint']['name'])), time()));
