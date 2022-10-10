@@ -19,6 +19,7 @@ class WorkflowBlueprint extends AppModel
 
 
     public $validate = [
+        'name' => 'stringNotEmpty',
         'value' => [
             'stringNotEmpty' => [
                 'rule' => ['stringNotEmpty']
@@ -111,6 +112,7 @@ class WorkflowBlueprint extends AppModel
      *
      * @param boolean $force
      * @return void
+     * @throws Exception
      */
     public function update($force=false)
     {

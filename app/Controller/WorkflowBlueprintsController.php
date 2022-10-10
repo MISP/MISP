@@ -101,11 +101,8 @@ class WorkflowBlueprintsController extends AppController
     public function import()
     {
         if ($this->request->is('post') || $this->request->is('put')) {
-            $workflowBlueprintData = JsonTool::decode($this->request->data['WorkflowBlueprint']['json']);
-            if ($workflowBlueprintData === null) {
-                throw new MethodNotAllowedException(__('Error while decoding JSON'));
-            }
-            $this->request->data['WorkflowBlueprint']['data'] = JsonTool::encode($workflowBlueprintData);
+            $workflowBlueprintData = $this->_jsonDecode($this->request->data['WorkflowBlueprint']['json']);
+            $this->request->data = $workflowBlueprintData;
             $this->add();
         }
     }
@@ -117,6 +114,10 @@ class WorkflowBlueprintsController extends AppController
                 'id' => $id,
             ]
         ]);
+        if (empty($workflowBlueprint)) {
+            throw new NotFoundException(__('Invalid workflow blueprint'));
+        }
+
         $content = JsonTool::encode($workflowBlueprint, true);
         $this->response->body($content);
         $this->response->type('json');
