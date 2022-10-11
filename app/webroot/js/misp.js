@@ -1046,6 +1046,12 @@ function proposeObjectsFromSelectedAttributes(clicked, event_id) {
     popoverPopup(clicked, event_id + '/' + selectedAttributeIds, 'objects', 'proposeObjectsFromAttributes');
 }
 
+function bulkAddRelationshipToSelectedAttributes(clicked, event_id) {
+    var selectedAttributeIds = getSelected();
+    var url = baseurl + '/objectReferences/bulkAdd/' + event_id + '/' + selectedAttributeIds
+    openGenericModal(url)
+}
+
 function hideSelectedTags(taxonomy) {
 	$.get(baseurl + "/taxonomies/taxonomyMassHide/"+taxonomy, openConfirmation).fail(xhrFailCallback);
 }
@@ -5412,7 +5418,7 @@ function loadClusterRelations(clusterId) {
     }
 }
 
-function submitGenericFormInPlace() {
+function submitGenericFormInPlace(callback) {
     var $genericForm = $('.genericForm');
     $.ajax({
         type: "POST",
@@ -5422,6 +5428,9 @@ function submitGenericFormInPlace() {
             if (typeof data === "object" && data.hasOwnProperty('redirect')) {
                 window.location = data.redirect;
                 return;
+            }
+            if (callback) {
+                callback(data)
             }
 
             $('#genericModal').modal('hide').remove();

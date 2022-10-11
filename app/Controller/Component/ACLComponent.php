@@ -432,6 +432,7 @@ class ACLComponent extends Component
             ),
             'objectReferences' => array(
                 'add' => array('perm_add'),
+                'bulkAdd' => array('perm_add'),
                 'delete' => array('perm_add'),
                 'view' => array('*'),
             ),

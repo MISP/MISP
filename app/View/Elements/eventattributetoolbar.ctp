@@ -104,6 +104,15 @@
                         'onClickParams' => array('this', $eventId)
                     ),
                     array(
+                        'id' => 'multi-relationship-button',
+                        'title' => __('Create new relationship for selected entities'),
+                        'class' => 'mass-select hidden',
+                        'fa-icon' => 'project-diagram',
+                        'fa-source' => 'fas',
+                        'onClick' => 'bulkAddRelationshipToSelectedAttributes',
+                        'onClickParams' => array('this', $eventId)
+                    ),
+                    array(
                         'id' => 'multi-delete-button',
                         'title' => __('Delete selected Attributes'),
                         'class' => 'mass-select hidden',
