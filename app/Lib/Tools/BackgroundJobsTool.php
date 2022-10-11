@@ -204,12 +204,10 @@ class BackgroundJobsTool
             ]
         );
 
-        $this->RedisConnection->rpush(
-            $queue,
-            $backgroundJob
-        );
-
+        $this->RedisConnection->pipeline();
+        $this->RedisConnection->rpush($queue, $backgroundJob);
         $this->update($backgroundJob);
+        $this->RedisConnection->exec();
 
         if ($jobId) {
             $this->updateJobProcessId($jobId, $backgroundJob->id());
@@ -260,6 +258,7 @@ class BackgroundJobsTool
      *                  Must be less than your configured `read_write_timeout`
      *                  for the redis connection.
      *
+     * @return BackgroundJob|null
      * @throws Exception
      */
     public function dequeue($queue, int $timeout = 30)
@@ -282,6 +281,8 @@ class BackgroundJobsTool
      * Get the job status.
      *
      * @param string $jobId Background Job Id.
+     * @return BackgroundJob|null
+     * @throws RedisException
      */
     public function getJob(string $jobId)
     {
@@ -332,7 +333,7 @@ class BackgroundJobsTool
         try {
             $procs = $this->getSupervisor()->getAllProcesses();
         } catch (\Exception $exception) {
-            CakeLog::error("An error occured when getting the workers statuses via Supervisor API: {$exception->getMessage()}");
+            CakeLog::error("An error occurred when getting the workers statuses via Supervisor API: {$exception->getMessage()}");
             return [];
         }
 
@@ -631,6 +632,10 @@ class BackgroundJobsTool
             throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
         }
 
+        if (!isset($this->settings['redis_host'])) {
+            throw new RuntimeException("Required option `redis_host` for BackgroundJobsTool is not set.");
+        }
+
         $redis = new Redis();
         $redis->connect($this->settings['redis_host'], $this->settings['redis_port']);
         $serializer = $this->settings['redis_serializer'] ?? false;
@@ -641,7 +646,6 @@ class BackgroundJobsTool
             $redis->setOption(Redis::OPT_READ_TIMEOUT, $this->settings['redis_read_timeout']);
         }
         $redisPassword = $this->settings['redis_password'];
-
         if (!empty($redisPassword)) {
             $redis->auth($redisPassword);
         }
