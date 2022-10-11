@@ -4340,8 +4340,7 @@ class Event extends AppModel
 
             $args = ['publish_sightings', $id, $passAlong, $jobId, $user['id']];
             if (!empty($sightingUuids)) {
-                $filePath = FileAccessTool::writeToTempFile(json_encode($sightingUuids));
-                $args[] = $filePath;
+                $args[] = $this->getBackgroundJobsTool()->enqueueDataFile($sightingUuids);
             }
 
             return $this->getBackgroundJobsTool()->enqueue(
@@ -6634,8 +6633,7 @@ class Event extends AppModel
             );
 
             try {
-                $filePath = FileAccessTool::writeToTempFile(JsonTool::encode($tempData));
-
+                $filePath = $this->getBackgroundJobsTool()->enqueueDataFile($tempData);
                 $this->getBackgroundJobsTool()->enqueue(
                     BackgroundJobsTool::PRIO_QUEUE,
                     BackgroundJobsTool::CMD_EVENT,
@@ -6671,7 +6669,7 @@ class Event extends AppModel
             );
 
             try {
-                $filePath = FileAccessTool::writeToTempFile(JsonTool::encode($tempData));
+                $filePath = $this->getBackgroundJobsTool()->enqueueDataFile($tempData);
 
                 $this->getBackgroundJobsTool()->enqueue(
                     BackgroundJobsTool::PRIO_QUEUE,

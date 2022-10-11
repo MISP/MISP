@@ -5810,6 +5810,10 @@ class Server extends AppModel
                     'test' => null,
                     'type' => 'string',
                     'null' => true,
+                    'options' => [
+                        'JSON' => 'JSON',
+                        'igbinary' => 'igbinary',
+                    ],
                     'afterHook' => function () {
                         $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:event_lock:*', 'misp:event_index:*', 'misp:dashboard:*'];
                         RedisTool::deleteKeysByPattern(RedisTool::init(), $keysToDelete);
@@ -7400,6 +7404,22 @@ class Server extends AppModel
                     'value' => 'background_jobs',
                     'test' => null,
                     'type' => 'string'
+                ],
+                'redis_serializer' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Redis serializer method. WARNING: Changing this setting in production will break your jobs.'),
+                    'value' => 'JSON',
+                    'test' => null,
+                    'type' => 'string',
+                    'null' => true,
+                    'options' => [
+                        'JSON' => 'JSON',
+                        'igbinary' => 'igbinary',
+                    ],
+                    'afterHook' => function () {
+                        $this->getBackgroundJobsTool()->restartWorkers();
+                        return true;
+                    },
                 ],
                 'max_job_history_ttl' => [
                     'level' => self::SETTING_CRITICAL,

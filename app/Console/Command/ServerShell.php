@@ -1,7 +1,6 @@
 <?php
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
-App::uses('BackgroundJobsTool', 'Tools');
 require_once 'AppShell.php';
 
 /**
@@ -654,16 +653,5 @@ class ServerShell extends AppShell
             $this->error("Server with ID $serverId doesn't exists.");
         }
         return $server;
-    }
-
-    /**
-     * @return BackgroundJobsTool
-     */
-    private function getBackgroundJobsTool()
-    {
-        if (!isset($this->BackgroundJobsTool)) {
-            $this->BackgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs'));
-        }
-        return $this->BackgroundJobsTool;
     }
 }
