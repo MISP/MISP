@@ -1123,7 +1123,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $jsonIds = $this->request->data['User']['user_ids'];
-            $ids = $this->User->jsonDecode($jsonIds);
+            $ids = $this->_jsonDecode($jsonIds);
             $conditions = ['User.id' => $ids];
             if (!$this->_isSiteAdmin()) {
                 $conditions['User.org_id'] = $this->Auth->user('org_id');

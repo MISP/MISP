@@ -2790,7 +2790,7 @@ class EventsController extends AppController
                     if (is_numeric($idList) || Validation::uuid($idList)) {
                         $idList = array($idList);
                     } else {
-                        $idList = $this->Event->jsonDecode($idList);
+                        $idList = $this->_jsonDecode($idList);
                     }
                 }
                 if (empty($idList)) {
@@ -5309,8 +5309,8 @@ class EventsController extends AppController
             throw new ForbiddenException(__('You don\'t have permission to do that.'));
         }
 
-        $resolved_data = $this->Event->jsonDecode($this->request->data['Event']['JsonObject']);
-        $data = $this->Event->jsonDecode($this->request->data['Event']['data']);
+        $resolved_data = $this->_jsonDecode($this->request->data['Event']['JsonObject']);
+        $data = $this->_jsonDecode($this->request->data['Event']['data']);
         if (!empty($data['initialObject'])) {
             $resolved_data['initialObject'] = $data['initialObject'];
         }
