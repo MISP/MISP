@@ -26,6 +26,7 @@ $fields = [
         'div' => 'hidden',
     ],
     [
+        'label' => __('Source Object'),
         'field' => 'source_uuid',
         'class' => 'span6',
         'type' => 'dropdown',
@@ -35,6 +36,8 @@ $fields = [
             'width' => '460px',
         ],
     ],
+    sprintf('<p style="margin: 1em 0 0.5em 2em;">%s</p>', __('Target details')),
+    sprintf('<pre class="span6" style="max-height: 300px; overflow-y: auto;" id="bulk-target-details">%s</pre>', __('- select an object -')),
     [
         'field' => 'comment',
         'type' => 'textarea',
@@ -62,15 +65,40 @@ if (!$ajax) {
 ?>
 
 <script>
+    var validSourceUuid = <?= JsonTool::encode($eventObjects) ?>;
     $(document).ready(function() {
         $("#ObjectReferenceRelationshipTypeSelect").change(function() {
             objectReferenceCheckForCustomRelationship()
         });
+
+        updateTargetDetails()
+        $('#ObjectReferenceSourceUuid').change(function() {
+            updateTargetDetails()
+        })
     })
 
     function submitBulkAddForm() {
         submitGenericFormInPlace(function(data) {
             handleAjaxModalResponse(data, data.id, data.url, 'massEdit', 'event')
         })
+    }
+
+    function updateTargetDetails() {
+        var objectUuid = $('#ObjectReferenceSourceUuid').find('option:selected').val()
+        var selectedObject = validSourceUuid[objectUuid]
+        $('#bulk-target-details').text(generateObjectDetails(selectedObject))
+    }
+
+    function generateObjectDetails(object) {
+        var details = ''
+        details += 'Object UUID: ' + object.uuid + '\n'
+        details += 'Object name: ' + object.name + '\n\n'
+        details += 'Attributes:\n'
+        object.Attribute.forEach(function(attribute) {
+            details += '  Category: ' + attribute.category + '\n'
+            details += '  Type: ' + attribute.type + '\n'
+            details += '  Value: ' + attribute.value + '\n\n'
+        })
+        return details
     }
 </script>

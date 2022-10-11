@@ -233,9 +233,11 @@ class ObjectReferencesController extends AppController
             throw new ForbiddenException(__('You do not have permission to do that.'));
         }
 
+        $eventObjects = [];
         $validSourceUuid = [];
         foreach ($event['Object'] as $object) {
             $validSourceUuid[$object['uuid']] = sprintf('[%s] %s ', $object['id'], $object['name']);
+            $eventObjects[$object['uuid']] = $object;
         }
         $selectedAttributes = [];
         foreach ($event['Attribute'] as $attribute) {
@@ -319,6 +321,7 @@ class ObjectReferencesController extends AppController
         ksort($relationships);
         $this->set('relationships', $relationships);
         $this->set('validSourceUuid', $validSourceUuid);
+        $this->set('eventObjects', $eventObjects);
         $this->set('selectedAttributes', $selectedAttributes);
         $this->layout = false;
         $this->render('ajax/bulkAdd');
