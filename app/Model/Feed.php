@@ -87,10 +87,14 @@ class Feed extends AppModel
     {
         parent::__construct($id, $table, $ds);
 
-        // Convert to new format since 2020-02-04, can be removed in future
-        $redis = $this->setupRedis();
-        if ($redis && ($redis->exists('misp:feed_cache:combined') || $redis->exists('misp:server_cache:combined'))) {
-            $this->convertToNewRedisCacheFormat();
+        // Convert to new format since version 2.4.184, can be removed in future
+        try {
+            $redis = RedisTool::init();
+            if ($redis->exists('misp:feed_cache:combined', 'misp:server_cache:combined')) {
+                $this->convertToNewRedisCacheFormat($redis);
+            }
+        } catch (Exception $e) {
+            $this->logException('Could not convert cache to new format', $e);
         }
     }
 
@@ -2286,10 +2290,10 @@ class Feed extends AppModel
      * @param bool $withEventUuid
      * @throws Exception
      */
-    public function insertToRedisCache($type, $sourceId, Iterator $values, $withEventUuid = false)
+    public function insertToRedisCache(string $type, int $sourceId, Iterator $values, bool $withEventUuid = false)
     {
         if (!in_array($type, ['server', 'feed'], true)) {
-            throw new InvalidArgumentException();
+            throw new InvalidArgumentException("Type must be 'server' or 'feed', '$type' provided.");
         }
         $source = ($type === 'server' ? 'S' : 'F') . $sourceId;
 
@@ -2337,21 +2341,22 @@ class Feed extends AppModel
     }
 
     /**
-     * Convert to new format, old format was used before 2.4.140
+     * Convert to new format, old format was used before 2.4.184
+     * @param Redis $redis
      * @throws Exception
      */
-    private function convertToNewRedisCacheFormat()
+    private function convertToNewRedisCacheFormat($redis)
     {
-        $redis = RedisTool::init();
-
         $this->Server = ClassRegistry::init('Server');
         $serverIds = $this->Server->find('column', ['fields' => ['id']]);
 
         foreach ($serverIds as $serverId) {
             $sourceHashes = $redis->sMembers('misp:server_cache:' . $serverId);
             $hashToInsert = [];
+            $dataToInsert = [];
             foreach ($sourceHashes as $sourceHash) {
-                $hashToInsert[] = hex2bin($sourceHash);
+                $binarySourceHash = hex2bin($sourceHash);
+                $hashToInsert[] = $binarySourceHash;
                 $uuids = $redis->sMembers('misp:server_cache:' . $sourceHash);
                 if ($uuids) {
                     $uuidToInsert = [];
@@ -2365,11 +2370,20 @@ class Feed extends AppModel
                 } else {
                     $uuidToInsert = 0;
                 }
-                $redis->hSet(self::REDIS_CACHE_PREFIX . hex2bin($sourceHash), 'S' . $serverId, $uuidToInsert);
+                $dataToInsert[] = [$binarySourceHash, 'S' . $serverId, $uuidToInsert];
             }
-            $redis->sAddArray(self::REDIS_CACHE_PREFIX . 'S' . $serverId, $hashToInsert);
+
+            if (!empty($dataToInsert)) {
+                $redis->pipeline();
+                foreach ($dataToInsert as $d) {
+                    $redis->hSet(self::REDIS_CACHE_PREFIX . $d[0], $d[1], $d[2]);
+                }
+                $redis->sAddArray(self::REDIS_CACHE_PREFIX . 'S' . $serverId, $hashToInsert);
+                $redis->exec();
+            }
+
             $redis->set('misp:cache_timestamp:S' . $serverId, $redis->get('misp:server_cache_timestamp:' . $serverId));
-            $redis->del('misp:server_cache:' . $serverId);
+            RedisTool::unlink($redis,'misp:server_cache:' . $serverId);
         }
 
         $feedIds = $this->find('column', ['fields' => ['id']]);
@@ -2377,8 +2391,10 @@ class Feed extends AppModel
         foreach ($feedIds as $feedId) {
             $sourceHashes = $redis->sMembers('misp:feed_cache:' . $feedId);
             $hashToInsert = [];
+            $dataToInsert = [];
             foreach ($sourceHashes as $sourceHash) {
-                $hashToInsert[] = hex2bin($sourceHash);
+                $binarySourceHash = hex2bin($sourceHash);
+                $hashToInsert[] = $binarySourceHash;
                 $uuids = $redis->sMembers('misp:feed_cache:' . $sourceHash);
                 if ($uuids) {
                     $uuidToInsert = [];
@@ -2392,17 +2408,24 @@ class Feed extends AppModel
                 } else {
                     $uuidToInsert = 0;
                 }
-                $redis->hSet(self::REDIS_CACHE_PREFIX . hex2bin($sourceHash), 'F' . $feedId, $uuidToInsert);
+                $dataToInsert[] = [$binarySourceHash, 'F' . $feedId, $uuidToInsert];
             }
 
-            $redis->sAddArray(self::REDIS_CACHE_PREFIX . 'F' . $feedId, $hashToInsert);
+            if (!empty($dataToInsert)) {
+                $redis->pipeline();
+                foreach ($dataToInsert as $d) {
+                    $redis->hSet(self::REDIS_CACHE_PREFIX . $d[0], $d[1], $d[2]);
+                }
+                $redis->sAddArray(self::REDIS_CACHE_PREFIX . 'F' . $feedId, $hashToInsert);
+                $redis->exec();
+            }
+
             $redis->set('misp:cache_timestamp:F' . $feedId, $redis->get('misp:feed_cache_timestamp:' . $feedId));
-            $redis->del('misp:feed_cache:' . $feedId);
+            RedisTool::unlink($redis, 'misp:feed_cache:' . $feedId);
         }
 
         // Delete old keys
         RedisTool::unlink($redis, ['misp:feed_cache:combined', 'misp:server_cache:combined']);
-        RedisTool::deleteKeysByPattern($redis, 'misp:feed_cache_timestamp:*');
-        RedisTool::deleteKeysByPattern($redis, 'misp:server_cache_timestamp:*');
+        RedisTool::deleteKeysByPattern($redis, ['misp:feed_cache_timestamp:*', 'misp:server_cache_timestamp:*']);
     }
 }
