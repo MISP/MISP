@@ -576,7 +576,7 @@ class ObjectsController extends AppController
         $object = $object[0];
         $result = $object['Object'][$field];
         if ($field === 'distribution') {
-            $this->set('shortDist', $this->Attribute->shortDist);
+            $this->set('shortDist', $this->MispObject->Attribute->shortDist);
         }
         $this->set('value', $result);
         $this->set('field', $field);
