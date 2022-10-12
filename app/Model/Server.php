@@ -5825,7 +5825,7 @@ class Server extends AppModel
                         'igbinary' => 'igbinary',
                     ],
                     'afterHook' => function () {
-                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:event_lock:*', 'misp:event_index:*', 'misp:dashboard:*'];
+                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:wlc:*', 'misp:event_lock:*', 'misp:event_index:*', 'misp:dashboard:*'];
                         RedisTool::deleteKeysByPattern(RedisTool::init(), $keysToDelete);
                         return true;
                     },
