@@ -667,8 +667,9 @@ function submitForm($td, type, id, field) {
         var field = $(this).data('edit-field');
         quickEditHover(this, type, objectId, field);
     });
-    // Show popover with advanced sigtings information about given or selected attributes
-    $(document.body).on('click', '.sightings_advanced_add', function() {
+    // Show popover with advanced sightings information about given or selected attributes
+    $(document.body).on('click', '.sightings_advanced_add', function(e) {
+        e.preventDefault();
         var object_context = $(this).data('object-context');
         var object_id = $(this).data('object-id');
         if (object_id === 'selected') {
