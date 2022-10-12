@@ -1200,7 +1200,7 @@ class MispObject extends AppModel
                 'skip_kafka' => 1,
             ],
         ];
-        return $this->save($object, true, ['timestamp']);
+        return $this->save($object, ['fieldList' => ['timestamp'], 'skipAuditLog' => true]);
     }
 
     // Hunt down all LEDA and CASTOR clones
