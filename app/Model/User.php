@@ -1236,11 +1236,12 @@ class User extends AppModel
 
         // query
         $result = $this->loadLog()->createLogEntry($user, $action, $model, $modelId, $description, $fieldsResult);
-
         // write to syslogd as well
-        App::import('Lib', 'SysLog.SysLog');
-        $syslog = new SysLog();
-        $syslog->write(LOG_NOTICE, "$description -- $action" . (empty($fieldsResult) ? '' : ' -- ' . $result['Log']['change']));
+        if ($result) {
+            App::import('Lib', 'SysLog.SysLog');
+            $syslog = new SysLog();
+            $syslog->write(LOG_NOTICE, "$description -- $action" . (empty($fieldsResult) ? '' : ' -- ' . $result['Log']['change']));
+        }
     }
 
     /**
