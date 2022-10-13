@@ -441,7 +441,7 @@ class AppController extends Controller
                         $this->Log->save($log);
                     }
                     $storeAPITime = Configure::read('MISP.store_api_access_time');
-                    if (!empty($storeAPITime) && $storeAPITime) {
+                    if (!empty($storeAPITime)) {
                         $this->User->updateAPIAccessTime($user);
                     }
                     $this->Session->renew();
@@ -680,22 +680,50 @@ class AppController extends Controller
         }
 
         if (Configure::read('MISP.log_paranoid') || $userMonitoringEnabled) {
-            $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here;
-            if (
-                (
-                    $this->request->is('post') ||
-                    $this->request->is('put')
-                ) &&
-                (
-                    !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
-                    $userMonitoringEnabled
-                )
-            ) {
-                $payload = $this->request->input();
-                $change .= PHP_EOL . 'Request body: ' . $payload;
+            if (Configure::read('MISP.log_paranoid_redis')) {
+                $dataToSave = [
+                    'time' => $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true),
+                    'request_id' => $_SERVER['HTTP_X_REQUEST_ID'] ?? null,
+                    'user_id' => (int) $user['id'],
+                    'org_id' => (int) $user['org_id'],
+                    'api_request' => isset($user['logged_by_authkey']) && $user['logged_by_authkey'],
+                    'authkey_id' => isset($user['authkey_id']) ? (int) $user['authkey_id'] : null,
+                    'ip' => inet_pton($this->_remoteIp()),
+                    'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+                    'request_method' => $_SERVER['REQUEST_METHOD'],
+                    'controller' => $this->request->controller,
+                    'action' => $this->request->action,
+                    'target' => $this->request->here,
+                ];
+                if ($this->request->is(['post', 'put'])) {
+                    $dataToSave['request'] = $this->request->input();
+                    $requestEncoding = CakeRequest::header('CONTENT_ENCODING');
+                    if ($requestEncoding) {
+                        $dataToSave['request_encoding'] = $requestEncoding;
+                    }
+                }
+
+                try {
+                    $serialized = RedisTool::compress(RedisTool::serialize($dataToSave));
+                    RedisTool::init()->lPush('misp:request_logs', $serialized);
+                } catch (Exception $e) {
+                    $this->log($e->getMessage());
+                }
+            } else {
+                $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here;
+                if (
+                    $this->request->is(['post', 'put']) &&
+                    (
+                        !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
+                        $userMonitoringEnabled
+                    )
+                ) {
+                    $payload = $this->request->input();
+                    $change .= PHP_EOL . 'Request body: ' . $payload;
+                }
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
             }
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
         }
     }
 

@@ -5507,6 +5507,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'log_paranoid_redis' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('If paranoid logging is enabled, store data in Redis instead of database. Redis serialization method must be set to igbinary.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'log_paranoid_include_post_body' => array(
                     'level' => 0,
                     'description' => __('If paranoid logging is enabled, include the POST body in the entries.'),
