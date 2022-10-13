@@ -630,8 +630,8 @@ class Workflow extends AppModel
             ]);
             $userForWorkflow['Server'] = [];
             $userForWorkflow = $this->User->rearrangeToAuthForm($userForWorkflow);
-            return $userForWorkflow;
         }
+        return $userForWorkflow;
     }
 
     public function executeNode(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
