@@ -302,7 +302,7 @@ class MispObject extends AppModel
     {
         if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
             $object = $this->data['Object'];
-            $this->Attribute->Correlation->updateContainedCorrelations($object, 'object');
+            $this->Attribute->Correlation->updateContainedCorrelations($object, 'object', $options);
         }
         if (!empty($this->data['Object']['deleted']) && !$created) {
             $attributes_to_delete = $this->Attribute->find('all', [
