@@ -668,7 +668,12 @@ class Taxonomy extends AppModel
         return $splits['namespace'];
     }
 
-    public function checkIfNewTagIsAllowedByTaxonomy($newTagName, $tagNameList=array())
+    /**
+     * @param string $newTagName
+     * @param array $tagNameList
+     * @return bool
+     */
+    public function checkIfNewTagIsAllowedByTaxonomy($newTagName, array $tagNameList=array())
     {
         $newTagShortened = $this->stripLastTagComponent($newTagName);
         $prefixIsFree = true;

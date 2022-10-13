@@ -2727,8 +2727,7 @@ class EventsController extends AppController
             }
             // we probably also want to remove the published flag
             $this->request->data['Event']['published'] = 0;
-            $date = new DateTime();
-            $this->request->data['Event']['timestamp'] = $date->getTimestamp();
+            $this->request->data['Event']['timestamp'] = time();
             if ($this->Event->save($this->request->data, true, $fieldList)) {
                 $this->Flash->success(__('The event has been saved'));
                 $this->redirect(array('action' => 'view', $id));
@@ -3674,11 +3673,11 @@ class EventsController extends AppController
     public function addTag($id = false, $tag_id = false)
     {
         $rearrangeRules = array(
-                'request' => false,
-                'Event' => false,
-                'tag_id' => 'tag',
-                'event_id' => 'event',
-                'id' => 'event'
+            'request' => false,
+            'Event' => false,
+            'tag_id' => 'tag',
+            'event_id' => 'event',
+            'id' => 'event'
         );
         $RearrangeTool = new RequestRearrangeTool();
         $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
@@ -3772,18 +3771,15 @@ class EventsController extends AppController
                     $fails[$tag_id] = __('Tag not found.');
                     continue;
                 }
-                $found = $this->Event->EventTag->find('first', array(
-                    'conditions' => array(
-                        'event_id' => $id,
-                        'tag_id' => $tag_id
-                    ),
-                    'recursive' => -1,
-                ));
-                if (!empty($found)) {
+                $found = $this->Event->EventTag->hasAny([
+                    'event_id' => $id,
+                    'tag_id' => $tag_id
+                ]);
+                if ($found) {
                     $fails[$tag_id] = __('Tag is already attached to this event.');
                     continue;
                 }
-                $tagsOnEvent = $this->Event->EventTag->find('all', array(
+                $tagsOnEvent = $this->Event->EventTag->find('column', array(
                     'conditions' => array(
                         'EventTag.event_id' => $id,
                         'EventTag.local' => $local
@@ -3792,7 +3788,7 @@ class EventsController extends AppController
                     'fields' => array('Tag.name'),
                     'recursive' => -1
                 ));
-                $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnEvent, '{n}.Tag.name'));
+                $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], $tagsOnEvent);
                 if (!$exclusiveTestPassed) {
                     $fails[$tag_id] = __('Tag is not allowed due to taxonomy exclusivity settings');
                     continue;
@@ -3804,10 +3800,7 @@ class EventsController extends AppController
                 $this->Event->EventTag->create();
                 if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id, 'local' => $local))) {
                     if (!$local) {
-                        $event['Event']['published'] = 0;
-                        $date = new DateTime();
-                        $event['Event']['timestamp'] = $date->getTimestamp();
-                        $this->Event->save($event);
+                        $this->Event->unpublishEvent($event);
                     }
                     $log = ClassRegistry::init('Log');
                     $log->createLogEntry(
@@ -3876,11 +3869,11 @@ class EventsController extends AppController
             $this->render('/Attributes/ajax/tagRemoveConfirmation');
         } else {
             $rearrangeRules = array(
-                    'request' => false,
-                    'Event' => false,
-                    'tag_id' => 'tag',
-                    'event_id' => 'event',
-                    'id' => 'event'
+                'request' => false,
+                'Event' => false,
+                'tag_id' => 'tag',
+                'event_id' => 'event',
+                'id' => 'event'
             );
             $RearrangeTool = new RequestRearrangeTool();
             $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
@@ -3927,10 +3920,7 @@ class EventsController extends AppController
             ));
             if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
                 if (empty($eventTag['EventTag']['local'])) {
-                    $event['Event']['published'] = 0;
-                    $date = new DateTime();
-                    $event['Event']['timestamp'] = $date->getTimestamp();
-                    $this->Event->save($event);
+                    $this->Event->unpublishEvent($event);
                 }
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
