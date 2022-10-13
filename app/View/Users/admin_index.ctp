@@ -224,7 +224,7 @@
                         'element' => 'datetime',
                         'class' => 'short',
                         'data_path' => 'User.last_api_access',
-                        'requirement' => !empty(Configure::read('MISP.store_api_access_time')) && Configure::read('MISP.store_api_access_time', false)
+                        'requirement' => !empty(Configure::read('MISP.store_api_access_time')),
                     ),
                     array(
                         'name' => (Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : __('External Auth')),
