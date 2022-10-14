@@ -799,6 +799,27 @@ function refreshTagCollectionRow(tag_collection_id) {
     });
 }
 
+function modifyTagRelationship() {
+    var $form = $(this);
+    var action = $form.attr("action");
+
+    $.ajax({
+       type: "post",
+       url: action,
+       data: $form.serialize(),
+       error: xhrFailCallback,
+       success: function () {
+           $('#genericModal').modal('hide');
+           var id = action.split("/").pop();
+           if ("/attribute/" in action) {
+               loadAttributeTags(id);
+           } else {
+               loadEventTags(id);
+           }
+       }
+    });
+}
+
 function handleAjaxEditResponse($td, data, type, id, field) {
     var responseArray = data;
     if (type === 'Attribute') {
@@ -1084,9 +1105,9 @@ function getSelectedTaxonomyNames() {
 
 function loadEventTags(id) {
     $.ajax({
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data) {
+        success: function (data) {
             $(".eventTagContainer").html(data);
         },
         url: baseurl + "/tags/showEventTag/" + id,

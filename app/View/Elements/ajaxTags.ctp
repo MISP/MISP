@@ -89,14 +89,12 @@
         $span_relationship = '';
         if ($full || ($fullLocal && $tag['Tag']['local'])) {
             $span_relationship = sprintf(
-                '<span class="%s" title="%s" role="%s" tabindex="%s" aria-label="%s" onclick="%s"><i class="fas fa-project-diagram"></i></span>',
-                'black-white tag useCursorPointer noPrint',
+                '<a class="%s" title="%s" role="button" tabindex="0" aria-label="%s" href="%s"><i class="fas fa-project-diagram"></i></a>',
+                'black-white tag useCursorPointer noPrint modal-open',
                 __('Modify Tag Relationship'),
-                "button",
-                "0",
                 __('Modify relationship for tag %s', h($tag['Tag']['name'])),
                 sprintf(
-                    'openGenericModal(\'%s/tags/modifyTagRelationship/%s/%s\');',
+                    '%s/tags/modifyTagRelationship/%s/%s',
                     $baseurl,
                     h($scope),
                     h($tag['id'])

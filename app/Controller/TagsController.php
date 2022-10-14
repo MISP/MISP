@@ -1136,6 +1136,7 @@ class TagsController extends AppController
             $this->set('options', $relationships);
             $this->set('default', $tagConnector[$model_name]['relationship_type']);
             $this->set('model', 'Tag');
+            $this->set('onsubmit', 'modifyTagRelationship');
             $this->set('field', 'relationship_type');
             $this->layout = false;
             $this->render('/genericTemplates/select');

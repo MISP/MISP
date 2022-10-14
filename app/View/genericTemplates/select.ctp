@@ -9,7 +9,7 @@
         <p><?= h($description) ?></p>
         <?php
             $randomNumber = rand();
-            echo $this->Form->create($model, ['id' => $randomNumber . 'Form']);
+            echo $this->Form->create($model, ['id' => $randomNumber . 'Form', 'onsubmit' => $onsubmit ?? null]);
             echo $this->Form->input('relationship_type', [
                 'type' => 'select',
                 'options' => $options,
