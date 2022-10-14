@@ -1064,9 +1064,10 @@ class TagsController extends AppController
         return $this->RestResponse->viewData($tags, $this->response->type());
     }
 
-    public function modifyTagRelationship($scope, $id) {
+    public function modifyTagRelationship($scope, $id)
+    {
         $validScopes = ['event', 'attribute'];
-        if (!in_array($scope, $validScopes)) {
+        if (!in_array($scope, $validScopes, true)) {
             throw new InvalidArgumentException(__('Invalid scope. Valid options: %s', implode(', ', $validScopes)));
         }
         $model_name = Inflector::classify($scope) . 'Tag';
@@ -1075,17 +1076,27 @@ class TagsController extends AppController
             'recursive' => -1,
             'contain' => 'Tag'
         ]);
+        if (empty($tagConnector)) {
+            throw new NotFoundException(__('Tag not found.'));
+        }
+        $event = $this->Tag->EventTag->Event->fetchSimpleEvent($this->Auth->user(), $tagConnector[$model_name]['event_id']);
+        if (empty($event)) {
+            throw new NotFoundException(__('Event not found.'));
+        }
+        if (!$this->__canModifyTag($event, $tagConnector[$model_name]['local'])) {
+            throw new ForbiddenException(__('You dont have permission to modify this tag.'));
+        }
         if ($this->request->is('post')) {
             if (isset($this->request->data['Tag']['relationship_type'])) {
                 $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type'];
             } else {
                 $tagConnector[$model_name]['relationship_type'] = '';
             }
-            $result = $this->Tag->$model_name->save($tagConnector);
+            $result = $this->Tag->$model_name->save($tagConnector, true, ['relationship_type']);
             if ($result) {
                 $message = __('Relationship updated.');
                 if ($this->_isRest()) {
-
+                    return $this->RestResponse->successResponse($id, $message);
                 } else {
                     $this->Flash->success($message);
                     $this->redirect($this->referer());
@@ -1093,7 +1104,7 @@ class TagsController extends AppController
             } else {
                 $message = __('Relationship could not be updated.');
                 if ($this->_isRest()) {
-
+                    return $this->RestResponse->failResponse($id, $this->Tag->$model_name->validationErrors);
                 } else {
                     $this->Flash->error($message);
                     $this->redirect($this->referer());
@@ -1110,6 +1121,7 @@ class TagsController extends AppController
             $relationships['custom'] = 'custom';
             $relationships[null] = 'Unspecified';
             ksort($relationships);
+
             $this->set('title', __('Modify Tag Relationship'));
             $this->set(
                 'description',

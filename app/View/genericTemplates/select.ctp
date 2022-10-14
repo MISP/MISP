@@ -12,7 +12,8 @@
             echo $this->Form->create($model, ['id' => $randomNumber . 'Form']);
             echo $this->Form->input('relationship_type', [
                 'type' => 'select',
-                'options' => $options
+                'options' => $options,
+                'default' => $default ?? null,
             ]);
             echo $this->Form->end();
         ?>
