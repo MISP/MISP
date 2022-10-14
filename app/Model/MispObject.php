@@ -302,7 +302,7 @@ class MispObject extends AppModel
     {
         if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
             $object = $this->data['Object'];
-            $this->Attribute->Correlation->updateContainedCorrelations($object, 'object');
+            $this->Attribute->Correlation->updateContainedCorrelations($object, 'object', $options);
         }
         if (!empty($this->data['Object']['deleted']) && !$created) {
             $attributes_to_delete = $this->Attribute->find('all', [
@@ -1200,7 +1200,7 @@ class MispObject extends AppModel
                 'skip_kafka' => 1,
             ],
         ];
-        return $this->save($object, true, ['timestamp']);
+        return $this->save($object, ['fieldList' => ['timestamp'], 'skipAuditLog' => true]);
     }
 
     // Hunt down all LEDA and CASTOR clones

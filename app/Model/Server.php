@@ -3568,6 +3568,11 @@ class Server extends AppModel
         ];
     }
 
+    /**
+     * @param int $workerIssueCount
+     * @return array
+     * @throws ProcessException
+     */
     public function workerDiagnostics(&$workerIssueCount)
     {
         $worker_array = array(
@@ -3583,13 +3588,18 @@ class Server extends AppModel
             unset($worker_array['scheduler']);
         }
 
-        $workers = $this->getWorkers();
+        try {
+            $workers = $this->getWorkers();
+        } catch (Exception $e) {
+            $this->logException('Could not get list of workers.', $e);
+            return $worker_array;
+        }
 
         $currentUser = ProcessTool::whoami();
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
             if (!is_numeric($pid)) {
-                throw new MethodNotAllowedException('Non numeric PID found.');
+                throw new Exception('Non numeric PID found.');
             }
             $entry = $worker['type'] === 'regular' ? $worker['queue'] : $worker['type'];
             $correctUser = ($currentUser === $worker['user']);
@@ -5815,7 +5825,7 @@ class Server extends AppModel
                         'igbinary' => 'igbinary',
                     ],
                     'afterHook' => function () {
-                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:event_lock:*', 'misp:event_index:*', 'misp:dashboard:*'];
+                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:wlc:*', 'misp:event_lock:*', 'misp:event_index:*', 'misp:dashboard:*'];
                         RedisTool::deleteKeysByPattern(RedisTool::init(), $keysToDelete);
                         return true;
                     },

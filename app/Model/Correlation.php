@@ -11,6 +11,7 @@ App::uses('AppModel', 'Model');
  * @method fetchRelatedEventIds(array $user, int $eventId, array $sgids)
  * @method getFieldRules
  * @method getContainRules($filter = null)
+ * @method updateContainedCorrelations(array $data, string $type, array $options = [])
  */
 class Correlation extends AppModel
 {

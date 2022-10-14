@@ -2106,26 +2106,40 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function touch($attribute_id)
+    /**
+     * This method will update attribute, object and event timestamp
+     * @param int|array $attribute
+     * @return bool
+     * @throws Exception
+     */
+    public function touch($attribute)
     {
-        $attribute = $this->find('first', [
-            'conditions' => ['Attribute.id' => $attribute_id],
-            'recursive' => -1,
-        ]);
-        $event = $this->Event->find('first', [
-            'conditions' => ['Event.id' => $attribute['Attribute']['event_id']],
-            'recursive' => -1,
-        ]);
-        $timestamp = (new DateTime())->getTimestamp();
-        $event['Event']['published'] = 0;
-        $event['Event']['timestamp'] = $timestamp;
-        $attribute['Attribute']['timestamp'] = $timestamp;
-        $saveSucces = true;
-        if ($attribute['Attribute']['object_id'] != 0) {
-            $saveSucces = $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $timestamp);
+        if (!isset($attribute['Attribute'])) {
+            if (!is_numeric($attribute)) {
+                throw new InvalidArgumentException("Attribute must be array or ID.");
+            }
+            $attribute = $this->find('first', [
+                'conditions' => ['Attribute.id' => $attribute],
+                'recursive' => -1,
+            ]);
+            if (empty($attribute)) {
+                throw new NotFoundException("Attribute not found.");
+            }
         }
-        $saveSucces = $saveSucces && $this->save($attribute['Attribute'], true, ['timestamp']);
-        return $saveSucces && $this->Event->save($event, true, ['timestamp', 'published']);
+
+        // If attribute array contains event, reuse it for event unpublishing
+        $event = isset($attribute['Event']) ? $attribute : $attribute['Attribute']['event_id'];
+
+        $timestamp = time();
+        $attribute['Attribute']['timestamp'] = $timestamp;
+        $saveSuccess = $this->save($attribute['Attribute'], ['fieldList' => ['timestamp'], 'skipAuditLog' => true]);
+        if ($saveSuccess && $attribute['Attribute']['object_id'] != 0) {
+            $saveSuccess = $this->Object->updateTimestamp($attribute['Attribute']['object_id'], $timestamp);
+        }
+        if ($saveSuccess) {
+            $saveSuccess = $this->Event->unpublishEvent($event, false, $timestamp);
+        }
+        return $saveSuccess;
     }
 
     public function attachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options, array $user)

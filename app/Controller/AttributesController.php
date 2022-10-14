@@ -189,7 +189,7 @@ class AttributesController extends AppController
                 }
             }
             if ($successes !== 0) {
-                $this->Attribute->Event->unpublishEvent($event['Event']['id']);
+                $this->Attribute->Event->unpublishEvent($event);
             }
             if ($this->_isRest()) {
                 if ($successes !== 0) {
@@ -432,7 +432,7 @@ class AttributesController extends AppController
                     $message = __('The attachment(s) could not be saved. Please contact your administrator.');
                 }
             } else {
-                $this->Attribute->Event->unpublishEvent($event['Event']['id']);
+                $this->Attribute->Event->unpublishEvent($event);
             }
             if (empty($success) && !empty($fails)) {
                 $this->Flash->error($message);
@@ -811,14 +811,7 @@ class AttributesController extends AppController
                 // remove the published flag from the event
                 $this->Attribute->Event->unpublishEvent($eventId);
                 if (!empty($this->Attribute->data['Attribute']['object_id'])) {
-                    $object = $this->Attribute->Object->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('Object.id' => $this->Attribute->data['Attribute']['object_id'])
-                    ));
-                    if (!empty($object)) {
-                        $object['Object']['timestamp'] = $dateObj->getTimestamp();
-                        $this->Attribute->Object->save($object);
-                    }
+                    $this->Attribute->Object->updateTimestamp($this->Attribute->data['Attribute']['object_id'], $dateObj->getTimestamp());
                 }
                 if ($this->_isRest()) {
                   $saved_attribute = $this->Attribute->find('first', array(
@@ -1459,9 +1452,7 @@ class AttributesController extends AppController
                 if (!$this->_isRest()) {
                     $this->Attribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
                 }
-                $event['Event']['timestamp'] = $timestamp;
-                $event['Event']['published'] = 0;
-                $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'id')));
+                $this->Attribute->Event->unpublishEvent($event, false, $timestamp);
             } else {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
             }
@@ -2745,17 +2736,8 @@ class AttributesController extends AppController
                         $fails++;
                     }
                 }
-
                 if ($changeTimestamp) {
-                    $attribute['Event']['published'] = 0;
-                    $date = new DateTime();
-                    $attribute['Event']['timestamp'] = $date->getTimestamp();
-                    $result = $this->Attribute->Event->save($attribute['Event']);
-                    $attribute['Attribute']['timestamp'] = $date->getTimestamp();
-                    if ($attribute['Attribute']['object_id'] != 0) {
-                        $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
-                    }
-                    $this->Attribute->save($attribute['Attribute']);
+                    $this->Attribute->touch($attribute);
                 }
             }
             if ($fails === 0) {
@@ -2774,7 +2756,9 @@ class AttributesController extends AppController
     public function removeTag($id = false, $tag_id = false)
     {
         if (!$this->request->is('post')) {
-            $attribute = $this->__fetchAttribute($id);
+            $attribute = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
+                'conditions' => $this->__idToConditions($id)
+            ]);
             if (!$attribute) {
                 throw new NotFoundException(__('Invalid attribute'));
             }
@@ -2819,12 +2803,11 @@ class AttributesController extends AppController
                 }
                 $tag_id = $this->request->data['tag'];
             }
-            $this->Attribute->id = $id;
-            $attribute = $this->__fetchAttribute($id);
             $attribute = $this->Attribute->find('first', [
                 'recursive' => -1,
                 'conditions' => ['Attribute.id' => $id],
-                'fields' => ['Attribute.deleted', 'Attribute.event_id', 'Attribute.id', 'Attribute.object_id']
+                'fields' => ['Attribute.deleted', 'Attribute.event_id', 'Attribute.id', 'Attribute.object_id'],
+                'contains' => ['Event'],
             ]);
             if (empty($attribute)) {
                 throw new NotFoundException(__('Invalid attribute'));
@@ -2845,11 +2828,6 @@ class AttributesController extends AppController
             if (!is_numeric($id)) {
                 $id = $this->request->data['Attribute']['id'];
             }
-
-            $event = $this->Attribute->Event->find('first', [
-                'recursive' => -1,
-                'conditions' => ['Event.id' => $attribute['Attribute']['event_id']]
-            ]);
             if (!$this->_isRest()) {
                 $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
             }
@@ -2861,11 +2839,10 @@ class AttributesController extends AppController
                 'recursive' => -1,
             ));
             // org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
-            if (!$this->__canModifyTag($event, !empty($attributeTag['AttributeTag']['local']))) {
+            if (!$this->__canModifyTag($attribute, !empty($attributeTag['AttributeTag']['local']))) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You do not have permission to do that.')), 'status' => 200, 'type' => 'json'));
             }
 
-            $this->autoRender = false;
             if (empty($attributeTag)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid attribute - tag combination.')), 'status' => 200, 'type' => 'json'));
             }
@@ -2876,15 +2853,7 @@ class AttributesController extends AppController
             ));
             if ($this->Attribute->AttributeTag->delete($attributeTag['AttributeTag']['id'])) {
                 if (empty($attributeTag['AttributeTag']['local'])) {
-                    $event['Event']['published'] = 0;
-                    $date = new DateTime();
-                    $event['Event']['timestamp'] = $date->getTimestamp();
-                    $this->Attribute->Event->save($event);
-                    if ($attribute['Attribute']['object_id'] != 0) {
-                        $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
-                    }
-                    $attribute['Attribute']['timestamp'] = $date->getTimestamp();
-                    $this->Attribute->save($attribute);
+                    $this->Attribute->touch($attribute);
                 }
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
@@ -2936,7 +2905,6 @@ class AttributesController extends AppController
     {
         return $this->fetchEditForm($id, 'to_ids');
     }
-
 
     public function checkAttachments()
     {

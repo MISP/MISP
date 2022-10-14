@@ -864,14 +864,8 @@ class TagsController extends AppController
                 if ($local) {
                     $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
                 } else {
-                    $tempObject = $this->$objectType->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
-                    ));
-                    $tempObject[$objectType]['timestamp'] = time();
-                    $this->$objectType->save($tempObject);
                     if ($objectType === 'Attribute') {
-                        $this->$objectType->Event->unpublishEvent($object['Event']['id']);
+                        $this->Attribute->touch($object['Attribute']['id']);
                     } elseif ($objectType === 'Event') {
                         $this->Event->unpublishEvent($object['Event']['id']);
                     }
@@ -957,17 +951,10 @@ class TagsController extends AppController
         $local = $existingAssociation[$objectType . 'Tag']['local'];
         $result = $this->$objectType->$connectorObject->delete($existingAssociation[$connectorObject]['id']);
         if ($result) {
-            $message = sprintf(__('%s tag %s (%s) successfully removed from %s(%s).'), $local ? __('Local') : __('Global'), $existingTag['Tag']['name'], $existingTag['Tag']['id'], $objectType, $object[$objectType]['id']);
+            $message = __('%s tag %s (%s) successfully removed from %s(%s).', $local ? __('Local') : __('Global'), $existingTag['Tag']['name'], $existingTag['Tag']['id'], $objectType, $object[$objectType]['id']);
             if (!$local) {
-                $tempObject = $this->$objectType->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
-                ));
-                $date = new DateTime();
-                $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
-                $this->$objectType->save($tempObject);
                 if ($objectType === 'Attribute') {
-                    $this->$objectType->Event->unpublishEvent($object['Event']['id']);
+                    $this->Attribute->touch($object['Attribute']['id']);
                 } elseif ($objectType === 'Event') {
                     $this->Event->unpublishEvent($object['Event']['id']);
                 }

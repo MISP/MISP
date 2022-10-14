@@ -505,15 +505,14 @@ class Event extends AppModel
         return $events;
     }
 
+    /**
+     * @param int $event_id
+     * @return array|bool|mixed|null
+     * @throws Exception
+     */
     public function touch($event_id)
     {
-        $event = $this->find('first', [
-            'conditions' => ['Event.id' => $event_id],
-            'recursive' => -1,
-        ]);
-        $event['Event']['published'] = 0;
-        $event['Event']['timestamp'] = (new DateTime())->getTimestamp();
-        return $this->save($event, true, ['timestamp', 'published']);
+        return $this->unpublishEvent($event_id);
     }
 
     public function attachTagsToEventAndTouch($event_id, array $options, array $user)
@@ -5642,22 +5641,30 @@ class Event extends AppModel
     }
 
     /**
-     * @param int $id
+     * @param int|array $eventOrEventId Event ID or event array
      * @param bool $proposalLock
      * @param int|null $timestamp If not provided, current time will be used
      * @return array|bool|mixed|null
      * @throws Exception
      */
-    public function unpublishEvent($id, $proposalLock = false, $timestamp = null)
+    public function unpublishEvent($eventOrEventId, $proposalLock = false, $timestamp = null)
     {
-        $event = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Event.id' => $id),
-            'fields' => ['id', 'info'], // info is required because of SysLogLogableBehavior
-        ));
-        if (empty($event)) {
-            return false;
+        if (is_array($eventOrEventId)) {
+            $event = $eventOrEventId;
+            if (!isset($event['Event']['id'])) {
+                throw new InvalidArgumentException('Invalid event array provided.');
+            }
+        } else {
+            $event = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Event.id' => $eventOrEventId),
+                'fields' => ['id', 'info'], // info is required because of SysLogLogableBehavior
+            ));
+            if (empty($event)) {
+                return false;
+            }
         }
+
         $fields = ['published', 'timestamp'];
         $event['Event']['published'] = 0;
         $event['Event']['timestamp'] = $timestamp ?: time();

@@ -479,8 +479,7 @@ class Warninglist extends AppModel
         }
 
         try {
-            $redis = RedisTool::init();
-            $redis->set('misp:warninglist_cache', RedisTool::serialize($warninglists));
+            RedisTool::init()->set('misp:warninglist_cache', RedisTool::serialize($warninglists));
         } catch (Exception $e) {
         }
 
@@ -518,8 +517,7 @@ class Warninglist extends AppModel
         }
 
         try {
-            $redis = RedisTool::init();
-            $warninglists = RedisTool::deserialize($redis->get('misp:warninglist_cache'));
+            $warninglists = RedisTool::deserialize(RedisTool::init()->get('misp:warninglist_cache'));
         } catch (Exception $e) {
             $warninglists = false;
         }
@@ -540,8 +538,7 @@ class Warninglist extends AppModel
     private function getWarninglistEntries($id)
     {
         try {
-            $redis = RedisTool::init();
-            $entries = $redis->sMembers('misp:warninglist_entries_cache:' . $id);
+            $entries = RedisTool::init()->sMembers('misp:warninglist_entries_cache:' . $id);
             if (!empty($entries)) {
                 return $entries;
             }
