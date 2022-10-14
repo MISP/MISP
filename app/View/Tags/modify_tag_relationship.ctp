@@ -12,16 +12,9 @@
         <?= $this->Form->postLink(
             h($actionName),
             $this->request->here(),
-            ['class' => 'btn btn-primary button-execute']
+            ['class' => 'btn btn-primary']
             )
         ?>
         <button type="button" class="btn btn-secondary cancel-button" data-dismiss="modal"><?= __('Cancel') ?></button>
     </div>
 </div>
-<script type="text/javascript">
-    $(document).keydown(function(e) {
-        if(e.which === 13 && e.ctrlKey) {
-            $('.button-execute').click();
-        }
-    });
-</script>

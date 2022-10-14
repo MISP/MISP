@@ -4849,8 +4849,8 @@ $(document.body).on('keyup', '#quickFilterField', function(e) {
     }
 });
 
-// Send textarea form on CMD+ENTER or CTRL+ENTER
-$(document.body).on('keydown', 'textarea', function(e) {
+// Send textarea or select form on CMD+ENTER or CTRL+ENTER
+$(document.body).on('keydown', 'textarea, select', function(e) {
     if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) { // CMD+ENTER or CTRL+ENTER key
         if (e.target.form) {
             $(e.target.form).submit();
