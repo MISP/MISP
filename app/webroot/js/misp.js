@@ -800,7 +800,8 @@ function refreshTagCollectionRow(tag_collection_id) {
 }
 
 function modifyTagRelationship() {
-    var $form = $(this);
+    event.preventDefault();
+    var $form = $(event.target);
     var action = $form.attr("action");
 
     $.ajax({
@@ -808,16 +809,23 @@ function modifyTagRelationship() {
        url: action,
        data: $form.serialize(),
        error: xhrFailCallback,
-       success: function () {
-           $('#genericModal').modal('hide');
-           var id = action.split("/").pop();
-           if ("/attribute/" in action) {
-               loadAttributeTags(id);
-           } else {
-               loadEventTags(id);
+       success: function (data) {
+           if (data.saved) {
+               $('#genericModal').modal('hide');
+               if ("attribute_id" in data.data) {
+                   var attribute_id = data.data.attribute_id;
+                   loadAttributeTags(attribute_id);
+                   loadGalaxies(attribute_id, 'attribute');
+               } else {
+                   var event_id = data.data.event_id;
+                   loadEventTags(event_id);
+                   loadGalaxies(event_id, 'event');
+               }
            }
        }
     });
+
+    return false;
 }
 
 function handleAjaxEditResponse($td, data, type, id, field) {

@@ -90,7 +90,7 @@
         if ($full || ($fullLocal && $tag['Tag']['local'])) {
             $span_relationship = sprintf(
                 '<a class="%s" title="%s" role="button" tabindex="0" aria-label="%s" href="%s"><i class="fas fa-project-diagram"></i></a>',
-                'black-white tag useCursorPointer noPrint modal-open',
+                'black-white tag noPrint modal-open',
                 __('Modify Tag Relationship'),
                 __('Modify relationship for tag %s', h($tag['Tag']['name'])),
                 sprintf(
