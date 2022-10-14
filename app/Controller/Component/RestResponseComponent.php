@@ -488,6 +488,7 @@ class RestResponseComponent extends Component
      * @param mixed $data
      * @return CakeResponse
      * @throws Exception
+     * @deprecated Use failResponse instead
      */
     public function saveFailResponse($controller, $action, $id, $validationErrors, $format = false, $data = null)
     {
@@ -515,6 +516,18 @@ class RestResponseComponent extends Component
     }
 
     /**
+     * @param int|null $id
+     * @param array|string $validationErrors
+     * @param mixed $additionalData
+     * @return CakeResponse|CakeResponseFile
+     * @throws Exception
+     */
+    public function failResponse($id = null, $validationErrors = null, $additionalData = null)
+    {
+        return $this->saveFailResponse($this->Controller->name, $this->Controller->action, $id, $validationErrors, 'json', $additionalData);
+    }
+
+    /**
      * @param string $controller
      * @param string $action
      * @param int|false $id
@@ -523,6 +536,7 @@ class RestResponseComponent extends Component
      * @param mixed $data
      * @return CakeResponse
      * @throws Exception
+     * @deprecated Use successResponse instead
      */
     public function saveSuccessResponse($controller, $action, $id = false, $format = false, $message = false, $data = null)
     {
@@ -544,6 +558,18 @@ class RestResponseComponent extends Component
             $response['id'] = $id;
         }
         return $this->__sendResponse($response, 200, $format);
+    }
+
+    /**
+     * @param int|null $id
+     * @param string|null $message
+     * @param mixed $additionalData
+     * @return CakeResponse|CakeResponseFile
+     * @throws Exception
+     */
+    public function successResponse($id = null, $message = null, $additionalData = null)
+    {
+        return $this->saveSuccessResponse($this->Controller->name, $this->Controller->action, $id, 'json', $message, $additionalData);
     }
 
     /**
