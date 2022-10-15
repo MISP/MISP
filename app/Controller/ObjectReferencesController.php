@@ -217,11 +217,6 @@ class ObjectReferencesController extends AppController
         }
 
         $selectedAttributeIDs = $this->_jsonDecode($selectedAttributes);
-        $event = $this->ObjectReference->Object->Event->find('first', array(
-            'recursive' => -1,
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id', 'Event.publish_timestamp'),
-            'conditions' => array('Event.id' => $eventId)
-        ));
         $event = $this->ObjectReference->Object->Event->fetchEvent($this->Auth->user(), [
             'eventid' => $eventId,
         ]);
@@ -233,33 +228,28 @@ class ObjectReferencesController extends AppController
             throw new ForbiddenException(__('You do not have permission to do that.'));
         }
 
-        $eventObjects = [];
-        $validSourceUuid = [];
-        foreach ($event['Object'] as $object) {
-            $validSourceUuid[$object['uuid']] = sprintf('[%s] %s ', $object['id'], $object['name']);
-            $eventObjects[$object['uuid']] = $object;
-        }
         $selectedAttributes = [];
         foreach ($event['Attribute'] as $attribute) {
             if (in_array($attribute['id'], $selectedAttributeIDs)) {
                 $selectedAttributes[$attribute['id']] = $attribute;
             }
         }
+
+        if (empty($selectedAttributes)) {
+            throw new BadRequestException(__('No attribute selected.'));
+        }
+
         if ($this->request->is('post')) {
             $conditions = [
                 'Object.deleted' => 0,
+                'Object.event_id' => $eventId,
                 'Object.uuid' => $this->data['ObjectReference']['source_uuid'],
             ];
             $object = $this->ObjectReference->Object->find('first', array(
                 'conditions' => $conditions,
                 'recursive' => -1,
-                'contain' => array(
-                    'Event' => array(
-                        'fields' => array('Event.id', 'Event.orgc_id', 'Event.user_id', 'Event.extends_uuid')
-                    )
-                )
             ));
-            if (empty($object) || !$this->__canModifyEvent($object)) {
+            if (empty($object)) {
                 throw new NotFoundException('Invalid object.');
             }
 
@@ -310,6 +300,12 @@ class ObjectReferencesController extends AppController
             }
         }
 
+        $eventObjects = [];
+        $validSourceUuid = [];
+        foreach ($event['Object'] as $object) {
+            $validSourceUuid[$object['uuid']] = sprintf('[%s] %s ', $object['id'], $object['name']);
+            $eventObjects[$object['uuid']] = $object;
+        }
 
         $this->loadModel('ObjectRelationship');
         $relationships = $this->ObjectRelationship->find('column', array(

@@ -13,6 +13,7 @@ $fields = [
     [
         'field' => 'relationship_type_select',
         'type' => 'dropdown',
+        'title' => __('Relationship type'),
         'class' => 'span6',
         'options' => $relationships,
         'picker' => true,
@@ -41,9 +42,9 @@ $fields = [
     [
         'field' => 'comment',
         'type' => 'textarea',
-        'class' => 'input span6'
+        'class' => 'input span6',
+        'rows' => 3,
     ],
-
 ];
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
@@ -57,16 +58,10 @@ echo $this->element('genericElements/Form/genericForm', [
         ]
     ]
 ]);
-
-if (!$ajax) {
-    echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
-}
-
 ?>
-
 <script>
     var validSourceUuid = <?= JsonTool::encode($eventObjects) ?>;
-    $(document).ready(function() {
+    $(function() {
         $("#ObjectReferenceRelationshipTypeSelect").change(function() {
             objectReferenceCheckForCustomRelationship()
         });
