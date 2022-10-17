@@ -3368,27 +3368,35 @@ class AppModel extends Model
         return (new RandomTool())->random_str(false, 12);
     }
 
+    /**
+     * @param string|int $delta
+     * @return int Timestamp
+     */
     public function resolveTimeDelta($delta)
     {
         if (is_numeric($delta)) {
-            return $delta;
+            return (int)$delta;
         }
-        $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
+
+        $multiplierArray = ['d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1];
         $lastChar = strtolower(substr($delta, -1));
         if (!is_numeric($lastChar) && isset($multiplierArray[$lastChar])) {
             $multiplier = $multiplierArray[$lastChar];
-            $delta = substr($delta, 0, -1);
-        } else if (strtotime($delta) !== false) {
-            return strtotime($delta);
-        } else {
-            // invalid filter, make sure we don't return anything
-            return time() + 1;
+            $timeDelta = substr($delta, 0, -1);
+            if (!is_numeric($timeDelta)) {
+                $this->log('Invalid time filter format ' . $delta, LOG_NOTICE);
+                return time() + 1;
+            }
+            return time() - ($timeDelta * $multiplier);
         }
-        if (!is_numeric($delta)) {
-            // Same here. (returning false dumps the whole database)
-            return time() + 1;
+
+        $time = strtotime($delta);
+        if ($time !== false) {
+            return $time;
         }
-        return time() - ($delta * $multiplier);
+
+        $this->log('Invalid time filter format ' . $delta, LOG_NOTICE);
+        return time() + 1;
     }
 
     private function __fixServerPullPushRules()
