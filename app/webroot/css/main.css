@@ -867,6 +867,10 @@ a.proposal_link_red:hover {
     color:white;
 }
 
+a.black-white:hover {
+    color: white;
+}
+
 .tagFirstHalf {
     display: inline-block;
     padding: 2px 4px;

@@ -5992,7 +5992,15 @@ class Event extends AppModel
         return $attributes_added;
     }
 
-    public function massageTags($user, $data, $dataType = 'Event', $excludeGalaxy = false, $cullGalaxyTags = false)
+    /**
+     * @param array $user
+     * @param array $data
+     * @param string $dataType
+     * @param bool $excludeGalaxy
+     * @param bool $cullGalaxyTags
+     * @return array
+     */
+    public function massageTags(array $user, array $data, $dataType = 'Event', $excludeGalaxy = false, $cullGalaxyTags = false)
     {
         $data['Galaxy'] = array();
 
@@ -6012,14 +6020,15 @@ class Event extends AppModel
                         $cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name'], $user);
                         if ($cluster) {
                             $found = false;
-                            $cluster['GalaxyCluster']['local'] = isset($dataTag['local']) ? $dataTag['local'] : false;
+                            $cluster['GalaxyCluster']['local'] = $dataTag['local'] ?? false;
+                            $cluster['GalaxyCluster'][strtolower($dataType) . '_tag_id'] = $dataTag['id'];
                             foreach ($data['Galaxy'] as $j => $galaxy) {
                                 if ($galaxy['id'] == $cluster['GalaxyCluster']['Galaxy']['id']) {
                                     $found = true;
                                     $temp = $cluster;
                                     unset($temp['GalaxyCluster']['Galaxy']);
                                     $data['Galaxy'][$j]['GalaxyCluster'][] = $temp['GalaxyCluster'];
-                                    continue;
+                                    break;
                                 }
                             }
                             if (!$found) {

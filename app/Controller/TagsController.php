@@ -1064,36 +1064,47 @@ class TagsController extends AppController
         return $this->RestResponse->viewData($tags, $this->response->type());
     }
 
-    public function modifyTagRelationship($scope, $id) {
+    public function modifyTagRelationship($scope, $id)
+    {
         $validScopes = ['event', 'attribute'];
-        if (!in_array($scope, $validScopes)) {
+        if (!in_array($scope, $validScopes, true)) {
             throw new InvalidArgumentException(__('Invalid scope. Valid options: %s', implode(', ', $validScopes)));
         }
         $model_name = Inflector::classify($scope) . 'Tag';
         $tagConnector = $this->Tag->$model_name->find('first', [
             'conditions' => [$model_name . '.id' => $id],
             'recursive' => -1,
-            'contain' => 'Tag'
+            'contain' => ['Tag'],
         ]);
+        if (empty($tagConnector)) {
+            throw new NotFoundException(__('Tag not found.'));
+        }
+        $event = $this->Tag->EventTag->Event->fetchSimpleEvent($this->Auth->user(), $tagConnector[$model_name]['event_id']);
+        if (empty($event)) {
+            throw new NotFoundException(__('Event not found.'));
+        }
+        if (!$this->__canModifyTag($event, $tagConnector[$model_name]['local'])) {
+            throw new ForbiddenException(__('You dont have permission to modify this tag.'));
+        }
         if ($this->request->is('post')) {
             if (isset($this->request->data['Tag']['relationship_type'])) {
                 $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type'];
             } else {
                 $tagConnector[$model_name]['relationship_type'] = '';
             }
-            $result = $this->Tag->$model_name->save($tagConnector);
+            $result = $this->Tag->$model_name->save($tagConnector, true, ['relationship_type']);
             if ($result) {
                 $message = __('Relationship updated.');
-                if ($this->_isRest()) {
-
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->successResponse($id, $message, ["{$scope}_id" => $tagConnector[$model_name]["{$scope}_id"]]);
                 } else {
                     $this->Flash->success($message);
                     $this->redirect($this->referer());
                 }
             } else {
                 $message = __('Relationship could not be updated.');
-                if ($this->_isRest()) {
-
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->failResponse($id, $this->Tag->$model_name->validationErrors);
                 } else {
                     $this->Flash->error($message);
                     $this->redirect($this->referer());
@@ -1110,6 +1121,7 @@ class TagsController extends AppController
             $relationships['custom'] = 'custom';
             $relationships[null] = 'Unspecified';
             ksort($relationships);
+
             $this->set('title', __('Modify Tag Relationship'));
             $this->set(
                 'description',
@@ -1124,6 +1136,7 @@ class TagsController extends AppController
             $this->set('options', $relationships);
             $this->set('default', $tagConnector[$model_name]['relationship_type']);
             $this->set('model', 'Tag');
+            $this->set('onsubmit', 'modifyTagRelationship()');
             $this->set('field', 'relationship_type');
             $this->layout = false;
             $this->render('/genericTemplates/select');
