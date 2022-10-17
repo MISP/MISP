@@ -1283,12 +1283,15 @@ class Workflow extends AppModel
      * @param array $param_data
      * @return array
      */
-    public function moduleStatelessExecution(string $module_id, $input_data=[], array $param_data=[]): array
+    public function moduleStatelessExecution(string $module_id, $input_data=[], array $param_data=[], bool $convert_data=true): array
     {
         $result = [];
         $input_data = !empty($input_data) ? $input_data : [];
-        $eventPublishTrigger = $this->getModuleClassByType('trigger', 'event-publish');
-        $data = $this->__normalizeDataForTrigger($eventPublishTrigger, $input_data);
+        $data = $input_data;
+        if (!empty($convert_data)) {
+            $eventPublishTrigger = $this->getModuleClassByType('trigger', 'event-publish');
+            $data = $this->__normalizeDataForTrigger($eventPublishTrigger, $input_data);
+        }
         $module_config = $this->getModuleByID($module_id);
         $node = $this->genNodeFromConfig($module_config, $param_data);
         $module_class = $this->getModuleClass($node);

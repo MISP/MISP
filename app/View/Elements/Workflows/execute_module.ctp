@@ -1,6 +1,7 @@
 <?php
 $type_mapper = [
     'picker' => 'dropdown',
+    'input' => 'text',
 ];
 ?>
 
@@ -52,10 +53,16 @@ $type_mapper = [
             <?php
             $formFields = [
                 [
+                    'field' => 'convert_data',
+                    'label' => __('Convert input data into MISP core format'),
+                    'type' => 'checkbox',
+                    'default' => true,
+                ],
+                [
                     'field' => 'module_input_data',
                     'type' => 'textarea',
                     'class' => 'span6',
-                ]
+                ],
             ];
             echo $this->element('genericElements/Form/genericForm', [
                 'data' => [
@@ -99,6 +106,7 @@ $type_mapper = [
     var $executionResultText = $('#executionResultText')
     var $formParams = $('#WorkflowModuleViewForm')
     var $inputData = $('#WorkflowModuleInputData')
+    var $convertData = $('#WorkflowConvertData')
     $(document).ready(function() {
         $runModuleBtn.click(submitModuleExecution)
         $('select[multiple]').chosen()
@@ -140,6 +148,7 @@ $type_mapper = [
         return {
             module_indexed_param: indexedParams,
             input_data: $inputData.val(),
+            convert_data: $convertData.prop('checked') ? 1 : 0,
         }
     }
 
