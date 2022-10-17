@@ -3704,6 +3704,47 @@ class Event extends AppModel
             if ($fromXml) {
                 $created_id = $this->id;
             }
+            $userForWorkflow = $this->User->getAuthUser(Configure::read('CurrentUserId'), true);
+            $userForWorkflow['Role']['perm_site_admin'] = 1;
+            if ($fromPull) {
+                if ($this->isTriggerCallable('event-after-save-new-from-pull')) {
+                    $fullSavedEvent = $this->fetchEvent($userForWorkflow, [
+                        'eventid' => $this->id,
+                        'includeAttachments' => 1
+                    ])[0];
+                    $workflowErrors = [];
+                    $logging = [
+                        'model' => 'Event',
+                        'action' => 'add',
+                        'id' => $this->id,
+                    ];
+                    $triggerData = $fullSavedEvent;
+                    $success = $this->executeTrigger('event-after-save-new-from-pull', $triggerData, $workflowErrors, $logging);
+                    if (empty($success)) {
+                        $errorMessage = implode(', ', $workflowErrors);
+                        return $errorMessage;
+                    }
+                }
+            } else {
+                if ($this->isTriggerCallable('event-after-save-new')) {
+                    $fullSavedEvent = $this->fetchEvent($userForWorkflow, [
+                        'eventid' => $this->id,
+                        'includeAttachments' => 1
+                    ])[0];
+                    $workflowErrors = [];
+                    $logging = [
+                        'model' => 'Event',
+                        'action' => 'add',
+                        'id' => $this->id,
+                    ];
+                    $triggerData = $fullSavedEvent;
+                    $success = $this->executeTrigger('event-after-save-new', $triggerData, $workflowErrors, $logging);
+                    if (empty($success)) {
+                        $errorMessage = implode(', ', $workflowErrors);
+                        return $errorMessage;
+                    }
+                }
+            }
             if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
                 // do the necessary actions to publish the event (email, upload,...)
                 if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
