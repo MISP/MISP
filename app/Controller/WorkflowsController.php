@@ -186,15 +186,34 @@ class WorkflowsController extends AppController
     {
         $triggers = $this->Workflow->getModulesByType('trigger');
         $triggers = $this->Workflow->attachWorkflowToTriggers($triggers);
-        $data = $triggers;
+        $scopes = array_unique(Hash::extract($triggers, '{n}.scope'));
+        sort($scopes);
+        $filters = $this->IndexFilter->harvestParameters(['scope', 'enabled', 'blocking']);
+        if (!empty($filters['scope'])) {
+            $triggers = array_filter($triggers, function($trigger) use ($filters) {
+                return $trigger['scope'] === $filters['scope'];
+            });
+        }
+        if (isset($filters['enabled'])) {
+            $triggers = array_filter($triggers, function($trigger) use ($filters) {
+                return $trigger['disabled'] != $filters['enabled'];
+            });
+        }
+        if (isset($filters['blocking'])) {
+            $triggers = array_filter($triggers, function($trigger) use ($filters) {
+                return $trigger['blocking'] == $filters['blocking'];
+            });
+        }
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
-        $customPagination->truncateAndPaginate($data, $this->params, 'Workflow', true);
+        $customPagination->truncateAndPaginate($triggers, $this->params, 'Workflow', true);
         if ($this->_isRest()) {
-            return $this->RestResponse->viewData($data, $this->response->type());
+            return $this->RestResponse->viewData($triggers, $this->response->type());
         }
 
-        $this->set('data', $data);
+        $this->set('data', $triggers);
+        $this->set('scopes', $scopes);
+        $this->set('filters', $filters);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_trigger']);
     }
 
