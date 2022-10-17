@@ -3555,7 +3555,9 @@ class Event extends AppModel
                     'Server.id',
                     'Server.unpublish_event',
                     'Server.publish_without_email',
-                    'Server.internal'
+                    'Server.internal',
+                    'Server.url',
+                    'Server.remote_org_id',
                 )
             ));
         } else {
@@ -3719,6 +3721,7 @@ class Event extends AppModel
                         'id' => $this->id,
                     ];
                     $triggerData = $fullSavedEvent;
+                    $triggerData['_server'] = $server;
                     $success = $this->executeTrigger('event-after-save-new-from-pull', $triggerData, $workflowErrors, $logging);
                     if (empty($success)) {
                         $errorMessage = implode(', ', $workflowErrors);

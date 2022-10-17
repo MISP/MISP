@@ -31,6 +31,11 @@ class WorkflowFormatConverterTool
             default:
                 break;
         }
+        foreach (array_keys($data) as $key) {
+            if (substr($key, 0, 1) == '_') { // include additional data
+                $converted[$key] = $data[$key];
+            }
+        }
         $converted = self::__includeFlattenedAttributes($converted);
         return $converted;
     }
