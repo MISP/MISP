@@ -61,11 +61,13 @@ class WorkflowFormatConverterTool
     private static function __convertAttribute(array $attribute): array
     {
         $allTags = [];
-        if (!empty($attribute['EventTag'])) {
+        if (!empty($attribute['AttributeTag'])) {
             foreach ($attribute['AttributeTag'] as $attributeTag) {
                 $attributeTag['Tag']['inherited'] = false;
                 $allTags[] = $attributeTag['Tag'];
             }
+        }
+        if (!empty($attribute['EventTag'])) {
             foreach ($attribute['EventTag'] as $eventTag) {
                 $eventTag['Tag']['inherited'] = true;
                 $allTags[] = $eventTag['Tag'];
