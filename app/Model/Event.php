@@ -2823,15 +2823,21 @@ class Event extends AppModel
         return $conditions;
     }
 
+    /**
+     * @param array $params
+     * @param array $conditions
+     * @param array $options
+     * @return array
+     */
     public function set_filter_timestamp(&$params, $conditions, $options)
     {
-        if ($options['filter'] == 'from') {
+        if ($options['filter'] === 'from') {
             if (is_numeric($params['from'])) {
                 $conditions['AND']['Event.date >='] = date('Y-m-d', $params['from']);
             } else {
                 $conditions['AND']['Event.date >='] = $params['from'];
             }
-        } elseif ($options['filter'] == 'to') {
+        } elseif ($options['filter'] === 'to') {
             if (is_numeric($params['to'])) {
                 $conditions['AND']['Event.date <='] = date('Y-m-d', $params['to']);
             } else {

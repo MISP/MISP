@@ -2389,8 +2389,8 @@ class Attribute extends AppModel
                 throw new InvalidArgumentException('Invalid date specification, must be string or array with two elements');
             }
 
-            $timestamp[0] = intval($this->resolveTimeDelta($timestamp[0]));
-            $timestamp[1] = intval($this->resolveTimeDelta($timestamp[1]));
+            $timestamp[0] = $this->resolveTimeDelta($timestamp[0]);
+            $timestamp[1] = $this->resolveTimeDelta($timestamp[1]);
             if ($timestamp[0] > $timestamp[1]) {
                 $temp = $timestamp[0];
                 $timestamp[0] = $timestamp[1];
@@ -2399,7 +2399,7 @@ class Attribute extends AppModel
             $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
             $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
         } else {
-            $timestamp = intval($this->resolveTimeDelta($timestamp));
+            $timestamp = $this->resolveTimeDelta($timestamp);
             $conditions['AND'][] = array($scope . ' >=' => $timestamp);
         }
         if ($returnRaw) {

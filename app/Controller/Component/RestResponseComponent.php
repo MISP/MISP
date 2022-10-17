@@ -1315,7 +1315,7 @@ class RestResponseComponent extends Component
                 'input' => 'text',
                 'type' => 'string',
                 'operators' => array('equal', 'not_equal'),
-                'help' => __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)')
+                'help' => __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m), ISO 8601 datetime format or timestamp.')
             ),
             'last_seen' => array(
                 'input' => 'text',
@@ -1333,7 +1333,7 @@ class RestResponseComponent extends Component
             'local' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('If the organisation should have access to this instance, make sure that the Local organisation setting is checked. If you would only like to add a known external organisation for inclusion in sharing groups, uncheck the Local organisation setting.')
             ),
             'lookup_visible' => array(
@@ -1455,7 +1455,7 @@ class RestResponseComponent extends Component
             'override_ids' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('The IDS flags will be set to off for this feed')
             ),
             'page' => array(
@@ -1474,73 +1474,73 @@ class RestResponseComponent extends Component
             'perm_admin' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_audit' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_auth' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_delegate' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_regexp_access' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_sharing_group' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_sighting' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_site_admin' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_sync' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_tag_editor' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_tagger' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_galaxy_editor' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_template' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'permission' => array(
                 'input' => 'select',
                 'type' => 'string',
                 'operators' => array('equal'),
-                'values' => array(0 =>'Read Only', 1 => 'Manage Own Events', 2 => 'Manage Organisation Events', 3 => 'Manage and Publish Organisation Events'),
+                'values' => array(0 => 'Read Only', 1 => 'Manage Own Events', 2 => 'Manage Organisation Events', 3 => 'Manage and Publish Organisation Events'),
             ),
             'provider' => array(
                 'input' => 'text',
@@ -1551,7 +1551,7 @@ class RestResponseComponent extends Component
             'publish' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('The event will be published')
             ),
             'publish_timestamp' => array(
@@ -1563,7 +1563,7 @@ class RestResponseComponent extends Component
             'published' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'publishtimestamp' => array(
                 'input' => 'number',
@@ -1574,19 +1574,19 @@ class RestResponseComponent extends Component
             'pull' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('Allow the download of events and their attribute from the server')
             ),
             'push' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('Allow the upload of events and their attribute to the server')
             ),
             'push_sightings' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('Allow the upload of sightings to the server')
             ),
             'referenced_galaxy_cluster_uuid' => array(
@@ -1779,7 +1779,7 @@ class RestResponseComponent extends Component
             ),
             'to' => array(
                 'type' => 'date',
-                'validation' => array( 'format' => 'YYYY-MM-DD' ),
+                'validation' => array('format' => 'YYYY-MM-DD'),
                 'plugin' => 'datepicker',
                 'plugin_config' => array(
                     'format' => 'yyyy/mm/dd',
@@ -1832,7 +1832,7 @@ class RestResponseComponent extends Component
             'withAttachments' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
 
             // Not supported yet
