@@ -797,6 +797,7 @@ class Server extends AppModel
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
+     * @throws RedisException
      */
     public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false)
     {
@@ -838,7 +839,7 @@ class Server extends AppModel
             $data = RedisTool::serialize([$response->headers["ETag"], $eventIndex]);
             $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
         } else if ($indexFromCache) {
-            $redis->del("misp:event_index:{$serverSync->serverId()}");
+            RedisTool::unlink($redis, "misp:event_index:{$serverSync->serverId()}");
         }
 
         return $eventIndex;
@@ -2770,7 +2771,7 @@ class Server extends AppModel
         );
 
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
             $output['connection'] = true;
             $output = array_merge($output, $redis->info());
         } catch (Exception $e) {
@@ -3567,6 +3568,11 @@ class Server extends AppModel
         ];
     }
 
+    /**
+     * @param int $workerIssueCount
+     * @return array
+     * @throws ProcessException
+     */
     public function workerDiagnostics(&$workerIssueCount)
     {
         $worker_array = array(
@@ -3582,13 +3588,18 @@ class Server extends AppModel
             unset($worker_array['scheduler']);
         }
 
-        $workers = $this->getWorkers();
+        try {
+            $workers = $this->getWorkers();
+        } catch (Exception $e) {
+            $this->logException('Could not get list of workers.', $e);
+            return $worker_array;
+        }
 
         $currentUser = ProcessTool::whoami();
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
             if (!is_numeric($pid)) {
-                throw new MethodNotAllowedException('Non numeric PID found.');
+                throw new Exception('Non numeric PID found.');
             }
             $entry = $worker['type'] === 'regular' ? $worker['queue'] : $worker['type'];
             $correctUser = ($currentUser === $worker['user']);
@@ -5809,12 +5820,13 @@ class Server extends AppModel
                     'test' => null,
                     'type' => 'string',
                     'null' => true,
+                    'options' => [
+                        'JSON' => 'JSON',
+                        'igbinary' => 'igbinary',
+                    ],
                     'afterHook' => function () {
-                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:event_lock:*', 'misp:event_index:*'];
-                        $redis = RedisTool::init();
-                        foreach ($keysToDelete as $key) {
-                            $redis->unlink($redis->keys($key));
-                        }
+                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:wlc:*', 'misp:event_lock:*', 'misp:event_index:*', 'misp:dashboard:*'];
+                        RedisTool::deleteKeysByPattern(RedisTool::init(), $keysToDelete);
                         return true;
                     },
                 ],
@@ -6003,7 +6015,14 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
-                )
+                ),
+                'key_fetching_disabled' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('When disabled, user could not fetch his PGP key from CIRCL key server. Key fetching requires internet connection.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
             ),
             'SMIME' => array(
                 'branch' => 1,
@@ -7395,6 +7414,22 @@ class Server extends AppModel
                     'value' => 'background_jobs',
                     'test' => null,
                     'type' => 'string'
+                ],
+                'redis_serializer' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Redis serializer method. WARNING: Changing this setting in production will break your jobs.'),
+                    'value' => 'JSON',
+                    'test' => null,
+                    'type' => 'string',
+                    'null' => true,
+                    'options' => [
+                        'JSON' => 'JSON',
+                        'igbinary' => 'igbinary',
+                    ],
+                    'afterHook' => function () {
+                        $this->getBackgroundJobsTool()->restartWorkers();
+                        return true;
+                    },
                 ],
                 'max_job_history_ttl' => [
                     'level' => self::SETTING_CRITICAL,

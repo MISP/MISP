@@ -391,7 +391,9 @@ class Feed extends AppModel
         $this->Attribute = ClassRegistry::init('Attribute');
         $typeDefinitions = $this->Attribute->typeDefinitions;
         foreach ($resultArray as &$value) {
-            $value['category'] = $typeDefinitions[$value['default_type']]['default_category'];
+            $definition = $typeDefinitions[$value['default_type']];
+            $value['category'] = $definition['default_category'];
+            $value['to_ids'] = $definition['to_ids'];
         }
         return $resultArray;
     }

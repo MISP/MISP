@@ -507,9 +507,11 @@ class Workflow extends AppModel
         $this->__logToFile($workflow, $message);
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
+        $debugData = ['original' => $data];
         $data = $this->__normalizeDataForTrigger($triggerModule, $data);
+        $debugData['normalized'] = $data;
         $for_path = !empty($triggerModule->blocking) ? GraphWalker::PATH_TYPE_BLOCKING : GraphWalker::PATH_TYPE_NON_BLOCKING;
-        $this->sendRequestToDebugEndpoint($workflow, [], '/init?type=' . $for_path, $data);
+        $this->sendRequestToDebugEndpoint($workflow, [], '/init?type=' . $for_path, $debugData);
 
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNodeID, $for_path, $data, $blockingErrors, $walkResult);
         $executionStoppedByStopModule = in_array('stop-execution', Hash::extract($walkResult, 'blocking_nodes.{n}.data.id'));
@@ -628,8 +630,8 @@ class Workflow extends AppModel
             ]);
             $userForWorkflow['Server'] = [];
             $userForWorkflow = $this->User->rearrangeToAuthForm($userForWorkflow);
-            return $userForWorkflow;
         }
+        return $userForWorkflow;
     }
 
     public function executeNode(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
@@ -1382,7 +1384,7 @@ class Workflow extends AppModel
         $socket = new HttpSocket([
             'timeout' => 5
         ]);
-        $uri = sprintf('%s%s', $debug_url, $path);
+        $uri = sprintf('%s/%s%s', $debug_url, $workflow['Workflow']['trigger_id'], $path);
         $dataToPost = [
             'source' => [
                 'node_id' => $node['id'] ?? '',

@@ -11,6 +11,12 @@ class ApiController extends AppController
 
     public function openapi()
     {
+        $user = $this->_closeSession();
+        if (!$user['Role']['perm_auth']) {
+            $this->Flash->warning(__('Your role do not allow API access.'));
+        } else if ($this->User->advancedAuthkeysEnabled() && !$this->User->AuthKey->userHasAuthKey($user['id'])) {
+            $this->Flash->warning(__('You don\'t have auth key to use this API. You can generate one at your profile.'));
+        }
         $this->set('title_for_layout', __('OpenAPI'));
     }
 
@@ -28,8 +34,9 @@ class ApiController extends AppController
 
     public function getAllApis()
     {
-        $allValidApis = $this->RestResponse->getAllApis($this->Auth->user());
-        $allValidApisFieldsConstraint = $this->RestResponse->getAllApisFieldsConstraint($this->Auth->user());
+        $user = $this->_closeSession();
+        $allValidApis = $this->RestResponse->getAllApis($user);
+        $allValidApisFieldsConstraint = $this->RestResponse->getAllApisFieldsConstraint($user);
         $output = [
             'allValidApis' => $allValidApis,
             'fieldsConstraint' => $allValidApisFieldsConstraint,
@@ -46,15 +53,14 @@ class ApiController extends AppController
                 $result['api_info'] = $result;
             }
             return $this->RestResponse->viewData($result, $this->response->type());
-        } else {
-            if (empty($result)) {
-                return $this->RestResponse->viewData('&nbsp;', $this->response->type());
-            }
-            $this->layout = false;
-            $this->autoRender = false;
-            $this->set('api_info', $result);
-            $this->render('ajax/get_api_info');
         }
+        if (empty($result)) {
+            return $this->RestResponse->viewData('&nbsp;', $this->response->type());
+        }
+        $this->layout = false;
+        $this->autoRender = false;
+        $this->set('api_info', $result);
+        $this->render('ajax/get_api_info');
     }
 
     public function rest()
@@ -71,7 +77,7 @@ class ApiController extends AppController
                 $this->set('curl', $curl);
                 $this->set('python', $python);
                 if (!$result) {
-                    $this->Flash->error('Something went wrong. Make sure you set the http method, body (when sending POST requests) and URL correctly.');
+                    $this->Flash->error(__('Something went wrong. Make sure you set the http method, body (when sending POST requests) and URL correctly.'));
                 } else {
                     $this->set('data', $result);
                 }
@@ -84,6 +90,10 @@ class ApiController extends AppController
             __('YOUR_API_KEY')
         );
         $this->set('header', $header);
+
+        if ($this->User->advancedAuthkeysEnabled() && !$this->User->AuthKey->userHasAuthKey($this->Auth->user('id'))) {
+            $this->Flash->warning(__('You don\'t have auth key to use this REST client. You can generate one at your profile.'));
+        }
 
         $allAccessibleApis = $this->RestResponse->getAccessibleApis($this->Auth->user());
         $this->set('allAccessibleApis', $allAccessibleApis);
@@ -98,8 +108,6 @@ class ApiController extends AppController
      */
     private function __doRestQuery(array $request, &$curl = false, &$python = false)
     {
-        $params = array();
-
         $logHeaders = $request['header'];
         if (!empty(Configure::read('Security.advanced_authkeys'))) {
             $logHeaders = explode("\n", $request['header']);
@@ -142,13 +150,14 @@ class ApiController extends AppController
         } else {
             throw new InvalidArgumentException('URL not set.');
         }
+
+        $params = ['timeout' => 300];
         if (!empty($request['skip_ssl_validation'])) {
             $params['ssl_verify_peer'] = false;
             $params['ssl_verify_host'] = false;
             $params['ssl_verify_peer_name'] = false;
             $params['ssl_allow_self_signed'] = true;
         }
-        $params['timeout'] = 300;
         App::uses('HttpSocketExtended', 'Tools');
         $HttpSocket = new HttpSocketExtended($params);
 

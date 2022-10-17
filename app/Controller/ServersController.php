@@ -503,7 +503,7 @@ class ServersController extends AppController
                     $this->Flash->error($error_msg);
                 }
             }
-            $pushRules = $this->Server->jsonDecode($this->request->data['Server']['push_rules']);
+            $pushRules = $this->_jsonDecode($this->request->data['Server']['push_rules']);
             $this->loadModel('Tag');
             foreach ($pushRules['tags'] as $operator => $list) {
                 foreach ($list as $i => $tagName) {

@@ -268,6 +268,7 @@
                     'label' => $attr['value'],
                     'event_id' => $attr['event_id'],
                     'node_type' => 'attribute',
+                    'comment' => $attr['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
                 $this->__extendedEventUUIDMapping[$toPush['event_id']] = '';
@@ -285,6 +286,7 @@
                     'meta-category' => $obj['meta-category'],
                     'template_uuid' => $obj['template_uuid'],
                     'event_id' => $obj['event_id'],
+                    'comment' => $obj['comment'],
                 );
                 if (isset($obj['Attribute'])) {
                     $toPush['Attribute'] = $obj['Attribute'];
@@ -360,6 +362,7 @@
                     'label' => $attr['value'],
                     'event_id' => $attr['event_id'],
                     'node_type' => 'attribute',
+                    'comment' => $attr['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
 
@@ -387,6 +390,7 @@
                     'meta-category' => $obj['meta-category'],
                     'template_uuid' => $obj['template_uuid'],
                     'event_id' => $obj['event_id'],
+                    'comment' => $obj['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
 
@@ -470,6 +474,7 @@
                     'label' => $attr['value'],
                     'event_id' => $attr['event_id'],
                     'node_type' => 'attribute',
+                    'comment' => $attr['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
 
@@ -497,6 +502,7 @@
                     'meta-category' => $obj['meta-category'],
                     'template_uuid' => $obj['template_uuid'],
                     'event_id' => $obj['event_id'],
+                    'comment' => $obj['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
 

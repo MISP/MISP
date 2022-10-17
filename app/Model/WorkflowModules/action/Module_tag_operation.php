@@ -3,6 +3,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_tag_operation extends WorkflowBaseActionModule
 {
+    public $version = '0.2';
     public $blocking = false;
     public $id = 'tag_operation';
     public $name = 'Tag operation';
@@ -38,7 +39,7 @@ class Module_tag_operation extends WorkflowBaseActionModule
         $this->params = [
             [
                 'id' => 'scope',
-                'label' => 'Scope',
+                'label' => __('Scope'),
                 'type' => 'select',
                 'options' => [
                     'event' => __('Event'),
@@ -48,7 +49,7 @@ class Module_tag_operation extends WorkflowBaseActionModule
             ],
             [
                 'id' => 'action',
-                'label' => 'Action',
+                'label' => __('Action'),
                 'type' => 'select',
                 'options' => [
                     'add' => __('Add Tags'),
@@ -57,12 +58,31 @@ class Module_tag_operation extends WorkflowBaseActionModule
                 'default' => 'add',
             ],
             [
+                'id' => 'locality',
+                'label' => __('Tag Locality'),
+                'type' => 'select',
+                'options' => [
+                    'local' => __('Local'),
+                    'global' => __('Global'),
+                    'any' => __('Any'),
+                ],
+                'default' => 'local',
+            ],
+            [
                 'id' => 'tags',
-                'label' => 'Tags',
+                'label' => __('Tags'),
                 'type' => 'picker',
                 'multiple' => true,
                 'options' => $tags,
                 'placeholder' => __('Pick a tag'),
+            ],
+            [
+                'id' => 'relationship_type',
+                'label' => __('Relationship Type'),
+                'type' => 'input',
+                'display_on' => [
+                    'action' => 'add',
+                ],
             ],
         ];
     }
@@ -89,49 +109,54 @@ class Module_tag_operation extends WorkflowBaseActionModule
             }
         }
         $result = false;
+        $options = [
+            'tags' => $params['tags']['value'],
+            'local' => $params['locality']['value'] == 'any' ? null : ($params['locality']['value'] == 'local' ? true : false),
+            'relationship_type' => $params['relationship_type']['value'],
+        ];
         if ($params['scope']['value'] == 'event') {
             if ($params['action']['value'] == 'remove') {
-                $result = $this->__removeTagsFromEvent($matchingItems, $params['tags']['value']);
+                $result = $this->__removeTagsFromEvent($matchingItems, $options);
             } else {
-                $result = $this->__addTagsToEvent($matchingItems, $params['tags']['value'], $user);
+                $result = $this->__addTagsToEvent($matchingItems, $options, $user);
             }
         } else {
             if ($params['action']['value'] == 'remove') {
-                $result = $this->__removeTagsFromAttributes($matchingItems, $params['tags']['value']);
+                $result = $this->__removeTagsFromAttributes($matchingItems, $options);
             } else {
-                $result = $this->__addTagsToAttributes($matchingItems, $params['tags']['value'], $user);
+                $result = $this->__addTagsToAttributes($matchingItems, $options, $user);
             }
         }
         return $result;
     }
 
-    private function __addTagsToAttributes(array $attributes, array $tags, array $user): bool
+    private function __addTagsToAttributes(array $attributes, array $options, array $user): bool
     {
         $success = false;
         foreach ($attributes as $attribute) {
-            $saveSuccess = $this->Attribute->attachTagsFromAttributeAndTouch($attribute['id'], $attribute['event_id'], $tags, $user);
+            $saveSuccess = $this->Attribute->attachTagsFromAttributeAndTouch($attribute['id'], $attribute['event_id'], $options, $user);
             $success = $success || !empty($saveSuccess);
         }
         return $success;
     }
     
-    private function __removeTagsFromAttributes(array $attributes,array  $tags): bool
+    private function __removeTagsFromAttributes(array $attributes, array $options): bool
     {
         $success = false;
         foreach ($attributes as $attribute) {
-            $saveSuccess = $this->Attribute->detachTagsFromAttributeAndTouch($attribute['id'], $attribute['event_id'], $tags);
+            $saveSuccess = $this->Attribute->detachTagsFromAttributeAndTouch($attribute['id'], $attribute['event_id'], $options);
             $success = $success || !empty($saveSuccess);
         }
         return $success;
     }
 
-    private function __addTagsToEvent(array $event, array $tags, array $user): bool
+    private function __addTagsToEvent(array $event, array $options, array $user): bool
     {
-        return !empty($this->Event->attachTagsToEventAndTouch($event['Event']['id'], $tags, $user));
+        return !empty($this->Event->attachTagsToEventAndTouch($event['Event']['id'], $options, $user));
     }
 
-    private function __removeTagsFromEvent(array $event, array $tags): bool
+    private function __removeTagsFromEvent(array $event, array $options): bool
     {
-        return !empty($this->Event->detachTagsFromEventAndTouch($event['Event']['id'], $tags));
+        return !empty($this->Event->detachTagsFromEventAndTouch($event['Event']['id'], $options));
     }
 }

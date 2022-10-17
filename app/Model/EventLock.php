@@ -6,7 +6,7 @@ class EventLock extends AppModel
 {
     // In seconds
     const DEFAULT_TTL = 900,
-        PREFIX = 'misp:event_lock';
+        PREFIX = 'misp:event_lock:';
 
     /**
      * @param array $user
@@ -65,7 +65,7 @@ class EventLock extends AppModel
     public function deleteApiLock($eventId, $apiLockId, array $user)
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return false;
         }

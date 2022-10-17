@@ -22,10 +22,14 @@
     ?>
         <div class="input clear"></div>
     <?php
-        echo $this->Form->input('gpgkey', array('label' => __('PGP key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s PGP key here or try to retrieve it from the CIRCL key server by clicking on "Fetch PGP key" below.')));
+        $placeholder = $canFetchPgpKey ? __('Paste yours PGP key here or try to retrieve it from the CIRCL key server by clicking on "Fetch PGP key" below.') :
+            __('Paste yours PGP key here');
+        echo $this->Form->input('gpgkey', array('label' => __('PGP key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => $placeholder));
+        if ($canFetchPgpKey):
         ?>
-            <div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch PGP key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch PGP key');?></span></div>
+            <div class="clear"><span role="button" tabindex="0" aria-label="<?= __('Fetch PGP key');?>" onclick="lookupPGPKey();" class="btn btn-inverse" style="margin-bottom:10px;"><?= __('Fetch PGP key');?></span></div>
         <?php
+        endif;
         if (Configure::read('SMIME.enabled')) {
             echo $this->Form->input('certif_public', array('label' => __('S/MIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge'));
         }
@@ -58,4 +62,3 @@
     $user['User']['id'] = $id;
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'edit', 'user' => $user));
 ?>
-<?php echo $this->Js->writeBuffer();

@@ -155,7 +155,7 @@ class RestResponseComponent extends Component
             ),
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. This API allows pagination via the page and limit parameters.",
-                'optional' => array('page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org_id', 'orgc_id', 'tag_name', 'custom', 'minimal', 'published', 'value', 'extends_uuid'),
+                'optional' => array('page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org_id', 'orgc_id', 'tag_name', 'custom', 'minimal', 'published', 'value', 'elements', 'extends_uuid'),
                 'params' => array()
             ),
         ),
@@ -488,6 +488,7 @@ class RestResponseComponent extends Component
      * @param mixed $data
      * @return CakeResponse
      * @throws Exception
+     * @deprecated Use failResponse instead
      */
     public function saveFailResponse($controller, $action, $id, $validationErrors, $format = false, $data = null)
     {
@@ -515,6 +516,18 @@ class RestResponseComponent extends Component
     }
 
     /**
+     * @param int|null $id
+     * @param array|string $validationErrors
+     * @param mixed $additionalData
+     * @return CakeResponse|CakeResponseFile
+     * @throws Exception
+     */
+    public function failResponse($id = null, $validationErrors = null, $additionalData = null)
+    {
+        return $this->saveFailResponse($this->Controller->name, $this->Controller->action, $id, $validationErrors, 'json', $additionalData);
+    }
+
+    /**
      * @param string $controller
      * @param string $action
      * @param int|false $id
@@ -523,6 +536,7 @@ class RestResponseComponent extends Component
      * @param mixed $data
      * @return CakeResponse
      * @throws Exception
+     * @deprecated Use successResponse instead
      */
     public function saveSuccessResponse($controller, $action, $id = false, $format = false, $message = false, $data = null)
     {
@@ -544,6 +558,18 @@ class RestResponseComponent extends Component
             $response['id'] = $id;
         }
         return $this->__sendResponse($response, 200, $format);
+    }
+
+    /**
+     * @param int|null $id
+     * @param string|null $message
+     * @param mixed $additionalData
+     * @return CakeResponse|CakeResponseFile
+     * @throws Exception
+     */
+    public function successResponse($id = null, $message = null, $additionalData = null)
+    {
+        return $this->saveSuccessResponse($this->Controller->name, $this->Controller->action, $id, 'json', $message, $additionalData);
     }
 
     /**
@@ -748,9 +774,10 @@ class RestResponseComponent extends Component
     public function sendFile($path, $type = null, $download = false, $name = 'download')
     {
         App::uses('CakeResponseFile', 'Tools');
-        $cakeResponse = new CakeResponseFile([
-            'type' => $type
-        ]);
+        $cakeResponse = new CakeResponseFile();
+        // if $type will not recognized, default type will be 'application/octet-stream' and not text/html
+        $cakeResponse->type('application/octet-stream');
+        $cakeResponse->type($type);
         $cakeResponse->file($path, ['name' => $name, 'download' => $download]);
         if (Configure::read('Security.disable_browser_cache')) {
             $cakeResponse->disableCache();
@@ -1034,6 +1061,12 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
                 'values' => array(0 => 'dist1'),
+            ),
+            'elements' => array(
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => array('equal'),
+                'help' => __('Allow providing a JSON containing the keys and values to search for. Example: {"synonyms": "apt42"} (all condition are ANDed)'),
             ),
             'email' => array(
                 'input' => 'text',

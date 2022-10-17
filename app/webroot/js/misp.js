@@ -799,6 +799,35 @@ function refreshTagCollectionRow(tag_collection_id) {
     });
 }
 
+function modifyTagRelationship() {
+    event.preventDefault();
+    var $form = $(event.target);
+    var action = $form.attr("action");
+
+    $.ajax({
+       type: "post",
+       url: action,
+       data: $form.serialize(),
+       error: xhrFailCallback,
+       success: function (data) {
+           if (data.saved) {
+               $('#genericModal').modal('hide');
+               if ("attribute_id" in data.data) {
+                   var attribute_id = data.data.attribute_id;
+                   loadAttributeTags(attribute_id);
+                   loadGalaxies(attribute_id, 'attribute');
+               } else {
+                   var event_id = data.data.event_id;
+                   loadEventTags(event_id);
+                   loadGalaxies(event_id, 'event');
+               }
+           }
+       }
+    });
+
+    return false;
+}
+
 function handleAjaxEditResponse($td, data, type, id, field) {
     var responseArray = data;
     if (type === 'Attribute') {
@@ -1046,6 +1075,12 @@ function proposeObjectsFromSelectedAttributes(clicked, event_id) {
     popoverPopup(clicked, event_id + '/' + selectedAttributeIds, 'objects', 'proposeObjectsFromAttributes');
 }
 
+function bulkAddRelationshipToSelectedAttributes(clicked, event_id) {
+    var selectedAttributeIds = getSelected();
+    var url = baseurl + '/objectReferences/bulkAdd/' + event_id + '/' + selectedAttributeIds
+    openGenericModal(url)
+}
+
 function hideSelectedTags(taxonomy) {
 	$.get(baseurl + "/taxonomies/taxonomyMassHide/"+taxonomy, openConfirmation).fail(xhrFailCallback);
 }
@@ -1078,9 +1113,9 @@ function getSelectedTaxonomyNames() {
 
 function loadEventTags(id) {
     $.ajax({
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data) {
+        success: function (data) {
             $(".eventTagContainer").html(data);
         },
         url: baseurl + "/tags/showEventTag/" + id,
@@ -3515,8 +3550,8 @@ function gpgSelect(fingerprint) {
     });
 }
 
-function lookupPGPKey(emailFieldName) {
-    var email = $('#' + emailFieldName).val();
+function lookupPGPKey() {
+    var email = $('#UserEmail').val();
     simplePopup(baseurl + "/users/searchGpgKey/" + email);
 }
 
@@ -4843,8 +4878,8 @@ $(document.body).on('keyup', '#quickFilterField', function(e) {
     }
 });
 
-// Send textarea form on CMD+ENTER or CTRL+ENTER
-$(document.body).on('keydown', 'textarea', function(e) {
+// Send textarea or select form on CMD+ENTER or CTRL+ENTER
+$(document.body).on('keydown', 'textarea, select', function(e) {
     if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) { // CMD+ENTER or CTRL+ENTER key
         if (e.target.form) {
             $(e.target.form).submit();
@@ -5412,7 +5447,7 @@ function loadClusterRelations(clusterId) {
     }
 }
 
-function submitGenericFormInPlace() {
+function submitGenericFormInPlace(callback) {
     var $genericForm = $('.genericForm');
     $.ajax({
         type: "POST",
@@ -5422,6 +5457,9 @@ function submitGenericFormInPlace() {
             if (typeof data === "object" && data.hasOwnProperty('redirect')) {
                 window.location = data.redirect;
                 return;
+            }
+            if (callback) {
+                callback(data)
             }
 
             $('#genericModal').modal('hide').remove();

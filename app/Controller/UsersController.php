@@ -254,6 +254,7 @@ class UsersController extends AppController
         $this->set('id', $id);
         $this->set('canChangePassword', $this->__canChangePassword());
         $this->set('canChangeLogin', $this->__canChangeLogin());
+        $this->set('canFetchPgpKey', $this->__canFetchPgpKey());
     }
 
     public function change_pw()
@@ -620,7 +621,7 @@ class UsersController extends AppController
     {
         $params = null;
         if (!$this->_isSiteAdmin()) {
-            $params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
+            $params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1, 'restricted_to_site_admin' => 0));
         }
         $this->loadModel('AdminSetting');
         $default_role_id = $this->AdminSetting->getSetting('default_role');
@@ -697,6 +698,9 @@ class UsersController extends AppController
             }
             if (!isset($this->request->data['User']['disabled'])) {
                 $this->request->data['User']['disabled'] = false;
+            }
+            if (Configure::read('CustomAuth_enable') && Configure::read('CustomAuth_required')) {
+                $this->request->data['User']['change_pw'] = 0;
             }
             $this->request->data['User']['newsread'] = 0;
             if (!$this->_isSiteAdmin()) {
@@ -821,6 +825,7 @@ class UsersController extends AppController
             $this->set('default_role_id', $default_role_id);
             $this->set('servers', $servers);
             $this->set(compact('roles', 'syncRoles'));
+            $this->set('canFetchPgpKey', $this->__canFetchPgpKey());
         }
     }
 
@@ -950,7 +955,16 @@ class UsersController extends AppController
                     $chosenRole = $this->User->Role->find('first', [
                         'conditions' => ['id' => $this->request->data['User']['role_id']],
                     ]);
-                    if (empty($chosenRole) || (($chosenRole['Role']['id'] != $allowedRole) && ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1))) {
+                    if (
+                        empty($chosenRole) ||
+                        (
+                            ($chosenRole['Role']['id'] != $allowedRole) && 
+                            ($chosenRole['Role']['perm_site_admin'] == 1 ||
+                            $chosenRole['Role']['perm_regexp_access'] == 1 ||
+                            $chosenRole['Role']['perm_sync'] == 1) ||
+                            $chosenRole['Role']['restricted_to_site_admin'] == 1
+                        )
+                    ) {
                         throw new Exception('You are not authorised to assign that role to a user.');
                     }
                 }
@@ -1065,6 +1079,7 @@ class UsersController extends AppController
         $this->set(compact('roles', 'syncRoles'));
         $this->set('canChangeLogin', $this->__canChangeLogin());
         $this->set('canChangePassword', $this->__canChangePassword());
+        $this->set('canFetchPgpKey', $this->__canFetchPgpKey());
     }
 
     public function admin_delete($id = null)
@@ -1108,7 +1123,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $jsonIds = $this->request->data['User']['user_ids'];
-            $ids = $this->User->jsonDecode($jsonIds);
+            $ids = $this->_jsonDecode($jsonIds);
             $conditions = ['User.id' => $ids];
             if (!$this->_isSiteAdmin()) {
                 $conditions['User.org_id'] = $this->Auth->user('org_id');
@@ -2349,7 +2364,10 @@ class UsersController extends AppController
 
     public function searchGpgKey($email = false)
     {
-        session_abort();
+        $this->_closeSession();
+        if (!$this->__canFetchPgpKey()) {
+            throw new ForbiddenException(__('Key fetching is disabled.'));
+        }
         if (!$email) {
             throw new NotFoundException('No email provided.');
         }
@@ -2364,6 +2382,9 @@ class UsersController extends AppController
 
     public function fetchGpgKey($fingerprint = null)
     {
+        if (!$this->__canFetchPgpKey()) {
+            throw new ForbiddenException(__('Key fetching is disabled.'));
+        }
         if (!$fingerprint) {
             throw new NotFoundException('No fingerprint provided.');
         }
@@ -2371,7 +2392,7 @@ class UsersController extends AppController
         if (!$key) {
             throw new NotFoundException('No key with given fingerprint found.');
         }
-        return new CakeResponse(array('body' => $key));
+        return new CakeResponse(['body' => $key]);
     }
 
     public function getGpgPublicKey()
@@ -2838,5 +2859,13 @@ class UsersController extends AppController
         $body = str_replace('$org', Configure::read('MISP.org'), $body);
         $body = str_replace('$contact', Configure::read('MISP.contact'), $body);
         return $body;
+    }
+
+    /**
+     * @return bool
+     */
+    private function __canFetchPgpKey()
+    {
+        return !Configure::read('GnuPG.key_fetching_disabled');
     }
 }

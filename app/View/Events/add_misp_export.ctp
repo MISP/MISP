@@ -16,17 +16,19 @@
     ?>
         <div class="input clear"></div>
     <?php
-    if (Configure::read('MISP.take_ownership_xml_import')):
-    echo $this->Form->input('Event.takeownership', array(
-        'checked' => false,
-        'label' => __('Take ownership of the event'),
-        'title' => __('Warning: This will change the creator organisation of the event, tampering with the event\'s ownership and releasability and can lead to unexpected behaviour when synchronising the event with instances that have another creator for the same event.)'
-    )));
-    endif;
-    echo $this->Form->input('publish', array(
-        'checked' => false,
-        'label' => __('Publish imported events'),
-    ));
+    if (Configure::read('MISP.take_ownership_xml_import')) {
+        echo $this->Form->input('Event.takeownership', array(
+            'checked' => false,
+            'label' => __('Take ownership of the event'),
+            'title' => __('Warning: This will change the creator organisation of the event, tampering with the event\'s ownership and releasability and can lead to unexpected behaviour when synchronising the event with instances that have another creator for the same event.')
+        ));
+    }
+    if ($isAclPublish) {
+        echo $this->Form->input('publish', array(
+            'checked' => false,
+            'label' => __('Publish imported events'),
+        ));
+    }
 ?>
     </fieldset>
 <?php
