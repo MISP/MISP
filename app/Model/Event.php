@@ -3710,46 +3710,9 @@ class Event extends AppModel
             if ($fromXml) {
                 $created_id = $this->id;
             }
-            $userForWorkflow = $this->User->getAuthUser(Configure::read('CurrentUserId'), true);
-            $userForWorkflow['Role']['perm_site_admin'] = 1;
-            if ($fromPull) {
-                if ($this->isTriggerCallable('event-after-save-new-from-pull')) {
-                    $fullSavedEvent = $this->fetchEvent($userForWorkflow, [
-                        'eventid' => $this->id,
-                        'includeAttachments' => 1
-                    ])[0];
-                    $workflowErrors = [];
-                    $logging = [
-                        'model' => 'Event',
-                        'action' => 'add',
-                        'id' => $this->id,
-                    ];
-                    $triggerData = $fullSavedEvent;
-                    $success = $this->executeTrigger('event-after-save-new-from-pull', $triggerData, $workflowErrors, $logging);
-                    if (empty($success)) {
-                        $errorMessage = implode(', ', $workflowErrors);
-                        return $errorMessage;
-                    }
-                }
-            } else {
-                if ($this->isTriggerCallable('event-after-save-new')) {
-                    $fullSavedEvent = $this->fetchEvent($userForWorkflow, [
-                        'eventid' => $this->id,
-                        'includeAttachments' => 1
-                    ])[0];
-                    $workflowErrors = [];
-                    $logging = [
-                        'model' => 'Event',
-                        'action' => 'add',
-                        'id' => $this->id,
-                    ];
-                    $triggerData = $fullSavedEvent;
-                    $success = $this->executeTrigger('event-after-save-new', $triggerData, $workflowErrors, $logging);
-                    if (empty($success)) {
-                        $errorMessage = implode(', ', $workflowErrors);
-                        return $errorMessage;
-                    }
-                }
+            $workflowResult = $this->afterAddWorkflow($this->id, $fromPull);
+            if (is_array($workflowResult)) {
+                return implode(', ', $workflowResult);
             }
             if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
                 // do the necessary actions to publish the event (email, upload,...)
@@ -3799,6 +3762,38 @@ class Event extends AppModel
             $validationErrors['Event'] = $this->validationErrors;
             return json_encode($validationErrors);
         }
+    }
+
+    /**
+     * @param int $eventId
+     * @param bool $fromPull
+     * @return true|array
+     */
+    private function afterAddWorkflow($eventId, $fromPull)
+    {
+        $triggerId = $fromPull ? 'event-after-save-new-from-pull' : 'event-after-save-new';
+        if (!$this->isTriggerCallable($triggerId)) {
+            return true;
+        }
+
+        $userForWorkflow = $this->User->getAuthUser(Configure::read('CurrentUserId'), true);
+        $userForWorkflow['Role']['perm_site_admin'] = 1;
+
+        $fullSavedEvent = $this->fetchEvent($userForWorkflow, [
+            'eventid' => $eventId,
+            'includeAttachments' => 1
+        ])[0];
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'Event',
+            'action' => 'add',
+            'id' => $eventId,
+        ];
+        $success = $this->executeTrigger($triggerId, $fullSavedEvent, $workflowErrors, $logging);
+        if (!$success) {
+            return $workflowErrors;
+        }
+        return true;
     }
 
     public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false)

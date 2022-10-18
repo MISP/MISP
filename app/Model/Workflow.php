@@ -415,6 +415,7 @@ class Workflow extends AppModel
      *
      * @param string $trigger_id
      * @param array $data
+     * @return bool
      * @throws TriggerNotFoundException
      */
     public function executeWorkflowForTriggerRouter($trigger_id, array $data, array &$blockingErrors=[], array $logging=[]): bool
