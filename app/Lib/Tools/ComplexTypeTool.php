@@ -220,17 +220,18 @@ class ComplexTypeTool
      */
     public function checkFreeText($input, array $settings = [])
     {
-        $input = str_replace("\xc2\xa0", ' ', $input); // non breaking space to normal space
-        $input = preg_replace('/\p{C}+/u', ' ', $input);
-        $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
-
-        preg_match_all('/\"([^\"]*)\"/', $input, $matches);
-        foreach ($matches[1] as $match) {
-            if ($match !== '') {
-                $iocArray[] = $match;
-            }
+        if (empty($input)) {
+            return [];
         }
-        unset($matches);
+
+        if ($input[0] === '{') {
+            // If input looks like JSON, try to parse it as JSON
+            try {
+                return $this->parseJson($input, $settings);
+            } catch (Exception $e) {}
+        }
+
+        $iocArray = $this->parseFreetext($input);
 
         $resultArray = [];
         foreach ($iocArray as $ioc) {
@@ -253,6 +254,71 @@ class ComplexTypeTool
             $resultArray[$typeArray['value']] = $typeArray;
         }
         return array_values($resultArray);
+    }
+
+    /**
+     * @param string $input
+     * @throws JsonException
+     */
+    private function parseJson($input, array $settings)
+    {
+        $parsed = JsonTool::decode($input);
+
+        $values = [];
+        array_walk_recursive($parsed, function ($value) use (&$values) {
+            if (is_bool($value) || is_int($value) || empty($value)) {
+                return; // skip boolean, integer or empty values
+            }
+
+            $values[] = $value;
+            foreach ($this->parseFreetext($value) as $v) {
+                if ($v !== $value) {
+                    $values[] = $v;
+                }
+            }
+        });
+        unset($parsed);
+
+        $resultArray = [];
+        foreach ($values as $ioc) {
+            $ioc = trim($ioc, '\'".,() ' . "\t\n\r\0\x0B"); // custom + default PHP trim
+            if (empty($ioc)) {
+                continue;
+            }
+            if (!empty($settings['excluderegex']) && preg_match($settings['excluderegex'], $ioc)) {
+                continue;
+            }
+            $typeArray = $this->__resolveType($ioc);
+            if ($typeArray === false) {
+                continue;
+            }
+            // Remove duplicates
+            if (isset($resultArray[$typeArray['value']])) {
+                continue;
+            }
+            $typeArray['original_value'] = $ioc;
+            $resultArray[$typeArray['value']] = $typeArray;
+        }
+        return array_values($resultArray);
+    }
+
+    /**
+     * @param string $input
+     * @return array|string[]
+     */
+    private function parseFreetext($input)
+    {
+        $input = str_replace("\xc2\xa0", ' ', $input); // non breaking space to normal space
+        $input = preg_replace('/\p{C}+/u', ' ', $input);
+        $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
+
+        preg_match_all('/\"([^\"]*)\"/', $input, $matches);
+        foreach ($matches[1] as $match) {
+            if ($match !== '') {
+                $iocArray[] = $match;
+            }
+        }
+        return $iocArray;
     }
 
     /**
