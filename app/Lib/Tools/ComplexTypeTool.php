@@ -312,11 +312,9 @@ class ComplexTypeTool
         $input = preg_replace('/\p{C}+/u', ' ', $input);
         $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
 
-        preg_match_all('/\"([^\"]*)\"/', $input, $matches);
+        preg_match_all('/\"([^\"]+)\"/', $input, $matches);
         foreach ($matches[1] as $match) {
-            if ($match !== '') {
-                $iocArray[] = $match;
-            }
+            $iocArray[] = $match;
         }
         return $iocArray;
     }
