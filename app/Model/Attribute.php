@@ -515,14 +515,16 @@ class Attribute extends AppModel
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $attributeForPublish, $action);
                 }
-                $workflowErrors = [];
-                $logging = [
+                if ($isTriggerCallable) {
+                    $workflowErrors = [];
+                    $logging = [
                         'model' => 'Attribute',
                         'action' => $action,
                         'id' => $attributeForPublish['Attribute']['id'],
                     ];
-                $triggerData = $attributeForPublish;
-                $this->executeTrigger('attribute-after-save', $triggerData, $workflowErrors, $logging);
+                    $triggerData = $attributeForPublish;
+                    $this->executeTrigger('attribute-after-save', $triggerData, $workflowErrors, $logging);
+                }
             }
         }
         if ($created && isset($attribute['event_id']) && empty($attribute['skip_auto_increment'])) {

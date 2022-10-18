@@ -53,6 +53,7 @@ class AuditLogsController extends AppController
         'News',
         'Warninglist',
         'Workflow',
+        'WorkflowBlueprint',
     ];
 
     public $paginate = [

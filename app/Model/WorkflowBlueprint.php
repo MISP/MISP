@@ -1,7 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
-App::uses('File', 'Utility');
 
 class WorkflowBlueprint extends AppModel
 {
@@ -18,10 +17,9 @@ class WorkflowBlueprint extends AppModel
         ],
     ];
 
-    public $belongsTo = [
-    ];
 
     public $validate = [
+        'name' => 'stringNotEmpty',
         'value' => [
             'stringNotEmpty' => [
                 'rule' => ['stringNotEmpty']
@@ -92,11 +90,11 @@ class WorkflowBlueprint extends AppModel
         return $blueprint;
     }
 
-
     /**
      * __readBlueprintsFromRepo Reads blueprints from the misp-workflow-blueprints repository
      *
      * @return array
+     * @throws Exception
      */
     private function __readBlueprintsFromRepo(): array
     {
@@ -114,6 +112,7 @@ class WorkflowBlueprint extends AppModel
      *
      * @param boolean $force
      * @return void
+     * @throws Exception
      */
     public function update($force=false)
     {
@@ -133,7 +132,6 @@ class WorkflowBlueprint extends AppModel
                 if ($force || $blueprint_from_repo['timestamp'] > $existing_blueprint['timestamp']) {
                     $blueprint_from_repo['id'] = $existing_blueprint['id'];
                     $this->save($blueprint_from_repo);
-                    continue;
                 }
             } else {
                 $this->create();

@@ -1664,13 +1664,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'edit',
-                            'url' => '/workflows/edit/' . h($id),
+                            'url' => '/workflowBlueprints/edit/' . h($id),
                             'text' => __('Edit Workflow Blueprint')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/admin/audit_logs/index/model:WorkflowBlueprints/model_id:' .  h($id),
-                        'text' => __('View worflow blueprint history'),
+                        'url' => '/admin/audit_logs/index/model:WorkflowBlueprint/model_id:' .  h($id),
+                        'text' => __('View workflow blueprint history'),
                         'requirement' => Configure::read('MISP.log_new_audit') && $canAccess('auditLogs', 'admin_index'),
                     ));
                 }
