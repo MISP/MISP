@@ -727,14 +727,11 @@ class Warninglist extends AppModel
             'conditions' => array('Warninglist.name' => self::TLDS),
             'fields' => array('Warninglist.id')
         ));
-        $tlds = array();
-        if (!empty($tldLists)) {
-            $tlds = $this->WarninglistEntry->find('column', array(
-                'conditions' => array('WarninglistEntry.warninglist_id' => $tldLists),
-                'fields' => array('WarninglistEntry.value')
-            ));
-            $tlds = array_map('strtolower', $tlds);
+        $tlds = [];
+        foreach ($tldLists as $warninglistId) {
+            $tlds = array_merge($tlds, $this->getWarninglistEntries($warninglistId));
         }
+        $tlds = array_map('strtolower', $tlds);
         if (!in_array('onion', $tlds, true)) {
             $tlds[] = 'onion';
         }
@@ -750,14 +747,11 @@ class Warninglist extends AppModel
             'conditions' => array('Warninglist.name' => 'List of known domains used by automated malware analysis services & security vendors'),
             'fields' => array('Warninglist.id')
         ));
-        if (!empty($securityVendorList)) {
-            return $this->WarninglistEntry->find('column', array(
-                'conditions' => array('WarninglistEntry.warninglist_id' => $securityVendorList),
-                'fields' => array('WarninglistEntry.value')
-            ));
-        } else {
-            return [];
+        $domains = [];
+        foreach ($securityVendorList as $warninglistId) {
+            $domains = array_merge($domains, $this->getWarninglistEntries($warninglistId));
         }
+        return $domains;
     }
 
     /**
