@@ -2263,8 +2263,7 @@ class AppModel extends Model
     public function valueIsJson($value)
     {
         $value = array_values($value)[0];
-        $json_decoded = json_decode($value);
-        if ($json_decoded === null) {
+        if (!JsonTool::isValid($value)) {
             return __('Invalid JSON.');
         }
         return true;

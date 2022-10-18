@@ -2961,8 +2961,7 @@ class Server extends AppModel
     public function getExpectedDBSchema()
     {
         try {
-            $content = FileAccessTool::readFromFile(ROOT . DS . 'db_schema.json');
-            return JsonTool::decode($content);
+            return FileAccessTool::readJsonFromFile(ROOT . DS . 'db_schema.json');
         } catch (Exception $e) {
             return false;
         }
