@@ -26,6 +26,14 @@ class JsonTool
      */
     public static function decode($value)
     {
+        if (function_exists('simdjson_decode')) {
+            try {
+                return simdjson_decode($value, true);
+            } catch (SimdJsonException $e) {
+                throw new JsonException($e->getMessage(), $e->getCode(), $e);
+            }
+        }
+
         if (defined('JSON_THROW_ON_ERROR')) {
             // JSON_THROW_ON_ERROR is supported since PHP 7.3
             return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
@@ -36,5 +44,24 @@ class JsonTool
             throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
         }
         return $decoded;
+    }
+
+    /**
+     * Check if string is valid JSON
+     * @param string $value
+     * @return bool
+     */
+    public static function isValid($value)
+    {
+        if (function_exists('simdjson_is_valid')) {
+            return simdjson_is_valid($value);
+        }
+
+        try {
+            self::decode($value);
+            return true;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 }

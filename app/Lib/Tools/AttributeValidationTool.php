@@ -570,8 +570,7 @@ class AttributeValidationTool
             case 'float':
                 return is_numeric($value);
             case 'cortex':
-                json_decode($value);
-                return json_last_error() === JSON_ERROR_NONE;
+                return JsonTool::isValid($value);
             case 'boolean':
                 return $value == 1 || $value == 0;
             case 'AS':
