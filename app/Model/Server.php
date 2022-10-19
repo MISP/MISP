@@ -2686,16 +2686,6 @@ class Server extends AppModel
         ];
     }
 
-    public function isJson($string)
-    {
-        try {
-            $this->jsonDecode($string);
-            return true;
-        } catch (Exception $e) {
-            return false;
-        }
-    }
-
     public function captureServer($server, $user)
     {
         if (isset($server[0])) {

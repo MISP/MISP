@@ -2589,7 +2589,7 @@ class EventsController extends AppController
                 $this->request->data = $this->request->data['Event'];
             }
             if (isset($this->request->data['json'])) {
-                $this->request->data = json_decode($this->request->data['json'], true);
+                $this->request->data = $this->_jsonDecode($this->request->data['json']);
             }
             $eventToSave = $event;
             $capturedObjects = ['Attribute', 'Object', 'Tag', 'Galaxy', 'EventReport'];
@@ -2599,8 +2599,7 @@ class EventsController extends AppController
                 }
             }
             $eventToSave['Event']['published'] = 0;
-            $date = new DateTime();
-            $eventToSave['Event']['timestamp'] = $date->getTimestamp();
+            $eventToSave['Event']['timestamp'] = time();
             $result = $this->Event->_edit($eventToSave, $this->Auth->user(), $id);
             if ($this->_isRest()) {
                 if ($result === true) {
