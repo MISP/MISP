@@ -1196,116 +1196,23 @@ class Attribute extends AppModel
     }
 
     /**
-     * @param int|false $jobId
-     * @param int|false $eventId
-     * @param int|false $attributeId
-     * @return int Number of processed attributes
+     * @param $jobId
+     * @param $eventId
+     * @param $attributeId
+     * @return void
+     * @throws Exception
+     * @deprecated Use Correlation::generateCorrelation directly
      */
     public function generateCorrelation($jobId = false, $eventId = false, $attributeId = false)
     {
-        $this->purgeCorrelations($eventId);
-
-        $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
-        $this->FuzzyCorrelateSsdeep->purge($eventId, $attributeId);
-
-        $this->query('TRUNCATE TABLE over_correlating_values');
-
-        // get all attributes..
-        if (!$eventId) {
-            $eventIds = $this->Event->find('column', [
-                'fields' => ['Event.id'],
-                'conditions' => ['Event.disable_correlation' => 0],
-            ]);
-            $full = true;
-        } else {
-            $eventIds = [$eventId];
-            $full = false;
-        }
-        $attributeCount = 0;
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job = ClassRegistry::init('Job');
-        } else {
-            $jobId = false;
-        }
-        if (!empty($eventIds)) {
-            $eventCount = count($eventIds);
-            foreach ($eventIds as $j => $currentEventId) {
-                $attributeCount = $this->__iteratedCorrelation(
-                    $jobId,
-                    $full,
-                    $attributeCount,
-                    $attributeId,
-                    $eventCount,
-                    $currentEventId,
-                    $j
-                );
-            }
-        } else {
-            // Not sure why that line was added. If there are no events, there are no correlations to save
-            // $attributeCount = $this->__iteratedCorrelation($jobId, $full, $attributeCount);
-        }
-        if ($jobId) {
-            $this->Job->saveStatus($jobId, true);
-        }
-        return $attributeCount;
+        $this->Correlation->generateCorrelation($jobId, $eventId, $attributeId);
     }
 
-    private function __iteratedCorrelation(
-        $jobId = false,
-        $full = false,
-        $attributeCount = 0,
-        $attributeId = null,
-        $eventCount = null,
-        $eventId = null,
-        $j = 0
-    )
-    {
-        if ($jobId) {
-            $message = $attributeId ? __('Correlating Attribute %s', $attributeId) : __('Correlating Event %s (%s MB used)', $eventId, intval(memory_get_usage() / 1024 / 1024));
-            $this->Job->saveProgress($jobId, $message, !empty($eventCount) ? ($j / $eventCount) * 100 : 0);
-        }
-        $attributeConditions = [
-            'Attribute.deleted' => 0,
-            'Attribute.disable_correlation' => 0,
-            'NOT' => [
-                'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
-            ],
-        ];
-        if ($eventId) {
-            $attributeConditions['Attribute.event_id'] = $eventId;
-        }
-        if ($attributeId) {
-            $attributeConditions['Attribute.id'] = $attributeId;
-        }
-        $query = [
-            'recursive' => -1,
-            'conditions' => $attributeConditions,
-            // fetch just necessary fields to save memory
-            'fields' => $this->Correlation->getFieldRules(),
-            'order' => 'Attribute.id',
-            'limit' => 5000,
-            'callbacks' => false, // memory leak fix
-        ];
-        do {
-            $attributes = $this->find('all', $query);
-            foreach ($attributes as $attribute) {
-                $attribute['Attribute']['event_id'] = $eventId;
-                $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full);
-            }
-            $fetchedAttributes = count($attributes);
-            unset($attributes);
-            $attributeCount += $fetchedAttributes;
-            if ($fetchedAttributes === 5000) { // maximum number of attributes fetched, continue in next loop
-                $query['conditions']['Attribute.id >'] = $attribute['Attribute']['id'];
-            } else {
-                break;
-            }
-        } while (true);
-        // Generating correlations can take long time, so clear CIDR cache after each event to refresh cache
-        $this->Correlation->clearCidrCache();
-        return $attributeCount;
-    }
-
+    /**
+     * @param $eventId
+     * @return void
+     * @deprecated Use Correlation::purgeCorrelations directly
+     */
     public function purgeCorrelations($eventId = false)
     {
         $this->Correlation->purgeCorrelations($eventId);

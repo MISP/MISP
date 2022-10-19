@@ -1918,8 +1918,13 @@ class AttributesController extends AppController
     {
         if ($this->request->is('post')) {
             if (!Configure::read('MISP.background_jobs')) {
-                $k = $this->Attribute->generateCorrelation();
-                $this->Flash->success(__('All done. %s attributes processed.', $k));
+                $k = $this->Attribute->Correlation->generateCorrelation();
+                $message = __('All done. %s attributes processed.', $k);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->successResponse(0, $message);
+                }
+
+                $this->Flash->success($message);
                 $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
             } else {
                 /** @var Job $job */
