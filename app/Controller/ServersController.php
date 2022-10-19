@@ -289,7 +289,7 @@ class ServersController extends AppController
                 $this->request->data['Server']['internal'] = 0;
             }
             // test the filter fields
-            if (!empty($this->request->data['Server']['pull_rules']) && !$this->Server->isJson($this->request->data['Server']['pull_rules'])) {
+            if (!empty($this->request->data['Server']['pull_rules']) && !JsonTool::isValid($this->request->data['Server']['pull_rules'])) {
                 $fail = true;
                 $error_msg = __('The pull filter rules must be in valid JSON format.');
                 if ($this->_isRest()) {
@@ -299,7 +299,7 @@ class ServersController extends AppController
                 }
             }
 
-            if (!$fail && !empty($this->request->data['Server']['push_rules']) && !$this->Server->isJson($this->request->data['Server']['push_rules'])) {
+            if (!$fail && !empty($this->request->data['Server']['push_rules']) && !JsonTool::isValid($this->request->data['Server']['push_rules'])) {
                 $fail = true;
                 $error_msg = __('The push filter rules must be in valid JSON format.');
                 if ($this->_isRest()) {
@@ -484,7 +484,7 @@ class ServersController extends AppController
             $fail = false;
 
             // test the filter fields
-            if (!empty($this->request->data['Server']['pull_rules']) && !$this->Server->isJson($this->request->data['Server']['pull_rules'])) {
+            if (!empty($this->request->data['Server']['pull_rules']) && !JsonTool::isValid($this->request->data['Server']['pull_rules'])) {
                 $fail = true;
                 $error_msg = __('The pull filter rules must be in valid JSON format.');
                 if ($this->_isRest()) {
@@ -494,7 +494,7 @@ class ServersController extends AppController
                 }
             }
 
-            if (!$fail && !empty($this->request->data['Server']['push_rules']) && !$this->Server->isJson($this->request->data['Server']['push_rules'])) {
+            if (!$fail && !empty($this->request->data['Server']['push_rules']) && !JsonTool::isValid($this->request->data['Server']['push_rules'])) {
                 $fail = true;
                 $error_msg = __('The push filter rules must be in valid JSON format.');
                 if ($this->_isRest()) {
