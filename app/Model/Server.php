@@ -3336,7 +3336,7 @@ class Server extends AppModel
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'yaratest.py';
         try {
             $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
-            $scriptResult = json_decode($scriptResult, true);
+            $scriptResult = JsonTool::decode($scriptResult);
         } catch (Exception $exception) {
             $this->logException('Failed to run yara diagnostics.', $exception);
             return array(
@@ -3365,7 +3365,7 @@ class Server extends AppModel
         }
 
         try {
-            $scriptResult = $this->jsonDecode($scriptResult);
+            $scriptResult = JsonTool::decode($scriptResult);
         } catch (Exception $e) {
             $this->logException('Invalid JSON returned from stixtest', $e);
             return array(
@@ -3520,7 +3520,6 @@ class Server extends AppModel
     {
         $sessionCount = null;
         $sessionHandler = null;
-        $errorCode = 9;
 
         switch (Configure::read('Session.defaults')) {
             case 'php':

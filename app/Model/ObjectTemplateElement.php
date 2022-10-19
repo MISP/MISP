@@ -11,13 +11,13 @@ class ObjectTemplateElement extends AppModel
     {
         foreach ($results as &$result) {
             if (isset($result['ObjectTemplateElement']['categories'])) {
-                $result['ObjectTemplateElement']['categories'] = json_decode($result['ObjectTemplateElement']['categories'], true);
+                $result['ObjectTemplateElement']['categories'] = JsonTool::decode($result['ObjectTemplateElement']['categories']);
             }
             if (isset($result['ObjectTemplateElement']['values_list'])) {
-                $result['ObjectTemplateElement']['values_list'] = json_decode($result['ObjectTemplateElement']['values_list'], true);
+                $result['ObjectTemplateElement']['values_list'] = JsonTool::decode($result['ObjectTemplateElement']['values_list']);
             }
             if (isset($result['ObjectTemplateElement']['sane_default'])) {
-                $result['ObjectTemplateElement']['sane_default'] = json_decode($result['ObjectTemplateElement']['sane_default'], true);
+                $result['ObjectTemplateElement']['sane_default'] = JsonTool::decode($result['ObjectTemplateElement']['sane_default']);
             }
         }
         return $results;

@@ -3379,7 +3379,7 @@ class EventsController extends AppController
             $responseType = $this->Event->validFormats[$returnFormat][0];
             $final = $this->Event->restSearch($this->Auth->user(), $returnFormat, $filters, false, false, $elementCounter, $renderView);
             if ($renderView) {
-                $final = json_decode($final->intoString(), true);
+                $final = JsonTool::decode($final->intoString());
                 $this->set($final);
                 $this->set('responseType', $responseType);
                 $this->set('returnFormat', $returnFormat);

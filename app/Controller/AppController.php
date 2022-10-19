@@ -1262,7 +1262,7 @@ class AppController extends Controller
         $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
         if ($renderView) {
             $this->layout = false;
-            $final = json_decode($final->intoString(), true);
+            $final = JsonTool::decode($final->intoString());
             $this->set($final);
             $this->render('/Events/module_views/' . $renderView);
         } else {
