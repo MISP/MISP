@@ -639,14 +639,7 @@ class AttributeValidationTool
      */
     private static function isSsdeep($value)
     {
-        if (strpos($value, "\n") !== false) {
-            return false;
-        }
-        $parts = explode(':', $value);
-        if (count($parts) !== 3) {
-            return false;
-        }
-        return self::isPositiveInteger($parts[0]);
+        return preg_match('#^([0-9]+):([0-9a-zA-Z/+]*):([0-9a-zA-Z/+]*)$#', $value);
     }
 
     /**
