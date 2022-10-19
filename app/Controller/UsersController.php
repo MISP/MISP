@@ -2195,7 +2195,6 @@ class UsersController extends AppController
 
     private function __statisticsGalaxyMatrix(array $user, $params = array())
     {
-        $this->loadModel('Event');
         $this->loadModel('Galaxy');
         $mitre_galaxy_id = $this->Galaxy->getMitreAttackGalaxyId();
         if (isset($params['galaxy_id'])) {
@@ -2248,9 +2247,8 @@ class UsersController extends AppController
             }
             $elementCounter = 0;
             $renderView = '';
-            $final = $this->Event->restSearch($user, 'attack', $filters, false, false, $elementCounter, $renderView);
-
-            $final = json_decode($final, true);
+            $final = $this->User->Event->restSearch($user, 'attack', $filters, false, false, $elementCounter, $renderView);
+            $final = JsonTool::decode($final);
             if (!empty($final)) {
                 $rest_response_empty = false;
                 foreach ($final as $key => $data) {
