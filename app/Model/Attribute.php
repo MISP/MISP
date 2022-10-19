@@ -547,16 +547,15 @@ class Attribute extends AppModel
         }
         // update correlation..
         $this->Correlation->beforeSaveCorrelation($attribute['Attribute']);
-        if (!empty($attribute['Attribute']['id'])) {
-            if ($this->pubToZmq('attribute')) {
-                $pubSubTool = $this->getPubSubTool();
-                $pubSubTool->attribute_save($attribute, 'delete');
-            }
-            $kafkaTopic = $this->kafkaTopic('attribute');
-            if ($kafkaTopic) {
-                $kafkaPubTool = $this->getKafkaPubTool();
-                $kafkaPubTool->publishJson($kafkaTopic, $attribute, 'delete');
-            }
+
+        if ($this->pubToZmq('attribute')) {
+            $pubSubTool = $this->getPubSubTool();
+            $pubSubTool->attribute_save($attribute, 'delete');
+        }
+        $kafkaTopic = $this->kafkaTopic('attribute');
+        if ($kafkaTopic) {
+            $kafkaPubTool = $this->getKafkaPubTool();
+            $kafkaPubTool->publishJson($kafkaTopic, $attribute, 'delete');
         }
     }
 
@@ -2755,28 +2754,32 @@ class Attribute extends AppModel
         return true;
     }
 
+    /**
+     * @param int $id Attribute ID
+     * @param array $user
+     * @param bool $hard
+     * @return bool
+     * @throws Exception
+     */
     public function deleteAttribute($id, array $user, $hard = false)
     {
-        $result = $this->fetchAttributes($user, array(
-            'conditions' => array('Attribute.id' => $id),
-            'flatten' => 1,
-            'deleted' => [0,1],
+        $attribute = $this->find('first', [
+            'conditions' => ['Attribute.id' => $id],
+            'contain' => ['Event'],
             'recursive' => -1,
-            'contain' => array('Event')
-        ));
-        if (empty($result)) {
-            throw new ForbiddenException(__('Invalid attribute'));
+        ]);
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Invalid attribute'));
         }
-        $result = $result[0];
 
         // check for permissions
         if (!$user['Role']['perm_site_admin']) {
-            if ($result['Event']['locked']) {
-                if ($user['org_id'] != $result['Event']['org_id'] || !$user['Role']['perm_sync']) {
+            if ($attribute['Event']['locked']) {
+                if ($user['org_id'] != $attribute['Event']['org_id'] || !$user['Role']['perm_sync']) {
                     throw new ForbiddenException(__('You do not have permission to do that.'));
                 }
             } else {
-                if ($user['org_id'] != $result['Event']['orgc_id']) {
+                if ($user['org_id'] != $attribute['Event']['orgc_id']) {
                     throw new ForbiddenException(__('You do not have permission to do that.'));
                 }
             }
@@ -2785,15 +2788,15 @@ class Attribute extends AppModel
             $save = $this->delete($id);
         } else {
             if (Configure::read('Security.sanitise_attribute_on_delete')) {
-                $result['Attribute']['category'] = 'Other';
-                $result['Attribute']['type'] = 'comment';
-                $result['Attribute']['value'] = 'deleted';
-                $result['Attribute']['comment'] = '';
-                $result['Attribute']['to_ids'] = 0;
+                $attribute['Attribute']['category'] = 'Other';
+                $attribute['Attribute']['type'] = 'comment';
+                $attribute['Attribute']['value'] = 'deleted';
+                $attribute['Attribute']['comment'] = '';
+                $attribute['Attribute']['to_ids'] = 0;
             }
-            $result['Attribute']['deleted'] = 1;
-            $result['Attribute']['timestamp'] = time();
-            $save = $this->save($result);
+            $attribute['Attribute']['deleted'] = 1;
+            $attribute['Attribute']['timestamp'] = time();
+            $save = $this->save($attribute);
             $object_refs = $this->Object->ObjectReference->find('all', array(
                 'conditions' => array(
                     'ObjectReference.referenced_type' => 0,
@@ -2812,11 +2815,10 @@ class Attribute extends AppModel
             $this->Event->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
 
             // remove the published flag from the event
-            $this->Event->unpublishEvent($result['Event']['id']);
+            $this->Event->unpublishEvent($attribute);
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     public function attachValidationWarnings($adata)
