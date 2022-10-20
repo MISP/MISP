@@ -92,7 +92,7 @@ abstract class StixExport
             $this->__filenames[] = $this->__tmp_file->path;
         }
         $result = $this->__parse_misp_data();
-        $decoded = json_decode($result, true);
+        $decoded = JsonTool::decode($result);
         if (!isset($decoded['success']) || !$decoded['success']) {
             if (!empty($decoded['filenames'])) {
                 $this->__delete_temporary_files(false, $decoded['filename']);
@@ -382,7 +382,7 @@ abstract class StixExport
     }
 
     /**
-     * @return array
+     * @return string
      */
     abstract protected function __parse_misp_data();
 

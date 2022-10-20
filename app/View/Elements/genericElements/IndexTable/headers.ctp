@@ -1,5 +1,6 @@
 <?php
-    $headersHtml = '';
+    $selectAllCheckbox = false;
+    echo '<thead>';
     foreach ($fields as $k => $header) {
         if (!isset($header['requirement']) || $header['requirement']) {
             $header_data = '';
@@ -11,6 +12,7 @@
                 }
             } else {
                 if (!empty($header['element']) && $header['element'] === 'selector') {
+                    $selectAllCheckbox = true;
                     $header_data = sprintf(
                         '<input id="select_all" class="%s" type="checkbox" %s>',
                         empty($header['select_all_class']) ? 'select_all' : $header['select_all_class'],
@@ -29,7 +31,7 @@
                 $header_data = "<div><span>$header_data</span></div>";
             }
 
-            $headersHtml .= sprintf(
+            echo sprintf(
                 '<th%s%s>%s</th>',
                 !empty($classes) ? ' class="' . implode(' ', $classes) .'"' : '',
                 !empty($header['header_title']) ? ' title="' . h($header['header_title']) . '"' : '',
@@ -38,18 +40,16 @@
         }
     }
     if ($actions) {
-        $headersHtml .= sprintf(
+        echo sprintf(
             '<th class="actions">%s</th>',
             __('Actions')
         );
     }
-    $thead = '<thead>';
-    $thead .= $headersHtml;
-    $thead .= '</thead>';
-    echo $thead;
+    echo '</thead>';
 ?>
-<script type="text/javascript">
-    $(document).ready(function() {
+<?php if ($selectAllCheckbox): ?>
+<script>
+    $(function() {
         $('.select_attribute').add('#select_all').on('change', function() {
             if ($('.select_attribute:checked').length > 0) {
                 $('.mass-select').show();
@@ -59,3 +59,4 @@
         });
     });
 </script>
+<?php endif; ?>

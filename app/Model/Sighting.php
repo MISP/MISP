@@ -891,6 +891,13 @@ class Sighting extends AppModel
         return $sightings;
     }
 
+    /**
+     * @param array $user
+     * @param string $returnFormat
+     * @param array $filters
+     * @return TmpFileTool
+     * @throws Exception
+     */
     public function restSearch($user, $returnFormat, $filters)
     {
         $allowedContext = array('event', 'attribute');
