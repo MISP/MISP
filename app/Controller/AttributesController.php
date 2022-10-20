@@ -33,38 +33,16 @@ class AttributesController extends AppController
     {
         parent::beforeFilter();
 
-        $this->Auth->allow('restSearch');
-        $this->Auth->allow('returnAttributes');
-        $this->Auth->allow('downloadAttachment');
-        $this->Auth->allow('text');
-        $this->Auth->allow('rpz');
-        $this->Auth->allow('bro');
-
         // permit reuse of CSRF tokens on the search page.
         if ('search' === $this->request->params['action']) {
             $this->Security->csrfCheck = false;
         }
         $this->Security->unlockedActions[] = 'getMassEditForm';
         $this->Security->unlockedActions[] = 'search';
+
         if ($this->request->action === 'add_attachment') {
             $this->Security->unlockedFields = array('values');
-        }
-
-        // convert uuid to id if present in the url and overwrite id field
-        if (isset($this->request->params->query['uuid'])) {
-            $params = array(
-                    'conditions' => array('Attribute.uuid' => $this->request->params->query['uuid']),
-                    'recursive' => 0,
-                    'fields' => 'Attribute.id'
-                    );
-            $result = $this->Attribute->find('first', $params);
-            if (isset($result['Attribute']) && isset($result['Attribute']['id'])) {
-                $id = $result['Attribute']['id'];
-                $this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
-            }
-        }
-
-        if ($this->request->action === 'viewPicture') {
+        } elseif ($this->request->action === 'viewPicture') {
             $this->Security->doNotGenerateToken = true;
         }
     }
