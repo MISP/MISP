@@ -163,7 +163,7 @@ class DashboardsController extends AppController
             throw new MethodNotAllowedException(__('You need to specify the widget to use along with the configuration.'));
         }
         $value = $this->request->data['data'];
-        $valueConfig = json_decode($value['config'], true);
+        $valueConfig = $this->_jsonDecode($value['config']);
         $dashboardWidget = $this->Dashboard->loadWidget($user, $value['widget']);
 
         $cacheLifetime = $dashboardWidget->cacheLifetime ?? false;
