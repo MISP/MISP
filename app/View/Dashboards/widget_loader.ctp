@@ -6,11 +6,11 @@
     <?= $scopedHtml['bundle']; ?>
 </div>
 <?php if ($config['autoRefreshDelay']): ?>
-<script type="text/javascript">
+<script>
     $(function() {
         setTimeout(function() {
             updateDashboardWidget("#widget_<?= h($widget_id) ?>")},
-            <?= $config['autoRefreshDelay'] ? $config['autoRefreshDelay'] : 1 ?> * 1000
+            <?= $config['autoRefreshDelay'] ?: 1 ?> * 1000
         );
     });
 </script>

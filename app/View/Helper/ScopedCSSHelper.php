@@ -28,7 +28,6 @@ App::uses('AppHelper', 'View/Helper');
             return sprintf("<style>%s%s%s</style>", PHP_EOL, $cssScopedLines, PHP_EOL);
         }
 
-
          /**
          * Replace a declared CSS scoped style and prepend a random CSS data filter to any CSS selector discovered.
          * Usage: Add the following style tag `<style widget-scoped>` to use the scoped feature. Nearly every selector path will have their rule modified to adhere to the scope
@@ -61,7 +60,6 @@ App::uses('AppHelper', 'View/Helper');
          */
         public function createScopedCSS($html)
         {
-            $css = "";
             $seed = "";
             $originalHtml = $html;
             $bundle = $originalHtml;
