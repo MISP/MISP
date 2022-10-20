@@ -3806,7 +3806,7 @@ class AppModel extends Model
                 $this->Correlation->validEngines['Legacy'],
                 'Job created.'
             );
-            $this->Correlation->Attribute->getBackgroundJobsTool()->enqueue(
+            $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [
@@ -3826,7 +3826,7 @@ class AppModel extends Model
                 'Job created.'
             );
 
-            $this->Attribute->getBackgroundJobsTool()->enqueue(
+            $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [
