@@ -161,8 +161,7 @@ class MysqlExtended extends Mysql
                 if ($this->fullDebug) {
                     $valuesList[] = $val;
                 }
-                $statement->bindValue($i, $val, $columnMap[$col]);
-                $i++;
+                $statement->bindValue($i++, $val, $columnMap[$col]);
             }
         }
         $result = $statement->execute();
