@@ -59,11 +59,13 @@ class OverCorrelatingValue extends AppModel
      */
     public function unblock($value)
     {
-        $value = self::truncate($value);
-        $this->deleteAll([
-            'OverCorrelatingValue.value' => $value,
-        ], false);
-        $this->blockedValues[$value] = false;
+        if ($this->isBlocked($value)) {
+            $value = self::truncate($value);
+            $this->deleteAll([
+                'OverCorrelatingValue.value' => $value,
+            ], false);
+            $this->blockedValues[$value] = false;
+        }
     }
 
     public function cleanCache()
