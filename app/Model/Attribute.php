@@ -1195,11 +1195,17 @@ class Attribute extends AppModel
         return $conditions;
     }
 
+    /**
+     * @deprecated
+     */
     public function generateCorrelation($jobId = false, $eventId = false, $attributeId = false)
     {
         $this->Correlation->generateCorrelation($jobId, $eventId, $attributeId);
     }
 
+    /**
+     * @deprecated
+     */
     public function purgeCorrelations($eventId = false)
     {
         $this->Correlation->purgeCorrelations($eventId);

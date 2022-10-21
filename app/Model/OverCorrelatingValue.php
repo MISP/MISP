@@ -42,10 +42,11 @@ class OverCorrelatingValue extends AppModel
      */
     public function block($value)
     {
+        $value = self::truncate($value);
         if (!$this->isBlocked($value)) {
             $this->create();
             $this->save([
-                'value' => self::truncate($value),
+                'value' => $value,
                 'occurrence' => 0
             ]);
             $this->blockedValues[$value] = true;
@@ -58,12 +59,10 @@ class OverCorrelatingValue extends AppModel
      */
     public function unblock($value)
     {
-        $this->deleteAll(
-            [
-                'OverCorrelatingValue.value' => self::truncate($value)
-            ],
-            false
-        );
+        $value = self::truncate($value);
+        $this->deleteAll([
+            'OverCorrelatingValue.value' => $value,
+        ], false);
         $this->blockedValues[$value] = false;
     }
 
@@ -127,9 +126,8 @@ class OverCorrelatingValue extends AppModel
                 $jobId
             );
 
-            return $jobId;
         } else {
-            return $this->generateOccurrences();
+            $this->generateOccurrences();
         }
     }
 

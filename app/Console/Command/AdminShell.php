@@ -13,6 +13,8 @@ App::uses('JsonTool', 'Tools');
  * @property Warninglist $Warninglist
  * @property Attribute $Attribute
  * @property Job $Job
+ * @property Correlation $Correlation
+ * @property OverCorrelatingValue $OverCorrelatingValue
  */
 class AdminShell extends AppShell
 {
@@ -98,6 +100,12 @@ class AdminShell extends AppShell
         $parser->addSubcommand('configLint', [
             'help' => __('Check if settings has correct value.'),
         ]);
+        $parser->addSubcommand('jobGenerateCorrelation', [
+            'help' => __('Generate correlations from scratch.'),
+        ]);
+        $parser->addSubcommand('jobGenerateOccurrences', [
+            'help' => __('Generate over correlating value occurrences.'),
+        ]);
         return $parser;
     }
 
@@ -108,17 +116,12 @@ class AdminShell extends AppShell
         }
 
         $jobId = $this->args[0];
-        $this->Attribute->generateCorrelation($jobId);
+        $this->Correlation->generateCorrelation($jobId);
     }
 
     public function jobGenerateOccurrences()
     {
-        if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate over-correlation occurrences'] . PHP_EOL);
-        }
-
-        $jobId = $this->args[0];
-        $this->OverCorrelatingValue->generateOccurrences($jobId);
+        $this->OverCorrelatingValue->generateOccurrences();
     }
 
     public function jobPurgeCorrelation()
