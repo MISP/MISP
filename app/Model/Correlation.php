@@ -432,14 +432,6 @@ class Correlation extends AppModel
         if (!empty($a['Event']['disable_correlation'])) {
             return true;
         }
-
-        if (!empty($a['Attribute']['object_id'])) {
-            $a['Object'] = $this->__cachedGetContainData('Object', $a['Attribute']['object_id']);
-            if (!$a['Object']) {
-                // orphaned attribute, do not correlate
-                return true;
-            }
-        }
         // generate additional correlating attribute list based on the advanced correlations
         if (!$this->__preventExcludedCorrelations($a['Attribute']['value1'])) {
             $extraConditions = $this->__buildAdvancedCorrelationConditions($a);
@@ -453,6 +445,13 @@ class Correlation extends AppModel
         }
         if (empty($correlatingValues)) {
             return true;
+        }
+        if (!empty($a['Attribute']['object_id'])) {
+            $a['Object'] = $this->__cachedGetContainData('Object', $a['Attribute']['object_id']);
+            if (!$a['Object']) {
+                // orphaned attribute, do not correlate
+                return true;
+            }
         }
         $correlations = [];
         foreach ($correlatingValues as $cV) {
