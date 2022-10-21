@@ -2263,8 +2263,7 @@ class AppModel extends Model
     public function valueIsJson($value)
     {
         $value = array_values($value)[0];
-        $json_decoded = json_decode($value);
-        if ($json_decoded === null) {
+        if (!JsonTool::isValid($value)) {
             return __('Invalid JSON.');
         }
         return true;
@@ -3368,27 +3367,35 @@ class AppModel extends Model
         return (new RandomTool())->random_str(false, 12);
     }
 
+    /**
+     * @param string|int $delta
+     * @return int Timestamp
+     */
     public function resolveTimeDelta($delta)
     {
         if (is_numeric($delta)) {
-            return $delta;
+            return (int)$delta;
         }
-        $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
+
+        $multiplierArray = ['d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1];
         $lastChar = strtolower(substr($delta, -1));
         if (!is_numeric($lastChar) && isset($multiplierArray[$lastChar])) {
             $multiplier = $multiplierArray[$lastChar];
-            $delta = substr($delta, 0, -1);
-        } else if (strtotime($delta) !== false) {
-            return strtotime($delta);
-        } else {
-            // invalid filter, make sure we don't return anything
-            return time() + 1;
+            $timeDelta = substr($delta, 0, -1);
+            if (!is_numeric($timeDelta)) {
+                $this->log('Invalid time filter format ' . $delta, LOG_NOTICE);
+                return time() + 1;
+            }
+            return time() - ($timeDelta * $multiplier);
         }
-        if (!is_numeric($delta)) {
-            // Same here. (returning false dumps the whole database)
-            return time() + 1;
+
+        $time = strtotime($delta);
+        if ($time !== false) {
+            return $time;
         }
-        return time() - ($delta * $multiplier);
+
+        $this->log('Invalid time filter format ' . $delta, LOG_NOTICE);
+        return time() + 1;
     }
 
     private function __fixServerPullPushRules()
@@ -3728,7 +3735,7 @@ class AppModel extends Model
      * @param array $logging If the execution failure should be logged
      * @return boolean If the execution for the blocking path was a success
      */
-    public function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
+    protected function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
     {
         if ($this->isTriggerCallable($trigger_id)) {
            $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
@@ -3742,8 +3749,17 @@ class AppModel extends Model
         return true;
     }
 
-    public function isTriggerCallable($trigger_id): bool
+    protected function isTriggerCallable($trigger_id): bool
     {
+        static $workflowEnabled;
+        if ($workflowEnabled === null) {
+            $workflowEnabled = (bool)Configure::read('Plugin.Workflow_enable');
+        }
+
+        if (!$workflowEnabled) {
+            return false;
+        }
+
         if ($this->Workflow === null) {
             $this->Workflow = ClassRegistry::init('Workflow');
         }
@@ -3790,7 +3806,7 @@ class AppModel extends Model
                 $this->Correlation->validEngines['Legacy'],
                 'Job created.'
             );
-            $this->Correlation->Attribute->getBackgroundJobsTool()->enqueue(
+            $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [
@@ -3810,7 +3826,7 @@ class AppModel extends Model
                 'Job created.'
             );
 
-            $this->Attribute->getBackgroundJobsTool()->enqueue(
+            $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [

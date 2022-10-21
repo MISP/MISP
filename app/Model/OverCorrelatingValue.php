@@ -5,17 +5,8 @@ class OverCorrelatingValue extends AppModel
 {
     public $recursive = -1;
 
-    public function beforeValidate($options = array())
-    {
-        $this->data['OverCorrelatingValue']['value'] = self::truncate($this->data['OverCorrelatingValue']['value']);
-        return true;
-    }
-
-    public function beforeSave($options = array())
-    {
-        $this->data['OverCorrelatingValue']['value'] = self::truncate($this->data['OverCorrelatingValue']['value']);
-        return true;
-    }
+    /** @var array */
+    private $blockedValues = [];
 
     public static function truncate(string $value): string
     {
@@ -31,27 +22,41 @@ class OverCorrelatingValue extends AppModel
 
     /**
      * @param string $value
-     * @param int $count
+     * @return bool
+     */
+    public function isBlocked($value)
+    {
+        $value = self::truncate($value);
+        if (isset($this->blockedValues[$value])) {
+            return $this->blockedValues[$value];
+        }
+
+        $isBlocked = $this->hasAny(['value' => $value]);
+        return $this->blockedValues[$value] = $isBlocked;
+    }
+
+    /**
+     * @param string $value
      * @return void
      * @throws Exception
      */
-    public function block($value, $count = 0)
+    public function block($value)
     {
-        $this->unblock($value);
-        $this->create();
-        $this->save(
-            [
-                'value' => $value,
-                'occurrence' => $count
-            ]
-        );
+        if (!$this->isBlocked($value)) {
+            $this->create();
+            $this->save([
+                'value' => self::truncate($value),
+                'occurrence' => 0
+            ]);
+            $this->blockedValues[$value] = true;
+        }
     }
 
     /**
      * @param string $value
      * @return void
      */
-    public function unBlock($value)
+    public function unblock($value)
     {
         $this->deleteAll(
             [
@@ -59,6 +64,12 @@ class OverCorrelatingValue extends AppModel
             ],
             false
         );
+        $this->blockedValues[$value] = false;
+    }
+
+    public function cleanCache()
+    {
+        $this->blockedValues = [];
     }
 
     /**
@@ -150,5 +161,11 @@ class OverCorrelatingValue extends AppModel
             $overCorrelation['OverCorrelatingValue']['occurrence'] = $count;
         }
         $this->saveMany($overCorrelations);
+    }
+
+    public function truncateTable()
+    {
+        $this->query('TRUNCATE TABLE over_correlating_values');
+        $this->cleanCache();
     }
 }

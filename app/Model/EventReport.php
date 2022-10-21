@@ -738,6 +738,7 @@ class EventReport extends AppModel
         $complexTypeTool = new ComplexTypeTool();
         $this->Warninglist = ClassRegistry::init('Warninglist');
         $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+        $complexTypeTool->setSecurityVendorDomains($this->Warninglist->fetchSecurityVendorDomains());
 
         $complexTypeToolResult = $complexTypeTool->checkFreeText($report['EventReport']['content']);
         $replacementResult = $this->transformFreeTextIntoReplacement($user, $report, $complexTypeToolResult);

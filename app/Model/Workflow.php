@@ -157,9 +157,23 @@ class Workflow extends AppModel
         $this->toggleModules($this->modules_enabled_by_default, true, false);
     }
 
+    /**
+     * @param string $trigger_id
+     * @return bool
+     * @throws WorkflowDuplicatedModuleIDException
+     */
     protected function checkTriggerEnabled($trigger_id)
     {
-        $settingName = sprintf('Plugin.Workflow_triggers_%s', $trigger_id);
+        static $enabled;
+
+        if ($enabled === null) {
+            $enabled = (bool)Configure::read('Plugin.Workflow_enable');
+        }
+        if (!$enabled) {
+            return false;
+        }
+
+        $settingName = "Plugin.Workflow_triggers_$trigger_id";
         $module_disabled = empty(Configure::read($settingName));
         if ($module_disabled) {
             return false;
@@ -415,6 +429,7 @@ class Workflow extends AppModel
      *
      * @param string $trigger_id
      * @param array $data
+     * @return bool
      * @throws TriggerNotFoundException
      */
     public function executeWorkflowForTriggerRouter($trigger_id, array $data, array &$blockingErrors=[], array $logging=[]): bool

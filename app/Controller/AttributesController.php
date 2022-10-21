@@ -1156,7 +1156,10 @@ class AttributesController extends AppController
                 $eventId = $this->request->data['Attribute']['event_id'];
             }
         } else {
-            $ids = json_decode($this->request->data['Attribute']['ids_delete']);
+            $ids = $this->_jsonDecode($this->request->data['Attribute']['ids_delete']);
+        }
+        if (empty($ids)) {
+            throw new NotFoundException(__('No matching attributes found.'));
         }
         if (empty($eventId)) {
             throw new MethodNotAllowedException(__('No event ID set.'));
@@ -1174,9 +1177,6 @@ class AttributesController extends AppController
                 throw new ForbiddenException(__('You do not have permission to do that.'));
             }
         }
-        if (empty($ids)) {
-            $ids = -1;
-        }
         $conditions = ['id' => $ids, 'event_id' => $eventId];
         if ($ids === 'all') {
             unset($conditions['id']);
@@ -1189,15 +1189,16 @@ class AttributesController extends AppController
             'conditions' => $conditions,
             'fields' => ['id', 'deleted'],
         ]);
-        if ($ids === 'all') {
-            $ids = array_keys($attributes);
-        }
         if (empty($attributes)) {
             throw new NotFoundException(__('No matching attributes found.'));
         }
+        if ($ids === 'all') {
+            $ids = array_keys($attributes);
+        }
+        $user = $this->_closeSession();
         $successes = [];
         foreach ($attributes as $attributeId => $deleted) {
-            if ($this->Attribute->deleteAttribute($attributeId, $this->Auth->user(), $hard || $deleted == 1)) {
+            if ($this->Attribute->deleteAttribute($attributeId, $user, $hard || $deleted == 1)) {
                 $successes[] = $attributeId;
             }
         }
@@ -1918,8 +1919,13 @@ class AttributesController extends AppController
     {
         if ($this->request->is('post')) {
             if (!Configure::read('MISP.background_jobs')) {
-                $k = $this->Attribute->generateCorrelation();
-                $this->Flash->success(__('All done. %s attributes processed.', $k));
+                $k = $this->Attribute->Correlation->generateCorrelation();
+                $message = __('All done. %s attributes processed.', $k);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->successResponse(0, $message);
+                }
+
+                $this->Flash->success($message);
                 $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
             } else {
                 /** @var Job $job */

@@ -377,6 +377,7 @@ class Feed extends AppModel
         $complexTypeTool = new ComplexTypeTool();
         $this->Warninglist = ClassRegistry::init('Warninglist');
         $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+        $complexTypeTool->setSecurityVendorDomains($this->Warninglist->fetchSecurityVendorDomains());
         $settings = array();
         if (!empty($feed['Feed']['settings']) && !is_array($feed['Feed']['settings'])) {
             $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);

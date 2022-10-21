@@ -1663,19 +1663,9 @@ class User extends AppModel
             'trending_period_amount' => 2,
         ];
 
-        $periodicSettings = $this->UserSetting->find('first', [
-            'recursive' => -1,
-            'conditions' => [
-                'user_id' => $userId,
-                'setting' => self::PERIODIC_USER_SETTING_KEY,
-            ],
-            'fields' => ['value'],
-        ]);
-        if (empty($periodicSettings)) {
-            $periodicSettings = $defaultPeriodicSettings;
-        } else {
-            $periodicSettings = $periodicSettings['UserSetting']['value'];
-        }
+        $periodicSettings = $this->UserSetting->getValueForUser($userId, self::PERIODIC_USER_SETTING_KEY);
+        $periodicSettings = $periodicSettings ?: $defaultPeriodicSettings;
+
         $periodicSettingsIndexed = [];
         foreach ($filterNames as $filterName) {
             $periodicSettingsIndexed[$filterName] = $periodicSettings[$filterName] ?? $defaultPeriodicSettings[$filterName];
@@ -1786,11 +1776,12 @@ class User extends AppModel
      * @param int $userId
      * @param string $period Can be 'daily', 'weekly' or 'monthly'
      * @param bool $rendered When false, instance of SendEmailTemplate will returned
-     * @return string|SendEmailTemplate
+     * @return string|SendEmailTemplate|null
      * @throws NotFoundException
      * @throws InvalidArgumentException
+     * @throws JsonException
      */
-    public function generatePeriodicSummary(int $userId, string $period, $rendered=true)
+    public function generatePeriodicSummary(int $userId, string $period, $rendered = true)
     {
         $allowedPeriods = array_map(function($period) {
             return substr($period, strlen('notification_'));
@@ -1813,6 +1804,10 @@ class User extends AppModel
         $filters['fetchFullClusterRelationship'] = true;
         $filters['includeScoresOnEvent'] = true;
         $events = $this->Event->fetchEvent($user, $filters);
+
+        if (empty($events)) {
+            return null;
+        }
 
         $elementCounter = 0;
         $renderView = false;
@@ -1838,7 +1833,7 @@ class User extends AppModel
         $securityRecommendationsData = [
             'course_of_action' => $this->Event->extractRelatedCourseOfActions($events),
         ];
-        $security_recommendations = $this->__renderSecurityRecommenrations($securityRecommendationsData);
+        $security_recommendations = $this->__renderSecurityRecommendations($securityRecommendationsData);
 
         $emailTemplate = $this->prepareEmailTemplate($period);
         $emailTemplate->set('baseurl', $this->Event->__getAnnounceBaseurl());
@@ -1869,7 +1864,7 @@ class User extends AppModel
         return $this->__renderGeneric('Elements' . DS . 'Events', 'trendingSummary', $trendData);
     }
 
-    private function __renderSecurityRecommenrations(array $data): string
+    private function __renderSecurityRecommendations(array $data): string
     {
         return $this->__renderGeneric('Elements' . DS . 'Events', 'securityRecommendations', $data);
     }

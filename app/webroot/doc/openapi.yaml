@@ -5378,8 +5378,10 @@ components:
         $ref: "#/components/schemas/DateRestSearchFilter"
 
     LastRestSearchFilter:
-      description: "Published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
-      type: integer
+      description: "Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m), ISO 8601 datetime format or timestamp"
+      oneOf:
+        - type: integer
+        - type: string
       nullable: true
 
     TagsRestSearchFilter:

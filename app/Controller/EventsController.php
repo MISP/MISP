@@ -2589,7 +2589,7 @@ class EventsController extends AppController
                 $this->request->data = $this->request->data['Event'];
             }
             if (isset($this->request->data['json'])) {
-                $this->request->data = json_decode($this->request->data['json'], true);
+                $this->request->data = $this->_jsonDecode($this->request->data['json']);
             }
             $eventToSave = $event;
             $capturedObjects = ['Attribute', 'Object', 'Tag', 'Galaxy', 'EventReport'];
@@ -2599,8 +2599,7 @@ class EventsController extends AppController
                 }
             }
             $eventToSave['Event']['published'] = 0;
-            $date = new DateTime();
-            $eventToSave['Event']['timestamp'] = $date->getTimestamp();
+            $eventToSave['Event']['timestamp'] = time();
             $result = $this->Event->_edit($eventToSave, $this->Auth->user(), $id);
             if ($this->_isRest()) {
                 if ($result === true) {
@@ -3379,7 +3378,7 @@ class EventsController extends AppController
             $responseType = $this->Event->validFormats[$returnFormat][0];
             $final = $this->Event->restSearch($this->Auth->user(), $returnFormat, $filters, false, false, $elementCounter, $renderView);
             if ($renderView) {
-                $final = json_decode($final->intoString(), true);
+                $final = JsonTool::decode($final->intoString());
                 $this->set($final);
                 $this->set('responseType', $responseType);
                 $this->set('returnFormat', $returnFormat);
@@ -3958,6 +3957,7 @@ class EventsController extends AppController
             $complexTypeTool = new ComplexTypeTool();
             $this->loadModel('Warninglist');
             $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+            $complexTypeTool->setSecurityVendorDomains($this->Warninglist->fetchSecurityVendorDomains());
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }
@@ -3968,6 +3968,9 @@ class EventsController extends AppController
                 $adhereToWarninglists = $this->request->data['Attribute']['adhereToWarninglists'];
             }
             $resultArray = $complexTypeTool->checkFreeText($this->request->data['Attribute']['value']);
+            foreach ($resultArray as &$attribute) {
+                $attribute['to_ids'] = $this->Event->Attribute->typeDefinitions[$attribute['default_type']]['to_ids'];
+            }
             if ($this->_isRest()) {
                 // Keep this 'types' format for rest response, but it is not necessary for UI
                 foreach ($resultArray as $key => $r) {
@@ -5508,11 +5511,11 @@ class EventsController extends AppController
             if ($event['Event']['disable_correlation']) {
                 $event['Event']['disable_correlation'] = 0;
                 $this->Event->save($event);
-                $this->Event->Attribute->generateCorrelation(false, $event['Event']['id']);
+                $this->Event->Attribute->Correlation->generateCorrelation(false, $event['Event']['id']);
             } else {
                 $event['Event']['disable_correlation'] = 1;
                 $this->Event->save($event);
-                $this->Event->Attribute->purgeCorrelations($event['Event']['id']);
+                $this->Event->Attribute->Correlation->purgeCorrelations($event['Event']['id']);
             }
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('events', 'toggleCorrelation', $event['Event']['id'], false, 'Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');

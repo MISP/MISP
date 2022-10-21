@@ -13,6 +13,8 @@ App::uses('JsonTool', 'Tools');
  * @property Warninglist $Warninglist
  * @property Attribute $Attribute
  * @property Job $Job
+ * @property Correlation $Correlation
+ * @property OverCorrelatingValue $OverCorrelatingValue
  */
 class AdminShell extends AppShell
 {
@@ -108,7 +110,7 @@ class AdminShell extends AppShell
         }
 
         $jobId = $this->args[0];
-        $this->Attribute->generateCorrelation($jobId);
+        $this->Correlation->generateCorrelation($jobId);
     }
 
     public function jobGenerateOccurrences()
@@ -128,7 +130,7 @@ class AdminShell extends AppShell
         }
 
         $jobId = $this->args[0];
-        $this->Attribute->purgeCorrelations();
+        $this->Correlation->purgeCorrelations();
         $this->Job->saveStatus($jobId);
     }
 

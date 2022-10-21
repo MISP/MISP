@@ -565,6 +565,7 @@ class TestComprehensive(unittest.TestCase):
         with MISPSetting(self.admin_misp_connector, {"MISP.correlation_engine": "NoAcl"}):
             self.test_correlations()
             self.test_correlations_object()
+            self.test_recorrelate()
 
     def test_advanced_correlations(self):
         with MISPSetting(self.admin_misp_connector, {"MISP.enable_advanced_correlations": True}):
@@ -593,6 +594,36 @@ class TestComprehensive(unittest.TestCase):
         result = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', 'servers/removeOrphanedCorrelations'))
         check_response(result)
         self.assertIn("message", result)
+
+    def test_recorrelate(self):
+        first = create_simple_event()
+        dom_ip_obj = DomainIPObject({'ip': ['10.0.0.1']})
+        first.add_object(dom_ip_obj)
+        first = check_response(self.admin_misp_connector.add_event(first))
+
+        second = create_simple_event()
+        dom_ip_obj = DomainIPObject({'ip': ['10.0.0.1']})
+        second.add_object(dom_ip_obj)
+        second = check_response(self.admin_misp_connector.add_event(second))
+
+        check_response(self.admin_misp_connector.set_server_setting('MISP.background_jobs', 0, force=True))
+        result = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('POST', 'attributes/generateCorrelation'))
+        check_response(result)
+        self.assertIn("message", result)
+        check_response(self.admin_misp_connector.set_server_setting('MISP.background_jobs', 1, force=True))
+
+        first = check_response(self.admin_misp_connector.get_event(first))
+        second = check_response(self.admin_misp_connector.get_event(second))
+
+        try:
+            self.assertEqual(1, len(first.RelatedEvent), first.RelatedEvent)
+            self.assertEqual(1, len(second.RelatedEvent), second.RelatedEvent)
+        except:
+            raise
+        finally:
+            # Delete events
+            for event in (first, second):
+                check_response(self.admin_misp_connector.delete_event(event))
 
     def test_restsearch_event_by_tags(self):
         first = create_simple_event()
