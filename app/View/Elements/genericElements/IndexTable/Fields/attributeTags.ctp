@@ -1,22 +1,22 @@
 <?php
 
-$attribute = Hash::extract($row, 'Attribute');
-$event = Hash::extract($row, 'Event');
+$attribute = $row['Attribute'];
+$event = $row['Event'];
 $mayModify = ($isSiteAdmin || ($isAclModify && $event['user_id'] == $me['id'] && $event['orgc_id'] == $me['org_id']) || ($isAclModifyOrg && $event['orgc_id'] == $me['org_id']));
 $objectId = intval($attribute['id']);
 
 ?>
 <div class="attributeTagContainer">
-    <?php echo $this->element(
+    <?= $this->element(
         'ajaxTags',
         array(
             'attributeId' => $attribute['id'],
             'tags' => $attribute['AttributeTag'],
-            'tagAccess' => ($isSiteAdmin || $mayModify),
-            'localTagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id')),
+            'tagAccess' => $isSiteAdmin || $mayModify,
+            'localTagAccess' => $isSiteAdmin || $mayModify || $me['org_id'] == $event['org_id'] || $hostOrgUser,
             'context' => 'event',
             'scope' => 'attribute',
-            'tagConflicts' => isset($attribute['tagConflicts']) ? $attribute['tagConflicts'] : array()
+            'tagConflicts' => $attribute['tagConflicts'] ?? [],
         )
     ); ?>
 </div>

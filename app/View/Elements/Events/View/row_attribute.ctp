@@ -132,8 +132,8 @@
           <?php echo $this->element('ajaxTags', array(
               'attributeId' => $objectId,
               'tags' => $object['AttributeTag'],
-              'tagAccess' => ($isSiteAdmin || $mayModify),
-              'localTagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id')),
+              'tagAccess' => $isSiteAdmin || $mayModify,
+              'localTagAccess' => $isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || $hostOrgUser,
               'context' => $context,
               'scope' => 'attribute',
               'tagConflicts' => isset($object['tagConflicts']) ? $object['tagConflicts'] : array()
