@@ -748,16 +748,25 @@ class User extends AppModel
 
         $user['User']['Role'] = $user['Role'];
         $user['User']['Organisation'] = $user['Organisation'];
-        $user['User']['Server'] = $user['Server'];
+        if (isset($user['Server'])) {
+            $user['User']['Server'] = $user['Server'];
+        }
         if (isset($user['UserSetting'])) {
             $user['User']['UserSetting'] = $user['UserSetting'];
         }
         return $user['User'];
     }
 
-    // Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
-    // parameters are an array of org IDs that are owners (for an event this would be orgc and org)
-    public function getUsersWithAccess($owners = array(), $distribution, $sharing_group_id = 0, $userConditions = array())
+    /**
+     * Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
+     * parameters are an array of org IDs that are owners (for an event this would be orgc and org)
+     * @param array $owners Event owners
+     * @param int $distribution
+     * @param int $sharing_group_id
+     * @param array $userConditions
+     * @return array|int
+     */
+    public function getUsersWithAccess(array $owners, $distribution, $sharing_group_id = 0, array $userConditions = [])
     {
         $conditions = array();
         $validOrgs = array();
@@ -785,27 +794,24 @@ class User extends AppModel
             $conditions['AND']['OR'][] = array('org_id' => $validOrgs);
 
             // Add the site-admins to the list
-            $roles = $this->Role->find('all', array(
-                    'conditions' => array('perm_site_admin' => 1),
-                    'fields' => array('id')
-            ));
-            $roleIDs = array();
-            foreach ($roles as $role) {
-                $roleIDs[] = $role['Role']['id'];
-            }
-            $conditions['AND']['OR'][] = array('role_id' => $roleIDs);
+            $siteAdminRoleIds = $this->Role->find('column', [
+                'conditions' => array('perm_site_admin' => 1),
+                'fields' => array('id'),
+            ]);
+            $conditions['AND']['OR'][] = array('role_id' => $siteAdminRoleIds);
         }
         $conditions['AND'][] = $userConditions;
         $users = $this->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1,
             'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id', 'disabled'),
-            'contain' => ['Role' => ['fields' => ['perm_site_admin', 'perm_audit']], 'Organisation' => ['fields' => ['id', 'name']]],
+            'contain' => [
+                'Role' => ['fields' => ['perm_site_admin', 'perm_audit']],
+                'Organisation' => ['fields' => ['id', 'name']]
+            ],
         ));
         foreach ($users as $k => $user) {
-            $user = $user['User'];
-            unset($users[$k]['User']);
-            $users[$k] = array_merge($user, $users[$k]);
+            $users[$k] = $this->rearrangeToAuthForm($user);
         }
         return $users;
     }
