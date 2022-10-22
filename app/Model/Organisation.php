@@ -577,8 +577,8 @@ class Organisation extends AppModel
         static $list;
         if (!$list) {
             try {
-                $content = FileAccessTool::readFromFile(APP . '/files/misp-galaxy/clusters/country.json');
-                $list = $this->jsonDecode($content)['values'];
+                $content = FileAccessTool::readJsonFromFile(APP . '/files/misp-galaxy/clusters/country.json');
+                $list = $content['values'];
             } catch (Exception $e) {
                 $this->logException("MISP Galaxy are not updated, countries will not be available.", $e, LOG_WARNING);
                 $list = [];
