@@ -482,6 +482,7 @@ class SharingGroup extends AppModel
             $sgids = $this->find('column', [
                 'fields' => ['id'],
             ]);
+            $sgids = array_map('intval', $sgids);
         } else {
             $sgids = array_unique(array_merge(
                 $this->SharingGroupServer->fetchAllAuthorised(),
