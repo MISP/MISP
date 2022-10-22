@@ -1371,7 +1371,7 @@ class EventsController extends AppController
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->set('mayModify', $this->__canModifyEvent($event, $user));
-        $this->set('mayPublish', $this->__canPublishEvent($event));
+        $this->set('mayPublish', $this->__canPublishEvent($event, $user));
         $this->response->disableCache();
 
         // Remove `focus` attribute from URI
@@ -1418,7 +1418,8 @@ class EventsController extends AppController
         // set the data for the contributors / history field
         $contributors = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
         $this->set('contributors', $contributors);
-        if ($user['Role']['perm_publish'] && $event['Event']['orgc_id'] == $user['org_id']) {
+
+        if ($this->__canPublishEvent($event, $user)) {
             $proposalStatus = false;
             if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute'])) {
                 $proposalStatus = true;
@@ -1436,6 +1437,7 @@ class EventsController extends AppController
                 $this->Flash->info('This event has active proposals for you to accept or discard.');
             }
         }
+
         // set the pivot data
         $this->helpers[] = 'Pivot';
         if ($continue) {
@@ -1624,7 +1626,7 @@ class EventsController extends AppController
         $this->set('warnings', $this->Event->generateWarnings($event));
         $this->set('menuData', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
         $this->set('mayModify', $this->__canModifyEvent($event, $user));
-        $this->set('mayPublish', $this->__canPublishEvent($event));
+        $this->set('mayPublish', $this->__canPublishEvent($event, $user));
         try {
             $instanceKey = $event['Event']['protected'] ? $this->Event->CryptographicKey->ingestInstanceKey() : null;
         } catch (Exception $e) {

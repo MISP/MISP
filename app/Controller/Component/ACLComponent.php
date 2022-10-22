@@ -482,11 +482,11 @@ class ACLComponent extends Component
             ),
             'regexp' => array(
                 'admin_add' => array('perm_regexp_access'),
-                'admin_clean' => array('perm_regexp_access'),
+                'admin_clean' => array(),
                 'admin_delete' => array('perm_regexp_access'),
                 'admin_edit' => array('perm_regexp_access'),
                 'admin_index' => array('perm_regexp_access'),
-                'cleanRegexModifiers' => array('perm_regexp_access'),
+                'cleanRegexModifiers' => array(),
                 'index' => array('*'),
             ),
             'restClientHistory' => array(
