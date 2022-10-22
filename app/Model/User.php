@@ -1010,6 +1010,11 @@ class User extends AppModel
         return $template;
     }
 
+    /**
+     * @param int $org_id
+     * @param int|false $excludeUserId
+     * @return array
+     */
     public function getOrgAdminsForOrg($org_id, $excludeUserId = false)
     {
         $adminRoles = $this->Role->find('column', array(
@@ -1943,5 +1948,27 @@ class User extends AppModel
     public function advancedAuthkeysEnabled()
     {
         return !empty(Configure::read("Security.advanced_authkeys"));
+    }
+
+    /**
+     * @param array $users
+     * @return array
+     * @throws RedisException
+     */
+    public function attachIsUserMonitored(array $users)
+    {
+        if (!empty(Configure::read('Security.user_monitoring_enabled'))) {
+            $redis = RedisTool::init();
+            $redis->pipeline();
+            foreach ($users as $user) {
+                $redis->sismember('misp:monitored_users', $user['User']['id']);
+            }
+            $output = $redis->exec();
+
+            foreach ($users as $key => $user) {
+                $users[$key]['User']['monitored'] = $output[$key];
+            }
+        }
+        return $users;
     }
 }
