@@ -809,7 +809,7 @@ class AttributesController extends AppController
             if ($result) {
                 $this->Flash->success(__('The attribute has been saved'));
                 // remove the published flag from the event
-                $this->Attribute->Event->unpublishEvent($eventId);
+                $this->Attribute->Event->unpublishEvent($eventId, false, $dateObj->getTimestamp());
                 if (!empty($this->Attribute->data['Attribute']['object_id'])) {
                     $this->Attribute->Object->updateTimestamp($this->Attribute->data['Attribute']['object_id'], $dateObj->getTimestamp());
                 }
@@ -2155,14 +2155,7 @@ class AttributesController extends AppController
             $success = true;
             if (($results['created'] > 0 || $results['deleted'] > 0) && $results['createdFail'] == 0 && $results['deletedFail'] == 0) {
                 $message .= 'Update completed without any issues.';
-                $event = $this->Attribute->Event->find('first', array(
-                    'conditions' => array('Event.id' => $id),
-                    'recursive' => -1
-                ));
-                $event['Event']['published'] = 0;
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->Event->save($event);
+                $this->Attribute->Event->unpublishEvent($id);
             } else {
                 $message .= 'Update completed with some errors.';
                 $success = false;

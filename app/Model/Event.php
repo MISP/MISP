@@ -6487,15 +6487,7 @@ class Event extends AppModel
         }
 
         if ($saved_attributes > 0 || $saved_objects > 0 || $saved_reports > 0) {
-            $event = $this->find('first', array(
-                    'conditions' => array('Event.id' => $id),
-                    'recursive' => -1
-            ));
-            if ($event['Event']['published'] == 1) {
-                $event['Event']['published'] = 0;
-            }
-            $event['Event']['timestamp'] = time();
-            $this->save($event);
+            $this->unpublishEvent($id);
         }
         if ($event_level) {
             return $saved_attributes + $saved_object_attributes + $saved_reports;

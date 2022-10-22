@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property GalaxyCluster $GalaxyCluster
+ * @property Galaxy $Galaxy
  */
 class Galaxy extends AppModel
 {
@@ -422,18 +423,11 @@ class Galaxy extends AppModel
                     $target['Attribute']['timestamp'] = $date->getTimestamp();
                     $this->Tag->AttributeTag->Attribute->save($target);
                     if (!empty($target['Attribute']['object_id'])) {
-                        $container_object = $this->Tag->AttributeTag->Attribute->Object->find('first', [
-                            'recursive' => -1,
-                            'conditions' => ['id' => $target['Attribute']['object_id']]
-                        ]);
-                        $container_object['Object']['timestamp'] = $date->getTimestamp();
-                        $this->Tag->AttributeTag->Attribute->Object->save($container_object);
+                        $this->Tag->AttributeTag->Attribute->Object->updateTimestamp($target['Attribute']['object_id'], $date->getTimestamp());
                     }
                 }
                 $this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
-                $event['Event']['published'] = 0;
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Tag->EventTag->Event->save($event);
+                $this->Tag->EventTag->Event->unpublishEvent($event, false, $date->getTimestamp());
             }
             $logTitle = 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')';
             $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($target_type), $target_id, $logTitle);
@@ -495,19 +489,19 @@ class Galaxy extends AppModel
 
         $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
 
-        if ($target_type == 'attribute') {
+        if ($target_type === 'attribute') {
             $existingTargetTag = $this->Tag->AttributeTag->find('first', array(
                 'conditions' => array('AttributeTag.tag_id' => $tag_id, 'AttributeTag.attribute_id' => $target_id),
                 'recursive' => -1,
                 'contain' => array('Tag')
             ));
-        } elseif ($target_type == 'event') {
+        } elseif ($target_type === 'event') {
             $existingTargetTag = $this->Tag->EventTag->find('first', array(
                 'conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $target_id),
                 'recursive' => -1,
                 'contain' => array('Tag')
             ));
-        } elseif ($target_type == 'tag_collection') {
+        } elseif ($target_type === 'tag_collection') {
             $existingTargetTag = $this->Tag->TagCollectionTag->TagCollection->find('first', array(
                 'conditions' => array('tag_id' => $tag_id, 'tag_collection_id' => $target_id),
                 'recursive' => -1,
@@ -517,30 +511,27 @@ class Galaxy extends AppModel
 
         if (empty($existingTargetTag)) {
             return 'Cluster not attached.';
+        }
+
+        if ($target_type === 'event') {
+            $result = $this->Tag->EventTag->delete($existingTargetTag['EventTag']['id']);
+        } elseif ($target_type === 'attribute') {
+            $result = $this->Tag->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
+        } elseif ($target_type === 'tag_collection') {
+            $result = $this->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
+        }
+
+        if ($result) {
+            if ($target_type !== 'tag_collection') {
+                $this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
+                $this->Tag->EventTag->Event->unpublishEvent($event);
+            }
+
+            $logTitle = 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')';
+            $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($target_type), $target_id, $logTitle);
+            return 'Cluster detached';
         } else {
-            if ($target_type == 'event') {
-                $result = $this->Tag->EventTag->delete($existingTargetTag['EventTag']['id']);
-            } elseif ($target_type == 'attribute') {
-                $result = $this->Tag->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
-            } elseif ($target_type == 'tag_collection') {
-                $result = $this->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
-            }
-
-            if ($result) {
-                if ($target_type !== 'tag_collection') {
-                    $this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
-                    $event['Event']['published'] = 0;
-                    $date = new DateTime();
-                    $event['Event']['timestamp'] = $date->getTimestamp();
-                    $this->Tag->EventTag->Event->save($event);
-                }
-
-                $logTitle = 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')';
-                $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($target_type), $target_id, $logTitle);
-                return 'Cluster detached';
-            } else {
-                return 'Could not detach cluster';
-            }
+            return 'Could not detach cluster';
         }
     }
 
@@ -640,9 +631,7 @@ class Galaxy extends AppModel
         }
 
         if ($targetType !== 'tag_collection') {
-            $event['Event']['published'] = 0;
-            $event['Event']['timestamp'] = time();
-            $this->GalaxyCluster->Tag->EventTag->Event->save($event);
+            $this->GalaxyCluster->Tag->EventTag->Event->unpublishEvent($event);
         }
 
         $logTitle = 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') from ' . $targetType . ' (' . $targetId . ')';
