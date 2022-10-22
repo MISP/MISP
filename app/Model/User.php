@@ -265,33 +265,34 @@ class User extends AppModel
         return true;
     }
 
-    public function beforeSave($options = array())
+    public function beforeSave($options = [])
     {
-        $this->data[$this->alias]['date_modified'] = time();
-        if (isset($this->data[$this->alias]['password'])) {
+        $user = &$this->data[$this->alias];
+        $user['date_modified'] = time();
+
+        if (isset($user['password'])) {
             $passwordHasher = new BlowfishConstantPasswordHasher();
-            $this->data[$this->alias]['password'] = $passwordHasher->hash($this->data[$this->alias]['password']);
+            $user['password'] = $passwordHasher->hash($user['password']);
         }
-        $user = $this->data;
-        $action = empty($this->id) ? 'add' : 'edit';
-        $user_id = $action == 'add' ? 0 : $user['User']['id'];
-        $trigger_id = 'user-before-save';
-        $workflowErrors = [];
-        $logging = [
-            'model' => 'User',
-            'action' => $action,
-            'id' => $user_id,
-            'message' => __('The workflow `%s` prevented the saving of user %s', $trigger_id, $user_id),
-        ];
+
         if (
-            empty($user['User']['action']) ||
+            empty($user['action']) ||
             (
-                $user['User']['action'] != 'logout' &&
-                $user['User']['action'] != 'login'
+                $user['action'] !== 'logout' &&
+                $user['action'] !== 'login'
             )
         ) {
-            $success = $this->executeTrigger($trigger_id, $user['User'], $workflowErrors, $logging);
-            return !empty($success);
+            $action = empty($this->id) ? 'add' : 'edit';
+            $user_id = $action === 'add' ? 0 : $user['id'];
+            $trigger_id = 'user-before-save';
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'User',
+                'action' => $action,
+                'id' => $user_id,
+                'message' => __('The workflow `%s` prevented the saving of user %s', $trigger_id, $user_id),
+            ];
+            return $this->executeTrigger($trigger_id, $user, $workflowErrors, $logging);
         }
         return true;
     }
