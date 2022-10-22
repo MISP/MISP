@@ -468,30 +468,30 @@ class UsersController extends AppController
                 unset($users[$key]['User']['password']);
             }
             return $this->RestResponse->viewData($users, $this->response->type());
-        } else {
-            $this->set('urlparams', $urlParams);
-            $this->set('passedArgsArray', $passedArgsArray);
-            $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
-            $conditions = array();
-            if ($this->_isSiteAdmin()) {
-                $users = $this->paginate();
-                if (!empty(Configure::read('Security.user_monitoring_enabled'))) {
-                    foreach ($users as $key => $value) {
-                        $users[$key]['User']['monitored'] = $redis->sismember('misp:monitored_users', $users[$key]['User']['id']);
-                    }
-                }
-                $this->set('users', $users);
-            } else {
-                $conditions['User.org_id'] = $this->Auth->user('org_id');
-                $this->paginate['conditions']['AND'][] = $conditions;
-                $users = $this->paginate();
+        }
+
+        $this->set('urlparams', $urlParams);
+        $this->set('passedArgsArray', $passedArgsArray);
+        $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
+        $conditions = array();
+        if ($this->_isSiteAdmin()) {
+            $users = $this->paginate();
+            if (!empty(Configure::read('Security.user_monitoring_enabled'))) {
                 foreach ($users as $key => $value) {
-                    if ($value['Role']['perm_site_admin']) {
-                        $users[$key]['User']['authkey'] = __('Redacted');
-                    }
+                    $users[$key]['User']['monitored'] = $redis->sismember('misp:monitored_users', $users[$key]['User']['id']);
                 }
-                $this->set('users', $users);
             }
+            $this->set('users', $users);
+        } else {
+            $conditions['User.org_id'] = $this->Auth->user('org_id');
+            $this->paginate['conditions']['AND'][] = $conditions;
+            $users = $this->paginate();
+            foreach ($users as $key => $value) {
+                if ($value['Role']['perm_site_admin']) {
+                    $users[$key]['User']['authkey'] = __('Redacted');
+                }
+            }
+            $this->set('users', $users);
         }
     }
 
@@ -545,7 +545,7 @@ class UsersController extends AppController
         $roles = $this->User->Role->find('all', array('recursive' => -1));
         $roleNames = array();
         $roleJSON = array();
-        foreach ($roles as $k => $v) {
+        foreach ($roles as $v) {
             $roleNames[$v['Role']['id']] = $v['Role']['name'];
             $roleJSON[] = array('id' => $v['Role']['id'], 'value' => $v['Role']['name']);
         }
@@ -570,7 +570,7 @@ class UsersController extends AppController
     {
         $user = $this->User->find('first', array(
             'recursive' => -1,
-            'conditions' => array('User.id' => $id),
+            'conditions' => $this->__adminFetchConditions($id),
             'contain' => [
                 'UserSetting',
                 'Role',
@@ -579,9 +579,6 @@ class UsersController extends AppController
         ));
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
-        }
-        if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $user['User']['org_id'])) {
-            throw new MethodNotAllowedException();
         }
         if (!empty($user['User']['gpgkey'])) {
             $pgpDetails = $this->User->verifySingleGPG($user);
@@ -598,7 +595,7 @@ class UsersController extends AppController
         if ($this->_isRest()) {
             $user['User']['password'] = '*****';
             $temp = array();
-            foreach ($user['UserSetting'] as $k => $v) {
+            foreach ($user['UserSetting'] as $v) {
                 $temp[$v['setting']] = $v['value'];
             }
             $user['UserSetting'] = $temp;
@@ -835,8 +832,9 @@ class UsersController extends AppController
         $this->User->id = $id;
         $params = array();
         $allowedRole = '';
+
         $userToEdit = $this->User->find('first', array(
-            'conditions' => array('User.id' => $id),
+            'conditions' => $this->__adminFetchConditions($id),
             'recursive' => -1,
             'fields' => array('User.id', 'User.role_id', 'User.email', 'User.org_id', 'Role.perm_site_admin'),
             'contain' => array('Role')
@@ -852,7 +850,7 @@ class UsersController extends AppController
             // MISP automatically chooses the first available option for the user as the selected setting (usually user)
             // Org admin is downgraded to a user
             // Now we make an exception for the already assigned role, both in the form and the actual edit.
-            if ($userToEdit['User']['org_id'] != $this->Auth->user('org_id') || !empty($userToEdit['Role']['perm_site_admin'])) {
+            if (!empty($userToEdit['Role']['perm_site_admin'])) {
                 throw new NotFoundException(__('Invalid user'));
             }
             $allowedRole = $userToEdit['User']['role_id'];
@@ -1084,23 +1082,17 @@ class UsersController extends AppController
 
     public function admin_delete($id = null)
     {
-        if (!$this->request->is('post') && !$this->request->is('delete')) {
-            throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
-        }
-        $this->User->id = $id;
-        $conditions = array('User.id' => $id);
-        if (!$this->_isSiteAdmin()) {
-            $conditions['org_id'] = $this->Auth->user('org_id');
-        }
+        $this->request->allowMethod(['post', 'delete']);
+
         $user = $this->User->find('first', array(
-                'conditions' => $conditions,
-                'recursive' => -1
+            'conditions' => $this->__adminFetchConditions($id),
+            'recursive' => -1
         ));
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
         }
-        $fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
         if ($this->User->delete($id)) {
+            $fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
             $this->User->extralog($this->Auth->user(), "delete", $fieldsDescrStr, '');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('User', 'admin_delete', $id, $this->response->type(), 'User deleted.');
@@ -1118,19 +1110,12 @@ class UsersController extends AppController
         if (!in_array($fieldName, $this->toggleableFields)) {
             throw new MethodNotAllowedException(__('The field `%s` cannot be toggled', $fieldName));
         }
-        if (!$this->_isAdmin()) {
-            throw new UnauthorizedException(__('Administrators only'));
-        }
         if ($this->request->is('post') || $this->request->is('put')) {
             $jsonIds = $this->request->data['User']['user_ids'];
             $ids = $this->_jsonDecode($jsonIds);
-            $conditions = ['User.id' => $ids];
-            if (!$this->_isSiteAdmin()) {
-                $conditions['User.org_id'] = $this->Auth->user('org_id');
-            }
             $users = $this->User->find('all', [
-                    'conditions' => $conditions,
-                    'recursive' => -1
+                'conditions' => $this->__adminFetchConditions($ids),
+                'recursive' => -1
             ]);
             if (empty($users)) {
                 throw new NotFoundException(__('Invalid users'));
@@ -1555,15 +1540,8 @@ class UsersController extends AppController
 
     public function admin_quickEmail($user_id)
     {
-        if (!$this->_isAdmin()) {
-            throw new MethodNotAllowedException();
-        }
-        $conditions = array('User.id' => $user_id);
-        if (!$this->_isSiteAdmin()) {
-            $conditions['User.org_id'] = $this->Auth->user('org_id');
-        }
         $user = $this->User->find('first', array(
-            'conditions' => $conditions,
+            'conditions' => $this->__adminFetchConditions($user_id),
             'recursive' => -1
         ));
         $error = false;
@@ -1726,9 +1704,6 @@ class UsersController extends AppController
 
     public function initiatePasswordReset($id, $firstTime = false)
     {
-        if (!$this->_isAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
-        }
         $user = $this->User->find('first', array(
             'conditions' => array('id' => $id),
             'recursive' => -1
@@ -1906,7 +1881,6 @@ class UsersController extends AppController
         $params = array(
             'fields' => array('id', 'name'),
             'recursive' => -1,
-            'conditions' => array(),
             'order' => ['name'],
         );
         if (!$user['Role']['perm_site_admin'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
@@ -2428,7 +2402,7 @@ class UsersController extends AppController
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user.'));
         }
-        $redis = $this->User->setupRedis();
+        $redis = RedisTool::init();
         $alreadyMonitored = $redis->sismember('misp:monitored_users', $id);
         if ($this->request->is('post')) {
             if (isset($this->request->data['User'])) {
@@ -2865,5 +2839,24 @@ class UsersController extends AppController
     private function __canFetchPgpKey()
     {
         return !Configure::read('GnuPG.key_fetching_disabled');
+    }
+
+    /**
+     * @param int|array $id
+     * @return array
+     * @throws NotFoundException
+     */
+    private function __adminFetchConditions($id)
+    {
+        if (empty($id)) {
+            throw new NotFoundException(__('Invalid user'));
+        }
+
+        $conditions = ['User.id' => $id];
+        $user = $this->Auth->user();
+        if (!$user['Role']['perm_site_admin']) {
+            $conditions['User.org_id'] = $user['org_id']; // org admin
+        }
+        return $conditions;
     }
 }
