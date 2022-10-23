@@ -197,11 +197,11 @@
         </td>
         <td class="short action-links">
             <?php
-                if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']))) {
+                if (0 == $event['Event']['published'] && $this->Acl->canPublishEvent($event)) {
                     echo sprintf('<a class="useCursorPointer fa fa-upload" title="%s" aria-label="%s" onclick="event.preventDefault();publishPopup(%s)"></a>', __('Publish Event'), __('Publish Event'), $eventId);
                 }
 
-                if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
+                if ($this->Acl->canModifyEvent($event)):
             ?>
                     <a href="<?php echo $baseurl."/events/edit/".$eventId ?>" title="<?php echo __('Edit');?>" aria-label="<?php echo __('Edit');?>"><i class="black fa fa-edit"></i></a>
             <?php
