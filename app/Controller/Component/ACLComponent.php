@@ -817,13 +817,17 @@ class ACLComponent extends Component
 
     private $dynamicChecks = [];
 
+    /** @var int */
+    private $hostOrgId;
+
     public function __construct(ComponentCollection $collection, $settings = array())
     {
         parent::__construct($collection, $settings);
 
+        $this->hostOrgId = (int)Configure::read('MISP.host_org_id');
+
         $this->dynamicChecks['host_org_user'] = function (array $user) {
-            $hostOrgId = Configure::read('MISP.host_org_id');
-            return (int)$user['org_id'] === (int)$hostOrgId;
+            return (int)$user['org_id'] === $this->hostOrgId;
         };
         $this->dynamicChecks['self_management_enabled'] = function (array $user) {
             if (Configure::read('MISP.disableUserSelfManagement') && !$user['Role']['perm_admin'])  {
@@ -921,7 +925,7 @@ class ACLComponent extends Component
         if ($this->canModifyEvent($user, $event)) {
             return true; // full access
         }
-        if ($isTagLocal && Configure::read('MISP.host_org_id') == $user['org_id']) {
+        if ($isTagLocal && $this->hostOrgId === (int)$user['org_id']) {
             return true;
         }
         return false;
@@ -1162,7 +1166,7 @@ class ACLComponent extends Component
     private function __checkRoleAccess(array $role)
     {
         $result = array();
-        $fakeUser = ['Role' => $role, 'org_id' => Configure::read('MISP.host_org_id')];
+        $fakeUser = ['Role' => $role, 'org_id' => $this->hostOrgId];
         foreach (self::ACL_LIST as $controller => $actions) {
             $controllerNames = Inflector::variable($controller) === Inflector::underscore($controller) ?
                 array(Inflector::variable($controller)) :
