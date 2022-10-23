@@ -432,14 +432,6 @@ class Correlation extends AppModel
         if (!empty($a['Event']['disable_correlation'])) {
             return true;
         }
-
-        if (!empty($a['Attribute']['object_id'])) {
-            $a['Object'] = $this->__cachedGetContainData('Object', $a['Attribute']['object_id']);
-            if (!$a['Object']) {
-                // orphaned attribute, do not correlate
-                return true;
-            }
-        }
         // generate additional correlating attribute list based on the advanced correlations
         if (!$this->__preventExcludedCorrelations($a['Attribute']['value1'])) {
             $extraConditions = $this->__buildAdvancedCorrelationConditions($a);
@@ -453,6 +445,13 @@ class Correlation extends AppModel
         }
         if (empty($correlatingValues)) {
             return true;
+        }
+        if (!empty($a['Attribute']['object_id'])) {
+            $a['Object'] = $this->__cachedGetContainData('Object', $a['Attribute']['object_id']);
+            if (!$a['Object']) {
+                // orphaned attribute, do not correlate
+                return true;
+            }
         }
         $correlations = [];
         foreach ($correlatingValues as $cV) {
@@ -479,6 +478,10 @@ class Correlation extends AppModel
                 'Event.disable_correlation' => 0,
                 'Attribute.deleted' => 0,
             ];
+            if ($full) {
+                // On a full correlation, only correlate with attributes that have a higher ID to avoid duplicate correlations
+                $conditions['Attribute.id >'] = $a['Attribute']['id'];
+            }
             $correlationLimit = $this->OverCorrelatingValue->getLimit();
 
             $correlatingAttributes = $this->Attribute->find('all', [
@@ -498,15 +501,11 @@ class Correlation extends AppModel
                 // If we have more correlations for the value than the limit, set the block entry and stop the correlation process
                 $this->OverCorrelatingValue->block($cV);
                 return true;
-            } else if ($count !== 0) {
+            } else if ($count !== 0 && !$full) {
                 // If we have fewer hits than the limit, proceed with the correlation, but first make sure we remove any existing blockers
                 $this->OverCorrelatingValue->unblock($cV);
             }
             foreach ($correlatingAttributes as $b) {
-                // On a full correlation, only correlate with attributes that have a higher ID to avoid duplicate correlations
-                if ($full && $a['Attribute']['id'] < $b['Attribute']['id']) {
-                    continue;
-                }
                 if (isset($b['Attribute']['value1'])) {
                     // TODO: Currently it is hard to check if value1 or value2 correlated, so we check value2 and if not, it is value1
                     $value = $cV === $b['Attribute']['value2'] ? $b['Attribute']['value2'] : $b['Attribute']['value1'];
