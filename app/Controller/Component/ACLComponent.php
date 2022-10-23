@@ -852,6 +852,81 @@ class ACLComponent extends Component
         };
     }
 
+    /**
+     * Returns true if user can modify given event.
+     *
+     * @param array $event
+     * @param array $user
+     * @return bool
+     */
+    public function canModifyEvent(array $user, array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($user['Role']['perm_modify_org'] && $event['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        if ($user['Role']['perm_modify'] && $event['Event']['user_id'] == $user['id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if user can publish the given event.
+     *
+     * @param array $user
+     * @param array $event
+     * @return bool
+     */
+    public function canPublishEvent(array $user, array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($user['Role']['perm_publish'] && $event['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if user can add or remove tags for given event.
+     *
+     * @param array $user
+     * @param array $event
+     * @param bool $isTagLocal
+     * @return bool
+     */
+    public function canModifyTag(array $user, array $event, $isTagLocal = false)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+        // Site admin can add any tag
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        // User must have tagger or sync permission
+        if (!$user['Role']['perm_tagger'] && !$user['Role']['perm_sync']) {
+            return false;
+        }
+        if ($this->canModifyEvent($user, $event)) {
+            return true; // full access
+        }
+        if ($isTagLocal && Configure::read('MISP.host_org_id') == $user['org_id']) {
+            return true;
+        }
+        return false;
+    }
+
     private function __checkLoggedActions($user, $controller, $action)
     {
         $loggedActions = array(

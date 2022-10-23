@@ -56,6 +56,9 @@ class AppController extends Controller
     /** @var User */
     public $User;
 
+    /** @var ACLComponent */
+    public $ACL;
+
     public function __construct($request = null, $response = null)
     {
         parent::__construct($request, $response);
@@ -1299,22 +1302,8 @@ class AppController extends Controller
      */
     protected function __canModifyEvent(array $event, $user = null)
     {
-        if (!isset($event['Event'])) {
-            throw new InvalidArgumentException('Passed object does not contain an Event.');
-        }
-
         $user = $user ?: $this->Auth->user();
-
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if ($user['Role']['perm_modify_org'] && $event['Event']['orgc_id'] == $user['org_id']) {
-            return true;
-        }
-        if ($user['Role']['perm_modify'] && $event['Event']['user_id'] == $user['id']) {
-            return true;
-        }
-        return false;
+        return $this->ACL->canModifyEvent($user, $event);
     }
 
     /**
@@ -1326,19 +1315,8 @@ class AppController extends Controller
      */
     protected function __canPublishEvent(array $event, $user = null)
     {
-        if (!isset($event['Event'])) {
-            throw new InvalidArgumentException('Passed object does not contain an Event.');
-        }
-
         $user = $user ?: $this->Auth->user();
-
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if ($user['Role']['perm_publish'] && $event['Event']['orgc_id'] == $user['org_id']) {
-            return true;
-        }
-        return false;
+        return $this->ACL->canPublishEvent($user, $event);
     }
 
     /**
@@ -1350,21 +1328,7 @@ class AppController extends Controller
      */
     protected function __canModifyTag(array $event, $isTagLocal = false)
     {
-        // Site admin can add any tag
-        if ($this->userRole['perm_site_admin']) {
-            return true;
-        }
-        // User must have tagger or sync permission
-        if (!$this->userRole['perm_tagger'] && !$this->userRole['perm_sync']) {
-            return false;
-        }
-        if ($this->__canModifyEvent($event)) {
-            return true; // full access
-        }
-        if ($isTagLocal && Configure::read('MISP.host_org_id') == $this->Auth->user('org_id')) {
-            return true;
-        }
-        return false;
+        return $this->ACL->canModifyTag($this->Auth->user(), $event, $isTagLocal);
     }
 
     /**
