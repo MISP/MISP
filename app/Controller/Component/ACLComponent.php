@@ -931,6 +931,25 @@ class ACLComponent extends Component
         return false;
     }
 
+    /**
+     * @param array $user
+     * @param array $event
+     * @return bool
+     */
+    public function canDisableCorrelation(array $user, array $event)
+    {
+        if (Configure::read('MISP.completely_disable_correlation')) {
+            return false; // correlations are completely disabled
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if (Configure::read('MISP.allow_disabling_correlation') && $this->canPublishEvent($user, $event)) {
+            return true;
+        }
+        return false;
+    }
+
     private function __checkLoggedActions($user, $controller, $action)
     {
         $loggedActions = array(

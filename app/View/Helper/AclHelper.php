@@ -33,4 +33,14 @@ class AclHelper extends Helper
         $me = $this->_View->viewVars['me'];
         return $this->ACL->canModifyTag($me, $event, $isTagLocal);
     }
+
+    /**
+     * @param array $event
+     * @return bool
+     */
+    public function canDisableCorrelation(array $event)
+    {
+        $me = $this->_View->viewVars['me'];
+        return $this->ACL->canDisableCorrelation($me, $event);
+    }
 }
