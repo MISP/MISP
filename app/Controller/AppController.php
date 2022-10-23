@@ -15,8 +15,6 @@ App::uses('BetterCakeEventManager', 'Tools');
  * @package       app.Controller
  * @link http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  *
- * @property ACLComponent $ACL
- * @property RestResponseComponent $RestResponse
  * @property CRUDComponent $CRUD
  * @property IndexFilterComponent $IndexFilter
  * @property RateLimitComponent $RateLimit
@@ -56,8 +54,14 @@ class AppController extends Controller
     /** @var User */
     public $User;
 
+    /** @var AuthComponent */
+    public $Auth;
+
     /** @var ACLComponent */
     public $ACL;
+
+    /** @var RestResponseComponent */
+    public $RestResponse;
 
     public function __construct($request = null, $response = null)
     {
