@@ -228,7 +228,7 @@ class Feed extends AppModel
         $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket);
 
         try {
-            return $this->jsonDecode($data);
+            return JsonTool::decodeArray($data);
         } catch (Exception $e) {
             throw new Exception("Could not parse '$manifestUrl' manifest JSON", 0, $e);
         }
@@ -272,7 +272,7 @@ class Feed extends AppModel
                 if ($data === false) {
                     return $this->feedGetUriRemote($feed, $manifestUrl, $HttpSocket)->json(); // cache file is not readable, fetch without etag
                 }
-                return $this->jsonDecode($data);
+                return JsonTool::decodeArray($data);
             } else {
                 throw $e;
             }
@@ -1982,7 +1982,7 @@ class Feed extends AppModel
         $data = $this->feedGetUri($feed, $path, $HttpSocket);
 
         try {
-            return $this->jsonDecode($data);
+            return JsonTool::decodeArray($data);
         } catch (Exception $e) {
             throw new Exception("Could not parse event JSON with UUID '$eventUuid' from feed", 0, $e);
         }

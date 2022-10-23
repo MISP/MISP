@@ -1321,18 +1321,21 @@ class AppController extends Controller
      * Returns true if user can publish the given event.
      *
      * @param array $event
+     * @param array|null $user If empty, currently logged user will be used
      * @return bool
      */
-    protected function __canPublishEvent(array $event)
+    protected function __canPublishEvent(array $event, $user = null)
     {
         if (!isset($event['Event'])) {
             throw new InvalidArgumentException('Passed object does not contain an Event.');
         }
 
-        if ($this->userRole['perm_site_admin']) {
+        $user = $user ?: $this->Auth->user();
+
+        if ($user['Role']['perm_site_admin']) {
             return true;
         }
-        if ($this->userRole['perm_publish'] && $event['Event']['orgc_id'] == $this->Auth->user()['org_id']) {
+        if ($user['Role']['perm_publish'] && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
         return false;

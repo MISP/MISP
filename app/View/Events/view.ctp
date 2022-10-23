@@ -95,7 +95,7 @@
                     'event_path' => 'Event',
                     'owner' => (
                         (int)$me['org_id'] === (int)$event['Event']['orgc_id'] &&
-                        (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id') &&
+                        $hostOrgUser &&
                         !$event['Event']['locked']
                     ),
                     'instanceFingerprint' => $instanceFingerprint,
@@ -113,7 +113,7 @@
                                     'event' => $event,
                                     'tags' => $event['EventTag'],
                                     'tagAccess' => $isSiteAdmin || $mayModify,
-                                    'localTagAccess' => $isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id'),
+                                    'localTagAccess' => $isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || $hostOrgUser,
                                     'missingTaxonomies' => $missingTaxonomies,
                                     'tagConflicts' => $tagConflicts
                                 ]

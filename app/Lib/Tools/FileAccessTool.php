@@ -65,14 +65,15 @@ class FileAccessTool
 
     /**
      * @param string $file
+     * @param bool $mustBeArray If true, exception will be thrown if deserialized data are not array type
      * @return mixed
      * @throws Exception
      */
-    public static function readJsonFromFile($file)
+    public static function readJsonFromFile($file, $mustBeArray = false)
     {
         $content = self::readFromFile($file);
         try {
-            return JsonTool::decode($content);
+            return $mustBeArray ? JsonTool::decodeArray($content) : JsonTool::decode($content);
         } catch (Exception $e) {
             throw new Exception("Could not decode JSON from file `$file`", 0, $e);
         }

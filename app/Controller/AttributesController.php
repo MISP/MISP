@@ -1099,7 +1099,7 @@ class AttributesController extends AppController
                     )
                 )
         ));
-        if (empty($attribute) || !$this->userRole['perm_site_admin'] && $this->Auth->user('org_id') != $attribute['Event']['orgc_id']) {
+        if (empty($attribute) || !$this->__canModifyEvent($attribute)) {
             if ($this->request->is('ajax')) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Attribute')), 'type' => 'json', 'status'=>200));
             } else {
@@ -2061,13 +2061,10 @@ class AttributesController extends AppController
 
     public function attributeReplace($id)
     {
-        if (!$this->userRole['perm_add']) {
-            throw new ForbiddenException(__('Event not found or you don\'t have permissions to create attributes'));
-        }
         $event = $this->Attribute->Event->find('first', array(
-                'conditions' => array('Event.id' => $id),
-                'fields' => array('id', 'orgc_id', 'distribution', 'user_id'),
-                'recursive' => -1
+            'conditions' => array('Event.id' => $id),
+            'fields' => array('id', 'orgc_id', 'distribution', 'user_id'),
+            'recursive' => -1
         ));
         if (empty($event) || !$this->__canModifyEvent($event)) {
             throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
@@ -2088,8 +2085,8 @@ class AttributesController extends AppController
             $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
             $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
             $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        }
-        if ($this->request->is('post')) {
+
+        } elseif ($this->request->is('post')) {
             if (!$this->request->is('ajax')) {
                 throw new MethodNotAllowedException(__('This action can only be accessed via AJAX.'));
             }
@@ -2099,18 +2096,14 @@ class AttributesController extends AppController
             $type = $this->request->data['Attribute']['type'];
             $to_ids = $this->request->data['Attribute']['to_ids'];
 
-            if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $event['Event']['orgc_id'] && !$this->userRole['perm_add']) {
-                throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-            }
-
             $oldAttributes = $this->Attribute->find('all', array(
-                    'conditions' => array(
-                            'event_id' => $id,
-                            'category' => $category,
-                            'type' => $type,
-                    ),
-                    'fields' => array('id', 'event_id', 'category', 'type', 'value'),
-                    'recursive' => -1,
+                'conditions' => array(
+                    'event_id' => $id,
+                    'category' => $category,
+                    'type' => $type,
+                ),
+                'fields' => array('id', 'event_id', 'category', 'type', 'value'),
+                'recursive' => -1,
             ));
             $results = array('untouched' => count($oldAttributes), 'created' => 0, 'deleted' => 0, 'createdFail' => 0, 'deletedFail' => 0);
 
@@ -2125,12 +2118,12 @@ class AttributesController extends AppController
                 }
                 if (!$found) {
                     $attribute = array(
-                            'value' => $value,
-                            'event_id' => $id,
-                            'category' => $category,
-                            'type' => $type,
-                            'distribution' => $event['Event']['distribution'],
-                            'to_ids' => $to_ids,
+                        'value' => $value,
+                        'event_id' => $id,
+                        'category' => $category,
+                        'type' => $type,
+                        'distribution' => $event['Event']['distribution'],
+                        'to_ids' => $to_ids,
                     );
                     $this->Attribute->create();
                     if ($this->Attribute->save(array('Attribute' => $attribute))) {
@@ -2192,7 +2185,6 @@ class AttributesController extends AppController
         }
         return '';
     }
-
 
     // download a sample by passing along an md5
     public function downloadSample($hash=false, $allSamples=false, $eventID=false)

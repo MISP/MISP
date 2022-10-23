@@ -224,12 +224,8 @@ class SharingGroupsController extends AppController
 
     public function delete($id)
     {
-        if (!$this->userRole['perm_sharing_group']) {
-            throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
-        }
-        if (!$this->request->is('post') && !$this->request->is('delete')) {
-            throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
-        }
+        $this->request->allowMethod(['post', 'delete']);
+
         $deletedSg = $this->SharingGroup->find('first', array(
             'conditions' => Validation::uuid($id) ? ['uuid' => $id] : ['id' => $id],
             'recursive' => -1,

@@ -482,6 +482,7 @@ class SharingGroup extends AppModel
             $sgids = $this->find('column', [
                 'fields' => ['id'],
             ]);
+            $sgids = array_map('intval', $sgids);
         } else {
             $sgids = array_unique(array_merge(
                 $this->SharingGroupServer->fetchAllAuthorised(),
@@ -521,7 +522,11 @@ class SharingGroup extends AppModel
         return $sg['SharingGroup']['org_id'] == $user['org_id'];
     }
 
-    // Get all organisation ids that can see a SG
+    /**
+     * Get all organisation ids that can see a SG.
+     * @param int $id Sharing group ID
+     * @return array|bool
+     */
     public function getOrgsWithAccess($id)
     {
         $sg = $this->find('first', array(
@@ -545,11 +550,7 @@ class SharingGroup extends AppModel
             }
         }
         // return a list of arrays with all organisations tied to the SG.
-        $orgs = array();
-        foreach ($sg['SharingGroupOrg'] as $sgo) {
-            $orgs[] = $sgo['org_id'];
-        }
-        return $orgs;
+        return array_column($sg['SharingGroupOrg'], 'org_id');
     }
 
     public function checkIfServerInSG($sg, $server)
