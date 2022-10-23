@@ -13,6 +13,7 @@ App::uses('AppModel', 'Model');
  * @method getContainRules($filter = null)
  * @method updateContainedCorrelations(array $data, string $type, array $options = [])
  * @method purgeCorrelations(int $evenId = null)
+ * @method getTableName()
  */
 class Correlation extends AppModel
 {
