@@ -31,7 +31,7 @@
                             'icon' => 'server',
                             'style' => 'color:black; font-size:15px;padding-left:2px',
                             'title' => __('Check this event on different servers'),
-                            'requirement' => $isSiteAdmin || $hostOrgUser
+                            'requirement' => $this->Acl->canAccess('servers', 'idTranslator'),
                         ]
                     ]
                 ],
@@ -151,7 +151,7 @@
                     'class' => !empty($warnings) ? 'background-red bold' : '',
                     'type' => 'warnings',
                     'warnings' => $warnings,
-                    'requirement' => !empty($warnings) && ($me['org_id'] === $event['Event']['orgc_id'] || !empty($me['Role']['perm_site_admin']))
+                    'requirement' => !empty($warnings) && $mayModify,
                 ],
                 [
                     'key' => __('Published'),
