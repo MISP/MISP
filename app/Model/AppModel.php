@@ -3536,14 +3536,11 @@ class AppModel extends Model
      * @return array
      * @throws JsonException
      * @throws UnexpectedValueException
+     * @deprecated
      */
-    public function jsonDecode($json)
+    protected function jsonDecode($json)
     {
-        $decoded = JsonTool::decode($json);
-        if (!is_array($decoded)) {
-            throw new UnexpectedValueException('JSON must be array type, get ' . gettype($decoded));
-        }
-        return $decoded;
+        return JsonTool::decodeArray($json);
     }
 
     /**

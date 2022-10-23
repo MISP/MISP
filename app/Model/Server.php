@@ -3951,7 +3951,7 @@ class Server extends AppModel
                 // pass
             }
             if (!empty($execResult)) {
-                $execResult = $this->jsonDecode($execResult);
+                $execResult = JsonTool::decodeArray($execResult);
                 $results['cli']['phpversion'] = $execResult['phpversion'];
                 foreach ($execResult['extensions'] as $extension => $loaded) {
                     $results['extensions'][$extension]['cli_version'] = $loaded;

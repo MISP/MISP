@@ -165,7 +165,7 @@ class AuditLog extends AppModel
                 return 'Compressed';
             }
         }
-        return $this->jsonDecode($change);
+        return JsonTool::decode($change);
     }
 
     public function beforeValidate($options = array())
