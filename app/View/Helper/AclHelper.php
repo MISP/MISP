@@ -22,4 +22,15 @@ class AclHelper extends Helper
         $me = $this->_View->viewVars['me'];
         return $this->ACL->canUserAccess($me, $controller, $action);
     }
+
+    /**
+     * @param array $event
+     * @param bool $isTagLocal
+     * @return bool
+     */
+    public function canModifyTag(array $event, $isTagLocal = false)
+    {
+        $me = $this->_View->viewVars['me'];
+        return $this->ACL->canModifyTag($me, $event, $isTagLocal);
+    }
 }

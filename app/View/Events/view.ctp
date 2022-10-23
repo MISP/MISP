@@ -113,7 +113,7 @@
                                     'event' => $event,
                                     'tags' => $event['EventTag'],
                                     'tagAccess' => $isSiteAdmin || $mayModify,
-                                    'localTagAccess' => $isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || $hostOrgUser,
+                                    'localTagAccess' => $this->Acl->canModifyTag($event, true),
                                     'missingTaxonomies' => $missingTaxonomies,
                                     'tagConflicts' => $tagConflicts
                                 ]
