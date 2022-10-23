@@ -5527,7 +5527,6 @@ components:
         - "Role"
         - "Server"
         - "ShadowAttribute"
-        - "SharingGroupElement"
         - "SharingGroupOrg"
         - "SharingGroup"
         - "SharingGroupServer"
