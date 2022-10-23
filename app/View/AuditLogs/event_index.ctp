@@ -51,5 +51,5 @@
         </ul>
     </div>
 </div>
-<?= $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event', 'menuItem' => 'eventLog', 'event' => $event, 'mayModify' => $mayModify]);
+<?= $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event', 'menuItem' => 'eventLog']);
 

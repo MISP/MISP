@@ -47,11 +47,8 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 case 'event':
                     $eventId = (int)$event['Event']['id'];
                     echo '<div id="hiddenSideMenuData" class="hidden" data-event-id="' . $eventId . '"></div>';
-                    if (in_array($menuItem, array('editEvent', 'addAttribute', 'addObject', 'addAttachment', 'addIOC', 'addThreatConnect', 'populateFromTemplate', 'merge'))) {
-                        // we can safely assume that mayModify is true if coming from these actions, as they require it in the controller and the user has already passed that check
-                        $mayModify = true;
-                        if ($isAclPublish) $mayPublish = true;
-                    }
+                    $mayModify = $mayModify ?? $this->Acl->canModifyEvent($event);
+                    $mayPublish = $mayPublish ?? ($mayModify && $this->Acl->canPublishEvent($event));
 
                     if ($menuItem === 'template_populate_results') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -88,7 +85,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'text' => __('View Event History')
                     ));
                     echo $divider;
-                    if ($isSiteAdmin || (isset($mayModify) && $mayModify)) {
+                    if ($isSiteAdmin || $mayModify) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'editEvent',
                             'url' => $baseurl . '/events/edit/' . $eventId,
@@ -167,7 +164,9 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
                     echo $divider;
                     $publishButtons = ' hidden';
-                    if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
+                    if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && $mayPublish) {
+                        $publishButtons = "";
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'onClick' => array(
                             'function' => 'publishPopup',

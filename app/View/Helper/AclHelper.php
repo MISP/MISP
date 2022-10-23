@@ -25,6 +25,26 @@ class AclHelper extends Helper
 
     /**
      * @param array $event
+     * @return bool
+     */
+    public function canModifyEvent(array $event)
+    {
+        $me = $this->_View->viewVars['me'];
+        return $this->ACL->canModifyEvent($me, $event);
+    }
+
+    /**
+     * @param array $event
+     * @return bool
+     */
+    public function canPublishEvent(array $event)
+    {
+        $me = $this->_View->viewVars['me'];
+        return $this->ACL->canPublishEvent($me, $event);
+    }
+
+    /**
+     * @param array $event
      * @param bool $isTagLocal
      * @return bool
      */
