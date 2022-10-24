@@ -991,6 +991,25 @@ class ACLComponent extends Component
         return $sighting['Sighting']['org_id'] == $user['org_id'];
     }
 
+    /**
+     * @param array $user
+     * @param array $eventReport
+     * @return bool
+     */
+    public function canEditEventReport(array $user, array $eventReport)
+    {
+        if (!isset($report['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($eventReport['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        return false;
+    }
+
     private function __checkLoggedActions($user, $controller, $action)
     {
         $loggedActions = array(

@@ -83,4 +83,14 @@ class AclHelper extends Helper
         $me = $this->_View->viewVars['me'];
         return $this->ACL->canDeleteSighting($me, $sighting);
     }
+
+    /**
+     * @param array $eventReport
+     * @return bool
+     */
+    public function canEditEventReport(array $eventReport)
+    {
+        $me = $this->_View->viewVars['me'];
+        return $this->ACL->canEditReport($me, $eventReport);
+    }
 }
