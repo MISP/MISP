@@ -921,8 +921,11 @@ function attributeListAnyAttributeCheckBoxesChecked() {
 }
 
 function listCheckboxesChecked() {
-    if ($('.select:checked').length > 0) $('.mass-select').removeClass('hidden');
-    else $('.mass-select').addClass('hidden');
+    if ($('.select:checked').length > 0)  {
+        $('.mass-select').removeClass('hidden');
+    } else {
+        $('.mass-select').addClass('hidden')
+    }
 }
 
 function listCheckboxesCheckedEventIndex() {
