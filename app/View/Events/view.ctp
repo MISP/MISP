@@ -24,14 +24,14 @@
                             'icon' => 'plus-square',
                             'style' => 'color:black; font-size:15px;padding-left:2px',
                             'title' => __('Extend this event'),
-                            'requirement' => $isAclAdd
+                            'requirement' => $this->Acl->canAccess('events', 'add'),
                         ],
                         [
                             'url' => $baseurl . '/servers/idTranslator/' . h($event['Event']['id']),
                             'icon' => 'server',
                             'style' => 'color:black; font-size:15px;padding-left:2px',
                             'title' => __('Check this event on different servers'),
-                            'requirement' => $isSiteAdmin || $hostOrgUser
+                            'requirement' => $this->Acl->canAccess('servers', 'idTranslator'),
                         ]
                     ]
                 ],
@@ -113,7 +113,7 @@
                                     'event' => $event,
                                     'tags' => $event['EventTag'],
                                     'tagAccess' => $isSiteAdmin || $mayModify,
-                                    'localTagAccess' => $isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || $hostOrgUser,
+                                    'localTagAccess' => $this->Acl->canModifyTag($event, true),
                                     'missingTaxonomies' => $missingTaxonomies,
                                     'tagConflicts' => $tagConflicts
                                 ]
@@ -151,7 +151,7 @@
                     'class' => !empty($warnings) ? 'background-red bold' : '',
                     'type' => 'warnings',
                     'warnings' => $warnings,
-                    'requirement' => !empty($warnings) && ($me['org_id'] === $event['Event']['orgc_id'] || !empty($me['Role']['perm_site_admin']))
+                    'requirement' => !empty($warnings) && $mayModify,
                 ],
                 [
                     'key' => __('Published'),

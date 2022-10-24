@@ -1,10 +1,6 @@
 <?php
-
 $attribute = $row['Attribute'];
-$event = $row['Event'];
-$mayModify = ($isSiteAdmin || ($isAclModify && $event['user_id'] == $me['id'] && $event['orgc_id'] == $me['org_id']) || ($isAclModifyOrg && $event['orgc_id'] == $me['org_id']));
 $objectId = intval($attribute['id']);
-
 ?>
 <div class="attributeTagContainer">
     <?= $this->element(
@@ -12,8 +8,8 @@ $objectId = intval($attribute['id']);
         array(
             'attributeId' => $attribute['id'],
             'tags' => $attribute['AttributeTag'],
-            'tagAccess' => $isSiteAdmin || $mayModify,
-            'localTagAccess' => $isSiteAdmin || $mayModify || $me['org_id'] == $event['org_id'] || $hostOrgUser,
+            'tagAccess' => $this->Acl->canModifyTag($row),
+            'localTagAccess' => $this->Acl->canModifyTag($row, true),
             'context' => 'event',
             'scope' => 'attribute',
             'tagConflicts' => $attribute['tagConflicts'] ?? [],

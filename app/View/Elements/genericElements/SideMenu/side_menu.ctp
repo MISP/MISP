@@ -1,8 +1,4 @@
 <?php
-$canAccess = function ($controller, $action) use ($me, $aclComponent) {
-    return $aclComponent->canUserAccess($me, $controller, $action);
-};
-
 $this->set('menuItem', $menuItem);
 $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
 ?>
@@ -51,11 +47,8 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 case 'event':
                     $eventId = (int)$event['Event']['id'];
                     echo '<div id="hiddenSideMenuData" class="hidden" data-event-id="' . $eventId . '"></div>';
-                    if (in_array($menuItem, array('editEvent', 'addAttribute', 'addObject', 'addAttachment', 'addIOC', 'addThreatConnect', 'populateFromTemplate', 'merge'))) {
-                        // we can safely assume that mayModify is true if coming from these actions, as they require it in the controller and the user has already passed that check
-                        $mayModify = true;
-                        if ($isAclPublish) $mayPublish = true;
-                    }
+                    $mayModify = $mayModify ?? $this->Acl->canModifyEvent($event);
+                    $mayPublish = $mayPublish ?? ($mayModify && $this->Acl->canPublishEvent($event));
 
                     if ($menuItem === 'template_populate_results') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -92,7 +85,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'text' => __('View Event History')
                     ));
                     echo $divider;
-                    if ($isSiteAdmin || (isset($mayModify) && $mayModify)) {
+                    if ($isSiteAdmin || $mayModify) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'editEvent',
                             'url' => $baseurl . '/events/edit/' . $eventId,
@@ -157,7 +150,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Merge attributes from…')
                         ));
                     }
-                    if ($canAccess('shadowAttributes', 'add') && (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify))) {
+                    if ($this->Acl->canAccess('shadowAttributes', 'add') && (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify))) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'proposeAttribute',
                             'url' => $baseurl . '/shadow_attributes/add/' . $eventId,
@@ -171,7 +164,9 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
                     echo $divider;
                     $publishButtons = ' hidden';
-                    if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
+                    if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && $mayPublish) {
+                        $publishButtons = "";
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'onClick' => array(
                             'function' => 'publishPopup',
@@ -274,7 +269,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/events/index',
                         'text' => __('List Events')
                     ));
-                    if ($isAclAdd) {
+                    if ($this->Acl->canAccess('events', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/events/add',
                             'text' => __('Add Event')
@@ -311,7 +306,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         $baseurl,
                         __('Export Tag Collections')
                     );
-                    if ($canAccess('tagCollections', 'import')) {
+                    if ($this->Acl->canAccess('tagCollections', 'import')) {
                         echo sprintf(
                             '<li id="liimport"><a href="%s/tag_collections/import">%s</a></li>',
                             $baseurl,
@@ -326,7 +321,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/events/index',
                         'text' => __('List Events')
                     ));
-                    if ($isAclAdd) {
+                    if ($this->Acl->canAccess('events', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
                             'url' => $baseurl . '/events/add',
@@ -340,7 +335,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             ),
                             'text' => __('Import from…')
                         ));
-                        if ($canAccess('api', 'rest')) {
+                        if ($this->Acl->canAccess('api', 'rest')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'rest',
                                 'url' => $baseurl . '/api/rest',
@@ -370,7 +365,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/events/proposalEventIndex',
                         'text' => __('Events with proposals')
                     ));
-                    if ($canAccess('eventDelegations', 'index')) {
+                    if ($this->Acl->canAccess('eventDelegations', 'index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewDelegations',
                             'url' => $baseurl . '/event_delegations/index/context:pending',
@@ -394,7 +389,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/events/export',
                         'text' => __('Export')
                     ));
-                    if ($isAclAuth) {
+                    if ($this->Acl->canAccess('events', 'automation')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'automation',
                             'url' => $baseurl . '/events/automation',
@@ -450,7 +445,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/admin/audit_logs/index/model:EventReport/model_id:' .  h($id),
                             'text' => __('View report history'),
-                            'requirement' => Configure::read('MISP.log_new_audit') && $canAccess('auditLogs', 'admin_index'),
+                            'requirement' => Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index'),
                         ));
                     }
                     break;
@@ -525,7 +520,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/warninglists/view/' . h($id),
                             'text' => __('View Warninglist')
                         ));
-                        if (!$isDefault && $canAccess('warninglists', 'edit')) {
+                        if (!$isDefault && $this->Acl->canAccess('warninglists', 'edit')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', [
                                 'element_id' => 'edit',
                                 'url' => $baseurl . '/warninglists/edit/' . h($id),
@@ -533,7 +528,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             ]);
                         }
                     }
-                    if ($canAccess('warninglists', 'add')) {
+                    if ($this->Acl->canAccess('warninglists', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', [
                             'element_id' => 'add',
                             'url' => $baseurl . '/warninglists/add',
@@ -572,7 +567,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/noticelists/index',
                         'text' => __('List Noticelist')
                     ));
-                    if ($canAccess('noticelists', 'update')) {
+                    if ($this->Acl->canAccess('noticelists', 'update')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'element_id' => 'update_noticelists',
                             'url' => $baseurl . '/noticelists/update',
@@ -614,13 +609,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
 
                 case 'globalActions':
                     if ($menuItem === 'edit' || $menuItem === 'view' || $menuItem === 'change_pw') {
-                        if ($canAccess('users', 'edit')) {
+                        if ($this->Acl->canAccess('users', 'edit')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'url' => $baseurl . '/users/edit',
                                 'text' => __('Edit My Profile')
                             ));
                         }
-                        if ($canAccess('users', 'change_pw')) {
+                        if ($this->Acl->canAccess('users', 'change_pw')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'url' => $baseurl . '/users/change_pw',
                                 'text' => __('Change Password')
@@ -659,7 +654,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/dashboards',
                         'text' => __('Dashboard')
                     ));
-                    if ($isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+                    if ($this->Acl->canAccess('organisations', 'index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'indexOrg',
                             'url' => $baseurl . '/organisations/index',
@@ -690,7 +685,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('View Sharing Group')
                         ));
                     }
-                    if ($menuItem === 'editMG' || ($menuItem == 'viewMG' && $isAclSharingGroup)) {
+                    if ($menuItem === 'editMG' || ($menuItem === 'viewMG' && $this->Acl->canAccess('sharing_group_blueprints', 'edit'))) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'editMG',
                             'url' => $baseurl . '/sharing_group_blueprints/edit/' . h($id),
@@ -714,7 +709,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/sharing_groups/index',
                         'text' => __('List Sharing Groups')
                     ));
-                    if ($isAclSharingGroup) {
+                    if ($this->Acl->canAccess('sharing_groups', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addSG',
                             'url' => $baseurl . '/sharing_groups/add',
@@ -821,7 +816,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'message' => __('Are you sure you want to delete #%s?', $this->Form->value('Server.id'))
                         ));
                     }
-                    if ($canAccess('servers', 'index')) {
+                    if ($this->Acl->canAccess('servers', 'index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/servers/index',
                             'text' => __('List Servers')
@@ -869,7 +864,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                     }
                     echo $divider;
-                    if ($canAccess('cerebrates', 'index')) {
+                    if ($this->Acl->canAccess('cerebrates', 'index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/cerebrates/index',
                             'text' => __('List Cerebrates'),
@@ -877,14 +872,14 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                     }
                     if (in_array($menuItem, ['edit_cerebrate', 'view_cerebrate'])) {
-                        if ($canAccess('cerebrates', 'view')) {
+                        if ($this->Acl->canAccess('cerebrates', 'view')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'url' => $baseurl . '/cerebrates/view/' . h($id),
                                 'text' => __('View Cerebrate'),
                                 'element_id' => 'view_cerebrate'
                             ));
                         }
-                        if ($canAccess('cerebrates', 'edit')) {
+                        if ($this->Acl->canAccess('cerebrates', 'edit')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'url' => $baseurl . '/cerebrates/edit/' . h($id),
                                 'text' => __('Edit Cerebrate'),
@@ -892,7 +887,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             ));
                         }
                     }
-                    if (in_array($menuItem, ['add_cerebrate', 'edit_cerebrate', 'list_cerebrates', 'view_cerebrate'])  && $canAccess('cerebrates', 'add')) {
+                    if (in_array($menuItem, ['add_cerebrate', 'edit_cerebrate', 'list_cerebrates', 'view_cerebrate'])  && $this->Acl->canAccess('cerebrates', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/cerebrates/add',
                             'text' => __('Add Cerebrate'),
@@ -915,7 +910,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/admin/users/view/' . h($id),
                             'text' => __('View User')
                         ));
-                        if ($canAccess('users', 'initiatePasswordReset')) {
+                        if ($this->Acl->canAccess('users', 'initiatePasswordReset')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'onClick' => array(
                                     'function' => 'initiatePasswordReset',
@@ -951,21 +946,21 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                         echo $divider;
                     }
-                    if ($canAccess('users', 'admin_add')) {
+                    if ($this->Acl->canAccess('users', 'admin_add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addUser',
                             'url' => $baseurl . '/admin/users/add',
                             'text' => __('Add User')
                         ));
                     }
-                    if ($canAccess('users', 'admin_index')) {
+                    if ($this->Acl->canAccess('users', 'admin_index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'indexUser',
                             'url' => $baseurl . '/admin/users/index',
                             'text' => __('List Users')
                         ));
                     }
-                    if ($canAccess('users', 'registrations')) {
+                    if ($this->Acl->canAccess('users', 'registrations')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'registrations',
                             'url' => $baseurl . '/users/registrations',
@@ -1197,7 +1192,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'element_id' => 'view',
                             'text' => __('View Taxonomy')
                         ));
-                        if ($canAccess('taxonomies', 'delete')) {
+                        if ($this->Acl->canAccess('taxonomies', 'delete')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'delete',
                                 'onClick' => array(
@@ -1208,7 +1203,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             ));
                         }
                     }
-                    if ($canAccess('taxonomies', 'update')) {
+                    if ($this->Acl->canAccess('taxonomies', 'update')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'event_id' => 'update',
                             'url' => $baseurl . '/taxonomies/update',
@@ -1454,7 +1449,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'text' => __('Edit Cluster')
                             ));
                         }
-                        if ($canAccess('galaxyClusters', 'add')) {
+                        if ($this->Acl->canAccess('galaxyClusters', 'add')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'add_cluster',
                                 'url' => $baseurl . '/galaxy_clusters/add/' . h($galaxy_id),
@@ -1499,7 +1494,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/galaxies/view/' . h($galaxy['Galaxy']['id']),
                             'text' => __('View Galaxy')
                         ));
-                        if ($canAccess('galaxyClusters', 'add')) {
+                        if ($this->Acl->canAccess('galaxyClusters', 'add')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'add_cluster',
                                 'url' => $baseurl . '/galaxy_clusters/add/' . h($galaxy['Galaxy']['id']),
@@ -1626,7 +1621,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/api/openapi',
                             'text' => __('OpenAPI')
                         ));
-                        if ($canAccess('api', 'rest')) {
+                        if ($this->Acl->canAccess('api', 'rest')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'rest',
                                 'url' => $baseurl . '/api/rest',
@@ -1671,7 +1666,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/admin/audit_logs/index/model:WorkflowBlueprint/model_id:' .  h($id),
                         'text' => __('View workflow blueprint history'),
-                        'requirement' => Configure::read('MISP.log_new_audit') && $canAccess('auditLogs', 'admin_index'),
+                        'requirement' => Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index'),
                     ));
                 }
                 echo $divider;
@@ -1720,7 +1715,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/admin/audit_logs/index/model:Workflow/model_id:' .  h($id),
                         'text' => __('View worflow history'),
-                        'requirement' => Configure::read('MISP.log_new_audit') && $canAccess('auditLogs', 'admin_index'),
+                        'requirement' => Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index'),
                     ));
                 }
                 break;

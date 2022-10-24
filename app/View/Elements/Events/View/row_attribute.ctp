@@ -133,10 +133,10 @@
               'attributeId' => $objectId,
               'tags' => $object['AttributeTag'],
               'tagAccess' => $isSiteAdmin || $mayModify,
-              'localTagAccess' => $isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || $hostOrgUser,
+              'localTagAccess' => $this->Acl->canModifyTag($event, true),
               'context' => $context,
               'scope' => 'attribute',
-              'tagConflicts' => isset($object['tagConflicts']) ? $object['tagConflicts'] : array()
+              'tagConflicts' => $object['tagConflicts'] ?? [],
             )
           ); ?>
         </div>

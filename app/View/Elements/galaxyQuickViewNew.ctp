@@ -7,9 +7,9 @@ if (isset($preview) && $preview) {
 } else {
     $preview = false;
 }
-$tagAccess = ($isSiteAdmin || ($mayModify && $isAclTagger));
+$tagAccess = $this->Acl->canModifyTag($event);
 if (empty($local_tag_off) || !empty($event)) {
-    $localTagAccess = ($isSiteAdmin || ($mayModify || $me['org_id'] == $event['Event']['org_id'] || $hostOrgUser)) && $isAclTagger;
+    $localTagAccess = $this->Acl->canModifyTag($event, true);
 } else {
     $localTagAccess = false;
 }
@@ -19,8 +19,8 @@ $editButtonsLocalEnabled = empty($static_tags_only) && $localTagAccess && empty(
 
 $sortClusters = function (array $clusters) {
     usort($clusters, function (array $a, array $b) {
-        $aExternalId = isset($a['meta']['external_id'][0]) ? $a['meta']['external_id'][0] : null;
-        $bExternalId = isset($b['meta']['external_id'][0]) ? $b['meta']['external_id'][0] : null;
+        $aExternalId = $a['meta']['external_id'][0] ?? null;
+        $bExternalId = $b['meta']['external_id'][0] ?? null;
         if ($aExternalId && $bExternalId) {
             return strcmp($aExternalId, $bExternalId);
         }

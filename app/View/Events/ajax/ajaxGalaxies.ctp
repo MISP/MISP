@@ -1,5 +1,4 @@
 <?php
-$mayModify = ($isAclModify && $object['Event']['orgc_id'] == $me['org_id']);
 if ($scope === 'event') {
     echo '<span class="title-section">' . __('Galaxies') . '</span>';
 }
