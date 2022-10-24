@@ -288,7 +288,7 @@ class Warninglist extends AppModel
                 $list['type'] = $list['type'][0];
             }
             if (!isset($existingWarninglist[$list['name']]) || $list['version'] > $existingWarninglist[$list['name']]['version']) {
-                $current = isset($existingWarninglist[$list['name']]) ? $existingWarninglist[$list['name']] : [];
+                $current = $existingWarninglist[$list['name']] ?? [];
                 try {
                     $id = $this->__updateList($list, $current);
                     $result['success'][$id] = ['name' => $list['name'], 'new' => $list['version']];
