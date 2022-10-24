@@ -269,7 +269,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/events/index',
                         'text' => __('List Events')
                     ));
-                    if ($isAclAdd) {
+                    if ($this->Acl->canAccess('events', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/events/add',
                             'text' => __('Add Event')
@@ -321,7 +321,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/events/index',
                         'text' => __('List Events')
                     ));
-                    if ($isAclAdd) {
+                    if ($this->Acl->canAccess('events', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
                             'url' => $baseurl . '/events/add',
@@ -389,7 +389,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/events/export',
                         'text' => __('Export')
                     ));
-                    if ($isAclAuth) {
+                    if ($this->Acl->canAccess('events', 'automation')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'automation',
                             'url' => $baseurl . '/events/automation',

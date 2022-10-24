@@ -24,7 +24,7 @@
                             'icon' => 'plus-square',
                             'style' => 'color:black; font-size:15px;padding-left:2px',
                             'title' => __('Extend this event'),
-                            'requirement' => $isAclAdd
+                            'requirement' => $this->Acl->canAccess('events', 'add'),
                         ],
                         [
                             'url' => $baseurl . '/servers/idTranslator/' . h($event['Event']['id']),

@@ -19,7 +19,7 @@
                     array(
                         'text' => __('Add Event'),
                         'url' => $baseurl . '/events/add',
-                        'requirement' => $isAclAdd
+                        'requirement' => $this->Acl->canAccess('events', 'add'),
                     ),
                     array(
                         'text' => __('List Attributes'),
@@ -79,7 +79,7 @@
                     array(
                         'text' => __('Automation'),
                         'url' => $baseurl . '/events/automation',
-                        'requirement' => $isAclAuth
+                        'requirement' => $this->Acl->canAccess('events', 'automation'),
                     ),
                     array(
                         'type' => 'separator',
