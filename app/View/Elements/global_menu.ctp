@@ -186,7 +186,7 @@
                     array(
                         'text' => __('Organisations'),
                         'url' => $baseurl . '/organisations/index',
-                        'requirement' => $isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))
+                        'requirement' => $this->Acl->canAccess('organisations', 'index'),
                     ),
                     array(
                         'text' => __('Role Permissions'),

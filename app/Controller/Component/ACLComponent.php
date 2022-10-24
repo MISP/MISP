@@ -468,7 +468,7 @@ class ACLComponent extends Component
                 'fetchOrgsForSG' => array('perm_sharing_group'),
                 'fetchSGOrgRow' => array('*'),
                 'getUUIDs' => array('perm_sync'),
-                'index' => array('*'),
+                'index' => ['organisation_index'],
                 'view' => array('*'),
             ),
             'pages' => array(
@@ -853,6 +853,13 @@ class ACLComponent extends Component
         // Returns true if current user is not using advanced auth key or if authkey is not read only
         $this->dynamicChecks['not_read_only_authkey'] = function (array $user) {
             return !isset($user['authkey_read_only']) || !$user['authkey_read_only'];
+        };
+        // If `Security.hide_organisation_index_from_users` is enabled, only user with sharing group permission can see org index
+        $this->dynamicChecks['organisation_index'] = function (array $user) {
+            if (Configure::read('Security.hide_organisation_index_from_users')) {
+                return $user['Role']['perm_sharing_group'];
+            }
+            return true;
         };
     }
 

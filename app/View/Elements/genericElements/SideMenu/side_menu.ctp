@@ -654,7 +654,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/dashboards',
                         'text' => __('Dashboard')
                     ));
-                    if ($isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+                    if ($this->Acl->canAccess('organisations', 'index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'indexOrg',
                             'url' => $baseurl . '/organisations/index',
