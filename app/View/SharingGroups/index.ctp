@@ -12,7 +12,7 @@
                             'text' => __('Add'),
                             'fa-icon' => 'plus',
                             'url' => $baseurl . '/sharing_groups/add',
-                            'requirement' => $isAclSharingGroup,
+                            'requirement' => $this->Acl->canAccess('sharing_groups', 'add'),
                         )
                     )
                 ),

@@ -685,7 +685,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('View Sharing Group')
                         ));
                     }
-                    if ($menuItem === 'editMG' || ($menuItem == 'viewMG' && $isAclSharingGroup)) {
+                    if ($menuItem === 'editMG' || ($menuItem === 'viewMG' && $this->Acl->canAccess('sharing_group_blueprints', 'edit'))) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'editMG',
                             'url' => $baseurl . '/sharing_group_blueprints/edit/' . h($id),
@@ -709,7 +709,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/sharing_groups/index',
                         'text' => __('List Sharing Groups')
                     ));
-                    if ($isAclSharingGroup) {
+                    if ($this->Acl->canAccess('sharing_groups', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addSG',
                             'url' => $baseurl . '/sharing_groups/add',

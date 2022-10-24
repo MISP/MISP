@@ -209,17 +209,17 @@
                     array(
                         'text' => __('Add Sharing Group'),
                         'url' => $baseurl . '/sharing_groups/add',
-                        'requirement' => $isAclSharingGroup
+                        'requirement' => $this->Acl->canAccess('sharing_groups', 'add'),
                     ),
                     array(
                         'text' => __('List Sharing Groups Blueprints'),
                         'url' => $baseurl . '/sharing_group_blueprints/index',
-                        'requirement' => $isAclSharingGroup
+                        'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'index'),
                     ),
                     array(
                         'text' => __('Add Sharing Group Blueprint'),
                         'url' => $baseurl . '/sharing_group_blueprints/add',
-                        'requirement' => $isAclSharingGroup
+                        'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'add'),
                     ),
                     array(
                         'type' => 'separator'
