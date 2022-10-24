@@ -92,7 +92,7 @@ function deleteObject(type, action, id) {
 }
 
 function quickDeleteSighting(id, rawId, context) {
-    url = baseurl + "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
+    var url = baseurl + "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
     $.get(url, openConfirmation).fail(xhrFailCallback)
 }
 

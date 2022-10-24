@@ -73,4 +73,14 @@ class AclHelper extends Helper
         $me = $this->_View->viewVars['me'];
         return $this->ACL->canModifyTagCollection($me, $tagCollection);
     }
+
+    /**
+     * @param array $sighting
+     * @return bool
+     */
+    public function canDeleteSighting(array $sighting)
+    {
+        $me = $this->_View->viewVars['me'];
+        return $this->ACL->canDeleteSighting($me, $sighting);
+    }
 }
