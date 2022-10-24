@@ -232,14 +232,14 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             echo $divider;
                         }
                     }
-                    if ($isAclZmq && Configure::read('Plugin.ZeroMQ_enable')) {
+                    if ($this->Acl->canAccess('events', 'pushEventToZMQ') && Configure::read('Plugin.ZeroMQ_enable')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'url' => $baseurl . '/events/pushEventToZMQ/' . $eventId,
                             'text' => __('Publish event to ZMQ'),
                             'message' => __('Are you sure you wish to republish the current event to the ZMQ channel?')
                         ));
                     }
-                    if ($isAclKafka &&
+                    if ($this->Acl->canAccess('events', 'pushEventToKafka') &&
                         Configure::read('Plugin.Kafka_enable') &&
                         Configure::read('Plugin.Kafka_event_notifications_enable') &&
                         Configure::read('Plugin.Kafka_event_notifications_topic')
@@ -289,7 +289,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/tag_collections/index',
                         'text' => __('List Tag Collections')
                     ));
-                    if ($isAclTagEditor) {
+                    if ($this->Acl->canAccess('tag_collections', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/tag_collections/add',
                             'text' => __('Add Tag Collection')
@@ -419,7 +419,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => '/eventReports/index',
                         'text' => __('List Event Reports')
                     ));
-                    if ($isAclAdd) {
+                    if ($this->Acl->canAccess('eventReports', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
                             'text' => __('Add Event Report'),
@@ -1154,7 +1154,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/tags/index',
                         'text' => __('List Tags')
                     ));
-                    if ($isAclTagEditor) {
+                    if ($this->Acl->canAccess('tags', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/tags/add',
                             'text' => __('Add Tag')
@@ -1165,8 +1165,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'element_id' => 'edit',
                             'text' => __('Edit Tag')
                         ));
-                    }
-                    if ($menuItem === 'viewGraph') {
+                    } elseif ($menuItem === 'viewGraph') {
                         if (!empty($taxonomy)) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'taxonomyview',
@@ -1217,13 +1216,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/templates/index',
                         'text' => __('List Templates')
                     ));
-                    if ($isSiteAdmin || $isAclTemplate) {
+                    if ($this->Acl->canAccess('templates', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/templates/add',
                             'text' => __('Add Template')
                         ));
                     }
-                    if (($menuItem === 'view' || $menuItem === 'edit')) {
+                    if ($menuItem === 'view' || $menuItem === 'edit') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
                             'url' => $baseurl . '/templates/view/' . h($id),
