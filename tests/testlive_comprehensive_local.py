@@ -201,6 +201,7 @@ class TestComprehensive(unittest.TestCase):
 
     def test_search_index_by_tag(self):
         tags = self.user_misp_connector.search_tags("tlp:red", True)
+        self.assertEqual(len(tags), 1, tags)  # tlp:red tag doesn't exists
 
         index = self.user_misp_connector.search_index(tags="tlp:red")
         self.assertEqual(len(index), 0, "No event should exists")

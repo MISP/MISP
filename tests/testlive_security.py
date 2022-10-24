@@ -1398,6 +1398,11 @@ class TestSecurity(unittest.TestCase):
 
         self.admin_misp_connector.delete_organisation(org)
 
+    def test_org_hide_index(self):
+        with self.__setting("Security.hide_organisation_index_from_users", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            self.assertErrorResponse(logged_in.organisations())
+
     def test_org_hide_org_cannot_set(self):
         org = self.__create_org()
         with self.__setting("Security.hide_organisation_index_from_users", True):
