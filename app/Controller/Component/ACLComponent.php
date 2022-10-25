@@ -1010,6 +1010,45 @@ class ACLComponent extends Component
         return false;
     }
 
+    /**
+     * Checks if user can modify given galaxy cluster
+     *
+     * @param array $user
+     * @param array $cluster
+     * @return bool
+     */
+    public function canModifyGalaxyCluster(array $user, array $cluster)
+    {
+        if (!isset($cluster['GalaxyCluster'])) {
+            throw new InvalidArgumentException('Passed object does not contain an GalaxyCluster.');
+        }
+        if ($cluster['GalaxyCluster']['default']) {
+            return false; // it is not possible to edit default clusters
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if (!$user['Role']['perm_galaxy_editor']) {
+            return false;
+        }
+        return $cluster['GalaxyCluster']['orgc_id'] == $user['org_id'];
+    }
+
+    /**
+     * Checks if user can publish given galaxy cluster
+     *
+     * @param array $user
+     * @param array $cluster
+     * @return bool
+     */
+    public function canPublishGalaxyCluster(array $user, array $cluster)
+    {
+        if (!$this->canModifyGalaxyCluster($user, $cluster)) {
+            return false;
+        }
+        return (bool)$user['Role']['perm_publish'];
+    }
+
     private function __checkLoggedActions($user, $controller, $action)
     {
         $loggedActions = array(

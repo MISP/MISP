@@ -1380,7 +1380,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/galaxies/index',
                         'text' => __('List Galaxies')
                     ));
-                    if ($isSiteAdmin) {
+                    if ($this->Acl->canAccess('galaxy_cluster_blocklists', 'index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'index_blocklist',
                             'url' => $baseurl . '/galaxy_cluster_blocklists/index',
@@ -1413,7 +1413,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'message' => __('Are you sure you want to drop all default galaxy clusters?')
                         ));
                     }
-                    if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
+                    if ($this->Acl->canAccess('galaxies', 'import')) {
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/galaxies/import',
@@ -1441,7 +1441,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'text' => __('View Cluster')
                             ));
                         }
-                        if ($menuItem !== 'add_cluster' && !$defaultCluster && ($isSiteAdmin || ($me['Role']['perm_galaxy_editor'] && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id']))) {
+                        if ($menuItem !== 'add_cluster' && $this->Acl->canModifyCluster($cluster)) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit_cluster',
                                 'url' => $baseurl . '/galaxy_clusters/edit/' . h($id),
@@ -1455,17 +1455,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'text' => __('Add Cluster')
                             ));
                         }
-                        if ($menuItem !== 'add_cluster' && ($isSiteAdmin || $me['Role']['perm_galaxy_editor'])) {
+                        if ($menuItem !== 'add_cluster' && $this->Acl->canAccess('galaxyClusters', 'add')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'url' => $baseurl . '/galaxy_clusters/add/' . h($galaxy_id) . '/forkUuid:' . h($cluster['GalaxyCluster']['uuid']),
                                 'text' => __('Fork Cluster')
                             ));
-                            if (
-                                !$cluster['GalaxyCluster']['default'] &&
-                                (
-                                    $isSiteAdmin || (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id'])
-                                )
-                            ) {
+                            if ($this->Acl->canPublishGalaxyCluster($cluster)) {
                                 echo $divider;
                                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                     'onClick' => array(
@@ -1530,9 +1525,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $divider;
                         if (
                             isset($cluster['GalaxyCluster']['published']) && !$cluster['GalaxyCluster']['published'] &&
-                            isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id'] &&
-                            !$cluster['GalaxyCluster']['default'] &&
-                            ($isSiteAdmin || $me['Role']['perm_galaxy_editor'])
+                            $this->Acl->canPublishGalaxyCluster($cluster)
                         ) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'onClick' => array(
@@ -1552,7 +1545,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/galaxies/index',
                         'text' => __('List Galaxies')
                     ));
-                    if ($isSiteAdmin) {
+                    if ($this->Acl->canAccess('galaxy_cluster_blocklists', 'index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'index_blocklist',
                             'url' => $baseurl . '/galaxy_cluster_blocklists/index',
@@ -1564,7 +1557,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/galaxy_cluster_relations/index',
                         'text' => __('List Relationships')
                     ));
-                    if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
+                    if ($this->Acl->canAccess('galaxy_cluster_relations', 'add')) {
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
@@ -1579,7 +1572,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/objectTemplates/index',
                         'text' => __('List Object Templates')
                     ));
-                    if ($isSiteAdmin) {
+                    if ($this->Acl->canAccess('objectTemplates', 'update')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'url' => $baseurl . '/objectTemplates/update',
                             'text' => __('Update Objects')
