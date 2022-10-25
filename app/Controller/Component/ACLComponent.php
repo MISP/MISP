@@ -951,10 +951,7 @@ class ACLComponent extends Component
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
-        if (Configure::read('MISP.allow_disabling_correlation') && $this->canPublishEvent($user, $event)) {
-            return true;
-        }
-        return false;
+        return Configure::read('MISP.allow_disabling_correlation') && $this->canModifyEvent($user, $event);
     }
 
     private function __checkLoggedActions($user, $controller, $action)
