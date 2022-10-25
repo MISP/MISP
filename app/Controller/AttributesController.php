@@ -1715,6 +1715,7 @@ class AttributesController extends AppController
                 $cluster = $clusters[$attributeTag['Tag']['id']];
                 $galaxyId = $cluster['Galaxy']['id'];
                 $cluster['local'] = $attributeTag['local'] ?? false;
+                $cluster['attribute_tag_id'] = $attributeTag['id'];
                 if (isset($attribute['Attribute']['Galaxy'][$galaxyId])) {
                     unset($cluster['Galaxy']);
                     $galaxies[$galaxyId]['GalaxyCluster'][] = $cluster;
