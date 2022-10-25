@@ -410,39 +410,6 @@ class TagsController extends AppController
         $this->render('/Attributes/ajax/ajaxAttributeTags');
     }
 
-    public function showTagControllerTag($id)
-    {
-        $this->loadModel('TagCollection');
-        $tagCollection = $this->TagCollection->find('first', array(
-            'recursive' => -1,
-            'contain' => array('TagCollection'),
-            'conditions' => array('TagCollection.id' => $id)
-        ));
-        if (empty($tagCollection) || (!$this->_isSiteAdmin() && $tagCollection['org_id'] !== $this->Auth->user('org_id'))) {
-            throw new MethodNotAllowedException('Invalid tag_collection.');
-        }
-        $this->loadModel('GalaxyCluster');
-        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')));
-        $this->helpers[] = 'TextColour';
-        $tags = $this->TagCollection->TagCollectionTag->find('all', array(
-                'conditions' => array(
-                        'tag_collection_id' => $id,
-                        'Tag.name !=' => $cluster_names
-                ),
-                'contain' => array('Tag'),
-                'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
-        ));
-        $this->set('tags', $tags);
-        $event = $this->Tag->EventTag->Event->find('first', array(
-                'recursive' => -1,
-                'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'),
-                'conditions' => array('Event.id' => $id)
-        ));
-        $this->set('event', $event);
-        $this->layout = false;
-        $this->render('/Events/ajax/ajaxTags');
-    }
-
     public function viewTag($id)
     {
         $tag = $this->Tag->find('first', array(
