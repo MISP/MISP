@@ -2015,7 +2015,7 @@ class Attribute extends AppModel
     }
 
     /**
-     * This method will update attribute, object and event timestamp
+     * This method will update attribute and object timestamp and unpublish event
      * @param int|array $attribute
      * @return bool
      * @throws Exception

@@ -81,13 +81,11 @@
                         $galaxies[$galaxy_id]['GalaxyCluster'][] = $galaxy_cluster;
                     }
                     echo $this->element('galaxyQuickViewNew', array(
-                      'mayModify' => false,
-                      'isAclTagger' => false,
                       'data' => $galaxies,
                       'event' => $event,
                       'target_id' => $eventId,
                       'target_type' => 'event',
-                      'static_tags_only' => 1
+                      'static_tags_only' => true,
                     ));
                 }
             ?>

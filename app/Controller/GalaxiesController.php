@@ -507,22 +507,34 @@ class GalaxiesController extends AppController
 
     public function attachCluster($target_id, $target_type = 'event')
     {
-        $local = !empty($this->params['named']['local']);
+        $local = !empty($this->request->params['named']['local']);
         $cluster_id = $this->request->data['Galaxy']['target_id'];
-        $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id, $local);
+        $user = $this->Auth->user();
+
+        $target = $this->Galaxy->fetchTarget($user, $target_type, $target_id);
+        if (empty($target)) {
+            throw new NotFoundException(__('Invalid %s.', $target_type));
+        }
+        if ($target_type === 'event' || $target_type === 'attribute') {
+            if (!$this->ACL->canModifyTag($user, $target, $local)) {
+                throw new ForbiddenException(__('No permission to attach this cluster to given target.'));
+            }
+        }
+
+        $result = $this->Galaxy->attachCluster($user, $target_type, $target_id, $cluster_id, $local);
         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
     }
 
     public function attachMultipleClusters($target_id, $target_type = 'event')
     {
-        $local = !empty($this->params['named']['local']);
+        $local = !empty($this->request->params['named']['local']);
         $mirrorOnEventEnabled = Configure::read("MISP.enable_clusters_mirroring_from_attributes_to_event");
-        $mirrorOnEvent = $mirrorOnEventEnabled && $target_type == 'attribute';
-        $this->set('local', $local);
-        $this->set('mirrorOnEvent', $mirrorOnEvent);
+        $mirrorOnEvent = $mirrorOnEventEnabled && $target_type === 'attribute';
+
         if ($this->request->is('post')) {
+            $user = $this->Auth->user();
             if ($target_id === 'selected') {
-                $target_id_list = json_decode($this->request->data['Galaxy']['attribute_ids']);
+                $target_id_list = $this->_jsonDecode($this->request->data['Galaxy']['attribute_ids']);
             } else {
                 $target_id_list = array($target_id);
             }
@@ -531,7 +543,7 @@ class GalaxiesController extends AppController
             if (strlen($cluster_ids) > 0) {
                 $cluster_ids = $this->_jsonDecode($cluster_ids);
                 if (empty($cluster_ids)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Failed to parse request or no clusters picked.'))), 'status'=>200, 'type' => 'json'));
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('No clusters picked.'))), 'status'=>200, 'type' => 'json'));
                 }
             } else {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Failed to parse request.'))), 'status'=>200, 'type' => 'json'));
@@ -539,7 +551,7 @@ class GalaxiesController extends AppController
             if ($mirrorOnEventRequested && !empty($target_id_list)) {
                 $first_attribute_id = $target_id_list[0]; // We consider that all attributes to be tagged are contained in the same event.
                 $this->loadModel('Attribute');
-                $attribute = $this->Attribute->fetchAttributeSimple($this->Auth->user(), array('conditions' => array('Attribute.id' => $first_attribute_id), 'flatten' => 1));
+                $attribute = $this->Attribute->fetchAttributeSimple($user, array('conditions' => array('Attribute.id' => $first_attribute_id)));
                 if (!empty($attribute['Attribute']['event_id'])) {
                     $event_id = $attribute['Attribute']['event_id'];
                 } else {
@@ -552,26 +564,36 @@ class GalaxiesController extends AppController
             }
             foreach ($cluster_ids as $cluster_id) {
                 foreach ($target_id_list as $target_id) {
-                    $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id, $local);
+                    $target = $this->Galaxy->fetchTarget($user, $target_type, $target_id);
+                    if (empty($target)) {
+                        throw new NotFoundException(__('Invalid %s.', $target_type));
+                    }
+                    if ($target_type === 'event' || $target_type === 'attribute') {
+                        if (!$this->ACL->canModifyTag($user, $target, $local)) {
+                            throw new ForbiddenException(__('No permission to attach this cluster to given target.'));
+                        }
+                    }
+                    $result = $this->Galaxy->attachCluster($user, $target_type, $target, $cluster_id, $local);
                     if ($mirrorOnEventRequested) {
-                        $result = $result && $this->Galaxy->attachCluster($this->Auth->user(), 'event', $event_id, $cluster_id, $local);
+                        $result = $result && $this->Galaxy->attachCluster($user, 'event', $event_id, $cluster_id, $local);
                     }
                 }
             }
             if ($this->request->is('ajax')) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
-            } else {
-                $this->Flash->info($result);
-                $this->redirect($this->referer());
             }
-        } else {
-            $this->set('local', $local);
-            $this->set('target_id', $target_id);
-            $this->set('target_type', $target_type);
-            $this->layout = false;
-            $this->autoRender = false;
-            $this->render('/Galaxies/ajax/attach_multiple_clusters');
+
+            $this->Flash->info($result);
+            $this->redirect($this->referer());
         }
+
+        $this->set('mirrorOnEvent', $mirrorOnEvent);
+        $this->set('local', $local);
+        $this->set('target_id', $target_id);
+        $this->set('target_type', $target_type);
+        $this->layout = false;
+        $this->autoRender = false;
+        $this->render('/Galaxies/ajax/attach_multiple_clusters');
     }
 
     public function viewGraph($id)
@@ -600,27 +622,38 @@ class GalaxiesController extends AppController
             if (empty($object)) {
                 throw new NotFoundException('Invalid event.');
             }
-            $this->set('object', $object[0]);
+            $object = $object[0];
         } elseif ($scope === 'attribute') {
             $this->loadModel('Attribute');
-            $object = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
+            $object = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
+                'conditions' => ['Attribute.id' => $id],
+                'contain' => [
+                    'Event',
+                    'Object',
+                    'AttributeTag' => [
+                        'fields' => ['AttributeTag.id', 'AttributeTag.tag_id', 'AttributeTag.relationship_type', 'AttributeTag.local'],
+                        'Tag' => ['fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable']],
+                    ],
+                ],
+            ]);
             if (empty($object)) {
                 throw new NotFoundException('Invalid attribute.');
             }
-            $object[0] = $this->Attribute->Event->massageTags($this->Auth->user(), $object[0], 'Attribute');
+            $object = $this->Attribute->Event->massageTags($this->Auth->user(), $object, 'Attribute');
         } elseif ($scope === 'tag_collection') {
             $this->loadModel('TagCollection');
             $object = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $id)));
             if (empty($object)) {
                 throw new NotFoundException('Invalid Tag Collection.');
             }
+            $object = $object[0];
         } else {
             throw new NotFoundException("Invalid scope.");
         }
 
         $this->layout = false;
         $this->set('scope', $scope);
-        $this->set('object', $object[0]);
+        $this->set('object', $object);
         $this->render('/Events/ajax/ajaxGalaxies');
     }
 
