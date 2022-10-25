@@ -405,6 +405,7 @@ class ShadowAttributesController extends AppController
             $this->request->data['ShadowAttribute']['event_id'] = $event['Event']['id'];
         }
         $this->set('event_id', $event['Event']['id']);
+        $this->set('event', $event);
         // combobox for types
         $types = $this->ShadowAttribute->Attribute->getNonAttachmentTypes();
         $types = $this->_arrayToValuesIndexArray($types);

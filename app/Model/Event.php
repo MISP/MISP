@@ -2378,6 +2378,8 @@ class Event extends AppModel
             $eventMeta = array(
                 'id' => $extensionEvent['Event']['id'],
                 'info' => $extensionEvent['Event']['info'],
+                'orgc_id' => $extensionEvent['Event']['orgc_id'],
+                'user_id' => $extensionEvent['Event']['user_id'],
                 'Orgc' => array(
                     'id' => $extensionEvent['Orgc']['id'],
                     'name' => $extensionEvent['Orgc']['name'],
