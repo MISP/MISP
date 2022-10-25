@@ -622,27 +622,38 @@ class GalaxiesController extends AppController
             if (empty($object)) {
                 throw new NotFoundException('Invalid event.');
             }
-            $this->set('object', $object[0]);
+            $object = $object[0];
         } elseif ($scope === 'attribute') {
             $this->loadModel('Attribute');
-            $object = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
+            $object = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
+                'conditions' => ['Attribute.id' => $id],
+                'contain' => [
+                    'Event',
+                    'Object',
+                    'AttributeTag' => [
+                        'fields' => ['AttributeTag.id', 'AttributeTag.tag_id', 'AttributeTag.relationship_type', 'AttributeTag.local'],
+                        'Tag' => ['fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable']],
+                    ],
+                ],
+            ]);
             if (empty($object)) {
                 throw new NotFoundException('Invalid attribute.');
             }
-            $object[0] = $this->Attribute->Event->massageTags($this->Auth->user(), $object[0], 'Attribute');
+            $object = $this->Attribute->Event->massageTags($this->Auth->user(), $object, 'Attribute');
         } elseif ($scope === 'tag_collection') {
             $this->loadModel('TagCollection');
             $object = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $id)));
             if (empty($object)) {
                 throw new NotFoundException('Invalid Tag Collection.');
             }
+            $object = $object[0];
         } else {
             throw new NotFoundException("Invalid scope.");
         }
 
         $this->layout = false;
         $this->set('scope', $scope);
-        $this->set('object', $object[0]);
+        $this->set('object', $object);
         $this->render('/Events/ajax/ajaxGalaxies');
     }
 
