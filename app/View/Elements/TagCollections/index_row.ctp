@@ -21,8 +21,8 @@
         <td class="shortish">
           <?php
             echo $this->element('galaxyQuickViewNew', array(
-              'mayModify' => ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']),
-              'isAclTagger' => $me['Role']['perm_tagger'],
+              'tagAccess' => ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']),
+              'localTagAccess' => false,
               'data' => $item['Galaxy'],
               'target_id' => h($item['TagCollection']['id']),
               'target_type' => 'tag_collection',

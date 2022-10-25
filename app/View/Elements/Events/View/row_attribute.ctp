@@ -157,9 +157,7 @@
       <td class="short" id="attribute_<?= $objectId ?>_galaxy">
         <?php
           echo $this->element('galaxyQuickViewNew', array(
-            'mayModify' => $mayModify,
-            'isAclTagger' => $isAclTagger,
-            'data' => (!empty($object['Galaxy']) ? $object['Galaxy'] : array()),
+            'data' => !empty($object['Galaxy']) ? $object['Galaxy'] : array(),
             'event' => $event,
             'target_id' => $objectId,
             'target_type' => 'attribute',
