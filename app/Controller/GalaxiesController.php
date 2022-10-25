@@ -519,6 +519,10 @@ class GalaxiesController extends AppController
             if (!$this->ACL->canModifyTag($user, $target, $local)) {
                 throw new ForbiddenException(__('No permission to attach this cluster to given target.'));
             }
+        } else {
+            if (!$this->ACL->canModifyTagCollection($user, $target)) {
+                throw new ForbiddenException(__('No permission to attach this cluster to given target.'));
+            }
         }
 
         $result = $this->Galaxy->attachCluster($user, $target_type, $target_id, $cluster_id, $local);
@@ -570,6 +574,10 @@ class GalaxiesController extends AppController
                     }
                     if ($target_type === 'event' || $target_type === 'attribute') {
                         if (!$this->ACL->canModifyTag($user, $target, $local)) {
+                            throw new ForbiddenException(__('No permission to attach this cluster to given target.'));
+                        }
+                    } else {
+                        if (!$this->ACL->canModifyTagCollection($user, $target)) {
                             throw new ForbiddenException(__('No permission to attach this cluster to given target.'));
                         }
                     }

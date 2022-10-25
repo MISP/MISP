@@ -954,6 +954,22 @@ class ACLComponent extends Component
         return Configure::read('MISP.allow_disabling_correlation') && $this->canModifyEvent($user, $event);
     }
 
+    /**
+     * @param array $user
+     * @param array $tagCollection
+     * @return bool
+     */
+    public function canModifyTagCollection(array $user, array $tagCollection)
+    {
+        if (!isset($tagCollection['TagCollection'])) {
+            throw new InvalidArgumentException('Passed object does not contain a TagCollection.');
+        }
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        return $user['org_id'] == $tagCollection['TagCollection']['org_id'];
+    }
+
     private function __checkLoggedActions($user, $controller, $action)
     {
         $loggedActions = array(
