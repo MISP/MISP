@@ -3,12 +3,15 @@
   if (empty($context)) {
       $context = 'event';
   }
+  // If row is assigned to different event (this is possible for extended event)
   if ($event['Event']['id'] != $object['event_id']) {
-      if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
-          $mayModify = false;
-      }
+      $attributeEvent = $event['extensionEvents'][$object['event_id']];
+      $attributeEvent = ['Event' => $attributeEvent, 'Orgc' => $attributeEvent['Orgc']]; // fix format to match standard event format
+      $mayModify = $this->Acl->canModifyEvent($attributeEvent);
+  } else {
+      $attributeEvent = $event;
   }
-  $editScope = ($isSiteAdmin || $mayModify) ? 'Attribute' : 'ShadowAttribute';
+  $editScope = $mayModify ? 'Attribute' : 'ShadowAttribute';
   if (!empty($child)) {
       if ($child === 'last' && empty($object['ShadowAttribute'])) {
           $tr_class .= ' tableHighlightBorderBottom borderBlue';
@@ -74,7 +77,7 @@
           <?php
               $event_info = sprintf('title="%s%s"',
                   __('Event info') . ':&#10;     ',
-                  $object['event_id'] != $event['Event']['id'] ? h($event['extensionEvents'][$object['event_id']]['info']) : h($event['Event']['info'])
+                  h($attributeEvent['Event']['info'])
               );
           ?>
           <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '" ' . $event_info . '>' . h($object['event_id']) . '</a>'; ?>
@@ -85,12 +88,7 @@
       <td class="short">
         <?php
           if (!empty($extended)):
-            if ($object['event_id'] != $event['Event']['id']):
-              $extensionOrg = $event['extensionEvents'][$object['event_id']]['Orgc'];
-              echo $this->OrgImg->getOrgLogo($extensionOrg, 24);
-            else:
-              echo $this->OrgImg->getOrgLogo($event['Orgc'], 24);
-            endif;
+              echo $this->OrgImg->getOrgLogo($attributeEvent['Orgc'], 24);
           endif;
         ?>
       </td>
@@ -132,8 +130,8 @@
           <?php echo $this->element('ajaxTags', array(
               'attributeId' => $objectId,
               'tags' => $object['AttributeTag'],
-              'tagAccess' => $isSiteAdmin || $mayModify,
-              'localTagAccess' => $this->Acl->canModifyTag($event, true),
+              'tagAccess' => $mayModify,
+              'localTagAccess' => $this->Acl->canModifyTag($attributeEvent, true),
               'context' => $context,
               'scope' => 'attribute',
               'tagConflicts' => $object['tagConflicts'] ?? [],
@@ -158,7 +156,7 @@
         <?php
           echo $this->element('galaxyQuickViewNew', array(
             'data' => !empty($object['Galaxy']) ? $object['Galaxy'] : array(),
-            'event' => $event,
+            'event' => $attributeEvent,
             'target_id' => $objectId,
             'target_type' => 'attribute',
           ));

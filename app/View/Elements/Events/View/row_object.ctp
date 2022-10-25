@@ -1,9 +1,11 @@
 <?php
   $tr_class = 'tableHighlightBorderTop borderBlue';
   if ($event['Event']['id'] != $object['event_id']) {
-    if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
-      $mayModify = false;
-    }
+      $objectEvent = $event['extensionEvents'][$object['event_id']];
+      $objectEvent = ['Event' => $objectEvent, 'Orgc' => $objectEvent['Orgc']]; // fix format to match standard event format
+      $mayModify = $this->Acl->canMofiyEvent($objectEvent);
+  } else {
+      $objectEvent = $event;
   }
   if ($object['deleted']) $tr_class .= ' lightBlueRow';
   else $tr_class .= ' blueRow';
@@ -44,12 +46,7 @@ $objectId = intval($object['id']);
   <td class="short">
     <?php
       if ($extended):
-        if ($object['event_id'] != $event['Event']['id']):
-          $extensionOrg = $event['extensionEvents'][$object['event_id']]['Orgc'];
-          echo $this->OrgImg->getOrgImg(array('name' => $extensionOrg['name'], 'id' => $extensionOrg['id'], 'size' => 24));
-        else:
-          echo $this->OrgImg->getOrgImg(array('name' => $event['Orgc']['name'], 'id' => $event['Orgc']['id'], 'size' => 24));
-        endif;
+          echo $this->OrgImg->getOrgImg(array('name' => $objectEvent['Orgc']['name'], 'id' => $objectEvent['Orgc']['id'], 'size' => 24));
       endif;
     ?>
   </td>
