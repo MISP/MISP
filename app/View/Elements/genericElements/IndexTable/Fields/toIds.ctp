@@ -1,7 +1,7 @@
 <?php
 $object = Hash::extract($row, $field['data']['object']['value_path']);
-$event = $row['Event'];
 $objectId = h($object['id']);
+$mayModify = $this->Acl->canModifyEvent($row);
 ?>
 
 <div id="Attribute_<?= $objectId ?>_to_ids_placeholder" class="inline-field-placeholder"></div>
