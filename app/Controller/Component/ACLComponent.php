@@ -648,7 +648,6 @@ class ACLComponent extends Component
                 'selectTaxonomy' => array('perm_tagger'),
                 'showEventTag' => array('*'),
                 'showAttributeTag' => array('*'),
-                'showTagControllerTag' => array('*'),
                 'tagStatistics' => array('*'),
                 'view' => array('*'),
                 'viewGraph' => array('*'),
@@ -952,6 +951,22 @@ class ACLComponent extends Component
             return true;
         }
         return Configure::read('MISP.allow_disabling_correlation') && $this->canModifyEvent($user, $event);
+    }
+
+    /**
+     * @param array $user
+     * @param array $tagCollection
+     * @return bool
+     */
+    public function canModifyTagCollection(array $user, array $tagCollection)
+    {
+        if (!isset($tagCollection['TagCollection'])) {
+            throw new InvalidArgumentException('Passed object does not contain a TagCollection.');
+        }
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        return $user['org_id'] == $tagCollection['TagCollection']['org_id'];
     }
 
     private function __checkLoggedActions($user, $controller, $action)

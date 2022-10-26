@@ -1,3 +1,4 @@
+<?php $canModify = $this->Acl->canModifyTagCollection($item) ?>
     <tr data-row-id="<?php echo h($item['TagCollection']['id']); ?>">
         <td class="short"><?php echo h($item['TagCollection']['id']);?></td>
         <td class="short"><?php echo h($item['TagCollection']['uuid']);?></td>
@@ -10,7 +11,7 @@
                     array(
                         'attributeId' => $item['TagCollection']['id'],
                         'attributeTags' => $item['TagCollectionTag'],
-                        'tagAccess' => ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']),
+                        'tagAccess' => $canModify,
                         'context' => 'tagCollection',
                         'tagCollection' => $item
                     )
@@ -21,7 +22,7 @@
         <td class="shortish">
           <?php
             echo $this->element('galaxyQuickViewNew', array(
-              'tagAccess' => ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']),
+              'tagAccess' => $canModify,
               'localTagAccess' => false,
               'data' => $item['Galaxy'],
               'target_id' => h($item['TagCollection']['id']),
@@ -40,7 +41,7 @@
         <td><?php echo h($item['TagCollection']['description']);?></td>
         <td class="short action-links">
             <?php
-                if ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']) {
+                if ($canModify) {
                     echo $this->Html->link('', array('action' => 'edit', $item['TagCollection']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit')));
                     echo $this->Form->postLink('', array('action' => 'delete', $item['TagCollection']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['TagCollection']['name']));
                 }
