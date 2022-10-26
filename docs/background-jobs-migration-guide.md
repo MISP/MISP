@@ -54,6 +54,7 @@ Run on your MISP instance the following commands.
     stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers.log
     directory=/var/www/MISP
     user=www-data
+    startsecs = 0
 
     [program:prio]
     directory=/var/www/MISP
@@ -67,6 +68,7 @@ Run on your MISP instance the following commands.
     stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers.log
     directory=/var/www/MISP
     user=www-data
+    startsecs = 0
 
     [program:email]
     directory=/var/www/MISP
@@ -80,6 +82,7 @@ Run on your MISP instance the following commands.
     stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers.log
     directory=/var/www/MISP
     user=www-data
+    startsecs = 0
 
     [program:update]
     directory=/var/www/MISP
@@ -93,6 +96,7 @@ Run on your MISP instance the following commands.
     stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers.log
     directory=/var/www/MISP
     user=www-data
+    startsecs = 0
 
     [program:cache]
     directory=/var/www/MISP
@@ -105,6 +109,7 @@ Run on your MISP instance the following commands.
     stderr_logfile=/var/www/MISP/app/tmp/logs/misp-workers-errors.log
     stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers.log
     user=www-data
+    startsecs = 0
     ```
 
 5. Restart **Supervisord** to load the changes:
