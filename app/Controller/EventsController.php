@@ -2780,7 +2780,7 @@ class EventsController extends AppController
 
     public function delete($id = null)
     {
-        if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
+        if ($this->request->is(['post', 'put', 'delete'])) {
             if (isset($this->request->data['id'])) {
                 $this->request->data['Event'] = $this->request->data;
             }
@@ -2848,11 +2848,7 @@ class EventsController extends AppController
                 $this->redirect(array('action' => 'index'));
             }
         } else {
-            if (is_numeric($id)) {
-                $eventList = array($id);
-            } else {
-                $eventList = json_decode($id, true);
-            }
+            $eventList = is_numeric($id) ? [$id] : $this->_jsonDecode($id);
             $this->request->data['Event']['id'] = json_encode($eventList);
             $this->set('idArray', $eventList);
             $this->render('ajax/eventDeleteConfirmationForm');
