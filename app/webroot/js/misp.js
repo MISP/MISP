@@ -925,6 +925,21 @@ function listCheckboxesChecked() {
     else $('.mass-select').addClass('hidden');
 }
 
+function listCheckboxesCheckedEventIndex() {
+    // Show mass delete just when user has permission to delete at least one of selected event
+    if ($('.select:checked[data-can-modify="1"]').length > 0) {
+        $('.mass-delete').removeClass('hidden');
+    } else {
+        $('.mass-delete').addClass('hidden');
+    }
+
+    if ($('.select:checked').length > 0) {
+        $('.mass-export').removeClass('hidden');
+    } else {
+        $('.mass-export').addClass('hidden');
+    }
+}
+
 function attributeListAnyProposalCheckBoxesChecked() {
     if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').removeClass('hidden');
     else $('.mass-proposal-select').addClass('hidden');
@@ -937,8 +952,8 @@ function taxonomyListAnyCheckBoxesChecked() {
 
 function multiSelectDeleteEvents() {
     var selected = [];
-    $(".select").each(function() {
-        if ($(this).is(":checked")) {
+    $(".select:checked").each(function() {
+        if ($(this).data('can-modify')) {
             var temp = $(this).data("id");
             if (temp != null) {
                 selected.push(temp);
@@ -954,12 +969,10 @@ function deleteEventPopup(eventId) {
 
 function multiSelectExportEvents() {
     var selected = [];
-    $(".select").each(function() {
-        if ($(this).is(":checked")) {
-            var temp = $(this).data("uuid");
-            if (temp != null) {
-                selected.push(temp);
-            }
+    $(".select:checked").each(function() {
+        var temp = $(this).data("id");
+        if (temp != null) {
+            selected.push(temp);
         }
     });
     openGenericModal(baseurl + "/events/restSearchExport/" + JSON.stringify(selected))
