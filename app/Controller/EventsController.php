@@ -3754,11 +3754,8 @@ class EventsController extends AppController
 
             $this->loadModel('Taxonomy');
             foreach ($tag_id_list as $tag_id) {
-                $conditions = ['Tag.id' => $tag_id];
-                if (!$this->_isSiteAdmin()) {
-                    $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
-                    $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
-                }
+                $conditions = $this->Event->EventTag->Tag->createConditions($this->Auth->user());
+                $conditions['Tag.id'] = $tag_id;
                 $tag = $this->Event->EventTag->Tag->find('first', array(
                     'conditions' => $conditions,
                     'recursive' => -1,

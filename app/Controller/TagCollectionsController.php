@@ -247,11 +247,7 @@ class TagCollectionsController extends AppController
                 }
                 $tag_id = $this->request->data['tag'];
             }
-            $tagConditions = array();
-            if (!$this->_isSiteAdmin()) {
-                $tagConditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
-                $tagConditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
-            }
+            $tagConditions = $this->TagCollection->TagCollectionTag->Tag->createConditions($this->Auth->user());
             if (!is_numeric($tag_id)) {
                 $tag_ids = json_decode($tag_id);
                 $tag_lookups = array();
@@ -306,11 +302,8 @@ class TagCollectionsController extends AppController
             }
 
             foreach ($tag_id_list as $tag_id) {
-                $tagConditions = ['Tag.id' => $tag_id];
-                if (!$this->_isSiteAdmin()) {
-                    $tagConditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
-                    $tagConditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
-                }
+                $tagConditions = $this->TagCollection->TagCollectionTag->Tag->createConditions($this->Auth->user());
+                $tagConditions['Tag.id'] = $tag_id;
                 $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array(
                     'conditions' => $tagConditions,
                     'recursive' => -1,

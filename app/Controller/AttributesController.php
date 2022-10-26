@@ -2641,11 +2641,8 @@ class AttributesController extends AppController
                 $tag_id_list = array($tag_id);
             }
 
-            $conditions = ['Tag.id' => $tag_id_list];
-            if (!$this->_isSiteAdmin()) {
-                $conditions['Tag.org_id'] = array(0, $this->Auth->user('org_id'));
-                $conditions['Tag.user_id'] = array(0, $this->Auth->user('id'));
-            }
+            $conditions = $this->Attribute->AttributeTag->Tag->createConditions($this->Auth->user());
+            $conditions['Tag.id'] = $tag_id_list;
             $tags = $this->Attribute->AttributeTag->Tag->find('list', array(
                 'conditions' => $conditions,
                 'fields' => ['Tag.id', 'Tag.name'],
