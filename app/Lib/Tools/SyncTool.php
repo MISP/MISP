@@ -1,5 +1,4 @@
 <?php
-
 class SyncTool
 {
 
@@ -84,8 +83,11 @@ class SyncTool
             $params['ssl_crypto_method'] = $version;
         }
 
-        App::uses('HttpSocketExtended', 'Tools');
-        $HttpSocket = new HttpSocketExtended($params);
+        App::uses('CurlClient', 'Tools');
+        $HttpSocket = new CurlClient($params);
+
+        //App::uses('HttpSocketExtended', 'Tools');
+        //$HttpSocket = new HttpSocketExtended($params);
         $proxy = Configure::read('Proxy');
         if (empty($params['skip_proxy']) && isset($proxy['host']) && !empty($proxy['host'])) {
             $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
