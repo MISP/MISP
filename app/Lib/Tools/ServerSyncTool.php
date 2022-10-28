@@ -228,6 +228,24 @@ class ServerSyncTool
     }
 
     /**
+     * @param array $eventUuids
+     * @return array
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     */
+    public function fetchSightingsForEvents(array $eventUuids)
+    {
+        return $this->post('/sightings/restSearch/event', [
+            'returnFormat' => 'json',
+            'last' => 0, // fetch all
+            'includeAttribute' => true,
+            'includeEvent' => true,
+            'uuid' => $eventUuids,
+        ])->json()['response'];
+    }
+
+    /**
      * @param array $event
      * @param array $sightingUuids
      * @return array Sighting UUIDs that exists on remote side

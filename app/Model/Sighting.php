@@ -1293,11 +1293,81 @@ class Sighting extends AppModel
         $eventUuids = [];
         foreach ($remoteEvents as $remoteEvent) {
             if (isset($localEvents[$remoteEvent['uuid']]) && $localEvents[$remoteEvent['uuid']] < $remoteEvent['sighting_timestamp']) {
-                $eventUuids[] = $remoteEvent['uuid'];
+                $eventUuids[$remoteEvent['uuid']] = $remoteEvent['sighting_timestamp'];
             }
         }
         unset($remoteEvents, $localEvents);
 
+        if (empty($eventUuids)) {
+            return 0;
+        }
+
+        $this->removeFetched($serverSync->serverId(), $eventUuids);
+        if (empty($eventUuids)) {
+            return 0;
+        }
+
+        return $this->pullSightingNewWay($user, $eventUuids, $serverSync);
+    }
+
+    /**
+     * New way how to fetch sighting for events without fetching the whole event.
+     *
+     * @param array $user
+     * @param array $eventUuids With UUID in key and remote sighting_timestamp as value
+     * @param ServerSyncTool $serverSync
+     * @return int
+     * @throws Exception
+     */
+    private function pullSightingNewWay(array $user, array $eventUuids, ServerSyncTool $serverSync)
+    {
+        $uuids = array_keys($eventUuids);
+        $saved = 0;
+        foreach (array_chunk($uuids, 100) as $chunk) {
+            try {
+                $sightings = $serverSync->fetchSightingsForEvents($chunk);
+            } catch (Exception $e) {
+                $this->logException("Failed downloading the sightings from {$serverSync->server()['Server']['name']}.", $e);
+                continue;
+            }
+
+            $sightingsToSave = [];
+            foreach ($sightings as $sighting) {
+                $sighting = $sighting['Sighting'];
+                $attributeUuid = $sighting['Attribute']['uuid'];
+                $eventUuid = $sighting['Event']['uuid'];
+                unset($sighting['Event'], $sighting['Attribute']);
+                $sighting['attribute_uuid'] = $attributeUuid;
+                $sightingsToSave[$eventUuid][] = $sighting;
+            }
+
+            $savedUuids = [];
+            foreach ($sightingsToSave as $eventUuid => $sightings) {
+                $savedForEvent = $this->bulkSaveSightings($eventUuid, $sightings, $user, $serverSync->serverId());
+                if ($savedForEvent) {
+                    $saved += $savedForEvent;
+                    $savedUuids[] = $eventUuid;
+                }
+            }
+
+            // Save to Redis that we fetched event sightings, that was not saved. This avoid fetching sightings for
+            // same event that has sightings not visible to user again and again.
+            foreach (array_diff($uuids, $savedUuids) as $notSavedUuid) {
+                $this->saveFetched($serverSync->serverId(), $notSavedUuid, $eventUuids[$notSavedUuid]);
+            }
+        }
+        return $saved;
+    }
+
+    /**
+     * @param array $user
+     * @param array $eventUuids With UUID in key and remote sighting_timestamp as value
+     * @param ServerSyncTool $serverSync
+     * @return int
+     * @throws Exception
+     */
+    private function pullSightingOldWay(array $user, array $eventUuids, ServerSyncTool $serverSync)
+    {
         $saved = 0;
         // We don't need some of the event data, like correlations and event reports
         $params = [
@@ -1313,7 +1383,7 @@ class Sighting extends AppModel
         ];
         // now process the $eventUuids to pull each of the events sequentially
         // download each event and save sightings
-        foreach ($eventUuids as $eventUuid) {
+        foreach ($eventUuids as $eventUuid => $sightingTimestamp) {
             try {
                 $event = $serverSync->fetchEvent($eventUuid, $params)->json();
             } catch (Exception $e) {
@@ -1343,10 +1413,43 @@ class Sighting extends AppModel
                 $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $serverSync->serverId());
                 if (is_numeric($result)) {
                     $saved += $result;
+                } else {
+                    $this->saveFetched($serverSync->serverId(), $eventUuid, $sightingTimestamp);
                 }
             }
         }
         return $saved;
+    }
+
+    /**
+     * Remove from fetching events that was already fetched with the same sighting_timestamp
+     * @param int $serverId
+     * @param array $eventUuids
+     * @return void
+     * @throws RedisException
+     */
+    private function removeFetched($serverId, array &$eventUuids)
+    {
+        $lastFetched = RedisTool::init()->hMGet("misp:fetched_sightings:$serverId", array_keys($eventUuids));
+        foreach ($lastFetched as $uuid => $savedTimestamp) {
+            if ($savedTimestamp == $eventUuids[$uuid]) {
+                unset($eventUuids[$uuid]); // event with the same sighting_timestamp was already fetched
+            }
+        }
+    }
+
+    /**
+     * @param int $serverId
+     * @param string $eventUuid
+     * @param int $sightingTimestamp
+     * @return void
+     * @throws RedisException
+     */
+    private function saveFetched($serverId, $eventUuid, $sightingTimestamp)
+    {
+        $redis = RedisTool::init();
+        $redis->hSet("misp:fetched_sightings:$serverId", $eventUuid, $sightingTimestamp);
+        $redis->expire("misp:fetched_sightings:$serverId", 24 * 3600); // keep for one day
     }
 
     /**
@@ -1400,15 +1503,10 @@ class Sighting extends AppModel
      */
     private function isReporter($eventId, $orgId)
     {
-        return (bool)$this->find('first', array(
-            'recursive' => -1,
-            'callbacks' => false,
-            'fields' => ['Sighting.id'],
-            'conditions' => array(
-                'Sighting.event_id' => $eventId,
-                'Sighting.org_id' => $orgId,
-            )
-        ));
+        return $this->hasAny([
+            'Sighting.event_id' => $eventId,
+            'Sighting.org_id' => $orgId,
+        ]);
     }
 
     /**
