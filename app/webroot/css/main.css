@@ -914,7 +914,7 @@ a.black-white:hover {
     width: 300px;
     top:calc(50% - 50px);
     left:calc(50% - 150px);
-    max-height:calc(50% + 50px);
+    max-height:calc(30% + 50px);
     position: fixed;
     overflow: auto;
     overflow-x: hidden;
