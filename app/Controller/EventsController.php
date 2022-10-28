@@ -3082,7 +3082,7 @@ class EventsController extends AppController
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
         }
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) {
+        if (!$this->__canPublishEvent($event)) {
             throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
         }
         if (!$this->_isRest()) {
@@ -3754,11 +3754,8 @@ class EventsController extends AppController
 
             $this->loadModel('Taxonomy');
             foreach ($tag_id_list as $tag_id) {
-                $conditions = ['Tag.id' => $tag_id];
-                if (!$this->_isSiteAdmin()) {
-                    $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
-                    $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
-                }
+                $conditions = $this->Event->EventTag->Tag->createConditions($this->Auth->user());
+                $conditions['Tag.id'] = $tag_id;
                 $tag = $this->Event->EventTag->Tag->find('first', array(
                     'conditions' => $conditions,
                     'recursive' => -1,
@@ -5729,10 +5726,10 @@ class EventsController extends AppController
         $event = $this->Event->find('first', array(
             'recursive' => -1,
             'conditions' => ['Event.id' => $id],
-            'fields' => ['Event.orgc_id', 'Event.timestamp'],
+            'fields' => ['Event.orgc_id', 'Event.timestamp', 'Event.user_id'],
         ));
-        // Return empty response if event not found or user org is not owner
-        if (empty($event) || ($event['Event']['orgc_id'] != $user['org_id'] && !$this->_isSiteAdmin())) {
+        // Return empty response if event not found or user don't have permission to modify it
+        if (empty($event) || !$this->__canModifyEvent($event, $user)) {
             return new CakeResponse(['status' => 204]);
         }
 
@@ -5756,10 +5753,10 @@ class EventsController extends AppController
         $editors = array_unique($editors);
 
         if ($event['Event']['timestamp'] > $timestamp && empty($editors)) {
-            $message = __('<b>Warning</b>: This event view is outdated. Please reload page to see latest changes.');
+            $message = __('<b>Warning</b>: This event view is outdated. Please reload page to see the latest changes.');
             $this->set('class', 'alert');
         } else if ($event['Event']['timestamp'] > $timestamp) {
-            $message = __('<b>Warning</b>: This event view is outdated, because is currently being edited by: %s. Please reload page to see latest changes.', h(implode(', ', $editors)));
+            $message = __('<b>Warning</b>: This event view is outdated, because is currently being edited by: %s. Please reload page to see the latest changes.', h(implode(', ', $editors)));
             $this->set('class', 'alert');
         } else if (empty($editors)) {
             return new CakeResponse(['status' => 204]);
@@ -5776,31 +5773,16 @@ class EventsController extends AppController
     public function getEditStrategy($id)
     {
         // find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
-        if (Validation::uuid($id)) {
-            $this->Event->recursive = -1;
-            $event = $this->Event->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Event.uuid' => $id),
-                'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id')
-            ));
-            if ($event == null) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            $id = $event['Event']['id'];
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid event'));
-        } else {
-            $event = $this->Event->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Event.id' => $id),
-                'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id')
-            ));
-        }
+        $event = $this->Event->find('first', array(
+            'recursive' => -1,
+            'conditions' => Validation::uuid($id) ? ['Event.uuid' => $id] : ['Event.id' => $id],
+            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id')
+        ));
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
         }
         $response = array('extensions' => array());
-        if ($event['Event']['orgc_id'] === $this->Auth->user('org_id')) {
+        if ($this->__canModifyEvent($event)) {
             $response['strategy'] = 'edit';
         } else {
             $response['strategy'] = 'extend';

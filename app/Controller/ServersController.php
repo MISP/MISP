@@ -751,9 +751,7 @@ class ServersController extends AppController
             throw new NotFoundException(__('Invalid server'));
         }
         $error = false;
-        if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
+
         if (false == $s['Server']['pull'] && ($technique === 'full' || $technique === 'incremental')) {
             $error = __('Pull setting not enabled for this server.');
         }
@@ -832,9 +830,7 @@ class ServersController extends AppController
             throw new NotFoundException(__('Invalid server'));
         }
         $s = $this->Server->read(null, $id);
-        if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
+
         if (!Configure::read('MISP.background_jobs')) {
             App::uses('SyncTool', 'Tools');
             $syncTool = new SyncTool();

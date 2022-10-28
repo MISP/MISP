@@ -507,12 +507,9 @@ class TagsController extends AppController
             $expanded = $tags;
         } elseif ($taxonomy_id === 'favourites') {
             $tags = array();
-            $conditions = array(
-                'FavouriteTag.user_id' => $user['id'],
-                'Tag.org_id' => array(0, $user['org_id']),
-                'Tag.user_id' => array(0, $user['id']),
-                'Tag.hide_tag' => 0,
-            );
+            $conditions = $this->Tag->createConditions($user);
+            $conditions['FavouriteTag.user_id'] = $user['id'];
+            $conditions['Tag.hide_tag'] = 0;
             if (!$local_tag) {
                 $conditions['Tag.local_only'] = 0;
             }
@@ -527,14 +524,9 @@ class TagsController extends AppController
                 $expanded = $tags;
             }
         } elseif ($taxonomy_id === 'all') { // all tags
-            $conditions = [
-                'Tag.is_galaxy' => 0,
-                'Tag.hide_tag' => 0,
-            ];
-            if (!$this->_isSiteAdmin()) {
-                $conditions['Tag.org_id'] = array(0, $user['org_id']);
-                $conditions['Tag.user_id'] = array(0, $user['id']);
-            }
+            $conditions = $this->Tag->createConditions($user);
+            $conditions['Tag.is_galaxy'] = 0;
+            $conditions['Tag.hide_tag'] = 0;
             if (!$local_tag) {
                 $conditions['Tag.local_only'] = 0;
             }
