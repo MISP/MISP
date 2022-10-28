@@ -80,13 +80,7 @@ class Sighting extends AppModel
         $pubToZmq = $this->pubToZmq('sighting');
         $kafkaTopic = $this->kafkaTopic('sighting');
         if ($pubToZmq || $kafkaTopic) {
-            $user = array(
-                'org_id' => -1,
-                'Role' => array(
-                    'perm_site_admin' => 1
-                )
-            );
-            $sighting = $this->getSighting($this->id, $user);
+            $sighting = $this->getSighting($this->id);
             if ($pubToZmq) {
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->sighting_save($sighting, 'add');
@@ -104,13 +98,7 @@ class Sighting extends AppModel
         $pubToZmq = $this->pubToZmq('sighting');
         $kafkaTopic = $this->kafkaTopic('sighting');
         if ($pubToZmq || $kafkaTopic) {
-            $user = array(
-                'org_id' => -1,
-                'Role' => array(
-                    'perm_site_admin' => 1
-                )
-            );
-            $sighting = $this->getSighting($this->id, $user);
+            $sighting = $this->getSighting($this->id);
             if ($pubToZmq) {
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->sighting_save($sighting, 'delete');
@@ -187,12 +175,114 @@ class Sighting extends AppModel
     }
 
     /**
-     * @param int $id
+     * Fetch sightings with proper ACL checks
+     *
      * @param array $user
+     * @param array $ids
      * @param bool $withEvent
      * @return array
      */
-    public function getSighting($id, array $user, $withEvent = true)
+    private function getSightings(array $user, array $ids, $withEvent = true)
+    {
+        // Fetch all attribute IDs that are connected to sightings
+        $attributesIds = $this->find('column', [
+           'fields' => ['Sighting.attribute_id'],
+           'conditions' => ['Sighting.id' => $ids],
+           'unique' => true,
+        ]);
+        if (empty($attributesIds)) {
+            return [];
+        }
+
+        // Fetch all attributes that are connected to sightings and user can see them
+        $attributeConditions = $this->Attribute->buildConditions($user);
+        $attributeConditions['Attribute.id'] = $attributesIds;
+        $attributes = $this->Attribute->find('all', [
+            'recursive' => -1,
+            'conditions' => $attributeConditions,
+            'contain' => [
+                'Event' => [
+                    'fields' => $withEvent ? ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'] : ['Event.org_id']
+                ],
+                'Object',
+            ],
+            'fields' => ['Attribute.id', 'Attribute.value','Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Event.org_id'],
+            'order' => [],
+        ]);
+
+        if (empty($attributes)) {
+            return [];
+        }
+
+        // Create conditions for fetching just sightings user can see according to sightings policy
+        $sightingsPolicy = $this->sightingsPolicy();
+        $attributesById = [];
+        $conditions = [];
+        foreach ($attributes as $attribute) {
+            $attributesById[$attribute['Attribute']['id']] = $attribute;
+
+            $attributeConditions = ['Sighting.attribute_id' => $attribute['Attribute']['id']];
+            $ownEvent = $user['Role']['perm_site_admin'] || $attribute['Event']['org_id'] == $user['org_id'];
+            if (!$ownEvent) {
+                if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+                    $attributeConditions['Sighting.org_id'] = $user['org_id'];
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+                    if (!$this->isReporter($attribute['Event']['id'], $user['org_id'])) {
+                        continue; // skip attribute
+                    }
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                    $attributeConditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
+                }
+            }
+            $conditions['OR'][] = $attributeConditions;
+        }
+
+        if (empty($conditions)) {
+            return [];
+        }
+
+        $sightings = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'order' => 'Sighting.id',
+        ]);
+
+        if (empty($sightings)) {
+            return [];
+        }
+
+        $anonymise = Configure::read('Plugin.Sightings_anonymise');
+        $results = [];
+        foreach ($sightings as $sighting) {
+            $sightingAttribute = $attributesById[$sighting['Sighting']['attribute_id']];
+
+            if ($anonymise && $sighting['Sighting']['org_id'] != $user['org_id']) {
+                unset($sighting['Sighting']['org_id']);
+            }
+
+            // rearrange it to match the event format of fetchevent
+            $result = [
+                'Sighting' => $sighting['Sighting'],
+            ];
+            $result['Sighting']['Attribute'] = $sightingAttribute['Attribute'];
+            if ($withEvent) {
+                $sightingAttribute['Event']['Orgc']['name'] = $this->getOrganisationById($sightingAttribute['Event']['orgc_id'])['name'];
+                $result['Sighting']['Event'] = $sightingAttribute['Event'];
+            }
+            $results[] = $result;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Return sighting without ACL checks
+     *
+     * @param int $id
+     * @param bool $withEvent
+     * @return array
+     */
+    public function getSighting($id, $withEvent = true)
     {
         $sighting = $this->find('first', array(
             'recursive' => -1,
@@ -210,37 +300,11 @@ class Sighting extends AppModel
             return array();
         }
 
-        $ownEvent = $user['Role']['perm_site_admin'] || $sighting['Event']['org_id'] == $user['org_id'];
-        if (!$ownEvent) {
-            $sightingPolicy = $this->sightingsPolicy();
-            // if sighting policy == 0 then return false if the sighting doesn't belong to the user
-            if ($sightingPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
-                if ($sighting['Sighting']['org_id'] != $user['org_id']) {
-                    return array();
-                }
-            }
-            // if sighting policy == 1, the user can only see the sighting if they've sighted something in the event once
-            else if ($sightingPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                if (!$this->isReporter($sighting['Sighting']['event_id'], $user['org_id'])) {
-                    return array();
-                }
-            }
-            else if ($sightingPolicy === self::SIGHTING_POLICY_HOST_ORG) {
-                if ($sighting['Sighting']['org_id'] != $user['org_id'] || $sighting['Sighting']['org_id'] != Configure::read('MISP.host_org_id')) {
-                    return array();
-                }
-            }
-        }
-
         // Put event organisation name from cache
         if ($withEvent) {
             $sighting['Event']['Orgc']['name'] = $this->getOrganisationById($sighting['Event']['orgc_id'])['name'];
         }
 
-        $anonymise = Configure::read('Plugin.Sightings_anonymise');
-        if ($anonymise && $sighting['Sighting']['org_id'] != $user['org_id']) {
-            unset($sighting['Sighting']['org_id']);
-        }
         // rearrange it to match the event format of fetchevent
         $result = array(
             'Sighting' => $sighting['Sighting']
@@ -935,7 +999,6 @@ class Sighting extends AppModel
         }
 
         if (isset($filters['org_id'])) {
-            $this->Organisation = ClassRegistry::init('Organisation');
             if (!is_array($filters['org_id'])) {
                 $filters['org_id'] = array($filters['org_id']);
             }
@@ -978,11 +1041,12 @@ class Sighting extends AppModel
             }
         }
 
-        // fetch sightings matching the query
+        // fetch sightings matching the query without ACL checks
         $sightingIds = $this->find('column', [
             'conditions' => $conditions,
             'fields' => ['Sighting.id'],
             'contain' => $contain,
+            'order' => 'Sighting.id',
         ]);
 
         $includeAttribute = isset($filters['includeAttribute']) && $filters['includeAttribute'];
@@ -1008,10 +1072,10 @@ class Sighting extends AppModel
         $tmpfile->write($exportTool->header($exportToolParams));
         $separator = $exportTool->separator($exportToolParams);
 
-        foreach ($sightingIds as $sightingId) {
-            // apply ACL and sighting policies
-            $sighting = $this->getSighting($sightingId, $user, $includeEvent);
-            if (!empty($sighting)) {
+        foreach (array_chunk($sightingIds, 500) as $chunk) {
+            // fetch sightings with ACL checks and sighting policies
+            $sightings = $this->getSightings($user, $chunk, $includeEvent);
+            foreach ($sightings as $sighting) {
                 $sighting['Sighting']['value'] = $sighting['Sighting']['Attribute']['value'];
                 if (!$includeAttribute) {
                     unset($sighting['Sighting']['Attribute']);
@@ -1108,9 +1172,9 @@ class Sighting extends AppModel
             $existingUuids = array_column($toSave, 'uuid');
             $this->Event->publishSightingsRouter($event['Event']['id'], $user, $passAlong, $existingUuids);
             return count($toSave);
-        } else {
-            return 0;
         }
+
+        return 0;
     }
 
     /**
