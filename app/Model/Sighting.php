@@ -227,28 +227,7 @@ class Sighting extends AppModel
         }
 
         // Create conditions for fetching just sightings user can see according to sightings policy
-        $sightingsPolicy = $this->sightingsPolicy();
-        $attributesById = [];
-        $conditions = [];
-        foreach ($attributes as $attribute) {
-            $attributesById[$attribute['Attribute']['id']] = $attribute;
-
-            $attributeConditions = ['Sighting.attribute_id' => $attribute['Attribute']['id']];
-            $ownEvent = $user['Role']['perm_site_admin'] || $attribute['Event']['org_id'] == $user['org_id'];
-            if (!$ownEvent) {
-                if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
-                    $attributeConditions['Sighting.org_id'] = $user['org_id'];
-                } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                    if (!$this->isReporter($attribute['Event']['id'], $user['org_id'])) {
-                        continue; // skip attribute
-                    }
-                } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
-                    $attributeConditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
-                }
-            }
-            $conditions['OR'][] = $attributeConditions;
-        }
-
+        $conditions = $this->createConditionsByAttributes($user, $attributes);
         if (empty($conditions)) {
             return [];
         }
@@ -261,6 +240,11 @@ class Sighting extends AppModel
 
         if (empty($sightings)) {
             return [];
+        }
+
+        $attributesById = [];
+        foreach ($attributes as $attribute) {
+            $attributesById[$attribute['Attribute']['id']] = $attribute;
         }
 
         $anonymise = Configure::read('Plugin.Sightings_anonymise');
@@ -387,12 +371,28 @@ class Sighting extends AppModel
             return ['data' => [], 'csv' => []];
         }
 
+        $conditions = $this->createConditionsByAttributes($user, $attributes);
+        $groupedSightings = $this->fetchGroupedSightings($conditions, $user);
+        return $this->generateStatistics($groupedSightings, $csvWithFalsePositive);
+    }
+
+    /**
+     * @param array $user
+     * @param array $attributes
+     * @return array
+     */
+    private function createConditionsByAttributes(array $user, array $attributes)
+    {
         $sightingsPolicy = $this->sightingsPolicy();
+
+        if ($sightingsPolicy === self::SIGHTING_POLICY_EVERYONE || $user['Role']['perm_site_admin']) {
+            return ['Sighting.attribute_id' => array_column(array_column($attributes, 'Attribute'), 'id')];
+        }
 
         $conditions = [];
         foreach ($attributes as $attribute) {
             $attributeConditions = ['Sighting.attribute_id' => $attribute['Attribute']['id']];
-            $ownEvent = $user['Role']['perm_site_admin'] || $attribute['Event']['org_id'] == $user['org_id'];
+            $ownEvent = $attribute['Event']['org_id'] == $user['org_id'];
             if (!$ownEvent) {
                 if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
                     $attributeConditions['Sighting.org_id'] = $user['org_id'];
@@ -406,9 +406,7 @@ class Sighting extends AppModel
             }
             $conditions['OR'][] = $attributeConditions;
         }
-
-        $groupedSightings = $this->fetchGroupedSightings($conditions, $user);
-        return $this->generateStatistics($groupedSightings, $csvWithFalsePositive);
+        return $conditions;
     }
 
     /**
