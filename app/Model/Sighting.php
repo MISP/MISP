@@ -178,11 +178,13 @@ class Sighting extends AppModel
      * Fetch sightings with proper ACL checks
      *
      * @param array $user
-     * @param array $ids
-     * @param bool $withEvent
+     * @param array $ids Sightings IDs
+     * @param bool $includeEvent
+     * @param bool $includeAttribute
+     * @param bool $includeUuid Add attribute and event UUID to sighting
      * @return array
      */
-    private function getSightings(array $user, array $ids, $withEvent = true)
+    private function getSightings(array $user, array $ids, $includeEvent = true, $includeAttribute = false, $includeUuid = false)
     {
         // Fetch all attribute IDs that are connected to sightings
         $attributesIds = $this->find('column', [
@@ -194,6 +196,16 @@ class Sighting extends AppModel
             return [];
         }
 
+        $eventFields = $includeEvent ? ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'] : ['Event.org_id'];
+        if ($includeUuid && !$includeEvent) {
+            $eventFields[] = 'Event.uuid';
+        }
+
+        $attributeFields = $includeAttribute ? ['Attribute.id', 'Attribute.value','Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids'] : ['Attribute.id', 'Attribute.value'];
+        if ($includeUuid && !$includeAttribute) {
+            $attributeFields[] = 'Attribute.uuid';
+        }
+
         // Fetch all attributes that are connected to sightings and user can see them
         $attributeConditions = $this->Attribute->buildConditions($user);
         $attributeConditions['Attribute.id'] = $attributesIds;
@@ -202,11 +214,11 @@ class Sighting extends AppModel
             'conditions' => $attributeConditions,
             'contain' => [
                 'Event' => [
-                    'fields' => $withEvent ? ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'] : ['Event.org_id']
+                    'fields' => $eventFields,
                 ],
                 'Object',
             ],
-            'fields' => ['Attribute.id', 'Attribute.value','Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Event.org_id'],
+            'fields' => $attributeFields,
             'order' => [],
         ]);
 
@@ -261,15 +273,20 @@ class Sighting extends AppModel
             }
 
             // rearrange it to match the event format of fetchevent
-            $result = [
-                'Sighting' => $sighting['Sighting'],
-            ];
-            $result['Sighting']['Attribute'] = $sightingAttribute['Attribute'];
-            if ($withEvent) {
-                $sightingAttribute['Event']['Orgc']['name'] = $this->getOrganisationById($sightingAttribute['Event']['orgc_id'])['name'];
-                $result['Sighting']['Event'] = $sightingAttribute['Event'];
+            $result = $sighting['Sighting'];
+            $result['value'] = $sightingAttribute['Attribute']['value'];
+            if ($includeUuid) {
+                $result['attribute_uuid'] = $sightingAttribute['Attribute']['uuid'];
+                $result['event_uuid'] = $sightingAttribute['Event']['uuid'];
             }
-            $results[] = $result;
+            if ($includeAttribute) {
+                $result['Attribute'] = $sightingAttribute['Attribute'];
+            }
+            if ($includeEvent) {
+                $sightingAttribute['Event']['Orgc']['name'] = $this->getOrganisationById($sightingAttribute['Event']['orgc_id'])['name'];
+                $result['Event'] = $sightingAttribute['Event'];
+            }
+            $results[] = ['Sighting' => $result];
         }
 
         return $results;
@@ -961,12 +978,12 @@ class Sighting extends AppModel
      * @return TmpFileTool
      * @throws Exception
      */
-    public function restSearch($user, $returnFormat, $filters)
+    public function restSearch(array $user, $returnFormat, $filters)
     {
         $allowedContext = array('event', 'attribute');
         // validate context
         if (isset($filters['context']) && !in_array($filters['context'], $allowedContext, true)) {
-            throw new MethodNotAllowedException(__('Invalid context.'));
+            throw new MethodNotAllowedException(__('Invalid context %s.', $filters['context']));
         }
         // ensure that an id or uuid is provided if context is set
         if (!empty($filters['context']) && !(isset($filters['id']) || isset($filters['uuid'])) ) {
@@ -1051,6 +1068,8 @@ class Sighting extends AppModel
 
         $includeAttribute = isset($filters['includeAttribute']) && $filters['includeAttribute'];
         $includeEvent = isset($filters['includeEvent']) && $filters['includeEvent'];
+        $includeUuid = isset($filters['includeUuid']) && $filters['includeUuid'];
+
         $requestedAttributes = ['id', 'attribute_id', 'event_id', 'org_id', 'date_sighting', 'uuid', 'source', 'type'];
         if ($includeAttribute) {
             $requestedAttributes = array_merge($requestedAttributes, ['attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value']);
@@ -1074,12 +1093,8 @@ class Sighting extends AppModel
 
         foreach (array_chunk($sightingIds, 500) as $chunk) {
             // fetch sightings with ACL checks and sighting policies
-            $sightings = $this->getSightings($user, $chunk, $includeEvent);
+            $sightings = $this->getSightings($user, $chunk, $includeEvent, $includeAttribute, $includeUuid);
             foreach ($sightings as $sighting) {
-                $sighting['Sighting']['value'] = $sighting['Sighting']['Attribute']['value'];
-                if (!$includeAttribute) {
-                    unset($sighting['Sighting']['Attribute']);
-                }
                 $tmpfile->writeWithSeparator($exportTool->handler($sighting, $exportToolParams), $separator);
             }
         }
