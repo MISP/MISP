@@ -1034,6 +1034,16 @@ class Sighting extends AppModel
         }
 
         if (!empty($filters['id'])) {
+            if (is_array($filters['id'])) {
+                foreach ($filters['id'] as $id) {
+                    if (!is_int($id) || !is_numeric($id)) {
+                        throw new BadRequestException("Invalid ID `$id` provided.");
+                    }
+                }
+            } else if (!is_int($filters['id']) || !is_numeric($filters['id'])) {
+                throw new BadRequestException("Invalid ID `{$filters['id']}` provided.");
+            }
+
             if ($filters['context'] === 'attribute') {
                 $conditions['Sighting.attribute_id'] = $filters['id'];
             } elseif ($filters['context'] === 'event') {
@@ -1050,14 +1060,6 @@ class Sighting extends AppModel
                 $contain[] = 'Event';
             }
         }
-
-        // fetch sightings matching the query without ACL checks
-        $sightingIds = $this->find('column', [
-            'conditions' => $conditions,
-            'fields' => ['Sighting.id'],
-            'contain' => $contain,
-            'order' => 'Sighting.id',
-        ]);
 
         $includeAttribute = isset($filters['includeAttribute']) && $filters['includeAttribute'];
         $includeEvent = isset($filters['includeEvent']) && $filters['includeEvent'];
@@ -1083,6 +1085,14 @@ class Sighting extends AppModel
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $separator = $exportTool->separator($exportToolParams);
+
+        // fetch sightings matching the query without ACL checks
+        $sightingIds = $this->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['Sighting.id'],
+            'contain' => $contain,
+            'order' => 'Sighting.id',
+        ]);
 
         foreach (array_chunk($sightingIds, 500) as $chunk) {
             // fetch sightings with ACL checks and sighting policies
