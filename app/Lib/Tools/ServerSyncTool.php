@@ -13,7 +13,8 @@ class ServerSyncTool
         FEATURE_POST_TEST = 'post_test',
         FEATURE_EDIT_OF_GALAXY_CLUSTER = 'edit_of_galaxy_cluster',
         PERM_SYNC = 'perm_sync',
-        PERM_GALAXY_EDITOR = 'perm_galaxy_editor';
+        PERM_GALAXY_EDITOR = 'perm_galaxy_editor',
+        FEATURE_SIGHTING_REST_SEARCH = 'sighting_rest';
 
     /** @var array */
     private $server;
@@ -239,8 +240,7 @@ class ServerSyncTool
         return $this->post('/sightings/restSearch/event', [
             'returnFormat' => 'json',
             'last' => 0, // fetch all
-            'includeAttribute' => true,
-            'includeEvent' => true,
+            'includeUuid' => true,
             'uuid' => $eventUuids,
         ])->json()['response'];
     }
@@ -406,6 +406,9 @@ class ServerSyncTool
                 return isset($info['perm_sync']) && $info['perm_sync'];
             case self::PERM_GALAXY_EDITOR:
                 return isset($info['perm_galaxy_editor']) && $info['perm_galaxy_editor'];
+            case self::FEATURE_SIGHTING_REST_SEARCH:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] > 164;
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }

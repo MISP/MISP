@@ -1323,7 +1323,11 @@ class Sighting extends AppModel
             return 0;
         }
 
-        return $this->pullSightingNewWay($user, $eventUuids, $serverSync);
+        if ($serverSync->isSupported(ServerSyncTool::FEATURE_SIGHTING_REST_SEARCH)) {
+            return $this->pullSightingNewWay($user, $eventUuids, $serverSync);
+        } else {
+            return $this->pullSightingOldWay($user, $eventUuids, $serverSync);
+        }
     }
 
     /**
