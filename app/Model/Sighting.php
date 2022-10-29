@@ -270,6 +270,9 @@ class Sighting extends AppModel
                 $sightingAttribute['Event']['Orgc']['name'] = $this->getOrganisationById($sightingAttribute['Event']['orgc_id'])['name'];
                 $result['Event'] = $sightingAttribute['Event'];
             }
+            if (isset($result['org_id']) && $result['org_id'] != 0) {
+                $result['Organisation'] = $this->getOrganisationById($result['org_id']);
+            }
             $results[] = ['Sighting' => $result];
         }
 
@@ -1543,7 +1546,7 @@ class Sighting extends AppModel
             $org = $org['Organisation'];
         }
         $this->orgCache[$orgId] = $org;
-        return $this->orgCache[$orgId];
+        return $org;
     }
 
     /**
