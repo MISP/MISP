@@ -186,16 +186,6 @@ class Sighting extends AppModel
      */
     private function getSightings(array $user, array $ids, $includeEvent = true, $includeAttribute = false, $includeUuid = false)
     {
-        // Fetch all attribute IDs that are connected to sightings
-        $attributesIds = $this->find('column', [
-           'fields' => ['Sighting.attribute_id'],
-           'conditions' => ['Sighting.id' => $ids],
-           'unique' => true,
-        ]);
-        if (empty($attributesIds)) {
-            return [];
-        }
-
         $eventFields = $includeEvent ? ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'] : ['Event.org_id'];
         if ($includeUuid && !$includeEvent) {
             $eventFields[] = 'Event.uuid';
@@ -208,7 +198,11 @@ class Sighting extends AppModel
 
         // Fetch all attributes that are connected to sightings and user can see them
         $attributeConditions = $this->Attribute->buildConditions($user);
-        $attributeConditions['Attribute.id'] = $attributesIds;
+        $subQueryOptions = [
+            'fields' => ['DISTINCT Sighting.attribute_id'],
+            'conditions' => ['Sighting.id' => $ids],
+        ];
+        $attributeConditions[] = $this->subQueryGenerator($this, $subQueryOptions, 'Attribute.id');
         $attributes = $this->Attribute->find('all', [
             'recursive' => -1,
             'conditions' => $attributeConditions,
@@ -226,7 +220,7 @@ class Sighting extends AppModel
             return [];
         }
 
-        // Create conditions for fetching just sightings user can see according to sightings policy
+        // Create conditions for fetching just sightings that user can see according to sightings policy
         $conditions = $this->createConditionsByAttributes($user, $attributes);
         if (empty($conditions)) {
             return [];
@@ -284,10 +278,9 @@ class Sighting extends AppModel
      * Return sighting without ACL checks
      *
      * @param int $id
-     * @param bool $withEvent
      * @return array
      */
-    public function getSighting($id, $withEvent = true)
+    public function getSighting($id)
     {
         $sighting = $this->find('first', array(
             'recursive' => -1,
@@ -296,7 +289,7 @@ class Sighting extends AppModel
                     'fields' => array('Attribute.value', 'Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids')
                 ),
                 'Event' => array(
-                    'fields' => $withEvent ? ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'] : ['Event.org_id'],
+                    'fields' => ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'],
                 )
             ),
             'conditions' => array('Sighting.id' => $id)
@@ -306,17 +299,13 @@ class Sighting extends AppModel
         }
 
         // Put event organisation name from cache
-        if ($withEvent) {
-            $sighting['Event']['Orgc']['name'] = $this->getOrganisationById($sighting['Event']['orgc_id'])['name'];
-        }
+        $sighting['Event']['Orgc']['name'] = $this->getOrganisationById($sighting['Event']['orgc_id'])['name'];
 
         // rearrange it to match the event format of fetchevent
         $result = array(
             'Sighting' => $sighting['Sighting']
         );
-        if ($withEvent) {
-            $result['Sighting']['Event'] = $sighting['Event'];
-        }
+        $result['Sighting']['Event'] = $sighting['Event'];
         $result['Sighting']['Attribute'] = $sighting['Attribute'];
         return $result;
     }
@@ -382,7 +371,7 @@ class Sighting extends AppModel
 
     /**
      * @param array $user
-     * @param array $attributes
+     * @param array $attributes Attributes with `Attribute.id`, `Event.id` and `Event.org_id` fields
      * @return array
      */
     private function createConditionsByAttributes(array $user, array $attributes)
@@ -393,19 +382,21 @@ class Sighting extends AppModel
             return ['Sighting.attribute_id' => array_column(array_column($attributes, 'Attribute'), 'id')];
         }
 
+        $hostOrgId = Configure::read('MISP.host_org_id');
+        $userOrgId = $user['org_id'];
         $conditions = [];
         foreach ($attributes as $attribute) {
             $attributeConditions = ['Sighting.attribute_id' => $attribute['Attribute']['id']];
-            $ownEvent = $attribute['Event']['org_id'] == $user['org_id'];
+            $ownEvent = $attribute['Event']['org_id'] == $userOrgId;
             if (!$ownEvent) {
                 if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
-                    $attributeConditions['Sighting.org_id'] = $user['org_id'];
+                    $attributeConditions['Sighting.org_id'] = $userOrgId;
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                    if (!$this->isReporter($attribute['Event']['id'], $user['org_id'])) {
+                    if (!$this->isReporter($attribute['Event']['id'], $userOrgId)) {
                         continue; // skip attribute
                     }
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
-                    $attributeConditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
+                    $attributeConditions['Sighting.org_id'] = [$userOrgId, $hostOrgId];
                 }
             }
             $conditions['OR'][] = $attributeConditions;
