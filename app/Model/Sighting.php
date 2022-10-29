@@ -232,6 +232,7 @@ class Sighting extends AppModel
             return [];
         }
 
+        $conditions['Sighting.id'] = $ids;
         $sightings = $this->find('all', [
             'recursive' => -1,
             'conditions' => $conditions,
@@ -1508,7 +1509,7 @@ class Sighting extends AppModel
         }
         return $this->Organisation->find('list', [
             'fields' => ['Organisation.uuid', 'Organisation.id'],
-            'conditions' => ['Organisation.uuid' => array_unique(array_column($organisations, 'uuid'))],
+            'conditions' => ['Organisation.uuid' => array_unique(array_column($organisations, 'uuid'), SORT_REGULAR)],
         ]);
     }
 
