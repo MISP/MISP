@@ -19,17 +19,21 @@ class CurlClient extends HttpSocketExtended
     private $cryptoMethod;
 
     /** @var bool */
+    private $allowSelfSigned;
+
+    /** @var bool */
+    private $verifyPeer;
+
+    /** @var bool */
     private $compress = true;
 
     /** @var array */
     private $proxy = [];
 
+    /** @var array */
+    private $defaultOptions;
+
     /**
-     * TODO: Missing support for:
-     * - ssl_verify_peer_name
-     * - ssl_allow_self_signed
-     * - ssl_verify_peer
-     *
      * @param array $params
      * @noinspection PhpMissingParentConstructorInspection
      */
@@ -50,6 +54,13 @@ class CurlClient extends HttpSocketExtended
         if (isset($params['ssl_crypto_method'])) {
             $this->cryptoMethod = $this->convertCryptoMethod($params['ssl_crypto_method']);
         }
+        if (isset($params['ssl_allow_self_signed'])) {
+            $this->allowSelfSigned = $params['ssl_allow_self_signed'];
+        }
+        if (isset($params['ssl_verify_peer'])) {
+            $this->verifyPeer = $params['ssl_verify_peer'];
+        }
+        $this->defaultOptions = $this->generateDefaultOptions();
     }
 
     /**
@@ -76,41 +87,41 @@ class CurlClient extends HttpSocketExtended
 
     /**
      * @param string $uri
-     * @param array $query
+     * @param array $data
      * @param array $request
      * @return HttpSocketResponseExtended
      */
-    public function post($uri = null, $query = [], $request = [])
+    public function post($uri = null, $data = [], $request = [])
     {
-        return $this->internalRequest('POST', $uri, $query, $request);
+        return $this->internalRequest('POST', $uri, $data, $request);
     }
 
     /**
-     * @param $uri
-     * @param $data
+     * @param string $uri
+     * @param array$data
      * @param $request
      * @return HttpSocketResponseExtended
      */
-    public function put($uri = null, $data = array(), $request = array())
+    public function put($uri = null, $data = [], $request = [])
     {
         return $this->internalRequest('PUT', $uri, $data, $request);
     }
 
     /**
-     * @param $uri
-     * @param $data
-     * @param $request
+     * @param string $uri
+     * @param array $data
+     * @param array $request
      * @return HttpSocketResponseExtended
      */
-    public function patch($uri = null, $data = array(), $request = array())
+    public function patch($uri = null, $data = [], $request = [])
     {
         return $this->internalRequest('PATCH', $uri, $data, $request);
     }
 
     /**
-     * @param $uri
-     * @param $data
-     * @param $request
+     * @param string $uri
+     * @param array $data
+     * @param array $request
      * @return HttpSocketResponseExtended
      */
     public function delete($uri = null, $data = array(), $request = array())
@@ -187,18 +198,9 @@ class CurlClient extends HttpSocketExtended
             $url .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
         }
 
-        $options = [
-            CURLOPT_URL => $url,
-            CURLOPT_FOLLOWLOCATION => true, // Allows to follow redirect
-            CURLOPT_MAXREDIRS => 10,
-           // CURLOPT_SSL_VERIFYPEER => $this->verifyPeer,
-           // CURLOPT_SSL_VERIFYHOST => $this->verifyHost ? 2 : 0,
-            CURLOPT_RETURNTRANSFER => true, // Should cURL return or print out the data? (true = return, false = print)
-            CURLOPT_HEADER => false, // Include header in result?
-            CURLOPT_TIMEOUT => $this->timeout, // Timeout in seconds
-            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP, // be sure that only HTTP and HTTPS protocols are enabled,
-            CURLOPT_CUSTOMREQUEST => $method,
-        ];
+        $options = $this->defaultOptions;
+        $options[CURLOPT_URL] = $url;
+        $options[CURLOPT_CUSTOMREQUEST] = $method;
 
         if (($method === 'POST' || $method === 'DELETE' || $method === 'PUT' || $method === 'PATCH') && !empty($query)) {
             $options[CURLOPT_POSTFIELDS] = $query;
@@ -215,25 +217,9 @@ class CurlClient extends HttpSocketExtended
             $options[CURLOPT_HTTPHEADER] = $headers;
         }
 
-        if ($this->caFile) {
-            $options[CURLOPT_CAINFO] = $this->caFile;
-        }
-
-        if ($this->localCert) {
-            $options[CURLOPT_SSLCERT] = $this->localCert;
-        }
-
-        if ($this->cryptoMethod) {
-            $options[CURLOPT_SSLVERSION] = $this->cryptoMethod;
-        }
-
-        if ($this->compress) {
-            $options[CURLOPT_ENCODING] = '';
-        }
-
         // Parse response headers
-        $headers = [];
-        $options[CURLOPT_HEADERFUNCTION] = function ($curl, $header) use (&$headers){
+        $responseHeaders = [];
+        $options[CURLOPT_HEADERFUNCTION] = function ($curl, $header) use (&$responseHeaders){
             $len = strlen($header);
             $header = explode(':', $header, 2);
             if (count($header) < 2) { // ignore invalid headers
@@ -242,20 +228,13 @@ class CurlClient extends HttpSocketExtended
             $key = strtolower(trim($header[0]));
             $value = trim($header[1]);
 
-            if (isset($headers[$key])) {
-                $headers[$key] = array_merge((array)$headers[$key], [$value]);
+            if (isset($responseHeaders[$key])) {
+                $responseHeaders[$key] = array_merge((array)$responseHeaders[$key], [$value]);
             } else {
-                $headers[$key] = $value;
+                $responseHeaders[$key] = $value;
             }
             return $len;
         };
-
-        if (!empty($this->proxy)) {
-            $options[CURLOPT_PROXY] = "{$this->proxy['host']}:{$this->proxy['port']}";
-            if (!empty($this->proxy['method']) && isset($this->proxy['user'], $this->proxy['pass'])) {
-                $options[CURLOPT_PROXYUSERPWD] = "{$this->proxy['user']}:{$this->proxy['pass']}";
-            }
-        }
 
         if (!curl_setopt_array($this->ch, $options)) {
             throw new \RuntimeException('cURL error: Could not set options');
@@ -269,7 +248,7 @@ class CurlClient extends HttpSocketExtended
         }
 
         $code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
-        return $this->constructResponse($output, $headers, $code);
+        return $this->constructResponse($output, $responseHeaders, $code);
     }
 
     /**
@@ -280,6 +259,16 @@ class CurlClient extends HttpSocketExtended
      */
     private function constructResponse($body, array $headers, $code)
     {
+        if (isset($responseHeaders['content-encoding']) && $responseHeaders['content-encoding'] === 'zstd') {
+            if (!function_exists('zstd_uncompress')) {
+                throw new SocketException('Response is zstd encoded, but PHP do not support zstd decoding.');
+            }
+            $body = zstd_uncompress($body);
+            if ($body === false) {
+                throw new SocketException('Could not decode zstd encoded response.');
+            }
+        }
+
         $response = new HttpSocketResponseExtended();
         $response->code = $code;
         $response->body = $body;
@@ -305,5 +294,71 @@ class CurlClient extends HttpSocketExtended
             default:
                 throw new InvalidArgumentException("Unsupported crypto method value $cryptoMethod");
         }
+    }
+
+    /**
+     * @return array
+     */
+    private function generateDefaultOptions()
+    {
+        $options = [
+            CURLOPT_FOLLOWLOCATION => true, // Allows to follow redirect
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_RETURNTRANSFER => true, // Should cURL return or print out the data? (true = return, false = print)
+            CURLOPT_HEADER => false, // Include header in result?
+            CURLOPT_TIMEOUT => $this->timeout, // Timeout in seconds
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP, // be sure that only HTTP and HTTPS protocols are enabled,
+        ];
+
+        if ($this->caFile) {
+            $options[CURLOPT_CAINFO] = $this->caFile;
+        }
+
+        if ($this->localCert) {
+            $options[CURLOPT_SSLCERT] = $this->localCert;
+        }
+
+        if ($this->cryptoMethod) {
+            $options[CURLOPT_SSLVERSION] = $this->cryptoMethod;
+        }
+
+        if ($this->compress) {
+            $options[CURLOPT_ACCEPT_ENCODING] = $this->supportedEncodings();
+        }
+
+        if ($this->allowSelfSigned) {
+            $options[CURLOPT_SSL_VERIFYPEER] = $this->verifyPeer;
+            $options[CURLOPT_SSL_VERIFYHOST] = 0;
+        }
+
+        if (!empty($this->proxy)) {
+            $options[CURLOPT_PROXY] = "{$this->proxy['host']}:{$this->proxy['port']}";
+            if (!empty($this->proxy['method']) && isset($this->proxy['user'], $this->proxy['pass'])) {
+                $options[CURLOPT_PROXYUSERPWD] = "{$this->proxy['user']}:{$this->proxy['pass']}";
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return string
+     */
+    private function supportedEncodings()
+    {
+        $encodings = [];
+        // zstd is not supported by curl itself, but add support if PHP zstd extension is installed
+        if (function_exists('zstd_uncompress')) {
+            $encodings[] = 'zstd';
+        }
+        // brotli and gzip is supported by curl itself if it is compiled with these features
+        $info = curl_version();
+        if (defined('CURL_VERSION_BROTLI') && $info['features'] & CURL_VERSION_BROTLI) {
+            $encodings[] = 'br';
+        }
+        if ($info['features'] & CURL_VERSION_LIBZ) {
+            $encodings[] = 'gzip, deflate';
+        }
+        return implode(', ', $encodings);
     }
 }
