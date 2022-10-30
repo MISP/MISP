@@ -36,6 +36,7 @@
         "ext-rdkafka": "Required for publishing events to Kafka broker",
         "ext-apcu": "To cache data in memory instead of file system",
         "ext-simdjson": "To decode JSON structures faster",
+        "ext-curl": "For faster remote requests",
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
         "aws/aws-sdk-php": "To upload samples to S3",
         "jakub-onderka/openid-connect-php": "For OIDC authentication",
