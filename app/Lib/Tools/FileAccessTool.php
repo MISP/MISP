@@ -150,6 +150,27 @@ class FileAccessTool
 
     /**
      * @param string $file
+     * @return string
+     * @throws Exception
+     */
+    public static function readCompressedFile($file)
+    {
+        $content = file_get_contents("compress.zlib://$file");
+        if ($content === false) {
+            if (!file_exists($file)) {
+                $message = "file doesn't exists";
+            } else if (!is_readable($file)) {
+                $message = "file is not readable";
+            } else {
+                $message = 'unknown error';
+            }
+            throw new Exception("An error has occurred while attempt to read file `$file`: $message.");
+        }
+        return $content;
+    }
+
+    /**
+     * @param string $file
      * @return bool
      */
     public static function deleteFile($file)
