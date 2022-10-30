@@ -124,7 +124,7 @@ class AppController extends Controller
         $this->__cors();
         if (Configure::read('Security.check_sec_fetch_site_header')) {
             $secFetchSite = $this->request->header('Sec-Fetch-Site');
-            if ($secFetchSite !== false && $secFetchSite !== 'same-origin' && ($this->request->is('post') || $this->request->is('put') || $this->request->is('ajax'))) {
+            if ($secFetchSite !== false && $secFetchSite !== 'same-origin' && $this->request->is(['post', 'put', 'ajax'])) {
                 throw new MethodNotAllowedException("POST, PUT and AJAX requests are allowed just from same origin.");
             }
         }
@@ -1396,8 +1396,7 @@ class AppController extends Controller
         }
 
         try {
-            $redis = $this->User->setupRedisWithException();
-            return $redis->get('misp:live') !== '0';
+            return RedisTool::init()->get('misp:live') !== '0';
         } catch (Exception $e) {
             return true;
         }
