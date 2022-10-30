@@ -6,7 +6,8 @@
       private $__related_attributes = array();
       /** @var Event */
       private $__eventModel;
-      private $__taxonomyModel = false;
+      /** @var Taxonomy */
+      private $__taxonomyModel;
       private $__galaxyClusterModel = false;
       private $__user = false;
       private $__json = array();

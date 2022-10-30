@@ -987,7 +987,7 @@ class TagsController extends AppController
         $this->loadModel('Taxonomy');
         foreach ($tags as $k => $t) {
             $dataFound = false;
-            $taxonomy = $this->Taxonomy->getTaxonomyForTag($t['Tag']['name'], false);
+            $taxonomy = $this->Taxonomy->getTaxonomyForTag($t['Tag']['name']);
             if (!empty($taxonomy) && !empty($taxonomy['TaxonomyPredicate'][0])) {
                 $dataFound = true;
                 $tags[$k]['Taxonomy'] = $taxonomy['Taxonomy'];
