@@ -2,6 +2,7 @@
 import os
 import json
 import uuid
+import inspect
 import subprocess
 import unittest
 import requests
@@ -26,10 +27,12 @@ urllib3.disable_warnings()
 
 
 def create_simple_event() -> MISPEvent:
+    caller_name = inspect.stack()[1].function
     event_uuid = str(uuid.uuid4())
+
     event = MISPEvent()
     event.uuid = event_uuid
-    event.info = 'This is a super simple test ({})'.format(event_uuid.split('-')[0])
+    event.info = 'This is a super simple test ({}, {})'.format(event_uuid.split('-')[0], caller_name)
     event.distribution = Distribution.your_organisation_only
     event.threat_level_id = ThreatLevel.low
     event.analysis = Analysis.completed
@@ -110,6 +113,8 @@ class TestComprehensive(unittest.TestCase):
 
         # Search published
         index_published = self.user_misp_connector.search_index(published=True)
+        if len(index_published):
+            print(index_published)
         self.assertEqual(len(index_published), 0, "No event should be published.")
 
         # Create test event
@@ -143,14 +148,14 @@ class TestComprehensive(unittest.TestCase):
         event = create_simple_event()
         event.info = uuid.uuid4()
 
-        # No event should exists
+        # No event should exist
         index = self.user_misp_connector.search_index(eventinfo=event.info)
         self.assertEqual(len(index), 0, "No event should exists")
 
         event = self.user_misp_connector.add_event(event)
         check_response(event)
 
-        # One event should exists
+        # One event should exist
         index = self.user_misp_connector.search_index(eventinfo=event.info)
         self.assertEqual(len(index), 1)
         self.assertEqual(index[0].uuid, event.uuid)
@@ -353,7 +358,7 @@ class TestComprehensive(unittest.TestCase):
         for event in minimal_org:
             self.assertEqual(event["orgc_uuid"], self.test_org.uuid)
 
-        # Search by non existing uuid
+        # Search by non-existing uuid
         minimal_org_uuid_non_existing = self.user_misp_connector.search_index(minimal=True, org=uuid.uuid4())
         self.assertEqual(len(minimal_org_uuid_non_existing), 0)
 
