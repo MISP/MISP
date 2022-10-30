@@ -100,6 +100,9 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        $controller = $this->request->params['controller'];
+        $action = $this->request->params['action'];
+
         if (Configure::read('MISP.system_setting_db')) {
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
@@ -180,8 +183,8 @@ class AppController extends Controller
         if (!empty($this->request->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
         }
-        Configure::write('CurrentController', $this->request->params['controller']);
-        Configure::write('CurrentAction', $this->request->params['action']);
+        Configure::write('CurrentController', $controller);
+        Configure::write('CurrentAction', $action);
         $versionArray = $this->User->checkMISPVersion();
         $this->mispVersion = implode('.', $versionArray);
         $this->Security->blackHoleCallback = 'blackHole';
@@ -206,15 +209,15 @@ class AppController extends Controller
             };
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
-            $this->Security->unlockedActions = array($this->request->action);
+            $this->Security->unlockedActions = [$action];
             $this->Security->doNotGenerateToken = true;
         }
 
         if (
             !$userLoggedIn &&
             (
-                $this->request->params['controller'] !== 'users' ||
-                $this->request->params['action'] !== 'register' ||
+                $controller !== 'users' ||
+                $action !== 'register' ||
                 empty(Configure::read('Security.allow_self_registration'))
             )
         ) {
@@ -341,12 +344,12 @@ class AppController extends Controller
             }
         }
 
-        $this->ACL->checkAccess($user, Inflector::variable($this->request->params['controller']), $this->request->action);
+        $this->ACL->checkAccess($user, Inflector::variable($controller), $action);
         if ($user && $this->_isRest()) {
             $this->__rateLimitCheck($user);
         }
         if ($this->modelClass !== 'CakeError') {
-            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->request->action, $this->User, $user ? $user['id'] : null);
+            $deprecationWarnings = $this->Deprecation->checkDeprecation($controller, $action, $user ? $user['id'] : null);
             if ($deprecationWarnings) {
                 $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
                 if ($this->_isRest()) {
