@@ -42,15 +42,14 @@ class DeprecationComponent extends Component
     /**
      * @param string $controller
      * @param string $action
-     * @param AppModel $model
      * @param int|null $user_id
      * @return false|string
      */
-    public function checkDeprecation($controller, $action, AppModel $model, $user_id)
+    public function checkDeprecation($controller, $action, $user_id)
     {
         if (isset($this->deprecatedEndpoints[$controller][$action])) {
             if ($user_id) {
-                $this->__logDeprecatedAccess($controller, $action, $model, $user_id);
+                $this->__logDeprecatedAccess($controller, $action, $user_id);
             }
             if ($this->deprecatedEndpoints[$controller][$action]) {
                 return $this->deprecatedEndpoints[$controller][$action];
@@ -59,34 +58,38 @@ class DeprecationComponent extends Component
         return false;
     }
 
-    private function __logDeprecatedAccess($controller, $action, AppModel $model, $user_id)
+    /**
+     * @param string $controller
+     * @param string $action
+     * @param int $user_id
+     * @return void
+     */
+    private function __logDeprecatedAccess($controller, $action, $user_id)
     {
-        $redis = $model->setupRedis();
-        if ($redis) {
-            @$redis->hincrby(
+        try {
+            RedisTool::init()->hincrby(
                 'misp:deprecation',
                 "$controller:$action:$user_id",
                 1
             );
+        } catch (Exception $e) {
+            // ignore
         }
-        return false;
     }
 
-    public function getDeprecatedAccessList(AppModel $model)
+    public function getDeprecatedAccessList()
     {
         $rearranged = array();
-        $redis = $model->setupRedis();
-        if ($redis) {
-            $result = $redis->hGetAll('misp:deprecation');
-            if (!empty($result)) {
-                foreach ($result as $key => $value) {
-                    $key_components = explode(':', $key);
-                    $rearranged[$key_components[0]][$key_components[1]][$key_components[2]] = (int)$value;
-                    if (empty($rearranged[$key_components[0]][$key_components[1]]['total'])) {
-                        $rearranged[$key_components[0]][$key_components[1]]['total'] = (int)$value;
-                    } else {
-                        $rearranged[$key_components[0]][$key_components[1]]['total'] += (int)$value;
-                    }
+        $redis = RedisTool::init();
+        $result = $redis->hGetAll('misp:deprecation');
+        if (!empty($result)) {
+            foreach ($result as $key => $value) {
+                $key_components = explode(':', $key);
+                $rearranged[$key_components[0]][$key_components[1]][$key_components[2]] = (int)$value;
+                if (empty($rearranged[$key_components[0]][$key_components[1]]['total'])) {
+                    $rearranged[$key_components[0]][$key_components[1]]['total'] = (int)$value;
+                } else {
+                    $rearranged[$key_components[0]][$key_components[1]]['total'] += (int)$value;
                 }
             }
         }
