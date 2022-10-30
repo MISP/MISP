@@ -168,18 +168,22 @@ class RedisTool
             if (function_exists('zstd_compress')) {
                 return zstd_compress($data, 1);
             } elseif (function_exists('brotli_compress')) {
-                return self::BROTLI_HEADER . brotli_compress($data, 4);
+                return self::BROTLI_HEADER . brotli_compress($data, 0);
             }
         }
         return $data;
     }
 
     /**
-     * @param string $data
+     * @param string|false $data
      * @return string
      */
     public static function decompress($data)
     {
+        if ($data === false) {
+            return false;
+        }
+
         $magic = substr($data, 0, 4);
         if ($magic === self::ZSTD_HEADER) {
            $data = zstd_uncompress($data);

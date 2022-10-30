@@ -46,9 +46,9 @@ class FileAccessTool
     public static function readFromFile($file, $fileSize = -1)
     {
         if ($fileSize === -1) {
-            $content = file_get_contents($file);
+            $content = @file_get_contents($file);
         } else {
-            $content = file_get_contents($file, false, null, 0, $fileSize);
+            $content = @file_get_contents($file, false, null, 0, $fileSize);
         }
         if ($content === false) {
             if (!file_exists($file)) {
