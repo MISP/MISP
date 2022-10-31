@@ -730,35 +730,35 @@ class Server extends AppModel
     /**
      * getElligibleClusterIdsFromServerForPull Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
      *
-     * @param array $server
-     * @param mixed $HttpSocket
+     * @param ServerSyncTool $serverSync
      * @param bool $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
-     * @param array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
+     * @param array $eligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
      * @param array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
      * @return array List of cluster IDs to be pulled
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSyncTool, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
+    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSyncTool, $conditions=$conditions);
+        $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for pull: " . JsonTool::encode($conditions), LOG_INFO);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
         if (!empty($clusterArray)) {
             foreach ($clusterArray as $cluster) {
-                if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
-                    $localVersion = $elligibleClusters[$cluster['GalaxyCluster']['uuid']];
+                if (isset($eligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
+                    $localVersion = $eligibleClusters[$cluster['GalaxyCluster']['uuid']];
                     if ($localVersion >= $cluster['GalaxyCluster']['version']) {
-                        unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                        unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
                     }
                 } else {
                     if ($onlyUpdateLocalCluster) {
-                        unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                        unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
                     } else {
-                        $elligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
+                        $eligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
                     }
                 }
             }
-            return array_keys($elligibleClusters);
+            return array_keys($eligibleClusters);
         }
         return $clusterArray;
     }
@@ -775,6 +775,7 @@ class Server extends AppModel
      */
     private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
     {
+        $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for push: " . JsonTool::encode($conditions), LOG_INFO);
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
@@ -1213,6 +1214,9 @@ class Server extends AppModel
         if (!$server['Server']['push_galaxy_clusters']) {
             return $successes;
         }
+
+        $this->log("Starting $technique clusters sync with server #{$serverSync->serverId()}", LOG_INFO);
+
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $this->Event = ClassRegistry::init('Event');
         $clusters = array();
