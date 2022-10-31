@@ -751,9 +751,7 @@ class ServersController extends AppController
             throw new NotFoundException(__('Invalid server'));
         }
         $error = false;
-        if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
+
         if (false == $s['Server']['pull'] && ($technique === 'full' || $technique === 'incremental')) {
             $error = __('Pull setting not enabled for this server.');
         }
@@ -832,9 +830,7 @@ class ServersController extends AppController
             throw new NotFoundException(__('Invalid server'));
         }
         $s = $this->Server->read(null, $id);
-        if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
+
         if (!Configure::read('MISP.background_jobs')) {
             App::uses('SyncTool', 'Tools');
             $syncTool = new SyncTool();
@@ -1381,6 +1377,11 @@ class ServersController extends AppController
                         return;
                     }
 
+                    if (empty($remote_event)) {
+                        $this->Flash->error(__("This event could not be found or you don't have permissions to see it."));
+                        return;
+                    }
+
                     $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $remote_event['uuid']);
                     // we record it to avoid re-querying the same server in the 2nd phase
                     if (!empty($local_event)) {
@@ -1835,13 +1836,14 @@ class ServersController extends AppController
 
     public function getVersion()
     {
+        $user = $this->_closeSession();
         $versionArray = $this->Server->checkMISPVersion();
         $response = [
             'version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'],
             'pymisp_recommended_version' => $this->pyMispVersion,
-            'perm_sync' => (bool) $this->userRole['perm_sync'],
-            'perm_sighting' => (bool) $this->userRole['perm_sighting'],
-            'perm_galaxy_editor' => (bool) $this->userRole['perm_galaxy_editor'],
+            'perm_sync' => (bool) $user['Role']['perm_sync'],
+            'perm_sighting' => (bool) $user['Role']['perm_sighting'],
+            'perm_galaxy_editor' => (bool) $user['Role']['perm_galaxy_editor'],
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
         ];

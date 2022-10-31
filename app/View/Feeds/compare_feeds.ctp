@@ -1,5 +1,5 @@
 <?php
-    $canViewFeedData = $isSiteAdmin || intval(Configure::read('MISP.host_org_id')) === $me['org_id'];
+    $canViewFeedData = $isSiteAdmin || $hostOrgUser;
     $feedTemplate = array(
         'id', 'name', 'provider', 'url'
     );

@@ -22,8 +22,7 @@ class ApiController extends AppController
 
     public function viewDeprecatedFunctionUse()
     {
-        $server = ClassRegistry::init('Server');
-        $data = $this->Deprecation->getDeprecatedAccessList($server);
+        $data = $this->Deprecation->getDeprecatedAccessList();
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($data, $this->response->type());
         } else {

@@ -103,7 +103,7 @@ class Feed extends AppModel
     public function afterSave($created, $options = array())
     {
         if (!$created) {
-            $this->cleanFileCache((int)$this->data['Feed']['id']);
+            $this->cleanFileCache($this->data['Feed']['id']);
         }
     }
 
@@ -228,7 +228,7 @@ class Feed extends AppModel
         $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket);
 
         try {
-            return $this->jsonDecode($data);
+            return JsonTool::decodeArray($data);
         } catch (Exception $e) {
             throw new Exception("Could not parse '$manifestUrl' manifest JSON", 0, $e);
         }
@@ -239,7 +239,15 @@ class Feed extends AppModel
      */
     private function cleanFileCache($feedId)
     {
-        foreach (["misp_feed_{$feedId}_manifest.cache.gz", "misp_feed_{$feedId}_manifest.etag", "misp_feed_$feedId.cache", "misp_feed_$feedId.etag"] as $fileName) {
+        $cacheFiles = [
+            "misp_feed_{$feedId}_manifest.cache.gz",
+            "misp_feed_{$feedId}_manifest.cache",
+            "misp_feed_{$feedId}_manifest.etag",
+            "misp_feed_$feedId.cache.gz",
+            "misp_feed_$feedId.cache", // old file name
+            "misp_feed_$feedId.etag",
+        ];
+        foreach ($cacheFiles as $fileName) {
             FileAccessTool::deleteFileIfExists(self::CACHE_DIR . $fileName);
         }
     }
@@ -268,20 +276,20 @@ class Feed extends AppModel
             $response = $this->feedGetUriRemote($feed, $manifestUrl, $HttpSocket, $etag);
         } catch (HttpSocketHttpException $e) {
             if ($e->getCode() === 304) { // not modified
-                $data = file_get_contents("compress.zlib://$feedCache");
-                if ($data === false) {
+                try {
+                    return JsonTool::decodeArray(FileAccessTool::readCompressedFile($feedCache));
+                } catch (Exception $e) {
                     return $this->feedGetUriRemote($feed, $manifestUrl, $HttpSocket)->json(); // cache file is not readable, fetch without etag
                 }
-                return $this->jsonDecode($data);
             } else {
                 throw $e;
             }
         }
 
-        if ($response->getHeader('ETag')) {
+        if ($response->getHeader('etag')) {
             try {
                 FileAccessTool::writeCompressedFile($feedCache, $response->body);
-                FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('ETag'));
+                FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('etag'));
             } catch (Exception $e) {
                 FileAccessTool::deleteFileIfExists($feedCacheEtag);
                 $this->logException("Could not save file `$feedCache` to cache.", $e, LOG_NOTICE);
@@ -315,15 +323,16 @@ class Feed extends AppModel
      */
     private function getFreetextFeedRemote(array $feed, HttpSocket $HttpSocket)
     {
-        $feedCache = self::CACHE_DIR . 'misp_feed_' . (int)$feed['Feed']['id'] . '.cache';
+        $feedCache = self::CACHE_DIR . 'misp_feed_' . (int)$feed['Feed']['id'] . '.cache.gz';
         $feedCacheEtag = self::CACHE_DIR . 'misp_feed_' . (int)$feed['Feed']['id'] . '.etag';
 
         $etag = null;
         if (file_exists($feedCache)) {
             if (time() - filemtime($feedCache) < 600) {
-                $data = file_get_contents($feedCache);
-                if ($data !== false) {
-                    return $data;
+                try {
+                    return FileAccessTool::readCompressedFile($feedCache);
+                } catch (Exception $e) {
+                    // ignore
                 }
             } else if (file_exists($feedCacheEtag)) {
                 $etag = file_get_contents($feedCacheEtag);
@@ -334,20 +343,20 @@ class Feed extends AppModel
             $response = $this->feedGetUriRemote($feed, $feed['Feed']['url'], $HttpSocket, $etag);
         } catch (HttpSocketHttpException $e) {
             if ($e->getCode() === 304) { // not modified
-                $data = file_get_contents($feedCache);
-                if ($data === false) {
+                try {
+                    return FileAccessTool::readCompressedFile($feedCache);
+                } catch (Exception $e) {
                     return $this->feedGetUriRemote($feed, $feed['Feed']['url'], $HttpSocket); // cache file is not readable, fetch without etag
                 }
-                return $data;
             } else {
                 throw $e;
             }
         }
 
         try {
-            FileAccessTool::writeToFile($feedCache, $response->body);
-            if ($response->getHeader('ETag')) {
-                FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('ETag'));
+            FileAccessTool::writeCompressedFile($feedCache, $response->body);
+            if ($response->getHeader('etag')) {
+                FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('etag'));
             }
         } catch (Exception $e) {
             FileAccessTool::deleteFileIfExists($feedCacheEtag);
@@ -1982,7 +1991,7 @@ class Feed extends AppModel
         $data = $this->feedGetUri($feed, $path, $HttpSocket);
 
         try {
-            return $this->jsonDecode($data);
+            return JsonTool::decodeArray($data);
         } catch (Exception $e) {
             throw new Exception("Could not parse event JSON with UUID '$eventUuid' from feed", 0, $e);
         }
@@ -2034,7 +2043,7 @@ class Feed extends AppModel
             throw new HttpSocketHttpException($response, $uri);
         }
 
-        $contentType = $response->getHeader('Content-Type');
+        $contentType = $response->getHeader('content-type');
         if ($contentType === 'application/zip') {
             $zipFilePath = FileAccessTool::writeToTempFile($response->body);
 

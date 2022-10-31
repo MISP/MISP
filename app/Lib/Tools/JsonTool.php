@@ -23,25 +23,39 @@ class JsonTool
      * @param string $value
      * @returns mixed
      * @throws JsonException
+     * @throws UnexpectedValueException
      */
     public static function decode($value)
     {
         if (function_exists('simdjson_decode')) {
+            // Use faster version of json_decode from simdjson PHP extension if this extension is installed
             try {
                 return simdjson_decode($value, true);
             } catch (SimdJsonException $e) {
                 throw new JsonException($e->getMessage(), $e->getCode(), $e);
             }
-        }
-
-        if (defined('JSON_THROW_ON_ERROR')) {
+        } elseif (defined('JSON_THROW_ON_ERROR')) {
             // JSON_THROW_ON_ERROR is supported since PHP 7.3
             return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        } else {
+            $decoded = json_decode($value, true);
+            if ($decoded === null) {
+                throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
+            }
+            return $decoded;
         }
+    }
 
-        $decoded = json_decode($value, true);
-        if ($decoded === null) {
-            throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
+    /**
+     * @param string $value
+     * @return array
+     * @throws JsonException
+     */
+    public static function decodeArray($value)
+    {
+        $decoded = self::decode($value);
+        if (!is_array($decoded)) {
+            throw new UnexpectedValueException('JSON must be array type, get ' . gettype($decoded));
         }
         return $decoded;
     }

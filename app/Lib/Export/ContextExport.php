@@ -113,7 +113,7 @@ class ContextExport
             return; // tag is not taxonomy tag
         }
         if (!isset($this->__taxonomyFetched[$splits['namespace']])) {
-            $fetchedTaxonomy = $this->Taxonomy->getTaxonomyForTag($tagName, false, true);
+            $fetchedTaxonomy = $this->Taxonomy->getTaxonomyForTag($tagName, true);
             if (!empty($fetchedTaxonomy)) {
                 $fetched = [
                     'Taxonomy' => $fetchedTaxonomy['Taxonomy'],

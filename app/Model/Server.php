@@ -816,7 +816,7 @@ class Server extends AppModel
         $redis = RedisTool::init();
         $indexFromCache = $redis->get("misp:event_index:{$serverSync->serverId()}");
         if ($indexFromCache) {
-            list($etag, $eventIndex) = RedisTool::deserialize($indexFromCache);
+            list($etag, $eventIndex) = RedisTool::deserialize(RedisTool::decompress($indexFromCache));
         } else {
             $etag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
         }
@@ -835,10 +835,11 @@ class Server extends AppModel
         }
 
         // Save to cache for 24 hours if ETag provided
-        if (isset($response->headers["ETag"])) {
-            $data = RedisTool::serialize([$response->headers["ETag"], $eventIndex]);
+        $etag = $response->getHeader('etag');
+        if ($etag) {
+            $data = RedisTool::compress(RedisTool::serialize([$etag, $eventIndex]));
             $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
-        } else if ($indexFromCache) {
+        } elseif ($indexFromCache) {
             RedisTool::unlink($redis, "misp:event_index:{$serverSync->serverId()}");
         }
 
@@ -3951,7 +3952,7 @@ class Server extends AppModel
                 // pass
             }
             if (!empty($execResult)) {
-                $execResult = $this->jsonDecode($execResult);
+                $execResult = JsonTool::decodeArray($execResult);
                 $results['cli']['phpversion'] = $execResult['phpversion'];
                 foreach ($execResult['extensions'] as $extension => $loaded) {
                     $results['extensions'][$extension]['cli_version'] = $loaded;

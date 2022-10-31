@@ -1222,15 +1222,16 @@ class Event extends AppModel
             );
         }
         if (!Configure::read('MISP.completely_disable_correlation')) {
+            $correlationTableName = $this->Attribute->Correlation->getTableName();
             array_push(
                 $relations,
                 array(
-                    'table' => 'correlations',
+                    'table' => $correlationTableName,
                     'foreign_key' => 'event_id',
                     'value' => $id
                 ),
                 array(
-                    'table' => 'correlations',
+                    'table' => $correlationTableName,
                     'foreign_key' => '1_event_id',
                     'value' => $id
                 )
@@ -1293,7 +1294,7 @@ class Event extends AppModel
         }
         $tagScopes = array('Event', 'Attribute');
         $this->AttributeTag = ClassRegistry::init('AttributeTag');
-        $tagIds = $this->AttributeTag->Tag->find('list', array(
+        $tagIds = $this->AttributeTag->Tag->find('column', array(
             'recursive' => -1,
             'conditions' => array('Tag.name LIKE' => $params['wildcard']),
             'fields' => array('Tag.id')
@@ -1320,9 +1321,7 @@ class Event extends AppModel
         foreach ($attributeParams as $attributeParam) {
             $tempConditions[] = array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']);
         }
-        $tagScopes = array('Event', 'Attribute');
-        $this->AttributeTag = ClassRegistry::init('AttributeTag');
-        $tagIds = $this->AttributeTag->Tag->find('list', array(
+        $tagIds = $this->Attribute->AttributeTag->Tag->find('column', array(
             'recursive' => -1,
             'conditions' => array('Tag.name LIKE' => $params['wildcard']),
             'fields' => array('Tag.id')
@@ -1341,7 +1340,7 @@ class Event extends AppModel
                 ),
                 'fields' => array('attribute_id')
             );
-            $tempConditions[] = $this->subQueryGenerator($this->AttributeTag, $subQueryOptions, 'Attribute.id');
+            $tempConditions[] = $this->subQueryGenerator($this->Attribute->AttributeTag, $subQueryOptions, 'Attribute.id');
         }
         return $tempConditions;
     }
@@ -1466,7 +1465,7 @@ class Event extends AppModel
         return $results;
     }
 
-    public function fetchSimpleEventIds($user, $params = array())
+    public function fetchSimpleEventIds(array $user, $params = array())
     {
         $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];
@@ -2379,6 +2378,8 @@ class Event extends AppModel
             $eventMeta = array(
                 'id' => $extensionEvent['Event']['id'],
                 'info' => $extensionEvent['Event']['info'],
+                'orgc_id' => $extensionEvent['Event']['orgc_id'],
+                'user_id' => $extensionEvent['Event']['user_id'],
                 'Orgc' => array(
                     'id' => $extensionEvent['Orgc']['id'],
                     'name' => $extensionEvent['Orgc']['name'],
@@ -6487,15 +6488,7 @@ class Event extends AppModel
         }
 
         if ($saved_attributes > 0 || $saved_objects > 0 || $saved_reports > 0) {
-            $event = $this->find('first', array(
-                    'conditions' => array('Event.id' => $id),
-                    'recursive' => -1
-            ));
-            if ($event['Event']['published'] == 1) {
-                $event['Event']['published'] = 0;
-            }
-            $event['Event']['timestamp'] = time();
-            $this->save($event);
+            $this->unpublishEvent($id);
         }
         if ($event_level) {
             return $saved_attributes + $saved_object_attributes + $saved_reports;

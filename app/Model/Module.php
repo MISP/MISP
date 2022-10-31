@@ -14,7 +14,7 @@ class Module extends AppModel
         'Cortex' => array('cortex')
     );
 
-    private $__typeToFamily = array(
+    const TYPE_TO_FAMILY = array(
         'Import' => 'Import',
         'Export' => 'Export',
         'Action' => 'Action',
@@ -113,11 +113,7 @@ class Module extends AppModel
                     unset($modules[$k]);
                     continue;
                 }
-                if (
-                    !$user['Role']['perm_site_admin'] &&
-                    Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_restrict') &&
-                    Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_restrict') != $user['org_id']
-                ) {
+                if (!$this->canUse($user, $moduleFamily, $module)) {
                     unset($modules[$k]);
                 }
             }
@@ -156,10 +152,10 @@ class Module extends AppModel
      */
     public function getEnabledModule($name, $type)
     {
-        if (!isset($this->__typeToFamily[$type])) {
+        if (!isset(self::TYPE_TO_FAMILY[$type])) {
             throw new InvalidArgumentException("Invalid type '$type'.");
         }
-        $moduleFamily = $this->__typeToFamily[$type];
+        $moduleFamily = self::TYPE_TO_FAMILY[$type];
         $modules = $this->getModules($moduleFamily);
         if (!Configure::read('Plugin.' . $moduleFamily . '_' . $name . '_enabled')) {
             return 'The requested module is not enabled.';
@@ -375,14 +371,13 @@ class Module extends AppModel
                                     $name = is_string($key) ? $key : $value['name'];
                                     $moduleSettings[] = [
                                         'name' => $name,
-                                        'type' => isset($value['type']) ? $value['type'] : 'string',
-                                        'test' => isset($value['test']) ? $value['test'] : null,
-                                        'description' => isset($value['description']) ? $value['description'] : null,
-                                        'null' => isset($value['null']) ? $value['null'] : null,
-                                        'test' => isset($value['test']) ? $value['test'] : null,
-                                        'bigField' => isset($value['bigField']) ? $value['bigField'] : false,
-                                        'cli_only' => isset($value['cli_only']) ? $value['cli_only'] : false,
-                                        'redacted' => isset($value['redacted']) ? $value['redacted'] : false
+                                        'type' => $value['type'] ?? 'string',
+                                        'description' => $value['description'] ?? null,
+                                        'null' => $value['null'] ?? null,
+                                        'test' => $value['test'] ?? null,
+                                        'bigField' => $value['bigField'] ?? false,
+                                        'cli_only' => $value['cli_only'] ?? false,
+                                        'redacted' => $value['redacted'] ?? false
                                     ];
                                 } else if (is_string($key)) {
                                     $moduleSettings[] = [
@@ -401,5 +396,28 @@ class Module extends AppModel
             }
         }
         return $result;
+    }
+
+    /**
+     * @param array $user
+     * @param string $moduleFamily
+     * @param array $module
+     * @return bool
+     */
+    public function canUse(array $user, $moduleFamily, array $module)
+    {
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+
+        $config = Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_restrict');
+        if (empty($config)) {
+            return true;
+        }
+        if ($config == $user['org_id']) {
+            return true;
+        }
+
+        return false;
     }
 }
