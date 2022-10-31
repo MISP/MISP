@@ -743,24 +743,24 @@ class Server extends AppModel
     {
         $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for pull: " . JsonTool::encode($conditions), LOG_INFO);
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
-        if (!empty($clusterArray)) {
-            foreach ($clusterArray as $cluster) {
-                if (isset($eligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
-                    $localVersion = $eligibleClusters[$cluster['GalaxyCluster']['uuid']];
-                    if ($localVersion >= $cluster['GalaxyCluster']['version']) {
-                        unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
-                    }
+        if (empty($clusterArray)) {
+            return [];
+        }
+        foreach ($clusterArray as $cluster) {
+            if (isset($eligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
+                $localVersion = $eligibleClusters[$cluster['GalaxyCluster']['uuid']];
+                if ($localVersion >= $cluster['GalaxyCluster']['version']) {
+                    unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                }
+            } else {
+                if ($onlyUpdateLocalCluster) {
+                    unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
                 } else {
-                    if ($onlyUpdateLocalCluster) {
-                        unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
-                    } else {
-                        $eligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
-                    }
+                    $eligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
                 }
             }
-            return array_keys($eligibleClusters);
         }
-        return $clusterArray;
+        return array_keys($eligibleClusters);
     }
 
     /**
@@ -1101,11 +1101,11 @@ class Server extends AppModel
                     $event = $this->Event->fetchEvent($user, $params);
                     $event = $event[0];
                     $event['Event']['locked'] = 1;
+
                     if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" != $technique) {
-                        $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
-                    } else {
-                        $clustersSuccesses = array();
+                        $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
                     }
+
                     $result = $this->Event->uploadEventToServer($event, $server, $serverSync);
                     if ('Success' === $result) {
                         $successes[] = $event['Event']['id'];
@@ -1199,9 +1199,9 @@ class Server extends AppModel
     }
 
     /**
-     * syncGalaxyClusters Push elligible clusters depending on the provided technique
+     * syncGalaxyClusters Push eligible clusters depending on the provided technique
      *
-     * @param  mixed $HttpSocket
+     * @param  ServerSyncTool $serverSync
      * @param  array $server
      * @param  array $user
      * @param  string|int $technique Either the 'full' string or the event id
@@ -1210,26 +1210,30 @@ class Server extends AppModel
      */
     public function syncGalaxyClusters(ServerSyncTool $serverSync, array $server, array $user, $technique='full', $event=false)
     {
-        $successes = array();
         if (!$server['Server']['push_galaxy_clusters']) {
-            return $successes;
+            return []; // pushing clusters is not enabled
         }
 
         $this->log("Starting $technique clusters sync with server #{$serverSync->serverId()}", LOG_INFO);
 
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $this->Event = ClassRegistry::init('Event');
-        $clusters = array();
-        if ($technique == 'full') {
+
+        if ($technique === 'full') {
             $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
         } else {
             if ($event === false) { // The event from which the cluster should be taken must be provided
-                return $successes;
+                return [];
             }
             $tagNames = $this->Event->extractAllTagNames($event);
             if (!empty($tagNames)) {
                 $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $tagNames), $full=true);
+            } else {
+                $clusters = [];
             }
+        }
+        if (empty($clusters)) {
+            return []; // no local clusters eligible to push
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
         try {
