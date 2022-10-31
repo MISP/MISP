@@ -808,6 +808,7 @@ class Event extends AppModel
 
     private function __prepareForPushToServer($event, $server)
     {
+        $serverId = $server['Server']['id'];
         if ($event['Event']['distribution'] == 4) {
             if (empty($event['SharingGroup']['roaming']) && empty($server['Server']['internal'])) {
                 $serverFound = false;
@@ -819,7 +820,7 @@ class Event extends AppModel
                     }
                 }
                 if (!$serverFound) {
-                    $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: server not found in sharing group.");
+                    $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: server not found in sharing group.");
                     return 403;
                 }
             }
@@ -832,21 +833,21 @@ class Event extends AppModel
                 }
             }
             if (!$orgFound) {
-                $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: org not found in sharing group.");
+                $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: org not found in sharing group.");
                 return 403;
             }
         }
         $serverModel = ClassRegistry::init('Server');
         $server = $serverModel->eventFilterPushableServers($event, array($server));
         if (empty($server)) {
-            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: event doesn't match sever push rules.");
+            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: event doesn't match sever push rules.");
             return 403;
         }
         $server = $server[0];
         if ($this->checkDistributionForPush($event, $server, 'Event')) {
             $event = $this->__updateEventForSync($event, $server);
         } else {
-            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: event doesn't match distribution.");
+            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: event doesn't match distribution.");
             return 403;
         }
         return $event;
@@ -4339,6 +4340,7 @@ class Event extends AppModel
                         'perm_site_admin' => 0
                     )
                 );
+                // TODO: We are pushing galaxy clusters to remove server even if event is not pushable to that server
                 $this->Server->syncGalaxyClusters($serverSync, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
                 $thisUploaded = $this->uploadEventToServer($event, $server, $serverSync);
                 if ($thisUploaded === 'Success') {
@@ -7347,10 +7349,10 @@ class Event extends AppModel
     }
 
     /**
-     * extractAllTagNames Returns all tag names attached to any elements in an event
+     * Returns all tag names attached to any elements in an event
      *
      * @param  array $event
-     * @return array All tag names in the event
+     * @return array All tag names in the event with tag name in key and also in value
      */
     public function extractAllTagNames(array $event)
     {
