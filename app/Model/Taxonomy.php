@@ -600,7 +600,6 @@ class Taxonomy extends AppModel
         RedisTool::deleteKeysByPattern(RedisTool::init(), "misp:taxonomies_cache:*");
     }
 
-
     /**
      * @param string $tagName
      * @param bool $fullTaxonomy
@@ -784,7 +783,7 @@ class Taxonomy extends AppModel
      */
     public function splitTagToComponents($tag)
     {
-        preg_match('/^([^:="]+):([^:="]+)(="([^:="]+)")?$/i', $tag, $matches);
+        preg_match('/^([^:="]+):([^:="]+)(="([^"]+)")?$/i', $tag, $matches);
         if (empty($matches)) {
             return null; // tag is not in taxonomy format
         }
