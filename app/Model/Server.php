@@ -250,7 +250,12 @@ class Server extends AppModel
 
         try {
             // Clean caches when remote server setting changed
-            RedisTool::unlink(RedisTool::init(), ["misp:fetched_sightings:{$this->id}", "misp:event_index:{$this->id}"]);
+            $cacheKeys = [
+                "misp:event_index:{$this->id}",
+                "misp:fetched_sightings:{$this->id}",
+                "misp:empty_events:{$this->id}",
+            ];
+            RedisTool::unlink(RedisTool::init(), $cacheKeys);
         } catch (Exception $e) {
             // ignore
         }
@@ -293,10 +298,11 @@ class Server extends AppModel
      * @param array $server
      * @param array $user
      * @param array $pullRules
-     * @param bool $pullRulesEmptiedEvent
+     * @return bool Return true if event was emptied by pull rules
      */
-    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules, bool &$pullRulesEmptiedEvent = false)
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules)
     {
+        $pullRulesEmptiedEvent = false;
         // we have an Event array
         // The event came from a pull, so it should be locked.
         $event['Event']['locked'] = true;
@@ -324,12 +330,13 @@ class Server extends AppModel
                 }
             }
 
-            $typeFilteringEnabled = !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
-                !empty($pullRules['type_attributes']['NOT']);
+            $filterOnTypeEnabled = !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'));
+            $attributeTypeFilteringEnabled = $filterOnTypeEnabled && !empty($pullRules['type_attributes']['NOT']);
+
             if (isset($event['Event']['Attribute'])) {
                 $originalCount = count($event['Event']['Attribute']);
                 foreach ($event['Event']['Attribute'] as $key => $attribute) {
-                    if ($typeFilteringEnabled && in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
+                    if ($attributeTypeFilteringEnabled && in_array($attribute['type'], $pullRules['type_attributes']['NOT'], true)) {
                         unset($event['Event']['Attribute'][$key]);
                         continue;
                     }
@@ -350,17 +357,18 @@ class Server extends AppModel
                         }
                     }
                 }
-                if ($typeFilteringEnabled && $originalCount > 0 && empty($event['Event']['Attribute'])) {
+                if ($attributeTypeFilteringEnabled && $originalCount > 0 && empty($event['Event']['Attribute'])) {
                     $pullRulesEmptiedEvent = true;
                 }
             }
+
             if (isset($event['Event']['Object'])) {
                 $originalObjectCount = count($event['Event']['Object']);
                 foreach ($event['Event']['Object'] as $i => $object) {
                     if (
-                        !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                        $filterOnTypeEnabled &&
                         !empty($pullRules['type_objects']['NOT']) &&
-                        in_array($object['template_uuid'], $pullRules['type_objects']['NOT'])
+                        in_array($object['template_uuid'], $pullRules['type_objects']['NOT'], true)
                     ) {
                         unset($event['Event']['Object'][$i]);
                         continue;
@@ -376,7 +384,7 @@ class Server extends AppModel
                     if (isset($object['Attribute'])) {
                         $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
-                            if ($typeFilteringEnabled && in_array($a['type'], $pullRules['type_attributes']['NOT'])) {
+                            if ($attributeTypeFilteringEnabled && in_array($a['type'], $pullRules['type_attributes']['NOT'], true)) {
                                 unset($event['Event']['Object'][$i]['Attribute'][$j]);
                                 continue;
                             }
@@ -397,13 +405,12 @@ class Server extends AppModel
                                 }
                             }
                         }
-                        if ($typeFilteringEnabled && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
+                        if ($attributeTypeFilteringEnabled && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
                             unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
-                            $pullRulesEmptiedEvent = true;
                         }
                     }
                 }
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalObjectCount > 0 && empty($event['Event']['Object'])) {
+                if ($filterOnTypeEnabled && $originalObjectCount > 0 && empty($event['Event']['Object'])) {
                     $pullRulesEmptiedEvent = true;
                 }
             }
@@ -423,6 +430,8 @@ class Server extends AppModel
 
         // Distribution, set reporter of the event, being the admin that initiated the pull
         $event['Event']['user_id'] = $user['id'];
+
+        return $pullRulesEmptiedEvent;
     }
 
     /**
@@ -549,12 +558,12 @@ class Server extends AppModel
             return false;
         }
 
-        $pullRulesEmptiedEvent = false;
-        $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $pullRulesEmptiedEvent);
+        $pullRulesEmptiedEvent = $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules());
 
         if (!$this->__checkIfEventSaveAble($event)) {
             if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
                 $fails[$eventId] = __('Empty event detected.');
+                $this->addEmptyEvent($serverSync->serverId(), $event);
             }
             return false;
         }
@@ -878,6 +887,44 @@ class Server extends AppModel
     }
 
     /**
+     * @param int $serverId
+     * @param array $event
+     * @return void
+     * @throws RedisException
+     */
+    private function addEmptyEvent($serverId, array $event)
+    {
+        $emptyEventKey = "{$event['Event']['uuid']}:{$event['Event']['timestamp']}";
+        $redis = RedisTool::init();
+        $redis->sAdd("misp:empty_events:$serverId", $emptyEventKey);
+        $redis->expire("misp:empty_events:$serverId", 24 * 3600);
+    }
+
+    /**
+     * Remove from $events array events, that was already fetched before and was empty.
+     * @param int $serverId
+     * @param array $events
+     * @return void
+     */
+    private function removeEmptyEvents($serverId, array &$events)
+    {
+        try {
+            $emptyEvents = RedisTool::init()->sMembers("misp:empty_events:$serverId");
+        } catch (Exception $e) {
+            return;
+        }
+        if (empty($emptyEvents)) {
+            return;
+        }
+        $emptyEvents = array_flip($emptyEvents);
+        foreach ($events as $k => $event) {
+            if (isset($emptyEvents["{$event['uuid']}:{$event['timestamp']}"])) {
+                unset($events[$k]);
+            }
+        }
+    }
+
+    /**
      * Get an array of event UUIDs that are present on the remote server.
      *
      * @param ServerSyncTool $serverSync
@@ -914,6 +961,7 @@ class Server extends AppModel
         }
         if (!$force) {
             $this->removeOlderEvents($eventArray);
+            $this->removeEmptyEvents($serverSync->serverId(), $eventArray);
         }
         return array_column($eventArray, 'uuid');
     }
