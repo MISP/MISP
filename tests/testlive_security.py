@@ -1569,7 +1569,6 @@ class TestSecurity(unittest.TestCase):
 
         sightings = user1.search_sightings("event", private_event.id)
         self.assertEqual(len(sightings), 1, sightings)
-        print(sightings)
 
         org = self.__create_org()
         user = self.__create_user(org.id, ROLE.USER)

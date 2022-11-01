@@ -1250,6 +1250,7 @@ class Server extends AppModel
             $this->logException("Could not get eligible cluster IDs from server #{$server['Server']['id']} for push.", $e);
             return [];
         }
+        $successes = [];
         foreach ($clustersToPush as $cluster) {
             $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $serverSync, $user);
             if ($result === 'Success') {
