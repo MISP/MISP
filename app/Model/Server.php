@@ -247,6 +247,14 @@ class Server extends AppModel
         if (!empty($server['authkey']) && strlen($server['authkey']) === 40) {
             $server['authkey'] = EncryptedValue::encryptIfEnabled($server['authkey']);
         }
+
+        try {
+            // Clean caches when remote server setting changed
+            RedisTool::unlink(RedisTool::init(), ["misp:fetched_sightings:{$this->id}", "misp:event_index:{$this->id}"]);
+        } catch (Exception $e) {
+            // ignore
+        }
+
         return true;
     }
 

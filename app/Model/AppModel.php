@@ -2983,7 +2983,15 @@ class AppModel extends Model
         return self::$loadedBackgroundJobsTool;
     }
 
-    // generate a generic subquery - options needs to include conditions
+    /**
+     * Generate a generic subquery - options needs to include conditions
+     *
+     * @param AppModel $model
+     * @param array $options
+     * @param string $lookupKey
+     * @param bool $negation
+     * @return string[]
+     */
     protected function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
     {
         $defaults = array(
@@ -3012,10 +3020,7 @@ class AppModel extends Model
         } else {
             $subQuery = $lookupKey . ' IN (' . $subQuery . ') ';
         }
-        $conditions = array(
-            $db->expression($subQuery)->value
-        );
-        return $conditions;
+        return [$subQuery];
     }
 
     // start a benchmark run for the given bench name

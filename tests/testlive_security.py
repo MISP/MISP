@@ -1536,7 +1536,8 @@ class TestSecurity(unittest.TestCase):
         event = user1.add_event(self.__generate_event())
         check_response(event)
         check_response(user1.add_sighting(s, event.Attribute[0]))
-        self.assertEqual(len(user1.sightings(event)), 1, "User should see hos own sighting")
+        self.assertEqual(len(user1.sightings(event)), 1, "User should see only own sighting")
+        self.assertEqual(len(user1.search_sightings('event', event.id)), 1)
 
         org = self.__create_org()
         user = self.__create_user(org.id, ROLE.USER)
@@ -1544,9 +1545,11 @@ class TestSecurity(unittest.TestCase):
         user2.global_pythonify = True
 
         self.assertEqual(len(user2.sightings(event)), 0, "User should not seen any sighting")
+        self.assertEqual(len(user2.search_sightings('event', event.id)), 0)
 
         with self.__setting({"MISP.host_org_id": self.test_org.id, "Plugin.Sightings_policy": 3}):
             self.assertEqual(len(user2.sightings(event)), 1, "User should see host org sighting")
+            self.assertEqual(len(user2.search_sightings('event', event.id)), 1)
 
         self.admin_misp_connector.delete_event(event)
         self.admin_misp_connector.delete_user(user)
