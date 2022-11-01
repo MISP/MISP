@@ -800,7 +800,6 @@ class Sighting extends AppModel
      */
     public function listSightings(array $user, $ids, $context, $orgId = false, $sightingsType = false, $orderDesc = true)
     {
-        $this->Event = ClassRegistry::init('Event');
         $ids = is_array($ids) ? $ids : $this->explodeIdList($ids);
 
         $objectIds = [];
