@@ -1905,7 +1905,6 @@ class UsersController extends AppController
         $stats['attributes_per_event'] = round($stats['attribute_count'] / $stats['event_count']);
 
         $stats['correlation_count'] = $this->User->Event->Attribute->Correlation->find('count', array('recursive' => -1));
-        $stats['correlation_count'] = $stats['correlation_count'] / 2;
 
         $stats['proposal_count'] = $this->User->Event->ShadowAttribute->find('count', array('recursive' => -1, 'conditions' => array('deleted' => 0)));
 
