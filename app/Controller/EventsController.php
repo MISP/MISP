@@ -2961,7 +2961,9 @@ class EventsController extends AppController
                 $this->redirect(array('action' => 'view', $event['Event']['id']));
             }
         } else {
+            $servers = $this->Event->listServerToPush($event);
             $this->set('id', $event['Event']['id']);
+            $this->set('servers', $servers);
             $this->set('type', 'publish');
             $this->render('ajax/eventPublishConfirmationForm');
         }
@@ -3033,7 +3035,9 @@ class EventsController extends AppController
                 $this->redirect(array('action' => 'view', $event['Event']['id']));
             }
         } else {
+            $servers = $this->Event->listServerToPush($event);
             $this->set('id', $event['Event']['id']);
+            $this->set('servers', $servers);
             $this->set('type', 'alert');
             $this->render('ajax/eventPublishConfirmationForm');
         }

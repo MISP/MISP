@@ -29,6 +29,9 @@ class Event extends AppModel
         DISTRIBUTION_ALL = 3,
         DISTRIBUTION_SHARING_GROUP = 4;
 
+    const NO_PUSH_DISTRIBUTION = 'distribution',
+        NO_PUSH_SERVER_RULES = 'push_rules';
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -740,6 +743,86 @@ class Event extends AppModel
             }
         }
         return $data;
+    }
+
+    /**
+     * Returns list of server that event will be pushed.
+     * @param array $event
+     * @return array
+     */
+    public function listServerToPush(array $event)
+    {
+        $elevatedUser = array(
+            'Role' => array(
+                'perm_site_admin' => 1,
+                'perm_sync' => 1,
+                'perm_audit' => 0,
+            ),
+            'org_id' => $event['Event']['orgc_id']
+        );
+        // Fetch event with details
+        $event = $this->fetchEvent($elevatedUser, ['eventid' => $event['Event']['id'], 'metadata' => true]);
+        $event = $event[0];
+
+        $this->Server = ClassRegistry::init('Server');
+        $servers = $this->Server->find('all', [
+            'conditions' => ['Server.push' => true],
+            'recursive' => -1,
+            'contain' => ['RemoteOrg', 'Organisation'],
+            'order' => ['Server.priority ASC', 'Server.id ASC'],
+        ]);
+
+        $output = [];
+        foreach ($servers as $server) {
+            $isEventPushableToServer = $this->shouldBePushedToServer($event, $server, $reason);
+            if ($isEventPushableToServer) {
+                $result = true;
+            } else {
+                if ($reason === self::NO_PUSH_DISTRIBUTION) {
+                    $result = 'The distribution level of this event blocks it from being pushed.';
+                } elseif ($reason === self::NO_PUSH_SERVER_RULES) {
+                    $result = 'The server rules blocks it from being pushed.';
+                } else {
+                    $result = $reason;
+                }
+            }
+            $output[$server['Server']['name']] = $result;
+        }
+        return $output;
+    }
+
+    /**
+     * Check if event can be pushed to remote server.
+     *
+     * @param array $event
+     * @param array $server
+     * @param string $reason If method returns false, this variable contains reason why event should not be pushed
+     * @return bool
+     */
+    public function shouldBePushedToServer(array $event, array $server, &$reason)
+    {
+        if (!isset($server['Server']['internal'])) {
+            throw new InvalidArgumentException('Invalid Server array provided.');
+        }
+
+        // This check is probably redundant, because it should be checked in also in `checkDistributionForPush`
+        // But keep it here just for sure
+        if (!$server['Server']['internal'] && $event['Event']['distribution'] < self::DISTRIBUTION_CONNECTED) {
+            $reason = self::NO_PUSH_DISTRIBUTION;
+            return false;
+        }
+
+        if (empty($this->Server->eventFilterPushableServers($event, [$server]))) {
+            $reason = self::NO_PUSH_SERVER_RULES;
+            return false;
+        }
+
+        if (!$this->checkDistributionForPush($event, $server)) {
+            $reason = self::NO_PUSH_DISTRIBUTION;
+            return false;
+        }
+
+        return true;
     }
 
     /**
