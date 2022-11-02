@@ -73,4 +73,44 @@ class AclHelper extends Helper
         $me = $this->_View->viewVars['me'];
         return $this->ACL->canModifyTagCollection($me, $tagCollection);
     }
+
+    /**
+     * @param array $sighting
+     * @return bool
+     */
+    public function canDeleteSighting(array $sighting)
+    {
+        $me = $this->_View->viewVars['me'];
+        return $this->ACL->canDeleteSighting($me, $sighting);
+    }
+
+    /**
+     * @param array $eventReport
+     * @return bool
+     */
+    public function canEditEventReport(array $eventReport)
+    {
+        $me = $this->_View->viewVars['me'];
+        return $this->ACL->canEditReport($me, $eventReport);
+    }
+
+    /**
+     * @param array $cluster
+     * @return bool
+     */
+    public function canModifyGalaxyCluster(array $cluster)
+    {
+        $me = $this->_View->viewVars['me'];
+        return $this->ACL->canModifyGalaxyCluster($me, $cluster);
+    }
+
+    /**
+     * @param array $cluster
+     * @return bool
+     */
+    public function canPublishGalaxyCluster(array $cluster)
+    {
+        $me = $this->_View->viewVars['me'];
+        return $this->ACL->canModifyGalaxyCluster($me, $cluster);
+    }
 }

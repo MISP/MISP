@@ -55,7 +55,7 @@
                     array(
                         'text' => __('Add Tag'),
                         'url' => $baseurl . '/tags/add',
-                        'requirement' => $isAclTagEditor
+                        'requirement' => $this->Acl->canAccess('tags', 'add'),
                     ),
                     array(
                         'text' => __('List Tag Collections'),

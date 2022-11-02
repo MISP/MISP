@@ -606,10 +606,10 @@ class ACLComponent extends Component
                 'add' => array('perm_sighting'),
                 'restSearch' => array('perm_sighting'),
                 'advanced' => array('perm_sighting'),
-                'delete' => array('perm_sighting'),
+                'delete' => ['AND' => ['perm_sighting', 'perm_modify_org']],
                 'index' => array('*'),
                 'listSightings' => array('*'),
-                'quickDelete' => array('perm_sighting'),
+                'quickDelete' => ['AND' => ['perm_sighting', 'perm_modify_org']],
                 'viewSightings' => array('*'),
                 'bulkSaveSightings' => array('OR' => array('perm_sync', 'perm_sighting')),
                 'filterSightingUuidsForPush' => ['perm_sync'],
@@ -967,6 +967,86 @@ class ACLComponent extends Component
             return true;
         }
         return $user['org_id'] == $tagCollection['TagCollection']['org_id'];
+    }
+
+    /**
+     * Only users that can modify organisation can delete sightings as sighting is not linked to user.
+     *
+     * @param array $user
+     * @param array $sighting
+     * @return bool
+     */
+    public function canDeleteSighting(array $user, array $sighting)
+    {
+        if (!isset($sighting['Sighting'])) {
+            throw new InvalidArgumentException('Passed object does not contain a Sighting.');
+        }
+        // Site admin can delete any sighting
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if (!$user['Role']['perm_modify_org']) {
+            return false;
+        }
+        return $sighting['Sighting']['org_id'] == $user['org_id'];
+    }
+
+    /**
+     * @param array $user
+     * @param array $eventReport
+     * @return bool
+     */
+    public function canEditEventReport(array $user, array $eventReport)
+    {
+        if (!isset($report['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($eventReport['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Checks if user can modify given galaxy cluster
+     *
+     * @param array $user
+     * @param array $cluster
+     * @return bool
+     */
+    public function canModifyGalaxyCluster(array $user, array $cluster)
+    {
+        if (!isset($cluster['GalaxyCluster'])) {
+            throw new InvalidArgumentException('Passed object does not contain an GalaxyCluster.');
+        }
+        if ($cluster['GalaxyCluster']['default']) {
+            return false; // it is not possible to edit default clusters
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if (!$user['Role']['perm_galaxy_editor']) {
+            return false;
+        }
+        return $cluster['GalaxyCluster']['orgc_id'] == $user['org_id'];
+    }
+
+    /**
+     * Checks if user can publish given galaxy cluster
+     *
+     * @param array $user
+     * @param array $cluster
+     * @return bool
+     */
+    public function canPublishGalaxyCluster(array $user, array $cluster)
+    {
+        if (!$this->canModifyGalaxyCluster($user, $cluster)) {
+            return false;
+        }
+        return (bool)$user['Role']['perm_publish'];
     }
 
     private function __checkLoggedActions($user, $controller, $action)

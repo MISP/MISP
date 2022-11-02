@@ -92,9 +92,7 @@
     ?>
 </div>
 <?php
-    $event['Event']['id'] = $this->request->data['ShadowAttribute']['event_id'];
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttribute', 'event' => $event));
-
     echo $this->element('form_seen_input');
 ?>
 
