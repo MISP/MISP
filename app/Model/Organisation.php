@@ -75,16 +75,16 @@ class Organisation extends AppModel
         ),
     );
 
-    public $organisationAssociations = array(
-            'Correlation' => array('table' => 'correlations', 'fields' => array('org_id')),
-            'Event' => array('table' => 'events', 'fields' => array('org_id', 'orgc_id')),
-            'Job' => array('table' => 'jobs', 'fields' => array('org_id')),
-            'Server' => array('table' => 'servers', 'fields' => array('org_id', 'remote_org_id')),
-            'ShadowAttribute' =>array('table' => 'shadow_attributes', 'fields' => array('org_id', 'event_org_id')),
-            'SharingGroup' => array('table' => 'sharing_groups', 'fields' => array('org_id')),
-            'SharingGroupOrg' => array('table' => 'sharing_group_orgs', 'fields' => array('org_id')),
-            'Thread' => array('table' => 'threads', 'fields' => array('org_id')),
-            'User' => array('table' => 'users', 'fields' => array('org_id'))
+    const ORGANISATION_ASSOCIATIONS = array(
+        'Correlation' => array('table' => 'correlations', 'fields' => array('org_id')),
+        'Event' => array('table' => 'events', 'fields' => array('org_id', 'orgc_id')),
+        'Job' => array('table' => 'jobs', 'fields' => array('org_id')),
+        'Server' => array('table' => 'servers', 'fields' => array('org_id', 'remote_org_id')),
+        'ShadowAttribute' => array('table' => 'shadow_attributes', 'fields' => array('org_id', 'event_org_id')),
+        'SharingGroup' => array('table' => 'sharing_groups', 'fields' => array('org_id')),
+        'SharingGroupOrg' => array('table' => 'sharing_group_orgs', 'fields' => array('org_id')),
+        'Thread' => array('table' => 'threads', 'fields' => array('org_id')),
+        'User' => array('table' => 'users', 'fields' => array('org_id'))
     );
 
     const GENERIC_MISP_ORGANISATION = [
@@ -255,10 +255,11 @@ class Organisation extends AppModel
      * @param string $name Organisation name
      * @param int $userId Organisation creator
      * @param bool $local True if organisation should be marked as local
+     * @param string|null $uuid UUID of newly created org
      * @return int Existing or newly created organisation ID
      * @throws Exception
      */
-    public function createOrgFromName($name, $userId, $local)
+    public function createOrgFromName($name, $userId, $local, $uuid = null)
     {
         $existingOrg = $this->find('first', [
             'recursive' => -1,
@@ -272,7 +273,12 @@ class Organisation extends AppModel
                 'local' => $local,
                 'created_by' => $userId,
             ];
-            $this->save($organisation);
+            if ($uuid) {
+                $organisation['uuid'] = $uuid;
+            }
+            if (!$this->save($organisation)) {
+                throw new Exception("Could not create new org $name");
+            }
             return $this->id;
         }
         return $existingOrg[$this->alias]['id'];
@@ -328,7 +334,7 @@ class Organisation extends AppModel
         ));
         $dataMoved = array('removed_org' => $currentOrg);
         $success = true;
-        foreach ($this->organisationAssociations as $model => $data) {
+        foreach (self::ORGANISATION_ASSOCIATIONS as $model => $data) {
             foreach ($data['fields'] as $field) {
                 if ($this->isMysql()) {
                     $sql = 'SELECT `id` FROM `' . $data['table'] . '` WHERE `' . $field . '` = "' . $currentOrg['Organisation']['id'] . '"';

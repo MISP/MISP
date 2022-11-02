@@ -53,7 +53,7 @@ class UserShell extends AppShell
             'help' => __('Check users validity from external identity provider and block not valid user.'),
             'parser' => [
                 'arguments' => [
-                    'userId' => ['help' => __('User ID or e-mail address.'), 'required' => true],
+                    'userId' => ['help' => __('User ID or e-mail address. If not provided, all users will be checked.'), 'required' => false],
                 ],
                 'options' => [
                     'block_invalid' => ['help' => __('Block user that are considered invalid.'), 'boolean' => true],
@@ -282,7 +282,7 @@ class UserShell extends AppShell
         App::uses('Oidc', 'OidcAuth.Lib');
         $oidc = new Oidc($this->User);
 
-        $conditions = ['disabled' => false]; // fetch just not disabled users
+        $conditions = ['User.disabled' => false]; // fetch just not disabled users
 
         $userId = isset($this->args[0]) ? $this->args[0] : null;
         if ($userId) {
