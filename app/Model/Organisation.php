@@ -547,15 +547,13 @@ class Organisation extends AppModel
     public function createConditions(array $user)
     {
         if (!$user['Role']['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
-            $allowedOrgs = [$user['org_id']];
-
             $eventConditions = $this->Event->createEventConditions($user);
-            $orgsWithEvent = $this->Event->find('column', [
+            $allowedOrgs = $this->Event->find('column', [
                 'fields' => ['Event.orgc_id'],
                 'conditions' => $eventConditions,
                 'unique' => true,
             ]);
-            $allowedOrgs = array_merge($allowedOrgs, $orgsWithEvent);
+            $allowedOrgs[] = $user['org_id'];
 
             $proposalConditions = $this->Event->ShadowAttribute->buildConditions($user);
             // Do not check orgs that we already can see
