@@ -25,7 +25,7 @@ class ObjectTemplatesController extends AppController
         if (in_array($this->request->action, ['objectMetaChoice', 'objectChoice', 'possibleObjectTemplates'], true)) {
             $this->Security->doNotGenerateToken = true;
         }
-        $this->Security->unlockedActions = ['possibleObjectTemplates'];
+        $this->Security->unlockedActions[] = 'possibleObjectTemplates';
     }
 
     public function objectMetaChoice($eventId)
