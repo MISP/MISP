@@ -1345,6 +1345,7 @@ class Sighting extends AppModel
     {
         $uuids = array_keys($eventUuids);
         $saved = 0;
+        $savedEventUuids = [];
         foreach (array_chunk($uuids, 100) as $chunk) {
             try {
                 $sightings = $serverSync->fetchSightingsForEvents($chunk);
@@ -1363,21 +1364,21 @@ class Sighting extends AppModel
                 $sightingsToSave[$eventUuid][] = $sighting;
             }
 
-            $savedUuids = [];
             foreach ($sightingsToSave as $eventUuid => $sightings) {
                 $savedForEvent = $this->bulkSaveSightings($eventUuid, $sightings, $user, $serverSync->serverId());
                 if ($savedForEvent) {
                     $saved += $savedForEvent;
-                    $savedUuids[] = $eventUuid;
+                    $savedEventUuids[] = $eventUuid;
                 }
             }
-
-            // Save to Redis that we fetched event sightings, that was not saved. This avoid fetching sightings for
-            // same event that has sightings not visible to user again and again.
-            foreach (array_diff($uuids, $savedUuids) as $notSavedUuid) {
-                $this->saveFetched($serverSync->serverId(), $notSavedUuid, $eventUuids[$notSavedUuid]);
-            }
         }
+
+        // Save to Redis that we fetched event sightings, that was not saved. This avoid fetching sightings for
+        // same event that has sightings not visible to user again and again.
+        foreach (array_diff($uuids, $savedEventUuids) as $notSavedUuid) {
+            $this->saveEmptyFetchedEvent($serverSync->serverId(), $notSavedUuid, $eventUuids[$notSavedUuid]);
+        }
+
         return $saved;
     }
 
@@ -1391,6 +1392,7 @@ class Sighting extends AppModel
     private function pullSightingOldWay(array $user, array $eventUuids, ServerSyncTool $serverSync)
     {
         $saved = 0;
+        $savedEventUuids = [];
         // We don't need some of the event data, like correlations and event reports
         $params = [
             'deleted' => [0, 1],
@@ -1432,14 +1434,20 @@ class Sighting extends AppModel
                 }
             }
             if (!empty($sightings)) {
-                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $serverSync->serverId());
-                if (is_numeric($result)) {
+                $result = $this->bulkSaveSightings($eventUuid, $sightings, $user, $serverSync->serverId());
+                if ($result) {
                     $saved += $result;
-                } else {
-                    $this->saveFetched($serverSync->serverId(), $eventUuid, $sightingTimestamp);
+                    $savedEventUuids[] = $eventUuid;
                 }
             }
         }
+
+        // Save to Redis that we fetched event sightings, that was not saved. This avoid fetching sightings for
+        // same event that has sightings not visible to user again and again.
+        foreach (array_diff(array_keys($eventUuids), $savedEventUuids) as $notSavedEventUuid) {
+            $this->saveEmptyFetchedEvent($serverSync->serverId(), $notSavedEventUuid, $eventUuids[$notSavedEventUuid]);
+        }
+
         return $saved;
     }
 
@@ -1461,13 +1469,16 @@ class Sighting extends AppModel
     }
 
     /**
+     * Save to Redis event uuid with sighting timestamp that was fetched from remote server, but no sightings was
+     * saved to database.
+     *
      * @param int $serverId
      * @param string $eventUuid
      * @param int $sightingTimestamp
      * @return void
      * @throws RedisException
      */
-    private function saveFetched($serverId, $eventUuid, $sightingTimestamp)
+    private function saveEmptyFetchedEvent($serverId, $eventUuid, $sightingTimestamp)
     {
         $redis = RedisTool::init();
         $redis->hSet("misp:fetched_sightings:$serverId", $eventUuid, $sightingTimestamp);
