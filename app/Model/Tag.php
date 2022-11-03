@@ -861,4 +861,13 @@ class Tag extends AppModel
         }
         return $conditions;
     }
+
+    /**
+     * @param string $tagName
+     * @return bool
+     */
+    public function isCustomGalaxyClusterTag($tagName)
+    {
+        return (bool)preg_match(self::RE_CUSTOM_GALAXY, $tagName);
+    }
 }
