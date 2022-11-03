@@ -11,6 +11,7 @@ App::uses('ProcessTool', 'Tools');
  * @property-read array $serverSettings
  * @property-read array $command_line_functions
  * @property Organisation $Organisation
+ * @property User $User
  */
 class Server extends AppModel
 {
@@ -1150,15 +1151,20 @@ class Server extends AppModel
                         'excludeGalaxy' => 1
                     ));
                     if (empty($server['Server']['push_sightings'])) {
-                        $params = array_merge($params, array(
-                            'noSightings' => 1
-                        ));
+                        $params['noSightings'] = 1;
                     }
                     $event = $this->Event->fetchEvent($user, $params);
                     $event = $event[0];
                     $event['Event']['locked'] = 1;
 
-                    if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" != $technique) {
+                    // Check if remote server supports galaxy cluster push, is set to push and if event will be pushed to
+                    // server
+                    $pushGalaxyClustersForEvent = $push['canEditGalaxyCluster'] &&
+                        $server['Server']['push_galaxy_clusters'] &&
+                        "full" !== $technique &&
+                        $this->Event->shouldBePushedToServer($event, $server);
+
+                    if ($pushGalaxyClustersForEvent) {
                         $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
                     }
 
@@ -1278,18 +1284,24 @@ class Server extends AppModel
         if ($technique === 'full') {
             $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
         } else {
-            if ($event === false) { // The event from which the cluster should be taken must be provided
+            if ($event === false) {
+                throw new InvalidArgumentException('The event from which the cluster should be taken must be provided.');
+            }
+            $tagNames = $this->User->Event->extractAllTagNames($event);
+            if (empty($tagNames)) {
                 return [];
             }
-            $tagNames = $this->Event->extractAllTagNames($event);
-            if (!empty($tagNames)) {
-                $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $tagNames), $full=true);
-            } else {
-                $clusters = [];
+            // Filter out tag names that are not in custom galaxy cluster format
+            $customGalaxyClusterTags = array_filter($tagNames, function ($tagName) {
+                return $this->User->Event->EventTag->Tag->isCustomGalaxyClusterTag($tagName);
+            });
+            if (empty($customGalaxyClusterTags)) {
+                return [];
             }
+            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
         }
         if (empty($clusters)) {
-            return []; // no local clusters eligible to push
+            return []; // no local clusters eligible for push
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
         try {
