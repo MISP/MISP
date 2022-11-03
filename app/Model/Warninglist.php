@@ -300,7 +300,10 @@ class Warninglist extends AppModel
                 }
             }
         }
-        $this->regenerateWarninglistCaches();
+
+        if (!empty($result['success']) || !empty($result['fails'])) {
+            $this->regenerateWarninglistCaches();
+        }
         return $result;
     }
 
