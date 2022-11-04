@@ -278,8 +278,8 @@ class ServerShell extends AppShell
 
     public function viewFeed()
     {
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Fetch feeds as local data'] . PHP_EOL);
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['View Feed'] . PHP_EOL);
         }
         $feed = $this->Feed->find('first', [
             'conditions' => [
@@ -296,7 +296,7 @@ class ServerShell extends AppShell
     public function toggleFeed()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Fetch feeds as local data'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Toggle feed fetching'] . PHP_EOL);
         }
         $feed = $this->Feed->find('first', [
             'conditions' => [
@@ -318,7 +318,7 @@ class ServerShell extends AppShell
     public function toggleFeedCaching()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Fetch feeds as local data'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Toggle feed caching'] . PHP_EOL);
         }
         $feed = $this->Feed->find('first', [
             'conditions' => [
