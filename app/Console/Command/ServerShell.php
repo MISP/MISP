@@ -242,38 +242,43 @@ class ServerShell extends AppShell
             'recursive' => -1,
             'fields' => array_keys($fields)
         ]);
-        $this->out(str_repeat('=', 114));
-        $this->out(sprintf(
-            '| %s | %s | %s | %s | %s | %s |',
-            str_pad('ID', $fields['id'], ' ', STR_PAD_RIGHT),
-            str_pad('Format', $fields['source_format'], ' ', STR_PAD_RIGHT),
-            str_pad('Provider', $fields['provider'], ' ', STR_PAD_RIGHT),
-            str_pad('Url', $fields['url'], ' ', STR_PAD_RIGHT),
-            str_pad('Fetching', $fields['enabled'], ' ', STR_PAD_RIGHT),
-            str_pad('Caching', $fields['caching_enabled'], ' ', STR_PAD_RIGHT)
-        ), 1, Shell::NORMAL);
-        $this->out(str_repeat('=', 114));
-        foreach ($feeds as $feed) {
+        $outputStyle = (empty($this->args[0]) || $this->args[0] === 'json') ? 'json' : 'table';
+        if ($outputStyle === 'table') {
+            $this->out(str_repeat('=', 114));
             $this->out(sprintf(
                 '| %s | %s | %s | %s | %s | %s |',
-                str_pad($feed['Feed']['id'], $fields['id'], ' ', STR_PAD_RIGHT),
-                str_pad($feed['Feed']['source_format'], $fields['source_format'], ' ', STR_PAD_RIGHT),
-                str_pad(mb_substr($feed['Feed']['provider'], 0, 13), $fields['provider'], ' ', STR_PAD_RIGHT),
-                str_pad(
-                    mb_substr($feed['Feed']['url'], 0, 48),
-                    $fields['url'],
-                    ' ',
-                    STR_PAD_RIGHT
-                ),
-                $feed['Feed']['enabled'] ?
-                    '<info>' . str_pad(__('Yes'), $fields['enabled'], ' ', STR_PAD_RIGHT) . '</info>':
-                    str_pad(__('No'), $fields['enabled'], ' ', STR_PAD_RIGHT),
-                $feed['Feed']['caching_enabled'] ?
-                    '<info>' . str_pad(__('Yes'), $fields['caching_enabled'], ' ', STR_PAD_RIGHT) . '</info>':
-                    str_pad(__('No'), $fields['caching_enabled'], ' ', STR_PAD_RIGHT)
+                str_pad('ID', $fields['id'], ' ', STR_PAD_RIGHT),
+                str_pad('Format', $fields['source_format'], ' ', STR_PAD_RIGHT),
+                str_pad('Provider', $fields['provider'], ' ', STR_PAD_RIGHT),
+                str_pad('Url', $fields['url'], ' ', STR_PAD_RIGHT),
+                str_pad('Fetching', $fields['enabled'], ' ', STR_PAD_RIGHT),
+                str_pad('Caching', $fields['caching_enabled'], ' ', STR_PAD_RIGHT)
             ), 1, Shell::NORMAL);
+            $this->out(str_repeat('=', 114));
+            foreach ($feeds as $feed) {
+                $this->out(sprintf(
+                    '| %s | %s | %s | %s | %s | %s |',
+                    str_pad($feed['Feed']['id'], $fields['id'], ' ', STR_PAD_RIGHT),
+                    str_pad($feed['Feed']['source_format'], $fields['source_format'], ' ', STR_PAD_RIGHT),
+                    str_pad(mb_substr($feed['Feed']['provider'], 0, 13), $fields['provider'], ' ', STR_PAD_RIGHT),
+                    str_pad(
+                        mb_substr($feed['Feed']['url'], 0, 48),
+                        $fields['url'],
+                        ' ',
+                        STR_PAD_RIGHT
+                    ),
+                    $feed['Feed']['enabled'] ?
+                        '<info>' . str_pad(__('Yes'), $fields['enabled'], ' ', STR_PAD_RIGHT) . '</info>':
+                        str_pad(__('No'), $fields['enabled'], ' ', STR_PAD_RIGHT),
+                    $feed['Feed']['caching_enabled'] ?
+                        '<info>' . str_pad(__('Yes'), $fields['caching_enabled'], ' ', STR_PAD_RIGHT) . '</info>':
+                        str_pad(__('No'), $fields['caching_enabled'], ' ', STR_PAD_RIGHT)
+                ), 1, Shell::NORMAL);
+            }
+            $this->out(str_repeat('=', 114));
+        } else {
+            $this->out(json_encode($feeds, JSON_PRETTY_PRINT));
         }
-        $this->out(str_repeat('=', 114));
     }
 
     public function viewFeed()
@@ -290,7 +295,20 @@ class ServerShell extends AppShell
         if (empty($feed)) {
             throw new NotFoundException(__('Invalid feed.'));
         }
-        $this->out(json_encode($feed));
+        $outputStyle = (empty($this->args[1]) || $this->args[1] === 'json') ? 'json' : 'table';
+        if ($outputStyle === 'table') {
+            $this->out(str_repeat('=', 114));
+            foreach ($feed['Feed'] as $field => $value) {
+                $this->out(sprintf(
+                    '| %s | %s |',
+                    str_pad($field, 20, ' ', STR_PAD_RIGHT),
+                    str_pad($value, 87)
+                ), 1, Shell::NORMAL);
+            }
+            $this->out(str_repeat('=', 114));
+        } else {
+            $this->out(json_encode($feed));
+        }
     }
 
     public function toggleFeed()
