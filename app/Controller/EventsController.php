@@ -768,26 +768,25 @@ class EventsController extends AppController
      */
     private function __indexRestResponse(array $passedArgs)
     {
-        $isSync = $skipProtected = false;
-        if (!empty($this->request->header('misp-version'))) {
-            $isSync = true;
-            if (version_compare($this->request->header('misp-version'), '2.4.156') < 0) {
-                $skipProtected = true;
-            }
-        }
+        // We do not want to allow instances to pull our data that can't make sense of protected mode events
+        $skipProtected = (
+            !empty($this->request->header('misp-version')) &&
+            version_compare($this->request->header('misp-version'), '2.4.156') < 0
+        );
+
         $fieldNames = $this->Event->schema();
         $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
         if ($minimal) {
             $rules = [
                 'recursive' => -1,
                 'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid', 'protected'),
-                'contain' => array('Orgc.uuid', 'CryptographicKey.fingerprint'),
+                'contain' => array('Orgc.uuid'),
             ];
         } else {
             // Remove user ID from fetched fields
             unset($fieldNames['user_id']);
             $rules = [
-                'contain' => ['EventTag', 'CryptographicKey.fingerprint'],
+                'contain' => ['EventTag'],
                 'fields' => array_keys($fieldNames),
             ];
         }
@@ -800,6 +799,9 @@ class EventsController extends AppController
         }
         if (isset($this->paginate['conditions'])) {
             $rules['conditions'] = $this->paginate['conditions'];
+        }
+        if ($skipProtected) {
+            $rules['conditions']['Event.protected'] = 0;
         }
         $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
         foreach ($paginationRules as $paginationRule) {
@@ -837,12 +839,12 @@ class EventsController extends AppController
 
             $events = $absolute_total === 0 ? [] : $this->Event->find('all', $rules);
         }
+
         $isCsvResponse = $this->response->type() === 'text/csv';
-        try {
-            $instanceFingerprint = $this->Event->CryptographicKey->ingestInstanceKey();
-        } catch (Exception $e) {
-            $instanceFingerprint = null;
-        }
+
+        $protectedEventsByInstanceKey = $this->Event->CryptographicKey->protectedEventsByInstanceKey($events);
+        $protectedEventsByInstanceKey = array_flip($protectedEventsByInstanceKey);
+
         if (!$minimal) {
             // Collect all tag IDs that are events
             $tagIds = [];
@@ -889,19 +891,8 @@ class EventsController extends AppController
                 $orgIds[$event['Event']['org_id']] = true;
                 $orgIds[$event['Event']['orgc_id']] = true;
                 $sharingGroupIds[$event['Event']['sharing_group_id']] = true;
-                if ($event['Event']['protected']) {
-                    if ($skipProtected) {
-                        unset($events[$k]);
-                        continue;
-                    }
-                    foreach ($event['CryptographicKey'] as $cryptoKey) {
-                        if ($instanceFingerprint === $cryptoKey['fingerprint']) {
-
-                            continue 2;
-                        }
-                    }
+                if ($event['Event']['protected'] && !isset($protectedEventsByInstanceKey[$event['Event']['id']])) {
                     unset($events[$k]);
-                    continue;
                 }
             }
             $events = array_values($events);
@@ -946,26 +937,9 @@ class EventsController extends AppController
             if ($this->response->type() === 'application/xml') {
                 $events = array('Event' => $events);
             }
-        } else {
-            // We do not want to allow instances to pull our data that can't make sense of protected mode events
-            $skipProtected = (
-                !empty($this->request->header('misp-version')) &&
-                version_compare($this->request->header('misp-version'), '2.4.156') < 0
-            );
+        } else { // minimal
             foreach ($events as $key => $event) {
-                if ($event['Event']['protected']) {
-                    if ($skipProtected) {
-                        unset($events[$key]);
-                        continue;
-                    }
-                    foreach ($event['CryptographicKey'] as $cryptoKey) {
-                        if ($instanceFingerprint === $cryptoKey['fingerprint']) {
-                            $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
-                            unset($event['Event']['protected']);
-                            $events[$key] = $event['Event'];
-                            continue 2;
-                        }
-                    }
+                if ($event['Event']['protected'] && !isset($protectedEventsByInstanceKey[$event['Event']['id']])) {
                     unset($events[$key]);
                     continue;
                 }
@@ -2987,7 +2961,9 @@ class EventsController extends AppController
                 $this->redirect(array('action' => 'view', $event['Event']['id']));
             }
         } else {
+            $servers = $this->Event->listServerToPush($event);
             $this->set('id', $event['Event']['id']);
+            $this->set('servers', $servers);
             $this->set('type', 'publish');
             $this->render('ajax/eventPublishConfirmationForm');
         }
@@ -3059,7 +3035,9 @@ class EventsController extends AppController
                 $this->redirect(array('action' => 'view', $event['Event']['id']));
             }
         } else {
+            $servers = $this->Event->listServerToPush($event);
             $this->set('id', $event['Event']['id']);
+            $this->set('servers', $servers);
             $this->set('type', 'alert');
             $this->render('ajax/eventPublishConfirmationForm');
         }

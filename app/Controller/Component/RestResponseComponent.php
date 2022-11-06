@@ -261,7 +261,7 @@ class RestResponseComponent extends Component
             'restSearch' => array(
                 'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id or uuid MUST be provided if context is set.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('id', 'uuid', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
+                'optional' => array('id', 'uuid', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent', 'includeUuid'),
                 'params' => array('context')
             ),
         ),
@@ -1255,6 +1255,12 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => 'Include all enabled decaying score'
+            ),
+            'includeUuid' => array(
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => array(1 => 'True', 0 => 'False'),
+                'help' => __('Include matching event and attribute UUID to in the response'),
             ),
             'includeEvent' => array(
                 'input' => 'radio',

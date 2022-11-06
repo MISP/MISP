@@ -92,7 +92,7 @@ function deleteObject(type, action, id) {
 }
 
 function quickDeleteSighting(id, rawId, context) {
-    url = baseurl + "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
+    var url = baseurl + "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
     $.get(url, openConfirmation).fail(xhrFailCallback)
 }
 
@@ -921,8 +921,11 @@ function attributeListAnyAttributeCheckBoxesChecked() {
 }
 
 function listCheckboxesChecked() {
-    if ($('.select:checked').length > 0) $('.mass-select').removeClass('hidden');
-    else $('.mass-select').addClass('hidden');
+    if ($('.select:checked').length > 0)  {
+        $('.mass-select').removeClass('hidden');
+    } else {
+        $('.mass-select').addClass('hidden')
+    }
 }
 
 function listCheckboxesCheckedEventIndex() {

@@ -1905,7 +1905,6 @@ class UsersController extends AppController
         $stats['attributes_per_event'] = round($stats['attribute_count'] / $stats['event_count']);
 
         $stats['correlation_count'] = $this->User->Event->Attribute->Correlation->find('count', array('recursive' => -1));
-        $stats['correlation_count'] = $stats['correlation_count'] / 2;
 
         $stats['proposal_count'] = $this->User->Event->ShadowAttribute->find('count', array('recursive' => -1, 'conditions' => array('deleted' => 0)));
 
@@ -2166,21 +2165,13 @@ class UsersController extends AppController
     {
         $this->loadModel('Galaxy');
         $mitre_galaxy_id = $this->Galaxy->getMitreAttackGalaxyId();
-        if (isset($params['galaxy_id'])) {
-            $galaxy_id = $params['galaxy_id'];
-        } else {
-            $galaxy_id = $mitre_galaxy_id;
-        }
+        $galaxy_id = $params['galaxy_id'] ?? $mitre_galaxy_id;
 
         $organisations = $this->User->Organisation->find('list', array(
+            'conditions' => $this->User->Organisation->createConditions($user),
             'recursive' => -1,
             'fields' => ['id', 'name'],
         ));
-        foreach ($organisations as $id => $foo) {
-            if (!$this->User->Organisation->canSee($user, $id)) {
-                unset($organisations[$id]);
-            }
-        }
         $organisations = [0 => __('All')] + $organisations;
         $this->set('organisations', $organisations);
 
@@ -2236,7 +2227,7 @@ class UsersController extends AppController
             if ($ignore_score) {
                 $scores_uniform = array('scores' => array(), 'maxScore' => 0);
             } else {
-                $scores_uniform = $this->Event->EventTag->getTagScoresUniform(0, $matrixTags);
+                $scores_uniform = $this->User->Event->EventTag->getTagScoresUniform(0, $matrixTags);
             }
             $scores = $scores_uniform['scores'];
             $maxScore = $scores_uniform['maxScore'];
@@ -2253,11 +2244,11 @@ class UsersController extends AppController
                     if ($predicate == 'mitre-attack-pattern') {
                         $mappedTag = $tag;
                         $name = explode(" ", $tag);
-                        $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                        $name = implode(" ", array_slice($name, 0, -2)); // remove " - external_id"
                         $mappingWithoutExternalId[$name] = $tag;
                     } else {
                         $name = explode(" ", $clusterValue);
-                        $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                        $name = implode(" ", array_slice($name, 0, -2)); // remove " - external_id"
                         if (isset($mappingWithoutExternalId[$name])) {
                             $mappedTag = $mappingWithoutExternalId[$name];
                         } else {
@@ -2288,31 +2279,30 @@ class UsersController extends AppController
             if ($this->_isRest()) {
                 $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
                 return $this->RestResponse->viewData($json, $this->response->type());
-            } else {
-                App::uses('ColourGradientTool', 'Tools');
-                $gradientTool = new ColourGradientTool();
-                $colours = $gradientTool->createGradientFromValues($scores);
-
-                $this->set('target_type', 'attribute');
-                $this->set('columnOrders', $killChainOrders);
-                $this->set('tabs', $tabs);
-                $this->set('scores', $scores);
-                $this->set('maxScore', $maxScore);
-                if (!empty($colours)) {
-                    $this->set('colours', $colours['mapping']);
-                    $this->set('interpolation', $colours['interpolation']);
-                }
-                $this->set('pickingMode', false);
-                if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
-                    $this->set('defaultTabName', "mitre-attack");
-                    $this->set('removeTrailling', 2);
-                }
-
-                $this->set('galaxyName', $matrixData['galaxy']['name']);
-                $this->set('galaxyId', $matrixData['galaxy']['id']);
-                $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
-                $this->set('matrixGalaxies', $matrixGalaxies);
             }
+            App::uses('ColourGradientTool', 'Tools');
+            $gradientTool = new ColourGradientTool();
+            $colours = $gradientTool->createGradientFromValues($scores);
+
+            $this->set('target_type', 'attribute');
+            $this->set('columnOrders', $killChainOrders);
+            $this->set('tabs', $tabs);
+            $this->set('scores', $scores);
+            $this->set('maxScore', $maxScore);
+            if (!empty($colours)) {
+                $this->set('colours', $colours['mapping']);
+                $this->set('interpolation', $colours['interpolation']);
+            }
+            $this->set('pickingMode', false);
+            if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
+                $this->set('defaultTabName', "mitre-attack");
+                $this->set('removeTrailling', 2);
+            }
+
+            $this->set('galaxyName', $matrixData['galaxy']['name']);
+            $this->set('galaxyId', $matrixData['galaxy']['id']);
+            $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
+            $this->set('matrixGalaxies', $matrixGalaxies);
         }
         $this->render('statistics_galaxymatrix');
     }

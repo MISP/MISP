@@ -290,24 +290,14 @@ class AppController extends Controller
             $this->set('isSiteAdmin', $role['perm_site_admin']);
             $this->set('hostOrgUser', $user['org_id'] == Configure::read('MISP.host_org_id'));
             $this->set('isAclAdd', $role['perm_add']);
-            $this->set('isAclModify', $role['perm_modify']);
-            $this->set('isAclModifyOrg', $role['perm_modify_org']);
             $this->set('isAclPublish', $role['perm_publish']);
             $this->set('isAclDelegate', $role['perm_delegate']);
             $this->set('isAclSync', $role['perm_sync']);
-            $this->set('isAclAdmin', $role['perm_admin']);
             $this->set('isAclAudit', $role['perm_audit']);
-            $this->set('isAclAuth', $role['perm_auth']);
             $this->set('isAclRegexp', $role['perm_regexp_access']);
             $this->set('isAclTagger', $role['perm_tagger']);
-            $this->set('isAclTagEditor', $role['perm_tag_editor']);
-            $this->set('isAclTemplate', $role['perm_template']);
             $this->set('isAclGalaxyEditor', !empty($role['perm_galaxy_editor']));
-            $this->set('isAclSharingGroup', $role['perm_sharing_group']);
             $this->set('isAclSighting', $role['perm_sighting'] ?? false);
-            $this->set('isAclZmq', $role['perm_publish_zmq'] ?? false);
-            $this->set('isAclKafka', $role['perm_publish_kafka'] ?? false);
-            $this->set('isAclDecaying', $role['perm_decaying'] ?? false);
             $this->set('aclComponent', $this->ACL);
             $this->userRole = $role;
 

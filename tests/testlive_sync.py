@@ -46,6 +46,7 @@ assert remote_user["User"] == "admin@admin.test"
 # Create testing event
 event = MISPEvent()
 event.load_file(os.path.dirname(os.path.realpath(__file__)) + "/event.json")
+event.info = "OSINT - F-Secure W32/Regin, Stage #1 - from testlive_sync.py"
 pymisp.delete_event_blocklist(event)
 event = pymisp.add_event(event, metadata=True)
 check_response(event)
