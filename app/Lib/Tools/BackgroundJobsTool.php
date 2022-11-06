@@ -161,7 +161,7 @@ class BackgroundJobsTool
             }
             RedisTool::unlink($this->RedisConnection, self::DATA_CONTENT_PREFIX . ':' . $uuid);
             return $data;
-        } else if ($path[0] === '/') { // deprecated storage location when not full path is provided
+        } else if ($path[0] !== '/') { // deprecated storage location when not full path is provided
             $path = APP . 'tmp/cache/ingest' . DS . $path;
         }
         return JsonTool::decode(FileAccessTool::readAndDelete($path));
