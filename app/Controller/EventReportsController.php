@@ -494,7 +494,7 @@ class EventReportsController extends AppController
 
     private function __injectPermissionsToViewContext($user, $report)
     {
-        $canEdit = $this->EventReport->canEditReport($user, $report) === true;
+        $canEdit = $this->ACL->canEditReport($user, $report) === true;
         $this->set('canEdit', $canEdit);
     }
 
