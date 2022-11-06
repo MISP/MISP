@@ -94,20 +94,6 @@ class AclHelper extends Helper
         return $this->ACL->canEditReport($me, $eventReport);
     }
 
-    public function canEditReport(array $user, array $report)
-    {
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if (empty($report['Event'])) {
-            return __('Could not find associated event');
-        }
-        if ($report['Event']['orgc_id'] != $user['org_id']) {
-            return __('Only the creator organisation of the event can modify the report');
-        }
-        return true;
-    }
-
     /**
      * @param array $cluster
      * @return bool
