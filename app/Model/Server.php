@@ -3182,7 +3182,7 @@ class Server extends AppModel
         $indexDiff = array();
         foreach ($expectedIndex as $tableName => $indexes) {
             if (!array_key_exists($tableName, $actualIndex)) {
-                continue; // If table does not exists, it is covered by the schema diagnostic
+                continue; // If table does not exist, it is covered by the schema diagnostic
             }
             $tableIndexDiff = array_diff(array_keys($indexes), array_keys($actualIndex[$tableName])); // check for missing indexes
             foreach ($tableIndexDiff as $columnDiff) {

@@ -199,7 +199,7 @@
             var checked = this.taskScheduled;
             this.container = document.getElementById(this.config.container);
             if (this.container === undefined || this.container === null) {
-                throw "Cannot create switch. Container does not exists";
+                throw "Cannot create switch. Container does not exist";
             }
             var temp = document.createElement('div');
             this.config.checkboxLink = this.genRandom();
