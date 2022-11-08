@@ -1779,16 +1779,6 @@ class Attribute extends AppModel
             $loop = false;
         }
 
-        // Do not fetch result count when `$result_count` is false
-        if ($result_count !== false) {
-            $find_params = $params;
-            unset($find_params['limit']);
-            $result_count = $this->find('count', $find_params);
-            if ($result_count === 0) { // skip early
-                return [];
-            }
-        }
-
         $eventTags = []; // tag cache
         $attributes = [];
         do {
@@ -1881,6 +1871,17 @@ class Attribute extends AppModel
                 $params['page']++;
             }
         } while ($loop);
+
+        // Do not fetch result count when `$result_count` is false
+        if ($result_count !== false) {
+            $find_params = $params;
+            unset($find_params['limit']);
+            $result_count = $this->find('count', $find_params);
+            if ($result_count === 0) { // skip early
+                return [];
+            }
+        }
+
         return $attributes;
     }
 
