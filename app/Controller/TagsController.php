@@ -60,7 +60,7 @@ class TagsController extends AppController
             $this->paginate['conditions']['AND'][] = ['LOWER(Tag.name) LIKE' => '%' . strtolower($passedArgsArray['searchall']) . '%'];
         }
         foreach (['name', 'filter', 'search'] as $f) {
-            if (!empty($passedArgsArray['name'])) {
+            if (!empty($passedArgsArray[$f])) {
                 $this->paginate['conditions']['AND'][] = ['LOWER(Tag.name)' => strtolower($passedArgsArray[$f])];
             }
         }
