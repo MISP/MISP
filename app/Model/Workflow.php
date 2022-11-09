@@ -1023,7 +1023,7 @@ class Workflow extends AppModel
         $className = str_replace('.php', '', $className[count($className)-1]);
         try {
             if (!@include_once($filepath)) {
-                $message = __('Could not load module for path %s. File does not exists.', $filepath);
+                $message = __('Could not load module for path %s. File does not exist.', $filepath);
                 $this->log($message, LOG_ERR);
                 return $message;
             }

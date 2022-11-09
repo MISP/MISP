@@ -68,7 +68,7 @@ class EventShell extends AppShell
         $user = $this->getUser($userId);
 
         if (!file_exists($path)) {
-            $this->error("File '$path' does not exists.");
+            $this->error("File '$path' does not exist.");
         }
         if (!is_readable($path)) {
             $this->error("File '$path' is not readable.");
@@ -632,7 +632,7 @@ class EventShell extends AppShell
     {
         $user = $this->User->getAuthUser($userId, true);
         if (empty($user)) {
-            $this->error("User with ID $userId does not exists.");
+            $this->error("User with ID $userId does not exist.");
         }
         Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
         return $user;

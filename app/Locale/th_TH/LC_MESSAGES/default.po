@@ -722,7 +722,7 @@ msgid "Invalid Sharing Group or not authorised."
 msgstr "กลุ่มการแบ่งปันไม่ถูกต้องหรือไม่ได้รับอนุญาต"
 
 #: Controller/AttributesController.php:316;1772
-msgid "Attribute does not exists or you do not have the permission to download this attribute."
+msgid "Attribute does not exist or you do not have the permission to download this attribute."
 msgstr "ไม่มีแอตทริบิวต์หรือคุณไม่ได้รับอนุญาตให้ดาวน์โหลดแอตทริบิวต์นี้"
 
 #: Controller/AttributesController.php:334
