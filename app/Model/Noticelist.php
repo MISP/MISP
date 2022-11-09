@@ -25,8 +25,6 @@ class Noticelist extends AppModel
         )
     );
 
-    private $__entries = array();
-
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -44,9 +42,7 @@ class Noticelist extends AppModel
         $directories = glob(APP . 'files' . DS . 'noticelists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
         $updated = array();
         foreach ($directories as $dir) {
-            $file = new File($dir . DS . 'list.json');
-            $list = json_decode($file->read(), true);
-            $file->close();
+            $list = FileAccessTool::readJsonFromFile($dir . DS . 'list.json');
             if (!isset($list['version'])) {
                 $list['version'] = 1;
             }

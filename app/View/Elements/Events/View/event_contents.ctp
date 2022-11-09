@@ -35,8 +35,6 @@
 <div id="galaxies_div">
     <span class="title-section"><?= __('Galaxies') ?></span>
     <?= $this->element('galaxyQuickViewNew', [
-        'mayModify' => $mayModify,
-        'isAclTagger' => $isAclTagger,
         'data' => $event['Galaxy'],
         'event' => $event,
         'target_id' => $event['Event']['id'],

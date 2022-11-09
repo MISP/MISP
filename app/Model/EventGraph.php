@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+
 class EventGraph extends AppModel
 {
     public $useTable = 'event_graph';
@@ -27,7 +28,6 @@ class EventGraph extends AppModel
         )
     );
 
-
     public $validate = array(
         'network_json' => array(
             'rule' => 'valueIsJson',
@@ -39,8 +39,7 @@ class EventGraph extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
-        $date = new DateTime();
-        $this->data['EventGraph']['timestamp'] = $date->getTimestamp();
+        $this->data['EventGraph']['timestamp'] = time();
         return true;
     }
 

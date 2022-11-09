@@ -528,6 +528,19 @@
                         $i = $i + 1;
                     }
                 }
+
+                foreach ($obj['ObjectReference'] as $rel) {
+                    $toPush = array(
+                        'id' => $rel['id'],
+                        'uuid' => $rel['uuid'],
+                        'from' => sprintf('o-%s', $obj['id']),
+                        'to' => $rel['referenced_type'] == 1 ? sprintf('o-%s', $rel['referenced_id']) : $rel['referenced_id'],
+                        'type' => $rel['relationship_type'],
+                        'comment' => $rel['comment'],
+                        'event_id' => $rel['event_id'],
+                    );
+                    array_push($this->__json['relations'], $toPush);
+                }
             }
 
             // Add KeyType as nodes

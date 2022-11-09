@@ -148,6 +148,21 @@ class WorkflowBaseModule
         return $extracted;
     }
 
+    protected function getMatchingItemsForAttributes(array $node, array $rData): array
+    {
+        if ($this->filtersEnabled($node)) {
+            $filters = $this->getFilters($node);
+            $extracted = $this->extractData($rData, $filters['selector']);
+            if ($extracted === false) {
+                return false;
+            }
+            $matchingItems = $this->getItemsMatchingCondition($extracted, $filters['value'], $filters['operator'], $filters['path']);
+        } else {
+            $matchingItems = Hash::extract($rData, 'Event._AttributeFlattened.{n}');
+        }
+        return $matchingItems;
+    }
+
     protected function extractDataForFilters(array $node, WorkflowRoamingData $roamingData)
     {
         $rData = $roamingData->getData();

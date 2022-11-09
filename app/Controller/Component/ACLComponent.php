@@ -291,26 +291,26 @@ class ACLComponent extends Component
                 'getToggleField' => array('*')
             ),
             'feeds' => array(
-                    'add' => array(),
-                    'cacheFeeds' => array(),
-                    'compareFeeds' => array('*'),
-                    'delete' => array(),
-                    'disable' => array(),
-                    'edit' => array(),
-                    'enable' => array(),
-                    'feedCoverage' => array('*'),
-                    'fetchFromAllFeeds' => array(),
-                    'fetchFromFeed' => array(),
-                    'fetchSelectedFromFreetextIndex' => array(),
-                    'getEvent' => array(),
-                    'importFeeds' => array(),
-                    'index' => ['host_org_user'],
-                    'loadDefaultFeeds' => array(),
-                    'previewEvent' => array('*'),
-                    'previewIndex' => array('*'),
-                    'searchCaches' => ['host_org_user'],
-                    'toggleSelected' => array(),
-                    'view' => ['host_org_user'],
+                'add' => array(),
+                'cacheFeeds' => array(),
+                'compareFeeds' => ['host_org_user'],
+                'delete' => array(),
+                'disable' => array(),
+                'edit' => array(),
+                'enable' => array(),
+                'feedCoverage' => ['host_org_user'],
+                'fetchFromAllFeeds' => array(),
+                'fetchFromFeed' => array(),
+                'fetchSelectedFromFreetextIndex' => array(),
+                'getEvent' => array(),
+                'importFeeds' => array(),
+                'index' => ['host_org_user'],
+                'loadDefaultFeeds' => array(),
+                'previewEvent' => ['host_org_user'],
+                'previewIndex' => ['host_org_user'],
+                'searchCaches' => ['host_org_user'],
+                'toggleSelected' => array(),
+                'view' => ['host_org_user'],
             ),
             'galaxies' => array(
                 'attachCluster' => array('perm_tagger'),
@@ -432,6 +432,7 @@ class ACLComponent extends Component
             ),
             'objectReferences' => array(
                 'add' => array('perm_add'),
+                'bulkAdd' => array('perm_add'),
                 'delete' => array('perm_add'),
                 'view' => array('*'),
             ),
@@ -467,7 +468,7 @@ class ACLComponent extends Component
                 'fetchOrgsForSG' => array('perm_sharing_group'),
                 'fetchSGOrgRow' => array('*'),
                 'getUUIDs' => array('perm_sync'),
-                'index' => array('*'),
+                'index' => ['organisation_index'],
                 'view' => array('*'),
             ),
             'pages' => array(
@@ -481,11 +482,11 @@ class ACLComponent extends Component
             ),
             'regexp' => array(
                 'admin_add' => array('perm_regexp_access'),
-                'admin_clean' => array('perm_regexp_access'),
+                'admin_clean' => array(),
                 'admin_delete' => array('perm_regexp_access'),
                 'admin_edit' => array('perm_regexp_access'),
                 'admin_index' => array('perm_regexp_access'),
-                'cleanRegexModifiers' => array('perm_regexp_access'),
+                'cleanRegexModifiers' => array(),
                 'index' => array('*'),
             ),
             'restClientHistory' => array(
@@ -605,10 +606,10 @@ class ACLComponent extends Component
                 'add' => array('perm_sighting'),
                 'restSearch' => array('perm_sighting'),
                 'advanced' => array('perm_sighting'),
-                'delete' => array('perm_sighting'),
+                'delete' => ['AND' => ['perm_sighting', 'perm_modify_org']],
                 'index' => array('*'),
                 'listSightings' => array('*'),
-                'quickDelete' => array('perm_sighting'),
+                'quickDelete' => ['AND' => ['perm_sighting', 'perm_modify_org']],
                 'viewSightings' => array('*'),
                 'bulkSaveSightings' => array('OR' => array('perm_sync', 'perm_sighting')),
                 'filterSightingUuidsForPush' => ['perm_sync'],
@@ -647,7 +648,6 @@ class ACLComponent extends Component
                 'selectTaxonomy' => array('perm_tagger'),
                 'showEventTag' => array('*'),
                 'showAttributeTag' => array('*'),
-                'showTagControllerTag' => array('*'),
                 'tagStatistics' => array('*'),
                 'view' => array('*'),
                 'viewGraph' => array('*'),
@@ -816,13 +816,17 @@ class ACLComponent extends Component
 
     private $dynamicChecks = [];
 
+    /** @var int */
+    private $hostOrgId;
+
     public function __construct(ComponentCollection $collection, $settings = array())
     {
         parent::__construct($collection, $settings);
 
+        $this->hostOrgId = (int)Configure::read('MISP.host_org_id');
+
         $this->dynamicChecks['host_org_user'] = function (array $user) {
-            $hostOrgId = Configure::read('MISP.host_org_id');
-            return (int)$user['org_id'] === (int)$hostOrgId;
+            return (int)$user['org_id'] === $this->hostOrgId;
         };
         $this->dynamicChecks['self_management_enabled'] = function (array $user) {
             if (Configure::read('MISP.disableUserSelfManagement') && !$user['Role']['perm_admin'])  {
@@ -849,6 +853,221 @@ class ACLComponent extends Component
         $this->dynamicChecks['not_read_only_authkey'] = function (array $user) {
             return !isset($user['authkey_read_only']) || !$user['authkey_read_only'];
         };
+        // If `Security.hide_organisation_index_from_users` is enabled, only user with sharing group permission can see org index
+        $this->dynamicChecks['organisation_index'] = function (array $user) {
+            if (Configure::read('Security.hide_organisation_index_from_users')) {
+                return $user['Role']['perm_sharing_group'];
+            }
+            return true;
+        };
+    }
+
+    /**
+     * Returns true if user can modify given event.
+     *
+     * @param array $event
+     * @param array $user
+     * @return bool
+     */
+    public function canModifyEvent(array $user, array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($user['Role']['perm_modify_org'] && $event['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        if ($user['Role']['perm_modify'] && $event['Event']['user_id'] == $user['id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if user can publish the given event.
+     *
+     * @param array $user
+     * @param array $event
+     * @return bool
+     */
+    public function canPublishEvent(array $user, array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($user['Role']['perm_publish'] && $event['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if user can add or remove tags for given event.
+     *
+     * @param array $user
+     * @param array $event
+     * @param bool $isTagLocal
+     * @return bool
+     */
+    public function canModifyTag(array $user, array $event, $isTagLocal = false)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+        // Site admin can add any tag
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        // User must have tagger or sync permission
+        if (!$user['Role']['perm_tagger'] && !$user['Role']['perm_sync']) {
+            return false;
+        }
+        if ($this->canModifyEvent($user, $event)) {
+            return true; // full access
+        }
+        if ($isTagLocal && $this->hostOrgId === (int)$user['org_id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @param array $user
+     * @param array $event
+     * @return bool
+     */
+    public function canDisableCorrelation(array $user, array $event)
+    {
+        if (Configure::read('MISP.completely_disable_correlation')) {
+            return false; // correlations are completely disabled
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        return Configure::read('MISP.allow_disabling_correlation') && $this->canModifyEvent($user, $event);
+    }
+
+    /**
+     * @param array $user
+     * @param array $tagCollection
+     * @return bool
+     */
+    public function canModifyTagCollection(array $user, array $tagCollection)
+    {
+        if (!isset($tagCollection['TagCollection'])) {
+            throw new InvalidArgumentException('Passed object does not contain a TagCollection.');
+        }
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        return $user['org_id'] == $tagCollection['TagCollection']['org_id'];
+    }
+
+    /**
+     * Only site admin and event creator can modify an eventReport
+     *
+     * @param array $user
+     * @param array $report
+     * @return boolean
+     */
+    public function canEditReport(array $user, array $report): bool
+    {
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if (empty($report['Event'])) {
+            return __('Could not find associated event');
+        }
+        if ($report['Event']['orgc_id'] != $user['org_id']) {
+            return __('Only the creator organisation of the event can modify the report');
+        }
+        return true;
+    }
+
+    /**
+     * Only users that can modify organisation can delete sightings as sighting is not linked to user.
+     *
+     * @param array $user
+     * @param array $sighting
+     * @return bool
+     */
+    public function canDeleteSighting(array $user, array $sighting)
+    {
+        if (!isset($sighting['Sighting'])) {
+            throw new InvalidArgumentException('Passed object does not contain a Sighting.');
+        }
+        // Site admin can delete any sighting
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if (!$user['Role']['perm_modify_org']) {
+            return false;
+        }
+        return $sighting['Sighting']['org_id'] == $user['org_id'];
+    }
+
+    /**
+     * @param array $user
+     * @param array $eventReport
+     * @return bool
+     */
+    public function canEditEventReport(array $user, array $eventReport)
+    {
+        if (!isset($report['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($eventReport['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Checks if user can modify given galaxy cluster
+     *
+     * @param array $user
+     * @param array $cluster
+     * @return bool
+     */
+    public function canModifyGalaxyCluster(array $user, array $cluster)
+    {
+        if (!isset($cluster['GalaxyCluster'])) {
+            throw new InvalidArgumentException('Passed object does not contain an GalaxyCluster.');
+        }
+        if ($cluster['GalaxyCluster']['default']) {
+            return false; // it is not possible to edit default clusters
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if (!$user['Role']['perm_galaxy_editor']) {
+            return false;
+        }
+        return $cluster['GalaxyCluster']['orgc_id'] == $user['org_id'];
+    }
+
+    /**
+     * Checks if user can publish given galaxy cluster
+     *
+     * @param array $user
+     * @param array $cluster
+     * @return bool
+     */
+    public function canPublishGalaxyCluster(array $user, array $cluster)
+    {
+        if (!$this->canModifyGalaxyCluster($user, $cluster)) {
+            return false;
+        }
+        return (bool)$user['Role']['perm_publish'];
     }
 
     private function __checkLoggedActions($user, $controller, $action)
@@ -1086,7 +1305,7 @@ class ACLComponent extends Component
     private function __checkRoleAccess(array $role)
     {
         $result = array();
-        $fakeUser = ['Role' => $role, 'org_id' => Configure::read('MISP.host_org_id')];
+        $fakeUser = ['Role' => $role, 'org_id' => $this->hostOrgId];
         foreach (self::ACL_LIST as $controller => $actions) {
             $controllerNames = Inflector::variable($controller) === Inflector::underscore($controller) ?
                 array(Inflector::variable($controller)) :

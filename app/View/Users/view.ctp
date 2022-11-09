@@ -64,7 +64,7 @@
     }
     $table_data[] = array(
         'key' => __('Invited By'),
-        'html' => empty($user2['User']['email']) ? 'N/A' : sprintf('<a href="%s/admin/users/view/%s">%s</a>', $baseurl, h($user2['User']['id']), h($user2['User']['email'])),
+        'html' => empty($invitedBy['User']['email']) ? 'N/A' : sprintf('<a href="%s/admin/users/view/%s">%s</a>', $baseurl, h($invitedBy['User']['id']), h($invitedBy['User']['email'])),
     );
     $org_admin_data = array();
     if ($admin_view) {

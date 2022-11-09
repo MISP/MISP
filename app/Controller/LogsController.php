@@ -101,6 +101,9 @@ class LogsController extends AppController
                 $this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
             }
             foreach ($filters as $key => $value) {
+                if ($key === 'created') {
+                    $key = 'created >=';
+                }
                 $this->paginate['conditions']["Log.$key"] = $value;
             }
             $this->set('validFilters', $validFilters);

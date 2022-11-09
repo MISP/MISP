@@ -100,20 +100,20 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 (int) $a['Event']['org_id'],
                 (int) $a['Attribute']['distribution'],
                 (int) $a['Event']['distribution'],
-                (int) empty($a['Attribute']['object_id']) ? 0 : $a['Object']['distribution'],
+                empty($a['Attribute']['object_id']) ? 0 : (int) $a['Object']['distribution'],
                 (int) $a['Attribute']['sharing_group_id'],
                 (int) $a['Event']['sharing_group_id'],
-                (int) empty($a['Attribute']['object_id']) ? 0 : $a['Object']['sharing_group_id'],
+                empty($a['Attribute']['object_id']) ? 0 : (int) $a['Object']['sharing_group_id'],
                 (int) $b['Event']['id'],
                 (int) $b['Attribute']['object_id'],
                 (int) $b['Attribute']['id'],
                 (int) $b['Event']['org_id'],
                 (int) $b['Attribute']['distribution'],
                 (int) $b['Event']['distribution'],
-                (int) empty($b['Attribute']['object_id']) ? 0 : $b['Object']['distribution'],
+                empty($b['Attribute']['object_id']) ? 0 : (int) $b['Object']['distribution'],
                 (int) $b['Attribute']['sharing_group_id'],
                 (int) $b['Event']['sharing_group_id'],
-                (int) empty($b['Attribute']['object_id']) ? 0 : $b['Object']['sharing_group_id']
+                empty($b['Attribute']['object_id']) ? 0 : (int) $b['Object']['sharing_group_id']
             ];
         }
     }
@@ -568,7 +568,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
             isset($data['distribution']) &&
             (
                 empty($options['fieldList']) ||
-                in_array('distribution', $options['fieldList'])
+                in_array('distribution', $options['fieldList'], true)
             )
         ) {
             $updateCorrelation[0]['Correlation.' . $type . '_distribution'] = (int)$data['distribution'];
@@ -578,21 +578,19 @@ class DefaultCorrelationBehavior extends ModelBehavior
             isset($data['sharing_group_id']) &&
             (
                 empty($options['fieldList']) ||
-                in_array('sharing_group_id', $options['fieldList'])
+                in_array('sharing_group_id', $options['fieldList'], true)
             )
         ) {
             $updateCorrelation[0]['Correlation.' . $type . '_sharing_group_id'] = (int)$data['sharing_group_id'];
             $updateCorrelation[1]['Correlation.1_' . $type . '_sharing_group_id'] = (int)$data['sharing_group_id'];
         }
-        if (!empty($updateCorrelation)) {
-            foreach ($updateCorrelation as $k => $side) {
-                $Model->updateAll(
-                    $side,
-                    [
-                        $updateFields[$k] => (int)$data['id']
-                    ]
-                );
-            }
+        foreach ($updateCorrelation as $k => $side) {
+            $Model->updateAll(
+                $side,
+                [
+                    $updateFields[$k] => (int)$data['id']
+                ]
+            );
         }
         return true;
     }

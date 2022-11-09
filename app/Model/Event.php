@@ -29,6 +29,9 @@ class Event extends AppModel
         DISTRIBUTION_ALL = 3,
         DISTRIBUTION_SHARING_GROUP = 4;
 
+    const NO_PUSH_DISTRIBUTION = 'distribution',
+        NO_PUSH_SERVER_RULES = 'push_rules';
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -505,15 +508,14 @@ class Event extends AppModel
         return $events;
     }
 
+    /**
+     * @param int $event_id
+     * @return array|bool|mixed|null
+     * @throws Exception
+     */
     public function touch($event_id)
     {
-        $event = $this->find('first', [
-            'conditions' => ['Event.id' => $event_id],
-            'recursive' => -1,
-        ]);
-        $event['Event']['published'] = 0;
-        $event['Event']['timestamp'] = (new DateTime())->getTimestamp();
-        return $this->save($event, true, ['timestamp', 'published']);
+        return $this->unpublishEvent($event_id);
     }
 
     public function attachTagsToEventAndTouch($event_id, array $options, array $user)
@@ -744,6 +746,86 @@ class Event extends AppModel
     }
 
     /**
+     * Returns list of server that event will be pushed.
+     * @param array $event
+     * @return array
+     */
+    public function listServerToPush(array $event)
+    {
+        $elevatedUser = array(
+            'Role' => array(
+                'perm_site_admin' => 1,
+                'perm_sync' => 1,
+                'perm_audit' => 0,
+            ),
+            'org_id' => $event['Event']['orgc_id']
+        );
+        // Fetch event with details
+        $event = $this->fetchEvent($elevatedUser, ['eventid' => $event['Event']['id'], 'metadata' => true]);
+        $event = $event[0];
+
+        $this->Server = ClassRegistry::init('Server');
+        $servers = $this->Server->find('all', [
+            'conditions' => ['Server.push' => true],
+            'recursive' => -1,
+            'contain' => ['RemoteOrg', 'Organisation'],
+            'order' => ['Server.priority ASC', 'Server.id ASC'],
+        ]);
+
+        $output = [];
+        foreach ($servers as $server) {
+            $isEventPushableToServer = $this->shouldBePushedToServer($event, $server, $reason);
+            if ($isEventPushableToServer) {
+                $result = true;
+            } else {
+                if ($reason === self::NO_PUSH_DISTRIBUTION) {
+                    $result = 'The distribution level of this event blocks it from being pushed.';
+                } elseif ($reason === self::NO_PUSH_SERVER_RULES) {
+                    $result = 'The server rules blocks it from being pushed.';
+                } else {
+                    $result = $reason;
+                }
+            }
+            $output[$server['Server']['name']] = $result;
+        }
+        return $output;
+    }
+
+    /**
+     * Check if event can be pushed to remote server.
+     *
+     * @param array $event
+     * @param array $server
+     * @param string $reason If method returns false, this variable contains reason why event should not be pushed
+     * @return bool
+     */
+    public function shouldBePushedToServer(array $event, array $server, &$reason)
+    {
+        if (!isset($server['Server']['internal'])) {
+            throw new InvalidArgumentException('Invalid Server array provided.');
+        }
+
+        // This check is probably redundant, because it should be checked in also in `checkDistributionForPush`
+        // But keep it here just for sure
+        if (!$server['Server']['internal'] && $event['Event']['distribution'] < self::DISTRIBUTION_CONNECTED) {
+            $reason = self::NO_PUSH_DISTRIBUTION;
+            return false;
+        }
+
+        if (empty($this->Server->eventFilterPushableServers($event, [$server]))) {
+            $reason = self::NO_PUSH_SERVER_RULES;
+            return false;
+        }
+
+        if (!$this->checkDistributionForPush($event, $server)) {
+            $reason = self::NO_PUSH_DISTRIBUTION;
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * @param array $event
      * @param array $server
      * @param ServerSyncTool $serverSync
@@ -809,6 +891,7 @@ class Event extends AppModel
 
     private function __prepareForPushToServer($event, $server)
     {
+        $serverId = $server['Server']['id'];
         if ($event['Event']['distribution'] == 4) {
             if (empty($event['SharingGroup']['roaming']) && empty($server['Server']['internal'])) {
                 $serverFound = false;
@@ -820,7 +903,7 @@ class Event extends AppModel
                     }
                 }
                 if (!$serverFound) {
-                    $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: server not found in sharing group.");
+                    $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: server not found in sharing group.");
                     return 403;
                 }
             }
@@ -833,21 +916,21 @@ class Event extends AppModel
                 }
             }
             if (!$orgFound) {
-                $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: org not found in sharing group.");
+                $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: org not found in sharing group.");
                 return 403;
             }
         }
         $serverModel = ClassRegistry::init('Server');
         $server = $serverModel->eventFilterPushableServers($event, array($server));
         if (empty($server)) {
-            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: event doesn't match sever push rules.");
+            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: event doesn't match sever push rules.");
             return 403;
         }
         $server = $server[0];
         if ($this->checkDistributionForPush($event, $server, 'Event')) {
             $event = $this->__updateEventForSync($event, $server);
         } else {
-            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: event doesn't match distribution.");
+            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: event doesn't match distribution.");
             return 403;
         }
         return $event;
@@ -1223,15 +1306,16 @@ class Event extends AppModel
             );
         }
         if (!Configure::read('MISP.completely_disable_correlation')) {
+            $correlationTableName = $this->Attribute->Correlation->getTableName();
             array_push(
                 $relations,
                 array(
-                    'table' => 'correlations',
+                    'table' => $correlationTableName,
                     'foreign_key' => 'event_id',
                     'value' => $id
                 ),
                 array(
-                    'table' => 'correlations',
+                    'table' => $correlationTableName,
                     'foreign_key' => '1_event_id',
                     'value' => $id
                 )
@@ -1294,7 +1378,7 @@ class Event extends AppModel
         }
         $tagScopes = array('Event', 'Attribute');
         $this->AttributeTag = ClassRegistry::init('AttributeTag');
-        $tagIds = $this->AttributeTag->Tag->find('list', array(
+        $tagIds = $this->AttributeTag->Tag->find('column', array(
             'recursive' => -1,
             'conditions' => array('Tag.name LIKE' => $params['wildcard']),
             'fields' => array('Tag.id')
@@ -1321,9 +1405,7 @@ class Event extends AppModel
         foreach ($attributeParams as $attributeParam) {
             $tempConditions[] = array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']);
         }
-        $tagScopes = array('Event', 'Attribute');
-        $this->AttributeTag = ClassRegistry::init('AttributeTag');
-        $tagIds = $this->AttributeTag->Tag->find('list', array(
+        $tagIds = $this->Attribute->AttributeTag->Tag->find('column', array(
             'recursive' => -1,
             'conditions' => array('Tag.name LIKE' => $params['wildcard']),
             'fields' => array('Tag.id')
@@ -1342,7 +1424,7 @@ class Event extends AppModel
                 ),
                 'fields' => array('attribute_id')
             );
-            $tempConditions[] = $this->subQueryGenerator($this->AttributeTag, $subQueryOptions, 'Attribute.id');
+            $tempConditions[] = $this->subQueryGenerator($this->Attribute->AttributeTag, $subQueryOptions, 'Attribute.id');
         }
         return $tempConditions;
     }
@@ -1467,7 +1549,7 @@ class Event extends AppModel
         return $results;
     }
 
-    public function fetchSimpleEventIds($user, $params = array())
+    public function fetchSimpleEventIds(array $user, $params = array())
     {
         $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];
@@ -2380,6 +2462,8 @@ class Event extends AppModel
             $eventMeta = array(
                 'id' => $extensionEvent['Event']['id'],
                 'info' => $extensionEvent['Event']['info'],
+                'orgc_id' => $extensionEvent['Event']['orgc_id'],
+                'user_id' => $extensionEvent['Event']['user_id'],
                 'Orgc' => array(
                     'id' => $extensionEvent['Orgc']['id'],
                     'name' => $extensionEvent['Orgc']['name'],
@@ -2824,15 +2908,21 @@ class Event extends AppModel
         return $conditions;
     }
 
+    /**
+     * @param array $params
+     * @param array $conditions
+     * @param array $options
+     * @return array
+     */
     public function set_filter_timestamp(&$params, $conditions, $options)
     {
-        if ($options['filter'] == 'from') {
+        if ($options['filter'] === 'from') {
             if (is_numeric($params['from'])) {
                 $conditions['AND']['Event.date >='] = date('Y-m-d', $params['from']);
             } else {
                 $conditions['AND']['Event.date >='] = $params['from'];
             }
-        } elseif ($options['filter'] == 'to') {
+        } elseif ($options['filter'] === 'to') {
             if (is_numeric($params['to'])) {
                 $conditions['AND']['Event.date <='] = date('Y-m-d', $params['to']);
             } else {
@@ -3556,7 +3646,9 @@ class Event extends AppModel
                     'Server.id',
                     'Server.unpublish_event',
                     'Server.publish_without_email',
-                    'Server.internal'
+                    'Server.internal',
+                    'Server.url',
+                    'Server.remote_org_id',
                 )
             ));
         } else {
@@ -3705,6 +3797,10 @@ class Event extends AppModel
             if ($fromXml) {
                 $created_id = $this->id;
             }
+            $workflowResult = $this->afterAddWorkflow($this->id, $fromPull);
+            if (is_array($workflowResult)) {
+                return implode(', ', $workflowResult);
+            }
             if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
                 // do the necessary actions to publish the event (email, upload,...)
                 if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
@@ -3753,6 +3849,38 @@ class Event extends AppModel
             $validationErrors['Event'] = $this->validationErrors;
             return json_encode($validationErrors);
         }
+    }
+
+    /**
+     * @param int $eventId
+     * @param bool $fromPull
+     * @return true|array
+     */
+    private function afterAddWorkflow($eventId, $fromPull)
+    {
+        $triggerId = $fromPull ? 'event-after-save-new-from-pull' : 'event-after-save-new';
+        if (!$this->isTriggerCallable($triggerId)) {
+            return true;
+        }
+
+        $userForWorkflow = $this->User->getAuthUser(Configure::read('CurrentUserId'), true);
+        $userForWorkflow['Role']['perm_site_admin'] = 1;
+
+        $fullSavedEvent = $this->fetchEvent($userForWorkflow, [
+            'eventid' => $eventId,
+            'includeAttachments' => 1
+        ])[0];
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'Event',
+            'action' => 'add',
+            'id' => $eventId,
+        ];
+        $success = $this->executeTrigger($triggerId, $fullSavedEvent, $workflowErrors, $logging);
+        if (!$success) {
+            return $workflowErrors;
+        }
+        return true;
     }
 
     public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false)
@@ -4295,6 +4423,7 @@ class Event extends AppModel
                         'perm_site_admin' => 0
                     )
                 );
+                // TODO: We are pushing galaxy clusters to remove server even if event is not pushable to that server
                 $this->Server->syncGalaxyClusters($serverSync, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
                 $thisUploaded = $this->uploadEventToServer($event, $server, $serverSync);
                 if ($thisUploaded === 'Success') {
@@ -4340,8 +4469,7 @@ class Event extends AppModel
 
             $args = ['publish_sightings', $id, $passAlong, $jobId, $user['id']];
             if (!empty($sightingUuids)) {
-                $filePath = FileAccessTool::writeToTempFile(json_encode($sightingUuids));
-                $args[] = $filePath;
+                $args[] = $this->getBackgroundJobsTool()->enqueueDataFile($sightingUuids);
             }
 
             return $this->getBackgroundJobsTool()->enqueue(
@@ -5404,6 +5532,7 @@ class Event extends AppModel
                         }
                         $this->Warninglist = ClassRegistry::init('Warninglist');
                         $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+                        $complexTypeTool->setSecurityVendorDomains($this->Warninglist->fetchSecurityVendorDomains());
                         $freetextResults = array_merge($freetextResults, $complexTypeTool->checkFreeText($value));
                         if (!empty($freetextResults)) {
                             foreach ($freetextResults as &$ft) {
@@ -5643,22 +5772,30 @@ class Event extends AppModel
     }
 
     /**
-     * @param int $id
+     * @param int|array $eventOrEventId Event ID or event array
      * @param bool $proposalLock
      * @param int|null $timestamp If not provided, current time will be used
      * @return array|bool|mixed|null
      * @throws Exception
      */
-    public function unpublishEvent($id, $proposalLock = false, $timestamp = null)
+    public function unpublishEvent($eventOrEventId, $proposalLock = false, $timestamp = null)
     {
-        $event = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Event.id' => $id),
-            'fields' => ['id', 'info'], // info is required because of SysLogLogableBehavior
-        ));
-        if (empty($event)) {
-            return false;
+        if (is_array($eventOrEventId)) {
+            $event = $eventOrEventId;
+            if (!isset($event['Event']['id'])) {
+                throw new InvalidArgumentException('Invalid event array provided.');
+            }
+        } else {
+            $event = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Event.id' => $eventOrEventId),
+                'fields' => ['id', 'info'], // info is required because of SysLogLogableBehavior
+            ));
+            if (empty($event)) {
+                return false;
+            }
         }
+
         $fields = ['published', 'timestamp'];
         $event['Event']['published'] = 0;
         $event['Event']['timestamp'] = $timestamp ?: time();
@@ -5945,7 +6082,15 @@ class Event extends AppModel
         return $attributes_added;
     }
 
-    public function massageTags($user, $data, $dataType = 'Event', $excludeGalaxy = false, $cullGalaxyTags = false)
+    /**
+     * @param array $user
+     * @param array $data
+     * @param string $dataType
+     * @param bool $excludeGalaxy
+     * @param bool $cullGalaxyTags
+     * @return array
+     */
+    public function massageTags(array $user, array $data, $dataType = 'Event', $excludeGalaxy = false, $cullGalaxyTags = false)
     {
         $data['Galaxy'] = array();
 
@@ -5965,14 +6110,15 @@ class Event extends AppModel
                         $cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name'], $user);
                         if ($cluster) {
                             $found = false;
-                            $cluster['GalaxyCluster']['local'] = isset($dataTag['local']) ? $dataTag['local'] : false;
+                            $cluster['GalaxyCluster']['local'] = $dataTag['local'] ?? false;
+                            $cluster['GalaxyCluster'][strtolower($dataType) . '_tag_id'] = $dataTag['id'];
                             foreach ($data['Galaxy'] as $j => $galaxy) {
                                 if ($galaxy['id'] == $cluster['GalaxyCluster']['Galaxy']['id']) {
                                     $found = true;
                                     $temp = $cluster;
                                     unset($temp['GalaxyCluster']['Galaxy']);
                                     $data['Galaxy'][$j]['GalaxyCluster'][] = $temp['GalaxyCluster'];
-                                    continue;
+                                    break;
                                 }
                             }
                             if (!$found) {
@@ -6427,15 +6573,7 @@ class Event extends AppModel
         }
 
         if ($saved_attributes > 0 || $saved_objects > 0 || $saved_reports > 0) {
-            $event = $this->find('first', array(
-                    'conditions' => array('Event.id' => $id),
-                    'recursive' => -1
-            ));
-            if ($event['Event']['published'] == 1) {
-                $event['Event']['published'] = 0;
-            }
-            $event['Event']['timestamp'] = time();
-            $this->save($event);
+            $this->unpublishEvent($id);
         }
         if ($event_level) {
             return $saved_attributes + $saved_object_attributes + $saved_reports;
@@ -6634,8 +6772,7 @@ class Event extends AppModel
             );
 
             try {
-                $filePath = FileAccessTool::writeToTempFile(JsonTool::encode($tempData));
-
+                $filePath = $this->getBackgroundJobsTool()->enqueueDataFile($tempData);
                 $this->getBackgroundJobsTool()->enqueue(
                     BackgroundJobsTool::PRIO_QUEUE,
                     BackgroundJobsTool::CMD_EVENT,
@@ -6671,7 +6808,7 @@ class Event extends AppModel
             );
 
             try {
-                $filePath = FileAccessTool::writeToTempFile(JsonTool::encode($tempData));
+                $filePath = $this->getBackgroundJobsTool()->enqueueDataFile($tempData);
 
                 $this->getBackgroundJobsTool()->enqueue(
                     BackgroundJobsTool::PRIO_QUEUE,
@@ -7295,10 +7432,10 @@ class Event extends AppModel
     }
 
     /**
-     * extractAllTagNames Returns all tag names attached to any elements in an event
+     * Returns all tag names attached to any elements in an event
      *
      * @param  array $event
-     * @return array All tag names in the event
+     * @return array All tag names in the event with tag name in key and also in value
      */
     public function extractAllTagNames(array $event)
     {

@@ -275,7 +275,7 @@ class ObjectsController extends AppController
                     unset($object['Object']['id']);
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), 'halt', $breakOnDuplicate);
                     if (is_numeric($result)) {
-                        $this->MispObject->Event->unpublishEvent($eventId);
+                        $this->MispObject->Event->unpublishEvent($event);
                     } else {
                         $object_validation_errors = array();
                         foreach($result as $field => $field_errors) {
@@ -451,7 +451,7 @@ class ObjectsController extends AppController
                         $savedObject = $savedObject[0];
                         $savedObject['Object']['Attribute'] = $savedObject['Attribute'];
                         unset($savedObject['Attribute']);
-                        $this->MispObject->Event->unpublishEvent($savedObject['Object']['event_id']);
+                        $this->MispObject->Event->unpublishEvent($event);
                     }
                     return $this->RestResponse->viewData($savedObject, $this->response->type());
                 } else {
@@ -462,14 +462,14 @@ class ObjectsController extends AppController
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
                     if (is_numeric($objectToSave)) {
-                        $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
+                        $this->MispObject->Event->unpublishEvent($event);
                         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
                     } else {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $error_message)), 'status'=>200, 'type' => 'json'));
                     }
                 } else {
                     if (is_numeric($objectToSave)) {
-                        $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
+                        $this->MispObject->Event->unpublishEvent($event);
                         $this->Flash->success('Object saved.');
                     } else {
                         $this->Flash->error($error_message);
@@ -561,7 +561,7 @@ class ObjectsController extends AppController
         $object['Object']['timestamp'] = $date->getTimestamp();
         $object = $this->MispObject->syncObjectAndAttributeSeen($object, $forcedSeenOnElements, false);
         if ($this->MispObject->save($object)) {
-            $this->MispObject->Event->unpublishEvent($object['Event']['id']);
+            $this->MispObject->Event->unpublishEvent($object, false, $date->getTimestamp());
             if ($seen_changed) {
                 $this->MispObject->Attribute->saveAttributes($object['Attribute'], $this->Auth->user());
             }
@@ -1206,7 +1206,7 @@ class ObjectsController extends AppController
             );
             $result = $this->MispObject->groupAttributesIntoObject($this->Auth->user(), $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping, $hard_delete_attribute);
             if (is_numeric($result)) {
-                $this->MispObject->Event->unpublishEvent($event_id);
+                $this->MispObject->Event->unpublishEvent($event);
                 return $this->RestResponse->saveSuccessResponse('Objects', 'Created from Attributes', $result, $this->response->type());
             } else {
                 $error = __('Failed to create an Object from Attributes. Error: ') . PHP_EOL . h($result);

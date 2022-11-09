@@ -2,6 +2,9 @@
 
 App::uses('AppModel', 'Model');
 
+/**
+ * @property Tag $Tag
+ */
 class TagCollectionTag extends AppModel
 {
     public $useTable = 'tag_collection_tags';
@@ -24,9 +27,5 @@ class TagCollectionTag extends AppModel
         'Tag' => array(
             'className' => 'Tag',
         )
-    );
-
-    public $validate = array(
-
     );
 }

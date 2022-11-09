@@ -497,7 +497,7 @@ class SecurityAudit
         if ($linuxVersion) {
             list($name, $version) = $linuxVersion;
             if ($name === 'Ubuntu') {
-                if (in_array($version, ['14.04', '16.04', '19.10', '20.10', '21.04'], true)) {
+                if (in_array($version, ['14.04', '16.04', '19.10', '20.10', '21.04', '21.10'], true)) {
                     $output['System'][] = [
                         'warning',
                         __('You are using Ubuntu %s. This version doesn\'t receive security support anymore.', $version),

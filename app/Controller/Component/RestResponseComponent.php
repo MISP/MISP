@@ -261,7 +261,7 @@ class RestResponseComponent extends Component
             'restSearch' => array(
                 'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id or uuid MUST be provided if context is set.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('id', 'uuid', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
+                'optional' => array('id', 'uuid', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent', 'includeUuid'),
                 'params' => array('context')
             ),
         ),
@@ -488,6 +488,7 @@ class RestResponseComponent extends Component
      * @param mixed $data
      * @return CakeResponse
      * @throws Exception
+     * @deprecated Use failResponse instead
      */
     public function saveFailResponse($controller, $action, $id, $validationErrors, $format = false, $data = null)
     {
@@ -515,6 +516,18 @@ class RestResponseComponent extends Component
     }
 
     /**
+     * @param int|null $id
+     * @param array|string $validationErrors
+     * @param mixed $additionalData
+     * @return CakeResponse|CakeResponseFile
+     * @throws Exception
+     */
+    public function failResponse($id = null, $validationErrors = null, $additionalData = null)
+    {
+        return $this->saveFailResponse($this->Controller->name, $this->Controller->action, $id, $validationErrors, 'json', $additionalData);
+    }
+
+    /**
      * @param string $controller
      * @param string $action
      * @param int|false $id
@@ -523,6 +536,7 @@ class RestResponseComponent extends Component
      * @param mixed $data
      * @return CakeResponse
      * @throws Exception
+     * @deprecated Use successResponse instead
      */
     public function saveSuccessResponse($controller, $action, $id = false, $format = false, $message = false, $data = null)
     {
@@ -544,6 +558,18 @@ class RestResponseComponent extends Component
             $response['id'] = $id;
         }
         return $this->__sendResponse($response, 200, $format);
+    }
+
+    /**
+     * @param int|null $id
+     * @param string|null $message
+     * @param mixed $additionalData
+     * @return CakeResponse|CakeResponseFile
+     * @throws Exception
+     */
+    public function successResponse($id = null, $message = null, $additionalData = null)
+    {
+        return $this->saveSuccessResponse($this->Controller->name, $this->Controller->action, $id, 'json', $message, $additionalData);
     }
 
     /**
@@ -1230,6 +1256,12 @@ class RestResponseComponent extends Component
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => 'Include all enabled decaying score'
             ),
+            'includeUuid' => array(
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => array(1 => 'True', 0 => 'False'),
+                'help' => __('Include matching event and attribute UUID to in the response'),
+            ),
             'includeEvent' => array(
                 'input' => 'radio',
                 'type' => 'integer',
@@ -1289,7 +1321,7 @@ class RestResponseComponent extends Component
                 'input' => 'text',
                 'type' => 'string',
                 'operators' => array('equal', 'not_equal'),
-                'help' => __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)')
+                'help' => __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m), ISO 8601 datetime format or timestamp.')
             ),
             'last_seen' => array(
                 'input' => 'text',
@@ -1307,7 +1339,7 @@ class RestResponseComponent extends Component
             'local' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('If the organisation should have access to this instance, make sure that the Local organisation setting is checked. If you would only like to add a known external organisation for inclusion in sharing groups, uncheck the Local organisation setting.')
             ),
             'lookup_visible' => array(
@@ -1429,7 +1461,7 @@ class RestResponseComponent extends Component
             'override_ids' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('The IDS flags will be set to off for this feed')
             ),
             'page' => array(
@@ -1448,73 +1480,73 @@ class RestResponseComponent extends Component
             'perm_admin' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_audit' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_auth' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_delegate' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_regexp_access' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_sharing_group' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_sighting' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_site_admin' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_sync' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_tag_editor' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_tagger' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_galaxy_editor' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_template' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'permission' => array(
                 'input' => 'select',
                 'type' => 'string',
                 'operators' => array('equal'),
-                'values' => array(0 =>'Read Only', 1 => 'Manage Own Events', 2 => 'Manage Organisation Events', 3 => 'Manage and Publish Organisation Events'),
+                'values' => array(0 => 'Read Only', 1 => 'Manage Own Events', 2 => 'Manage Organisation Events', 3 => 'Manage and Publish Organisation Events'),
             ),
             'provider' => array(
                 'input' => 'text',
@@ -1525,7 +1557,7 @@ class RestResponseComponent extends Component
             'publish' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('The event will be published')
             ),
             'publish_timestamp' => array(
@@ -1537,7 +1569,7 @@ class RestResponseComponent extends Component
             'published' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
             'publishtimestamp' => array(
                 'input' => 'number',
@@ -1548,19 +1580,19 @@ class RestResponseComponent extends Component
             'pull' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('Allow the download of events and their attribute from the server')
             ),
             'push' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('Allow the upload of events and their attribute to the server')
             ),
             'push_sightings' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => array(1 => 'True', 0 => 'False'),
                 'help' => __('Allow the upload of sightings to the server')
             ),
             'referenced_galaxy_cluster_uuid' => array(
@@ -1753,7 +1785,7 @@ class RestResponseComponent extends Component
             ),
             'to' => array(
                 'type' => 'date',
-                'validation' => array( 'format' => 'YYYY-MM-DD' ),
+                'validation' => array('format' => 'YYYY-MM-DD'),
                 'plugin' => 'datepicker',
                 'plugin_config' => array(
                     'format' => 'yyyy/mm/dd',
@@ -1806,7 +1838,7 @@ class RestResponseComponent extends Component
             'withAttachments' => array(
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
+                'values' => array(1 => 'True', 0 => 'False')
             ),
 
             // Not supported yet

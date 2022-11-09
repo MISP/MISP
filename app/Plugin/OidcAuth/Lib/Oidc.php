@@ -49,7 +49,11 @@ class Oidc
 
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
         $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
-        $organisationId = $this->checkOrganization($organisationName, $user, $mispUsername);
+
+        $organisationUuidProperty = $this->getConfig('organisation_uuid_property', 'organization_uuid');
+        $organisationUuid = $claims->{$organisationUuidProperty} ?? null;
+
+        $organisationId = $this->checkOrganization($organisationName, $organisationUuid, $mispUsername);
         if (!$organisationId) {
             if ($user) {
                 $this->block($user);
@@ -60,7 +64,7 @@ class Oidc
         $roleProperty = $this->getConfig('roles_property', 'roles');
         $roles = $claims->{$roleProperty} ?? $oidc->requestUserInfo($roleProperty);
         if ($roles === null) {
-            $this->log($user['email'], "Role property `$roleProperty` is missing in claims.");
+            $this->log($mispUsername, "Role property `$roleProperty` is missing in claims.");
             return false;
         }
 
@@ -113,7 +117,7 @@ class Oidc
             return $user;
         }
 
-        $this->log($mispUsername, 'Not found in database.');
+        $this->log($mispUsername, 'User not found in database.');
 
         $time = time();
         $userData = [
@@ -125,6 +129,7 @@ class Oidc
             'change_pw' => 0,
             'date_created' => $time,
             'sub' => $sub,
+            'enable_password' => false, // do not generate default password for user
         ];
 
         if (!$this->User->save($userData)) {
@@ -134,7 +139,7 @@ class Oidc
         $refreshToken = $this->getConfig('offline_access', false) ? $oidc->getRefreshToken() : null;
         $this->storeMetadata($this->User->id, $claims, $refreshToken);
 
-        $this->log($mispUsername, "Saved in database with ID {$this->User->id}");
+        $this->log($mispUsername, "User saved in database with ID {$this->User->id}");
         $this->log($mispUsername, 'Logged in.');
         $user = $this->_findUser($settings, ['User.id' => $this->User->id]);
 
@@ -226,7 +231,11 @@ class Oidc
         // Check user org
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
         $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
-        $organisationId = $this->checkOrganization($organisationName, $user, $user['email']);
+
+        $organisationUuidProperty = $this->getConfig('organisation_uuid_property', 'organization_uuid');
+        $organisationUuid = $claims->{$organisationUuidProperty} ?? null;
+
+        $organisationId = $this->checkOrganization($organisationName, $organisationUuid, $user['email']);
         if (!$organisationId) {
             return false;
         }
@@ -302,42 +311,77 @@ class Oidc
     }
 
     /**
-     * @param string $org
-     * @param array|null $user
+     * @param string $orgName Organisation name or UUID
+     * @param string|null $orgUuid Organisation UUID
      * @param string $mispUsername
      * @return int
      * @throws Exception
      */
-    private function checkOrganization($org, $user, $mispUsername)
+    private function checkOrganization($orgName, $orgUuid, $mispUsername)
     {
-        if (empty($org)) {
+        if (empty($orgName)) {
             $this->log($mispUsername, "Organisation name not provided.");
             return false;
         }
 
-        $orgIsUuid = Validation::uuid($org);
+        if ($orgUuid && !Validation::uuid($orgUuid)) {
+            $this->log($mispUsername, "Organisation UUID `$orgUuid` is not valid UUID.");
+            return false;
+        }
+
+        $orgNameIsUuid = Validation::uuid($orgName);
+        if ($orgUuid) {
+            $conditions = ['uuid' => strtolower($orgUuid)];
+            $this->log($mispUsername, "Trying to find user org by UUID `$orgUuid`.");
+        } else if ($orgNameIsUuid) {
+            $conditions = ['uuid' => strtolower($orgName)];
+            $this->log($mispUsername, "Trying to find user org by UUID `$orgName` provided in org name.");
+        } else {
+            $conditions = ['name' => $orgName];
+            $this->log($mispUsername, "Trying to find user org by name `$orgName`.");
+        }
 
         $orgAux = $this->User->Organisation->find('first', [
-            'fields' => ['Organisation.id'],
-            'conditions' => $orgIsUuid ? ['uuid' => strtolower($org)] : ['name' => $org],
+            'fields' => ['Organisation.id', 'Organisation.name'],
+            'conditions' => $conditions,
         ]);
         if (empty($orgAux)) {
-            if ($orgIsUuid) {
-                $this->log($mispUsername, "Could not found organisation with UUID `$org`.");
+            // Org does not exists and we don't know org name, so it is not possible to crete a new one.
+            if ($orgNameIsUuid) {
+                $this->log($mispUsername, "Could not find organisation with UUID `$orgName`.");
                 return false;
             }
 
-            $orgUserId = 1; // By default created by the admin
-            if ($user) {
-                $orgUserId = $user['id'];
-            }
-            $orgId = $this->User->Organisation->createOrgFromName($org, $orgUserId, true);
-            $this->log($mispUsername, "User organisation `$org` created with ID $orgId.");
+            $orgId = $this->User->Organisation->createOrgFromName($orgName, 0, true, $orgUuid);
+            $this->log($mispUsername, "User organisation `$orgName` created with ID $orgId.");
         } else {
             $orgId = $orgAux['Organisation']['id'];
-            $this->log($mispUsername, "User organisation `$org` found with ID $orgId.");
+            $this->log($mispUsername, "User organisation `$orgName` found with ID $orgId.");
+
+            // If org name in database is different, update to new name from OIDC
+            if ($orgUuid && $orgName != $orgAux['Organisation']['name']) {
+                $this->changeOrgName($orgId, $orgName);
+                $this->log($mispUsername, "Changed org name for #$orgId from `{$orgAux['Organisation']['name']}` to `$orgName`.");
+            }
         }
         return $orgId;
+    }
+
+    /**
+     * @param int $orgId
+     * @param string $newName
+     * @return void
+     * @throws Exception
+     */
+    private function changeOrgName($orgId, $newName)
+    {
+        $result = $this->User->Organisation->save([
+            'id' => $orgId,
+            'name' => $newName,
+        ], true, ['id', 'name']);
+        if (!$result) {
+            throw new Exception("Could not rename org with ID $orgId to `$newName`.");
+        }
     }
 
     /**

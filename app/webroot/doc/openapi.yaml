@@ -12,9 +12,9 @@ info:
     It also lets you perform administrative tasks such as creating users, organisations, altering MISP settings, and much more.
 
     To get an API key there are several options:
-    * **[UI]** Go to [Administration -> Auth Keys](/auth_keys/index) page and click on `+ Add authentication key`
+    * **[UI]** Go to [My Profile -> Auth Keys](/auth_keys/index) section and click on `+ Add authentication key`
     
-    * **[UI]** Go to the the [Administration -> List Users -> View](/admin/users/view/[id]) page of the user you want to create an auth key for and on the `Auth keys` section click on `+ Add authentication key`
+    * **[UI]** As an admin go to the the [Administration -> List Users -> View](/admin/users/view/[id]) page of the user you want to create an auth key for and on the `Auth keys` section click on `+ Add authentication key`
 
     * **[CLI]** Use the following command: `./app/Console/cake user change_authkey [e-mail/user_id]`
 
@@ -5378,8 +5378,10 @@ components:
         $ref: "#/components/schemas/DateRestSearchFilter"
 
     LastRestSearchFilter:
-      description: "Published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
-      type: integer
+      description: "Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m), ISO 8601 datetime format or timestamp"
+      oneOf:
+        - type: integer
+        - type: string
       nullable: true
 
     TagsRestSearchFilter:
@@ -5525,7 +5527,6 @@ components:
         - "Role"
         - "Server"
         - "ShadowAttribute"
-        - "SharingGroupElement"
         - "SharingGroupOrg"
         - "SharingGroup"
         - "SharingGroupServer"

@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property GalaxyCluster $GalaxyCluster
+ * @property Galaxy $Galaxy
  */
 class Galaxy extends AppModel
 {
@@ -355,14 +356,38 @@ class Galaxy extends AppModel
 
     /**
      * @param array $user
+     * @param string $targetType
+     * @param int $targetId
+     * @return array
+     */
+    public function fetchTarget(array $user, $targetType, $targetId)
+    {
+        $this->Tag = ClassRegistry::init('Tag');
+        if ($targetType === 'event') {
+            return $this->Tag->EventTag->Event->fetchSimpleEvent($user, $targetId);
+        } elseif ($targetType === 'attribute') {
+            return $this->Tag->AttributeTag->Attribute->fetchAttributeSimple($user, array('conditions' => array('Attribute.id' => $targetId)));
+        } elseif ($targetType === 'tag_collection') {
+            $target = $this->Tag->TagCollectionTag->TagCollection->fetchTagCollection($user, array('conditions' => array('TagCollection.id' => $targetId)));
+            if (!empty($target)) {
+                $target = $target[0];
+            }
+            return $target;
+        } else {
+            throw new InvalidArgumentException("Invalid target type $targetType");
+        }
+    }
+
+    /**
+     * @param array $user
      * @param string $target_type
-     * @param int $target_id
+     * @param array $target
      * @param int $cluster_id
      * @param bool $local
      * @return string
      * @throws Exception
      */
-    public function attachCluster(array $user, $target_type, $target_id, $cluster_id, $local = false)
+    public function attachCluster(array $user, $target_type, array $target, $cluster_id, $local = false)
     {
         $connectorModel = Inflector::camelize($target_type) . 'Tag';
         $local = $local == 1 || $local === true ? 1 : 0;
@@ -383,20 +408,14 @@ class Galaxy extends AppModel
             throw new MethodNotAllowedException(__("This Cluster can only be attached in a local scope"));
         }
         $this->Tag = ClassRegistry::init('Tag');
-        if ($target_type === 'event') {
-            $target = $this->Tag->EventTag->Event->fetchSimpleEvent($user, $target_id);
-        } elseif ($target_type === 'attribute') {
-            $target = $this->Tag->AttributeTag->Attribute->fetchAttributeSimple($user, array('conditions' => array('Attribute.id' => $target_id)));
-        } elseif ($target_type === 'tag_collection') {
-            $target = $this->Tag->TagCollectionTag->TagCollection->fetchTagCollection($user, array('conditions' => array('TagCollection.id' => $target_id)));
-            if (!empty($target)) {
-                $target = $target[0];
-            }
-        }
-        if (empty($target)) {
-            throw new NotFoundException(__('Invalid %s.', $target_type));
-        }
         $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1, 'local_only' => $local_only), $user, true);
+        if ($target_type === 'event') {
+            $target_id = $target['Event']['id'];
+        } elseif ($target_type === 'attribute') {
+            $target_id = $target['Attribute']['id'];
+        } else {
+            $target_id = $target['TagCollection']['id'];
+        }
         $existingTag = $this->Tag->$connectorModel->hasAny(array($target_type . '_id' => $target_id, 'tag_id' => $tag_id));
         if ($existingTag) {
             return 'Cluster already attached.';
@@ -404,36 +423,19 @@ class Galaxy extends AppModel
         $this->Tag->$connectorModel->create();
         $toSave = array($target_type . '_id' => $target_id, 'tag_id' => $tag_id, 'local' => $local);
         if ($target_type === 'attribute') {
-            $event = $this->Tag->EventTag->Event->find('first', array(
-                'conditions' => array(
-                    'Event.id' => $target['Attribute']['event_id']
-                ),
-                'recursive' => -1
-            ));
             $toSave['event_id'] = $target['Attribute']['event_id'];
         }
         $result = $this->Tag->$connectorModel->save($toSave);
         if ($result) {
-            if ($target_type !== 'tag_collection') {
-                $date = new DateTime();
-                if ($target_type === 'event') {
-                    $event = $target;
-                } else if ($target_type === 'attribute') {
-                    $target['Attribute']['timestamp'] = $date->getTimestamp();
-                    $this->Tag->AttributeTag->Attribute->save($target);
-                    if (!empty($target['Attribute']['object_id'])) {
-                        $container_object = $this->Tag->AttributeTag->Attribute->Object->find('first', [
-                            'recursive' => -1,
-                            'conditions' => ['id' => $target['Attribute']['object_id']]
-                        ]);
-                        $container_object['Object']['timestamp'] = $date->getTimestamp();
-                        $this->Tag->AttributeTag->Attribute->Object->save($container_object);
-                    }
+            if (!$local) {
+                if ($target_type === 'attribute') {
+                    $this->Tag->AttributeTag->Attribute->touch($target);
+                } elseif ($target_type === 'event') {
+                    $this->Tag->EventTag->Event->unpublishEvent($target);
                 }
-                $this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
-                $event['Event']['published'] = 0;
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Tag->EventTag->Event->save($event);
+            }
+            if ($target_type === 'attribute' || $target_type === 'event') {
+                $this->Tag->EventTag->Event->insertLock($user, $target['Event']['id']);
             }
             $logTitle = 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')';
             $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($target_type), $target_id, $logTitle);
@@ -495,19 +497,19 @@ class Galaxy extends AppModel
 
         $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
 
-        if ($target_type == 'attribute') {
+        if ($target_type === 'attribute') {
             $existingTargetTag = $this->Tag->AttributeTag->find('first', array(
                 'conditions' => array('AttributeTag.tag_id' => $tag_id, 'AttributeTag.attribute_id' => $target_id),
                 'recursive' => -1,
                 'contain' => array('Tag')
             ));
-        } elseif ($target_type == 'event') {
+        } elseif ($target_type === 'event') {
             $existingTargetTag = $this->Tag->EventTag->find('first', array(
                 'conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $target_id),
                 'recursive' => -1,
                 'contain' => array('Tag')
             ));
-        } elseif ($target_type == 'tag_collection') {
+        } elseif ($target_type === 'tag_collection') {
             $existingTargetTag = $this->Tag->TagCollectionTag->TagCollection->find('first', array(
                 'conditions' => array('tag_id' => $tag_id, 'tag_collection_id' => $target_id),
                 'recursive' => -1,
@@ -517,30 +519,27 @@ class Galaxy extends AppModel
 
         if (empty($existingTargetTag)) {
             return 'Cluster not attached.';
+        }
+
+        if ($target_type === 'event') {
+            $result = $this->Tag->EventTag->delete($existingTargetTag['EventTag']['id']);
+        } elseif ($target_type === 'attribute') {
+            $result = $this->Tag->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
+        } elseif ($target_type === 'tag_collection') {
+            $result = $this->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
+        }
+
+        if ($result) {
+            if ($target_type !== 'tag_collection') {
+                $this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
+                $this->Tag->EventTag->Event->unpublishEvent($event);
+            }
+
+            $logTitle = 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')';
+            $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($target_type), $target_id, $logTitle);
+            return 'Cluster detached';
         } else {
-            if ($target_type == 'event') {
-                $result = $this->Tag->EventTag->delete($existingTargetTag['EventTag']['id']);
-            } elseif ($target_type == 'attribute') {
-                $result = $this->Tag->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
-            } elseif ($target_type == 'tag_collection') {
-                $result = $this->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
-            }
-
-            if ($result) {
-                if ($target_type !== 'tag_collection') {
-                    $this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
-                    $event['Event']['published'] = 0;
-                    $date = new DateTime();
-                    $event['Event']['timestamp'] = $date->getTimestamp();
-                    $this->Tag->EventTag->Event->save($event);
-                }
-
-                $logTitle = 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')';
-                $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($target_type), $target_id, $logTitle);
-                return 'Cluster detached';
-            } else {
-                return 'Could not detach cluster';
-            }
+            return 'Could not detach cluster';
         }
     }
 
@@ -640,9 +639,7 @@ class Galaxy extends AppModel
         }
 
         if ($targetType !== 'tag_collection') {
-            $event['Event']['published'] = 0;
-            $event['Event']['timestamp'] = time();
-            $this->GalaxyCluster->Tag->EventTag->Event->save($event);
+            $this->GalaxyCluster->Tag->EventTag->Event->unpublishEvent($event);
         }
 
         $logTitle = 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') from ' . $targetType . ' (' . $targetId . ')';
