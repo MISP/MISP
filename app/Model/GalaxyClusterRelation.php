@@ -223,7 +223,7 @@ class GalaxyClusterRelation extends AppModel
             }
             if (!$force) {
                 $targetCluster = $this->TargetCluster->fetchIfAuthorized($user, $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'], 'view', $throwErrors=false, $full=false);
-                if (isset($targetCluster['authorized']) && !$targetCluster['authorized']) { // do not save the relation if referenced cluster is not accessible by the user (or does not exists)
+                if (isset($targetCluster['authorized']) && !$targetCluster['authorized']) { // do not save the relation if referenced cluster is not accessible by the user (or does not exist)
                     $errors[] = array(__('Invalid referenced galaxy cluster'));
                     return $errors;
                 }
@@ -315,7 +315,7 @@ class GalaxyClusterRelation extends AppModel
                     return $errors;
                 }
                 $targetCluster = $this->TargetCluster->fetchIfAuthorized($user, $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'], 'view', $throwErrors=false, $full=false);
-                if (isset($targetCluster['authorized']) && !$targetCluster['authorized']) { // do not save the relation if referenced cluster is not accessible by the user (or does not exists)
+                if (isset($targetCluster['authorized']) && !$targetCluster['authorized']) { // do not save the relation if referenced cluster is not accessible by the user (or does not exist)
                     $errors[] = array(__('Invalid referenced galaxy cluster'));
                     return $errors;
                 }

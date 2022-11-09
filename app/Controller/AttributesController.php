@@ -299,7 +299,7 @@ class AttributesController extends AppController
         $conditions['Attribute.type'] = array('attachment', 'malware-sample');
         $attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => $conditions, 'flatten' => true));
         if (empty($attributes)) {
-            throw new UnauthorizedException(__('Attribute does not exists or you do not have the permission to download this attribute.'));
+            throw new UnauthorizedException(__('Attribute does not exist or you do not have the permission to download this attribute.'));
         }
         return $this->__downloadAttachment($attributes[0]['Attribute']);
     }
@@ -1770,7 +1770,7 @@ class AttributesController extends AppController
         $conditions['Attribute.type'] = array('attachment', 'malware-sample');
         $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => $conditions, 'flatten' => true));
         if (empty($attributes)) {
-            throw new UnauthorizedException(__('Attribute does not exists or you do not have the permission to download this attribute.'));
+            throw new UnauthorizedException(__('Attribute does not exist or you do not have the permission to download this attribute.'));
         }
         return $this->__downloadAttachment($attributes[0]['Attribute']);
     }

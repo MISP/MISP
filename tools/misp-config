@@ -164,7 +164,7 @@ if ($apply) {
     my $misp_config_path = "$misp_config_path/misp.conf.d";
 
     unless(-d $misp_config_path) {
-	die "MISP Configuration Path does not exists: $misp_config_path\n";
+	die "MISP Configuration Path does not exist: $misp_config_path\n";
     }
     
     foreach my $fp (glob("$misp_config_path/*.conf")) {
