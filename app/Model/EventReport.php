@@ -408,7 +408,7 @@ class EventReport extends AppModel
             return $report;
         } else {
             if (in_array('edit', $authorizations) || in_array('delete', $authorizations)) {
-                $checkResult = $this->ACL->canEditReport($user, $report);
+                $checkResult = $user['Role']['perm_site_admin'] || ($report['Event']['orgc_id'] === $user['org_id'])
                 if ($checkResult !== true) {
                     if ($throwErrors) {
                         throw new UnauthorizedException($checkResult);
