@@ -1606,7 +1606,7 @@ class Attribute extends AppModel
      * @return array
      * @throws Exception
      */
-    public function fetchAttributes(array $user, array $options = [], &$result_count = false)
+    public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -1780,7 +1780,7 @@ class Attribute extends AppModel
         }
 
         // Do not fetch result count when `$result_count` is false
-        if ($result_count !== false) {
+        if ($result_count !== false && $real_count == true) {
             $find_params = $params;
             unset($find_params['limit']);
             $result_count = $this->find('count', $find_params);
@@ -1792,11 +1792,15 @@ class Attribute extends AppModel
         $eventTags = []; // tag cache
         $attributes = [];
         do {
+            $continue = true;
             $results = $this->find('all', $params);
             if (empty($results)) {
                 break;
             }
-
+            $iteration_result_count = count($results);
+            if ($real_count !== true) {
+                $result_count += count($results);
+            }
             if (!empty($options['includeContext'])) {
                 $eventIds = [];
                 foreach ($results as $result) {
@@ -1875,7 +1879,7 @@ class Attribute extends AppModel
             unset($attribute);
 
             if ($loop) {
-                if (count($results) < $loopLimit) { // we fetched less results than limit, so we can skip next query
+                if ($iteration_result_count < $loopLimit) { // we fetched fewer results than the limit, so we can exit the loop
                     break;
                 }
                 $params['page']++;
@@ -2935,7 +2939,8 @@ class Attribute extends AppModel
                 $exportTool->additional_params
             );
         }
-
+        ClassRegistry::init('ConnectionManager');
+        $db = ConnectionManager::getDataSource('default');
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
@@ -2969,9 +2974,15 @@ class Attribute extends AppModel
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
         $elementCounter = 0;
+        $real_count = false;
+        $incrementTotalBy = $loop || $real_count ? 0 : 1;
         do {
-            $results = $this->fetchAttributes($user, $params, $elementCounter);
-            $totalCount = $elementCounter;
+            $results = $this->fetchAttributes($user, $params, $elementCounter, $real_count);
+            if (!$real_count) {
+                $totalCount = $params['limit'] * ($params['page'] - 1) + $elementCounter;
+            } else {
+                $totalCount = $elementCounter;
+            }
             $elementCounter = false; // do not call `count` again
             if (empty($results)) {
                 break; // nothing found, skip rest
@@ -2987,13 +2998,15 @@ class Attribute extends AppModel
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
             }
-            if ($loop && count($results) < $params['limit']) {
-                break; // do not continue if we received less results than limit
+            if (count($results) < $params['limit']) {
+                $incrementTotalBy = 0;
+                if ($loop) {
+                    break; // do not continue if we received less results than limit
+                }
             }
             $params['page'] += 1;
         } while ($loop);
-
-        return $totalCount;
+        return $totalCount + $incrementTotalBy;
     }
 
     public function set_filter_uuid(&$params, $conditions, $options)
