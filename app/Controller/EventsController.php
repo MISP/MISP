@@ -5402,13 +5402,13 @@ class EventsController extends AppController
                     }
                     $importComment = !empty($result['comment']) ? $result['comment'] : 'Enriched via the ' . $module['name'] . ' module';
                     if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
-                        $event = $this->Event->handleMispFormatFromModuleResult($result);
-                        $event['Event'] = array('id' => $eventId);
+                        $resolvedEvent = $this->Event->handleMispFormatFromModuleResult($result);
+                        $resolvedEvent['Event'] = $event['Event'];
                         if ($this->_isRest()) {
-                            $this->Event->processModuleResultsDataRouter($this->Auth->user(), $event, $eventId, $importComment);
-                            return $this->RestResponse->viewData($event, $this->response->type());
+                            $this->Event->processModuleResultsDataRouter($this->Auth->user(), $resolvedEvent, $eventId, $importComment);
+                            return $this->RestResponse->viewData($resolvedEvent, $this->response->type());
                         }
-                        $this->set('event', $event);
+                        $this->set('event', $resolvedEvent);
                         $this->set('menuItem', 'importResults');
                         $render_name = 'resolved_misp_format';
                     } else {
