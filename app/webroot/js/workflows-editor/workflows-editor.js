@@ -129,6 +129,9 @@ var dotBlock_error = doT.template(' \
     </div> \
 </div>')
 
+var dotBlock_connectionLabel = doT.template(' \
+<span class="label label-{{=it.variant}}" id="{{=it.id}}">{{=it.name}}</span>')
+
 var classBySeverity = {
     'info': 'info',
     'warning': 'warning',
@@ -771,7 +774,11 @@ function loadWorkflow(workflow) {
     Object.values(workflow.data).forEach(function (node) {
         for (var input_name in node.inputs) {
             node.inputs[input_name].connections.forEach(function (connection) {
-                editor.addConnection(connection.node, node.id, connection.input, input_name)
+                connection.labels = connection.labels === undefined ? [] : connection.labels;
+                var labels = connection.labels.map(function(labelConf) {
+                    return dotBlock_connectionLabel(labelConf)
+                })
+                editor.addConnection(connection.node, node.id, connection.input, input_name, labels)
             })
         }
     })
@@ -868,7 +875,7 @@ function addNodesFromBlueprint(workflowBlueprint, cursorPosition) {
             left: (node.pos_x - minX) * editor.zoom + cursorPosition.left,
         }
         if (all_modules_by_id[node.data.id] === undefined) {
-            var errorMessage = 'Invalid ' + node.data.module_data.module_type + ' module id `' + node.data.module_data.id + '` (' + node.id + ')'
+            var errorMessage = 'Invalid ' + node.data.module_type + ' module id `' + node.data.id + '` (' + node.id + ')'
             var html = window['dotBlock_error']({
                 error: errorMessage,
                 data: JSON.stringify(node.data.indexed_params, null, 2)
@@ -883,20 +890,20 @@ function addNodesFromBlueprint(workflowBlueprint, cursorPosition) {
                 node.data,
                 html
             )
-            return
+        } else {
+            additionalData = {
+                indexed_params: node.data.indexed_params,
+                saved_filters: node.data.saved_filters,
+            }
+            addNode(all_modules_by_id[node.data.id], position, additionalData)
         }
-        additionalData = {
-            indexed_params: node.data.indexed_params,
-            saved_filters: node.data.saved_filters,
-        }
-        addNode(all_modules_by_id[node.data.id], position, additionalData)
         oldNewIDMapping[node.id] = editor.nodeId - 1
         newNodes.push(getNodeHtmlByID(editor.nodeId - 1)) // nodeId is incremented as soon as a new node is created
     })
     workflowBlueprint.data.forEach(function (node) {
         Object.keys(node.outputs).forEach(function (outputName) {
-            var newNode = Object.assign({}, all_modules_by_id[node.data.id])
-            if (newNode.outputs > 0) { // make sure the module configuration didn't change in regards of the outputs
+            var outputCount = all_modules_by_id[node.data.id] !== undefined ? all_modules_by_id[node.data.id].outputs : Object.keys(node.outputs).length
+            if (outputCount > 0) { // make sure the module configuration didn't change in regards of the outputs
                 node.outputs[outputName].connections.forEach(function (connection) {
                     if (oldNewIDMapping[connection.node] !== undefined) {
                         editor.addConnection(

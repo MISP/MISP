@@ -162,6 +162,12 @@ class GraphWalker
         } else if ($node['data']['id'] == 'concurrent-task') {
             $this->_evaluateConcurrentTask($node, $roamingData, $outputs['output_1']);
             return ['output_1' => []];
+        } else if ($node['data']['id'] == 'generic-filter-data') {
+            $this->_evaluateFilterAddLogic($node, $roamingData, $outputs['output_1']);
+            return ['output_1' => []];
+        } else if ($node['data']['id'] == 'generic-filter-reset') {
+            $this->_evaluateFilterRemoveLogic($node, $roamingData, $outputs['output_1']);
+            return ['output_1' => []];
         } else {
             $useFirstOutput = $this->_evaluateCustomLogicCondition($node, $roamingData);
             return $useFirstOutput ? ['output_1' => $outputs['output_1']] : ['output_2' => $outputs['output_2']];
@@ -170,6 +176,18 @@ class GraphWalker
     }
 
     private function _evaluateIFCondition($node, WorkflowRoamingData $roamingData): bool
+    {
+        $result = $this->WorkflowModel->executeNode($node, $roamingData);
+        return $result;
+    }
+
+    private function _evaluateFilterAddLogic($node, WorkflowRoamingData $roamingData): bool
+    {
+        $result = $this->WorkflowModel->executeNode($node, $roamingData);
+        return $result;
+    }
+
+    private function _evaluateFilterRemoveLogic($node, WorkflowRoamingData $roamingData): bool
     {
         $result = $this->WorkflowModel->executeNode($node, $roamingData);
         return $result;
@@ -347,6 +365,50 @@ class WorkflowGraphTool
         $nodes = [];
         foreach ($graphData as $node) {
             if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'concurrent-task') {
+                if (!empty($fullNode)) {
+                    $nodes[] = $node;
+                } else {
+                    $nodes[] = $node['data']['id'];
+                }
+            }
+        }
+        return $nodes;
+    }
+
+    /**
+     * extractFilterNodesFromWorkflow Return the list of generic-filter-data's id (or full module) that are included in the workflow
+     *
+     * @param  array $workflow
+     * @param  bool $fullNode
+     * @return array
+     */
+    public static function extractFilterNodesFromWorkflow(array $graphData, bool $fullNode = false): array
+    {
+        $nodes = [];
+        foreach ($graphData as $node) {
+            if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'generic-filter-data') {
+                if (!empty($fullNode)) {
+                    $nodes[] = $node;
+                } else {
+                    $nodes[] = $node['data']['id'];
+                }
+            }
+        }
+        return $nodes;
+    }
+
+    /**
+     * extractResetFilterFromWorkflow Return the list of generic-filter-reset's id (or full module) that are included in the workflow
+     *
+     * @param  array $workflow
+     * @param  bool $fullNode
+     * @return array
+     */
+    public static function extractResetFilterFromWorkflow(array $graphData, bool $fullNode = false): array
+    {
+        $nodes = [];
+        foreach ($graphData as $node) {
+            if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'generic-filter-reset') {
                 if (!empty($fullNode)) {
                     $nodes[] = $node;
                 } else {

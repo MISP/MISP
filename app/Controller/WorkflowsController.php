@@ -101,6 +101,9 @@ class WorkflowsController extends AppController
             }
         }
         $this->CRUD->view($id, [
+            'afterFind' => function($workflow) {
+                return $this->Workflow->attachLabelToConnections($workflow);
+            }
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -151,6 +154,7 @@ class WorkflowsController extends AppController
         } else {
             $workflow = $this->Workflow->fetchWorkflow($workflow_id);
         }
+        $workflow = $this->Workflow->attachLabelToConnections($workflow, $trigger_id);
         $modules = $this->Workflow->attachNotificationToModules($modules, $workflow);
         $this->loadModel('WorkflowBlueprint');
         $workflowBlueprints = $this->WorkflowBlueprint->find('all');

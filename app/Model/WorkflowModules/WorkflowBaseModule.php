@@ -298,3 +298,20 @@ class WorkflowBaseLogicModule extends WorkflowBaseModule
 class WorkflowBaseActionModule extends WorkflowBaseModule
 {
 }
+
+class WorkflowFilteringLogicModule extends WorkflowBaseLogicModule
+{
+    public $blocking = false;
+    public $inputs = 1;
+    public $outputs = 2;
+
+    protected function _genFilteringLabels(): array
+    {
+        $names = ['A', 'B', 'C', 'D', 'E', 'F'];
+        $labels = [];
+        foreach ($names as $name) {
+            $labels[$name] = __('Label %s', $name);
+        }
+        return $labels;
+    }
+}
