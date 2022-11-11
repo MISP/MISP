@@ -5576,6 +5576,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'log_paranoid_api' => array(
+                    'level' => 0,
+                    'description' => __('If this functionality is enabled all API requests will be logged.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'log_paranoid_skip_db' => array(
                     'level' => 0,
                     'description' => __('You can decide to skip the logging of the paranoid logs to the database.'),

@@ -665,27 +665,22 @@ class AppController extends Controller
     {
         $userMonitoringEnabled = Configure::read('Security.user_monitoring_enabled');
         if ($userMonitoringEnabled) {
-            $redis = $this->User->setupRedis();
-            $userMonitoringEnabled = $redis && $redis->sismember('misp:monitored_users', $user['id']);
+            try {
+                $userMonitoringEnabled = RedisTool::init()->sismember('misp:monitored_users', $user['id']);
+            } catch (Exception $e) {
+                $userMonitoringEnabled = false;
+            }
         }
 
-        if (Configure::read('MISP.log_paranoid') || $userMonitoringEnabled) {
-            $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here;
-            if (
-                (
-                    $this->request->is('post') ||
-                    $this->request->is('put')
-                ) &&
-                (
-                    !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
-                    $userMonitoringEnabled
-                )
-            ) {
-                $payload = $this->request->input();
-                $change .= PHP_EOL . 'Request body: ' . $payload;
-            }
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
+        $shouldBeLogged = $userMonitoringEnabled ||
+            Configure::read('MISP.log_paranoid') ||
+            (Configure::read('MISP.log_paranoid_api') && $user['logged_by_authkey']);
+
+        if ($shouldBeLogged) {
+            $includeRequestBody = !empty(Configure::read('MISP.log_paranoid_include_post_body')) || $userMonitoringEnabled;
+            /** @var AccessLog $accessLog */
+            $accessLog = ClassRegistry::init('AccessLog');
+            $accessLog->logRequest($user, $this->_remoteIp(), $this->request, $includeRequestBody);
         }
     }
 

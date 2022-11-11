@@ -85,7 +85,7 @@ class AppModel extends Model
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
-        99 => false
+        99 => false, 100 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1881,6 +1881,28 @@ class AppModel extends Model
             case 99: 
                 $sqlArray[] = "ALTER TABLE `event_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
                 $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
+                break;
+            case 100:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `access_logs` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `created` datetime(4) NOT NULL,
+                  `user_id` int(11) NOT NULL,
+                  `org_id` int(11) NOT NULL,
+                  `authkey_id` int(11) DEFAULT NULL,
+                  `ip` varbinary(16) DEFAULT NULL,
+                  `request_method` tinyint NOT NULL,
+                  `user_agent` varchar(255) DEFAULT NULL,
+                  `request_id` varchar(255) DEFAULT NULL,
+                  `controller` varchar(20) NOT NULL,
+                  `action` varchar(20) NOT NULL,
+                  `url` varchar(255) NOT NULL,
+                  `request` blob,
+                  `response_code` smallint NOT NULL,  
+                  `memory_usage` int(11) NOT NULL,
+                  `duration` int(11) NOT NULL,
+                  PRIMARY KEY (`id`),
+                  INDEX `user_id` (`user_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

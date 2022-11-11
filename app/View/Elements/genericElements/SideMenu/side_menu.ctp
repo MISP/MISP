@@ -1092,13 +1092,18 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 case 'logs':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/admin/logs/index',
-                        'text' => __('List Logs')
+                        'text' => __('Application Logs')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'listAuditLogs',
                         'url' => $baseurl . '/admin/audit_logs/index',
-                        'text' => __('List Audit Logs'),
+                        'text' => __('Audit Logs'),
                         'requirement' => Configure::read('MISP.log_new_audit'),
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'listAccessLogs',
+                        'url' => $baseurl . '/admin/access_logs/index',
+                        'text' => __('Access Logs'),
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/admin/logs/search',
