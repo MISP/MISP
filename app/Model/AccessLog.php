@@ -56,6 +56,9 @@ class AccessLog extends AppModel
             if (!empty($result['AccessLog']['request'])) {
                 $result['AccessLog']['request'] = $this->decodeRequest($result['AccessLog']['request']);
             }
+            if (!empty($result['AccessLog']['memory_usage'])) {
+                $result['AccessLog']['memory_usage'] = $result['AccessLog']['memory_usage'] * 1024;
+            }
         }
         return $results;
     }
@@ -88,6 +91,11 @@ class AccessLog extends AppModel
 
         if (isset($accessLog['request'])) {
             $accessLog['request'] = $this->encodeRequest($accessLog['request']);
+        }
+
+        // In database save size in kb to avoid overflow signed int type
+        if (isset($accessLog['memory_usage'])) {
+            $accessLog['memory_usage'] = $accessLog['memory_usage'] >> 10; // same as /= 1024
         }
     }
 
