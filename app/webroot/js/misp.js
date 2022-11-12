@@ -5681,3 +5681,33 @@ function enableWorkflowDebugMode(workflow_id, currentEnabledState, callback) {
         });
     });
 }
+
+// Used in audit and access logs
+function filterSearch(callback) {
+    $('td[data-search]').mouseenter(function() {
+        var $td = $(this);
+        var searchValue = $td.data('search-value');
+        if (searchValue.length === 0) {
+            return;
+        }
+
+        $td.find('#quickEditButton').remove(); // clean all similar if exist
+        var $div = $('<div id="quickEditButton"></div>');
+        $div.addClass('quick-edit-row-div');
+        var $span = $('<span></span>');
+        $span.addClass('fa-as-icon fa fa-search-plus');
+        $span.css('font-size', '12px');
+        $span.prop('title', 'Filter by this value');
+        $div.append($span);
+        $td.append($div);
+
+        $span.click(function (e) {
+            var searchKey = $td.data('search');
+            callback(e, searchKey, searchValue);
+        });
+
+        $td.off('mouseleave').on('mouseleave', function() {
+            $div.remove();
+        });
+    });
+}

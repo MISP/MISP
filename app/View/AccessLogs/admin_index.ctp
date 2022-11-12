@@ -262,7 +262,7 @@
                     <?= h($item['AccessLog']['request_method']) ?>
                     <?= in_array($item['AccessLog']['request_method'], ['POST', 'PUT']) ? ' <a href="#" class="far fa-file request" data-log-id="' . h($item['AccessLog']['id']) . '"></i>' : '' ?>
                 </td>
-                <td class="short" title="<?= __('Controller: %s, action: %s', h($item['AccessLog']['controller']), h($item['AccessLog']['action'])) ?>"><?= h($item['AccessLog']['url']) ?></td>
+                <td class="short" data-search="controller:action" data-search-value="<?= h($item['AccessLog']['controller']) . ':' . h($item['AccessLog']['action']) ?>" title="<?= __('Controller: %s, action: %s', h($item['AccessLog']['controller']), h($item['AccessLog']['action'])) ?>"><?= h($item['AccessLog']['url']) ?></td>
                 <td class="short" data-search="response_code" data-search-value="<?= h($item['AccessLog']['response_code']) ?>"><?= h($item['AccessLog']['response_code']) ?></td>
                 <td class="short"><?= CakeNumber::toReadableSize($item['AccessLog']['memory_usage']) ?></td>
                 <td class="short"><?= $item['AccessLog']['duration'] ?> ms</td>
@@ -291,29 +291,14 @@
         return false;
     });
 
-    $('td[data-search]').mouseenter(function() {
-        var $td = $(this);
-        if ($td.data('search-value').length === 0) {
-            return;
-        }
-
-        $td.find('#quickEditButton').remove(); // clean all similar if exist
-        var $div = $('<div id="quickEditButton"></div>');
-        $div.addClass('quick-edit-row-div');
-        var $span = $('<span></span>');
-        $span.addClass('fa-as-icon fa fa-search-plus');
-        $span.css('font-size', '12px');
-        $span.prop('title', 'Filter by this value');
-        $div.append($span);
-        $td.append($div);
-
-        $span.click(function() {
-            if ($td.data('search') === 'model') {
-                var val = $td.data('search-value').split(":");
-                passedArgs['model'] = encodeURIComponent(val[0]);
-                passedArgs['model_id'] = encodeURIComponent(val[1]);
+    $(function() {
+        filterSearch(function (e, searchKey, searchValue) {
+            if (searchKey === 'controller:action') {
+                var val = searchValue.split(":");
+                passedArgs['controller'] = encodeURIComponent(val[0]);
+                passedArgs['action'] = encodeURIComponent(val[1]);
             } else {
-                passedArgs[$td.data('search')] = encodeURIComponent($td.data('search-value'));
+                passedArgs[searchKey] = encodeURIComponent(searchValue);
             }
 
             var url = here;
@@ -325,10 +310,6 @@
                 }
             }
             window.location.href = url;
-        });
-
-        $td.off('mouseleave').on('mouseleave', function() {
-            $div.remove();
         });
     });
 </script>
