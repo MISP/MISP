@@ -61,7 +61,6 @@ class Log extends AppModel
                     'registration',
                     'registration_error',
                     'remove_dead_workers',
-                    'request',
                     'request_delegation',
                     'reset_auth_key',
                     'send_mail',
