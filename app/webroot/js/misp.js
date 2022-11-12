@@ -1695,7 +1695,7 @@ function openPopup(id, adjust_layout, callback) {
             $id.addClass('vertical-scroll');
         } else {
             if (window_height > (300 + popup_height)) {
-                var top_offset = ((window_height - popup_height) / 2) - 150;
+                var top_offset = ((window_height - popup_height) / 2) - 125;
             } else {
                 var top_offset = (window_height - popup_height) / 2;
             }
