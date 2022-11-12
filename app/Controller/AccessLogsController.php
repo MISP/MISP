@@ -67,6 +67,10 @@ class AccessLogsController extends AppController
             throw new NotFoundException(__('Access log not found'));
         }
 
+        if (empty($request['AccessLog']['request'])) {
+            throw new NotFoundException(__('Request body is empty'));
+        }
+
         list($contentType, $encoding, $data) = explode("\n", $request['AccessLog']['request'], 3);
         $contentType = explode(';', $contentType, 2)[0];
 

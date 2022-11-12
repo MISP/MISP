@@ -306,7 +306,7 @@
                 $(this).html(syntaxHighlightJson($(this).text()));
             });
             openPopup($popoverFormLarge);
-        });
+        }).fail(xhrFailCallback);
         return false;
     });
 

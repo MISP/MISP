@@ -287,7 +287,7 @@
             var $popoverFormLarge = $('#popover_form_large');
             $popoverFormLarge.html(data);
             openPopup($popoverFormLarge);
-        });
+        }).fail(xhrFailCallback);
         return false;
     });
 
