@@ -41,8 +41,6 @@ class AppModel extends Model
 
     private $__profiler = array();
 
-    public $elasticSearchClient;
-
     /** @var AttachmentTool|null */
     private $attachmentTool;
 
@@ -2972,17 +2970,6 @@ class AppModel extends Model
             self::$loadedPubSubTool = $pubSubTool;
         }
         return self::$loadedPubSubTool;
-    }
-
-    protected function getElasticSearchTool()
-    {
-        if (!$this->elasticSearchClient) {
-            App::uses('ElasticSearchClient', 'Tools');
-            $client = new ElasticSearchClient();
-            $client->initTool();
-            $this->elasticSearchClient = $client;
-        }
-        return $this->elasticSearchClient;
     }
 
     /**

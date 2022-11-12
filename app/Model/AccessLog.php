@@ -165,13 +165,7 @@ class AccessLog extends AppModel
         }
 
         $this->publishKafkaNotification('audit', $data, 'log');
-
-        if (Configure::read('Plugin.ElasticSearch_logging_enable')) {
-            // send off our logs to distributed /dev/null
-            $logIndex = Configure::read("Plugin.ElasticSearch_log_index");
-            $elasticSearchClient = $this->getElasticSearchTool();
-            $elasticSearchClient->pushDocument($logIndex, "log", $data);
-        }
+        // In future add support for sending logs to elastic
     }
 
     /**

@@ -108,6 +108,8 @@ class Log extends AppModel
 
     public $actsAs = ['LightPaginator'];
 
+    private $elasticSearchClient;
+
     /**
      * Null when not defined, false when not enabled
      * @var Syslog|null|false
@@ -1133,5 +1135,16 @@ class Log extends AppModel
                 }
                 break;
         }
+    }
+
+    private function getElasticSearchTool()
+    {
+        if (!$this->elasticSearchClient) {
+            App::uses('ElasticSearchClient', 'Tools');
+            $client = new ElasticSearchClient();
+            $client->initTool();
+            $this->elasticSearchClient = $client;
+        }
+        return $this->elasticSearchClient;
     }
 }

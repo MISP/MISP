@@ -47,9 +47,6 @@ class AuditLog extends AppModel
     private $pubToZmq;
 
     /** @var bool */
-    private $elasticLogging;
-
-    /** @var bool */
     private $logClientIp;
 
     /**
@@ -85,7 +82,6 @@ class AuditLog extends AppModel
         $this->compressionEnabled = Configure::read('MISP.log_new_audit_compress') &&
             (function_exists('brotli_compress') || function_exists('zstd_compress'));
         $this->pubToZmq = $this->pubToZmq('audit');
-        $this->elasticLogging = Configure::read('Plugin.ElasticSearch_logging_enable');
         $this->logClientIp = Configure::read('MISP.log_client_ip');
     }
 
@@ -262,12 +258,7 @@ class AuditLog extends AppModel
 
         $this->publishKafkaNotification('audit', $data, 'log');
 
-        if ($this->elasticLogging) {
-            // send off our logs to distributed /dev/null
-            $logIndex = Configure::read("Plugin.ElasticSearch_log_index");
-            $elasticSearchClient = $this->getElasticSearchTool();
-            $elasticSearchClient->pushDocument($logIndex, "log", $data);
-        }
+        // In future add support for sending logs to elastic
 
         // write to syslogd as well if enabled
         if ($this->syslog === null) {
