@@ -47,7 +47,11 @@ class AccessLog extends AppModel
                 $result['AccessLog']['request_method'] = self::REQUEST_TYPES[$result['AccessLog']['request_method']];
             }
             if (!empty($result['AccessLog']['request'])) {
-                $result['AccessLog']['request'] = $this->decodeRequest($result['AccessLog']['request']);
+                $request = $this->decodeRequest($result['AccessLog']['request']);
+                list($contentType, $encoding, $data) = explode("\n", $request, 3);
+                $result['AccessLog']['request'] = $data;
+                $result['AccessLog']['request_content_type'] = $contentType;
+                $result['AccessLog']['request_content_encoding'] = $encoding;
             }
             if (!empty($result['AccessLog']['memory_usage'])) {
                 $result['AccessLog']['memory_usage'] = $result['AccessLog']['memory_usage'] * 1024;
@@ -121,9 +125,7 @@ class AccessLog extends AppModel
         ];
 
         if ($includeRequestBody && $request->is(['post', 'put', 'delete'])) {
-            $requestContentType = $_SERVER['CONTENT_TYPE'] ?? null;
-            $requestEncoding = $_SERVER['HTTP_CONTENT_ENCODING'] ?? null;
-            $dataToSave['request'] = "$requestContentType\n$requestEncoding\n{$request->input()}";
+            $dataToSave['request'] = $this->requestBody($request);
         }
 
         // Save data on shutdown
@@ -133,6 +135,24 @@ class AccessLog extends AppModel
         });
 
         return true;
+    }
+
+    /**
+     * @param CakeRequest $request
+     * @return string
+     */
+    private function requestBody(CakeRequest $request)
+    {
+        $requestContentType = $_SERVER['CONTENT_TYPE'] ?? null;
+        $requestEncoding = $_SERVER['HTTP_CONTENT_ENCODING'] ?? null;
+
+        if (substr($requestContentType, 0, 19) === 'multipart/form-data') {
+           $input = http_build_query($request->data, '', '&');
+        } else {
+            $input = $request->input();
+        }
+
+        return "$requestContentType\n$requestEncoding\n$input";
     }
 
     /**

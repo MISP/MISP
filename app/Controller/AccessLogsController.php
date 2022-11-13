@@ -71,12 +71,14 @@ class AccessLogsController extends AppController
             throw new NotFoundException(__('Request body is empty'));
         }
 
-        list($contentType, $encoding, $data) = explode("\n", $request['AccessLog']['request'], 3);
-        $contentType = explode(';', $contentType, 2)[0];
-
-        if ($contentType === 'application/x-www-form-urlencoded') {
-            parse_str($data, $output);
-            $data = var_export($output, true);
+        $contentType = explode(';', $request['AccessLog']['request_content_type'], 2)[0];
+        if ($contentType === 'application/x-www-form-urlencoded' || $contentType === 'multipart/form-data') {
+            parse_str($request['AccessLog']['request'], $output);
+            $highlighted = highlight_string("<?php\n" . var_export($output, true) . "?>", true);
+            $highlighted = str_replace(["&lt;?php","?&gt;"] , '', $highlighted);
+            $data = $highlighted;
+        } else {
+            $data = h($request['AccessLog']['request']);
         }
 
         $this->set('request', $data);
