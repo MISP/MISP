@@ -163,8 +163,11 @@ class AccessLog extends AppModel
      */
     private function saveOnShutdown(array $data, $requestTime)
     {
+        $queryCount = $this->getDataSource()->getLog(false, false)['count'];
+
         $data['response_code'] = http_response_code();
         $data['memory_usage'] = memory_get_peak_usage();
+        $data['query_count'] = $queryCount;
         $data['duration'] = (int)((microtime(true) - $requestTime) * 1000); // in milliseconds
 
         try {

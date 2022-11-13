@@ -103,7 +103,7 @@
                     unique: true,
                     id: "request_method",
                     label: "HTTP request method",
-                    values: ["GET", "HEAD", "POST", "PUT", "DELETE"],
+                    values: ["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS", "TRACE", "PATCH"],
                 },
                 {
                     input: "text",
@@ -114,6 +114,10 @@
                     unique: true,
                     id: "response_code",
                     label: "HTTP response code",
+                    validation: {
+                        min: 100,
+                        max: 599
+                    }
                 },
                 {
                     input: "text",
@@ -164,6 +168,10 @@
                     id: "memory_usage",
                     label: "Memory usage",
                     description: "In MB",
+                    validation: {
+                        min: 0,
+                        step: 0.01
+                    }
                 },
                 {
                     type: "double",
@@ -174,6 +182,22 @@
                     id: "duration",
                     label: "Duration",
                     description: "In milliseconds (1 second is equal to 1000 milliseconds)",
+                    validation: {
+                        min: 0,
+                    }
+                },
+                {
+                    type: "integer",
+                    operators: [
+                        "greater_or_equal",
+                    ],
+                    unique: true,
+                    id: "query_count",
+                    label: "Query count",
+                    description: "Number of SQL queries",
+                    validation: {
+                        min: 0,
+                    }
                 }
             ],
             rules: {
@@ -264,6 +288,7 @@
             <th><?= $this->LightPaginator->sort('response_code', __('Code')) ?></th>
             <th><?= $this->LightPaginator->sort('memory_usage', __('Memory')) ?></th>
             <th><?= $this->LightPaginator->sort('duration', __('Duration')) ?></th>
+            <th><?= $this->LightPaginator->sort('query_count', __('Queries')) ?></th>
         </tr>
         <?php foreach ($list as $item): ?>
             <tr>
@@ -296,6 +321,7 @@
                 <td class="short" data-search="response_code" data-search-value="<?= h($item['AccessLog']['response_code']) ?>"><?= h($item['AccessLog']['response_code']) ?></td>
                 <td class="short"><?= CakeNumber::toReadableSize($item['AccessLog']['memory_usage']) ?></td>
                 <td class="short"><?= $item['AccessLog']['duration'] ?> ms</td>
+                <td class="short"><?= $item['AccessLog']['query_count'] ?></td>
             </tr>
         <?php endforeach; ?>
     </table>

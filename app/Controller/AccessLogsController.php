@@ -13,7 +13,7 @@ class AccessLogsController extends AppController
     public $paginate = [
         'recursive' => -1,
         'limit' => 60,
-        'fields' => ['id', 'created', 'user_id', 'org_id', 'authkey_id', 'ip', 'request_method', 'request_id', 'controller', 'action', 'url', 'response_code', 'memory_usage', 'duration'],
+        'fields' => ['id', 'created', 'user_id', 'org_id', 'authkey_id', 'ip', 'request_method', 'request_id', 'controller', 'action', 'url', 'response_code', 'memory_usage', 'duration', 'query_count'],
         'contain' => [
             'User' => ['fields' => ['id', 'email', 'org_id']],
             'Organisation' => ['fields' => ['id', 'name', 'uuid']],
@@ -40,6 +40,7 @@ class AccessLogsController extends AppController
             'user_agent',
             'memory_usage',
             'duration',
+            'query_count',
             'response_code',
         ]);
 
@@ -158,6 +159,9 @@ class AccessLogsController extends AppController
         }
         if (isset($params['duration'])) {
             $conditions['AccessLog.duration >='] = $params['duration'];
+        }
+        if (isset($params['query_count'])) {
+            $conditions['AccessLog.query_count >='] = $params['query_count'];
         }
         if (isset($params['request_method'])) {
             $methodId = array_flip(AccessLog::REQUEST_TYPES)[$params['request_method']] ?? -1;

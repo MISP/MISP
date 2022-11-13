@@ -1898,6 +1898,7 @@ class AppModel extends Model
                   `response_code` smallint NOT NULL,  
                   `memory_usage` int(11) NOT NULL,
                   `duration` int(11) NOT NULL,
+                  `query_count` int(11) NOT NULL,
                   PRIMARY KEY (`id`),
                   INDEX `user_id` (`user_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
