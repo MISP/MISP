@@ -8,8 +8,7 @@ App::uses('AppModel', 'Model');
  */
 class AuditLog extends AppModel
 {
-    const BROTLI_HEADER = "\xce\xb2\xcf\x81",
-        ZSTD_HEADER = "\x28\xb5\x2f\xfd";
+    const BROTLI_HEADER = "\xce\xb2\xcf\x81";
     const COMPRESS_MIN_LENGTH = 256;
 
     const ACTION_ADD = 'add',
@@ -60,8 +59,6 @@ class AuditLog extends AppModel
         'bytes_total' => 0,
         'bytes_compressed' => 0,
         'bytes_uncompressed' => 0,
-        'brotli_compressed' => 0,
-        'zstd_compressed' => 0,
     ];
 
     public $belongsTo = [
@@ -83,7 +80,7 @@ class AuditLog extends AppModel
     {
         parent::__construct($id, $table, $ds);
         $this->compressionEnabled = Configure::read('MISP.log_new_audit_compress') &&
-            (function_exists('brotli_compress') || function_exists('zstd_compress'));
+            function_exists('brotli_compress');
         $this->pubToZmq = $this->pubToZmq('audit');
         $this->logClientIp = Configure::read('MISP.log_client_ip');
     }
@@ -155,11 +152,7 @@ class AuditLog extends AppModel
     {
         $change = JsonTool::encode($change);
         if ($this->compressionEnabled && strlen($change) >= self::COMPRESS_MIN_LENGTH) {
-            if (function_exists('zstd_compress')) {
-                return zstd_compress($change, 4);
-            } else {
-                return self::BROTLI_HEADER . brotli_compress($change, 4, BROTLI_TEXT);
-            }
+            return self::BROTLI_HEADER . brotli_compress($change, 4, BROTLI_TEXT);
         }
         return $change;
     }
@@ -174,22 +167,8 @@ class AuditLog extends AppModel
         $len = strlen($change);
         $this->compressionStats['bytes_total'] += $len;
         $header = substr($change, 0, 4);
-        if ($header === self::ZSTD_HEADER) {
+        if ($header === self::BROTLI_HEADER) {
             $this->compressionStats['compressed']++;
-            $this->compressionStats['zstd_compressed']++;
-            if (function_exists('zstd_uncompress')) {
-                $this->compressionStats['bytes_compressed'] += $len;
-                $change = zstd_uncompress($change);
-                $this->compressionStats['bytes_uncompressed'] += strlen($change);
-                if ($change === false) {
-                    return 'Compressed';
-                }
-            } else {
-                return 'Compressed';
-            }
-        } else if ($header === self::BROTLI_HEADER) {
-            $this->compressionStats['compressed']++;
-            $this->compressionStats['brotli_compressed']++;
             if (function_exists('brotli_uncompress')) {
                 $this->compressionStats['bytes_compressed'] += $len;
                 $change = brotli_uncompress(substr($change, 4));
@@ -372,7 +351,6 @@ class AuditLog extends AppModel
             'recursive' => -1,
             'conditions' => ['OR' => [
                 ['length(AuditLog.change) >=' => self::COMPRESS_MIN_LENGTH],
-                ['AuditLog.change LIKE' => self::ZSTD_HEADER . '%'],
                 ['AuditLog.change LIKE' => self::BROTLI_HEADER . '%'],
             ]],
         ]);

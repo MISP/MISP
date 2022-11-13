@@ -7,9 +7,8 @@ App::uses('AppModel', 'Model');
  */
 class AccessLog extends AppModel
 {
-    const BROTLI_HEADER = "\xce\xb2\xcf\x81",
-        ZSTD_HEADER = "\x28\xb5\x2f\xfd";
-    const COMPRESS_MIN_LENGTH = 200;
+    const BROTLI_HEADER = "\xce\xb2\xcf\x81";
+    const COMPRESS_MIN_LENGTH = 256;
 
     const REQUEST_TYPES = [
         0 => 'Unknown',
@@ -25,12 +24,6 @@ class AccessLog extends AppModel
 
     public $actsAs = [
         'Containable',
-    ];
-
-    public $compressionStats = [
-        'compressed' => 0,
-        'bytes_compressed' => 0,
-        'bytes_uncompressed' => 0,
     ];
 
     public $belongsTo = [
@@ -184,23 +177,8 @@ class AccessLog extends AppModel
     {
         $header = substr($request, 0, 4);
         if ($header === self::BROTLI_HEADER) {
-            $this->compressionStats['compressed']++;
             if (function_exists('brotli_uncompress')) {
-                $this->compressionStats['bytes_compressed'] += strlen($request);
                 $request = brotli_uncompress(substr($request, 4));
-                $this->compressionStats['bytes_uncompressed'] += strlen($request);
-                if ($request === false) {
-                    return 'Compressed';
-                }
-            } else {
-                return 'Compressed';
-            }
-        } elseif ($header === self::ZSTD_HEADER) {
-            $this->compressionStats['compressed']++;
-            if (function_exists('zstd_uncompress')) {
-                $this->compressionStats['bytes_compressed'] += strlen($request);
-                $request = zstd_uncompress($request);
-                $this->compressionStats['bytes_uncompressed'] += strlen($request);
                 if ($request === false) {
                     return 'Compressed';
                 }
@@ -218,14 +196,10 @@ class AccessLog extends AppModel
     private function encodeRequest($request)
     {
         $compressionEnabled = Configure::read('MISP.log_new_audit_compress') &&
-            (function_exists('brotli_compress') || function_exists('zstd_compress'));
+            function_exists('brotli_compress');
 
         if ($compressionEnabled && strlen($request) >= self::COMPRESS_MIN_LENGTH) {
-            if (function_exists('zstd_compress')) {
-                return zstd_compress($request, 4);
-            } else {
-                return self::BROTLI_HEADER . brotli_compress($request, 4, BROTLI_TEXT);
-            }
+            return self::BROTLI_HEADER . brotli_compress($request, 4, BROTLI_TEXT);
         }
         return $request;
     }
