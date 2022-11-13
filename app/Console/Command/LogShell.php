@@ -30,6 +30,9 @@ class LogShell extends AppShell
                 ),
             ),
         ]);
+        $parser->addSubcommand('recompress', [
+            'help' => __('Recompress compressed data in logs.'),
+        ]);
         return $parser;
     }
 
@@ -148,6 +151,9 @@ class LogShell extends AppShell
         $this->out('Change field:');
         $this->out('-------------');
         $this->out(str_pad(__('Compressed items:'), 20) . $this->AuditLog->compressionStats['compressed']);
+        $this->out(str_pad(__('ZSTD compressed:'), 20) . $this->AuditLog->compressionStats['zstd_compressed']);
+        $this->out(str_pad(__('Brotli compressed:'), 20) . $this->AuditLog->compressionStats['brotli_compressed']);
+        $this->out(str_pad(__('Total size:'), 20) . CakeNumber::toReadableSize($this->AuditLog->compressionStats['bytes_total']));
         $this->out(str_pad(__('Uncompressed size:'), 20) . CakeNumber::toReadableSize($this->AuditLog->compressionStats['bytes_uncompressed']));
         $this->out(str_pad(__('Compressed size:'), 20) . CakeNumber::toReadableSize($this->AuditLog->compressionStats['bytes_compressed']));
     }
@@ -174,5 +180,10 @@ class LogShell extends AppShell
         $this->out(str_pad(__('Data size:'), 20) . CakeNumber::toReadableSize($usage['data_in_bytes']));
         $this->out(str_pad(__('Index size:'), 20) . CakeNumber::toReadableSize($usage['index_in_bytes']));
         $this->out(str_pad(__('Reclaimable size:'), 20) . CakeNumber::toReadableSize($usage['reclaimable_in_bytes']), 2);
+    }
+
+    public function recompress()
+    {
+        $this->AuditLog->recompress();
     }
 }

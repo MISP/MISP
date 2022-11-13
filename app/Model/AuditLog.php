@@ -10,7 +10,7 @@ class AuditLog extends AppModel
 {
     const BROTLI_HEADER = "\xce\xb2\xcf\x81",
         ZSTD_HEADER = "\x28\xb5\x2f\xfd";
-    const COMPRESS_MIN_LENGTH = 200;
+    const COMPRESS_MIN_LENGTH = 256;
 
     const ACTION_ADD = 'add',
         ACTION_EDIT = 'edit',
@@ -57,8 +57,11 @@ class AuditLog extends AppModel
 
     public $compressionStats = [
         'compressed' => 0,
+        'bytes_total' => 0,
         'bytes_compressed' => 0,
         'bytes_uncompressed' => 0,
+        'brotli_compressed' => 0,
+        'zstd_compressed' => 0,
     ];
 
     public $belongsTo = [
@@ -144,17 +147,38 @@ class AuditLog extends AppModel
     }
 
     /**
+     * @param mixed $change
+     * @return string
+     * @throws JsonException
+     */
+    private function encodeChange($change)
+    {
+        $change = JsonTool::encode($change);
+        if ($this->compressionEnabled && strlen($change) >= self::COMPRESS_MIN_LENGTH) {
+            if (function_exists('zstd_compress')) {
+                return zstd_compress($change, 4);
+            } else {
+                return self::BROTLI_HEADER . brotli_compress($change, 4, BROTLI_TEXT);
+            }
+        }
+        return $change;
+    }
+
+    /**
      * @param string $change
      * @return array|string
      * @throws JsonException
      */
     private function decodeChange($change)
     {
+        $len = strlen($change);
+        $this->compressionStats['bytes_total'] += $len;
         $header = substr($change, 0, 4);
         if ($header === self::ZSTD_HEADER) {
             $this->compressionStats['compressed']++;
+            $this->compressionStats['zstd_compressed']++;
             if (function_exists('zstd_uncompress')) {
-                $this->compressionStats['bytes_compressed'] += strlen($change);
+                $this->compressionStats['bytes_compressed'] += $len;
                 $change = zstd_uncompress($change);
                 $this->compressionStats['bytes_uncompressed'] += strlen($change);
                 if ($change === false) {
@@ -165,8 +189,9 @@ class AuditLog extends AppModel
             }
         } else if ($header === self::BROTLI_HEADER) {
             $this->compressionStats['compressed']++;
+            $this->compressionStats['brotli_compressed']++;
             if (function_exists('brotli_uncompress')) {
-                $this->compressionStats['bytes_compressed'] += strlen($change);
+                $this->compressionStats['bytes_compressed'] += $len;
                 $change = brotli_uncompress(substr($change, 4));
                 $this->compressionStats['bytes_uncompressed'] += strlen($change);
                 if ($change === false) {
@@ -233,15 +258,7 @@ class AuditLog extends AppModel
         }
 
         if (isset($auditLog['change'])) {
-            $change = JsonTool::encode($auditLog['change']);
-            if ($this->compressionEnabled && strlen($change) >= self::COMPRESS_MIN_LENGTH) {
-                if (function_exists('zstd_compress')) {
-                    $change = zstd_compress($change, 4);
-                } else {
-                    $change = self::BROTLI_HEADER . brotli_compress($change, 4, BROTLI_TEXT);
-                }
-            }
-            $auditLog['change'] = $change;
+            $auditLog['change'] = $this->encodeChange($auditLog['change']);
         }
     }
 
@@ -344,15 +361,35 @@ class AuditLog extends AppModel
         }
     }
 
+    /**
+     * @throws JsonException
+     * @throws Exception
+     */
     public function recompress()
     {
         $changes = $this->find('all', [
             'fields' => ['AuditLog.id', 'AuditLog.change'],
             'recursive' => -1,
-            'conditions' => ['length(AuditLog.change) >=' => self::BROTLI_MIN_LENGTH],
+            'conditions' => ['OR' => [
+                ['length(AuditLog.change) >=' => self::COMPRESS_MIN_LENGTH],
+                ['AuditLog.change LIKE' => self::ZSTD_HEADER . '%'],
+                ['AuditLog.change LIKE' => self::BROTLI_HEADER . '%'],
+            ]],
         ]);
-        foreach ($changes as $change) {
-            $this->save($change, true, ['id', 'change']);
+
+        $options = [
+            'validate' => false,
+            'callbacks' => false,
+            'fieldList' => ['change'],
+        ];
+
+        foreach (array_chunk($changes, 100) as $chunk) {
+            $toSave = [];
+            foreach ($chunk as $change) {
+                $change['AuditLog']['change'] = $this->encodeChange($change['AuditLog']['change']);
+                $toSave[] = $change;
+            }
+            $this->saveMany($toSave, $options);
         }
     }
 
