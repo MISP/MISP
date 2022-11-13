@@ -165,7 +165,7 @@ class AccessLog extends AppModel
     {
         $data['response_code'] = http_response_code();
         $data['memory_usage'] = memory_get_peak_usage();
-        $data['duration'] = (int)((microtime(true) - $requestTime) * 1000);
+        $data['duration'] = (int)((microtime(true) - $requestTime) * 1000); // in milliseconds
 
         try {
             return $this->save($data, ['atomic' => false]);

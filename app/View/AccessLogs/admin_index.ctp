@@ -95,7 +95,7 @@
                     description: "Organisation ID, UUID or name",
                 },
                 {
-                    input: "text",
+                    input: "select",
                     type: "string",
                     operators: [
                         "equal",
@@ -144,6 +144,36 @@
                     unique: true,
                     id: "url",
                     label: "URL",
+                },
+                {
+                    input: "text",
+                    type: "string",
+                    operators: [
+                        "contains",
+                    ],
+                    unique: true,
+                    id: "user_agent",
+                    label: "User agent",
+                },
+                {
+                    type: "double",
+                    operators: [
+                        "greater_or_equal",
+                    ],
+                    unique: true,
+                    id: "memory_usage",
+                    label: "Memory usage",
+                    description: "In MB",
+                },
+                {
+                    type: "double",
+                    operators: [
+                        "greater_or_equal",
+                    ],
+                    unique: true,
+                    id: "duration",
+                    label: "Duration",
+                    description: "In milliseconds (1 second is equal to 1000 milliseconds)",
                 }
             ],
             rules: {

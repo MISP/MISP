@@ -37,6 +37,9 @@ class AccessLogsController extends AppController
             'controller',
             'action',
             'url',
+            'user_agent',
+            'memory_usage',
+            'duration',
             'response_code',
         ]);
 
@@ -74,8 +77,15 @@ class AccessLogsController extends AppController
         $contentType = explode(';', $request['AccessLog']['request_content_type'], 2)[0];
         if ($contentType === 'application/x-www-form-urlencoded' || $contentType === 'multipart/form-data') {
             parse_str($request['AccessLog']['request'], $output);
-            $highlighted = highlight_string("<?php\n" . var_export($output, true) . "?>", true);
-            $highlighted = str_replace(["&lt;?php","?&gt;"] , '', $highlighted);
+            // highlight PHP array
+            $highlighted = highlight_string("<?php " . var_export($output, true), true);
+            $highlighted = trim($highlighted);
+            $highlighted = preg_replace("|^\\<code\\>\\<span style\\=\"color\\: #[a-fA-F0-9]{0,6}\"\\>|", "", $highlighted, 1);  // remove prefix
+            $highlighted = preg_replace("|\\</code\\>\$|", "", $highlighted, 1);  // remove suffix 1
+            $highlighted = trim($highlighted);  // remove line breaks
+            $highlighted = preg_replace("|\\</span\\>\$|", "", $highlighted, 1);  // remove suffix 2
+            $highlighted = trim($highlighted);  // remove line breaks
+            $highlighted = preg_replace("|^(\\<span style\\=\"color\\: #[a-fA-F0-9]{0,6}\"\\>)(&lt;\\?php&nbsp;)(.*?)(\\</span\\>)|", "\$1\$3\$4", $highlighted);  // remove custom added "<?php "
             $data = $highlighted;
         } else {
             $data = h($request['AccessLog']['request']);
@@ -136,6 +146,18 @@ class AccessLogsController extends AppController
         }
         if (isset($params['url'])) {
             $conditions['AccessLog.url LIKE'] = "%{$params['url']}%";
+        }
+        if (isset($params['user_agent'])) {
+            $conditions['AccessLog.user_agent LIKE'] = "%{$params['user_agent']}%";
+        }
+        if (isset($params['memory_usage'])) {
+            $conditions['AccessLog.memory_usage >='] = ($params['memory_usage'] * 1024);
+        }
+        if (isset($params['memory_usage'])) {
+            $conditions['AccessLog.memory_usage >='] = ($params['memory_usage'] * 1024);
+        }
+        if (isset($params['duration'])) {
+            $conditions['AccessLog.duration >='] = $params['duration'];
         }
         if (isset($params['request_method'])) {
             $methodId = array_flip(AccessLog::REQUEST_TYPES)[$params['request_method']] ?? -1;
