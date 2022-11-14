@@ -990,7 +990,7 @@ class EventsController extends AppController
             $possibleColumns[] = 'proposals';
         }
 
-        if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
+        if (Configure::read('MISP.showDiscussionsCountOnIndex') && !Configure::read('MISP.discussion_disable')) {
             $possibleColumns[] = 'discussion';
         }
 
@@ -1036,7 +1036,7 @@ class EventsController extends AppController
             $events = $this->Event->attachProposalsCountToEvents($user, $events);
         }
 
-        if (in_array('discussion', $columns, true)) {
+        if (in_array('discussion', $columns, true) && !Configure::read('MISP.discussion_disable')) {
             $events = $this->Event->attachDiscussionsCountToEvents($user, $events);
         }
 

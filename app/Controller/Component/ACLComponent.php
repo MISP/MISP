@@ -480,9 +480,9 @@ class ACLComponent extends Component
                 'display' => array('*'),
             ),
             'posts' => array(
-                'add' => array('not_read_only_authkey'),
-                'delete' => array('not_read_only_authkey'),
-                'edit' => array('not_read_only_authkey'),
+                'add' => ['AND' => ['not_read_only_authkey', 'discussion_enabled']],
+                'delete' => ['AND' => ['not_read_only_authkey', 'discussion_enabled']],
+                'edit' => ['AND' => ['not_read_only_authkey', 'discussion_enabled']],
                 'pushMessageToZMQ' => array()
             ),
             'regexp' => array(
@@ -703,9 +703,9 @@ class ACLComponent extends Component
                 'view' => array('*'),
             ),
             'threads' => array(
-                'index' => array('*'),
-                'view' => array('*'),
-                'viewEvent' => array('*'),
+                'index' => array('discussion_enabled'),
+                'view' => array('discussion_enabled'),
+                'viewEvent' => array('discussion_enabled'),
             ),
             'users' => array(
                 'acceptRegistrations' => array(),
@@ -853,6 +853,9 @@ class ACLComponent extends Component
         };
         $this->dynamicChecks['delegation_enabled'] = function (array $user) {
             return (bool)Configure::read('MISP.delegation');
+        };
+        $this->dynamicChecks['discussion_enabled'] = function (array $user) {
+            return !Configure::read('MISP.discussion_disable');
         };
         // Returns true if current user is not using advanced auth key or if authkey is not read only
         $this->dynamicChecks['not_read_only_authkey'] = function (array $user) {
