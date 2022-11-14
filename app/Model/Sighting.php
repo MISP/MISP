@@ -1357,10 +1357,7 @@ class Sighting extends AppModel
             $sightingsToSave = [];
             foreach ($sightings as $sighting) {
                 $sighting = $sighting['Sighting'];
-                $attributeUuid = $sighting['Attribute']['uuid'];
-                $eventUuid = $sighting['Event']['uuid'];
-                unset($sighting['Event'], $sighting['Attribute']);
-                $sighting['attribute_uuid'] = $attributeUuid;
+                $eventUuid = $sighting['event_uuid'];
                 $sightingsToSave[$eventUuid][] = $sighting;
             }
 
