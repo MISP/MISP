@@ -2853,7 +2853,7 @@ Query builder
 }
 
 /* Fix text input for query builder */
-.query-builder .rule-value-container input[type="text"] {
+.query-builder .rule-value-container input[type="text"], .query-builder .rule-value-container input[type="number"] {
     padding: 4px !important;
     height: 30px;
 }

@@ -481,20 +481,20 @@
                 'requirement' => $isAclAudit,
                 'children' => array(
                     array(
-                        'text' => __('List Logs'),
+                        'text' => __('Application Logs'),
                         'url' => $baseurl . '/admin/logs/index'
                     ),
                     array(
-                        'text' => __('List Audit Logs'),
+                        'text' => __('Audit Logs'),
                         'url' => $baseurl . '/admin/audit_logs/index',
                         'requirement' => Configure::read('MISP.log_new_audit'),
                     ),
                     array(
-                        'text' => __('Search Logs'),
-                        'url' => $baseurl . '/admin/logs/search'
-                    )
-                )
+                        'text' => __('Access Logs'),
+                        'url' => $baseurl . '/admin/access_logs/index',
                     ),
+                )
+            ),
             array(
                 'type' => 'root',
                 'text' => __('API'),
