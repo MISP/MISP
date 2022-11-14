@@ -1,7 +1,6 @@
 <?php
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
-App::uses('BackgroundJobsTool', 'Tools');
 require_once 'AppShell.php';
 
 /**
@@ -229,6 +228,139 @@ class ServerShell extends AppShell
         }
     }
 
+    public function listFeeds()
+    {
+        $fields = [
+            'id' => 3,
+            'source_format' => 10,
+            'provider' => 15,
+            'url' => 50,
+            'enabled' => 8,
+            'caching_enabled' => 7
+        ];
+        $feeds = $this->Feed->find('all', [
+            'recursive' => -1,
+            'fields' => array_keys($fields)
+        ]);
+        $outputStyle = (empty($this->args[0]) || $this->args[0] === 'json') ? 'json' : 'table';
+        if ($outputStyle === 'table') {
+            $this->out(str_repeat('=', 114));
+            $this->out(sprintf(
+                '| %s | %s | %s | %s | %s | %s |',
+                str_pad('ID', $fields['id'], ' ', STR_PAD_RIGHT),
+                str_pad('Format', $fields['source_format'], ' ', STR_PAD_RIGHT),
+                str_pad('Provider', $fields['provider'], ' ', STR_PAD_RIGHT),
+                str_pad('Url', $fields['url'], ' ', STR_PAD_RIGHT),
+                str_pad('Fetching', $fields['enabled'], ' ', STR_PAD_RIGHT),
+                str_pad('Caching', $fields['caching_enabled'], ' ', STR_PAD_RIGHT)
+            ), 1, Shell::NORMAL);
+            $this->out(str_repeat('=', 114));
+            foreach ($feeds as $feed) {
+                $this->out(sprintf(
+                    '| %s | %s | %s | %s | %s | %s |',
+                    str_pad($feed['Feed']['id'], $fields['id'], ' ', STR_PAD_RIGHT),
+                    str_pad($feed['Feed']['source_format'], $fields['source_format'], ' ', STR_PAD_RIGHT),
+                    str_pad(mb_substr($feed['Feed']['provider'], 0, 13), $fields['provider'], ' ', STR_PAD_RIGHT),
+                    str_pad(
+                        mb_substr($feed['Feed']['url'], 0, 48),
+                        $fields['url'],
+                        ' ',
+                        STR_PAD_RIGHT
+                    ),
+                    $feed['Feed']['enabled'] ?
+                        '<info>' . str_pad(__('Yes'), $fields['enabled'], ' ', STR_PAD_RIGHT) . '</info>':
+                        str_pad(__('No'), $fields['enabled'], ' ', STR_PAD_RIGHT),
+                    $feed['Feed']['caching_enabled'] ?
+                        '<info>' . str_pad(__('Yes'), $fields['caching_enabled'], ' ', STR_PAD_RIGHT) . '</info>':
+                        str_pad(__('No'), $fields['caching_enabled'], ' ', STR_PAD_RIGHT)
+                ), 1, Shell::NORMAL);
+            }
+            $this->out(str_repeat('=', 114));
+        } else {
+            $this->out(json_encode($feeds, JSON_PRETTY_PRINT));
+        }
+    }
+
+    public function viewFeed()
+    {
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['View Feed'] . PHP_EOL);
+        }
+        $feed = $this->Feed->find('first', [
+            'conditions' => [
+                'id' => $this->args[0]
+            ],
+            'recursive' => -1
+        ]);
+        if (empty($feed)) {
+            throw new NotFoundException(__('Invalid feed.'));
+        }
+        $outputStyle = (empty($this->args[1]) || $this->args[1] === 'json') ? 'json' : 'table';
+        if ($outputStyle === 'table') {
+            $this->out(str_repeat('=', 114));
+            foreach ($feed['Feed'] as $field => $value) {
+                $this->out(sprintf(
+                    '| %s | %s |',
+                    str_pad($field, 20, ' ', STR_PAD_RIGHT),
+                    str_pad($value, 87)
+                ), 1, Shell::NORMAL);
+            }
+            $this->out(str_repeat('=', 114));
+        } else {
+            $this->out(json_encode($feed));
+        }
+    }
+
+    public function toggleFeed()
+    {
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Toggle feed fetching'] . PHP_EOL);
+        }
+        $feed = $this->Feed->find('first', [
+            'conditions' => [
+                'id' => $this->args[0]
+            ],
+            'recursive' => -1
+        ]);
+        if (empty($feed)) {
+            throw new NotFoundException(__('Invalid feed.'));
+        }
+        $feed['Feed']['enabled'] = ($feed['Feed']['enabled']) ? 0 : 1;
+        if ($this->Feed->save($feed)) {
+            $this->out(__('Feed fetching %s for feed %s', ($feed['Feed']['enabled'] ? __('enabled') : __('disabled')), $feed['Feed']['id']));
+        } else {
+            $this->out(__('Could not toggle fetching for feed %s', $feed['Feed']['id']));
+        }
+    }
+
+    public function toggleFeedCaching()
+    {
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Toggle feed caching'] . PHP_EOL);
+        }
+        $feed = $this->Feed->find('first', [
+            'conditions' => [
+                'id' => $this->args[0]
+            ],
+            'recursive' => -1
+        ]);
+        if (empty($feed)) {
+            throw new NotFoundException(__('Invalid feed.'));
+        }
+        $feed['Feed']['caching_enabled'] = ($feed['Feed']['caching_enabled']) ? 0 : 1;
+        if ($this->Feed->save($feed)) {
+            $this->out(__('Feed caching %s for feed %s', ($feed['Feed']['enabled'] ? __('enabled') : __('disabled')), $feed['Feed']['id']));
+        } else {
+            $this->out(__('Could not toggle caching for feed %s', $feed['Feed']['id']));
+        }
+    }
+
+    public function loadDefaultFeeds()
+    {
+        $this->Feed->load_default_feeds();
+        $this->out(__('Default feed metadata loaded.'));
+    }
+
     public function fetchFeed()
     {
         if (empty($this->args[0]) || empty($this->args[1])) {
@@ -238,6 +370,7 @@ class ServerShell extends AppShell
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $feedId = $this->args[1];
+        Configure::write('CurrentUserId', $userId);
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];
         } else {
@@ -607,6 +740,9 @@ class ServerShell extends AppShell
             foreach ($users as $user) {
                 echo __('Sending `%s` report to `%s`', $period, $user['User']['email']) . PHP_EOL;
                 $emailTemplate = $this->User->generatePeriodicSummary($user['User']['id'], $period, false);
+                if ($emailTemplate === null) {
+                    continue; // no new event for this user
+                }
                 $this->User->sendEmail($user, $emailTemplate, false, null);
             }
         }
@@ -653,16 +789,5 @@ class ServerShell extends AppShell
             $this->error("Server with ID $serverId doesn't exists.");
         }
         return $server;
-    }
-
-    /**
-     * @return BackgroundJobsTool
-     */
-    private function getBackgroundJobsTool()
-    {
-        if (!isset($this->BackgroundJobsTool)) {
-            $this->BackgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs'));
-        }
-        return $this->BackgroundJobsTool;
     }
 }

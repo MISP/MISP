@@ -1,6 +1,10 @@
 <?php
 class RedisTool
 {
+    const COMPRESS_MIN_LENGTH = 200,
+        BROTLI_HEADER = "\xce\xb2\xcf\x81",
+        ZSTD_HEADER = "\x28\xb5\x2f\xfd";
+
     /** @var Redis|null */
     private static $connection;
 
@@ -38,8 +42,80 @@ class RedisTool
         if (!$redis->select($database)) {
             throw new Exception("Could not select Redis database $database: {$redis->getLastError()}");
         }
+        // By default retry scan if empty results are returned
+        $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
         self::$connection = $redis;
         return $redis;
+    }
+
+    /**
+     * @param Redis $redis
+     * @param string|array $pattern
+     * @return int|Redis Number of deleted keys or instance of Redis if used in MULTI mode
+     * @throws RedisException
+     */
+    public static function deleteKeysByPattern(Redis $redis, $pattern)
+    {
+        if (is_string($pattern)) {
+            $pattern = [$pattern];
+        }
+
+        $allKeys = [];
+        foreach ($pattern as $p) {
+            $iterator = null;
+            while (false !== ($keys = $redis->scan($iterator, $p, 1000))) {
+                foreach ($keys as $key) {
+                    $allKeys[] = $key;
+                }
+            }
+        }
+
+        if (empty($allKeys)) {
+            return 0;
+        }
+
+        return self::unlink($redis, $allKeys);
+    }
+
+    /**
+     * Unlink is non blocking way how to delete keys from Redis, but it must be supported by PHP extension and Redis itself
+     *
+     * @param Redis $redis
+     * @param string|array $keys
+     * @return int|Redis Number of deleted keys or instance of Redis if used in MULTI mode
+     * @throws RedisException
+     */
+    public static function unlink(Redis $redis, $keys)
+    {
+        static $unlinkSupported;
+        if ($unlinkSupported === null) {
+            // Check if unlink is supported
+            $unlinkSupported = method_exists($redis, 'unlink') && $redis->unlink(null) === 0;
+        }
+        return $unlinkSupported ? $redis->unlink($keys) : $redis->del($keys);
+    }
+
+    /**
+     * @param Redis $redis
+     * @param string $prefix
+     * @return array[int, int]
+     * @throws RedisException
+     */
+    public static function sizeByPrefix(Redis $redis, $prefix)
+    {
+        $keyCount = 0;
+        $size = 0;
+        $it = null;
+        while ($keys = $redis->scan($it, $prefix, 1000)) {
+            $redis->pipeline();
+            foreach ($keys as $key) {
+                $redis->rawCommand("memory", "usage", $key);
+            }
+            $result = $redis->exec();
+            $keyCount += count($keys);
+            $size += array_sum($result);
+        }
+        return [$keyCount, $size];
     }
 
     /**
@@ -80,5 +156,46 @@ class RedisTool
         } else {
             return JsonTool::decode($string);
         }
+    }
+
+    /**
+     * @param string $data
+     * @return string
+     */
+    public static function compress($data)
+    {
+        if (strlen($data) >= self::COMPRESS_MIN_LENGTH) {
+            if (function_exists('zstd_compress')) {
+                return zstd_compress($data, 1);
+            } elseif (function_exists('brotli_compress')) {
+                return self::BROTLI_HEADER . brotli_compress($data, 0);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * @param string|false $data
+     * @return string
+     */
+    public static function decompress($data)
+    {
+        if ($data === false) {
+            return false;
+        }
+
+        $magic = substr($data, 0, 4);
+        if ($magic === self::ZSTD_HEADER) {
+           $data = zstd_uncompress($data);
+           if ($data === false) {
+               throw new RuntimeException('Could not decompress');
+           }
+        } elseif ($magic === self::BROTLI_HEADER) {
+            $data = brotli_uncompress(substr($data, 4));
+            if ($data === false) {
+                throw new RuntimeException('Could not decompress');
+            }
+        }
+        return $data;
     }
 }

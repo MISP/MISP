@@ -61,6 +61,12 @@
             !empty($tag['local']) ? __('Local tag') : __('Global tag'),
             !empty($tag['local']) ? 'user' : 'globe-americas'
         );
+        $span_relationship_type = empty($tag['relationship_type']) ? '' : sprintf(
+            '<span class="tag nowrap white" style="background-color:black" title="%s" aria-label="%s">%s:</span>',
+            h($tag['relationship_type']),
+            h($tag['relationship_type']),
+            h($tag['relationship_type'])
+        );
         if (!empty($tag['Tag']['id'])) {
             $span_tag = sprintf(
                 '<a href="%s" style="%s" class="%s"%s data-tag-id="%s">%s</a>',
@@ -80,7 +86,20 @@
             );
         }
         $span_delete = '';
+        $span_relationship = '';
         if ($full || ($fullLocal && $tag['Tag']['local'])) {
+            $span_relationship = sprintf(
+                '<a class="%s" title="%s" role="button" tabindex="0" aria-label="%s" href="%s"><i class="fas fa-project-diagram"></i></a>',
+                'black-white tag noPrint modal-open',
+                __('Modify Tag Relationship'),
+                __('Modify relationship for tag %s', h($tag['Tag']['name'])),
+                sprintf(
+                    '%s/tags/modifyTagRelationship/%s/%s',
+                    $baseurl,
+                    h($scope),
+                    h($tag['id'])
+                )
+            );
             $span_delete = sprintf(
                 '<span class="%s" title="%s" role="%s" tabindex="%s" aria-label="%s" onclick="%s">x</span>',
                 'black-white tag useCursorPointer noPrint',
@@ -96,7 +115,7 @@
                 )
             );
         }
-        $tagData .= '<span class="tag-container nowrap">' . $span_scope . $span_tag . $span_delete . '</span> ';
+        $tagData .= '<span class="tag-container nowrap">' . $span_scope . $span_relationship_type . $span_tag . $span_relationship . $span_delete . '</span> ';
     }
     $buttonData = array();
     if ($full) {

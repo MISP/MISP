@@ -8,6 +8,7 @@ class Module_webhook extends WorkflowBaseActionModule
 {
     public $id = 'webhook';
     public $name = 'Webhook';
+    public $version = '0.2';
     public $description = 'Allow to perform custom callbacks to the provided URL';
     public $icon_path = 'webhook.png';
     public $inputs = 1;
@@ -25,7 +26,7 @@ class Module_webhook extends WorkflowBaseActionModule
             [
                 'id' => 'url',
                 'label' => __('Payload URL'),
-                'type' => 'text',
+                'type' => 'input',
                 'placeholder' => 'https://example.com/test',
             ],
             [
@@ -41,7 +42,7 @@ class Module_webhook extends WorkflowBaseActionModule
             [
                 'id' => 'data_extraction_path',
                 'label' => __('Data extraction path'),
-                'type' => 'text',
+                'type' => 'input',
                 'default' => '',
                 'placeholder' => 'Attribute.{n}.AttributeTag.{n}.Tag.name',
             ],

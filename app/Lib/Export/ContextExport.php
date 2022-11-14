@@ -43,6 +43,7 @@ class ContextExport
         App::uses('AttackExport', 'Export');
         $this->AttackExport = new AttackExport();
         $this->__passedOptions = $options;
+        $this->AttackExport->handler([], $options);
 
         return '';
     }
@@ -65,7 +66,7 @@ class ContextExport
         $this->__aggregateTagsPerTaxonomy();
         $this->__aggregateClustersPerGalaxy();
         $attackData = $attackFinal === '' ? [] : JsonTool::decode($attackFinal);
-        if (!empty($this->__passedOptions['filters']['staticHtml'])) {
+        if (!empty($attackData) && !empty($this->__passedOptions['filters']['staticHtml'])) {
             $attackData['static'] = true;
         }
         return JsonTool::encode([
@@ -112,7 +113,7 @@ class ContextExport
             return; // tag is not taxonomy tag
         }
         if (!isset($this->__taxonomyFetched[$splits['namespace']])) {
-            $fetchedTaxonomy = $this->Taxonomy->getTaxonomyForTag($tagName, false, true);
+            $fetchedTaxonomy = $this->Taxonomy->getTaxonomyForTag($tagName, true);
             if (!empty($fetchedTaxonomy)) {
                 $fetched = [
                     'Taxonomy' => $fetchedTaxonomy['Taxonomy'],

@@ -78,14 +78,14 @@
                             'id' => 'multi-delete-button',
                             'title' => __('Delete selected events'),
                             'fa-icon' => 'trash',
-                            'class' => 'hidden mass-select',
+                            'class' => 'hidden mass-delete',
                             'onClick' => 'multiSelectDeleteEvents'
                         ),
                         array(
                             'id' => 'multi-export-button',
                             'title' => __('Export selected events'),
                             'fa-icon' => 'file-export',
-                            'class' => 'hidden mass-select',
+                            'class' => 'hidden mass-export',
                             'onClick' => 'multiSelectExportEvents'
                         )
                     )

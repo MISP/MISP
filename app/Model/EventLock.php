@@ -1,12 +1,14 @@
 <?php
 App::uses('AppModel', 'Model');
 
-// Table `event_locks` is not used anymore
 class EventLock extends AppModel
 {
+    // Table `event_locks` is not used anymore
+    public $useTable = false;
+
     // In seconds
     const DEFAULT_TTL = 900,
-        PREFIX = 'misp:event_lock';
+        PREFIX = 'misp:event_lock:';
 
     /**
      * @param array $user
@@ -65,7 +67,7 @@ class EventLock extends AppModel
     public function deleteApiLock($eventId, $apiLockId, array $user)
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
@@ -126,6 +128,8 @@ class EventLock extends AppModel
      * @param string $lockId
      * @param array $data
      * @return bool
+     * @throws JsonException
+     * @throws RedisException
      */
     private function insertLockToRedis($eventId, $lockId, array $data)
     {

@@ -2,6 +2,7 @@
 import os
 import json
 import uuid
+import inspect
 import subprocess
 import unittest
 import requests
@@ -16,6 +17,7 @@ logger = logging.getLogger('pymisp')
 
 
 from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting, Distribution, ThreatLevel, Analysis, MISPEventReport, MISPServerError
+from pymisp.tools import DomainIPObject
 
 # Load access information for env variables
 url = "http://" + os.environ["HOST"]
@@ -25,10 +27,12 @@ urllib3.disable_warnings()
 
 
 def create_simple_event() -> MISPEvent:
+    caller_name = inspect.stack()[1].function
     event_uuid = str(uuid.uuid4())
+
     event = MISPEvent()
     event.uuid = event_uuid
-    event.info = 'This is a super simple test ({})'.format(event_uuid.split('-')[0])
+    event.info = 'This is a super simple test ({}, {})'.format(event_uuid.split('-')[0], caller_name)
     event.distribution = Distribution.your_organisation_only
     event.threat_level_id = ThreatLevel.low
     event.analysis = Analysis.completed
@@ -109,6 +113,8 @@ class TestComprehensive(unittest.TestCase):
 
         # Search published
         index_published = self.user_misp_connector.search_index(published=True)
+        if len(index_published):
+            print(index_published)
         self.assertEqual(len(index_published), 0, "No event should be published.")
 
         # Create test event
@@ -142,14 +148,14 @@ class TestComprehensive(unittest.TestCase):
         event = create_simple_event()
         event.info = uuid.uuid4()
 
-        # No event should exists
+        # No event should exist
         index = self.user_misp_connector.search_index(eventinfo=event.info)
         self.assertEqual(len(index), 0, "No event should exists")
 
         event = self.user_misp_connector.add_event(event)
         check_response(event)
 
-        # One event should exists
+        # One event should exist
         index = self.user_misp_connector.search_index(eventinfo=event.info)
         self.assertEqual(len(index), 1)
         self.assertEqual(index[0].uuid, event.uuid)
@@ -200,6 +206,7 @@ class TestComprehensive(unittest.TestCase):
 
     def test_search_index_by_tag(self):
         tags = self.user_misp_connector.search_tags("tlp:red", True)
+        self.assertEqual(len(tags), 1, tags)  # tlp:red tag doesn't exists
 
         index = self.user_misp_connector.search_index(tags="tlp:red")
         self.assertEqual(len(index), 0, "No event should exists")
@@ -351,7 +358,7 @@ class TestComprehensive(unittest.TestCase):
         for event in minimal_org:
             self.assertEqual(event["orgc_uuid"], self.test_org.uuid)
 
-        # Search by non existing uuid
+        # Search by non-existing uuid
         minimal_org_uuid_non_existing = self.user_misp_connector.search_index(minimal=True, org=uuid.uuid4())
         self.assertEqual(len(minimal_org_uuid_non_existing), 0)
 
@@ -536,9 +543,35 @@ class TestComprehensive(unittest.TestCase):
             for event in (first, second):
                 check_response(self.admin_misp_connector.delete_event(event))
 
+    def test_correlations_object(self):
+        first = create_simple_event()
+        dom_ip_obj = DomainIPObject({'ip': ['10.0.0.1']})
+        first.add_object(dom_ip_obj)
+        first = check_response(self.admin_misp_connector.add_event(first))
+
+        second = create_simple_event()
+        dom_ip_obj = DomainIPObject({'ip': ['10.0.0.1']})
+        second.add_object(dom_ip_obj)
+        second = check_response(self.admin_misp_connector.add_event(second))
+
+        # Reload to get event data with related events
+        first = check_response(self.admin_misp_connector.get_event(first))
+
+        try:
+            self.assertEqual(1, len(first.RelatedEvent), first.RelatedEvent)
+            self.assertEqual(1, len(second.RelatedEvent), second.RelatedEvent)
+        except:
+            raise
+        finally:
+            # Delete events
+            for event in (first, second):
+                check_response(self.admin_misp_connector.delete_event(event))
+
     def test_correlations_noacl(self):
         with MISPSetting(self.admin_misp_connector, {"MISP.correlation_engine": "NoAcl"}):
             self.test_correlations()
+            self.test_correlations_object()
+            self.test_recorrelate()
 
     def test_advanced_correlations(self):
         with MISPSetting(self.admin_misp_connector, {"MISP.enable_advanced_correlations": True}):
@@ -567,6 +600,36 @@ class TestComprehensive(unittest.TestCase):
         result = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', 'servers/removeOrphanedCorrelations'))
         check_response(result)
         self.assertIn("message", result)
+
+    def test_recorrelate(self):
+        first = create_simple_event()
+        dom_ip_obj = DomainIPObject({'ip': ['10.0.0.1']})
+        first.add_object(dom_ip_obj)
+        first = check_response(self.admin_misp_connector.add_event(first))
+
+        second = create_simple_event()
+        dom_ip_obj = DomainIPObject({'ip': ['10.0.0.1']})
+        second.add_object(dom_ip_obj)
+        second = check_response(self.admin_misp_connector.add_event(second))
+
+        check_response(self.admin_misp_connector.set_server_setting('MISP.background_jobs', 0, force=True))
+        result = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('POST', 'attributes/generateCorrelation'))
+        check_response(result)
+        self.assertIn("message", result)
+        check_response(self.admin_misp_connector.set_server_setting('MISP.background_jobs', 1, force=True))
+
+        first = check_response(self.admin_misp_connector.get_event(first))
+        second = check_response(self.admin_misp_connector.get_event(second))
+
+        try:
+            self.assertEqual(1, len(first.RelatedEvent), first.RelatedEvent)
+            self.assertEqual(1, len(second.RelatedEvent), second.RelatedEvent)
+        except:
+            raise
+        finally:
+            # Delete events
+            for event in (first, second):
+                check_response(self.admin_misp_connector.delete_event(event))
 
     def test_restsearch_event_by_tags(self):
         first = create_simple_event()
@@ -898,7 +961,6 @@ class TestComprehensive(unittest.TestCase):
 
         self.admin_misp_connector.delete_event(event)
 
-
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
@@ -910,6 +972,7 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector._check_response(response)
         check_response(response)
         return response
+
 
 if __name__ == '__main__':
     unittest.main()

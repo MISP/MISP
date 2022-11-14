@@ -8,7 +8,6 @@ abstract class NidsExport
 
     public $format = "";   // suricata (default), snort
     
-    public $supportedObjects = array('network-connection', 'ddos');
 
     public $checkWhitelist = true;
 
@@ -71,22 +70,21 @@ abstract class NidsExport
 
     }
 
-    private function __convertFromEventFormatObject($objects, $event, $options = array(), $continue = false) {
-
+    private function __convertFromEventFormatObject($objects, $event, $options = array(), $continue = false)
+    {
         $rearranged = array();
         foreach ($objects as $object) {
+            if (empty($object['Attribute'])) {
+                continue; // skip empty objects
+            }
 
-            if(in_array($object['name'], $this->supportedObjects)){
-
+            if ($object['name'] === 'network-connection' || $object['name'] === 'ddos') {
                 $objectTag = array();
-
-                foreach($object['Attribute'] as $attribute) {
-
+                foreach ($object['Attribute'] as $attribute) {
                     if (!empty($attribute['AttributeTag'])) {
                         $objectTag = array_merge($objectTag, $attribute['AttributeTag']);
                         unset($attribute['AttributeTag']);
                     }
-
                 }
 
                 $rearranged[] = array(
@@ -94,11 +92,9 @@ abstract class NidsExport
                     'AttributeTag' => $objectTag, // Using 'AttributeTag' instead of 'ObjectTag' to comply with function export
                     'Event' => $event['Event']
                 );
-
             } else { // In case no custom export exists for the object, the approach falls back to the attribute case
                 $this->__convertFromEventFormat($object['Attribute'], $event, $options, $continue);
             }
-
         }
 
         $this->export(
@@ -108,7 +104,6 @@ abstract class NidsExport
             $continue
         );
         return true;
-
     }
 
     public function header($options = array())
@@ -163,14 +158,14 @@ abstract class NidsExport
             if (!empty($item['AttributeTag'])) {
                 foreach ($item['AttributeTag'] as $tag_attr) {
                     if (array_key_exists('name', $tag_attr['Tag'])) {
-                        array_push($tagsArray, $tag_attr['Tag']['name']);
+                        $tagsArray[] = $tag_attr['Tag']['name'];
                     }
                 }
             }
             if (!empty($item['Event']['EventTag'])) {
                 foreach ($item['Event']['EventTag'] as $tag_event) {
                     if (array_key_exists('name', $tag_event['Tag'])) {
-                        array_push($tagsArray, $tag_event['Tag']['name']);
+                        $tagsArray[] = $tag_event['Tag']['name'];
                     }
                 }
             }
@@ -184,21 +179,17 @@ abstract class NidsExport
             $sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
             $sid++;
 
-            if(!empty($item['Attribute']['type'])) { // item is an 'Attribute'
+            if (!empty($item['Attribute']['type'])) { // item is an 'Attribute'
             
                 switch ($item['Attribute']['type']) {
                     // LATER nids - test all the snort attributes
                     // LATER nids - add the tag keyword in the rules to capture network traffic
                     // LATER nids - sanitize every $attribute['value'] to not conflict with snort
                     case 'ip-dst':
-                        $this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
-                    case 'ip-src':
-                        $this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
-                        break;
                     case 'ip-dst|port':
                         $this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
                         break;
+                    case 'ip-src':
                     case 'ip-src|port':
                         $this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
                         break;

@@ -157,9 +157,23 @@ class Workflow extends AppModel
         $this->toggleModules($this->modules_enabled_by_default, true, false);
     }
 
+    /**
+     * @param string $trigger_id
+     * @return bool
+     * @throws WorkflowDuplicatedModuleIDException
+     */
     protected function checkTriggerEnabled($trigger_id)
     {
-        $settingName = sprintf('Plugin.Workflow_triggers_%s', $trigger_id);
+        static $enabled;
+
+        if ($enabled === null) {
+            $enabled = (bool)Configure::read('Plugin.Workflow_enable');
+        }
+        if (!$enabled) {
+            return false;
+        }
+
+        $settingName = "Plugin.Workflow_triggers_$trigger_id";
         $module_disabled = empty(Configure::read($settingName));
         if ($module_disabled) {
             return false;
@@ -415,6 +429,7 @@ class Workflow extends AppModel
      *
      * @param string $trigger_id
      * @param array $data
+     * @return bool
      * @throws TriggerNotFoundException
      */
     public function executeWorkflowForTriggerRouter($trigger_id, array $data, array &$blockingErrors=[], array $logging=[]): bool
@@ -507,9 +522,11 @@ class Workflow extends AppModel
         $this->__logToFile($workflow, $message);
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
+        $debugData = ['original' => $data];
         $data = $this->__normalizeDataForTrigger($triggerModule, $data);
+        $debugData['normalized'] = $data;
         $for_path = !empty($triggerModule->blocking) ? GraphWalker::PATH_TYPE_BLOCKING : GraphWalker::PATH_TYPE_NON_BLOCKING;
-        $this->sendRequestToDebugEndpoint($workflow, [], '/init?type=' . $for_path, $data);
+        $this->sendRequestToDebugEndpoint($workflow, [], '/init?type=' . $for_path, $debugData);
 
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNodeID, $for_path, $data, $blockingErrors, $walkResult);
         $executionStoppedByStopModule = in_array('stop-execution', Hash::extract($walkResult, 'blocking_nodes.{n}.data.id'));
@@ -628,8 +645,8 @@ class Workflow extends AppModel
             ]);
             $userForWorkflow['Server'] = [];
             $userForWorkflow = $this->User->rearrangeToAuthForm($userForWorkflow);
-            return $userForWorkflow;
         }
+        return $userForWorkflow;
     }
 
     public function executeNode(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
@@ -1006,7 +1023,7 @@ class Workflow extends AppModel
         $className = str_replace('.php', '', $className[count($className)-1]);
         try {
             if (!@include_once($filepath)) {
-                $message = __('Could not load module for path %s. File does not exists.', $filepath);
+                $message = __('Could not load module for path %s. File does not exist.', $filepath);
                 $this->log($message, LOG_ERR);
                 return $message;
             }
@@ -1281,12 +1298,15 @@ class Workflow extends AppModel
      * @param array $param_data
      * @return array
      */
-    public function moduleStatelessExecution(string $module_id, $input_data=[], array $param_data=[]): array
+    public function moduleStatelessExecution(string $module_id, $input_data=[], array $param_data=[], bool $convert_data=true): array
     {
         $result = [];
         $input_data = !empty($input_data) ? $input_data : [];
-        $eventPublishTrigger = $this->getModuleClassByType('trigger', 'event-publish');
-        $data = $this->__normalizeDataForTrigger($eventPublishTrigger, $input_data);
+        $data = $input_data;
+        if (!empty($convert_data)) {
+            $eventPublishTrigger = $this->getModuleClassByType('trigger', 'event-publish');
+            $data = $this->__normalizeDataForTrigger($eventPublishTrigger, $input_data);
+        }
         $module_config = $this->getModuleByID($module_id);
         $node = $this->genNodeFromConfig($module_config, $param_data);
         $module_class = $this->getModuleClass($node);
@@ -1382,7 +1402,7 @@ class Workflow extends AppModel
         $socket = new HttpSocket([
             'timeout' => 5
         ]);
-        $uri = sprintf('%s%s', $debug_url, $path);
+        $uri = sprintf('%s/%s%s', $debug_url, $workflow['Workflow']['trigger_id'], $path);
         $dataToPost = [
             'source' => [
                 'node_id' => $node['id'] ?? '',

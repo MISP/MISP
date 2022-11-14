@@ -49,7 +49,7 @@ class MysqlExtended extends Mysql
             'group' => $this->group($query['group'], $Model),
             'having' => $this->having($query['having'], true, $Model),
             'lock' => $this->getLockingHint($query['lock']),
-            'indexHint' => $this->__buildIndexHint($query['useIndexHint'] ?? null),
+            'indexHint' => $this->__buildIndexHint($query['forceIndexHint'] ?? null),
         ));
     }
 
@@ -81,7 +81,7 @@ class MysqlExtended extends Mysql
                 'group' => $queryData['group'],
                 'having' => $queryData['having'],
                 'lock' => $queryData['lock'],
-                'useIndexHint' => $queryData['useIndexHint'] ?? null,
+                'forceIndexHint' => $queryData['forceIndexHint'] ?? null,
             ),
             $Model
         );
@@ -111,12 +111,12 @@ class MysqlExtended extends Mysql
     /**
      * Builds the index hint for the query
      * 
-     * @param string|null $useIndexHint USE INDEX hint
+     * @param string|null $forceIndexHint FORCE INDEX hint
      * @return string
      */
-    private function __buildIndexHint($useIndexHint = null): ?string
+    private function __buildIndexHint($forceIndexHint = null): ?string
     {
-        return isset($useIndexHint) ? ('USE INDEX ' . $useIndexHint) : null;
+        return isset($forceIndexHint) ? ('FORCE INDEX ' . $forceIndexHint) : null;
     }
 
     /**
@@ -161,8 +161,7 @@ class MysqlExtended extends Mysql
                 if ($this->fullDebug) {
                     $valuesList[] = $val;
                 }
-                $statement->bindValue($i, $val, $columnMap[$col]);
-                $i++;
+                $statement->bindValue($i++, $val, $columnMap[$col]);
             }
         }
         $result = $statement->execute();

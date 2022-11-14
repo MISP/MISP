@@ -867,6 +867,10 @@ a.proposal_link_red:hover {
     color:white;
 }
 
+a.black-white:hover {
+    color: white;
+}
+
 .tagFirstHalf {
     display: inline-block;
     padding: 2px 4px;
@@ -910,7 +914,10 @@ a.proposal_link_red:hover {
     width: 300px;
     top:calc(50% - 50px);
     left:calc(50% - 150px);
+    max-height:calc(30% + 50px);
     position: fixed;
+    overflow: auto;
+    overflow-x: hidden;
     background-color:#f4f4f4;
     border-radius: 5px;
     box-shadow: 4px 4px 4px #333;
@@ -1859,7 +1866,7 @@ span.success {
     color:white;
 }
 
-input.select, input.select_attribute {
+input.select, input.select_attribute, input.select-all {
     margin-top: 0; /* remove top margin for checkboxes in index table */
 }
 

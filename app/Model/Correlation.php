@@ -11,6 +11,9 @@ App::uses('AppModel', 'Model');
  * @method fetchRelatedEventIds(array $user, int $eventId, array $sgids)
  * @method getFieldRules
  * @method getContainRules($filter = null)
+ * @method updateContainedCorrelations(array $data, string $type, array $options = [])
+ * @method purgeCorrelations(int $evenId = null)
+ * @method getTableName()
  */
 class Correlation extends AppModel
 {
@@ -55,7 +58,7 @@ class Correlation extends AppModel
     /** @var array */
     private $cidrListCache;
 
-    private $__tempContainCache = [];
+    private $containCache = [];
 
     /** @var OverCorrelatingValue */
     public $OverCorrelatingValue;
@@ -104,6 +107,138 @@ class Correlation extends AppModel
         } else {
             return $this->correlateValue($value);
         }
+    }
+
+    /**
+     * Generate correlation for given attributes or events.
+     *
+     * @param int|false $jobId
+     * @param int|false $eventId
+     * @param int|false $attributeId
+     * @return int Number of processed attributes
+     * @throws Exception
+     */
+    public function generateCorrelation($jobId = false, $eventId = false, $attributeId = false)
+    {
+        $this->purgeCorrelations($eventId);
+
+        $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
+        $this->FuzzyCorrelateSsdeep->purge($eventId, $attributeId);
+
+        $this->OverCorrelatingValue->truncateTable();
+
+        if (!$eventId) {
+            $eventIds = $this->Event->find('column', [
+                'fields' => ['Event.id'],
+                'conditions' => ['Event.disable_correlation' => 0],
+            ]);
+            $full = true;
+        } else {
+            $eventIds = [$eventId];
+            $full = false;
+        }
+        $attributeCount = 0;
+        if (Configure::read('MISP.background_jobs') && $jobId) {
+            $this->Job = ClassRegistry::init('Job');
+        } else {
+            $jobId = false;
+        }
+        if (!empty($eventIds)) {
+            $eventCount = count($eventIds);
+            foreach ($eventIds as $j => $currentEventId) {
+                $attributeCount += $this->__iteratedCorrelation(
+                    $jobId,
+                    $full,
+                    $attributeId,
+                    $eventCount,
+                    $currentEventId,
+                    $j
+                );
+            }
+        }
+        if ($jobId) {
+            $this->Job->saveStatus($jobId, true);
+        }
+        return $attributeCount;
+    }
+
+    /**
+     * @param int|false $jobId
+     * @param bool $full
+     * @param int $attributeId
+     * @param int $eventCount
+     * @param int $eventId
+     * @param int $j
+     * @return int
+     * @throws Exception
+     */
+    private function __iteratedCorrelation(
+        $jobId = false,
+        $full = false,
+        $attributeId = null,
+        $eventCount = null,
+        $eventId = null,
+        $j = 0
+    )
+    {
+        if ($jobId) {
+            $message = $attributeId ? __('Correlating Attribute %s', $attributeId) : __('Correlating Event %s (%s MB used)', $eventId, intval(memory_get_usage() / 1024 / 1024));
+            $this->Job->saveProgress($jobId, $message, !empty($eventCount) ? ($j / $eventCount) * 100 : 0);
+        }
+        $attributeConditions = [
+            'Attribute.deleted' => 0,
+            'Attribute.disable_correlation' => 0,
+            'NOT' => [
+                'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
+            ],
+        ];
+        if ($eventId) {
+            $attributeConditions['Attribute.event_id'] = $eventId;
+            $event = $this->Event->find('first', [
+                'conditions' => ['Event.id' => $eventId],
+                'recursive' => -1,
+                'fields' => $this->getContainRules('Event')['fields'],
+            ]);
+            if (empty($event)) {
+                return 0; // event not found, skip
+            }
+        } else {
+            $event = false;
+        }
+        if ($attributeId) {
+            $attributeConditions['Attribute.id'] = $attributeId;
+        }
+        $query = [
+            'recursive' => -1,
+            'conditions' => $attributeConditions,
+            // fetch just necessary fields to save memory
+            'fields' => $this->getFieldRules(),
+            'order' => 'Attribute.id',
+            'limit' => 5000,
+            'callbacks' => false, // memory leak fix
+        ];
+        $attributeCount = 0;
+        do {
+            $attributes = $this->Attribute->find('all', $query);
+            foreach ($attributes as $attribute) {
+                $this->afterSaveCorrelation($attribute['Attribute'], $full, $event);
+            }
+            $fetchedAttributes = count($attributes);
+            unset($attributes);
+            $attributeCount += $fetchedAttributes;
+            if ($fetchedAttributes === 5000) { // maximum number of attributes fetched, continue in next loop
+                $query['conditions']['Attribute.id >'] = $attribute['Attribute']['id'];
+            } else {
+                break;
+            }
+        } while (true);
+
+        // Generating correlations can take long time, so clear caches after each event to refresh them
+        $this->cidrListCache = null;
+        $this->OverCorrelatingValue->cleanCache();
+        $this->containCache = [];
+
+        return $attributeCount;
     }
 
     /**
@@ -245,25 +380,28 @@ class Correlation extends AppModel
     /**
      * @param string $scope
      * @param int $id
-     * @return false|array
+     * @return bool|array Returns array if object is found, false if object doesn't exists or true if object is not required
      */
     private function __cachedGetContainData($scope, $id)
     {
-        if (!empty($this->getContainRules($scope))) {
-            if (empty($this->__tempContainCache[$scope][$id])) {
+        $rules = $this->getContainRules($scope);
+        if (!empty($rules)) {
+            if (!isset($this->containCache[$scope][$id])) {
                 $temp = $this->Attribute->$scope->find('first', array(
                     'recursive' => -1,
-                    'fields' => $this->getContainRules($scope)['fields'],
+                    'fields' => $rules['fields'],
                     'conditions' => ['id' => $id],
                     'order' => array(),
                 ));
-                $temp = empty($temp) ? false : $temp[$scope];
-                $this->__tempContainCache[$scope][$id] = $temp;
-                return $temp;
-            } else {
-                return $this->__tempContainCache[$scope][$id];
+                if (empty($temp)) {
+                    return false;
+                }
+                return $this->containCache[$scope][$id] = $temp[$scope];
             }
+            return $this->containCache[$scope][$id];
         }
+
+        return true;
     }
 
     /**
@@ -295,14 +433,6 @@ class Correlation extends AppModel
         if (!empty($a['Event']['disable_correlation'])) {
             return true;
         }
-
-        if (!empty($a['Attribute']['object_id'])) {
-            $a['Object'] = $this->__cachedGetContainData('Object', $a['Attribute']['object_id']);
-            if (!$a['Object']) {
-                // orphaned attribute, do not correlate
-                return true;
-            }
-        }
         // generate additional correlating attribute list based on the advanced correlations
         if (!$this->__preventExcludedCorrelations($a['Attribute']['value1'])) {
             $extraConditions = $this->__buildAdvancedCorrelationConditions($a);
@@ -317,10 +447,20 @@ class Correlation extends AppModel
         if (empty($correlatingValues)) {
             return true;
         }
+        if (!empty($a['Attribute']['object_id'])) {
+            $a['Object'] = $this->__cachedGetContainData('Object', $a['Attribute']['object_id']);
+            if (!$a['Object']) {
+                // orphaned attribute, do not correlate
+                return true;
+            }
+        }
         $correlations = [];
         foreach ($correlatingValues as $cV) {
             if ($cV === null) {
                 continue;
+            }
+            if ($full && $this->OverCorrelatingValue->isBlocked($cV)) {
+                continue; // skip already blocked values when doing full correlation
             }
             $conditions = [
                 'OR' => [
@@ -339,6 +479,10 @@ class Correlation extends AppModel
                 'Event.disable_correlation' => 0,
                 'Attribute.deleted' => 0,
             ];
+            if ($full) {
+                // On a full correlation, only correlate with attributes that have a higher ID to avoid duplicate correlations
+                $conditions['Attribute.id >'] = $a['Attribute']['id'];
+            }
             $correlationLimit = $this->OverCorrelatingValue->getLimit();
 
             $correlatingAttributes = $this->Attribute->find('all', [
@@ -358,15 +502,11 @@ class Correlation extends AppModel
                 // If we have more correlations for the value than the limit, set the block entry and stop the correlation process
                 $this->OverCorrelatingValue->block($cV);
                 return true;
-            } else if ($count !== 0) {
+            } else if ($count !== 0 && !$full) {
                 // If we have fewer hits than the limit, proceed with the correlation, but first make sure we remove any existing blockers
                 $this->OverCorrelatingValue->unblock($cV);
             }
             foreach ($correlatingAttributes as $b) {
-                // On a full correlation, only correlate with attributes that have a higher ID to avoid duplicate correlations
-                if ($full && $a['Attribute']['id'] < $b['Attribute']['id']) {
-                    continue;
-                }
                 if (isset($b['Attribute']['value1'])) {
                     // TODO: Currently it is hard to check if value1 or value2 correlated, so we check value2 and if not, it is value1
                     $value = $cV === $b['Attribute']['value2'] ? $b['Attribute']['value2'] : $b['Attribute']['value1'];
@@ -394,8 +534,7 @@ class Correlation extends AppModel
     {
         if ($this->exclusions === null) {
             try {
-                $redis = $this->setupRedisWithException();
-                $this->exclusions = $redis->sMembers('misp:correlation_exclusions');
+                $this->exclusions = RedisTool::init()->sMembers('misp:correlation_exclusions');
             } catch (Exception $e) {
                 return false;
             }
@@ -627,7 +766,7 @@ class Correlation extends AppModel
     public function generateTopCorrelations($jobId = false)
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             throw new NotFoundException(__('No redis connection found.'));
         }
@@ -652,7 +791,7 @@ class Correlation extends AppModel
         }
         $maxId = $maxId[0]['max_id'];
 
-        $redis->del(self::CACHE_NAME);
+        RedisTool::unlink($redis, self::CACHE_NAME);
         $redis->set(self::CACHE_AGE, time());
         $chunkSize = 1000000;
         $maxPage = ceil($maxId / $chunkSize);
@@ -682,7 +821,7 @@ class Correlation extends AppModel
     public function findTop(array $query)
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
@@ -712,7 +851,7 @@ class Correlation extends AppModel
     public function getTopTime()
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
@@ -754,32 +893,24 @@ class Correlation extends AppModel
      */
     public function updateCidrList()
     {
-        $redis = $this->setupRedisWithException();
+        $redis = RedisTool::init();
         $cidrList = [];
         $this->cidrListCache = null;
         if ($redis) {
             $cidrList = $this->getCidrListFromDatabase();
 
-            $redis->pipeline();
-            $redis->del('misp:cidr_cache_list');
+            RedisTool::unlink($redis, 'misp:cidr_cache_list');
             if (method_exists($redis, 'saddArray')) {
                 $redis->sAddArray('misp:cidr_cache_list', $cidrList);
             } else {
+                $redis->pipeline();
                 foreach ($cidrList as $cidr) {
                     $redis->sadd('misp:cidr_cache_list', $cidr);
                 }
+                $redis->exec();
             }
-            $redis->exec();
         }
         return $cidrList;
-    }
-
-    /**
-     * @return void
-     */
-    public function clearCidrCache()
-    {
-        $this->cidrListCache = null;
     }
 
     /**
@@ -791,16 +922,17 @@ class Correlation extends AppModel
             return $this->cidrListCache;
         }
 
-        $redis = $this->setupRedisWithException();
-        if ($redis) {
+        try {
+            $redis = RedisTool::init();
             if (!$redis->exists('misp:cidr_cache_list')) {
                 $cidrList = $this->updateCidrList();
             } else {
                 $cidrList = $redis->smembers('misp:cidr_cache_list');
             }
-        } else {
+        } catch (Exception $e) {
             $cidrList = $this->getCidrListFromDatabase();
         }
+
         $this->cidrListCache = $cidrList;
         return $cidrList;
     }

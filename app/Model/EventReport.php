@@ -408,7 +408,7 @@ class EventReport extends AppModel
             return $report;
         } else {
             if (in_array('edit', $authorizations) || in_array('delete', $authorizations)) {
-                $checkResult = $this->canEditReport($user, $report);
+                $checkResult = $user['Role']['perm_site_admin'] || ($report['Event']['orgc_id'] === $user['org_id']);
                 if ($checkResult !== true) {
                     if ($throwErrors) {
                         throw new UnauthorizedException($checkResult);
@@ -418,20 +418,6 @@ class EventReport extends AppModel
             }
             return $report;
         }
-    }
-
-    public function canEditReport(array $user, array $report)
-    {
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if (empty($report['Event'])) {
-            return __('Could not find associated event');
-        }
-        if ($report['Event']['orgc_id'] != $user['org_id']) {
-            return __('Only the creator organisation of the event can modify the report');
-        }
-        return true;
     }
 
     public function reArrangeReport(array $report)
@@ -738,6 +724,7 @@ class EventReport extends AppModel
         $complexTypeTool = new ComplexTypeTool();
         $this->Warninglist = ClassRegistry::init('Warninglist');
         $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+        $complexTypeTool->setSecurityVendorDomains($this->Warninglist->fetchSecurityVendorDomains());
 
         $complexTypeToolResult = $complexTypeTool->checkFreeText($report['EventReport']['content']);
         $replacementResult = $this->transformFreeTextIntoReplacement($user, $report, $complexTypeToolResult);

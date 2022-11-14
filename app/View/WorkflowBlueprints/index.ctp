@@ -32,9 +32,9 @@
             'name' => __('Timestamp'),
             'sort' => 'WorkflowBlueprint.timestamp',
             'data_path' => 'WorkflowBlueprint.timestamp',
+            'element' => 'datetime',
         ],
     ];
-
 
     echo $this->element('genericElements/IndexTable/scaffold', [
         'scaffold_data' => [
@@ -73,11 +73,13 @@
                         'url_params_data_paths' => ['WorkflowBlueprint.id'],
                         'icon' => 'eye',
                         'dbclickAction' => true,
+                        'title' => __('View'),
                     ],
                     [
                         'url' => $baseurl . '/workflowBlueprints/edit',
                         'url_params_data_paths' => ['WorkflowBlueprint.id'],
                         'icon' => 'edit',
+                        'title' => __('Edit'),
                     ],
                     [
                         'url' => $baseurl . '/workflowBlueprints/export',
@@ -86,13 +88,11 @@
                         'icon' => 'download',
                     ],
                     [
-
-                        'onclick' => sprintf(
-                        'openGenericModal(\'%s/workflowBlueprints/delete/[onclick_params_data_path]\');',
-                            $baseurl
-                        ),
-                        'onclick_params_data_path' => 'WorkflowBlueprint.id',
-                        'icon' => 'trash'
+                        'class' => 'modal-open',
+                        'url' => $baseurl . '/workflowBlueprints/delete/',
+                        'url_params_data_paths' => 'WorkflowBlueprint.id',
+                        'icon' => 'trash',
+                        'title' => __('Delete'),
                     ]
                 ]
             ]

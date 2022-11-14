@@ -68,7 +68,7 @@ class EventShell extends AppShell
         $user = $this->getUser($userId);
 
         if (!file_exists($path)) {
-            $this->error("File '$path' does not exists.");
+            $this->error("File '$path' does not exist.");
         }
         if (!is_readable($path)) {
             $this->error("File '$path' is not readable.");
@@ -432,8 +432,7 @@ class EventShell extends AppShell
 
         $sightingsUuidsToPush = [];
         if (isset($this->args[4])) { // push just specific sightings
-            $path = $this->args[4][0] === '/' ? $this->args[4] : (APP . 'tmp/cache/ingest' . DS . $this->args[4]);
-            $sightingsUuidsToPush = $this->Event->jsonDecode(FileAccessTool::readAndDelete($path));
+            $sightingsUuidsToPush = $this->getBackgroundJobsTool()->fetchDataFile($this->args[4]);
         }
 
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
@@ -537,9 +536,7 @@ class EventShell extends AppShell
         }
 
         $inputFile = $this->args[0];
-        $inputFile = $inputFile[0] === '/' ? $inputFile : APP . 'tmp/cache/ingest' . DS . $inputFile;
-        $inputData = FileAccessTool::readAndDelete($inputFile);
-        $inputData = $this->Event->jsonDecode($inputData);
+        $inputData = $this->getBackgroundJobsTool()->fetchDataFile($inputFile);
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processFreeTextData(
             $inputData['user'],
@@ -560,9 +557,7 @@ class EventShell extends AppShell
         }
 
         $inputFile = $this->args[0];
-        $inputFile = $inputFile[0] === '/' ? $inputFile : APP . 'tmp/cache/ingest' . DS . $inputFile;
-        $inputData = FileAccessTool::readAndDelete($inputFile);
-        $inputData = $this->Event->jsonDecode($inputData);
+        $inputData = $this->getBackgroundJobsTool()->fetchDataFile($inputFile);
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processModuleResultsData(
             $inputData['user'],
@@ -637,7 +632,7 @@ class EventShell extends AppShell
     {
         $user = $this->User->getAuthUser($userId, true);
         if (empty($user)) {
-            $this->error("User with ID $userId does not exists.");
+            $this->error("User with ID $userId does not exist.");
         }
         Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
         return $user;

@@ -209,4 +209,117 @@ class ObjectReferencesController extends AppController
         }
         return $this->RestResponse->viewData($objectReference, 'json');
     }
+
+    public function bulkAdd($eventId, $selectedAttributes = '[]')
+    {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
+        }
+
+        $selectedAttributeIDs = $this->_jsonDecode($selectedAttributes);
+        $event = $this->ObjectReference->Object->Event->fetchEvent($this->Auth->user(), [
+            'eventid' => $eventId,
+        ]);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $event = $event[0];
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
+        }
+
+        $selectedAttributes = [];
+        foreach ($event['Attribute'] as $attribute) {
+            if (in_array($attribute['id'], $selectedAttributeIDs)) {
+                $selectedAttributes[$attribute['id']] = $attribute;
+            }
+        }
+
+        if (empty($selectedAttributes)) {
+            throw new BadRequestException(__('No attribute selected.'));
+        }
+
+        if ($this->request->is('post')) {
+            $conditions = [
+                'Object.deleted' => 0,
+                'Object.event_id' => $eventId,
+                'Object.uuid' => $this->data['ObjectReference']['source_uuid'],
+            ];
+            $object = $this->ObjectReference->Object->find('first', array(
+                'conditions' => $conditions,
+                'recursive' => -1,
+            ));
+            if (empty($object)) {
+                throw new NotFoundException('Invalid object.');
+            }
+
+            if (!empty($this->request->data['ObjectReference']['relationship_type_select']) && $this->request->data['ObjectReference']['relationship_type_select'] != 'custom') {
+                $this->request->data['ObjectReference']['relationship_type'] = $this->request->data['ObjectReference']['relationship_type_select'];
+            }
+            $successCount = 0;
+            foreach ($selectedAttributes as $attributeID => $attribute) {
+                $referenced_type = 0; // reference type is always an attribute (for now?)
+                $newRelationship = array(
+                    'referenced_id' => $attributeID,
+                    'referenced_uuid' => $attribute['uuid'],
+                    'relationship_type' => $this->request->data['ObjectReference']['relationship_type'],
+                    'comment' => !empty($this->request->data['ObjectReference']['comment']) ? $this->request->data['ObjectReference']['comment'] : '',
+                    'event_id' => $event['Event']['id'],
+                    'object_uuid' => $object['Object']['uuid'],
+                    'source_uuid' => $object['Object']['uuid'],
+                    'object_id' => $object['Object']['id'],
+                    'referenced_type' => $referenced_type,
+                    'uuid' => CakeText::uuid()
+                );
+
+                $this->ObjectReference->create();
+                $result = $this->ObjectReference->save(['ObjectReference' => $newRelationship]);
+                if ($result) {
+                    $successCount += 1;
+                }
+            }
+            if ($successCount > 0) {
+                $this->ObjectReference->updateTimestamps($newRelationship);
+                if ($this->_isRest()) {
+                    $object = $this->ObjectReference->find('first', [
+                        'recursive' => -1,
+                        'conditions' => ['ObjectReference.id' => $this->ObjectReference->id]
+                    ]);
+                    $object['ObjectReference']['object_uuid'] = $object['Object']['uuid'];
+                    return $this->RestResponse->viewData($object, $this->response->type());
+                } elseif ($this->request->is('ajax')) {
+                    $message = __('Added %s Object references.', $successCount);
+                    return $this->RestResponse->saveSuccessResponse('ObjectReference', 'bulkAdd', $object['Object']['id'], false, $message);
+                }
+            } else {
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('ObjectReferences', 'bulkAdd', false, $this->ObjectReference->validationErrors, $this->response->type());
+                } elseif ($this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('ObjectReferences', 'bulkAdd', $object['Object']['id'], $this->ObjectReference->validationErrors, $this->response->type());
+                }
+            }
+        }
+
+        $eventObjects = [];
+        $validSourceUuid = [];
+        foreach ($event['Object'] as $object) {
+            $validSourceUuid[$object['uuid']] = sprintf('[%s] %s ', $object['id'], $object['name']);
+            $eventObjects[$object['uuid']] = $object;
+        }
+
+        $this->loadModel('ObjectRelationship');
+        $relationships = $this->ObjectRelationship->find('column', array(
+            'recursive' => -1,
+            'fields' => ['name'],
+        ));
+        $relationships = array_combine($relationships, $relationships);
+        $relationships['custom'] = 'custom';
+        ksort($relationships);
+        $this->set('relationships', $relationships);
+        $this->set('validSourceUuid', $validSourceUuid);
+        $this->set('eventObjects', $eventObjects);
+        $this->set('selectedAttributes', $selectedAttributes);
+        $this->layout = false;
+        $this->render('ajax/bulkAdd');
+    }
 }

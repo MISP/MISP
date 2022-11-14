@@ -1,5 +1,5 @@
 <?php
-    $mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
+    $mayChangeCorrelation = $this->Acl->canDisableCorrelation($event);
     $possibleAction = $mayModify ? 'attribute' : 'shadow_attribute';
     $all = isset($this->params->params['paging']['Event']['page']) && $this->params->params['paging']['Event']['page'] == 0;
     $fieldCount = 11;

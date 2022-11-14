@@ -1114,7 +1114,7 @@ CalHeatMap.prototype = {
 		}
 
 		if (d3.select(options.itemSelector)[0][0] === null) {
-			throw new Error("The node '" + options.itemSelector + "' specified in itemSelector does not exists");
+			throw new Error("The node '" + options.itemSelector + "' specified in itemSelector does not exist");
 		}
 
 		try {

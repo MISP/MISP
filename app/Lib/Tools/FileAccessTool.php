@@ -46,9 +46,9 @@ class FileAccessTool
     public static function readFromFile($file, $fileSize = -1)
     {
         if ($fileSize === -1) {
-            $content = file_get_contents($file);
+            $content = @file_get_contents($file);
         } else {
-            $content = file_get_contents($file, false, null, 0, $fileSize);
+            $content = @file_get_contents($file, false, null, 0, $fileSize);
         }
         if ($content === false) {
             if (!file_exists($file)) {
@@ -65,14 +65,15 @@ class FileAccessTool
 
     /**
      * @param string $file
+     * @param bool $mustBeArray If true, exception will be thrown if deserialized data are not array type
      * @return mixed
      * @throws Exception
      */
-    public static function readJsonFromFile($file)
+    public static function readJsonFromFile($file, $mustBeArray = false)
     {
         $content = self::readFromFile($file);
         try {
-            return JsonTool::decode($content);
+            return $mustBeArray ? JsonTool::decodeArray($content) : JsonTool::decode($content);
         } catch (Exception $e) {
             throw new Exception("Could not decode JSON from file `$file`", 0, $e);
         }
@@ -145,6 +146,27 @@ class FileAccessTool
         }
         gzclose($res);
         return $result;
+    }
+
+    /**
+     * @param string $file
+     * @return string
+     * @throws Exception
+     */
+    public static function readCompressedFile($file)
+    {
+        $content = file_get_contents("compress.zlib://$file");
+        if ($content === false) {
+            if (!file_exists($file)) {
+                $message = "file doesn't exists";
+            } else if (!is_readable($file)) {
+                $message = "file is not readable";
+            } else {
+                $message = 'unknown error';
+            }
+            throw new Exception("An error has occurred while attempt to read file `$file`: $message.");
+        }
+        return $content;
     }
 
     /**
