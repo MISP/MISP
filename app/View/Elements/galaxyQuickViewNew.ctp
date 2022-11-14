@@ -1,17 +1,18 @@
 <?php
 // When viewing remote server or feed event
 if (isset($preview) && $preview) {
-    $mayModify = false;
-    $isAclTagger = false;
     $static_tags_only = true;
 } else {
     $preview = false;
 }
-$tagAccess = ($isSiteAdmin || ($mayModify && $isAclTagger));
-if (empty($local_tag_off) || !empty($event)) {
-    $localTagAccess = ($isSiteAdmin || ($mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id'))) && $isAclTagger;
-} else {
-    $localTagAccess = false;
+
+if ($target_type === 'event' || $target_type === 'attribute') {
+    $tagAccess = $this->Acl->canModifyTag($event);
+    if (empty($local_tag_off) || !empty($event)) {
+        $localTagAccess = $this->Acl->canModifyTag($event, true);
+    } else {
+        $localTagAccess = false;
+    }
 }
 
 $editButtonsEnabled = empty($static_tags_only) && $tagAccess;
@@ -19,8 +20,8 @@ $editButtonsLocalEnabled = empty($static_tags_only) && $localTagAccess && empty(
 
 $sortClusters = function (array $clusters) {
     usort($clusters, function (array $a, array $b) {
-        $aExternalId = isset($a['meta']['external_id'][0]) ? $a['meta']['external_id'][0] : null;
-        $bExternalId = isset($b['meta']['external_id'][0]) ? $b['meta']['external_id'][0] : null;
+        $aExternalId = $a['meta']['external_id'][0] ?? null;
+        $bExternalId = $b['meta']['external_id'][0] ?? null;
         if ($aExternalId && $bExternalId) {
             return strcmp($aExternalId, $bExternalId);
         }
@@ -110,16 +111,19 @@ $generatePopover = function (array $cluster) use ($normalizeKey) {
                     ]
                 ];
                 if ($editButtonsEnabled || ($editButtonsLocalEnabled && $cluster['local'])) {
-                    $action_items[] = [
-                        'onClick' => sprintf(
-                            "openGenericModal('%s/tags/modifyTagRelationship/%s/%s')",
-                            $baseurl,
-                            h($target_type),
-                            h($cluster[$target_type . '_tag_id'])
-                        ),
-                        'class' => 'useCursorPointer black fas fa-project-diagram',
-                        'title' => __('Modify tag relationship')
-                    ];
+                    if ($target_type !== 'tag_collection') {
+                        $action_items[] = [
+                            'url' => sprintf(
+                                "%s/tags/modifyTagRelationship/%s/%s",
+                                $baseurl,
+                                h($target_type),
+                                h($cluster[$target_type . '_tag_id'])
+                            ),
+                            'onClick' => false,
+                            'class' => 'useCursorPointer black fas fa-project-diagram modal-open',
+                            'title' => __('Modify tag relationship')
+                        ];
+                    }
                     $action_items[] = [
                         'url' => $baseurl . '/galaxy_clusters/detach/' . intval($target_id) . '/' . h($target_type) . '/' . h($cluster['tag_id']),
                         'onClick' => sprintf(
@@ -129,7 +133,7 @@ $generatePopover = function (array $cluster) use ($normalizeKey) {
                         ),
                         'class' => 'black fas fa-trash',
                         'aria_label' => __('Detach'),
-                        'title' => __('Are you sure you want to detach %s from this event?', h($cluster['value'])),
+                        'title' => __('Are you sure you want to detach %s from this %s?', h($cluster['value']), $target_type),
                     ];
                 }
                 foreach ($action_items as $action_item) {

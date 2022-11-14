@@ -451,7 +451,8 @@ class WorkflowsController extends AppController
         $this->request->allowMethod(['post']);
         $input_data = JsonTool::decode($this->request->data['input_data']);
         $param_data = $this->request->data['module_indexed_param'];
-        $result = $this->Workflow->moduleStatelessExecution($module_id, $input_data, $param_data);
+        $convert_data = $this->request->data['convert_data'];
+        $result = $this->Workflow->moduleStatelessExecution($module_id, $input_data, $param_data, $convert_data);
         return $this->RestResponse->viewData($result, 'json');
     }
 }

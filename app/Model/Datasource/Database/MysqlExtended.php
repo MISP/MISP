@@ -120,6 +120,33 @@ class MysqlExtended extends Mysql
     }
 
     /**
+     * - Do not call microtime when not necessary
+     * - Count query count even when logging is disabled
+     *
+     * @param string $sql
+     * @param array $options
+     * @param array $params
+     * @return mixed
+     */
+    public function execute($sql, $options = [], $params = [])
+    {
+        $log = $options['log'] ?? $this->fullDebug;
+
+        if ($log) {
+            $t = microtime(true);
+            $this->_result = $this->_execute($sql, $params);
+            $this->took = round((microtime(true) - $t) * 1000);
+            $this->numRows = $this->affected = $this->lastAffected();
+            $this->logQuery($sql, $params);
+        } else {
+            $this->_result = $this->_execute($sql, $params);
+            $this->_queriesCnt++;
+        }
+
+        return $this->_result;
+    }
+
+    /**
      * Reduce memory usage for insertMulti
      *
      * @param string $table
@@ -161,8 +188,7 @@ class MysqlExtended extends Mysql
                 if ($this->fullDebug) {
                     $valuesList[] = $val;
                 }
-                $statement->bindValue($i, $val, $columnMap[$col]);
-                $i++;
+                $statement->bindValue($i++, $val, $columnMap[$col]);
             }
         }
         $result = $statement->execute();

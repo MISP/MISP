@@ -1,6 +1,10 @@
 <?php
 class RedisTool
 {
+    const COMPRESS_MIN_LENGTH = 256,
+        BROTLI_HEADER = "\xce\xb2\xcf\x81",
+        ZSTD_HEADER = "\x28\xb5\x2f\xfd";
+
     /** @var Redis|null */
     private static $connection;
 
@@ -152,5 +156,46 @@ class RedisTool
         } else {
             return JsonTool::decode($string);
         }
+    }
+
+    /**
+     * @param string $data
+     * @return string
+     */
+    public static function compress($data)
+    {
+        if (strlen($data) >= self::COMPRESS_MIN_LENGTH) {
+            if (function_exists('zstd_compress')) {
+                return zstd_compress($data, 1);
+            } elseif (function_exists('brotli_compress')) {
+                return self::BROTLI_HEADER . brotli_compress($data, 0);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * @param string|false $data
+     * @return string
+     */
+    public static function decompress($data)
+    {
+        if ($data === false) {
+            return false;
+        }
+
+        $magic = substr($data, 0, 4);
+        if ($magic === self::ZSTD_HEADER) {
+           $data = zstd_uncompress($data);
+           if ($data === false) {
+               throw new RuntimeException('Could not decompress');
+           }
+        } elseif ($magic === self::BROTLI_HEADER) {
+            $data = brotli_uncompress(substr($data, 4));
+            if ($data === false) {
+                throw new RuntimeException('Could not decompress');
+            }
+        }
+        return $data;
     }
 }

@@ -15,8 +15,6 @@ App::uses('BetterCakeEventManager', 'Tools');
  * @package       app.Controller
  * @link http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  *
- * @property ACLComponent $ACL
- * @property RestResponseComponent $RestResponse
  * @property CRUDComponent $CRUD
  * @property IndexFilterComponent $IndexFilter
  * @property RateLimitComponent $RateLimit
@@ -36,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '146';
-    public $pyMispVersion = '2.4.162';
+    public $pyMispVersion = '2.4.165';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -55,6 +53,15 @@ class AppController extends Controller
 
     /** @var User */
     public $User;
+
+    /** @var AuthComponent */
+    public $Auth;
+
+    /** @var ACLComponent */
+    public $ACL;
+
+    /** @var RestResponseComponent */
+    public $RestResponse;
 
     public function __construct($request = null, $response = null)
     {
@@ -93,6 +100,9 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        $controller = $this->request->params['controller'];
+        $action = $this->request->params['action'];
+
         if (Configure::read('MISP.system_setting_db')) {
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
@@ -114,7 +124,7 @@ class AppController extends Controller
         $this->__cors();
         if (Configure::read('Security.check_sec_fetch_site_header')) {
             $secFetchSite = $this->request->header('Sec-Fetch-Site');
-            if ($secFetchSite !== false && $secFetchSite !== 'same-origin' && ($this->request->is('post') || $this->request->is('put') || $this->request->is('ajax'))) {
+            if ($secFetchSite !== false && $secFetchSite !== 'same-origin' && $this->request->is(['post', 'put', 'ajax'])) {
                 throw new MethodNotAllowedException("POST, PUT and AJAX requests are allowed just from same origin.");
             }
         }
@@ -173,8 +183,8 @@ class AppController extends Controller
         if (!empty($this->request->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
         }
-        Configure::write('CurrentController', $this->request->params['controller']);
-        Configure::write('CurrentAction', $this->request->params['action']);
+        Configure::write('CurrentController', $controller);
+        Configure::write('CurrentAction', $action);
         $versionArray = $this->User->checkMISPVersion();
         $this->mispVersion = implode('.', $versionArray);
         $this->Security->blackHoleCallback = 'blackHole';
@@ -199,15 +209,15 @@ class AppController extends Controller
             };
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
-            $this->Security->unlockedActions = array($this->request->action);
+            $this->Security->unlockedActions = [$action];
             $this->Security->doNotGenerateToken = true;
         }
 
         if (
             !$userLoggedIn &&
             (
-                $this->request->params['controller'] !== 'users' ||
-                $this->request->params['action'] !== 'register' ||
+                $controller !== 'users' ||
+                $action !== 'register' ||
                 empty(Configure::read('Security.allow_self_registration'))
             )
         ) {
@@ -280,24 +290,14 @@ class AppController extends Controller
             $this->set('isSiteAdmin', $role['perm_site_admin']);
             $this->set('hostOrgUser', $user['org_id'] == Configure::read('MISP.host_org_id'));
             $this->set('isAclAdd', $role['perm_add']);
-            $this->set('isAclModify', $role['perm_modify']);
-            $this->set('isAclModifyOrg', $role['perm_modify_org']);
             $this->set('isAclPublish', $role['perm_publish']);
             $this->set('isAclDelegate', $role['perm_delegate']);
             $this->set('isAclSync', $role['perm_sync']);
-            $this->set('isAclAdmin', $role['perm_admin']);
             $this->set('isAclAudit', $role['perm_audit']);
-            $this->set('isAclAuth', $role['perm_auth']);
             $this->set('isAclRegexp', $role['perm_regexp_access']);
             $this->set('isAclTagger', $role['perm_tagger']);
-            $this->set('isAclTagEditor', $role['perm_tag_editor']);
-            $this->set('isAclTemplate', $role['perm_template']);
             $this->set('isAclGalaxyEditor', !empty($role['perm_galaxy_editor']));
-            $this->set('isAclSharingGroup', $role['perm_sharing_group']);
             $this->set('isAclSighting', $role['perm_sighting'] ?? false);
-            $this->set('isAclZmq', $role['perm_publish_zmq'] ?? false);
-            $this->set('isAclKafka', $role['perm_publish_kafka'] ?? false);
-            $this->set('isAclDecaying', $role['perm_decaying'] ?? false);
             $this->set('aclComponent', $this->ACL);
             $this->userRole = $role;
 
@@ -334,12 +334,12 @@ class AppController extends Controller
             }
         }
 
-        $this->ACL->checkAccess($user, Inflector::variable($this->request->params['controller']), $this->request->action);
+        $this->ACL->checkAccess($user, Inflector::variable($controller), $action);
         if ($user && $this->_isRest()) {
             $this->__rateLimitCheck($user);
         }
         if ($this->modelClass !== 'CakeError') {
-            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->request->action, $this->User, $user ? $user['id'] : null);
+            $deprecationWarnings = $this->Deprecation->checkDeprecation($controller, $action, $user ? $user['id'] : null);
             if ($deprecationWarnings) {
                 $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
                 if ($this->_isRest()) {
@@ -665,27 +665,22 @@ class AppController extends Controller
     {
         $userMonitoringEnabled = Configure::read('Security.user_monitoring_enabled');
         if ($userMonitoringEnabled) {
-            $redis = $this->User->setupRedis();
-            $userMonitoringEnabled = $redis && $redis->sismember('misp:monitored_users', $user['id']);
+            try {
+                $userMonitoringEnabled = RedisTool::init()->sismember('misp:monitored_users', $user['id']);
+            } catch (Exception $e) {
+                $userMonitoringEnabled = false;
+            }
         }
 
-        if (Configure::read('MISP.log_paranoid') || $userMonitoringEnabled) {
-            $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here;
-            if (
-                (
-                    $this->request->is('post') ||
-                    $this->request->is('put')
-                ) &&
-                (
-                    !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
-                    $userMonitoringEnabled
-                )
-            ) {
-                $payload = $this->request->input();
-                $change .= PHP_EOL . 'Request body: ' . $payload;
-            }
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
+        $shouldBeLogged = $userMonitoringEnabled ||
+            Configure::read('MISP.log_paranoid') ||
+            (Configure::read('MISP.log_paranoid_api') && $user['logged_by_authkey']);
+
+        if ($shouldBeLogged) {
+            $includeRequestBody = !empty(Configure::read('MISP.log_paranoid_include_post_body')) || $userMonitoringEnabled;
+            /** @var AccessLog $accessLog */
+            $accessLog = ClassRegistry::init('AccessLog');
+            $accessLog->logRequest($user, $this->_remoteIp(), $this->request, $includeRequestBody);
         }
     }
 
@@ -1262,7 +1257,7 @@ class AppController extends Controller
         $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
         if ($renderView) {
             $this->layout = false;
-            $final = json_decode($final->intoString(), true);
+            $final = JsonTool::decode($final->intoString());
             $this->set($final);
             $this->render('/Events/module_views/' . $renderView);
         } else {
@@ -1299,43 +1294,21 @@ class AppController extends Controller
      */
     protected function __canModifyEvent(array $event, $user = null)
     {
-        if (!isset($event['Event'])) {
-            throw new InvalidArgumentException('Passed object does not contain an Event.');
-        }
-
         $user = $user ?: $this->Auth->user();
-
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if ($user['Role']['perm_modify_org'] && $event['Event']['orgc_id'] == $user['org_id']) {
-            return true;
-        }
-        if ($user['Role']['perm_modify'] && $event['Event']['user_id'] == $user['id']) {
-            return true;
-        }
-        return false;
+        return $this->ACL->canModifyEvent($user, $event);
     }
 
     /**
      * Returns true if user can publish the given event.
      *
      * @param array $event
+     * @param array|null $user If empty, currently logged user will be used
      * @return bool
      */
-    protected function __canPublishEvent(array $event)
+    protected function __canPublishEvent(array $event, $user = null)
     {
-        if (!isset($event['Event'])) {
-            throw new InvalidArgumentException('Passed object does not contain an Event.');
-        }
-
-        if ($this->userRole['perm_site_admin']) {
-            return true;
-        }
-        if ($this->userRole['perm_publish'] && $event['Event']['orgc_id'] == $this->Auth->user()['org_id']) {
-            return true;
-        }
-        return false;
+        $user = $user ?: $this->Auth->user();
+        return $this->ACL->canPublishEvent($user, $event);
     }
 
     /**
@@ -1347,21 +1320,7 @@ class AppController extends Controller
      */
     protected function __canModifyTag(array $event, $isTagLocal = false)
     {
-        // Site admin can add any tag
-        if ($this->userRole['perm_site_admin']) {
-            return true;
-        }
-        // User must have tagger or sync permission
-        if (!$this->userRole['perm_tagger'] && !$this->userRole['perm_sync']) {
-            return false;
-        }
-        if ($this->__canModifyEvent($event)) {
-            return true; // full access
-        }
-        if ($isTagLocal && Configure::read('MISP.host_org_id') == $this->Auth->user('org_id')) {
-            return true;
-        }
-        return false;
+        return $this->ACL->canModifyTag($this->Auth->user(), $event, $isTagLocal);
     }
 
     /**
@@ -1422,8 +1381,7 @@ class AppController extends Controller
         }
 
         try {
-            $redis = $this->User->setupRedisWithException();
-            return $redis->get('misp:live') !== '0';
+            return RedisTool::init()->get('misp:live') !== '0';
         } catch (Exception $e) {
             return true;
         }

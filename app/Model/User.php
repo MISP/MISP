@@ -265,33 +265,34 @@ class User extends AppModel
         return true;
     }
 
-    public function beforeSave($options = array())
+    public function beforeSave($options = [])
     {
-        $this->data[$this->alias]['date_modified'] = time();
-        if (isset($this->data[$this->alias]['password'])) {
+        $user = &$this->data[$this->alias];
+        $user['date_modified'] = time();
+
+        if (isset($user['password'])) {
             $passwordHasher = new BlowfishConstantPasswordHasher();
-            $this->data[$this->alias]['password'] = $passwordHasher->hash($this->data[$this->alias]['password']);
+            $user['password'] = $passwordHasher->hash($user['password']);
         }
-        $user = $this->data;
-        $action = empty($this->id) ? 'add' : 'edit';
-        $user_id = $action == 'add' ? 0 : $user['User']['id'];
-        $trigger_id = 'user-before-save';
-        $workflowErrors = [];
-        $logging = [
-            'model' => 'User',
-            'action' => $action,
-            'id' => $user_id,
-            'message' => __('The workflow `%s` prevented the saving of user %s', $trigger_id, $user_id),
-        ];
+
         if (
-            empty($user['User']['action']) ||
+            empty($user['action']) ||
             (
-                $user['User']['action'] != 'logout' &&
-                $user['User']['action'] != 'login'
+                $user['action'] !== 'logout' &&
+                $user['action'] !== 'login'
             )
         ) {
-            $success = $this->executeTrigger($trigger_id, $user['User'], $workflowErrors, $logging);
-            return !empty($success);
+            $action = empty($this->id) ? 'add' : 'edit';
+            $user_id = $action === 'add' ? 0 : $user['id'];
+            $trigger_id = 'user-before-save';
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'User',
+                'action' => $action,
+                'id' => $user_id,
+                'message' => __('The workflow `%s` prevented the saving of user %s', $trigger_id, $user_id),
+            ];
+            return $this->executeTrigger($trigger_id, $user, $workflowErrors, $logging);
         }
         return true;
     }
@@ -747,16 +748,25 @@ class User extends AppModel
 
         $user['User']['Role'] = $user['Role'];
         $user['User']['Organisation'] = $user['Organisation'];
-        $user['User']['Server'] = $user['Server'];
+        if (isset($user['Server'])) {
+            $user['User']['Server'] = $user['Server'];
+        }
         if (isset($user['UserSetting'])) {
             $user['User']['UserSetting'] = $user['UserSetting'];
         }
         return $user['User'];
     }
 
-    // Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
-    // parameters are an array of org IDs that are owners (for an event this would be orgc and org)
-    public function getUsersWithAccess($owners = array(), $distribution, $sharing_group_id = 0, $userConditions = array())
+    /**
+     * Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
+     * parameters are an array of org IDs that are owners (for an event this would be orgc and org)
+     * @param array $owners Event owners
+     * @param int $distribution
+     * @param int $sharing_group_id
+     * @param array $userConditions
+     * @return array|int
+     */
+    public function getUsersWithAccess(array $owners, $distribution, $sharing_group_id = 0, array $userConditions = [])
     {
         $conditions = array();
         $validOrgs = array();
@@ -784,27 +794,24 @@ class User extends AppModel
             $conditions['AND']['OR'][] = array('org_id' => $validOrgs);
 
             // Add the site-admins to the list
-            $roles = $this->Role->find('all', array(
-                    'conditions' => array('perm_site_admin' => 1),
-                    'fields' => array('id')
-            ));
-            $roleIDs = array();
-            foreach ($roles as $role) {
-                $roleIDs[] = $role['Role']['id'];
-            }
-            $conditions['AND']['OR'][] = array('role_id' => $roleIDs);
+            $siteAdminRoleIds = $this->Role->find('column', [
+                'conditions' => array('perm_site_admin' => 1),
+                'fields' => array('id'),
+            ]);
+            $conditions['AND']['OR'][] = array('role_id' => $siteAdminRoleIds);
         }
         $conditions['AND'][] = $userConditions;
         $users = $this->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1,
             'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id', 'disabled'),
-            'contain' => ['Role' => ['fields' => ['perm_site_admin', 'perm_audit']], 'Organisation' => ['fields' => ['id', 'name']]],
+            'contain' => [
+                'Role' => ['fields' => ['perm_site_admin', 'perm_audit']],
+                'Organisation' => ['fields' => ['id', 'name']]
+            ],
         ));
         foreach ($users as $k => $user) {
-            $user = $user['User'];
-            unset($users[$k]['User']);
-            $users[$k] = array_merge($user, $users[$k]);
+            $users[$k] = $this->rearrangeToAuthForm($user);
         }
         return $users;
     }
@@ -1003,6 +1010,11 @@ class User extends AppModel
         return $template;
     }
 
+    /**
+     * @param int $org_id
+     * @param int|false $excludeUserId
+     * @return array
+     */
     public function getOrgAdminsForOrg($org_id, $excludeUserId = false)
     {
         $adminRoles = $this->Role->find('column', array(
@@ -1663,19 +1675,9 @@ class User extends AppModel
             'trending_period_amount' => 2,
         ];
 
-        $periodicSettings = $this->UserSetting->find('first', [
-            'recursive' => -1,
-            'conditions' => [
-                'user_id' => $userId,
-                'setting' => self::PERIODIC_USER_SETTING_KEY,
-            ],
-            'fields' => ['value'],
-        ]);
-        if (empty($periodicSettings)) {
-            $periodicSettings = $defaultPeriodicSettings;
-        } else {
-            $periodicSettings = $periodicSettings['UserSetting']['value'];
-        }
+        $periodicSettings = $this->UserSetting->getValueForUser($userId, self::PERIODIC_USER_SETTING_KEY);
+        $periodicSettings = $periodicSettings ?: $defaultPeriodicSettings;
+
         $periodicSettingsIndexed = [];
         foreach ($filterNames as $filterName) {
             $periodicSettingsIndexed[$filterName] = $periodicSettings[$filterName] ?? $defaultPeriodicSettings[$filterName];
@@ -1786,11 +1788,12 @@ class User extends AppModel
      * @param int $userId
      * @param string $period Can be 'daily', 'weekly' or 'monthly'
      * @param bool $rendered When false, instance of SendEmailTemplate will returned
-     * @return string|SendEmailTemplate
+     * @return string|SendEmailTemplate|null
      * @throws NotFoundException
      * @throws InvalidArgumentException
+     * @throws JsonException
      */
-    public function generatePeriodicSummary(int $userId, string $period, $rendered=true)
+    public function generatePeriodicSummary(int $userId, string $period, $rendered = true)
     {
         $allowedPeriods = array_map(function($period) {
             return substr($period, strlen('notification_'));
@@ -1813,6 +1816,10 @@ class User extends AppModel
         $filters['fetchFullClusterRelationship'] = true;
         $filters['includeScoresOnEvent'] = true;
         $events = $this->Event->fetchEvent($user, $filters);
+
+        if (empty($events)) {
+            return null;
+        }
 
         $elementCounter = 0;
         $renderView = false;
@@ -1838,7 +1845,7 @@ class User extends AppModel
         $securityRecommendationsData = [
             'course_of_action' => $this->Event->extractRelatedCourseOfActions($events),
         ];
-        $security_recommendations = $this->__renderSecurityRecommenrations($securityRecommendationsData);
+        $security_recommendations = $this->__renderSecurityRecommendations($securityRecommendationsData);
 
         $emailTemplate = $this->prepareEmailTemplate($period);
         $emailTemplate->set('baseurl', $this->Event->__getAnnounceBaseurl());
@@ -1869,7 +1876,7 @@ class User extends AppModel
         return $this->__renderGeneric('Elements' . DS . 'Events', 'trendingSummary', $trendData);
     }
 
-    private function __renderSecurityRecommenrations(array $data): string
+    private function __renderSecurityRecommendations(array $data): string
     {
         return $this->__renderGeneric('Elements' . DS . 'Events', 'securityRecommendations', $data);
     }
@@ -1941,5 +1948,27 @@ class User extends AppModel
     public function advancedAuthkeysEnabled()
     {
         return !empty(Configure::read("Security.advanced_authkeys"));
+    }
+
+    /**
+     * @param array $users
+     * @return array
+     * @throws RedisException
+     */
+    public function attachIsUserMonitored(array $users)
+    {
+        if (!empty(Configure::read('Security.user_monitoring_enabled'))) {
+            $redis = RedisTool::init();
+            $redis->pipeline();
+            foreach ($users as $user) {
+                $redis->sismember('misp:monitored_users', $user['User']['id']);
+            }
+            $output = $redis->exec();
+
+            foreach ($users as $key => $user) {
+                $users[$key]['User']['monitored'] = $output[$key];
+            }
+        }
+        return $users;
     }
 }

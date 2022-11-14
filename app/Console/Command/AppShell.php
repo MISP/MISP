@@ -60,7 +60,7 @@ abstract class AppShell extends Shell
      */
     protected function json($data)
     {
-        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        return JsonTool::encode($data, true);
     }
 
     /**
@@ -89,7 +89,11 @@ abstract class AppShell extends Shell
     protected function getBackgroundJobsTool()
     {
         if (!isset($this->BackgroundJobsTool)) {
-            $this->BackgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs'));
+            $settings = ['enabled' => false];
+            if (!empty(Configure::read('SimpleBackgroundJobs.enabled'))) {
+                $settings = Configure::read('SimpleBackgroundJobs');
+            }
+            $this->BackgroundJobsTool = new BackgroundJobsTool($settings);
         }
         return $this->BackgroundJobsTool;
     }

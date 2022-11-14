@@ -41,8 +41,6 @@ class AppModel extends Model
 
     private $__profiler = array();
 
-    public $elasticSearchClient;
-
     /** @var AttachmentTool|null */
     private $attachmentTool;
 
@@ -85,7 +83,7 @@ class AppModel extends Model
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
-        99 => false
+        99 => false, 100 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1882,6 +1880,29 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `event_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
                 $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
                 break;
+            case 100:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `access_logs` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `created` datetime(4) NOT NULL,
+                  `user_id` int(11) NOT NULL,
+                  `org_id` int(11) NOT NULL,
+                  `authkey_id` int(11) DEFAULT NULL,
+                  `ip` varbinary(16) DEFAULT NULL,
+                  `request_method` tinyint NOT NULL,
+                  `user_agent` varchar(255) DEFAULT NULL,
+                  `request_id` varchar(255) DEFAULT NULL,
+                  `controller` varchar(20) NOT NULL,
+                  `action` varchar(20) NOT NULL,
+                  `url` varchar(255) NOT NULL,
+                  `request` blob,
+                  `response_code` smallint NOT NULL,  
+                  `memory_usage` int(11) NOT NULL,
+                  `duration` int(11) NOT NULL,
+                  `query_count` int(11) NOT NULL,
+                  PRIMARY KEY (`id`),
+                  INDEX `user_id` (`user_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2263,8 +2284,7 @@ class AppModel extends Model
     public function valueIsJson($value)
     {
         $value = array_values($value)[0];
-        $json_decoded = json_decode($value);
-        if ($json_decoded === null) {
+        if (!JsonTool::isValid($value)) {
             return __('Invalid JSON.');
         }
         return true;
@@ -2953,17 +2973,6 @@ class AppModel extends Model
         return self::$loadedPubSubTool;
     }
 
-    protected function getElasticSearchTool()
-    {
-        if (!$this->elasticSearchClient) {
-            App::uses('ElasticSearchClient', 'Tools');
-            $client = new ElasticSearchClient();
-            $client->initTool();
-            $this->elasticSearchClient = $client;
-        }
-        return $this->elasticSearchClient;
-    }
-
     /**
      * @return BackgroundJobsTool
      */
@@ -2984,7 +2993,15 @@ class AppModel extends Model
         return self::$loadedBackgroundJobsTool;
     }
 
-    // generate a generic subquery - options needs to include conditions
+    /**
+     * Generate a generic subquery - options needs to include conditions
+     *
+     * @param AppModel $model
+     * @param array $options
+     * @param string $lookupKey
+     * @param bool $negation
+     * @return string[]
+     */
     protected function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
     {
         $defaults = array(
@@ -3013,10 +3030,7 @@ class AppModel extends Model
         } else {
             $subQuery = $lookupKey . ' IN (' . $subQuery . ') ';
         }
-        $conditions = array(
-            $db->expression($subQuery)->value
-        );
-        return $conditions;
+        return [$subQuery];
     }
 
     // start a benchmark run for the given bench name
@@ -3368,27 +3382,35 @@ class AppModel extends Model
         return (new RandomTool())->random_str(false, 12);
     }
 
+    /**
+     * @param string|int $delta
+     * @return int Timestamp
+     */
     public function resolveTimeDelta($delta)
     {
         if (is_numeric($delta)) {
-            return $delta;
+            return (int)$delta;
         }
-        $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
+
+        $multiplierArray = ['d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1];
         $lastChar = strtolower(substr($delta, -1));
         if (!is_numeric($lastChar) && isset($multiplierArray[$lastChar])) {
             $multiplier = $multiplierArray[$lastChar];
-            $delta = substr($delta, 0, -1);
-        } else if (strtotime($delta) !== false) {
-            return strtotime($delta);
-        } else {
-            // invalid filter, make sure we don't return anything
-            return time() + 1;
+            $timeDelta = substr($delta, 0, -1);
+            if (!is_numeric($timeDelta)) {
+                $this->log('Invalid time filter format ' . $delta, LOG_NOTICE);
+                return time() + 1;
+            }
+            return time() - ($timeDelta * $multiplier);
         }
-        if (!is_numeric($delta)) {
-            // Same here. (returning false dumps the whole database)
-            return time() + 1;
+
+        $time = strtotime($delta);
+        if ($time !== false) {
+            return $time;
         }
-        return time() - ($delta * $multiplier);
+
+        $this->log('Invalid time filter format ' . $delta, LOG_NOTICE);
+        return time() + 1;
     }
 
     private function __fixServerPullPushRules()
@@ -3529,14 +3551,11 @@ class AppModel extends Model
      * @return array
      * @throws JsonException
      * @throws UnexpectedValueException
+     * @deprecated
      */
-    public function jsonDecode($json)
+    protected function jsonDecode($json)
     {
-        $decoded = JsonTool::decode($json);
-        if (!is_array($decoded)) {
-            throw new UnexpectedValueException('JSON must be array type, get ' . gettype($decoded));
-        }
-        return $decoded;
+        return JsonTool::decodeArray($json);
     }
 
     /**
@@ -3728,7 +3747,7 @@ class AppModel extends Model
      * @param array $logging If the execution failure should be logged
      * @return boolean If the execution for the blocking path was a success
      */
-    public function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
+    protected function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
     {
         if ($this->isTriggerCallable($trigger_id)) {
            $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
@@ -3742,8 +3761,17 @@ class AppModel extends Model
         return true;
     }
 
-    public function isTriggerCallable($trigger_id): bool
+    protected function isTriggerCallable($trigger_id): bool
     {
+        static $workflowEnabled;
+        if ($workflowEnabled === null) {
+            $workflowEnabled = (bool)Configure::read('Plugin.Workflow_enable');
+        }
+
+        if (!$workflowEnabled) {
+            return false;
+        }
+
         if ($this->Workflow === null) {
             $this->Workflow = ClassRegistry::init('Workflow');
         }
@@ -3790,7 +3818,7 @@ class AppModel extends Model
                 $this->Correlation->validEngines['Legacy'],
                 'Job created.'
             );
-            $this->Correlation->Attribute->getBackgroundJobsTool()->enqueue(
+            $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [
@@ -3810,7 +3838,7 @@ class AppModel extends Model
                 'Job created.'
             );
 
-            $this->Attribute->getBackgroundJobsTool()->enqueue(
+            $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [

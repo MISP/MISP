@@ -515,14 +515,16 @@ class Attribute extends AppModel
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $attributeForPublish, $action);
                 }
-                $workflowErrors = [];
-                $logging = [
+                if ($isTriggerCallable) {
+                    $workflowErrors = [];
+                    $logging = [
                         'model' => 'Attribute',
                         'action' => $action,
                         'id' => $attributeForPublish['Attribute']['id'],
                     ];
-                $triggerData = $attributeForPublish;
-                $this->executeTrigger('attribute-after-save', $triggerData, $workflowErrors, $logging);
+                    $triggerData = $attributeForPublish;
+                    $this->executeTrigger('attribute-after-save', $triggerData, $workflowErrors, $logging);
+                }
             }
         }
         if ($created && isset($attribute['event_id']) && empty($attribute['skip_auto_increment'])) {
@@ -545,16 +547,15 @@ class Attribute extends AppModel
         }
         // update correlation..
         $this->Correlation->beforeSaveCorrelation($attribute['Attribute']);
-        if (!empty($attribute['Attribute']['id'])) {
-            if ($this->pubToZmq('attribute')) {
-                $pubSubTool = $this->getPubSubTool();
-                $pubSubTool->attribute_save($attribute, 'delete');
-            }
-            $kafkaTopic = $this->kafkaTopic('attribute');
-            if ($kafkaTopic) {
-                $kafkaPubTool = $this->getKafkaPubTool();
-                $kafkaPubTool->publishJson($kafkaTopic, $attribute, 'delete');
-            }
+
+        if ($this->pubToZmq('attribute')) {
+            $pubSubTool = $this->getPubSubTool();
+            $pubSubTool->attribute_save($attribute, 'delete');
+        }
+        $kafkaTopic = $this->kafkaTopic('attribute');
+        if ($kafkaTopic) {
+            $kafkaPubTool = $this->getKafkaPubTool();
+            $kafkaPubTool->publishJson($kafkaTopic, $attribute, 'delete');
         }
     }
 
@@ -1194,116 +1195,23 @@ class Attribute extends AppModel
     }
 
     /**
-     * @param int|false $jobId
-     * @param int|false $eventId
-     * @param int|false $attributeId
-     * @return int Number of processed attributes
+     * @param $jobId
+     * @param $eventId
+     * @param $attributeId
+     * @return void
+     * @throws Exception
+     * @deprecated Use Correlation::generateCorrelation directly
      */
     public function generateCorrelation($jobId = false, $eventId = false, $attributeId = false)
     {
-        $this->purgeCorrelations($eventId);
-
-        $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
-        $this->FuzzyCorrelateSsdeep->purge($eventId, $attributeId);
-
-        $this->query('TRUNCATE TABLE over_correlating_values');
-
-        // get all attributes..
-        if (!$eventId) {
-            $eventIds = $this->Event->find('column', [
-                'fields' => ['Event.id'],
-                'conditions' => ['Event.disable_correlation' => 0],
-            ]);
-            $full = true;
-        } else {
-            $eventIds = [$eventId];
-            $full = false;
-        }
-        $attributeCount = 0;
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job = ClassRegistry::init('Job');
-        } else {
-            $jobId = false;
-        }
-        if (!empty($eventIds)) {
-            $eventCount = count($eventIds);
-            foreach ($eventIds as $j => $currentEventId) {
-                $attributeCount = $this->__iteratedCorrelation(
-                    $jobId,
-                    $full,
-                    $attributeCount,
-                    $attributeId,
-                    $eventCount,
-                    $currentEventId,
-                    $j
-                );
-            }
-        } else {
-            // Not sure why that line was added. If there are no events, there are no correlations to save
-            // $attributeCount = $this->__iteratedCorrelation($jobId, $full, $attributeCount);
-        }
-        if ($jobId) {
-            $this->Job->saveStatus($jobId, true);
-        }
-        return $attributeCount;
+        $this->Correlation->generateCorrelation($jobId, $eventId, $attributeId);
     }
 
-    private function __iteratedCorrelation(
-        $jobId = false,
-        $full = false,
-        $attributeCount = 0,
-        $attributeId = null,
-        $eventCount = null,
-        $eventId = null,
-        $j = 0
-    )
-    {
-        if ($jobId) {
-            $message = $attributeId ? __('Correlating Attribute %s', $attributeId) : __('Correlating Event %s (%s MB used)', $eventId, intval(memory_get_usage() / 1024 / 1024));
-            $this->Job->saveProgress($jobId, $message, !empty($eventCount) ? ($j / $eventCount) * 100 : 0);
-        }
-        $attributeConditions = [
-            'Attribute.deleted' => 0,
-            'Attribute.disable_correlation' => 0,
-            'NOT' => [
-                'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
-            ],
-        ];
-        if ($eventId) {
-            $attributeConditions['Attribute.event_id'] = $eventId;
-        }
-        if ($attributeId) {
-            $attributeConditions['Attribute.id'] = $attributeId;
-        }
-        $query = [
-            'recursive' => -1,
-            'conditions' => $attributeConditions,
-            // fetch just necessary fields to save memory
-            'fields' => $this->Correlation->getFieldRules(),
-            'order' => 'Attribute.id',
-            'limit' => 5000,
-            'callbacks' => false, // memory leak fix
-        ];
-        do {
-            $attributes = $this->find('all', $query);
-            foreach ($attributes as $attribute) {
-                $attribute['Attribute']['event_id'] = $eventId;
-                $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full);
-            }
-            $fetchedAttributes = count($attributes);
-            unset($attributes);
-            $attributeCount += $fetchedAttributes;
-            if ($fetchedAttributes === 5000) { // maximum number of attributes fetched, continue in next loop
-                $query['conditions']['Attribute.id >'] = $attribute['Attribute']['id'];
-            } else {
-                break;
-            }
-        } while (true);
-        // Generating correlations can take long time, so clear CIDR cache after each event to refresh cache
-        $this->Correlation->clearCidrCache();
-        return $attributeCount;
-    }
-
+    /**
+     * @param $eventId
+     * @return void
+     * @deprecated Use Correlation::purgeCorrelations directly
+     */
     public function purgeCorrelations($eventId = false)
     {
         $this->Correlation->purgeCorrelations($eventId);
@@ -1698,7 +1606,7 @@ class Attribute extends AppModel
      * @return array
      * @throws Exception
      */
-    public function fetchAttributes(array $user, array $options = [], &$result_count = false)
+    public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -1872,7 +1780,7 @@ class Attribute extends AppModel
         }
 
         // Do not fetch result count when `$result_count` is false
-        if ($result_count !== false) {
+        if ($result_count !== false && $real_count == true) {
             $find_params = $params;
             unset($find_params['limit']);
             $result_count = $this->find('count', $find_params);
@@ -1884,11 +1792,15 @@ class Attribute extends AppModel
         $eventTags = []; // tag cache
         $attributes = [];
         do {
+            $continue = true;
             $results = $this->find('all', $params);
             if (empty($results)) {
                 break;
             }
-
+            $iteration_result_count = count($results);
+            if ($real_count !== true) {
+                $result_count += count($results);
+            }
             if (!empty($options['includeContext'])) {
                 $eventIds = [];
                 foreach ($results as $result) {
@@ -1967,7 +1879,7 @@ class Attribute extends AppModel
             unset($attribute);
 
             if ($loop) {
-                if (count($results) < $loopLimit) { // we fetched less results than limit, so we can skip next query
+                if ($iteration_result_count < $loopLimit) { // we fetched fewer results than the limit, so we can exit the loop
                     break;
                 }
                 $params['page']++;
@@ -2107,7 +2019,7 @@ class Attribute extends AppModel
     }
 
     /**
-     * This method will update attribute, object and event timestamp
+     * This method will update attribute and object timestamp and unpublish event
      * @param int|array $attribute
      * @return bool
      * @throws Exception
@@ -2389,8 +2301,8 @@ class Attribute extends AppModel
                 throw new InvalidArgumentException('Invalid date specification, must be string or array with two elements');
             }
 
-            $timestamp[0] = intval($this->resolveTimeDelta($timestamp[0]));
-            $timestamp[1] = intval($this->resolveTimeDelta($timestamp[1]));
+            $timestamp[0] = $this->resolveTimeDelta($timestamp[0]);
+            $timestamp[1] = $this->resolveTimeDelta($timestamp[1]);
             if ($timestamp[0] > $timestamp[1]) {
                 $temp = $timestamp[0];
                 $timestamp[0] = $timestamp[1];
@@ -2399,7 +2311,7 @@ class Attribute extends AppModel
             $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
             $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
         } else {
-            $timestamp = intval($this->resolveTimeDelta($timestamp));
+            $timestamp = $this->resolveTimeDelta($timestamp);
             $conditions['AND'][] = array($scope . ' >=' => $timestamp);
         }
         if ($returnRaw) {
@@ -2753,28 +2665,32 @@ class Attribute extends AppModel
         return true;
     }
 
+    /**
+     * @param int $id Attribute ID
+     * @param array $user
+     * @param bool $hard
+     * @return bool
+     * @throws Exception
+     */
     public function deleteAttribute($id, array $user, $hard = false)
     {
-        $result = $this->fetchAttributes($user, array(
-            'conditions' => array('Attribute.id' => $id),
-            'flatten' => 1,
-            'deleted' => [0,1],
+        $attribute = $this->find('first', [
+            'conditions' => ['Attribute.id' => $id],
+            'contain' => ['Event'],
             'recursive' => -1,
-            'contain' => array('Event')
-        ));
-        if (empty($result)) {
-            throw new ForbiddenException(__('Invalid attribute'));
+        ]);
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Invalid attribute'));
         }
-        $result = $result[0];
 
         // check for permissions
         if (!$user['Role']['perm_site_admin']) {
-            if ($result['Event']['locked']) {
-                if ($user['org_id'] != $result['Event']['org_id'] || !$user['Role']['perm_sync']) {
+            if ($attribute['Event']['locked']) {
+                if ($user['org_id'] != $attribute['Event']['org_id'] || !$user['Role']['perm_sync']) {
                     throw new ForbiddenException(__('You do not have permission to do that.'));
                 }
             } else {
-                if ($user['org_id'] != $result['Event']['orgc_id']) {
+                if ($user['org_id'] != $attribute['Event']['orgc_id']) {
                     throw new ForbiddenException(__('You do not have permission to do that.'));
                 }
             }
@@ -2783,15 +2699,15 @@ class Attribute extends AppModel
             $save = $this->delete($id);
         } else {
             if (Configure::read('Security.sanitise_attribute_on_delete')) {
-                $result['Attribute']['category'] = 'Other';
-                $result['Attribute']['type'] = 'comment';
-                $result['Attribute']['value'] = 'deleted';
-                $result['Attribute']['comment'] = '';
-                $result['Attribute']['to_ids'] = 0;
+                $attribute['Attribute']['category'] = 'Other';
+                $attribute['Attribute']['type'] = 'comment';
+                $attribute['Attribute']['value'] = 'deleted';
+                $attribute['Attribute']['comment'] = '';
+                $attribute['Attribute']['to_ids'] = 0;
             }
-            $result['Attribute']['deleted'] = 1;
-            $result['Attribute']['timestamp'] = time();
-            $save = $this->save($result);
+            $attribute['Attribute']['deleted'] = 1;
+            $attribute['Attribute']['timestamp'] = time();
+            $save = $this->save($attribute);
             $object_refs = $this->Object->ObjectReference->find('all', array(
                 'conditions' => array(
                     'ObjectReference.referenced_type' => 0,
@@ -2810,11 +2726,10 @@ class Attribute extends AppModel
             $this->Event->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
 
             // remove the published flag from the event
-            $this->Event->unpublishEvent($result['Event']['id']);
+            $this->Event->unpublishEvent($attribute);
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     public function attachValidationWarnings($adata)
@@ -3024,7 +2939,8 @@ class Attribute extends AppModel
                 $exportTool->additional_params
             );
         }
-
+        ClassRegistry::init('ConnectionManager');
+        $db = ConnectionManager::getDataSource('default');
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
@@ -3058,9 +2974,15 @@ class Attribute extends AppModel
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
         $elementCounter = 0;
+        $real_count = false;
+        $incrementTotalBy = $loop || $real_count ? 0 : 1;
         do {
-            $results = $this->fetchAttributes($user, $params, $elementCounter);
-            $totalCount = $elementCounter;
+            $results = $this->fetchAttributes($user, $params, $elementCounter, $real_count);
+            if (!$real_count) {
+                $totalCount = $params['limit'] * ($params['page'] - 1) + $elementCounter;
+            } else {
+                $totalCount = $elementCounter;
+            }
             $elementCounter = false; // do not call `count` again
             if (empty($results)) {
                 break; // nothing found, skip rest
@@ -3076,13 +2998,15 @@ class Attribute extends AppModel
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
             }
-            if ($loop && count($results) < $params['limit']) {
-                break; // do not continue if we received less results than limit
+            if (count($results) < $params['limit']) {
+                $incrementTotalBy = 0;
+                if ($loop) {
+                    break; // do not continue if we received less results than limit
+                }
             }
             $params['page'] += 1;
         } while ($loop);
-
-        return $totalCount;
+        return $totalCount + $incrementTotalBy;
     }
 
     public function set_filter_uuid(&$params, $conditions, $options)
@@ -3228,7 +3152,7 @@ class Attribute extends AppModel
             'Payload delivery' => array(
                 'desc' => __('Information about how the malware is delivered'),
                 'formdesc' => __('Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.'),
-                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'cpe', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
+                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'cpe', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
             ),
             'Artifacts dropped' => array(
                 'desc' => __('Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
@@ -3237,7 +3161,7 @@ class Attribute extends AppModel
             'Payload installation' => array(
                 'desc' => __('Info on where the malware gets installed in the system'),
                 'formdesc' => __('Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.'),
-                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'cpe','weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
+                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'cpe','weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'azure-application-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
             ),
             'Persistence mechanism' => array(
                 'desc' => __('Mechanisms used by the malware to start at boot'),
@@ -3485,6 +3409,7 @@ class Attribute extends AppModel
             'place-port-of-onward-foreign-destination' => array('desc' => __('A Port where the passenger is transiting to'), 'default_category' => 'Person', 'to_ids' => 0),
             'passenger-name-record-locator-number' => array('desc' => __('The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.'), 'default_category' => 'Person', 'to_ids' => 0),
             'mobile-application-id' => array('desc' => __('The application id of a mobile application'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'azure-application-id' => array('desc' => __('Azure Application ID.'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'chrome-extension-id' => array('desc' => __('Chrome extension id'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'cortex' => array('desc' => __('Cortex analysis result'), 'default_category' => 'External analysis', 'to_ids' => 0),
             'boolean' => array('desc' => __('Boolean value - to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),

@@ -1,12 +1,8 @@
 <table class="table table-striped table-hover table-condensed">
     <tr>
-        <?php if ($isSiteAdmin): ?>
-            <th>
-                <input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onclick="toggleAllCheckboxes();">
-            </th>
-        <?php else: ?>
-            <th style="padding-left:0;padding-right:0;">&nbsp;</th>
-        <?php endif;?>
+        <th>
+            <input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onclick="toggleAllCheckboxes();">
+        </th>
         <th class="filter" title="<?= __('Published') ?>"><?= $this->Paginator->sort('published', '<i class="fa fa-upload"></i>', ['escape' => false]) ?></th>
         <?php
             if (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg')):
@@ -42,13 +38,9 @@
     </tr>
     <?php foreach ($events as $event): $eventId = (int)$event['Event']['id']; ?>
     <tr id="event_<?= $eventId ?>">
-        <?php if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):?>
         <td style="width:10px">
-            <input class="select" type="checkbox" data-id="<?= $eventId ?>" data-uuid="<?= h($event['Event']['uuid']) ?>">
+            <input class="select" type="checkbox" data-id="<?= $eventId ?>" data-can-modify="<?= $this->Acl->canModifyEvent($event) ? 1 : 0 ?>">
         </td>
-        <?php else: ?>
-        <td style="padding-left:0;padding-right:0;"></td>
-        <?php endif; ?>
         <td class="dblclickElement" style="width:30px">
             <a href="<?= "$baseurl/events/view/$eventId" ?>" title="<?= __('View') ?>" aria-label="<?= __('View') ?>">
                 <i class="fa <?= $event['Event']['published'] ? 'fa-check green' : 'fa-times grey' ?>"></i>
@@ -81,13 +73,11 @@
                         $galaxies[$galaxy_id]['GalaxyCluster'][] = $galaxy_cluster;
                     }
                     echo $this->element('galaxyQuickViewNew', array(
-                      'mayModify' => false,
-                      'isAclTagger' => false,
                       'data' => $galaxies,
                       'event' => $event,
                       'target_id' => $eventId,
                       'target_type' => 'event',
-                      'static_tags_only' => 1
+                      'static_tags_only' => true,
                     ));
                 }
             ?>
@@ -197,11 +187,11 @@
         </td>
         <td class="short action-links">
             <?php
-                if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']))) {
+                if (0 == $event['Event']['published'] && $this->Acl->canPublishEvent($event)) {
                     echo sprintf('<a class="useCursorPointer fa fa-upload" title="%s" aria-label="%s" onclick="event.preventDefault();publishPopup(%s)"></a>', __('Publish Event'), __('Publish Event'), $eventId);
                 }
 
-                if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
+                if ($this->Acl->canModifyEvent($event)):
             ?>
                     <a href="<?php echo $baseurl."/events/edit/".$eventId ?>" title="<?php echo __('Edit');?>" aria-label="<?php echo __('Edit');?>"><i class="black fa fa-edit"></i></a>
             <?php
@@ -217,7 +207,7 @@
     var lastSelected = false;
     $(function() {
         $('.select').on('change', function() {
-            listCheckboxesChecked();
+            listCheckboxesCheckedEventIndex();
         }).click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {

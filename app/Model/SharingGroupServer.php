@@ -83,15 +83,18 @@ class SharingGroupServer extends AppModel
         }
     }
 
-    // returns all sharing group IDs that have the local server (server_id = 0) as a server object with all orgs turned to 1
-    // This basically lists all SGs that allow everyone on the instance to see events tagged with it
+    /**
+     * Returns all sharing group IDs that have the local server (server_id = 0) as a server object with all orgs turned to 1
+     * This basically lists all SGs that allow everyone on the instance to see events tagged with it
+     * @return int[]
+     */
     public function fetchAllAuthorised()
     {
         $sgs = $this->find('column', array(
             'conditions' => array('all_orgs' => 1, 'server_id' => 0),
             'fields' => array('SharingGroupServer.sharing_group_id'),
         ));
-        return $sgs;
+        return array_map('intval', $sgs);
     }
 
     // pass a sharing group ID, returns true if it has the local server object attached with "all_orgs" set

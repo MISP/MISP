@@ -914,7 +914,10 @@ a.black-white:hover {
     width: 300px;
     top:calc(50% - 50px);
     left:calc(50% - 150px);
+    max-height:calc(30% + 50px);
     position: fixed;
+    overflow: auto;
+    overflow-x: hidden;
     background-color:#f4f4f4;
     border-radius: 5px;
     box-shadow: 4px 4px 4px #333;
@@ -2850,7 +2853,7 @@ Query builder
 }
 
 /* Fix text input for query builder */
-.query-builder .rule-value-container input[type="text"] {
+.query-builder .rule-value-container input[type="text"], .query-builder .rule-value-container input[type="number"] {
     padding: 4px !important;
     height: 30px;
 }

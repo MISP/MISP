@@ -40,7 +40,12 @@ class WarninglistsController extends AppController
             $this->Warninglist->WarninglistEntry,
             ['WarninglistEntry.warninglist_id = Warninglist.id']
         );
-        $warninglists = $this->paginate();
+        if ($this->_isRest()) {
+            unset($this->paginate['limit']);
+            $warninglists = $this->Warninglist->find('all', $this->paginate);
+        } else {
+            $warninglists = $this->paginate();
+        }
         foreach ($warninglists as &$warninglist) {
             $validAttributes = array_column($warninglist['WarninglistType'], 'type');
             $warninglist['Warninglist']['valid_attributes'] = implode(', ', $validAttributes);

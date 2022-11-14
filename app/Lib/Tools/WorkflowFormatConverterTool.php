@@ -31,6 +31,11 @@ class WorkflowFormatConverterTool
             default:
                 break;
         }
+        foreach (array_keys($data) as $key) {
+            if (substr($key, 0, 1) == '_') { // include additional data
+                $converted[$key] = $data[$key];
+            }
+        }
         $converted = self::__includeFlattenedAttributes($converted);
         return $converted;
     }
@@ -61,11 +66,13 @@ class WorkflowFormatConverterTool
     private static function __convertAttribute(array $attribute): array
     {
         $allTags = [];
-        if (!empty($attribute['EventTag'])) {
+        if (!empty($attribute['AttributeTag'])) {
             foreach ($attribute['AttributeTag'] as $attributeTag) {
                 $attributeTag['Tag']['inherited'] = false;
                 $allTags[] = $attributeTag['Tag'];
             }
+        }
+        if (!empty($attribute['EventTag'])) {
             foreach ($attribute['EventTag'] as $eventTag) {
                 $eventTag['Tag']['inherited'] = true;
                 $allTags[] = $eventTag['Tag'];

@@ -17,7 +17,7 @@ from lxml.html import fromstring
 from enum import Enum
 
 try:
-    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting
+    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting, Distribution
     from pymisp.exceptions import PyMISPError, NoKey, MISPServerError
 except ImportError:
     if sys.version_info < (3, 6):
@@ -47,6 +47,7 @@ class ROLE(Enum):
 def check_response(response):
     if isinstance(response, dict) and "errors" in response:
         raise Exception(response["errors"])
+    return response
 
 
 def login(url: str, email: str, password: str) -> requests.Session:
@@ -1398,6 +1399,11 @@ class TestSecurity(unittest.TestCase):
 
         self.admin_misp_connector.delete_organisation(org)
 
+    def test_org_hide_index(self):
+        with self.__setting("Security.hide_organisation_index_from_users", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            self.assertErrorResponse(logged_in.organisations())
+
     def test_org_hide_org_cannot_set(self):
         org = self.__create_org()
         with self.__setting("Security.hide_organisation_index_from_users", True):
@@ -1530,7 +1536,8 @@ class TestSecurity(unittest.TestCase):
         event = user1.add_event(self.__generate_event())
         check_response(event)
         check_response(user1.add_sighting(s, event.Attribute[0]))
-        self.assertEqual(len(user1.sightings(event)), 1, "User should see hos own sighting")
+        self.assertEqual(len(user1.sightings(event)), 1, "User should see only own sighting")
+        self.assertEqual(len(user1.search_sightings('event', event.id)), 1)
 
         org = self.__create_org()
         user = self.__create_user(org.id, ROLE.USER)
@@ -1538,11 +1545,52 @@ class TestSecurity(unittest.TestCase):
         user2.global_pythonify = True
 
         self.assertEqual(len(user2.sightings(event)), 0, "User should not seen any sighting")
+        self.assertEqual(len(user2.search_sightings('event', event.id)), 0)
 
         with self.__setting({"MISP.host_org_id": self.test_org.id, "Plugin.Sightings_policy": 3}):
             self.assertEqual(len(user2.sightings(event)), 1, "User should see host org sighting")
+            self.assertEqual(len(user2.search_sightings('event', event.id)), 1)
 
         self.admin_misp_connector.delete_event(event)
+        self.admin_misp_connector.delete_user(user)
+        self.admin_misp_connector.delete_organisation(org)
+
+    def test_sighting_rest_search_permission(self):
+        s = MISPSighting()
+        s.source = 'Testcases'
+        s.type = '1'
+
+        user1 = PyMISP(url, self.test_usr.authkey)
+        user1.global_pythonify = True
+
+        private_event = check_response(user1.add_event(self.__generate_event(Distribution.your_organisation_only)))
+        check_response(user1.add_sighting(s, private_event.Attribute[0]))
+        self.assertEqual(len(user1.sightings(private_event)), 1, "User should see hos own sighting")
+
+        sightings = user1.search_sightings("event", private_event.id)
+        self.assertEqual(len(sightings), 1, sightings)
+
+        org = self.__create_org()
+        user = self.__create_user(org.id, ROLE.USER)
+        user2 = PyMISP(url, user.authkey)
+        user2.global_pythonify = True
+
+        self.assertFalse(user2.event_exists(private_event), "User should not see the event")
+
+        sightings = user2.sightings(private_event)
+        self.assertErrorResponse(sightings, "User should not seen any sighting for private event")
+
+        sightings = user2.search_sightings("event", private_event.id)
+        self.assertEqual(len(sightings), 0, "User should not seen any sighting from private event from rest search")
+
+        with self.__setting("Plugin.Sightings_policy", 2):  # set sighting policy to everyone
+            sightings = user2.sightings(private_event)
+            self.assertErrorResponse(sightings, "User should not seen any sighting for private event")
+
+            sightings = user2.search_sightings("event", private_event.id)
+            self.assertEqual(len(sightings), 0, "User should not seen any sighting from private event from rest search")
+
+        self.admin_misp_connector.delete_event(private_event)
         self.admin_misp_connector.delete_user(user)
         self.admin_misp_connector.delete_organisation(org)
 
@@ -1565,7 +1613,7 @@ class TestSecurity(unittest.TestCase):
         # User should be able to delete self setting
         check_response(self.admin_misp_connector.delete_user_setting('publish_alert_filter'))
 
-    def __generate_event(self, distribution: int = 1) -> MISPEvent:
+    def __generate_event(self, distribution: int = Distribution.this_community_only) -> MISPEvent:
         mispevent = MISPEvent()
         mispevent.info = 'This is a super simple test'
         mispevent.distribution = distribution

@@ -1667,7 +1667,7 @@ class GalaxyCluster extends AppModel
         }
 
         try {
-            if (!$serverSync->isSupported(ServerSyncTool::PERM_SYNC) || $serverSync->isSupported(ServerSyncTool::PERM_GALAXY_EDITOR)) {
+            if (!$serverSync->isSupported(ServerSyncTool::PERM_SYNC) || !$serverSync->isSupported(ServerSyncTool::PERM_GALAXY_EDITOR)) {
                 return __('The remote user does not have the permission to manipulate galaxies - the upload of the galaxy clusters has been blocked.');
             }
             $serverSync->pushGalaxyCluster($cluster)->json();

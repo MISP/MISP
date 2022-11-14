@@ -92,7 +92,7 @@ function deleteObject(type, action, id) {
 }
 
 function quickDeleteSighting(id, rawId, context) {
-    url = baseurl + "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
+    var url = baseurl + "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
     $.get(url, openConfirmation).fail(xhrFailCallback)
 }
 
@@ -921,8 +921,26 @@ function attributeListAnyAttributeCheckBoxesChecked() {
 }
 
 function listCheckboxesChecked() {
-    if ($('.select:checked').length > 0) $('.mass-select').removeClass('hidden');
-    else $('.mass-select').addClass('hidden');
+    if ($('.select:checked').length > 0)  {
+        $('.mass-select').removeClass('hidden');
+    } else {
+        $('.mass-select').addClass('hidden')
+    }
+}
+
+function listCheckboxesCheckedEventIndex() {
+    // Show mass delete just when user has permission to delete at least one of selected event
+    if ($('.select:checked[data-can-modify="1"]').length > 0) {
+        $('.mass-delete').removeClass('hidden');
+    } else {
+        $('.mass-delete').addClass('hidden');
+    }
+
+    if ($('.select:checked').length > 0) {
+        $('.mass-export').removeClass('hidden');
+    } else {
+        $('.mass-export').addClass('hidden');
+    }
 }
 
 function attributeListAnyProposalCheckBoxesChecked() {
@@ -937,8 +955,8 @@ function taxonomyListAnyCheckBoxesChecked() {
 
 function multiSelectDeleteEvents() {
     var selected = [];
-    $(".select").each(function() {
-        if ($(this).is(":checked")) {
+    $(".select:checked").each(function() {
+        if ($(this).data('can-modify')) {
             var temp = $(this).data("id");
             if (temp != null) {
                 selected.push(temp);
@@ -954,12 +972,10 @@ function deleteEventPopup(eventId) {
 
 function multiSelectExportEvents() {
     var selected = [];
-    $(".select").each(function() {
-        if ($(this).is(":checked")) {
-            var temp = $(this).data("uuid");
-            if (temp != null) {
-                selected.push(temp);
-            }
+    $(".select:checked").each(function() {
+        var temp = $(this).data("id");
+        if (temp != null) {
+            selected.push(temp);
         }
     });
     openGenericModal(baseurl + "/events/restSearchExport/" + JSON.stringify(selected))
@@ -1679,7 +1695,7 @@ function openPopup(id, adjust_layout, callback) {
             $id.addClass('vertical-scroll');
         } else {
             if (window_height > (300 + popup_height)) {
-                var top_offset = ((window_height - popup_height) / 2) - 150;
+                var top_offset = ((window_height - popup_height) / 2) - 125;
             } else {
                 var top_offset = (window_height - popup_height) / 2;
             }
@@ -5662,6 +5678,36 @@ function enableWorkflowDebugMode(workflow_id, currentEnabledState, callback) {
             },
             type: "post",
             url: $formData.find('form').attr('action')
+        });
+    });
+}
+
+// Used in audit and access logs
+function filterSearch(callback) {
+    $('td[data-search]').mouseenter(function() {
+        var $td = $(this);
+        var searchValue = $td.data('search-value');
+        if (searchValue.length === 0) {
+            return;
+        }
+
+        $td.find('#quickEditButton').remove(); // clean all similar if exist
+        var $div = $('<div id="quickEditButton"></div>');
+        $div.addClass('quick-edit-row-div');
+        var $span = $('<span></span>');
+        $span.addClass('fa-as-icon fa fa-search-plus');
+        $span.css('font-size', '12px');
+        $span.prop('title', 'Filter by this value');
+        $div.append($span);
+        $td.append($div);
+
+        $span.click(function (e) {
+            var searchKey = $td.data('search');
+            callback(e, searchKey, searchValue);
+        });
+
+        $td.off('mouseleave').on('mouseleave', function() {
+            $div.remove();
         });
     });
 }

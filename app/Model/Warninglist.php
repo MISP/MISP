@@ -288,7 +288,7 @@ class Warninglist extends AppModel
                 $list['type'] = $list['type'][0];
             }
             if (!isset($existingWarninglist[$list['name']]) || $list['version'] > $existingWarninglist[$list['name']]['version']) {
-                $current = isset($existingWarninglist[$list['name']]) ? $existingWarninglist[$list['name']] : [];
+                $current = $existingWarninglist[$list['name']] ?? [];
                 try {
                     $id = $this->__updateList($list, $current);
                     $result['success'][$id] = ['name' => $list['name'], 'new' => $list['version']];
@@ -300,7 +300,10 @@ class Warninglist extends AppModel
                 }
             }
         }
-        $this->regenerateWarninglistCaches();
+
+        if (!empty($result['success']) || !empty($result['fails'])) {
+            $this->regenerateWarninglistCaches();
+        }
         return $result;
     }
 
@@ -727,20 +730,31 @@ class Warninglist extends AppModel
             'conditions' => array('Warninglist.name' => self::TLDS),
             'fields' => array('Warninglist.id')
         ));
-        $tlds = array();
-        if (!empty($tldLists)) {
-            $tlds = $this->WarninglistEntry->find('column', array(
-                'conditions' => array('WarninglistEntry.warninglist_id' => $tldLists),
-                'fields' => array('WarninglistEntry.value')
-            ));
-            foreach ($tlds as $key => $value) {
-                $tlds[$key] = strtolower($value);
-            }
+        $tlds = [];
+        foreach ($tldLists as $warninglistId) {
+            $tlds = array_merge($tlds, $this->getWarninglistEntries($warninglistId));
         }
+        $tlds = array_map('strtolower', $tlds);
         if (!in_array('onion', $tlds, true)) {
             $tlds[] = 'onion';
         }
         return $tlds;
+    }
+
+    /**
+     * @return array
+     */
+    public function fetchSecurityVendorDomains()
+    {
+        $securityVendorList = $this->find('column', array(
+            'conditions' => array('Warninglist.name' => 'List of known domains used by automated malware analysis services & security vendors'),
+            'fields' => array('Warninglist.id')
+        ));
+        $domains = [];
+        foreach ($securityVendorList as $warninglistId) {
+            $domains = array_merge($domains, $this->getWarninglistEntries($warninglistId));
+        }
+        return $domains;
     }
 
     /**

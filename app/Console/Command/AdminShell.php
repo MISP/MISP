@@ -13,6 +13,8 @@ App::uses('JsonTool', 'Tools');
  * @property Warninglist $Warninglist
  * @property Attribute $Attribute
  * @property Job $Job
+ * @property Correlation $Correlation
+ * @property OverCorrelatingValue $OverCorrelatingValue
  */
 class AdminShell extends AppShell
 {
@@ -30,6 +32,15 @@ class AdminShell extends AppShell
         ));
         $parser->addSubcommand('updateWarningLists', array(
             'help' => __('Update the JSON definition of warninglists.'),
+            'parser' => [
+                'options' => [
+                    'verbose' => [
+                        'help' => 'Show verbose output.',
+                        'default' => false,
+                        'boolean' => true
+                    ]
+                ]
+            ]
         ));
         $parser->addSubcommand('updateTaxonomies', array(
             'help' => __('Update the JSON definition of taxonomies.'),
@@ -108,7 +119,7 @@ class AdminShell extends AppShell
         }
 
         $jobId = $this->args[0];
-        $this->Attribute->generateCorrelation($jobId);
+        $this->Correlation->generateCorrelation($jobId);
     }
 
     public function jobGenerateOccurrences()
@@ -128,7 +139,7 @@ class AdminShell extends AppShell
         }
 
         $jobId = $this->args[0];
-        $this->Attribute->purgeCorrelations();
+        $this->Correlation->purgeCorrelations();
         $this->Job->saveStatus($jobId);
     }
 
@@ -322,13 +333,19 @@ class AdminShell extends AppShell
     public function updateWarningLists()
     {
         $result = $this->Warninglist->update();
-        $success = count($result['success']);
-        $fails = count($result['fails']);
-        $this->out("$success warninglists updated, $fails fails");
-        if ($fails) {
-            $this->out(__('Fails:'));
-            foreach ($result['fails'] as $fail) {
-                $this->out("{$fail['name']}: {$fail['fail']}");
+
+        if ($this->params['verbose']) {
+            $this->out($this->json($result));
+        } else {
+            $success = count($result['success']);
+            $fails = count($result['fails']);
+            $this->out("$success warninglists updated, $fails fails");
+            if ($fails) {
+                $this->out(__('Fails:'));
+                foreach ($result['fails'] as $fail) {
+                    $this->out("{$fail['name']}: {$fail['fail']}");
+                }
+                $this->_stop(1);
             }
         }
     }

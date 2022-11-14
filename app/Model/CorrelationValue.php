@@ -17,7 +17,7 @@ class CorrelationValue extends AppModel
 
         foreach ($correlations as &$correlation) {
             $value = mb_substr($correlation[$valueIndex], 0, 191);
-            $correlation[$valueIndex] = $valueIds[$value];
+            $correlation[$valueIndex] = (int)$valueIds[$value];
         }
     }
 
