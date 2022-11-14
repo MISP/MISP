@@ -51,6 +51,11 @@ class AccessLogsController extends AppController
                 'conditions' => $conditions,
                 'contain' => $this->paginate['contain'],
             ]);
+            foreach ($list as &$item) {
+                if (!empty($item['AccessLog']['request'])) {
+                    $item['AccessLog']['request'] = base64_encode($item['AccessLog']['request']);
+                }
+            }
             return $this->RestResponse->viewData($list, 'json');
         }
 
