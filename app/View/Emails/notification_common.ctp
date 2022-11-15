@@ -52,6 +52,16 @@ $mitre_galaxy_tag_prefix = 'misp-galaxy:mitre-attack-pattern="';
 $reportLink = sprintf('%s/users/viewPeriodicSummary/%s', $baseurl, $period);
 $eventLink = sprintf('%s/events/index/searchpublished:1/searchPublishTimestamp:%s/searchPublishTimestamp:%s', $baseurl, h($start_date->format('Y-m-d H:i:s')), h($now->format('Y-m-d H:i:s')));
 
+$newCorrelationExplanationText = implode('&#13;', [
+    __('Correlations for the current set of Events are considered as `new` if their matching attribute has been modified during the considered period.'),
+    '',
+    __('Example for a selected period of 7 days:'),
+    __('  Current Events                         Remote Events'),
+    __('• Attribute(  3 days ago)  →  Attribute(  1 days ago)  ✓'),
+    __('• Attribute(  3 days ago)  →  Attribute(  9 days ago)  ✓'),
+    __('• Attribute(12 days ago)  →  Attribute(  3 days ago)  ⨉'),
+    __('• Attribute(  9 days ago)  →  Attribute(11 days ago)  ⨉'),
+]);
 $processed_correlations = [];
 $new_correlations = [];
 foreach ($events as $event) {
@@ -459,7 +469,11 @@ $top_mitre_attack_techniques = array_slice($mitre_attack_techniques, 0, 10);
             <?php if ($this->fetch('detailed-summary-correlations')) : ?>
             <?php else : ?>
                 <?php if (!empty($new_correlations)) : ?>
-                    <h4><?= __('New correlations') ?><small style="color: #999999;"><?= sprintf(' (%s)', count($new_correlations)) ?></small></h4>
+                    <h4>
+                        <?= __('New correlations for event list') ?>
+                        <i class="fas fa-question-circle" title="<?= $newCorrelationExplanationText ?>"></i>
+                        <small style="color: #999999;"><?= sprintf(' (%s)', count($new_correlations)) ?></small>
+                    </h4>
                     <div>
                         <?php if (count($new_correlations) < $vars['correlation_table_advanced_ui']) : ?>
                             <?php foreach ($new_correlations as $correlation) : ?>
