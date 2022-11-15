@@ -53,10 +53,10 @@ $reportLink = sprintf('%s/users/viewPeriodicSummary/%s', $baseurl, $period);
 $eventLink = sprintf('%s/events/index/searchpublished:1/searchPublishTimestamp:%s/searchPublishTimestamp:%s', $baseurl, h($start_date->format('Y-m-d H:i:s')), h($now->format('Y-m-d H:i:s')));
 
 $newCorrelationExplanationText = implode('&#13;', [
-    __('Correlations for the current set of Events are considered as `new` if their matching attribute has been modified during the considered period.'),
+    __('Correlations for the current set of Events are considered as `new` if their matching attribute has been modified during the chosen period.'),
     '',
     __('Example for a selected period of 7 days:'),
-    __('  Current Events                         Remote Events'),
+    __(' Events from the past 7 days           Any other Events'),
     __('• Attribute(  3 days ago)  →  Attribute(  1 days ago)  ✓'),
     __('• Attribute(  3 days ago)  →  Attribute(  9 days ago)  ✓'),
     __('• Attribute(12 days ago)  →  Attribute(  3 days ago)  ⨉'),
