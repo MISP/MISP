@@ -150,6 +150,24 @@ class AccessLog extends AppModel
     }
 
     /**
+     * @param DateTime $duration
+     * @return int Number of deleted entries
+     */
+    public function deleteOldLogs(DateTime $duration)
+    {
+        $this->deleteAll([
+            ['created <' => $duration->format('Y-m-d H:i:s.u')],
+        ], false);
+
+        $deleted = $this->getAffectedRows();
+        if ($deleted > 100) {
+            $dataSource = $this->getDataSource();
+            $dataSource->query('OPTIMISE TABLE ' . $dataSource->name($this->table));
+        }
+        return $deleted;
+    }
+
+    /**
      * @param CakeRequest $request
      * @return string
      */
@@ -212,37 +230,37 @@ class AccessLog extends AppModel
     }
 
     /**
-     * @param string $request
+     * @param string $data
      * @return string
      */
-    private function decompress($request)
+    private function decompress($data)
     {
-        $header = substr($request, 0, 4);
+        $header = substr($data, 0, 4);
         if ($header === self::BROTLI_HEADER) {
             if (function_exists('brotli_uncompress')) {
-                $request = brotli_uncompress(substr($request, 4));
-                if ($request === false) {
+                $data = brotli_uncompress(substr($data, 4));
+                if ($data === false) {
                     return 'Compressed';
                 }
             } else {
                 return 'Compressed';
             }
         }
-        return $request;
+        return $data;
     }
 
     /**
-     * @param string $request
+     * @param string $data
      * @return string
      */
-    private function compress($request)
+    private function compress($data)
     {
         $compressionEnabled = Configure::read('MISP.log_new_audit_compress') &&
             function_exists('brotli_compress');
 
-        if ($compressionEnabled && strlen($request) >= self::COMPRESS_MIN_LENGTH) {
-            return self::BROTLI_HEADER . brotli_compress($request, 4, BROTLI_TEXT);
+        if ($compressionEnabled && strlen($data) >= self::COMPRESS_MIN_LENGTH) {
+            return self::BROTLI_HEADER . brotli_compress($data, 4, BROTLI_TEXT);
         }
-        return $request;
+        return $data;
     }
 }

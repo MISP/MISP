@@ -33,6 +33,14 @@ class LogShell extends AppShell
         $parser->addSubcommand('recompress', [
             'help' => __('Recompress compressed data in logs.'),
         ]);
+        $parser->addSubcommand('accessLogRetention', [
+            'help' => __('Delete logs that are older than specified duration.'),
+            'parser' => array(
+                'arguments' => array(
+                    'duration' => ['help' => __('Duration in days'), 'required' => true],
+                ),
+            ),
+        ]);
         return $parser;
     }
 
@@ -183,5 +191,16 @@ class LogShell extends AppShell
     public function recompress()
     {
         $this->AuditLog->recompress();
+    }
+
+    public function accessLogRetention()
+    {
+        list($duration) = $this->args;
+        if ($duration <= 0 || !is_numeric($duration)) {
+            $this->error("Invalid duration specified.");
+        }
+        $duration = new DateTime("-$duration days");
+        $deleted = $this->AccessLog->deleteOldLogs($duration);
+        $this->out(__("Deleted %s entry", "Deleted %s entries", $deleted, $deleted));
     }
 }
