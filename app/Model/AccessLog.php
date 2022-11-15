@@ -154,6 +154,24 @@ class AccessLog extends AppModel
     }
 
     /**
+     * @param DateTime $duration
+     * @return int Number of deleted entries
+     */
+    public function deleteOldLogs(DateTime $duration)
+    {
+        $this->deleteAll([
+            ['created <' => $duration->format('Y-m-d H:i:s.u')],
+        ], false);
+
+        $deleted = $this->getAffectedRows();
+        if ($deleted > 100) {
+            $dataSource = $this->getDataSource();
+            $dataSource->query('OPTIMISE TABLE ' . $dataSource->name($this->table));
+        }
+        return $deleted;
+    }
+
+    /**
      * @param CakeRequest $request
      * @return string
      */
