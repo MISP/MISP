@@ -47,11 +47,14 @@ class AccessLog extends AppModel
                 $result['AccessLog']['request_method'] = self::REQUEST_TYPES[$result['AccessLog']['request_method']];
             }
             if (!empty($result['AccessLog']['request'])) {
-                $request = $this->decodeRequest($result['AccessLog']['request']);
+                $request = $this->decompress($result['AccessLog']['request']);
                 list($contentType, $encoding, $data) = explode("\n", $request, 3);
                 $result['AccessLog']['request'] = $data;
                 $result['AccessLog']['request_content_type'] = $contentType;
                 $result['AccessLog']['request_content_encoding'] = $encoding;
+            }
+            if (!empty($result['AccessLog']['query_log'])) {
+                $result['AccessLog']['query_log'] = JsonTool::decode($this->decompress($result['AccessLog']['query_log']));
             }
             if (!empty($result['AccessLog']['memory_usage'])) {
                 $result['AccessLog']['memory_usage'] = $result['AccessLog']['memory_usage'] * 1024;
@@ -86,8 +89,12 @@ class AccessLog extends AppModel
             $accessLog['request_method'] = $requestMethodIds[$accessLog['request_method']] ?? 0;
         }
 
-        if (isset($accessLog['request'])) {
-            $accessLog['request'] = $this->encodeRequest($accessLog['request']);
+        if (!empty($accessLog['request'])) {
+            $accessLog['request'] = $this->compress($accessLog['request']);
+        }
+
+        if (!empty($accessLog['query_log'])) {
+            $accessLog['query_log'] = $this->compress(JsonTool::encode($accessLog['query_log']));
         }
 
         // In database save size in kb to avoid overflow signed int type
@@ -109,6 +116,11 @@ class AccessLog extends AppModel
         $requestTime = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
         $now = DateTime::createFromFormat('U.u', $requestTime);
         $logClientIp = Configure::read('MISP.log_client_ip');
+        $includeSqlQueries = Configure::read('MISP.log_paranoid_include_sql_queries');
+
+        if ($includeSqlQueries) {
+            $this->getDataSource()->fullDebug = true; // Enable SQL logging
+        }
 
         $dataToSave = [
             'created' => $now->format('Y-m-d H:i:s.u'),
@@ -129,9 +141,9 @@ class AccessLog extends AppModel
         }
 
         // Save data on shutdown
-        register_shutdown_function(function () use ($dataToSave, $requestTime) {
+        register_shutdown_function(function () use ($dataToSave, $requestTime, $includeSqlQueries) {
             session_write_close(); // close session to allow concurrent requests
-            $this->saveOnShutdown($dataToSave, $requestTime);
+            $this->saveOnShutdown($dataToSave, $requestTime, $includeSqlQueries);
         });
 
         return true;
@@ -158,12 +170,19 @@ class AccessLog extends AppModel
     /**
      * @param array $data
      * @param float $requestTime
+     * @param bool $includeSqlQueries
      * @return bool
      * @throws Exception
      */
-    private function saveOnShutdown(array $data, $requestTime)
+    private function saveOnShutdown(array $data, $requestTime, $includeSqlQueries)
     {
-        $queryCount = $this->getDataSource()->getLog(false, false)['count'];
+        if ($includeSqlQueries) {
+            $sqlLog = $this->getDataSource()->getLog(false, false);
+            $queryCount = $sqlLog['count'];
+            $data['query_log'] = $sqlLog['log'];
+        } else {
+            $queryCount = $this->getDataSource()->getLog(false, false)['count'];
+        }
 
         $data['response_code'] = http_response_code();
         $data['memory_usage'] = memory_get_peak_usage();
@@ -196,7 +215,7 @@ class AccessLog extends AppModel
      * @param string $request
      * @return string
      */
-    private function decodeRequest($request)
+    private function decompress($request)
     {
         $header = substr($request, 0, 4);
         if ($header === self::BROTLI_HEADER) {
@@ -216,7 +235,7 @@ class AccessLog extends AppModel
      * @param string $request
      * @return string
      */
-    private function encodeRequest($request)
+    private function compress($request)
     {
         $compressionEnabled = Configure::read('MISP.log_new_audit_compress') &&
             function_exists('brotli_compress');

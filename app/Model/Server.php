@@ -5600,6 +5600,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'log_paranoid_include_sql_queries' => [
+                    'level' => 0,
+                    'description' => __('If paranoid logging is enabled, include the SQL queries in the entries.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'log_user_ips' => array(
                     'level' => 0,
                     'description' => __('Log user IPs on each request. 30 day retention for lookups by IP to get the last authenticated user ID for the given IP, whilst on the reverse, indefinitely stores all associated IPs for a user ID.'),

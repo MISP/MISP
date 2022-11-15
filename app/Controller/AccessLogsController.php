@@ -95,6 +95,23 @@ class AccessLogsController extends AppController
         $this->set('request', $data);
     }
 
+    public function admin_queryLog($id)
+    {
+        $request = $this->AccessLog->find('first', [
+            'conditions' => ['AccessLog.id' => $id],
+            'fields' => ['AccessLog.query_log'],
+        ]);
+        if (empty($request)) {
+            throw new NotFoundException(__('Access log not found'));
+        }
+
+        if (empty($request['AccessLog']['query_log'])) {
+            throw new NotFoundException(__('Query log is empty'));
+        }
+
+        $this->set('queryLog', $request['AccessLog']['query_log']);
+    }
+
     /**
      * @param array $params
      * @return array
