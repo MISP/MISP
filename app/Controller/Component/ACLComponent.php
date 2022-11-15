@@ -975,27 +975,6 @@ class ACLComponent extends Component
     }
 
     /**
-     * Only site admin and event creator can modify an eventReport
-     *
-     * @param array $user
-     * @param array $report
-     * @return boolean
-     */
-    public function canEditReport(array $user, array $report): bool
-    {
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if (empty($report['Event'])) {
-            return __('Could not find associated event');
-        }
-        if ($report['Event']['orgc_id'] != $user['org_id']) {
-            return __('Only the creator organisation of the event can modify the report');
-        }
-        return true;
-    }
-
-    /**
      * Only users that can modify organisation can delete sightings as sighting is not linked to user.
      *
      * @param array $user
@@ -1024,7 +1003,7 @@ class ACLComponent extends Component
      */
     public function canEditEventReport(array $user, array $eventReport)
     {
-        if (!isset($report['Event'])) {
+        if (!isset($eventReport['Event'])) {
             throw new InvalidArgumentException('Passed object does not contain an Event.');
         }
         if ($user['Role']['perm_site_admin']) {
