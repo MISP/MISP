@@ -47,11 +47,15 @@ class AccessLog extends AppModel
                 $result['AccessLog']['request_method'] = self::REQUEST_TYPES[$result['AccessLog']['request_method']];
             }
             if (!empty($result['AccessLog']['request'])) {
-                $request = $this->decodeRequest($result['AccessLog']['request']);
-                list($contentType, $encoding, $data) = explode("\n", $request, 3);
-                $result['AccessLog']['request'] = $data;
-                $result['AccessLog']['request_content_type'] = $contentType;
-                $result['AccessLog']['request_content_encoding'] = $encoding;
+                $decoded = $this->decodeRequest($result['AccessLog']['request']);
+                if ($decoded) {
+                    list($contentType, $encoding, $data) = $decoded;
+                    $result['AccessLog']['request'] = $data;
+                    $result['AccessLog']['request_content_type'] = $contentType;
+                    $result['AccessLog']['request_content_encoding'] = $encoding;
+                } else {
+                    $result['AccessLog']['request'] = false;
+                }
             }
             if (!empty($result['AccessLog']['memory_usage'])) {
                 $result['AccessLog']['memory_usage'] = $result['AccessLog']['memory_usage'] * 1024;
@@ -194,7 +198,7 @@ class AccessLog extends AppModel
 
     /**
      * @param string $request
-     * @return string
+     * @return array|bool
      */
     private function decodeRequest($request)
     {
@@ -203,13 +207,25 @@ class AccessLog extends AppModel
             if (function_exists('brotli_uncompress')) {
                 $request = brotli_uncompress(substr($request, 4));
                 if ($request === false) {
-                    return 'Compressed';
+                    return false;
                 }
             } else {
-                return 'Compressed';
+                return false;
             }
         }
-        return $request;
+        list($contentType, $encoding, $data) = explode("\n", $request, 3);
+
+        if ($encoding === 'gzip') {
+            $data = gzdecode($data);
+        } elseif ($encoding === 'br') {
+            if (function_exists('brotli_uncompress')) {
+                $data = brotli_uncompress($data);
+            } else {
+                $data = false;
+            }
+        }
+
+        return [$contentType, $encoding, $data];
     }
 
     /**
