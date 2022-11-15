@@ -1451,7 +1451,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'text' => __('View Cluster')
                             ));
                         }
-                        if ($menuItem !== 'add_cluster' && $this->Acl->canModifyCluster($cluster)) {
+                        if ($menuItem !== 'add_cluster' && $this->Acl->canModifyGalaxyCluster($cluster)) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit_cluster',
                                 'url' => $baseurl . '/galaxy_clusters/edit/' . h($id),
