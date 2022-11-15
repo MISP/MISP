@@ -43,7 +43,6 @@ class AppController extends Controller
     private $isApiAuthed = false;
 
     public $baseurl = '';
-    public $sql_dump = false;
 
     public $restResponsePayload = null;
 
@@ -136,10 +135,6 @@ class AppController extends Controller
         if (!$this->_isRest()) {
             $this->__contentSecurityPolicy();
             $this->response->header('X-XSS-Protection', '1; mode=block');
-        }
-
-        if (!empty($this->request->params['named']['sql'])) {
-            $this->sql_dump = intval($this->request->params['named']['sql']);
         }
 
         $this->_setupDatabaseConnection();
