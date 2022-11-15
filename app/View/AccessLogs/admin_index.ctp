@@ -315,13 +315,14 @@
                 </td>
                 <td class="short" data-search="request_method" data-search-value="<?= h($item['AccessLog']['request_method']) ?>">
                     <?= h($item['AccessLog']['request_method']) ?>
-                    <?= in_array($item['AccessLog']['request_method'], ['POST', 'PUT']) ? ' <a href="#" class="far fa-file request" data-log-id="' . h($item['AccessLog']['id']) . '"></i>' : '' ?>
+                    <?= in_array($item['AccessLog']['request_method'], ['POST', 'PUT']) ? ' <a href="#" class="far fa-file request" title="' . __('Show HTTP request') . '" data-log-id="' . h($item['AccessLog']['id']) . '"></i>' : '' ?>
                 </td>
                 <td class="short" data-search="controller:action" data-search-value="<?= h($item['AccessLog']['controller']) . ':' . h($item['AccessLog']['action']) ?>" title="<?= __('Controller: %s, action: %s', h($item['AccessLog']['controller']), h($item['AccessLog']['action'])) ?>"><?= h($item['AccessLog']['url']) ?></td>
                 <td class="short" data-search="response_code" data-search-value="<?= h($item['AccessLog']['response_code']) ?>"><?= h($item['AccessLog']['response_code']) ?></td>
                 <td class="short"><?= CakeNumber::toReadableSize($item['AccessLog']['memory_usage']) ?></td>
                 <td class="short"><?= $item['AccessLog']['duration'] ?> ms</td>
-                <td class="short"><?= $item['AccessLog']['query_count'] ?></td>
+                <td class="short"><?= $item['AccessLog']['query_count'] . ($item['AccessLog']['has_query_log'] ? ' <a href="#" class="fas fa-database query-log" title="' . __('Show SQL queries') . '" data-log-id="' . h($item['AccessLog']['id']) . '"></i>' : '') ?>
+                </td>
             </tr>
         <?php endforeach; ?>
     </table>
@@ -340,6 +341,17 @@
         e.preventDefault();
         var id = $(this).data('log-id');
         $.get(baseurl + "/admin/access_logs/request/" + id, function(data) {
+            var $popoverFormLarge = $('#popover_form_large');
+            $popoverFormLarge.html(data);
+            openPopup($popoverFormLarge);
+        }).fail(xhrFailCallback);
+        return false;
+    });
+
+    $('.query-log').click(function (e) {
+        e.preventDefault();
+        var id = $(this).data('log-id');
+        $.get(baseurl + "/admin/access_logs/queryLog/" + id, function(data) {
             var $popoverFormLarge = $('#popover_form_large');
             $popoverFormLarge.html(data);
             openPopup($popoverFormLarge);

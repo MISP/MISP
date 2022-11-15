@@ -1035,7 +1035,6 @@ a.black-white:hover {
     left:calc(50% - 350px);
     position: fixed;
     background-color:#f4f4f4;
-    border-radius: 11px 11px 10px 10px;
     box-shadow: 4px 4px 4px #333;
     z-index:5;
 }

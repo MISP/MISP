@@ -396,6 +396,7 @@ class ACLComponent extends Component
         'accessLogs' => [
             'admin_index' => [],
             'admin_request' => [],
+            'admin_queryLog' => [],
         ],
         'modules' => array(
             'index' => array('perm_auth'),
