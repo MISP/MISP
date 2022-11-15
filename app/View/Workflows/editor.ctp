@@ -272,7 +272,8 @@ $debugEnabled = !empty($selectedWorkflow['Workflow']['debug_enabled']);
 <?php
 echo $this->element('genericElements/assetLoader', [
     'css' => ['drawflow.min', 'drawflow-default'],
-    'js' => ['jquery-ui.min', 'drawflow.min', 'doT', 'moment.min', 'viselect.cjs'],
+    'js' => ['jquery-ui.min', 'drawflow', 'doT', 'moment.min', 'viselect.cjs'],
+    // 'js' => ['jquery-ui.min', 'drawflow.min', 'doT', 'moment.min', 'viselect.cjs'],
 ]);
 echo $this->element('genericElements/assetLoader', [
     'css' => ['workflows-editor'],
