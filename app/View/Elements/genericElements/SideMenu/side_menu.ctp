@@ -436,17 +436,19 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => '/eventReports/view/' . h($id),
                             'text' => __('View Event Report')
                         ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'edit',
-                            'url' => '/eventReports/edit/' . h($id),
-                            'text' => __('Edit Event Report'),
-                            'requirement' => $canEdit,
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/admin/audit_logs/index/model:EventReport/model_id:' .  h($id),
-                            'text' => __('View report history'),
-                            'requirement' => Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index'),
-                        ));
+                        if ($canEdit) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => '/eventReports/edit/' . h($id),
+                                'text' => __('Edit Event Report'),
+                            ));
+                        }
+                        if (Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => '/admin/audit_logs/index/model:EventReport/model_id:' . h($id),
+                                'text' => __('View report history'),
+                            ));
+                        }
                     }
                     break;
 
@@ -1094,12 +1096,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/admin/logs/index',
                         'text' => __('Application Logs')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'listAuditLogs',
-                        'url' => $baseurl . '/admin/audit_logs/index',
-                        'text' => __('Audit Logs'),
-                        'requirement' => Configure::read('MISP.log_new_audit'),
-                    ));
+                    if (Configure::read('MISP.log_new_audit')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'listAuditLogs',
+                            'url' => $baseurl . '/admin/audit_logs/index',
+                            'text' => __('Audit Logs'),
+                        ));
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'listAccessLogs',
                         'url' => $baseurl . '/admin/access_logs/index',
@@ -1451,7 +1454,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'text' => __('View Cluster')
                             ));
                         }
-                        if ($menuItem !== 'add_cluster' && $this->Acl->canModifyCluster($cluster)) {
+                        if ($menuItem !== 'add_cluster' && $this->Acl->canModifyGalaxyCluster($cluster)) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit_cluster',
                                 'url' => $baseurl . '/galaxy_clusters/edit/' . h($id),
@@ -1665,11 +1668,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Edit Workflow Blueprint')
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/admin/audit_logs/index/model:WorkflowBlueprint/model_id:' .  h($id),
-                        'text' => __('View workflow blueprint history'),
-                        'requirement' => Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index'),
-                    ));
+                    if (Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/admin/audit_logs/index/model:WorkflowBlueprint/model_id:' . h($id),
+                            'text' => __('View workflow blueprint history'),
+                        ));
+                    }
                 }
                 echo $divider;
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -1714,11 +1718,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Edit Workflow')
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/admin/audit_logs/index/model:Workflow/model_id:' .  h($id),
-                        'text' => __('View worflow history'),
-                        'requirement' => Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index'),
-                    ));
+                    if (Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/admin/audit_logs/index/model:Workflow/model_id:' . h($id),
+                            'text' => __('View workflow history'),
+                        ));
+                    }
                 }
                 break;
 
