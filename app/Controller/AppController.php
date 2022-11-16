@@ -685,7 +685,7 @@ class AppController extends Controller
 
         $shouldBeLogged = $userMonitoringEnabled ||
             Configure::read('MISP.log_paranoid') ||
-            (Configure::read('MISP.log_paranoid_api') && $user['logged_by_authkey']);
+            (Configure::read('MISP.log_paranoid_api') && isset($user['logged_by_authkey']) && $user['logged_by_authkey']);
 
         if ($shouldBeLogged) {
             $includeRequestBody = !empty(Configure::read('MISP.log_paranoid_include_post_body')) || $userMonitoringEnabled;
