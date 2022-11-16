@@ -382,18 +382,33 @@ class Sighting extends AppModel
             return ['Sighting.attribute_id' => array_column(array_column($attributes, 'Attribute'), 'id')];
         }
 
-        $hostOrgId = Configure::read('MISP.host_org_id');
+        // Merge attributes by Event ID
         $userOrgId = $user['org_id'];
-        $conditions = [];
+        $attributesByEventId = [];
         foreach ($attributes as $attribute) {
-            $attributeConditions = ['Sighting.attribute_id' => $attribute['Attribute']['id']];
-            $ownEvent = $attribute['Event']['org_id'] == $userOrgId;
-            if (!$ownEvent) {
+            $eventId = $attribute['Event']['id'];
+            if (isset($attributesByEventId[$eventId])) {
+                $attributesByEventId[$eventId]['ids'][] = $attribute['Attribute']['id'];
+            } else {
+                $ownEvent = $attribute['Event']['org_id'] == $userOrgId;
+                $attributesByEventId[$eventId] = [
+                    'ids' => [$attribute['Attribute']['id']],
+                    'ownEvent' => $ownEvent,
+                ];
+            }
+        }
+
+        // Create conditions for merged attributes
+        $hostOrgId = Configure::read('MISP.host_org_id');
+        $conditions = [];
+        foreach ($attributesByEventId as $eventId => $eventAttributes) {
+            $attributeConditions = ['Sighting.attribute_id' => $eventAttributes['ids']];
+            if (!$eventAttributes['ownEvent']) {
                 if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
                     $attributeConditions['Sighting.org_id'] = $userOrgId;
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                    if (!$this->isReporter($attribute['Event']['id'], $userOrgId)) {
-                        continue; // skip attribute
+                    if (!$this->isReporter($eventId, $userOrgId)) {
+                        continue; // skip event
                     }
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
                     $attributeConditions['Sighting.org_id'] = [$userOrgId, $hostOrgId];
