@@ -1859,7 +1859,7 @@ class GalaxyCluster extends AppModel
     }
 
     /**
-     * getClusterIdListBasedOnPullTechnique Collect the list of remote cluster IDs to be pulled based on the technique
+     * Collect the list of remote cluster IDs to be pulled based on the technique
      *
      * @param  array $user
      * @param  string|int $technique
@@ -1899,15 +1899,13 @@ class GalaxyCluster extends AppModel
                 $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($serverSync, $onlyUpdateLocalCluster = false);
             }
         } catch (HttpSocketHttpException $e) {
-            if ($e->getCode() === 403) {
-                return array('error' => array(1, null));
-            } else {
+            if ($e->getCode() !== 403) {
                 $this->logException("Could not get eligible cluster IDs from server {$serverSync->serverId()} for pull.", $e);
-                return array('error' => array(2, $e->getMessage()));
             }
+            return [];
         } catch (Exception $e) {
             $this->logException("Could not get eligible cluster IDs from server {$serverSync->serverId()} for pull.", $e);
-            return array('error' => array(2, $e->getMessage()));
+            return [];
         }
         return $clusterIds;
     }
