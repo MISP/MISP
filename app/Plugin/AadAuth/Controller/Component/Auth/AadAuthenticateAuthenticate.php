@@ -355,6 +355,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 	private function _createHttpSocket()
 	{
 		$httpSocket = new HttpSocket();
+		$proxy = Configure::read('Proxy');
 		if (isset($proxy['host']) && !empty($proxy['host'])) {
 			$httpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
 		}
