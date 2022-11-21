@@ -17,6 +17,15 @@ class TaxiiServer extends AppModel
         'Containable'
     ];
 
+    public function beforeValidate($options = array())
+    {
+        parent::beforeValidate();
+        if (empty($this->id) && empty($this->data['TaxiiServer']['uuid'])) {
+            $this->data['TaxiiServer']['uuid'] = CakeText::uuid();
+        }
+        return true;
+    }
+
     public function pushRouter($id, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
@@ -80,10 +89,12 @@ class TaxiiServer extends AppModel
             unset($filters['tags']['NOT']);
         }
         $result = $this->Event->fetchEvent($user, $filters, true);
+        
         $result = $this->Allowedlist->removeAllowedlistedFromArray($result, false);
         $temporaryFolder = $this->temporaryFolder();
+        $temporaryFolderPath = $temporaryFolder['dir']->path;
         foreach ($result as $event) {
-            $temporaryFile = $this->temporaryFile($temporaryFolder);
+            $temporaryFile = $this->temporaryFile($temporaryFolderPath);
             $temporaryFile->write(json_encode($event));
             $temporaryFile->close();
             if ($jobId && $i % 10 == 0) {
@@ -98,12 +109,17 @@ class TaxiiServer extends AppModel
             ProcessTool::pythonBin(),
             $scriptFile,
             '--dir', $temporaryFolder['dir']->path,
-            '--api_root', $taxii_server['TaxiiServer']['api_root']
+            '--baseurl',  $taxii_server['TaxiiServer']['baseurl'],
+            '--api_root', $taxii_server['TaxiiServer']['api_root'],
+            '--key', $taxii_server['TaxiiServer']['api_key'],
+            '--collection', '01f156b1-703b-4ce9-bf5a-7c15b510cfea'
         ];
         $result = ProcessTool::execute($command, null, true);
-        $temporaryFolder->delete();
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Done, pushed ' . $i . ' events to TAXII server.');
+        $temporaryFolder['dir']->delete();
+        if ($jobId) {
+            $this->Job->saveField('progress', 100);
+            $this->Job->saveField('message', 'Done, pushed ' . $i . ' events to TAXII server.');
+        }
     }
 
     private function temporaryFolder()
@@ -120,6 +136,42 @@ class TaxiiServer extends AppModel
     private function temporaryFile($temporaryFolder)
     {
         $random = (new RandomTool())->random_str(true, 12);
-        return new File($temporaryFolder['dir']->path . '/' . $random . '.json', true, 0644);
+        return new File($temporaryFolder . '/' . $random . '.json', true, 0644);
+    }
+
+    public function queryInstance($options)
+    {
+        $url = $options['TaxiiServer']['baseurl'] . $options['TaxiiServer']['uri'];
+        App::uses('HttpSocket', 'Network/Http');
+        $HttpSocket = new HttpSocket();
+        $request = [
+            'header' => [
+                'Accept' => 'application/taxii+json;version=2.1',
+                'Content-type' => 'application/taxii+json;version=2.1'
+            ]
+        ];
+        if (!empty($options['TaxiiServer']['api_key'])) {
+            $request['header']['Authorization'] = 'basic ' . $options['TaxiiServer']['api_key'];
+        }
+        try {
+            if (!empty($options['type']) && $options['type'] === 'post') {
+                $response = $HttpSocket->post($url, json_encode($options['body']), $request);
+            } else {
+                $response = $HttpSocket->get(
+                    $url,
+                    null,
+                    $request
+                );
+            }
+            if ($response->isOk()) {
+                return json_decode($response->body, true);
+            }
+        } catch (SocketException $e) {
+            throw new BadRequestException(__('Something went wrong. Error returned: %s', $e->getMessage()));
+        }
+        if ($response->code === 403 || $response->code === 401) {
+            throw new ForbiddenException(__('Authentication failed.'));
+        }
+        throw new BadRequestException(__('Something went wrong with the request or the remote side is having issues.'));
     }
 }

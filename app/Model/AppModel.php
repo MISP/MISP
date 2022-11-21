@@ -83,7 +83,7 @@ class AppModel extends Model
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
-        93 => false,
+        93 => false, 94 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1850,6 +1850,24 @@ class AppModel extends Model
                 $this->__dropIndex('default_correlations', '1_object_sharing_group_id');
                 $this->__dropIndex('default_correlations', '1_event_sharing_group_id');
                 $this->__dropIndex('default_correlations', '1_org_id');
+                break;
+             case 94:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxii_servers` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                    `name` varchar(191) NOT NULL,
+                    `owner` varchar(191) NOT NULL,
+                    `baseurl` int(11) NOT NULL DEFAULT 0,
+                    `api_root` varchar(191) NOT NULL DEFAULT 0,
+                    `description` text,
+                    `filters` text,
+                    `api_key` varchar(255)COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `name` (`name`),
+                    INDEX `baseurl` (`baseurl`)
+                  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                  break;
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

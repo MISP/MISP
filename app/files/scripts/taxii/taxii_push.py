@@ -10,6 +10,8 @@ import pathlib
 import sys
 import taxii2client
 import urllib.parse
+from base64 import b64decode
+from requests.auth import HTTPBasicAuth
 
 
 # Name of the logger to use for this application
@@ -41,7 +43,6 @@ class FileProcessingError(Exception):
 def setup_logging(log_level=logging.WARNING):
     """
     Creates and applies a logging configuration.
-
     :param log_level: A logging level.  Defaults to warning.  May be the level
         value as an int, or its name as a string.  Strings are checked case-
         sensitively against registered level names.
@@ -99,8 +100,20 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--baseurl",
+        help="The base URL of the TAII 2.1 server",
+        required=True
+    )
+
+    parser.add_argument(
+        "--api_root",
+        help="The API root of the TAXII 2.1 server to use",
+        required=True
+    )
+
+    parser.add_argument(
         "--collection",
-        help="A URL to a TAXII 2.1 collection to push content to",
+        help="The collection ID of the TAXII 2.1 server to push content to",
         required=True
     )
 
@@ -117,12 +130,16 @@ def parse_args():
         default="warning"
     )
 
+    parser.add_argument(
+        '--key',
+        help='Base64 encoded auth'
+    )
     args = parser.parse_args()
 
     return args
 
 
-def api_root_from_collection_url(collection_url):
+def api_root_from_collection_url(collection_id):
     """
     Strip path components off the end of the path portion of the given TAXII
     collection URL, to obtain the API root URL.  A TAXII collection URL path
@@ -166,7 +183,6 @@ def api_root_from_collection_url(collection_url):
 def log_status_failures(status):
     """
     Log some failure information from a TAXII status resource.
-
     :param status: A Status resource object of the taxii2-client library with
         a non-zero failure count.
     """
@@ -196,7 +212,6 @@ def log_status_failures(status):
 def push_taxii_envelope(taxii_collection, taxii_envelope_bytes):
     """
     Post the given TAXII envelope to the given collection.
-
     :param taxii_collection: A taxii2client Collection instance
     :param taxii_envelope_bytes: A bytes/bytearray object containing the TAXII
         envelope payload for the request
@@ -229,7 +244,6 @@ def make_taxii_envelopes(stix_objects, max_content_length):
     Generate TAXII envelopes containing the given STIX objects, such that
     no envelope size exceeds max_content_length.  The envelopes generated
     will be bytearrays, and max_content_length is a byte count.
-
     :param stix_objects: An iterable of stix objects, where each stix object
         is an instance of a registered stix2 library class (it needs a
         serialize() method to produce JSON).
@@ -313,7 +327,6 @@ def make_taxii_envelopes(stix_objects, max_content_length):
 def convert_misp_file(misp_file):
     """
     Convert the given MISP file to STIX 2.1.
-
     :param misp_file: A path to a file with a MISP event in it.  May be
         a string or a pathlib path object.
     :return: A STIX 2.1 bundle object
@@ -341,7 +354,6 @@ def convert_misp_dir(content_dir):
     """
     Convert all MISP files in the given directory to STIX 2.1, and generate
     each converted STIX object one at a time.
-
     :param content_dir: The directory to process for MISP content.
     """
     log = logging.getLogger(_LOGGER_NAME)
@@ -363,24 +375,30 @@ def convert_misp_dir(content_dir):
             raise FileProcessingError(event_file, str(e)) from e
 
 
-def push_content(content_dir, collection_url):
+def parse_auth(api_key):
+    return HTTPBasicAuth(*b64decode(api_key.encode()).split(b':'))
+
+
+def push_content(content_dir, baseurl, api_root, collection_url, api_key):
     """
     Push MISP content from files in the given directory, to a TAXII 2.1 server.
     This will translate each MISP event to STIX 2.1.
-
     :param content_dir: A directory with JSON files containing MISP content.
     :param collection_url: A TAXII 2.1 collection URL
     """
 
     log = logging.getLogger(_LOGGER_NAME)
 
-    api_root_url = api_root_from_collection_url(collection_url)
+    auth = parse_auth(api_key)
+
+    #api_root_url = api_root_from_collection_url(collection_url)
+    api_root_url = baseurl + "/" + api_root
     if not api_root_url:
         raise ValueError(
             "Could not compute API root URL from: " + collection_url
         )
 
-    with taxii2client.ApiRoot(api_root_url) as api_root:
+    with taxii2client.ApiRoot(api_root_url, auth=auth) as api_root:
         max_content_length = api_root.max_content_length
 
     log.debug(
@@ -389,8 +407,8 @@ def push_content(content_dir, collection_url):
     )
 
     all_stix_objects = convert_misp_dir(content_dir)
-
-    with taxii2client.Collection(collection_url) as taxii_collection:
+    collection_url = api_root_url + '/collections/' + collection_url
+    with taxii2client.Collection(collection_url, auth=auth) as taxii_collection:
 
         for taxii_envelope_bytes in make_taxii_envelopes(
                 all_stix_objects, max_content_length
@@ -405,8 +423,7 @@ def main():
     log = logging.getLogger(_LOGGER_NAME)
 
     try:
-
-        push_content(args.dir, args.collection)
+        push_content(args.dir, args.baseurl, args.api_root, args.collection, args.key)
 
     except Exception:
         log.fatal(

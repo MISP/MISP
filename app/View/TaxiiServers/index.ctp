@@ -44,6 +44,11 @@
                         'data_path' => 'TaxiiServer.name'
                     ],
                     [
+                        'name' => __('Baseurl'),
+                        'sort' => 'TaxiiServer.baseurl',
+                        'data_path' => 'TaxiiServer.baseurl'
+                    ],
+                    [
                         'name' => __('API root'),
                         'sort' => 'TaxiiServer.api_root',
                         'data_path' => 'TaxiiServer.api_root'
@@ -53,6 +58,11 @@
                         'sort' => 'TaxiiServer.filters',
                         'data_path' => 'TaxiiServer.filters',
                         'type' => 'json'
+                    ],
+                    [
+                        'name' => __('api_key'),
+                        'sort' => 'TaxiiServer.api_key',
+                        'data_path' => 'TaxiiServer.api_key'
                     ],
                     [
                         'name' => __('Description'),

@@ -5,8 +5,16 @@ class TaxiiServersController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
 
+
     public function beforeFilter()
     {
+        // No need for CSRF tokens for a search
+        if ('getRoot' == $this->request->params['action'] || 'getCollections' == $this->request->params['action']) {
+            $this->Security->csrfCheck = false;
+        }
+        if ($this->request->params['action'] === 'add' || $this->request->params['action'] === 'edit') {
+            $this->Security->unlockedFields = ['api_root', 'collection'];
+        }
         parent::beforeFilter();
     }
 
@@ -99,6 +107,85 @@ class TaxiiServersController extends AppController
             $this->set('actionName', __('Push'));
             $this->layout = 'ajax';
             $this->render('/genericTemplates/confirm');
+        }
+    }
+
+    public function getRoot()
+    {
+        if (empty($this->request->data['baseurl'])) {
+            return $this->RestResponse->saveFailResponse(
+                'TaxiiServers', 'getRoot', null, __('No baseurl set.'), $this->response->type()
+            );
+        } else {
+            $this->request->data['uri'] = '/taxii2/';
+            $result = $this->TaxiiServer->queryInstance(
+                [
+                    'TaxiiServer' => $this->request->data,
+                    'type' => 'get'
+                ]
+            );
+            if (is_array($result)) {
+                $results = [];
+                foreach ($result['api_roots'] as $api_root) {
+                    $api_root = explode('/', trim($api_root, '/'));
+                    $api_root = end($api_root);
+                    $results[$api_root] = $this->request->data['baseurl'] . '/' . $api_root . '/';
+                }
+                return $this->RestResponse->viewData($results, 'json');
+            } else {
+                return $this->RestResponse->saveFailResponse(
+                    'TaxiiServers', 'getRoot', null, $result, $this->response->type()
+                );  
+            }
+        }
+    }
+
+    public function getCollections()
+    {
+        if (empty($this->request->data['baseurl'])) {
+            return $this->RestResponse->saveFailResponse(
+                'TaxiiServers', 'getCollections', null, __('No baseurl set.'), $this->response->type()
+            );
+        }
+        if (empty($this->request->data['api_root'])) {
+            return $this->RestResponse->saveFailResponse(
+                'TaxiiServers', 'getCollections', null, __('No api_root set.'), $this->response->type()
+            );
+        }
+        $this->request->data['uri'] = '/' . $this->request->data['api_root'] . '/collections/';
+        $result = $this->TaxiiServer->queryInstance(
+            [
+                'TaxiiServer' => $this->request->data,
+                'type' => 'get'
+            ]
+        );
+        if (is_array($result)) {
+            $results = [];
+            foreach ($result['collections'] as $collection) {
+                if (!empty($collection['can_write'])) {
+                    $versions = '';
+                    if (!empty($collection['media_types'])) {
+                        if (!is_array(($collection['media_types']))) {
+                            $collection['media_types'] = [$collection['media_types']];
+                        }
+                        $versions = [];
+                        foreach ($collection['media_types'] as $media_type) {
+                            $media_type = explode('=', $media_type);
+                            $media_type = end($media_type);
+                            $versions[$media_type] = true;
+                        }
+                        $versions = implode(', ', array_keys($versions));
+                    }
+                    $url = $this->request->data['baseurl'] . $this->request->data['uri'] . $collection['id'] . '/';
+                    $text = (empty($versions) ? '' : '[' . $versions . '] ') . $collection['title'];
+                    $results[$url] = $text;
+                }
+            }
+            return $this->RestResponse->viewData($results, 'json');
+        } else {
+            return $this->RestResponse->saveFailResponse(
+                'TaxiiServers', 'getRoot', null, $result, $this->response->type()
+            );  
         }
     }
 }

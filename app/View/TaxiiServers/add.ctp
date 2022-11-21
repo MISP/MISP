@@ -11,8 +11,43 @@ $fields = [
         'class' => 'span6'
     ],
     [
-        'field' => 'api_root',
+        'field' => 'baseurl',
         'class' => 'span6'
+    ],
+    [
+        'field' => 'api_key',
+        'label' => 'API Key',
+        'type' => 'text',
+        'class' => 'input span6'
+    ],
+    [
+        'field' => 'api_root',
+        'class' => 'span6',
+        'type' => 'dropdown',
+        'options' => [],
+        'populateAction' => json_encode([
+            'uri' => '/taxii_servers/getRoot',
+            'body' => [
+                'baseurl' => '{{#TaxiiServerBaseurl}}',
+                'api_key' => '{{#TaxiiServerApiKey}}'
+            ],
+            'type' => 'POST'
+        ])
+    ],
+    [
+        'field' => 'collection',
+        'class' => 'span6',
+        'type' => 'dropdown',
+        'options' => [],
+        'populateAction' => json_encode([
+            'uri' => '/taxii_servers/getCollections',
+            'body' => [
+                'baseurl' => '{{#TaxiiServerBaseurl}}',
+                'api_key' => '{{#TaxiiServerApiKey}}',
+                'api_root' => '{{#TaxiiServerApiRoot}}'
+            ],
+            'type' => 'POST'
+        ])
     ],
     [
         'field' => 'description',
