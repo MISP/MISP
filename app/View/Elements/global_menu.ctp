@@ -318,7 +318,7 @@
                     array(
                         'text' => __('List Taxii Servers'),
                         'url' => $baseurl . '/TaxiiServers/index',
-                        'requirement' => $canAccess('taxiiServers', 'index'),
+                        'requirement' => $this->Acl->canAccess('taxiiServers', 'index'),
                     ),
                     array(
                         'text' => __('Event ID translator'),
