@@ -28,7 +28,7 @@ $classFromSeverity = [
                 <?php foreach (array_keys($classFromSeverity) as $severity) : ?>
                     <?php
                     $visibleNotifications = array_filter($block['notifications'][$severity], function ($notification) {
-                        return $notification['__show_in_sidebar'];
+                        return !empty($notification['__show_in_sidebar']);
                     });
                     ?>
                     <?php if (!empty($visibleNotifications)) : ?>

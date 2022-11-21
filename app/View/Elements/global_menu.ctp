@@ -2,10 +2,6 @@
     if (!empty($me)) {
         // New approach how to define menu requirements. It takes ACLs from ACLComponent.
         // TODO: Use for every menu item
-        $canAccess = function ($controller, $action) use ($me, $aclComponent) {
-            return $aclComponent->canUserAccess($me, $controller, $action);
-        };
-
         $menu = array(
             array(
                 'type' => 'root',
@@ -23,7 +19,7 @@
                     array(
                         'text' => __('Add Event'),
                         'url' => $baseurl . '/events/add',
-                        'requirement' => $isAclAdd
+                        'requirement' => $this->Acl->canAccess('events', 'add'),
                     ),
                     array(
                         'text' => __('List Attributes'),
@@ -47,7 +43,7 @@
                     array(
                         'url' => $baseurl . '/event_delegations/index/context:pending',
                         'text' => __('View delegation requests'),
-                        'requirement' => $canAccess('event_delegations', 'index'),
+                        'requirement' => $this->Acl->canAccess('event_delegations', 'index'),
                     ),
                     array(
                         'type' => 'separator'
@@ -59,7 +55,7 @@
                     array(
                         'text' => __('Add Tag'),
                         'url' => $baseurl . '/tags/add',
-                        'requirement' => $isAclTagEditor
+                        'requirement' => $this->Acl->canAccess('tags', 'add'),
                     ),
                     array(
                         'text' => __('List Tag Collections'),
@@ -83,7 +79,7 @@
                     array(
                         'text' => __('Automation'),
                         'url' => $baseurl . '/events/automation',
-                        'requirement' => $isAclAuth
+                        'requirement' => $this->Acl->canAccess('events', 'automation'),
                     ),
                     array(
                         'type' => 'separator',
@@ -163,7 +159,7 @@
                     array(
                         'text' => __('Correlation Exclusions'),
 		            	'url' => $baseurl . '/correlation_exclusions/index',
-	            		'requirement' => $canAccess('correlation_exclusions', 'index'),
+	            		'requirement' => $this->Acl->canAccess('correlation_exclusions', 'index'),
                     )
                 )
             ),
@@ -190,7 +186,7 @@
                     array(
                         'text' => __('Organisations'),
                         'url' => $baseurl . '/organisations/index',
-                        'requirement' => $isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))
+                        'requirement' => $this->Acl->canAccess('organisations', 'index'),
                     ),
                     array(
                         'text' => __('Role Permissions'),
@@ -213,17 +209,17 @@
                     array(
                         'text' => __('Add Sharing Group'),
                         'url' => $baseurl . '/sharing_groups/add',
-                        'requirement' => $isAclSharingGroup
+                        'requirement' => $this->Acl->canAccess('sharing_groups', 'add'),
                     ),
                     array(
                         'text' => __('List Sharing Groups Blueprints'),
                         'url' => $baseurl . '/sharing_group_blueprints/index',
-                        'requirement' => $isAclSharingGroup
+                        'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'index'),
                     ),
                     array(
                         'text' => __('Add Sharing Group Blueprint'),
                         'url' => $baseurl . '/sharing_group_blueprints/add',
-                        'requirement' => $isAclSharingGroup
+                        'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'add'),
                     ),
                     array(
                         'type' => 'separator'
@@ -282,42 +278,42 @@
                     array(
                         'text' => __('Import Server Settings'),
                         'url' => $baseurl . '/servers/import',
-                        'requirement' => $canAccess('servers', 'import'),
+                        'requirement' => $this->Acl->canAccess('servers', 'import'),
                     ),
                     array(
                         'text' => __('List Servers'),
                         'url' => $baseurl . '/servers/index',
-                        'requirement' => $canAccess('servers', 'index'),
+                        'requirement' => $this->Acl->canAccess('servers', 'index'),
                     ),
                     array(
                         'text' => __('List Feeds'),
                         'url' => $baseurl . '/feeds/index',
-                        'requirement' => $canAccess('feeds', 'index'),
+                        'requirement' => $this->Acl->canAccess('feeds', 'index'),
                     ),
                     array(
                         'text' => __('Search Feed Caches'),
                         'url' => $baseurl . '/feeds/searchCaches',
-                        'requirement' => $canAccess('feeds', 'searchCaches'),
+                        'requirement' => $this->Acl->canAccess('feeds', 'searchCaches'),
                     ),
                     array(
                         'text' => __('List SightingDB Connections'),
                         'url' => $baseurl . '/sightingdb/index',
-                        'requirement' => $canAccess('sightingdb', 'index'),
+                        'requirement' => $this->Acl->canAccess('sightingdb', 'index'),
                     ),
                     array(
                         'text' => __('Add SightingDB Connection'),
                         'url' => $baseurl . '/sightingdb/add',
-                        'requirement' => $canAccess('sightingdb', 'add'),
+                        'requirement' => $this->Acl->canAccess('sightingdb', 'add'),
                     ),
                     array(
                         'text' => __('List Communities'),
                         'url' => $baseurl . '/communities/index',
-                        'requirement' => $canAccess('communities', 'index'),
+                        'requirement' => $this->Acl->canAccess('communities', 'index'),
                     ),
                     array(
                         'text' => __('Cerebrates'),
                         'url' => $baseurl . '/cerebrates/index',
-                        'requirement' => $canAccess('cerebrates', 'index'),
+                        'requirement' => $this->Acl->canAccess('cerebrates', 'index'),
                     ),
                     array(
                         'text' => __('List Taxii Servers'),
@@ -327,7 +323,7 @@
                     array(
                         'text' => __('Event ID translator'),
                         'url' => '/servers/idTranslator',
-                        'requirement' => $canAccess('servers', 'idTranslator')
+                        'requirement' => $this->Acl->canAccess('servers', 'idTranslator')
                     )
                 )
             ),
@@ -356,7 +352,7 @@
                     array(
                         'text' => __('Add User'),
                         'url' => $baseurl . '/admin/users/add',
-                        'requirement' => $canAccess('users', 'admin_add'),
+                        'requirement' => $this->Acl->canAccess('users', 'admin_add'),
                     ),
                     array(
                         'text' => __('Contact Users'),
@@ -365,7 +361,7 @@
                     array(
                         'text' => __('User Registrations'),
                         'url' => $baseurl . '/users/registrations',
-                        'requirement' => $canAccess('users', 'registrations'),
+                        'requirement' => $this->Acl->canAccess('users', 'registrations'),
                     ),
                     array(
                         'type' => 'separator'
@@ -377,7 +373,7 @@
                     array(
                         'text' => __('Add Organisations'),
                         'url' => $baseurl . '/admin/organisations/add',
-                        'requirement' => $canAccess('organisations', 'admin_add'),
+                        'requirement' => $this->Acl->canAccess('organisations', 'admin_add'),
                     ),
                     array(
                         'type' => 'separator'
@@ -490,20 +486,20 @@
                 'requirement' => $isAclAudit,
                 'children' => array(
                     array(
-                        'text' => __('List Logs'),
+                        'text' => __('Application Logs'),
                         'url' => $baseurl . '/admin/logs/index'
                     ),
                     array(
-                        'text' => __('List Audit Logs'),
+                        'text' => __('Audit Logs'),
                         'url' => $baseurl . '/admin/audit_logs/index',
                         'requirement' => Configure::read('MISP.log_new_audit'),
                     ),
                     array(
-                        'text' => __('Search Logs'),
-                        'url' => $baseurl . '/admin/logs/search'
-                    )
-                )
+                        'text' => __('Access Logs'),
+                        'url' => $baseurl . '/admin/access_logs/index',
                     ),
+                )
+            ),
             array(
                 'type' => 'root',
                 'text' => __('API'),
@@ -515,7 +511,7 @@
                     array(
                         'text' => __('REST client'),
                         'url' => $baseurl . '/api/rest',
-                        'requirement' => $canAccess('api', 'rest')
+                        'requirement' => $this->Acl->canAccess('api', 'rest')
                     )
                 )
             )

@@ -6,7 +6,7 @@ class Module_event_after_save extends WorkflowBaseTriggerModule
     public $id = 'event-after-save';
     public $scope = 'event';
     public $name = 'Event After Save';
-    public $description = 'This trigger is called after an Event has been saved in the database';
+    public $description = 'This trigger is called after an Event or any of its elements has been saved in the database';
     public $icon = 'envelope';
     public $inputs = 0;
     public $outputs = 1;

@@ -76,6 +76,15 @@
                         ],
                     ),
                     array(
+                        'id' => 'multi-local-tag-button',
+                        'title' => __('Add Local tag on selected Attributes'),
+                        'class' => 'mass-select hidden',
+                        'fa-icon' => 'user',
+                        'data' => [
+                            'popover-popup' => $baseurl . '/tags/selectTaxonomy/local:1/selected/attribute',
+                        ],
+                    ),
+                    array(
                         'id' => 'multi-galaxy-button',
                         'title' => __('Add new cluster to selected Attributes'),
                         'class' => 'mass-select hidden',
@@ -92,6 +101,15 @@
                         'fa-icon' => 'object-group',
                         'fa-source' => 'fa',
                         'onClick' => 'proposeObjectsFromSelectedAttributes',
+                        'onClickParams' => array('this', $eventId)
+                    ),
+                    array(
+                        'id' => 'multi-relationship-button',
+                        'title' => __('Create new relationship for selected entities'),
+                        'class' => 'mass-select hidden',
+                        'fa-icon' => 'project-diagram',
+                        'fa-source' => 'fas',
+                        'onClick' => 'bulkAddRelationshipToSelectedAttributes',
                         'onClickParams' => array('this', $eventId)
                     ),
                     array(

@@ -173,11 +173,9 @@ class Tag extends AppModel
      */
     public function lookupTagIdForUser(array $user, $tagName)
     {
-        $conditions = ['LOWER(Tag.name)' => mb_strtolower($tagName)];
-        if (!$user['Role']['perm_site_admin']) {
-            $conditions['Tag.org_id'] = [0, $user['org_id']];
-            $conditions['Tag.user_id'] = [0, $user['id']];
-        }
+        $conditions = $this->createConditions($user);
+        $conditions['LOWER(Tag.name)'] = mb_strtolower($tagName);
+
         $tagId = $this->find('first', array(
             'conditions' => $conditions,
             'recursive' => -1,
@@ -848,5 +846,28 @@ class Tag extends AppModel
         }
 
         return $data;
+    }
+
+    /**
+     * @param array $user
+     * @return array
+     */
+    public function createConditions(array $user)
+    {
+        $conditions = [];
+        if (!$user['Role']['perm_site_admin']) {
+            $conditions['Tag.org_id'] = [0, $user['org_id']];
+            $conditions['Tag.user_id'] = [0, $user['id']];
+        }
+        return $conditions;
+    }
+
+    /**
+     * @param string $tagName
+     * @return bool
+     */
+    public function isCustomGalaxyClusterTag($tagName)
+    {
+        return (bool)preg_match(self::RE_CUSTOM_GALAXY, $tagName);
     }
 }

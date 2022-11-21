@@ -13,6 +13,8 @@ App::uses('JsonTool', 'Tools');
  * @property Warninglist $Warninglist
  * @property Attribute $Attribute
  * @property Job $Job
+ * @property Correlation $Correlation
+ * @property OverCorrelatingValue $OverCorrelatingValue
  */
 class AdminShell extends AppShell
 {
@@ -22,8 +24,6 @@ class AdminShell extends AppShell
         'Role', 'Feed', 'SharingGroupBlueprint', 'Correlation', 'OverCorrelatingValue'
     ];
 
-    public $tasks = ['ConfigLoad'];
-    
     public function getOptionParser()
     {
         $parser = parent::getOptionParser();
@@ -32,6 +32,15 @@ class AdminShell extends AppShell
         ));
         $parser->addSubcommand('updateWarningLists', array(
             'help' => __('Update the JSON definition of warninglists.'),
+            'parser' => [
+                'options' => [
+                    'verbose' => [
+                        'help' => 'Show verbose output.',
+                        'default' => false,
+                        'boolean' => true
+                    ]
+                ]
+            ]
         ));
         $parser->addSubcommand('updateTaxonomies', array(
             'help' => __('Update the JSON definition of taxonomies.'),
@@ -105,18 +114,16 @@ class AdminShell extends AppShell
 
     public function jobGenerateCorrelation()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate correlation'] . PHP_EOL);
         }
 
         $jobId = $this->args[0];
-        $this->Attribute->generateCorrelation($jobId);
+        $this->Correlation->generateCorrelation($jobId);
     }
 
     public function jobGenerateOccurrences()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate over-correlation occurrences'] . PHP_EOL);
         }
@@ -132,13 +139,12 @@ class AdminShell extends AppShell
         }
 
         $jobId = $this->args[0];
-        $this->Attribute->purgeCorrelations();
+        $this->Correlation->purgeCorrelations();
         $this->Job->saveStatus($jobId);
     }
 
     public function jobGenerateShadowAttributeCorrelation()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate shadow attribute correlation'] . PHP_EOL);
         }
@@ -152,14 +158,12 @@ class AdminShell extends AppShell
 
     public function updateMISP()
     {
-        $this->ConfigLoad->execute();
         $status = array('branch' => '2.4');
         echo $this->Server->update($status) . PHP_EOL;
     }
 
     public function updateAfterPull()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Update after pull'] . PHP_EOL);
         }
@@ -186,7 +190,6 @@ class AdminShell extends AppShell
             $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
         }
 
-        $this->ConfigLoad->execute();
         $this->Server->restartWorkers();
         echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
     }
@@ -197,7 +200,6 @@ class AdminShell extends AppShell
             $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
         }
 
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Restart a worker'] . PHP_EOL);
         }
@@ -223,7 +225,6 @@ class AdminShell extends AppShell
             $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
         }
 
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Kill a worker'] . PHP_EOL);
         }
@@ -244,7 +245,6 @@ class AdminShell extends AppShell
             $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
         }
 
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Start a worker'] . PHP_EOL);
         }
@@ -276,7 +276,6 @@ class AdminShell extends AppShell
 
     public function updateGalaxies()
     {
-        $this->ConfigLoad->execute();
         // The following is 7.x upwards only
         //$value = $this->args[0] ?? $this->args[0] ?? 0;
         $value = empty($this->args[0])  ? null : $this->args[0];
@@ -334,20 +333,25 @@ class AdminShell extends AppShell
     public function updateWarningLists()
     {
         $result = $this->Warninglist->update();
-        $success = count($result['success']);
-        $fails = count($result['fails']);
-        $this->out("$success warninglists updated, $fails fails");
-        if ($fails) {
-            $this->out(__('Fails:'));
-            foreach ($result['fails'] as $fail) {
-                $this->out("{$fail['name']}: {$fail['fail']}");
+
+        if ($this->params['verbose']) {
+            $this->out($this->json($result));
+        } else {
+            $success = count($result['success']);
+            $fails = count($result['fails']);
+            $this->out("$success warninglists updated, $fails fails");
+            if ($fails) {
+                $this->out(__('Fails:'));
+                foreach ($result['fails'] as $fail) {
+                    $this->out("{$fail['name']}: {$fail['fail']}");
+                }
+                $this->_stop(1);
             }
         }
     }
 
     public function updateNoticeLists()
     {
-        $this->ConfigLoad->execute();
         $result = $this->Noticelist->update();
         if ($result) {
             echo 'Notice lists updated' . PHP_EOL;
@@ -359,7 +363,6 @@ class AdminShell extends AppShell
     # FIXME: Fails to pass userId/orgId properly, global update works.
     public function updateObjectTemplates()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Update object templates'] . PHP_EOL);
         } else {
@@ -392,7 +395,6 @@ class AdminShell extends AppShell
 
     public function jobUpgrade24()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Job upgrade'] . PHP_EOL);
         }
@@ -410,7 +412,6 @@ class AdminShell extends AppShell
 
     public function prune_update_logs()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Prune update logs'] . PHP_EOL);
         }
@@ -429,7 +430,6 @@ class AdminShell extends AppShell
 
     public function getWorkers()
     {
-        $this->ConfigLoad->execute();
         $result = $this->Server->workerDiagnostics($workerIssueCount);
         $query = 'all';
         if (!empty($this->args[0])) {
@@ -501,7 +501,6 @@ class AdminShell extends AppShell
 
     public function setDatabaseVersion()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set database version'] . PHP_EOL);
         } else {
@@ -555,8 +554,7 @@ class AdminShell extends AppShell
     public function redisReady()
     {
         try {
-            $redis = $this->Server->setupRedisWithException();
-            $redis->ping();
+            RedisTool::init()->ping();
             $this->out('Successfully connected to Redis.');
         } catch (Exception $e) {
             $this->error('Redis connection is not available', $e->getMessage());
@@ -580,7 +578,6 @@ class AdminShell extends AppShell
 
     public function setDefaultRole()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
             $roles = $this->Role->find('list', array(
                 'fields' => array('id', 'name')
@@ -615,7 +612,6 @@ class AdminShell extends AppShell
      */
     public function change_authkey()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             echo 'MISP apikey command line tool' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Admin change_authkey [user_email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Admin change_authkey [user_email] [authkey]' . PHP_EOL;
             die();
@@ -646,7 +642,6 @@ class AdminShell extends AppShell
 
     public function recoverSinceLastSuccessfulUpdate()
     {
-        $this->ConfigLoad->execute();
         $this->loadModel('Log');
         $logs = $this->Log->find('all', array(
             'conditions' => array(
@@ -685,7 +680,6 @@ class AdminShell extends AppShell
 
     public function cleanCaches()
     {
-        $this->ConfigLoad->execute();
         echo 'Cleaning caches...' . PHP_EOL;
         $this->Server->cleanCacheFiles();
         echo '...caches lost in time, like tears in rain.' . PHP_EOL;
@@ -693,7 +687,6 @@ class AdminShell extends AppShell
 
     public function resetSyncAuthkeys()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             echo sprintf(
                 __("MISP mass sync authkey reset command line tool" . PHP_EOL . "Usage: %sConsole/cake Admin resetSyncAuthkeys [user_id]" . PHP_EOL), APP
@@ -719,7 +712,6 @@ class AdminShell extends AppShell
 
     public function purgeFeedEvents()
     {
-        $this->ConfigLoad->execute();
         if (
             (empty($this->args[0]) || !is_numeric($this->args[0])) ||
             (empty($this->args[1]) || !is_numeric($this->args[1]))
@@ -759,7 +751,6 @@ class AdminShell extends AppShell
      */
     public function UserIP()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get IPs for user ID'] . PHP_EOL);
         }
@@ -787,7 +778,6 @@ class AdminShell extends AppShell
      */
     public function IPUser()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get user ID for user IP'] . PHP_EOL);
         }
@@ -1005,36 +995,13 @@ class AdminShell extends AppShell
         $this->out(__('New encryption key "%s" saved into config file.', $new));
     }
 
-    /**
-     * @param Redis $redis
-     * @param string $prefix
-     * @return array[int, int]
-     */
-    private function redisSize($redis, $prefix)
-    {
-        $keyCount = 0;
-        $size = 0;
-        $it = null;
-        while ($keys = $redis->scan($it, $prefix, 1000)) {
-            $redis->pipeline();
-            foreach ($keys as $key) {
-                $redis->rawCommand("memory", "usage", $key);
-            }
-            $result = $redis->exec();
-            $keyCount += count($keys);
-            $size += array_sum($result);
-        }
-        return [$keyCount, $size];
-    }
-
     public function redisMemoryUsage()
     {
-        $redis = $this->Server->setupRedisWithException();
-        $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
+        $redis = RedisTool::init();
 
         $output = [];
 
-        list($count, $size) = $this->redisSize($redis, 'misp:feed_cache:*');
+        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:feed_cache:*');
         $output['feed_cache_count'] = $count;
         $output['feed_cache_size'] = $size;
 
@@ -1055,7 +1022,7 @@ class AdminShell extends AppShell
             }
         }
 
-        list($count, $size) = $this->redisSize($redis, 'misp:server_cache:*');
+        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:server_cache:*');
         $output['server_cache_count'] = $count;
         $output['server_cache_size'] = $size;
 
@@ -1076,35 +1043,35 @@ class AdminShell extends AppShell
             }
         }
 
-        list($count, $size) = $this->redisSize($redis, 'misp:wlc:*');
+        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:wlc:*');
         $output['warninglist_cache_count'] = $count;
         $output['warninglist_cache_size'] = $size;
 
-        list($count, $size) = $this->redisSize($redis, 'misp:warninglist_entries_cache:*');
+        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:warninglist_entries_cache:*');
         $output['warninglist_entries_count'] = $count;
         $output['warninglist_entries_size'] = $size;
 
-        list($count, $size) = $this->redisSize($redis, 'misp:top_correlation');
+        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:top_correlation');
         $output['top_correlation_count'] = $count;
         $output['top_correlation_size'] = $size;
 
-        list($count, $size) = $this->redisSize($redis, 'misp:correlation_exclusions');
+        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:correlation_exclusions');
         $output['correlation_exclusions_count'] = $count;
         $output['correlation_exclusions_size'] = $size;
 
-        list($count, $size) = $this->redisSize($redis, 'misp:event_lock:*');
+        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:event_lock:*');
         $output['event_lock_count'] = $count;
         $output['event_lock_size'] = $size;
 
-        list($count, $size) = $this->redisSize($redis, 'misp:user_ip:*');
+        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:user_ip:*');
         $output['user_ip_count'] = $count;
         $output['user_ip_size'] = $size;
 
-        list($count, $size) = $this->redisSize($redis, 'misp:ip_user:*');
+        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:ip_user:*');
         $output['user_ip_count'] += $count;
         $output['user_ip_size'] += $size;
 
-        list($count, $size) = $this->redisSize($redis, 'misp:authkey_usage:*');
+        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:authkey_usage:*');
         $output['authkey_usage_count'] = $count;
         $output['authkey_usage_size'] = $size;
 
@@ -1207,7 +1174,6 @@ class AdminShell extends AppShell
 
     public function truncateTable()
     {
-        $this->ConfigLoad->execute();
         if (!isset($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation'] . PHP_EOL);
         }

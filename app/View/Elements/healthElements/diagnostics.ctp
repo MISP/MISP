@@ -1,3 +1,10 @@
+<?php
+$humanReadableFilesize = function ($bytes, $dec = 2) {
+    $size = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    $factor = floor((strlen($bytes) - 1) / 3);
+    return sprintf("%.{$dec}f&nbsp;%s", ($bytes / (1024 ** $factor)), $size[$factor]);
+};
+?>
 <div style="border:1px solid #dddddd; margin-top:1px; width:95%; padding:10px">
     <?php if (!$dbEncodingStatus):?>
     <div style="font-size:12pt;padding-left:3px;width:100%;background-color:red;color:white;font-weight:bold;"><?= __('Incorrect database encoding setting: Your database connection is currently NOT set to UTF-8. Please make sure to uncomment the \'encoding\' => \'utf8\' line in ') . APP; ?>Config/database.php</div>
@@ -191,7 +198,7 @@
             if ($phpSetting['value'] < $phpSetting['recommended']) $pass = false;
             else $pass = true;
     ?>
-    <span style="color:<?php echo $pass ? 'green': 'orange'; ?>"><?php echo $pass ? __('OK') : __('Low'); ?> (recommended: <?php echo strval($phpSetting['recommended']) . ($phpSetting['unit'] ? ' ' . $phpSetting['unit'] : '') . ')'; ?></span><br>
+    <span style="color:<?php echo $pass ? 'green': 'orange'; ?>"><?php echo $pass ? __('OK') : __('Low'); ?> (recommended: <?php echo $phpSetting['recommended'] . ($phpSetting['unit'] ? ' ' . $phpSetting['unit'] : '') . ')'; ?></span><br>
     <?php
         endforeach;
     ?>
@@ -291,12 +298,20 @@
     <div class="diagnostics-box">
         <b><?= __('PHP extension version') ?>:</b> <?= $redisInfo['extensionVersion'] ?: ('<span class="red bold">' . __('Not installed.') . '</span>') ?><br>
         <?php if ($redisInfo['connection']): ?>
-        <b><?= __('Redis version') ?>:</b> <?= $redisInfo['redis_version'] ?><br>
-        <b><?= __('Memory allocator') ?>:</b> <?= $redisInfo['mem_allocator'] ?><br>
-        <b><?= __('Memory usage') ?>:</b> <?= $redisInfo['used_memory_human'] ?>B<br>
-        <b><?= __('Peak memory usage') ?>:</b> <?= $redisInfo['used_memory_peak_human'] ?>B<br>
-        <b><?= __('Fragmentation ratio') ?>:</b> <?= $redisInfo['mem_fragmentation_ratio'] ?><br>
-        <b><?= __('Total system memory') ?>:</b> <?= $redisInfo['total_system_memory_human'] ?>B
+        <b><?= __('Redis version') ?>:</b> <?= h($redisInfo['redis_version']) ?><br>
+        <?php if (isset($redisInfo['mem_allocator'])): ?>
+        <b><?= __('Memory allocator') ?>:</b> <?= h($redisInfo['mem_allocator']) ?><br>
+        <?php endif; ?>
+        <b><?= __('Memory usage') ?>:</b> <?= $humanReadableFilesize($redisInfo['used_memory']) ?><br>
+        <?php if (isset($redisInfo['mem_allocator'])): ?>
+        <b><?= __('Peak memory usage') ?>:</b> <?= $humanReadableFilesize($redisInfo['used_memory_peak']) ?><br>
+        <?php endif; ?>
+        <?php if (isset($redisInfo['mem_fragmentation_ratio'])): ?>
+        <b><?= __('Fragmentation ratio') ?>:</b> <?= h($redisInfo['mem_fragmentation_ratio']) ?><br>
+        <?php endif; ?>
+        <?php if (isset($redisInfo['total_system_memory_human'])): ?>
+        <b><?= __('Total system memory') ?>:</b> <?= $humanReadableFilesize($redisInfo['total_system_memory']) ?>
+        <?php endif; ?>
         <?php elseif ($redisInfo['extensionVersion']): ?>
         <span class="red bold">Redis is not available. <?= $redisInfo['connection_error'] ?></span>
         <?php endif; ?>
@@ -554,7 +569,7 @@
                 $('#submoduleGitResultDiv').show();
                 $('#submoduleGitResult').append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');
             },
-            success: function(data, statusText, xhr) {
+            success: function(data) {
                 Object.keys(data).forEach(function(k) {
                     var val = data[k];
                     data[k] = val ? 'Updated' : 'Update failed';

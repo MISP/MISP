@@ -275,7 +275,7 @@ class ObjectsController extends AppController
                     unset($object['Object']['id']);
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), 'halt', $breakOnDuplicate);
                     if (is_numeric($result)) {
-                        $this->MispObject->Event->unpublishEvent($eventId);
+                        $this->MispObject->Event->unpublishEvent($event);
                     } else {
                         $object_validation_errors = array();
                         foreach($result as $field => $field_errors) {
@@ -356,19 +356,20 @@ class ObjectsController extends AppController
 
     public function edit($id, $update_template_available=false, $onlyAddNewAttribute=false)
     {
-        $object = $this->MispObject->fetchObjects($this->Auth->user(), array(
+        $user = $this->Auth->user();
+        $object = $this->MispObject->fetchObjects($user, array(
             'conditions' => $this->__objectIdToConditions($id),
         ));
         if (empty($object)) {
             throw new NotFoundException(__('Invalid object.'));
         }
         $object = $object[0];
-        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $object['Event']['id']);
+        $event = $this->MispObject->Event->fetchSimpleEvent($user, $object['Event']['id']);
         if (!$this->__canModifyEvent($event)) {
             throw new ForbiddenException(__('Insufficient permissions to edit this object.'));
         }
         if (!$this->_isRest()) {
-            $this->MispObject->Event->insertLock($this->Auth->user(), $object['Event']['id']);
+            $this->MispObject->Event->insertLock($user, $object['Event']['id']);
         }
         if (!empty($object['Object']['template_uuid']) && !empty($object['Object']['template_version'])) {
             $template = $this->MispObject->ObjectTemplate->find('first', array(
@@ -425,7 +426,7 @@ class ObjectsController extends AppController
                 unset($this->request->data['Object']);
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
-            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute, $this->Auth->user());
+            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute, $user);
             $error_message = __('Object could not be saved.');
             $savedObject = array();
             if (!is_numeric($objectToSave)) {
@@ -435,10 +436,10 @@ class ObjectsController extends AppController
                 }
                 $error_message = __('Object could not be saved.') . PHP_EOL . implode(PHP_EOL, $object_validation_errors);
             } else {
-                $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $object['Object']['id'])));
+                $savedObject = $this->MispObject->fetchObjects($user, array('conditions' => array('Object.id' => $object['Object']['id'])));
                 if (isset($this->request->data['deleted']) && $this->request->data['deleted']) {
                     $this->MispObject->deleteObject($savedObject[0], $hard=false, $unpublish=false);
-                    $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $object['Object']['id']))); // make sure the object is deleted
+                    $savedObject = $this->MispObject->fetchObjects($user, array('conditions' => array('Object.id' => $object['Object']['id']))); // make sure the object is deleted
                 }
             }
             // we pre-validate the attributes before we create an object at this point
@@ -450,7 +451,7 @@ class ObjectsController extends AppController
                         $savedObject = $savedObject[0];
                         $savedObject['Object']['Attribute'] = $savedObject['Attribute'];
                         unset($savedObject['Attribute']);
-                        $this->MispObject->Event->unpublishEvent($savedObject['Object']['event_id']);
+                        $this->MispObject->Event->unpublishEvent($event);
                     }
                     return $this->RestResponse->viewData($savedObject, $this->response->type());
                 } else {
@@ -461,14 +462,14 @@ class ObjectsController extends AppController
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
                     if (is_numeric($objectToSave)) {
-                        $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
+                        $this->MispObject->Event->unpublishEvent($event);
                         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
                     } else {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $error_message)), 'status'=>200, 'type' => 'json'));
                     }
                 } else {
                     if (is_numeric($objectToSave)) {
-                        $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
+                        $this->MispObject->Event->unpublishEvent($event);
                         $this->Flash->success('Object saved.');
                     } else {
                         $this->Flash->error($error_message);
@@ -480,15 +481,15 @@ class ObjectsController extends AppController
             $enabledRows = array();
             $this->request->data['Object'] = $object['Object'];
             foreach ($template['ObjectTemplateElement'] as $k => $element) {
-                foreach ($object['Attribute'] as $k2 => $attribute) {
-                    if ($attribute['object_relation'] == $element['object_relation']) {
+                foreach ($object['Attribute'] as $attribute) {
+                    if ($attribute['object_relation'] === $element['object_relation']) {
                         $enabledRows[] = $k;
                         $this->request->data['Attribute'][$k] = $attribute;
                         if (!empty($element['values_list'])) {
                             $this->request->data['Attribute'][$k]['value_select'] = $attribute['value'];
                         } else {
                             if (!empty($element['sane_default'])) {
-                                if (in_array($attribute['value'], $element['sane_default'])) {
+                                if (in_array($attribute['value'], $element['sane_default'], true)) {
                                     $this->request->data['Attribute'][$k]['value_select'] = $attribute['value'];
                                 } else {
                                     $this->request->data['Attribute'][$k]['value_select'] = 'Enter value manually';
@@ -500,7 +501,7 @@ class ObjectsController extends AppController
             }
         }
         $this->set('enabledRows', $enabledRows);
-        $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+        $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($user);
         $this->set('distributionData', $distributionData);
         $this->set('event', $event);
         $this->set('ajax', false);
@@ -560,7 +561,7 @@ class ObjectsController extends AppController
         $object['Object']['timestamp'] = $date->getTimestamp();
         $object = $this->MispObject->syncObjectAndAttributeSeen($object, $forcedSeenOnElements, false);
         if ($this->MispObject->save($object)) {
-            $this->MispObject->Event->unpublishEvent($object['Event']['id']);
+            $this->MispObject->Event->unpublishEvent($object, false, $date->getTimestamp());
             if ($seen_changed) {
                 $this->MispObject->Attribute->saveAttributes($object['Attribute'], $this->Auth->user());
             }
@@ -646,10 +647,9 @@ class ObjectsController extends AppController
     // Construct a template with valid object attributes to add to an object
     public function quickFetchTemplateWithValidObjectAttributes($id)
     {
-        $fields = array('template_uuid', 'template_version', 'id');
         $params = array(
             'conditions' => array('Object.id' => $id),
-            'fields' => $fields,
+            'fields' => array('template_uuid', 'template_version', 'id'),
             'flatten' => 1,
         );
         // fetchObjects restrict access based on user
@@ -664,11 +664,10 @@ class ObjectsController extends AppController
             $object = $object[0];
         }
         // get object attributes already set
-        $objectRelation = array();
-        foreach($object['Attribute'] as $attr) {
-            $objectRelation[$attr['object_relation']] = 1;
+        $existsObjectRelation = array();
+        foreach ($object['Attribute'] as $attr) {
+            $existsObjectRelation[$attr['object_relation']] = true;
         }
-        $objectRelation = array_keys($objectRelation);
         // get object attribute defined in the object's template
         $template = $this->MispObject->ObjectTemplate->find('first', array(
             'conditions' => array(
@@ -687,8 +686,8 @@ class ObjectsController extends AppController
             }
         }
         // unset object invalid object attribute
-        foreach($template['ObjectTemplateElement'] as $i => $objAttr) {
-            if (in_array($objAttr['object_relation'], $objectRelation) && !$objAttr['multiple']) {
+        foreach ($template['ObjectTemplateElement'] as $i => $objAttr) {
+            if (isset($existsObjectRelation[$objAttr['object_relation']]) && !$objAttr['multiple']) {
                 unset($template['ObjectTemplateElement'][$i]);
             }
         }
@@ -762,13 +761,13 @@ class ObjectsController extends AppController
                 throw new NotFoundException(__('Invalid template'));
             }
             if (empty($template['ObjectTemplateElement'])) {
-                throw new NotFoundException(__('Invalid fields') . ' `' . h($fieldName) . '`');
+                throw new NotFoundException(__('Invalid field `%s`', h($fieldName)));
             }
 
             // check if fields can be added
-            foreach($object['Attribute'] as $objAttr) {
+            foreach ($object['Attribute'] as $objAttr) {
                 $objectAttrFromTemplate = $template['ObjectTemplateElement'][0];
-                if ($objAttr['object_relation'] == $fieldName && !$objectAttrFromTemplate['multiple']) {
+                if ($objAttr['object_relation'] === $fieldName && !$objectAttrFromTemplate['multiple']) {
                     throw new NotFoundException(__('Invalid field'));
                 }
             }
@@ -1130,16 +1129,17 @@ class ObjectsController extends AppController
         $this->set('unmapped', $unmappedAttributes);
     }
 
-    function proposeObjectsFromAttributes($event_id, $selected_attributes='[]')
+    public function proposeObjectsFromAttributes($eventId, $selectedAttributes='[]')
     {
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
         }
-        $selected_attributes = json_decode($selected_attributes, true);
-        $res = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $event_id, $selected_attributes);
-        $potential_templates = $res['templates'];
-        $attribute_types = $res['types'];
-        usort($potential_templates, function($a, $b) {
+
+        $selectedAttributes = $this->_jsonDecode($selectedAttributes);
+        $res = $this->MispObject->validObjectsFromAttributeTypes($this->Auth->user(), $eventId, $selectedAttributes);
+        $potentialTemplates = $res['templates'];
+        $attributeTypes = $res['types'];
+        usort($potentialTemplates, function($a, $b) {
             if ($a['ObjectTemplate']['id'] == $b['ObjectTemplate']['id']) {
                 return 0;
             } else if (is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
@@ -1152,13 +1152,17 @@ class ObjectsController extends AppController
                 return count($a['ObjectTemplate']['invalidTypes']) > count($b['ObjectTemplate']['invalidTypes']) ? 1 : -1;
             }
         });
-        $this->set('potential_templates', $potential_templates);
-        $this->set('selected_types', $attribute_types);
-        $this->set('event_id', $event_id);
+        $this->set('potential_templates', $potentialTemplates);
+        $this->set('selected_types', $attributeTypes);
+        $this->set('event_id', $eventId);
     }
 
     public function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')
     {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
+        }
+
         $event = $this->MispObject->Event->find('first', array(
             'recursive' => -1,
             'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id', 'Event.publish_timestamp'),
@@ -1171,9 +1175,6 @@ class ObjectsController extends AppController
             throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $hard_delete_attribute = $event['Event']['publish_timestamp'] == 0;
-        if (!$this->request->is('ajax')) {
-            throw new MethodNotAllowedException(__('This action can only be reached via AJAX.'));
-        }
         if ($this->request->is('post')) {
             $template = $this->MispObject->ObjectTemplate->find('first', array(
                 'recursive' => -1,
@@ -1183,36 +1184,36 @@ class ObjectsController extends AppController
                 throw new NotFoundException(__('Invalid template.'));
             }
             $distribution = $this->request->data['Object']['distribution'];
-            $sharing_group_id = $this->request->data['Object']['sharing_group_id'];
+            $sharingGroupId = $this->request->data['Object']['sharing_group_id'] ?? 0;
             $comment = $this->request->data['Object']['comment'];
-            $selected_attribute_ids = json_decode($this->request->data['Object']['selectedAttributeIds'], true);
-            $selected_object_relation_mapping = json_decode($this->request->data['Object']['selectedObjectRelationMapping'], true);
+            $selected_attribute_ids = $this->_jsonDecode($this->request->data['Object']['selectedAttributeIds']);
+            $selected_object_relation_mapping = $this->_jsonDecode($this->request->data['Object']['selectedObjectRelationMapping']);
             if ($distribution == 4) {
-                $sg = $this->MispObject->SharingGroup->fetchSG($sharing_group_id, $this->Auth->user());
+                $sg = $this->MispObject->SharingGroup->fetchSG($sharingGroupId, $this->Auth->user());
                 if (empty($sg)) {
                     throw new NotFoundException(__('Invalid sharing group.'));
                 }
             } else {
-                $sharing_group_id = 0;
+                $sharingGroupId = 0;
             }
             $object = array(
                 'Object' => array(
                     'distribution' => $distribution,
-                    'sharing_group_id' => $sharing_group_id,
+                    'sharing_group_id' => $sharingGroupId,
                     'comment' => $comment,
                 ),
                 'Attribute' => array()
             );
             $result = $this->MispObject->groupAttributesIntoObject($this->Auth->user(), $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping, $hard_delete_attribute);
             if (is_numeric($result)) {
-                $this->MispObject->Event->unpublishEvent($event_id);
+                $this->MispObject->Event->unpublishEvent($event);
                 return $this->RestResponse->saveSuccessResponse('Objects', 'Created from Attributes', $result, $this->response->type());
             } else {
                 $error = __('Failed to create an Object from Attributes. Error: ') . PHP_EOL . h($result);
                 return $this->RestResponse->saveFailResponse('Objects', 'Created from Attributes', false, $error, $this->response->type());
             }
         } else {
-            $selected_attribute_ids = json_decode($selected_attribute_ids, true);
+            $selected_attribute_ids = $this->_jsonDecode($selected_attribute_ids);
             $selected_attributes = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array(
                 'Attribute.id' => $selected_attribute_ids,
                 'Attribute.event_id' => $event_id,
@@ -1232,7 +1233,7 @@ class ObjectsController extends AppController
             $conformity_result = $this->MispObject->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $selected_attributes);
             $skipped_attributes = 0;
             foreach ($selected_attributes as $i => $attribute) {
-                if (in_array($attribute['Attribute']['type'], $conformity_result['invalidTypes'])) {
+                if (in_array($attribute['Attribute']['type'], $conformity_result['invalidTypes'], true)) {
                     unset($selected_attributes[$i]);
                     $array_position = array_search($attribute['Attribute']['id'], $selected_attribute_ids);
                     unset($selected_attribute_ids[$array_position]);

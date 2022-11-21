@@ -8,6 +8,7 @@ class Module_webhook extends WorkflowBaseActionModule
 {
     public $id = 'webhook';
     public $name = 'Webhook';
+    public $version = '0.2';
     public $description = 'Allow to perform custom callbacks to the provided URL';
     public $icon_path = 'webhook.png';
     public $inputs = 1;
@@ -24,13 +25,13 @@ class Module_webhook extends WorkflowBaseActionModule
         $this->params = [
             [
                 'id' => 'url',
-                'label' => 'Payload URL',
+                'label' => __('Payload URL'),
                 'type' => 'input',
                 'placeholder' => 'https://example.com/test',
             ],
             [
                 'id' => 'content_type',
-                'label' => 'Content type',
+                'label' => __('Content type'),
                 'type' => 'select',
                 'default' => 'json',
                 'options' => [
@@ -40,7 +41,7 @@ class Module_webhook extends WorkflowBaseActionModule
             ],
             [
                 'id' => 'data_extraction_path',
-                'label' => 'Data extraction path',
+                'label' => __('Data extraction path'),
                 'type' => 'input',
                 'default' => '',
                 'placeholder' => 'Attribute.{n}.AttributeTag.{n}.Tag.name',
@@ -48,9 +49,32 @@ class Module_webhook extends WorkflowBaseActionModule
         ];
     }
 
+    public function diagnostic(): array
+    {
+        $errors = array_merge(parent::diagnostic(), []);
+        if (empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
+            $errors = $this->addNotification(
+                $errors,
+                'error',
+                __('`rest_client_enable_arbitrary_urls` is turned off.'),
+                __('The module will not send any request as long as `Security.rest_client_enable_arbitrary_urls` is turned off.'),
+                [
+                    __('This is a security measure to ensure a site-admin do not send arbitrary request to internal services')
+                ],
+                true,
+                true
+            );
+        }
+        return $errors;
+    }
+
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
+        if (empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
+            $errors[] = __('`Security.rest_client_enable_arbitrary_urls` is turned off');
+            return false;
+        }
         $params = $this->getParamsWithValues($node);
         if (empty($params['url']['value'])) {
             $errors[] = __('URL not provided.');
@@ -82,7 +106,7 @@ class Module_webhook extends WorkflowBaseActionModule
         return false;
     }
 
-    private function doRequest($url, $contentType, array $data)
+    protected function doRequest($url, $contentType, $data)
     {
         $this->Event = ClassRegistry::init('Event'); // We just need a model to use AppModel functions
         $version = implode('.', $this->Event->checkMISPVersion());

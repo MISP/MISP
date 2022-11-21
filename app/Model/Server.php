@@ -11,6 +11,7 @@ App::uses('ProcessTool', 'Tools');
  * @property-read array $serverSettings
  * @property-read array $command_line_functions
  * @property Organisation $Organisation
+ * @property User $User
  */
 class Server extends AppModel
 {
@@ -247,6 +248,19 @@ class Server extends AppModel
         if (!empty($server['authkey']) && strlen($server['authkey']) === 40) {
             $server['authkey'] = EncryptedValue::encryptIfEnabled($server['authkey']);
         }
+
+        try {
+            // Clean caches when remote server setting changed
+            $cacheKeys = [
+                "misp:event_index:{$this->id}",
+                "misp:fetched_sightings:{$this->id}",
+                "misp:empty_events:{$this->id}",
+            ];
+            RedisTool::unlink(RedisTool::init(), $cacheKeys);
+        } catch (Exception $e) {
+            // ignore
+        }
+
         return true;
     }
 
@@ -285,10 +299,11 @@ class Server extends AppModel
      * @param array $server
      * @param array $user
      * @param array $pullRules
-     * @param bool $pullRulesEmptiedEvent
+     * @return bool Return true if event was emptied by pull rules
      */
-    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules, bool &$pullRulesEmptiedEvent = false)
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules)
     {
+        $pullRulesEmptiedEvent = false;
         // we have an Event array
         // The event came from a pull, so it should be locked.
         $event['Event']['locked'] = true;
@@ -316,12 +331,13 @@ class Server extends AppModel
                 }
             }
 
-            $typeFilteringEnabled = !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
-                !empty($pullRules['type_attributes']['NOT']);
+            $filterOnTypeEnabled = !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'));
+            $attributeTypeFilteringEnabled = $filterOnTypeEnabled && !empty($pullRules['type_attributes']['NOT']);
+
             if (isset($event['Event']['Attribute'])) {
                 $originalCount = count($event['Event']['Attribute']);
                 foreach ($event['Event']['Attribute'] as $key => $attribute) {
-                    if ($typeFilteringEnabled && in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
+                    if ($attributeTypeFilteringEnabled && in_array($attribute['type'], $pullRules['type_attributes']['NOT'], true)) {
                         unset($event['Event']['Attribute'][$key]);
                         continue;
                     }
@@ -342,17 +358,18 @@ class Server extends AppModel
                         }
                     }
                 }
-                if ($typeFilteringEnabled && $originalCount > 0 && empty($event['Event']['Attribute'])) {
+                if ($attributeTypeFilteringEnabled && $originalCount > 0 && empty($event['Event']['Attribute'])) {
                     $pullRulesEmptiedEvent = true;
                 }
             }
+
             if (isset($event['Event']['Object'])) {
                 $originalObjectCount = count($event['Event']['Object']);
                 foreach ($event['Event']['Object'] as $i => $object) {
                     if (
-                        !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                        $filterOnTypeEnabled &&
                         !empty($pullRules['type_objects']['NOT']) &&
-                        in_array($object['template_uuid'], $pullRules['type_objects']['NOT'])
+                        in_array($object['template_uuid'], $pullRules['type_objects']['NOT'], true)
                     ) {
                         unset($event['Event']['Object'][$i]);
                         continue;
@@ -368,7 +385,7 @@ class Server extends AppModel
                     if (isset($object['Attribute'])) {
                         $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
-                            if ($typeFilteringEnabled && in_array($a['type'], $pullRules['type_attributes']['NOT'])) {
+                            if ($attributeTypeFilteringEnabled && in_array($a['type'], $pullRules['type_attributes']['NOT'], true)) {
                                 unset($event['Event']['Object'][$i]['Attribute'][$j]);
                                 continue;
                             }
@@ -389,13 +406,12 @@ class Server extends AppModel
                                 }
                             }
                         }
-                        if ($typeFilteringEnabled && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
+                        if ($attributeTypeFilteringEnabled && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
                             unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
-                            $pullRulesEmptiedEvent = true;
                         }
                     }
                 }
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalObjectCount > 0 && empty($event['Event']['Object'])) {
+                if ($filterOnTypeEnabled && $originalObjectCount > 0 && empty($event['Event']['Object'])) {
                     $pullRulesEmptiedEvent = true;
                 }
             }
@@ -415,6 +431,8 @@ class Server extends AppModel
 
         // Distribution, set reporter of the event, being the admin that initiated the pull
         $event['Event']['user_id'] = $user['id'];
+
+        return $pullRulesEmptiedEvent;
     }
 
     /**
@@ -541,12 +559,12 @@ class Server extends AppModel
             return false;
         }
 
-        $pullRulesEmptiedEvent = false;
-        $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $pullRulesEmptiedEvent);
+        $pullRulesEmptiedEvent = $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules());
 
         if (!$this->__checkIfEventSaveAble($event)) {
             if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
                 $fails[$eventId] = __('Empty event detected.');
+                $this->addEmptyEvent($serverSync->serverId(), $event);
             }
             return false;
         }
@@ -659,7 +677,7 @@ class Server extends AppModel
         }
 
         $change = sprintf(
-            '%s events, %s proposals, %s sightings and %s galaxyClusters pulled or updated. %s events failed or didn\'t need an update.',
+            '%s events, %s proposals, %s sightings and %s galaxy clusters pulled or updated. %s events failed or didn\'t need an update.',
             count($successes),
             $pulledProposals,
             $pulledSightings,
@@ -730,37 +748,37 @@ class Server extends AppModel
     /**
      * getElligibleClusterIdsFromServerForPull Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
      *
-     * @param array $server
-     * @param mixed $HttpSocket
+     * @param ServerSyncTool $serverSync
      * @param bool $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
-     * @param array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
+     * @param array $eligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
      * @param array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
      * @return array List of cluster IDs to be pulled
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSyncTool, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
+    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSyncTool, $conditions=$conditions);
-        if (!empty($clusterArray)) {
-            foreach ($clusterArray as $cluster) {
-                if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
-                    $localVersion = $elligibleClusters[$cluster['GalaxyCluster']['uuid']];
-                    if ($localVersion >= $cluster['GalaxyCluster']['version']) {
-                        unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
-                    }
+        $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for pull: " . JsonTool::encode($conditions), LOG_INFO);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
+        if (empty($clusterArray)) {
+            return [];
+        }
+        foreach ($clusterArray as $cluster) {
+            if (isset($eligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
+                $localVersion = $eligibleClusters[$cluster['GalaxyCluster']['uuid']];
+                if ($localVersion >= $cluster['GalaxyCluster']['version']) {
+                    unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                }
+            } else {
+                if ($onlyUpdateLocalCluster) {
+                    unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
                 } else {
-                    if ($onlyUpdateLocalCluster) {
-                        unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
-                    } else {
-                        $elligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
-                    }
+                    $eligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
                 }
             }
-            return array_keys($elligibleClusters);
         }
-        return $clusterArray;
+        return array_keys($eligibleClusters);
     }
 
     /**
@@ -775,6 +793,7 @@ class Server extends AppModel
      */
     private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
     {
+        $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for push: " . JsonTool::encode($conditions), LOG_INFO);
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
@@ -796,6 +815,8 @@ class Server extends AppModel
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
+     * @throws JsonException
+     * @throws RedisException
      */
     public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false)
     {
@@ -809,12 +830,38 @@ class Server extends AppModel
         }
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
-        $eventIndex = $serverSync->eventIndex($filterRules)->json();
+
+        // Fetch event index from cache if exists and is not modified
+        $redis = RedisTool::init();
+        $indexFromCache = $redis->get("misp:event_index:{$serverSync->serverId()}");
+        if ($indexFromCache) {
+            list($etag, $eventIndex) = RedisTool::deserialize(RedisTool::decompress($indexFromCache));
+        } else {
+            $etag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
+        }
+
+        $response = $serverSync->eventIndex($filterRules, $etag);
+
+        if ($response->isNotModified() && $indexFromCache) {
+            return $eventIndex;
+        }
+
+        $eventIndex = $response->json();
 
         // correct $eventArray if just one event, probably this response returns old MISP
         if (isset($eventIndex['id'])) {
             $eventIndex = [$eventIndex];
         }
+
+        // Save to cache for 24 hours if ETag provided
+        $etag = $response->getHeader('etag');
+        if ($etag) {
+            $data = RedisTool::compress(RedisTool::serialize([$etag, $eventIndex]));
+            $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
+        } elseif ($indexFromCache) {
+            RedisTool::unlink($redis, "misp:event_index:{$serverSync->serverId()}");
+        }
+
         return $eventIndex;
     }
 
@@ -835,6 +882,44 @@ class Server extends AppModel
         foreach ($events as $k => $event) {
             $uuid = $event['uuid'];
             if (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) {
+                unset($events[$k]);
+            }
+        }
+    }
+
+    /**
+     * @param int $serverId
+     * @param array $event
+     * @return void
+     * @throws RedisException
+     */
+    private function addEmptyEvent($serverId, array $event)
+    {
+        $emptyEventKey = "{$event['Event']['uuid']}:{$event['Event']['timestamp']}";
+        $redis = RedisTool::init();
+        $redis->sAdd("misp:empty_events:$serverId", $emptyEventKey);
+        $redis->expire("misp:empty_events:$serverId", 24 * 3600);
+    }
+
+    /**
+     * Remove from $events array events, that was already fetched before and was empty.
+     * @param int $serverId
+     * @param array $events
+     * @return void
+     */
+    private function removeEmptyEvents($serverId, array &$events)
+    {
+        try {
+            $emptyEvents = RedisTool::init()->sMembers("misp:empty_events:$serverId");
+        } catch (Exception $e) {
+            return;
+        }
+        if (empty($emptyEvents)) {
+            return;
+        }
+        $emptyEvents = array_flip($emptyEvents);
+        foreach ($events as $k => $event) {
+            if (isset($emptyEvents["{$event['uuid']}:{$event['timestamp']}"])) {
                 unset($events[$k]);
             }
         }
@@ -877,6 +962,7 @@ class Server extends AppModel
         }
         if (!$force) {
             $this->removeOlderEvents($eventArray);
+            $this->removeEmptyEvents($serverSync->serverId(), $eventArray);
         }
         return array_column($eventArray, 'uuid');
     }
@@ -1065,18 +1151,23 @@ class Server extends AppModel
                         'excludeGalaxy' => 1
                     ));
                     if (empty($server['Server']['push_sightings'])) {
-                        $params = array_merge($params, array(
-                            'noSightings' => 1
-                        ));
+                        $params['noSightings'] = 1;
                     }
                     $event = $this->Event->fetchEvent($user, $params);
                     $event = $event[0];
                     $event['Event']['locked'] = 1;
-                    if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" != $technique) {
-                        $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
-                    } else {
-                        $clustersSuccesses = array();
+
+                    // Check if remote server supports galaxy cluster push, is set to push and if event will be pushed to
+                    // server
+                    $pushGalaxyClustersForEvent = $push['canEditGalaxyCluster'] &&
+                        $server['Server']['push_galaxy_clusters'] &&
+                        "full" !== $technique &&
+                        $this->Event->shouldBePushedToServer($event, $server);
+
+                    if ($pushGalaxyClustersForEvent) {
+                        $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
                     }
+
                     $result = $this->Event->uploadEventToServer($event, $server, $serverSync);
                     if ('Success' === $result) {
                         $successes[] = $event['Event']['id'];
@@ -1170,9 +1261,9 @@ class Server extends AppModel
     }
 
     /**
-     * syncGalaxyClusters Push elligible clusters depending on the provided technique
+     * syncGalaxyClusters Push eligible clusters depending on the provided technique
      *
-     * @param  mixed $HttpSocket
+     * @param  ServerSyncTool $serverSync
      * @param  array $server
      * @param  array $user
      * @param  string|int $technique Either the 'full' string or the event id
@@ -1181,23 +1272,36 @@ class Server extends AppModel
      */
     public function syncGalaxyClusters(ServerSyncTool $serverSync, array $server, array $user, $technique='full', $event=false)
     {
-        $successes = array();
         if (!$server['Server']['push_galaxy_clusters']) {
-            return $successes;
+            return []; // pushing clusters is not enabled
         }
+
+        $this->log("Starting $technique clusters sync with server #{$serverSync->serverId()}", LOG_INFO);
+
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $this->Event = ClassRegistry::init('Event');
-        $clusters = array();
-        if ($technique == 'full') {
+
+        if ($technique === 'full') {
             $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
         } else {
-            if ($event === false) { // The event from which the cluster should be taken must be provided
-                return $successes;
+            if ($event === false) {
+                throw new InvalidArgumentException('The event from which the cluster should be taken must be provided.');
             }
-            $tagNames = $this->Event->extractAllTagNames($event);
-            if (!empty($tagNames)) {
-                $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $tagNames), $full=true);
+            $tagNames = $this->User->Event->extractAllTagNames($event);
+            if (empty($tagNames)) {
+                return [];
             }
+            // Filter out tag names that are not in custom galaxy cluster format
+            $customGalaxyClusterTags = array_filter($tagNames, function ($tagName) {
+                return $this->User->Event->EventTag->Tag->isCustomGalaxyClusterTag($tagName);
+            });
+            if (empty($customGalaxyClusterTags)) {
+                return [];
+            }
+            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
+        }
+        if (empty($clusters)) {
+            return []; // no local clusters eligible for push
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
         try {
@@ -1206,6 +1310,7 @@ class Server extends AppModel
             $this->logException("Could not get eligible cluster IDs from server #{$server['Server']['id']} for push.", $e);
             return [];
         }
+        $successes = [];
         foreach ($clustersToPush as $cluster) {
             $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $serverSync, $user);
             if ($result === 'Success') {
@@ -2659,16 +2764,6 @@ class Server extends AppModel
         ];
     }
 
-    public function isJson($string)
-    {
-        try {
-            $this->jsonDecode($string);
-            return true;
-        } catch (Exception $e) {
-            return false;
-        }
-    }
-
     public function captureServer($server, $user)
     {
         if (isset($server[0])) {
@@ -2744,7 +2839,7 @@ class Server extends AppModel
         );
 
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
             $output['connection'] = true;
             $output = array_merge($output, $redis->info());
         } catch (Exception $e) {
@@ -2934,8 +3029,7 @@ class Server extends AppModel
     public function getExpectedDBSchema()
     {
         try {
-            $content = FileAccessTool::readFromFile(ROOT . DS . 'db_schema.json');
-            return JsonTool::decode($content);
+            return FileAccessTool::readJsonFromFile(ROOT . DS . 'db_schema.json');
         } catch (Exception $e) {
             return false;
         }
@@ -3155,7 +3249,7 @@ class Server extends AppModel
         $indexDiff = array();
         foreach ($expectedIndex as $tableName => $indexes) {
             if (!array_key_exists($tableName, $actualIndex)) {
-                continue; // If table does not exists, it is covered by the schema diagnostic
+                continue; // If table does not exist, it is covered by the schema diagnostic
             }
             $tableIndexDiff = array_diff(array_keys($indexes), array_keys($actualIndex[$tableName])); // check for missing indexes
             foreach ($tableIndexDiff as $columnDiff) {
@@ -3310,7 +3404,7 @@ class Server extends AppModel
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'yaratest.py';
         try {
             $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
-            $scriptResult = json_decode($scriptResult, true);
+            $scriptResult = JsonTool::decode($scriptResult);
         } catch (Exception $exception) {
             $this->logException('Failed to run yara diagnostics.', $exception);
             return array(
@@ -3339,7 +3433,7 @@ class Server extends AppModel
         }
 
         try {
-            $scriptResult = $this->jsonDecode($scriptResult);
+            $scriptResult = JsonTool::decode($scriptResult);
         } catch (Exception $e) {
             $this->logException('Invalid JSON returned from stixtest', $e);
             return array(
@@ -3494,7 +3588,6 @@ class Server extends AppModel
     {
         $sessionCount = null;
         $sessionHandler = null;
-        $errorCode = 9;
 
         switch (Configure::read('Session.defaults')) {
             case 'php':
@@ -3541,6 +3634,11 @@ class Server extends AppModel
         ];
     }
 
+    /**
+     * @param int $workerIssueCount
+     * @return array
+     * @throws ProcessException
+     */
     public function workerDiagnostics(&$workerIssueCount)
     {
         $worker_array = array(
@@ -3556,13 +3654,18 @@ class Server extends AppModel
             unset($worker_array['scheduler']);
         }
 
-        $workers = $this->getWorkers();
+        try {
+            $workers = $this->getWorkers();
+        } catch (Exception $e) {
+            $this->logException('Could not get list of workers.', $e);
+            return $worker_array;
+        }
 
         $currentUser = ProcessTool::whoami();
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
             if (!is_numeric($pid)) {
-                throw new MethodNotAllowedException('Non numeric PID found.');
+                throw new Exception('Non numeric PID found.');
             }
             $entry = $worker['type'] === 'regular' ? $worker['queue'] : $worker['type'];
             $correctUser = ($currentUser === $worker['user']);
@@ -3926,7 +4029,7 @@ class Server extends AppModel
                 // pass
             }
             if (!empty($execResult)) {
-                $execResult = $this->jsonDecode($execResult);
+                $execResult = JsonTool::decodeArray($execResult);
                 $results['cli']['phpversion'] = $execResult['phpversion'];
                 foreach ($execResult['extensions'] as $extension => $loaded) {
                     $results['extensions'][$extension]['cli_version'] = $loaded;
@@ -5473,6 +5576,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'log_paranoid_api' => array(
+                    'level' => 0,
+                    'description' => __('If this functionality is enabled all API requests will be logged.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'log_paranoid_skip_db' => array(
                     'level' => 0,
                     'description' => __('You can decide to skip the logging of the paranoid logs to the database.'),
@@ -5708,7 +5819,7 @@ class Server extends AppModel
                 ),
                 'custom_css' => array(
                     'level' => 2,
-                    'description' => __('If you would like to customise the css, simply drop a css file in the /var/www/MISP/app/webroot/css directory and enter the name here.'),
+                    'description' => __('If you would like to customise the CSS, simply drop a css file in the /var/www/MISP/app/webroot/css directory and enter the name here.'),
                     'value' => '',
                     'test' => 'testForStyleFile',
                     'type' => 'string',
@@ -5776,6 +5887,23 @@ class Server extends AppModel
                     'type' => 'string',
                     'redacted' => true
                 ),
+                'redis_serializer' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Redis serializer method. WARNING: Changing this setting will drop some cached data.'),
+                    'value' => 'JSON',
+                    'test' => null,
+                    'type' => 'string',
+                    'null' => true,
+                    'options' => [
+                        'JSON' => 'JSON',
+                        'igbinary' => 'igbinary',
+                    ],
+                    'afterHook' => function () {
+                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:wlc:*', 'misp:event_lock:*', 'misp:event_index:*', 'misp:dashboard:*'];
+                        RedisTool::deleteKeysByPattern(RedisTool::init(), $keysToDelete);
+                        return true;
+                    },
+                ],
                 'event_view_filter_fields' => array(
                     'level' => 2,
                     'description' => __('Specify which fields to filter on when you search on the event view. Default values are : "id, uuid, value, comment, type, category, Tag.name"'),
@@ -5961,7 +6089,14 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
-                )
+                ),
+                'key_fetching_disabled' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('When disabled, user could not fetch his PGP key from CIRCL key server. Key fetching requires internet connection.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
             ),
             'SMIME' => array(
                 'branch' => 1,
@@ -6038,6 +6173,7 @@ class Server extends AppModel
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'redacted' => true
                 ),
             ),
             'Security' => array(
@@ -6746,6 +6882,7 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
+                    'redacted' => true
                 ),
                 'ZeroMQ_redis_host' => array(
                     'level' => 2,
@@ -6769,6 +6906,7 @@ class Server extends AppModel
                     'value' => '',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
+                    'redacted' => true
                 ),
                 'ZeroMQ_redis_database' => array(
                     'level' => 2,
@@ -7351,6 +7489,22 @@ class Server extends AppModel
                     'test' => null,
                     'type' => 'string'
                 ],
+                'redis_serializer' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Redis serializer method. WARNING: Changing this setting in production will break your jobs.'),
+                    'value' => 'JSON',
+                    'test' => null,
+                    'type' => 'string',
+                    'null' => true,
+                    'options' => [
+                        'JSON' => 'JSON',
+                        'igbinary' => 'igbinary',
+                    ],
+                    'afterHook' => function () {
+                        $this->getBackgroundJobsTool()->restartWorkers();
+                        return true;
+                    },
+                ],
                 'max_job_history_ttl' => [
                     'level' => self::SETTING_CRITICAL,
                     'description' => __('The time in seconds the job statuses history will be kept.'),
@@ -7495,6 +7649,11 @@ class Server extends AppModel
                     'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
                     'Cache server' => 'MISP/app/Console/cake server cacheServer [user_id] [server_id]',
                     'Cache all servers' => 'MISP/app/Console/cake server cacheServerAll [user_id]',
+                    'List all feeds' => 'MISP/app/Console/cake Server listFeeds [json|table]',
+                    'View feed' => 'MISP/app/Console/cake Server viewFeed [feed_id] [json|table]',
+                    'Toggle feed fetching' => 'MISP/app/Console/cake Server toggleFeed [feed_id]',
+                    'Toggle feed caching' => 'MISP/app/Console/cake Server toggleFeedCaching [feed_id]',
+                    'Load default feed configurations' => 'MISP/app/Console/cake Server loadDefaultFeeds [feed_id]',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',

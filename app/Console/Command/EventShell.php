@@ -15,7 +15,6 @@ require_once 'AppShell.php';
 class EventShell extends AppShell
 {
     public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation', 'Tag');
-    public $tasks = array('ConfigLoad');
 
     public function getOptionParser()
     {
@@ -69,7 +68,7 @@ class EventShell extends AppShell
         $user = $this->getUser($userId);
 
         if (!file_exists($path)) {
-            $this->error("File '$path' does not exists.");
+            $this->error("File '$path' does not exist.");
         }
         if (!is_readable($path)) {
             $this->error("File '$path' is not readable.");
@@ -121,7 +120,6 @@ class EventShell extends AppShell
 
     public function doPublish()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Do publish'] . PHP_EOL);
         }
@@ -157,7 +155,6 @@ class EventShell extends AppShell
 
     public function correlateValue()
     {
-        $this->ConfigLoad->execute();
         $value = $this->args[0];
 
         if (!empty($this->args[1])) {
@@ -182,7 +179,6 @@ class EventShell extends AppShell
 
     public function cache()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache event'] . PHP_EOL);
         }
@@ -223,7 +219,6 @@ class EventShell extends AppShell
 
     private function __runCaching($user, $typeData, $id, $export_type, $subType = '')
     {
-        $this->ConfigLoad->execute();
         $export_type = strtolower($typeData['type']);
         $final = $this->{$typeData['scope']}->restSearch($user, $typeData['params']['returnFormat'], $typeData['params'], false, $id);
         $dir = new Folder(APP . 'tmp/cached_exports/' . $export_type, true, 0750);
@@ -240,7 +235,6 @@ class EventShell extends AppShell
 
     public function cachebro()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache bro'] . PHP_EOL);
         }
@@ -281,7 +275,6 @@ class EventShell extends AppShell
 
     public function alertemail()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Alert email'] . PHP_EOL);
         }
@@ -314,7 +307,6 @@ class EventShell extends AppShell
 
     public function postsemail()
     {
-        $this->ConfigLoad->execute();
         if (
             empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
             empty($this->args[3]) || empty($this->args[4]) || empty($this->args[5])
@@ -348,7 +340,6 @@ class EventShell extends AppShell
 
     public function enqueueCaching()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Enqueue caching'] . PHP_EOL);
         }
@@ -405,7 +396,6 @@ class EventShell extends AppShell
 
     public function publish()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish event'] . PHP_EOL);
         }
@@ -442,8 +432,7 @@ class EventShell extends AppShell
 
         $sightingsUuidsToPush = [];
         if (isset($this->args[4])) { // push just specific sightings
-            $path = $this->args[4][0] === '/' ? $this->args[4] : (APP . 'tmp/cache/ingest' . DS . $this->args[4]);
-            $sightingsUuidsToPush = $this->Event->jsonDecode(FileAccessTool::readAndDelete($path));
+            $sightingsUuidsToPush = $this->getBackgroundJobsTool()->fetchDataFile($this->args[4]);
         }
 
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
@@ -465,7 +454,6 @@ class EventShell extends AppShell
 
     public function publish_galaxy_clusters()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || !array_key_exists(3, $this->args)) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish Galaxy clusters'] . PHP_EOL);
         }
@@ -492,7 +480,6 @@ class EventShell extends AppShell
 
     public function enrichment()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run enrichment'] . PHP_EOL);
         }
@@ -549,9 +536,7 @@ class EventShell extends AppShell
         }
 
         $inputFile = $this->args[0];
-        $inputFile = $inputFile[0] === '/' ? $inputFile : APP . 'tmp/cache/ingest' . DS . $inputFile;
-        $inputData = FileAccessTool::readAndDelete($inputFile);
-        $inputData = $this->Event->jsonDecode($inputData);
+        $inputData = $this->getBackgroundJobsTool()->fetchDataFile($inputFile);
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processFreeTextData(
             $inputData['user'],
@@ -572,9 +557,7 @@ class EventShell extends AppShell
         }
 
         $inputFile = $this->args[0];
-        $inputFile = $inputFile[0] === '/' ? $inputFile : APP . 'tmp/cache/ingest' . DS . $inputFile;
-        $inputData = FileAccessTool::readAndDelete($inputFile);
-        $inputData = $this->Event->jsonDecode($inputData);
+        $inputData = $this->getBackgroundJobsTool()->fetchDataFile($inputFile);
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processModuleResultsData(
             $inputData['user'],
@@ -588,7 +571,6 @@ class EventShell extends AppShell
 
     public function recoverEvent()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Recover event'] . PHP_EOL);
         }
@@ -650,7 +632,7 @@ class EventShell extends AppShell
     {
         $user = $this->User->getAuthUser($userId, true);
         if (empty($user)) {
-            $this->error("User with ID $userId does not exists.");
+            $this->error("User with ID $userId does not exist.");
         }
         Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
         return $user;

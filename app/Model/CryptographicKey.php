@@ -27,56 +27,45 @@ class CryptographicKey extends AppModel
         ERROR_WRONG_KEY = 'Wrong key',
         ERROR_INVALID_KEY = 'Invalid key';
 
-    public $validTypes = [
+    const VALID_TYPES = [
         'pgp'
     ];
 
     public $error = false;
 
-    public $validate = [];
+    public $validate = [
+        'uuid' => [
+            'uuid' => [
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID',
+            ],
+        ],
+        'type' => [
+            'rule' => ['inList', self::VALID_TYPES],
+            'message' => 'Invalid key type',
+            'required' => 'create'
+        ],
+        'key_data' => [
+            'notBlankKey' => [
+                'rule' => 'notBlank',
+                'message' => 'No key data received.',
+                'required' => 'create'
+            ],
+            'validKey' => [
+                'rule' => 'validateKey',
+                'message' => 'Invalid key.',
+                'required' => 'create'
+            ],
+            'uniqueKeyForElement' => [
+                'rule' => 'uniqueKeyForElement',
+                'message' => 'This key is already assigned to the target.',
+                'required' => 'create'
+            ]
+        ]
+    ];
 
     /** @var CryptGpgExtended|null */
     private $gpg;
-
-    public function __construct($id = false, $table = null, $ds = null)
-    {
-        parent::__construct($id, $table, $ds);
-        try {
-            $this->gpg = GpgTool::initializeGpg();
-        } catch (Exception $e) {
-            $this->gpg = null;
-        }
-        $this->validate = [
-            'uuid' => [
-                'uuid' => [
-                    'rule' => 'uuid',
-                    'message' => 'Please provide a valid RFC 4122 UUID',
-                ],
-            ],
-            'type' => [
-                'rule' => ['inList', $this->validTypes],
-                'message' => __('Invalid key type'),
-                'required' => 'create'
-            ],
-            'key_data' => [
-                'notBlankKey' => [
-                    'rule' => 'notBlank',
-                    'message' => __('No key data received.'),
-                    'required' => 'create'
-                ],
-                'validKey' => [
-                    'rule' => 'validateKey',
-                    'message' => __('Invalid key.'),
-                    'required' => 'create'
-                ],
-                'uniqueKeyForElement' => [
-                    'rule' => 'uniqueKeyForElement',
-                    'message' => __('This key is already assigned to the target.'),
-                    'required' => 'create'
-                ]
-            ]
-        ];
-    }
 
     public function beforeSave($options = array())
     {
@@ -89,28 +78,25 @@ class CryptographicKey extends AppModel
     }
 
     /**
-     * @return string Instance key fingerprint
+     * @return string|false Instance key fingerprint or false is no key is set
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      */
     public function ingestInstanceKey()
     {
-        // If instance just key stored just in GPG homedir, use that key.
+        // If instance key is stored just in GPG homedir, use that key.
         if (Configure::read('MISP.download_gpg_from_homedir')) {
-            if (!$this->gpg) {
-                throw new Exception("Could not initiate GPG");
-            }
             /** @var Crypt_GPG_Key[] $keys */
-            $keys = $this->gpg->getKeys(Configure::read('GnuPG.email'));
+            $keys = $this->getGpg()->getKeys(Configure::read('GnuPG.email'));
             if (empty($keys)) {
                 return false;
             }
-            $this->gpg->addSignKey($keys[0], Configure::read('GnuPG.password'));
+            $this->getGpg()->addSignKey($keys[0], Configure::read('GnuPG.password'));
             return $keys[0]->getPrimaryKey()->getFingerprint();
         }
 
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             $redis = false;
         }
@@ -124,24 +110,18 @@ class CryptographicKey extends AppModel
         if (empty($fingerprint)) {
             $file = new File(APP . '/webroot/gpg.asc');
             $instanceKey = $file->read();
-            if (!$this->gpg) {
-                throw new MethodNotAllowedException("Could not initiate GPG");
-            }
             try {
-                $this->gpg->importKey($instanceKey);
+                $this->getGpg()->importKey($instanceKey);
             } catch (Crypt_GPG_NoDataException $e) {
-                throw new MethodNotAllowedException("Could not import the instance key..");
+                throw new MethodNotAllowedException("Could not import the instance key.");
             }
-            $fingerprint = $this->gpg->getFingerprint(Configure::read('GnuPG.email'));
+            $fingerprint = $this->getGpg()->getFingerprint(Configure::read('GnuPG.email'));
             if ($redis) {
                 $redis->setEx($redisKey, 300, $fingerprint);
             }
         }
-        if (!$this->gpg) {
-            throw new MethodNotAllowedException("Could not initiate GPG");
-        }
         try {
-            $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+            $this->getGpg()->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
         } catch (Exception $e) {
             throw new NotFoundException('Could not add signing key.');
         }
@@ -149,8 +129,44 @@ class CryptographicKey extends AppModel
     }
 
     /**
+     * Check if given events are protected by instance key, returns array of Event IDs
+     * @param array $events
+     * @return array Event ID that is protected in key
+     */
+    public function protectedEventsByInstanceKey(array $events)
+    {
+        $eventIds = [];
+        foreach ($events as $event) {
+            if ($event['Event']['protected']) {
+                $eventIds[] = $event['Event']['id'];
+            }
+        }
+
+        if (empty($eventIds)) {
+            return [];
+        }
+
+        try {
+            $instanceKey = $this->ingestInstanceKey();
+        } catch (Exception $e) {
+            // could not fetch instance key
+            return [];
+        }
+
+        return $this->find('column', [
+            'conditions' => [
+                'CryptographicKey.parent_type' => 'Event',
+                'CryptographicKey.parent_id' => $eventIds,
+                'CryptographicKey.fingerprint' => $instanceKey,
+            ],
+            'fields' => ['CryptographicKey.parent_id'],
+            'recursive' => -1,
+        ]);
+    }
+
+    /**
      * @param string $data
-     * @return false|string
+     * @return false|string Signature
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      * @throws Crypt_GPG_KeyNotFoundException
@@ -161,7 +177,7 @@ class CryptographicKey extends AppModel
             return false;
         }
         $data = preg_replace("/\s+/", "", $data);
-        $signature = $this->gpg->sign($data, Crypt_GPG::SIGN_MODE_DETACHED, Crypt_GPG::ARMOR_BINARY);
+        $signature = $this->getGpg()->sign($data, Crypt_GPG::SIGN_MODE_DETACHED, Crypt_GPG::ARMOR_BINARY);
         return $signature;
     }
 
@@ -181,7 +197,7 @@ class CryptographicKey extends AppModel
         }
         $data = preg_replace("/\s+/", "", $data);
         try {
-            $verifiedSignature = $this->gpg->verify($data, $signature);
+            $verifiedSignature = $this->getGpg()->verify($data, $signature);
         } catch (Exception $e) {
             $this->error = self::ERROR_WRONG_KEY;
             return false;
@@ -219,7 +235,7 @@ class CryptographicKey extends AppModel
     private function __extractPGPKeyData($data)
     {
         try {
-            $gpgTool = new GpgTool($this->gpg);
+            $gpgTool = new GpgTool($this->getGpg());
         } catch (Exception $e) {
             $this->logException("GPG couldn't be initialized, GPG encryption and signing will be not available.", $e, LOG_NOTICE);
             return false;
@@ -344,5 +360,20 @@ class CryptographicKey extends AppModel
         );
         $this->deleteAll(['CryptographicKey.id' => $toRemove]);
         $this->loadLog()->createLogEntry($user, 'updateCryptoKeys', $cryptographicKey['parent_type'], $cryptographicKey['parent_id'], $message);
+    }
+
+    /**
+     * Lazy load GPG
+     * @return CryptGpgExtended|null
+     * @throws Exception
+     */
+    private function getGpg()
+    {
+        if ($this->gpg) {
+            return $this->gpg;
+        }
+
+        $this->gpg = GpgTool::initializeGpg();
+        return $this->gpg;
     }
 }

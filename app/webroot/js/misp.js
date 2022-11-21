@@ -13,6 +13,10 @@ if (!String.prototype.startsWith) {
 }
 
 function escapeHtml(unsafe) {
+    if (typeof unsafe === "boolean" || typeof unsafe === "number") {
+        return unsafe;
+    }
+
     return unsafe
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -52,7 +56,9 @@ function rgb2hex(rgb) {
 }
 
 function xhrFailCallback(xhr) {
-    if (xhr.status === 401) {
+    if (xhr.status === 0) {
+        showMessage('fail', 'Something went wrong – server is not responding.');
+    } if (xhr.status === 401) {
         showMessage('fail', 'Unauthorized. Please reload page to log again.');
     } else if (xhr.status === 403 || xhr.status === 405) {
         showMessage('fail', 'Not allowed.');
@@ -86,7 +92,7 @@ function deleteObject(type, action, id) {
 }
 
 function quickDeleteSighting(id, rawId, context) {
-    url = baseurl + "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
+    var url = baseurl + "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
     $.get(url, openConfirmation).fail(xhrFailCallback)
 }
 
@@ -425,7 +431,7 @@ function eventUnpublish() {
     $('.notPublished').show();
 }
 
-function updateIndex(id, context) {
+function updateIndex(id, context, callback) {
     var url, div;
     if (context === 'event') {
         if (typeof currentUri == 'undefined') {
@@ -440,8 +446,12 @@ function updateIndex(id, context) {
     }
     xhr({
         dataType: "html",
-        success:function (data) {
+        success: function (data) {
             $(div).html(data);
+            if (typeof callback !== "undefined") {
+                callback("success");
+            }
+
             if (typeof genericPopupCallback !== "undefined") {
                 genericPopupCallback("success");
             } else {
@@ -789,6 +799,35 @@ function refreshTagCollectionRow(tag_collection_id) {
     });
 }
 
+function modifyTagRelationship() {
+    event.preventDefault();
+    var $form = $(event.target);
+    var action = $form.attr("action");
+
+    $.ajax({
+       type: "post",
+       url: action,
+       data: $form.serialize(),
+       error: xhrFailCallback,
+       success: function (data) {
+           if (data.saved) {
+               $('#genericModal').modal('hide');
+               if ("attribute_id" in data.data) {
+                   var attribute_id = data.data.attribute_id;
+                   loadAttributeTags(attribute_id);
+                   loadGalaxies(attribute_id, 'attribute');
+               } else {
+                   var event_id = data.data.event_id;
+                   loadEventTags(event_id);
+                   loadGalaxies(event_id, 'event');
+               }
+           }
+       }
+    });
+
+    return false;
+}
+
 function handleAjaxEditResponse($td, data, type, id, field) {
     var responseArray = data;
     if (type === 'Attribute') {
@@ -882,8 +921,26 @@ function attributeListAnyAttributeCheckBoxesChecked() {
 }
 
 function listCheckboxesChecked() {
-    if ($('.select:checked').length > 0) $('.mass-select').removeClass('hidden');
-    else $('.mass-select').addClass('hidden');
+    if ($('.select:checked').length > 0)  {
+        $('.mass-select').removeClass('hidden');
+    } else {
+        $('.mass-select').addClass('hidden')
+    }
+}
+
+function listCheckboxesCheckedEventIndex() {
+    // Show mass delete just when user has permission to delete at least one of selected event
+    if ($('.select:checked[data-can-modify="1"]').length > 0) {
+        $('.mass-delete').removeClass('hidden');
+    } else {
+        $('.mass-delete').addClass('hidden');
+    }
+
+    if ($('.select:checked').length > 0) {
+        $('.mass-export').removeClass('hidden');
+    } else {
+        $('.mass-export').addClass('hidden');
+    }
 }
 
 function attributeListAnyProposalCheckBoxesChecked() {
@@ -898,8 +955,8 @@ function taxonomyListAnyCheckBoxesChecked() {
 
 function multiSelectDeleteEvents() {
     var selected = [];
-    $(".select").each(function() {
-        if ($(this).is(":checked")) {
+    $(".select:checked").each(function() {
+        if ($(this).data('can-modify')) {
             var temp = $(this).data("id");
             if (temp != null) {
                 selected.push(temp);
@@ -915,12 +972,10 @@ function deleteEventPopup(eventId) {
 
 function multiSelectExportEvents() {
     var selected = [];
-    $(".select").each(function() {
-        if ($(this).is(":checked")) {
-            var temp = $(this).data("uuid");
-            if (temp != null) {
-                selected.push(temp);
-            }
+    $(".select:checked").each(function() {
+        var temp = $(this).data("id");
+        if (temp != null) {
+            selected.push(temp);
         }
     });
     openGenericModal(baseurl + "/events/restSearchExport/" + JSON.stringify(selected))
@@ -1036,6 +1091,12 @@ function proposeObjectsFromSelectedAttributes(clicked, event_id) {
     popoverPopup(clicked, event_id + '/' + selectedAttributeIds, 'objects', 'proposeObjectsFromAttributes');
 }
 
+function bulkAddRelationshipToSelectedAttributes(clicked, event_id) {
+    var selectedAttributeIds = getSelected();
+    var url = baseurl + '/objectReferences/bulkAdd/' + event_id + '/' + selectedAttributeIds
+    openGenericModal(url)
+}
+
 function hideSelectedTags(taxonomy) {
 	$.get(baseurl + "/taxonomies/taxonomyMassHide/"+taxonomy, openConfirmation).fail(xhrFailCallback);
 }
@@ -1068,9 +1129,9 @@ function getSelectedTaxonomyNames() {
 
 function loadEventTags(id) {
     $.ajax({
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data) {
+        success: function (data) {
             $(".eventTagContainer").html(data);
         },
         url: baseurl + "/tags/showEventTag/" + id,
@@ -1275,10 +1336,8 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 $.get(baseurl + "/sightings/listSightings/" + id + "/attribute", function(data) {
                     $("#sightingsData").html(data);
                 }).fail(xhrFailCallback);
-                $('.sightingsToggle').removeClass('btn-primary');
-                $('.sightingsToggle').addClass('btn-inverse');
-                $('#sightingsListAllToggle').removeClass('btn-inverse');
-                $('#sightingsListAllToggle').addClass('btn-primary');
+                $('.sightingsToggle').removeClass('btn-primary').addClass('btn-inverse');
+                $('#sightingsListAllToggle').removeClass('btn-inverse').addClass('btn-primary');
             }
             if (referer === 'addEventReport' && typeof window.reloadEventReportTable === 'function') {
                 reloadEventReportTable()
@@ -1286,8 +1345,8 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             }
             if (
                 (
-                    context == 'event' &&
-                    (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference' || referer == 'quickAddAttributeForm')
+                    context === 'event' &&
+                    (referer === 'add' || referer === 'massEdit' || referer === 'replaceAttributes' || referer === 'addObjectReference' || referer === 'quickAddAttributeForm')
                 )
             ){
                 eventUnpublish();
@@ -1340,10 +1399,15 @@ function handleAjaxModalResponse(response, context_id, url, referer, context, co
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
     responseArray = response;
-    var message = null;
     var result = "fail";
     if (responseArray.saved) {
-        updateIndex(context_id, context);
+        var callback = function() {
+            // Scroll to edited object after index is updated
+            if (referer === 'quickAddAttributeForm') {
+                scrollToElementIfNotVisible($("#Object_" + context_id + "_tr"));
+            }
+        }
+        updateIndex(context_id, context, callback);
         if (responseArray.success) {
             showMessage("success", responseArray.success);
             result = "success";
@@ -1354,8 +1418,8 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
     } else {
         var savedArray = saveValuesForPersistance();
         $.ajax({
-            dataType:"html",
-            success:function (data, textStatus) {
+            dataType: "html",
+            success: function (data, textStatus) {
                 $("#popover_form").html(data);
                 openPopup("#popover_form");
                 var error_context = context.charAt(0).toUpperCase() + context.slice(1);
@@ -1369,7 +1433,7 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
                 recoverValuesFromPersistance(savedArray);
                 $(".loading").hide();
             },
-            url:url
+            url: url
         });
     }
     return result;
@@ -1631,7 +1695,7 @@ function openPopup(id, adjust_layout, callback) {
             $id.addClass('vertical-scroll');
         } else {
             if (window_height > (300 + popup_height)) {
-                var top_offset = ((window_height - popup_height) / 2) - 150;
+                var top_offset = ((window_height - popup_height) / 2) - 125;
             } else {
                 var top_offset = (window_height - popup_height) / 2;
             }
@@ -3502,8 +3566,8 @@ function gpgSelect(fingerprint) {
     });
 }
 
-function lookupPGPKey(emailFieldName) {
-    var email = $('#' + emailFieldName).val();
+function lookupPGPKey() {
+    var email = $('#UserEmail').val();
     simplePopup(baseurl + "/users/searchGpgKey/" + email);
 }
 
@@ -3664,6 +3728,24 @@ function pivotObjectReferences(url, uuid) {
         return; // object is on the same page, we don't need to reload page
     }
     fetchAttributes(currentUri, {"focus": uuid});
+}
+
+function scrollToElementIfNotVisible($el) {
+    var isInViewport = function($el) {
+        var elementTop = $el.offset().top;
+        var elementBottom = elementTop + $el.outerHeight();
+
+        var viewportTop = $(window).scrollTop();
+        var viewportBottom = viewportTop + $(window).height();
+
+        return elementBottom > viewportTop && elementTop < viewportBottom;
+    };
+
+    if ($el.length && !isInViewport($el)) {
+        $([document.documentElement, document.body]).animate({
+            scrollTop: $el.offset().top - 45, // 42px is #topBar size, so make little bit more space
+        });
+    }
 }
 
 // Attribute filtering
@@ -4500,38 +4582,43 @@ function add_basic_auth() {
 }
 
 function changeObjectReferenceSelectOption(selected, additionalData) {
+    var keys = {
+        "uuid": "UUID",
+        "category": "Category",
+        "type": "Type",
+        "value": "Value",
+        "to_ids": "To IDS",
+        "name": "Name",
+        "meta-category": "Meta category",
+    };
+
     var uuid = selected;
     var type = additionalData.itemOptions[uuid].type;
     $('#ObjectReferenceReferencedUuid').val(uuid);
-    if (type == "Attribute") {
-        $('#targetData').html("");
+    var $targetData = $('#targetData');
+    if (type === "Attribute") {
+        $targetData.html("");
         for (var k in targetEvent[type][uuid]) {
             if ($.inArray(k, ['uuid', 'category', 'type', 'value', 'to_ids']) !== -1) {
-                $('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
-                $('#' + uuid + '_' + k + '_key').text(k);
-                $('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+                $targetData.append('<div><span class="bold">' + keys[k] +  '</span>: ' + escapeHtml(targetEvent[type][uuid][k]) + '</div>');
             }
         }
     } else {
-        $('#targetData').html("");
+        $targetData.html("");
         for (var k in targetEvent[type][uuid]) {
-            if (k == 'Attribute') {
-                $('#targetData').append('<br /><div><span id="header" class="bold">Attributes:</span>');
-                for (attribute in targetEvent[type][uuid]['Attribute']) {
-                    for (k2 in targetEvent[type][uuid]['Attribute'][attribute]) {
+            if (k === 'Attribute') {
+                $targetData.append('<br><div><span id="header" class="bold">Attributes:</span>');
+                for (var attribute in targetEvent[type][uuid]['Attribute']) {
+                    for (var k2 in targetEvent[type][uuid]['Attribute'][attribute]) {
                         if ($.inArray(k2, ['category', 'type', 'value', 'to_ids']) !== -1) {
-                            $('#targetData').append('<div class="indent"><span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key" class="bold"></span>: <span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data"></span></div>');
-                            $('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key').text(k2);
-                            $('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data').text(targetEvent[type][uuid]['Attribute'][attribute][k2]);
+                            $targetData.append('<div class="indent"><span class="bold">' + keys[k2] + '</span>: ' + escapeHtml(targetEvent[type][uuid]['Attribute'][attribute][k2]) + '</div>');
                         }
                     }
-                    $('#targetData').append('<br />');
+                    $targetData.append('<br>');
                 }
             } else {
                 if ($.inArray(k, ['name', 'uuid', 'meta-category']) !== -1) {
-                    $('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
-                    $('#' + uuid + '_' + k + '_key').text(k);
-                    $('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+                    $targetData.append('<div><span class="bold">' + keys[k] +  '</span>: ' + escapeHtml(targetEvent[type][uuid][k]) + '</div>');
                 }
             }
         }
@@ -4807,8 +4894,8 @@ $(document.body).on('keyup', '#quickFilterField', function(e) {
     }
 });
 
-// Send textarea form on CMD+ENTER or CTRL+ENTER
-$(document.body).on('keydown', 'textarea', function(e) {
+// Send textarea or select form on CMD+ENTER or CTRL+ENTER
+$(document.body).on('keydown', 'textarea, select', function(e) {
     if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) { // CMD+ENTER or CTRL+ENTER key
         if (e.target.form) {
             $(e.target.form).submit();
@@ -5376,7 +5463,7 @@ function loadClusterRelations(clusterId) {
     }
 }
 
-function submitGenericFormInPlace() {
+function submitGenericFormInPlace(callback) {
     var $genericForm = $('.genericForm');
     $.ajax({
         type: "POST",
@@ -5386,6 +5473,9 @@ function submitGenericFormInPlace() {
             if (typeof data === "object" && data.hasOwnProperty('redirect')) {
                 window.location = data.redirect;
                 return;
+            }
+            if (callback) {
+                callback(data)
             }
 
             $('#genericModal').modal('hide').remove();
@@ -5631,6 +5721,36 @@ function enableWorkflowDebugMode(workflow_id, currentEnabledState, callback) {
             },
             type: "post",
             url: $formData.find('form').attr('action')
+        });
+    });
+}
+
+// Used in audit and access logs
+function filterSearch(callback) {
+    $('td[data-search]').mouseenter(function() {
+        var $td = $(this);
+        var searchValue = $td.data('search-value');
+        if (searchValue.length === 0) {
+            return;
+        }
+
+        $td.find('#quickEditButton').remove(); // clean all similar if exist
+        var $div = $('<div id="quickEditButton"></div>');
+        $div.addClass('quick-edit-row-div');
+        var $span = $('<span></span>');
+        $span.addClass('fa-as-icon fa fa-search-plus');
+        $span.css('font-size', '12px');
+        $span.prop('title', 'Filter by this value');
+        $div.append($span);
+        $td.append($div);
+
+        $span.click(function (e) {
+            var searchKey = $td.data('search');
+            callback(e, searchKey, searchValue);
+        });
+
+        $td.off('mouseleave').on('mouseleave', function() {
+            $div.remove();
         });
     });
 }

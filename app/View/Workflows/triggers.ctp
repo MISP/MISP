@@ -15,6 +15,15 @@
         ],
     ];
 
+    $scopesFilters = [];
+    foreach ($scopes as $scope) {
+        $scopesFilters[] = [
+            'url' => $baseurl . sprintf('/workflows/triggers/scope:%s', h($scope)),
+            'text' => h($scope),
+            'active' => !empty($filters['scope']) && $filters['scope'] == $scope,
+        ];
+    }
+
     $fields = [
         [
             'name' => __('Trigger name'),
@@ -137,6 +146,47 @@
             'data' => [
                 'data' => $data,
                 'top_bar' => [
+                    'children' => [
+                        [
+                            'type' => 'simple',
+                            'children' => [
+                                [
+                                    'url' => $baseurl . '/workflows/triggers',
+                                    'text' => __('All'),
+                                    'active' => empty($filters['scope']) && !isset($filters['enabled']) && empty($filters['blocking']),
+                                ],
+                            ],
+                        ],
+                        [
+                            'type' => 'simple',
+                            'children' => $scopesFilters,
+                        ],
+                        [
+                            'type' => 'simple',
+                            'children' => [
+                                [
+                                    'url' => $baseurl . '/workflows/triggers/blocking:1',
+                                    'text' => __('Blocking'),
+                                    'active' => !empty($filters['blocking']),
+                                ],
+                            ]
+                        ],
+                        [
+                            'type' => 'simple',
+                            'children' => [
+                                [
+                                    'url' => $baseurl . '/workflows/triggers/enabled:1',
+                                    'text' => __('Enabled'),
+                                    'active' => !empty($filters['enabled']),
+                                ],
+                                [
+                                    'url' => $baseurl . '/workflows/triggers/enabled:0',
+                                    'text' => __('Disabled'),
+                                    'active' => isset($filters['enabled']) && empty($filters['enabled']),
+                                ],
+                            ]
+                        ],
+                    ]
                 ],
                 'fields' => $fields,
                 'icon' => 'flag',

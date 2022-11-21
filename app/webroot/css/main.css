@@ -867,6 +867,10 @@ a.proposal_link_red:hover {
     color:white;
 }
 
+a.black-white:hover {
+    color: white;
+}
+
 .tagFirstHalf {
     display: inline-block;
     padding: 2px 4px;
@@ -910,7 +914,10 @@ a.proposal_link_red:hover {
     width: 300px;
     top:calc(50% - 50px);
     left:calc(50% - 150px);
+    max-height:calc(30% + 50px);
     position: fixed;
+    overflow: auto;
+    overflow-x: hidden;
     background-color:#f4f4f4;
     border-radius: 5px;
     box-shadow: 4px 4px 4px #333;
@@ -993,6 +1000,15 @@ a.proposal_link_red:hover {
     border: 1px solid #ddd;
     color: #6b6b6b;
     border-radius: 3px 0 3px 0;
+}
+
+.report-container {
+    margin: 0 auto;
+    max-width: 1500px;
+    justify-content: center;
+    padding: 10px 15px;
+    overflow-y: auto;
+    box-shadow: 0 2px 6px 6px #eee;
 }
 
 .modal-body-long {
@@ -1850,7 +1866,7 @@ span.success {
     color:white;
 }
 
-input.select, input.select_attribute {
+input.select, input.select_attribute, input.select-all {
     margin-top: 0; /* remove top margin for checkboxes in index table */
 }
 
@@ -2837,7 +2853,7 @@ Query builder
 }
 
 /* Fix text input for query builder */
-.query-builder .rule-value-container input[type="text"] {
+.query-builder .rule-value-container input[type="text"], .query-builder .rule-value-container input[type="number"] {
     padding: 4px !important;
     height: 30px;
 }

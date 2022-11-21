@@ -9,7 +9,7 @@ App::uses('AppModel', 'Model');
 class AuditLog extends AppModel
 {
     const BROTLI_HEADER = "\xce\xb2\xcf\x81";
-    const BROTLI_MIN_LENGTH = 200;
+    const COMPRESS_MIN_LENGTH = 256;
 
     const ACTION_ADD = 'add',
         ACTION_EDIT = 'edit',
@@ -46,9 +46,6 @@ class AuditLog extends AppModel
     private $pubToZmq;
 
     /** @var bool */
-    private $elasticLogging;
-
-    /** @var bool */
     private $logClientIp;
 
     /**
@@ -59,6 +56,7 @@ class AuditLog extends AppModel
 
     public $compressionStats = [
         'compressed' => 0,
+        'bytes_total' => 0,
         'bytes_compressed' => 0,
         'bytes_uncompressed' => 0,
     ];
@@ -81,9 +79,9 @@ class AuditLog extends AppModel
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-        $this->compressionEnabled = Configure::read('MISP.log_new_audit_compress') && function_exists('brotli_compress');
+        $this->compressionEnabled = Configure::read('MISP.log_new_audit_compress') &&
+            function_exists('brotli_compress');
         $this->pubToZmq = $this->pubToZmq('audit');
-        $this->elasticLogging = Configure::read('Plugin.ElasticSearch_logging_enable');
         $this->logClientIp = Configure::read('MISP.log_client_ip');
     }
 
@@ -146,16 +144,33 @@ class AuditLog extends AppModel
     }
 
     /**
+     * @param mixed $change
+     * @return string
+     * @throws JsonException
+     */
+    private function encodeChange($change)
+    {
+        $change = JsonTool::encode($change);
+        if ($this->compressionEnabled && strlen($change) >= self::COMPRESS_MIN_LENGTH) {
+            return self::BROTLI_HEADER . brotli_compress($change, 4, BROTLI_TEXT);
+        }
+        return $change;
+    }
+
+    /**
      * @param string $change
      * @return array|string
      * @throws JsonException
      */
     private function decodeChange($change)
     {
-        if (substr($change, 0, 4) === self::BROTLI_HEADER) {
+        $len = strlen($change);
+        $this->compressionStats['bytes_total'] += $len;
+        $header = substr($change, 0, 4);
+        if ($header === self::BROTLI_HEADER) {
             $this->compressionStats['compressed']++;
             if (function_exists('brotli_uncompress')) {
-                $this->compressionStats['bytes_compressed'] += strlen($change);
+                $this->compressionStats['bytes_compressed'] += $len;
                 $change = brotli_uncompress(substr($change, 4));
                 $this->compressionStats['bytes_uncompressed'] += strlen($change);
                 if ($change === false) {
@@ -165,7 +180,7 @@ class AuditLog extends AppModel
                 return 'Compressed';
             }
         }
-        return $this->jsonDecode($change);
+        return JsonTool::decode($change);
     }
 
     public function beforeValidate($options = array())
@@ -222,11 +237,7 @@ class AuditLog extends AppModel
         }
 
         if (isset($auditLog['change'])) {
-            $change = JsonTool::encode($auditLog['change']);
-            if ($this->compressionEnabled && strlen($change) >= self::BROTLI_MIN_LENGTH) {
-                $change = self::BROTLI_HEADER . brotli_compress($change, 4, BROTLI_TEXT);
-            }
-            $auditLog['change'] = $change;
+            $auditLog['change'] = $this->encodeChange($auditLog['change']);
         }
     }
 
@@ -243,12 +254,7 @@ class AuditLog extends AppModel
 
         $this->publishKafkaNotification('audit', $data, 'log');
 
-        if ($this->elasticLogging) {
-            // send off our logs to distributed /dev/null
-            $logIndex = Configure::read("Plugin.ElasticSearch_log_index");
-            $elasticSearchClient = $this->getElasticSearchTool();
-            $elasticSearchClient->pushDocument($logIndex, "log", $data);
-        }
+        // In future add support for sending logs to elastic
 
         // write to syslogd as well if enabled
         if ($this->syslog === null) {
@@ -334,15 +340,34 @@ class AuditLog extends AppModel
         }
     }
 
+    /**
+     * @throws JsonException
+     * @throws Exception
+     */
     public function recompress()
     {
         $changes = $this->find('all', [
             'fields' => ['AuditLog.id', 'AuditLog.change'],
             'recursive' => -1,
-            'conditions' => ['length(AuditLog.change) >=' => self::BROTLI_MIN_LENGTH],
+            'conditions' => ['OR' => [
+                ['length(AuditLog.change) >=' => self::COMPRESS_MIN_LENGTH],
+                ['AuditLog.change LIKE' => self::BROTLI_HEADER . '%'],
+            ]],
         ]);
-        foreach ($changes as $change) {
-            $this->save($change, true, ['id', 'change']);
+
+        $options = [
+            'validate' => false,
+            'callbacks' => false,
+            'fieldList' => ['change'],
+        ];
+
+        foreach (array_chunk($changes, 100) as $chunk) {
+            $toSave = [];
+            foreach ($chunk as $change) {
+                $change['AuditLog']['change'] = $this->encodeChange($change['AuditLog']['change']);
+                $toSave[] = $change;
+            }
+            $this->saveMany($toSave, $options);
         }
     }
 

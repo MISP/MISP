@@ -90,7 +90,8 @@ class BackgroundJobsTool
         self::CMD_WORKFLOW => 'WorkflowShell',
     ];
 
-    const JOB_STATUS_PREFIX = 'job_status';
+    const JOB_STATUS_PREFIX = 'job_status',
+        DATA_CONTENT_PREFIX = 'data_content';
 
     /** @var array */
     private $settings;
@@ -123,6 +124,47 @@ class BackgroundJobsTool
         if ($this->settings['enabled'] === true) {
             $this->RedisConnection = $this->createRedisConnection();
         }
+    }
+
+    /**
+     * @param array $data
+     * @return string Full path to data file or `redis:UUID` when data are stored in Redis
+     * @throws JsonException
+     * @throws RedisException
+     */
+    public function enqueueDataFile(array $data)
+    {
+        if (!$this->settings['enabled']) {
+            // Store serialized data to tmp file when SimpleBackgroundJobs are not enabled
+            return FileAccessTool::writeToTempFile(JsonTool::encode($data));
+        }
+
+        // Keep content stored in Redis for 24 hours, that should be enough to process that data
+        $uuid = CakeText::uuid();
+        $this->RedisConnection->setex(self::DATA_CONTENT_PREFIX . ':' . $uuid, 24 * 3600, $data);
+        return "redis:$uuid";
+    }
+
+    /**
+     * @param string $path
+     * @return array Deserialized data
+     * @throws JsonException
+     * @throws RedisException
+     */
+    public function fetchDataFile($path)
+    {
+        if (strpos($path, 'redis:') === 0) {
+            $uuid = substr($path, 6);
+            $data = $this->RedisConnection->get(self::DATA_CONTENT_PREFIX . ':' . $uuid);
+            if ($data === false) {
+                throw new Exception("Redis data key with UUID $uuid doesn't exists.");
+            }
+            RedisTool::unlink($this->RedisConnection, self::DATA_CONTENT_PREFIX . ':' . $uuid);
+            return $data;
+        } else if ($path[0] !== '/') { // deprecated storage location when not full path is provided
+            $path = APP . 'tmp/cache/ingest' . DS . $path;
+        }
+        return JsonTool::decode(FileAccessTool::readAndDelete($path));
     }
 
     /**
@@ -162,12 +204,10 @@ class BackgroundJobsTool
             ]
         );
 
-        $this->RedisConnection->rpush(
-            $queue,
-            $backgroundJob
-        );
-
+        $this->RedisConnection->pipeline();
+        $this->RedisConnection->rpush($queue, $backgroundJob);
         $this->update($backgroundJob);
+        $this->RedisConnection->exec();
 
         if ($jobId) {
             $this->updateJobProcessId($jobId, $backgroundJob->id());
@@ -218,6 +258,7 @@ class BackgroundJobsTool
      *                  Must be less than your configured `read_write_timeout`
      *                  for the redis connection.
      *
+     * @return BackgroundJob|null
      * @throws Exception
      */
     public function dequeue($queue, int $timeout = 30)
@@ -227,6 +268,9 @@ class BackgroundJobsTool
         $rawJob = $this->RedisConnection->blpop($queue, $timeout);
 
         if (!empty($rawJob)) {
+            if ($rawJob[1] instanceof BackgroundJob) {
+                return $rawJob[1];
+            }
             return new BackgroundJob($rawJob[1]);
         }
 
@@ -237,6 +281,8 @@ class BackgroundJobsTool
      * Get the job status.
      *
      * @param string $jobId Background Job Id.
+     * @return BackgroundJob|null
+     * @throws RedisException
      */
     public function getJob(string $jobId)
     {
@@ -244,7 +290,9 @@ class BackgroundJobsTool
             self::JOB_STATUS_PREFIX . ':' . $jobId
         );
 
-        if ($rawJob) {
+        if ($rawJob instanceof BackgroundJob) {
+            return $rawJob;
+        } else if ($rawJob) {
             return new BackgroundJob($rawJob);
         }
 
@@ -285,7 +333,7 @@ class BackgroundJobsTool
         try {
             $procs = $this->getSupervisor()->getAllProcesses();
         } catch (\Exception $exception) {
-            CakeLog::error("An error occured when getting the workers statuses via Supervisor API: {$exception->getMessage()}");
+            CakeLog::error("An error occurred when getting the workers statuses via Supervisor API: {$exception->getMessage()}");
             return [];
         }
 
@@ -584,15 +632,20 @@ class BackgroundJobsTool
             throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
         }
 
+        if (!isset($this->settings['redis_host'])) {
+            throw new RuntimeException("Required option `redis_host` for BackgroundJobsTool is not set.");
+        }
+
         $redis = new Redis();
         $redis->connect($this->settings['redis_host'], $this->settings['redis_port']);
-        $redis->setOption(Redis::OPT_SERIALIZER, Redis::SERIALIZER_JSON);
+        $serializer = $this->settings['redis_serializer'] ?? false;
+        $serializer = $serializer === 'igbinary' ? Redis::SERIALIZER_IGBINARY : Redis::SERIALIZER_JSON;
+        $redis->setOption(Redis::OPT_SERIALIZER, $serializer);
         $redis->setOption(Redis::OPT_PREFIX, $this->settings['redis_namespace'] . ':');
         if (isset($this->settings['redis_read_timeout'])) {
             $redis->setOption(Redis::OPT_READ_TIMEOUT, $this->settings['redis_read_timeout']);
         }
         $redisPassword = $this->settings['redis_password'];
-
         if (!empty($redisPassword)) {
             $redis->auth($redisPassword);
         }
@@ -627,6 +680,10 @@ class BackgroundJobsTool
                     $this->settings['supervisor_password'],
                 ],
             ];
+        }
+
+        if (!isset($this->settings['supervisor_host'])) {
+            throw new RuntimeException("Required option `supervisor_host` for BackgroundJobsTool is not set.");
         }
 
         $host = null;

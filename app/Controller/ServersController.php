@@ -289,7 +289,7 @@ class ServersController extends AppController
                 $this->request->data['Server']['internal'] = 0;
             }
             // test the filter fields
-            if (!empty($this->request->data['Server']['pull_rules']) && !$this->Server->isJson($this->request->data['Server']['pull_rules'])) {
+            if (!empty($this->request->data['Server']['pull_rules']) && !JsonTool::isValid($this->request->data['Server']['pull_rules'])) {
                 $fail = true;
                 $error_msg = __('The pull filter rules must be in valid JSON format.');
                 if ($this->_isRest()) {
@@ -299,7 +299,7 @@ class ServersController extends AppController
                 }
             }
 
-            if (!$fail && !empty($this->request->data['Server']['push_rules']) && !$this->Server->isJson($this->request->data['Server']['push_rules'])) {
+            if (!$fail && !empty($this->request->data['Server']['push_rules']) && !JsonTool::isValid($this->request->data['Server']['push_rules'])) {
                 $fail = true;
                 $error_msg = __('The push filter rules must be in valid JSON format.');
                 if ($this->_isRest()) {
@@ -322,7 +322,8 @@ class ServersController extends AppController
                         'json' => '[]',
                         'push_rules' => $defaultPushRules,
                         'pull_rules' => $defaultPullRules,
-                        'self_signed' => 0
+                        'self_signed' => 0,
+                        'remove_missing_tags' => 0
                     );
                     foreach ($defaults as $default => $dvalue) {
                         if (!isset($this->request->data['Server'][$default])) {
@@ -483,7 +484,7 @@ class ServersController extends AppController
             $fail = false;
 
             // test the filter fields
-            if (!empty($this->request->data['Server']['pull_rules']) && !$this->Server->isJson($this->request->data['Server']['pull_rules'])) {
+            if (!empty($this->request->data['Server']['pull_rules']) && !JsonTool::isValid($this->request->data['Server']['pull_rules'])) {
                 $fail = true;
                 $error_msg = __('The pull filter rules must be in valid JSON format.');
                 if ($this->_isRest()) {
@@ -493,7 +494,7 @@ class ServersController extends AppController
                 }
             }
 
-            if (!$fail && !empty($this->request->data['Server']['push_rules']) && !$this->Server->isJson($this->request->data['Server']['push_rules'])) {
+            if (!$fail && !empty($this->request->data['Server']['push_rules']) && !JsonTool::isValid($this->request->data['Server']['push_rules'])) {
                 $fail = true;
                 $error_msg = __('The push filter rules must be in valid JSON format.');
                 if ($this->_isRest()) {
@@ -502,7 +503,7 @@ class ServersController extends AppController
                     $this->Flash->error($error_msg);
                 }
             }
-            $pushRules = $this->Server->jsonDecode($this->request->data['Server']['push_rules']);
+            $pushRules = $this->_jsonDecode($this->request->data['Server']['push_rules']);
             $this->loadModel('Tag');
             foreach ($pushRules['tags'] as $operator => $list) {
                 foreach ($list as $i => $tagName) {
@@ -514,7 +515,7 @@ class ServersController extends AppController
             }
             if (!$fail) {
                 // say what fields are to be updated
-                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
+                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
                 $this->request->data['Server']['id'] = $id;
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
@@ -750,9 +751,7 @@ class ServersController extends AppController
             throw new NotFoundException(__('Invalid server'));
         }
         $error = false;
-        if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
+
         if (false == $s['Server']['pull'] && ($technique === 'full' || $technique === 'incremental')) {
             $error = __('Pull setting not enabled for this server.');
         }
@@ -831,9 +830,7 @@ class ServersController extends AppController
             throw new NotFoundException(__('Invalid server'));
         }
         $s = $this->Server->read(null, $id);
-        if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
+
         if (!Configure::read('MISP.background_jobs')) {
             App::uses('SyncTool', 'Tools');
             $syncTool = new SyncTool();
@@ -1380,6 +1377,11 @@ class ServersController extends AppController
                         return;
                     }
 
+                    if (empty($remote_event)) {
+                        $this->Flash->error(__("This event could not be found or you don't have permissions to see it."));
+                        return;
+                    }
+
                     $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $remote_event['uuid']);
                     // we record it to avoid re-querying the same server in the 2nd phase
                     if (!empty($local_event)) {
@@ -1834,13 +1836,14 @@ class ServersController extends AppController
 
     public function getVersion()
     {
+        $user = $this->_closeSession();
         $versionArray = $this->Server->checkMISPVersion();
         $response = [
             'version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'],
             'pymisp_recommended_version' => $this->pyMispVersion,
-            'perm_sync' => (bool) $this->userRole['perm_sync'],
-            'perm_sighting' => (bool) $this->userRole['perm_sighting'],
-            'perm_galaxy_editor' => (bool) $this->userRole['perm_galaxy_editor'],
+            'perm_sync' => (bool) $user['Role']['perm_sync'],
+            'perm_sighting' => (bool) $user['Role']['perm_sighting'],
+            'perm_galaxy_editor' => (bool) $user['Role']['perm_galaxy_editor'],
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
         ];
@@ -2064,7 +2067,7 @@ class ServersController extends AppController
         }
         if (Configure::read('Security.advanced_authkeys')) {
             $this->loadModel('AuthKey');
-            $authkey = $this->AuthKey->createnewkey($this->Auth->user('id'), __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
+            $authkey = $this->AuthKey->createnewkey($this->Auth->user('id'), null, __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
         } else {
             $this->loadModel('User');
             $authkey = $this->User->find('column', [

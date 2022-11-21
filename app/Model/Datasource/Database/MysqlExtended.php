@@ -8,6 +8,16 @@ App::uses('Mysql', 'Model/Datasource/Database');
 class MysqlExtended extends Mysql
 {
     /**
+     * Output MD5 as binary, that is faster and uses less memory
+     * @param string $value
+     * @return string
+     */
+    public function cacheMethodHasher($value)
+    {
+        return md5($value, true);
+    }
+
+    /**
      * Builds and generates an SQL statement from an array. Handles final clean-up before conversion.
      *
      * @param array $query An array defining an SQL query.
@@ -39,7 +49,7 @@ class MysqlExtended extends Mysql
             'group' => $this->group($query['group'], $Model),
             'having' => $this->having($query['having'], true, $Model),
             'lock' => $this->getLockingHint($query['lock']),
-            'indexHint' => $this->__buildIndexHint($query['useIndexHint'] ?? null),
+            'indexHint' => $this->__buildIndexHint($query['forceIndexHint'] ?? null),
         ));
     }
 
@@ -71,7 +81,7 @@ class MysqlExtended extends Mysql
                 'group' => $queryData['group'],
                 'having' => $queryData['having'],
                 'lock' => $queryData['lock'],
-                'useIndexHint' => $queryData['useIndexHint'] ?? null,
+                'forceIndexHint' => $queryData['forceIndexHint'] ?? null,
             ),
             $Model
         );
@@ -87,30 +97,136 @@ class MysqlExtended extends Mysql
      * @return string|null Rendered SQL expression to be run, otherwise null.\
      * @see DboSource::renderStatement()
      */
-
     public function renderStatement($type, $data)
     {
-        if ($type === 'select' && $data['indexHint'] != null) {
+        if ($type === 'select') {
             extract($data);
             $having = !empty($having) ? " $having" : '';
-            return trim("SELECT {$fields} FROM {$table} {$alias} {$indexHint} {$joins} {$conditions} {$group}{$having} {$order} {$limit}{$lock}");
-        } else {
-            return parent::renderStatement($type, $data);
+            $lock = !empty($lock) ? " $lock" : '';
+            return rtrim("SELECT {$fields} FROM {$table} {$alias} {$indexHint} {$joins} {$conditions} {$group}{$having} {$order} {$limit}{$lock}");
         }
+        return parent::renderStatement($type, $data);
     }
 
     /**
      * Builds the index hint for the query
      * 
-     * @param string|null $useIndexHint USE INDEX hint
+     * @param string|null $forceIndexHint FORCE INDEX hint
      * @return string
      */
-    private function __buildIndexHint($useIndexHint = null): string
+    private function __buildIndexHint($forceIndexHint = null): ?string
     {
-        $index = '';
-        if (isset($useIndexHint)) {
-            $index = 'USE INDEX ' . $useIndexHint;
+        return isset($forceIndexHint) ? ('FORCE INDEX ' . $forceIndexHint) : null;
+    }
+
+    /**
+     * - Do not call microtime when not necessary
+     * - Count query count even when logging is disabled
+     *
+     * @param string $sql
+     * @param array $options
+     * @param array $params
+     * @return mixed
+     */
+    public function execute($sql, $options = [], $params = [])
+    {
+        $log = $options['log'] ?? $this->fullDebug;
+
+        if ($log) {
+            $t = microtime(true);
+            $this->_result = $this->_execute($sql, $params);
+            $this->took = round((microtime(true) - $t) * 1000);
+            $this->numRows = $this->affected = $this->lastAffected();
+            $this->logQuery($sql, $params);
+        } else {
+            $this->_result = $this->_execute($sql, $params);
+            $this->_queriesCnt++;
         }
-        return $index;
+
+        return $this->_result;
+    }
+
+    /**
+     * Reduce memory usage for insertMulti
+     *
+     * @param string $table
+     * @param array $fields
+     * @param array $values
+     * @return bool
+     */
+    public function insertMulti($table, $fields, $values)
+    {
+        $table = $this->fullTableName($table);
+        $holder = implode(',', array_fill(0, count($fields), '?'));
+        $fields = implode(',', array_map([$this, 'name'], $fields));
+        $pdoMap = [
+            'integer' => PDO::PARAM_INT,
+            'float' => PDO::PARAM_STR,
+            'boolean' => PDO::PARAM_BOOL,
+            'string' => PDO::PARAM_STR,
+            'text' => PDO::PARAM_STR
+        ];
+        $columnMap = [];
+        foreach ($values[key($values)] as $key => $val) {
+            if (is_int($val)) {
+                $columnMap[$key] = PDO::PARAM_INT;
+            } elseif (is_bool($val)) {
+                $columnMap[$key] = PDO::PARAM_BOOL;
+            } else {
+                $type = $this->introspectType($val);
+                $columnMap[$key] = $pdoMap[$type];
+            }
+        }
+
+        $sql = "INSERT INTO $table ($fields) VALUES ";
+        $sql .= implode(',', array_fill(0, count($values), "($holder)"));
+        $statement = $this->_connection->prepare($sql);
+        $valuesList = array();
+        $i = 1;
+        foreach ($values as $value) {
+            foreach ($value as $col => $val) {
+                if ($this->fullDebug) {
+                    $valuesList[] = $val;
+                }
+                $statement->bindValue($i++, $val, $columnMap[$col]);
+            }
+        }
+        $result = $statement->execute();
+        $statement->closeCursor();
+        if ($this->fullDebug) {
+            $this->logQuery($sql, $valuesList);
+        }
+        return $result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function value($data, $column = null, $null = true)
+    {
+        // Fast check if data is int, then return value
+        if (is_int($data)) {
+            return $data;
+        }
+
+        // No need to quote bool values
+        if (is_bool($data)) {
+            return $data ? '1' : '0';
+        }
+
+        // No need to call expensive array_map
+        if (is_array($data) && !empty($data)) {
+            $output = [];
+            foreach ($data as $d) {
+                if (is_int($d)) {
+                    $output[] = $d;
+                } else {
+                    $output[] = parent::value($d, $column);
+                }
+            }
+            return $output;
+        }
+
+        return parent::value($data, $column, $null);
     }
 }

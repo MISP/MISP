@@ -15,7 +15,7 @@
                 <th><?php echo __('Object name'); ?></th>
                 <th><?php echo __('Category'); ?></th>
                 <th><?php echo __('Description'); ?></th>
-                <th title="<?php echo __('Compatiblity or Attribute type missing from the selection'); ?>"><?php echo __('Compatiblity'); ?></th>
+                <th title="<?php echo __('Compatibility or Attribute type missing from the selection'); ?>"><?php echo __('Compatibility'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -28,7 +28,7 @@
                     <td><?php echo h($potential_template['ObjectTemplate']['meta-category']); ?></td>
                     <?php
                         $v = h($potential_template['ObjectTemplate']['description']);
-                        $v = strlen($v) > 100 ? substr($v, 0, 100) . '...' : $v;
+                        $v = strlen($v) > 100 ? mb_substr($v, 0, 100) . '&hellip;' : $v;
                     ?>
                     <td style="max-width: 500px;" title="<?php echo h($potential_template['ObjectTemplate']['description']); ?>">
                         <?php echo $v; ?>

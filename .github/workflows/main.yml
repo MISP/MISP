@@ -181,7 +181,7 @@ jobs:
         run: sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
 
       - name: Update Warninglists
-        run: sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
+        run: sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists --verbose'
 
       - name: Update Noticelists
         run: sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'

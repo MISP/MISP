@@ -93,7 +93,7 @@ class GalaxyElementsController extends AppController
     {
         $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, array('edit'), true, false);
         if ($this->request->is('post') || $this->request->is('put')) {
-            $json = $this->GalaxyElement->jsonDecode($this->request->data['GalaxyElement']['jsonData']);
+            $json = $this->_jsonDecode($this->request->data['GalaxyElement']['jsonData']);
             $flattened = Hash::flatten($json);
             $newElements = [];
             foreach ($flattened as $k => $v) {

@@ -5,7 +5,7 @@ echo $this->element('genericElements/Form/genericForm', [
         'enctype' => 'multipart/form-data',
     ],
     'data' => [
-        'model' => 'Workflow',
+        'model' => 'WorkflowBlueprint',
         'title' => __('Import Workflow Blueprint'),
         'description' => __('Paste a JSON of a Workflow blueprint to import it or provide a JSON file below.'),
         'fields' => [

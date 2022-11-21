@@ -16,8 +16,6 @@ class CorrelationExclusion extends AppModel
         'Containable',
     );
 
-    private $__redis = null;
-
     public $validate = [
         'value' => [
             'uniqueValue' => [
@@ -54,15 +52,15 @@ class CorrelationExclusion extends AppModel
     public function cacheValues()
     {
         try {
-            $this->__redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
-        $this->__redis->del($this->key);
+        RedisTool::unlink($redis, $this->key);
         $exclusions = $this->find('column', [
             'fields' => ['value']
         ]);
-        $this->__redis->sAddArray($this->key, $exclusions);
+        $redis->sAddArray($this->key, $exclusions);
     }
 
     public function cleanRouter($user)

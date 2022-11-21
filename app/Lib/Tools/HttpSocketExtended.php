@@ -66,6 +66,14 @@ class HttpSocketJsonException extends Exception
 class HttpSocketResponseExtended extends HttpSocketResponse
 {
     /**
+     * @return bool
+     */
+    public function isNotModified()
+    {
+        return $this->code == 304;
+    }
+
+    /**
      * @param string $message
      * @throws SocketException
      */
@@ -102,16 +110,7 @@ class HttpSocketResponseExtended extends HttpSocketResponse
     public function json()
     {
         try {
-            if (defined('JSON_THROW_ON_ERROR')) {
-                // JSON_THROW_ON_ERROR is supported since PHP 7.3
-                $decoded = json_decode($this->body, true, 512, JSON_THROW_ON_ERROR);
-            } else {
-                $decoded = json_decode($this->body, true);
-                if ($decoded === null) {
-                    throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
-                }
-            }
-            return $decoded;
+            return JsonTool::decode($this->body);
         } catch (Exception $e) {
             throw new HttpSocketJsonException('Could not parse response as JSON.', $this, $e);
         }

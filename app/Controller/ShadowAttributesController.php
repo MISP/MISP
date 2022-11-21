@@ -405,6 +405,7 @@ class ShadowAttributesController extends AppController
             $this->request->data['ShadowAttribute']['event_id'] = $event['Event']['id'];
         }
         $this->set('event_id', $event['Event']['id']);
+        $this->set('event', $event);
         // combobox for types
         $types = $this->ShadowAttribute->Attribute->getNonAttachmentTypes();
         $types = $this->_arrayToValuesIndexArray($types);
@@ -597,9 +598,9 @@ class ShadowAttributesController extends AppController
     public function edit($id = null)
     {
         $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-                'contain' => array('Event' => array('fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'))),
-                'conditions' => $this->__attributeIdToConditions($id),
-                'flatten' => 1
+            'contain' => array('Event' => array('fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'))),
+            'conditions' => $this->__attributeIdToConditions($id),
+            'flatten' => 1
         ));
         if (empty($existingAttribute)) {
             throw new NotFoundException(__('Invalid Attribute.'));
@@ -631,13 +632,13 @@ class ShadowAttributesController extends AppController
             }
             if ($attachment) {
                 $fields = array(
-                        'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id', 'category' => 'Attribute.category', 'type' => 'Attribute.type'),
-                        'optional' => array('value', 'to_ids', 'comment', 'first_seen', 'last_seen')
+                    'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id', 'category' => 'Attribute.category', 'type' => 'Attribute.type'),
+                    'optional' => array('value', 'to_ids', 'comment', 'first_seen', 'last_seen')
                 );
             } else {
                 $fields = array(
-                        'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id'),
-                        'optional' => array('category', 'type', 'value', 'to_ids', 'comment', 'first_seen', 'last_seen')
+                    'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id'),
+                    'optional' => array('category', 'type', 'value', 'to_ids', 'comment', 'first_seen', 'last_seen')
                 );
                 if ($existingAttribute['Attribute']['object_id']) {
                     unset($fields['optional']['type']);
@@ -727,6 +728,7 @@ class ShadowAttributesController extends AppController
                 }
             }
         }
+        $this->set('event', ['Event' => $existingAttribute['Event']]);
         $this->set('categories', $categories);
         $this->__common();
         $this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);

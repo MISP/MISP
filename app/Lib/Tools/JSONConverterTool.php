@@ -5,10 +5,10 @@ class JSONConverterTool
     {
         $toRearrange = array('AttributeTag');
         foreach ($toRearrange as $object) {
-          if (isset($attribute[$object])) {
-            $attribute['Attribute'][$object] = $attribute[$object];
-            unset($attribute[$object]);
-          }
+            if (isset($attribute[$object])) {
+                $attribute['Attribute'][$object] = $attribute[$object];
+                unset($attribute[$object]);
+            }
         }
 
         // Submit as list to the attribute cleaner but obtain the only attribute
@@ -77,7 +77,6 @@ class JSONConverterTool
             }
             unset($event['Sighting']);
         }
-        unset($event['Event']['user_id']);
         if (isset($event['Event']['Attribute'])) {
             $event['Event']['Attribute'] = self::__cleanAttributes($event['Event']['Attribute'], $tempSightings);
         }
@@ -86,6 +85,15 @@ class JSONConverterTool
         }
         unset($tempSightings);
         unset($event['Event']['RelatedAttribute']);
+
+        // Remove information about user_id from JSON export
+        unset($event['Event']['user_id']);
+        if (isset($event['extensionEvents'])) {
+            foreach ($event['extensionEvents'] as $k => $extensionEvent) {
+                unset($event['extensionEvents'][$k]['user_id']);
+            }
+        }
+
         $result = array('Event' => $event['Event']);
         if (isset($event['errors'])) {
             $result = array_merge($result, array('errors' => $event['errors']));

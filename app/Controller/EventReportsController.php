@@ -266,7 +266,7 @@ class EventReportsController extends AppController
             $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', $throwErrors=true, $full=false);
             if ($this->request->is('post')) {
                 $errors = [];
-                $suggestions = $this->EventReport->jsonDecode($this->data['EventReport']['suggestions']);
+                $suggestions = $this->_jsonDecode($this->data['EventReport']['suggestions']);
                 if (!empty($suggestions['content']) && !empty($suggestions['mapping'])) {
                     $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $suggestions['content'], $suggestions['mapping']);
                 } else {
@@ -336,7 +336,7 @@ class EventReportsController extends AppController
     {
         $event = $this->__canModifyReport($eventId);
         if ($this->request->is('post') || $this->request->is('put')) {
-            $filters = $this->EventReport->jsonDecode($this->data['EventReport']['filters']);
+            $filters = $this->_jsonDecode($this->data['EventReport']['filters']);
             $options['conditions'] = $filters;
             $options['conditions'] = array_filter($filters, function($v) {
                 return $v !== '';
@@ -492,9 +492,9 @@ class EventReportsController extends AppController
         $this->set('sharingGroups', $sgs);
     }
 
-    private function __injectPermissionsToViewContext($user, $report)
+    private function __injectPermissionsToViewContext(array $user, array $report)
     {
-        $canEdit = $this->EventReport->canEditReport($user, $report) === true;
+        $canEdit = $this->ACL->canEditEventReport($user, $report);
         $this->set('canEdit', $canEdit);
     }
 

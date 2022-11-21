@@ -6,6 +6,62 @@ class CorrelationValue extends AppModel
     public $recursive = -1;
 
     /**
+     * @param array $correlations
+     * @param string|int $valueIndex
+     * @return void
+     */
+    public function replaceValueWithId(array &$correlations, $valueIndex)
+    {
+        $values = array_column($correlations, $valueIndex);
+        $valueIds = $this->getIds($values);
+
+        foreach ($correlations as &$correlation) {
+            $value = mb_substr($correlation[$valueIndex], 0, 191);
+            $correlation[$valueIndex] = (int)$valueIds[$value];
+        }
+    }
+
+    /**
+     * @param array $values
+     * @return array Value in key, value ID in value
+     */
+    private function getIds(array $values)
+    {
+        foreach ($values as &$value) {
+            $value = mb_substr($value, 0, 191);
+        }
+        $values = array_unique($values, SORT_REGULAR); // Remove duplicate values
+        $existingValues = $this->find('list', [
+            'recursive' => -1,
+            'callbacks' => false,
+            'fields' => ['value', 'id'],
+            'conditions' => [
+                'value' => $values,
+            ],
+        ]);
+
+        $notExistValues = array_diff($values, array_keys($existingValues));
+        if (!empty($notExistValues)) {
+            $this->getDataSource()->begin();
+            foreach ($notExistValues as $notExistValue) {
+                $this->create();
+                try {
+                    $this->save(['value' => $notExistValue], [
+                        'callbacks' => false,
+                        'validate' => false,
+                    ]);
+                    $existingValues[$notExistValue] = $this->id;
+                } catch (Exception $e) {
+                    $existingValues[$notExistValue] = $this->getValueId($notExistValue);
+                }
+            }
+            $this->getDataSource()->commit();
+        }
+
+        return $existingValues;
+    }
+
+    /**
      * @param string $value
      * @return int
      */

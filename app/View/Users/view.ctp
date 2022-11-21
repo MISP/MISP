@@ -1,4 +1,13 @@
 <?php
+    $periodic_notification_settings_html = '<table>';
+    foreach ($periodic_notifications as $periodic_notification) {
+        $active_html = $this->element('genericElements/IndexTable/Fields/boolean', [
+            'row' => ['active' => !empty($user['User'][$periodic_notification])],
+            'field' => ['data_path' => 'active', 'colors' => true, ],
+        ]);
+        $periodic_notification_settings_html .= sprintf('<tr><td>%s</td><td>%s<td></tr>', Inflector::humanize($periodic_notification), $active_html);
+    }
+    $periodic_notification_settings_html .= '</table>';
     $table_data = array();
     $table_data[] = array('key' => __('ID'), 'value' => $user['User']['id']);
     $table_data[] = array(
@@ -16,6 +25,7 @@
     );
     $table_data[] = array('key' => __('Role'), 'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])));
     $table_data[] = array('key' => __('Event alert enabled'), 'boolean' => $user['User']['autoalert']);
+    $table_data[] = ['key' => __('Periodic Notifications'), 'html' => $periodic_notification_settings_html];
     $table_data[] = array('key' => __('Contact alert enabled'), 'boolean' => $user['User']['contactalert']);
 
     if (!$admin_view && !$user['Role']['perm_auth']) {
@@ -54,7 +64,7 @@
     }
     $table_data[] = array(
         'key' => __('Invited By'),
-        'html' => empty($user2['User']['email']) ? 'N/A' : sprintf('<a href="%s/admin/users/view/%s">%s</a>', $baseurl, h($user2['User']['id']), h($user2['User']['email'])),
+        'html' => empty($invitedBy['User']['email']) ? 'N/A' : sprintf('<a href="%s/admin/users/view/%s">%s</a>', $baseurl, h($invitedBy['User']['id']), h($invitedBy['User']['email'])),
     );
     $org_admin_data = array();
     if ($admin_view) {

@@ -106,6 +106,24 @@ class WorkflowBaseModule
         $pubSubTool->workflow_push($message);
     }
 
+    protected function render_jinja_template($template, array $data): string
+    {
+        $mispModule = ClassRegistry::init('Module');
+        $postData = [
+            'module' => 'jinja_template_rendering',
+            'text' => JsonTool::encode([
+                'template' => $template,
+                'data' => $data,
+            ])
+        ];
+        $result = $mispModule->queryModuleServer($postData, false, 'Enrichment', false, [], true);
+        if (!empty($result['error'])) {
+            return '';
+        }
+        $rendered = $result['results'][0]['values'][0];
+        return $rendered;
+    }
+
     protected function logError($message)
     {
         $this->Log = ClassRegistry::init('Log');
@@ -128,6 +146,21 @@ class WorkflowBaseModule
             }
         }
         return $extracted;
+    }
+
+    protected function getMatchingItemsForAttributes(array $node, array $rData): array
+    {
+        if ($this->filtersEnabled($node)) {
+            $filters = $this->getFilters($node);
+            $extracted = $this->extractData($rData, $filters['selector']);
+            if ($extracted === false) {
+                return false;
+            }
+            $matchingItems = $this->getItemsMatchingCondition($extracted, $filters['value'], $filters['operator'], $filters['path']);
+        } else {
+            $matchingItems = Hash::extract($rData, 'Event._AttributeFlattened.{n}');
+        }
+        return $matchingItems;
     }
 
     protected function extractDataForFilters(array $node, WorkflowRoamingData $roamingData)
@@ -190,6 +223,23 @@ class WorkflowBaseModule
             }
         }
         return $items;
+    }
+
+    protected function addNotification(array $errors, string $severity, string $text, string $description='', array $details=[], bool $showInSidebar=false, bool $showInNode=false): array
+    {
+         $errors[$severity][] = [
+            'text' => $text,
+            'description' => $description,
+            'details' => $details,
+            '__show_in_sidebar' => $showInSidebar,
+            '__show_in_node' => $showInNode,
+        ];
+        return $errors;
+    }
+
+    public function diagnostic(): array
+    {
+        return [];
     }
 }
 

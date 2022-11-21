@@ -213,27 +213,28 @@ class UserSettingsController extends AppController
         if ($this->_isRest()) {
             // GET request via the API should describe the endpoint
             return $this->RestResponse->describe('UserSettings', 'setSetting', false, $this->response->type());
-        } else {
-            // load the valid settings from the model
-            if ($this->_isSiteAdmin()) {
-                $users = $this->UserSetting->User->find('list', array(
-                    'fields' => array('User.id', 'User.email')
-                ));
-            } else if ($this->_isAdmin()) {
-                $users = $this->UserSetting->User->find('list', array(
-                    'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
-                    'fields' => array('User.id', 'User.email')
-                ));
-            } else {
-                $users = array($this->Auth->user('id') => $this->Auth->user('email'));
-            }
-            if (!empty($user_id) && $this->request->is('get')) {
-                $this->request->data['UserSetting']['user_id'] = $user_id;
-            }
-            $this->set('setting', $setting);
-            $this->set('users', $users);
-            $this->set('validSettings', $this->UserSetting->settingPlaceholders($this->Auth->user()));
         }
+
+        // load the valid settings from the model
+        if ($this->_isSiteAdmin()) {
+            $users = $this->UserSetting->User->find('list', array(
+                'fields' => array('User.id', 'User.email')
+            ));
+        } else if ($this->_isAdmin()) {
+            $users = $this->UserSetting->User->find('list', array(
+                'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
+                'fields' => array('User.id', 'User.email')
+            ));
+        } else {
+            $users = array($this->Auth->user('id') => $this->Auth->user('email'));
+        }
+        if (!empty($user_id) && $this->request->is('get')) {
+            $this->request->data['UserSetting']['user_id'] = $user_id;
+        }
+        $this->set('setting', $setting);
+        $this->set('users', $users);
+        $this->set('validSettings', $this->UserSetting->settingPlaceholders($this->Auth->user()));
+        $this->set('title_for_layout', __('Set User Setting'));
     }
 
     public function getSetting($userId = null, $setting = null)

@@ -188,12 +188,8 @@ class SightingsController extends AppController
 
     public function quickDelete($id, $rawId, $context)
     {
-        if (!$this->userRole['perm_modify_org']) {
-            throw new MethodNotAllowedException('You are not authorised to remove sightings data as you don\'t have permission to modify your organisation\'s data.');
-        }
         if (!$this->request->is('post')) {
             $this->set('id', $id);
-            $sighting = $this->Sighting->find('first', array('conditions' => array('Sighting.id' => $id), 'recursive' => -1, 'fields' => array('Sighting.attribute_id')));
             $this->set('rawId', $rawId);
             $this->set('context', $context);
             $this->render('ajax/quickDeleteConfirmationForm');
@@ -205,7 +201,7 @@ class SightingsController extends AppController
                 if (empty($sighting)) {
                     return new CakeResponse(array('body' => json_encode(array('saved' => true, 'errors' => 'Invalid sighting.')), 'status' => 200, 'type' => 'json'));
                 }
-                if (!$this->_isSiteAdmin() && $sighting['Sighting']['org_id'] != $this->Auth->user('org_id')) {
+                if (!$this->ACL->canDeleteSighting($this->Auth->user(), $sighting)) {
                     return new CakeResponse(array('body' => json_encode(array('saved' => true, 'errors' => 'Invalid sighting.')), 'status' => 200, 'type' => 'json'));
                 }
                 $result = $this->Sighting->delete($id);
@@ -221,9 +217,6 @@ class SightingsController extends AppController
     // takes a sighting ID or UUID
     public function delete($id)
     {
-        if (!$this->userRole['perm_modify_org']) {
-            throw new MethodNotAllowedException('You are not authorised to remove sightings data as you don\'t have permission to modify your organisation\'s data.');
-        }
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This action can only be accessed via a post request.');
         }
@@ -235,7 +228,7 @@ class SightingsController extends AppController
         if (empty($sighting)) {
             throw new NotFoundException('Invalid sighting.');
         }
-        if (!$this->_isSiteAdmin() && $sighting['Sighting']['org_id'] != $this->Auth->user('org_id')) {
+        if (!$this->ACL->canDeleteSighting($this->Auth->user(), $sighting)) {
             throw new NotFoundException('Invalid sighting.');
         }
         $result = $this->Sighting->delete($sighting['Sighting']['id']);

@@ -46,7 +46,8 @@
                 $passwordPopover = '<span class="blue bold">' . __('Length') .'</span>: ' . h($length) . '<br>';
                 $passwordPopover .= '<span class="blue bold">' . __('Complexity') .'</span>: ' . h($complexity);
                 echo $this->Form->input('password', array(
-                    'label' => __('Password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) .'" class="fas fa-info-circle"></span>'
+                    'label' => __('Password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) .'" class="fas fa-info-circle"></span>',
+                    'autocomplete' => 'new-password'
                 ));
                 echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
             ?>
@@ -76,10 +77,14 @@
     ?>
         </div>
     <?php
-        echo $this->Form->input('gpgkey', array('label' => __('PGP key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s PGP key here or try to retrieve it from the CIRCL key server by clicking on "Fetch PGP key" below.')));
+        $placeholder = $canFetchPgpKey ? __('Paste the user\'s PGP key here or try to retrieve it from the CIRCL key server by clicking on "Fetch PGP key" below.')
+            :  __('Paste the user\'s PGP key here');
+        echo $this->Form->input('gpgkey', array('label' => __('PGP key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => $placeholder));
+        if ($canFetchPgpKey):
     ?>
-        <div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch the user\'s PGP key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch PGP key');?></span></div>
+        <div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch the user\'s PGP key');?>" onclick="lookupPGPKey();" class="btn btn-inverse" style="margin-bottom:10px;"><?= __('Fetch PGP key');?></span></div>
     <?php
+        endif;
         if (Configure::read('SMIME.enabled')) {
             echo $this->Form->input('certif_public', array('label' => __('S/MIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s S/MIME public key in PEM format here.')));
         }
@@ -95,6 +100,12 @@
         echo $this->Form->input('contactalert', array('label' => __('Receive email alerts from "Contact reporter" requests'), 'type' => 'checkbox'));
         echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Immediately disable this user account')));
         echo '</div>';
+    ?>
+    <h5><?= __('Subscribe to the following notification periods:') ?></h5>
+    <?php
+        echo $this->Form->input('notification_daily', array('label' => __('Daily notifications'), 'type' => 'checkbox'));
+        echo $this->Form->input('notification_weekly', array('label' => __('Weekly notifications'), 'type' => 'checkbox'));
+        echo $this->Form->input('notification_monthly', array('label' => __('Monthly notifications'), 'type' => 'checkbox'));
     ?>
     </fieldset>
     <div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>

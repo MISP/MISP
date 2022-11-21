@@ -40,9 +40,6 @@ class FeedsController extends AppController
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'previewIndex';
         $this->Security->unlockedActions[] = 'feedCoverage';
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
-            throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
-        }
     }
 
     public function loadDefaultFeeds()

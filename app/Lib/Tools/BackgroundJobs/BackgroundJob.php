@@ -148,6 +148,11 @@ class BackgroundJob implements JsonSerializable
         ];
     }
 
+    public function __sleep(): array
+    {
+        return ['id', 'command', 'args', 'createdAt', 'updatedAt', 'status', 'output', 'error', 'metadata'];
+    }
+
     public function id(): string
     {
         return $this->id;

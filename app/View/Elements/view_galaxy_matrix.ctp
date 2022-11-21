@@ -32,15 +32,21 @@
         - $scores: The score associate with either the value or the tag name (if provided)
         - $removeTrailling: How much part of the name of the cell should be remove: e.g. $removeTrailling=2 => "abc def ghi", will be: "abc"
         - $colours: The colour associated with the tag name (if provided)
+        - $static: Should the output be inert. Used for embedding in other webpages or mails
 *
 *
 *
 */
-echo $this->element('genericElements/assetLoader', [
-    'css' => ['attack_matrix'],
-    'js' => ['attack_matrix'],
-]);
+if (!empty($static)) {
+    $pickingMode = false;
+}
 
+if (empty($static)) {
+    echo $this->element('genericElements/assetLoader', [
+        'css' => ['attack_matrix'],
+        'js' => ['attack_matrix'],
+    ]);
+}
 $clustersNamesMapping = array(); // used to map name with id for the chosen select
 if (isset($interpolation) && !empty($interpolation)) {
     foreach ($interpolation as $k => $colArr) {
@@ -50,11 +56,13 @@ if (isset($interpolation) && !empty($interpolation)) {
             $interpolation[$k] .= ' 3%';
         }
     }
-    $colorScale = implode($interpolation, ', ');
+    $colorScale = implode(', ', $interpolation);
 } else {
     $colorScale = 'black';
 }
 ?>
+
+<?php if (empty($static)): ?>
 <div class="attack-matrix-options" style="right: initial; background: transparent;">
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
 <?php
@@ -63,17 +71,23 @@ if (!isset($defaultTabName)) {
     $defaultTabName = key($tabs); // get first key
 }
 
+if (empty($static)):
 foreach($tabs as $tabName => $column):
 ?>
     <li class="tactic <?php echo $tabName==$defaultTabName ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo h($tabName); ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo h($tabName); ?></span></li>
 <?php endforeach; ?>
+<?php endif; ?>
 </ul>
 </div>
+<?php endif; ?>
 
+<?php if (empty($static)): ?>
 <div class="attack-matrix-options matrix-div-submit submit-container">
     <span class="btn btn-inverse btn-matrix-submit" role="button" tabindex="0" style="padding: 1px 5px !important;font-size: 12px !important;font-weight: bold;"><?php echo __('Submit'); ?></span>
 </div>
+<?php endif; ?>
 
+<?php if (empty($static)): ?>
 <div class="attack-matrix-options">
     <?php if (isset($interpolation)): ?>
     <span id="matrix-heatmap-legend-caret">
@@ -88,8 +102,9 @@ foreach($tabs as $tabName => $column):
     <?php endif; ?>
     <label style="display: inline-block; margin-left: 30px;"><input type="checkbox" id="checkbox_attackMatrix_showAll" checked><i class="fa fa-filter"></i><?= __('Show all') ?></label>
 </div>
+<?php endif; ?>
 
-<?php if (isset($eventId)): ?>
+<?php if (isset($eventId) && empty($static)): ?>
 <div class="hidden">
     <?php
         $url = sprintf(
@@ -111,21 +126,26 @@ foreach($tabs as $tabName => $column):
 <div id="matrix_container" class="fixed-table-container-inner" style="" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
     <div class="tab-content">
     <?php foreach($tabs as $tabName => $column): ?>
+        <?php
+        if (!empty($static) && $tabName != $defaultTabName) {
+            // We cannot hide other tabs without JS. Only releave the default one for now.
+            continue;
+        }
+        ?>
         <div class="tab-pane <?php echo $tabName==$defaultTabName ? "active" : ""; ?>" id="tabMatrix-<?php echo h($tabName); ?>">
         <div class="header-background"></div>
-        <div class="fixed-table-container-inner" style="">
+        <div class="fixed-table-container-inner" style="overflow-y: auto; max-height: 670px;">
         <table class="table table-condensed matrix-table">
-        <thead>
+        <thead style="background-color: #363636;">
         <tr>
         <?php
             foreach($columnOrders[$tabName] as $co):
                 $name = str_replace("-", " ", $co);
         ?>
             <th>
-                <?php echo h(ucfirst($name)); ?>
-                <div class="th-inner" style="flex-direction: column; align-items: flex-start; padding-top: 3px;">
+                <?php echo empty($static) ? h(ucfirst($name)) : ''; ?>
+                <div class="th-inner" style="flex-direction: column; align-items: flex-start; padding-top: 3px; color: white;">
                     <span><?php echo h(ucfirst($name)); ?></span>
-                    <i style="font-size: smaller;"><?php echo __('(%s items)', isset($column[$co]) ? count($column[$co]) : 0); ?></i>
                 </div>
             </th>
 
@@ -160,7 +180,7 @@ foreach($tabs as $tabName => $column):
                             $externalId = isset($cell['external_id']) ? $cell['external_id'] : '';
 
                             $title = h($externalId);
-                            if (!empty($cell['description'])) {
+                            if (empty($static) && !empty($cell['description'])) {
                                 $shortDescription = $this->Markdown->toText($cell['description']);
                                 if (strlen($shortDescription) > 1000) {
                                     $shortDescription = mb_substr($shortDescription, 0, 1000) . '[...]';

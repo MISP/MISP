@@ -347,6 +347,13 @@ class EventGraph {
                 dataHandler.fetch_data_and_update();
             }
         });
+        menu_display.add_button({
+            label: "Remove leaves",
+            type: "primary",
+            event: function () {
+                eventGraph.remove_leaves();
+            },
+        });
         return menu_display;
     }
 
@@ -689,6 +696,8 @@ class EventGraph {
 
         this.extended_event_uuid_mapping = data.extended_event_uuid_mapping;
 
+        dataHandler.mapping_node_to_from_edges = {};
+        dataHandler.mapping_node_to_to_edges = {};
         // New nodes will be automatically added
         // removed references will be deleted
         var node_conf;
@@ -706,6 +715,8 @@ class EventGraph {
             if ( node.node_type == 'object' ) {
                 var group =  'object';
                 var label = dataHandler.generate_label(node);
+                var labelHtml = label + '</br><i>' + escapeHtml(node.comment) + '</i>'
+                label += ' ' + escapeHtml(node.comment)
                 var striped_value = that.strip_text_value(label);
                 node_conf = {
                     id: node.id,
@@ -713,7 +724,7 @@ class EventGraph {
                     Attribute: node.Attribute,
                     event_id: node.event_id,
                     label: striped_value,
-                    title: label,
+                    title: labelHtml,
                     group: group,
                     mass: 5,
                     icon: {
@@ -762,13 +773,15 @@ class EventGraph {
             } else {
                 group =  'attribute';
                 label = node.type + ': ' + node.label;
+                label += ' ' + escapeHtml(node.comment)
+                var labelHtml = label + '</br><i>' + escapeHtml(node.comment) + '</i>'
                 var striped_value = that.strip_text_value(label);
                 node_conf = {
                     id: node.id,
                     uuid: node.uuid,
                     event_id: node.event_id,
                     label: striped_value,
-                    title: label,
+                    title: labelHtml,
                     group: group,
                     mass: 5,
                 };
@@ -816,6 +829,14 @@ class EventGraph {
             };
             newRelations.push(rel);
             newRelationIDs.push(rel.id);
+            if (!dataHandler.mapping_node_to_from_edges[rel.from]) {
+                dataHandler.mapping_node_to_from_edges[rel.from] = [];
+            }
+            if (!dataHandler.mapping_node_to_to_edges[rel.to]) {
+                dataHandler.mapping_node_to_to_edges[rel.to] = [];
+            }
+            dataHandler.mapping_node_to_from_edges[rel.from].push(rel.to);
+            dataHandler.mapping_node_to_to_edges[rel.to].push(rel.from);
         }
         // check if nodes got deleted
         var old_rel_ids = that.edges.getIds();
@@ -942,6 +963,23 @@ class EventGraph {
             }
         });
         eventGraph.nodes.update(update);
+    }
+
+    remove_leaves() {
+        var nodeIds = []
+        eventGraph.nodes.forEach(function (node) {
+            // Hide node that have no outgoing references and are not being targetted by others
+            if (
+                dataHandler.mapping_node_to_from_edges[node.id] === undefined &&
+                (
+                    dataHandler.mapping_node_to_to_edges[node.id] === undefined ||
+                    dataHandler.mapping_node_to_to_edges[node.id].length < 2
+                )
+            ) {
+                nodeIds.push(node.id)
+            }
+        })
+        eventGraph.hideNode(nodeIds)
     }
 
     // state true: loading
@@ -1358,6 +1396,8 @@ class DataHandler {
         this.mapping_value_to_nodeID = new Map();
         this.mapping_obj_relation_value_to_nodeID = new Map();
         this.mapping_uuid_to_template = new Map();
+        this.mapping_node_to_from_edges = {};
+        this.mapping_node_to_to_edges = {};
         this.selected_type_to_display = "";
         this.extended_event = $('#eventgraph_network').data('extended') == 1 ? true : false;
         this.networkHistoryJsonData = new Map();

@@ -13,6 +13,7 @@ class WorkflowsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'checkGraph';
+        $this->Security->unlockedActions[] = 'moduleStatelessExecution';
         $requirementErrors = [];
         if (empty(Configure::read('MISP.background_jobs'))) {
             $requirementErrors[] = __('Background workers must be enabled to use workflows');
@@ -153,6 +154,9 @@ class WorkflowsController extends AppController
         $modules = $this->Workflow->attachNotificationToModules($modules, $workflow);
         $this->loadModel('WorkflowBlueprint');
         $workflowBlueprints = $this->WorkflowBlueprint->find('all');
+        $workflowBlueprints = array_map(function($blueprint) {
+            return $this->WorkflowBlueprint->attachModuleDataToBlueprint($blueprint);
+        }, $workflowBlueprints);
         $this->set('selectedWorkflow', $workflow);
         $this->set('workflowTriggerId', $trigger_id);
         $this->set('modules', $modules);
@@ -182,15 +186,34 @@ class WorkflowsController extends AppController
     {
         $triggers = $this->Workflow->getModulesByType('trigger');
         $triggers = $this->Workflow->attachWorkflowToTriggers($triggers);
-        $data = $triggers;
+        $scopes = array_unique(Hash::extract($triggers, '{n}.scope'));
+        sort($scopes);
+        $filters = $this->IndexFilter->harvestParameters(['scope', 'enabled', 'blocking']);
+        if (!empty($filters['scope'])) {
+            $triggers = array_filter($triggers, function($trigger) use ($filters) {
+                return $trigger['scope'] === $filters['scope'];
+            });
+        }
+        if (isset($filters['enabled'])) {
+            $triggers = array_filter($triggers, function($trigger) use ($filters) {
+                return $trigger['disabled'] != $filters['enabled'];
+            });
+        }
+        if (isset($filters['blocking'])) {
+            $triggers = array_filter($triggers, function($trigger) use ($filters) {
+                return $trigger['blocking'] == $filters['blocking'];
+            });
+        }
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
-        $customPagination->truncateAndPaginate($data, $this->params, 'Workflow', true);
+        $customPagination->truncateAndPaginate($triggers, $this->params, 'Workflow', true);
         if ($this->_isRest()) {
-            return $this->RestResponse->viewData($data, $this->response->type());
+            return $this->RestResponse->viewData($triggers, $this->response->type());
         }
 
-        $this->set('data', $data);
+        $this->set('data', $triggers);
+        $this->set('scopes', $scopes);
+        $this->set('filters', $filters);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_trigger']);
     }
 
@@ -421,5 +444,15 @@ class WorkflowsController extends AppController
             ],
         ];
         return $this->RestResponse->viewData($data, 'json');
+    }
+
+    public function moduleStatelessExecution($module_id)
+    {
+        $this->request->allowMethod(['post']);
+        $input_data = JsonTool::decode($this->request->data['input_data']);
+        $param_data = $this->request->data['module_indexed_param'];
+        $convert_data = $this->request->data['convert_data'];
+        $result = $this->Workflow->moduleStatelessExecution($module_id, $input_data, $param_data, $convert_data);
+        return $this->RestResponse->viewData($result, 'json');
     }
 }

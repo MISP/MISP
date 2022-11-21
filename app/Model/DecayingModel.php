@@ -19,6 +19,9 @@ class DecayingModel extends AppModel
     private $__registered_model_classes = array(); // Proxy for already instantiated classes
     public $allowed_overrides = array('threshold' => 1, 'lifetime' => 1, 'decay_speed' => 1);
 
+    /** @var array */
+    private $defaultModelsCache;
+
     public function afterFind($results, $primary = false) {
         foreach ($results as $k => $v) {
             if (!empty($v['DecayingModel']['parameters'])) {
@@ -207,7 +210,7 @@ class DecayingModel extends AppModel
         return $default_models;
     }
 
-    public function fetchAllAllowedModels($user, $full=true, $filters=array(), $additionnal_conditions=array())
+    public function fetchAllAllowedModels($user, $full=true, $filters=array(), $additionalConditions=array())
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
@@ -223,10 +226,10 @@ class DecayingModel extends AppModel
                 $conditions[] = array('not' => array('DecayingModel.uuid' => null));
             }
         }
-        $conditions[] = array('AND' => $additionnal_conditions);
+        $conditions[] = array('AND' => $additionalConditions);
         $decayingModels = $this->find('all', array(
             'conditions' => $conditions,
-            'include' => $full ? 'DecayingModelMapping' :''
+            'include' => $full ? 'DecayingModelMapping' : ''
         ));
         foreach ($decayingModels as $i => $decayingModel) { // includes both model default mapping and user mappings
             if ($full) {
@@ -638,6 +641,49 @@ class DecayingModel extends AppModel
         return $attribute;
     }
 
+    /**
+     * @param array $user
+     * @param array $event
+     * @param int|bool $modelId
+     * @param array $modelOverrides
+     * @param bool $includeFullModel
+     * @return array
+     */
+    public function attachScoresToEvent(array $user, array $event, $modelId = false, $modelOverrides = [], $includeFullModel = false)
+    {
+        if ($modelId === false) { // fetch all allowed and associated models
+            if (isset($this->defaultModelsCache[$user['id']])) {
+                $models = $this->defaultModelsCache[$user['id']];
+            } else {
+                $models = $this->fetchAllAllowedModels($user, false, [], ['DecayingModel.enabled' => true]);
+                $this->defaultModelsCache[$user['id']] = $models;
+            }
+        } else {
+            $models = $this->fetchModels($user, $modelId, false, array());
+        }
+        foreach ($models as $model) {
+            if (!empty($modelOverrides)) {
+                $model = $this->overrideModelParameters($model, $modelOverrides);
+            }
+            $eventScore = $this->getScoreForEvent($event, $model);
+            $decayed = $this->isEventDecayed($model, $eventScore['score']);
+            $to_attach = [
+                'score' => $eventScore['score'],
+                'base_score' => $eventScore['base_score'],
+                'decayed' => $decayed,
+                'DecayingModel' => [
+                    'id' => $model['DecayingModel']['id'],
+                    'name' => $model['DecayingModel']['name']
+                ]
+            ];
+            if ($includeFullModel) {
+                $to_attach['DecayingModel'] = $model['DecayingModel'];
+            }
+            $event['event_scores'][] = $to_attach;
+        }
+        return $event;
+    }
+
     public function getScore($attribute, $model, $user=false)
     {
         if (is_numeric($attribute) && $user !== false) {
@@ -655,6 +701,18 @@ class DecayingModel extends AppModel
         }
         $this->Computation = $this->getModelClass($model);
         return $this->Computation->computeCurrentScore($user, $model, $attribute);
+    }
+
+    public function getScoreForEvent($event, $model): array
+    {
+        $this->Computation = $this->getModelClass($model);
+        return $this->Computation->computeEventScore($model, $event);
+    }
+
+    public function isEventDecayed(array $model, float $score): bool
+    {
+        $threshold = $model['DecayingModel']['parameters']['threshold'];
+        return $threshold > $score;
     }
 
     public function isDecayed($attribute, $model, $score=false, $user=false)

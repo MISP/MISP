@@ -107,18 +107,19 @@ class Attribute extends AppModel
     const UPLOAD_DEFINITIONS = ['attachment'];
 
     // skip Correlation for the following types
-    const NON_CORRELATING_TYPES = array(
+    const NON_CORRELATING_TYPES = [
         'comment',
         'http-method',
         'aba-rtn',
         'gender',
         'counter',
+        'float',
         'port',
         'nationality',
         'cortex',
         'boolean',
         'anonymised'
-    );
+    ];
 
     const PRIMARY_ONLY_CORRELATING_TYPES = array(
         'ip-src|port',
@@ -377,6 +378,30 @@ class Attribute extends AppModel
     }
 
     /**
+     * Append extension to filename if no extension provided. This is typical for attachments imported from STIX file.
+     * @param array $attribute
+     * @return void
+     */
+    private function checkAttachmentExtension(array &$attribute)
+    {
+        if (pathinfo($attribute['value'], PATHINFO_EXTENSION) !== '' || empty($attribute['data_raw'])) {
+            return;
+        }
+
+        if (!class_exists('finfo')) {
+            return;
+        }
+
+        $finfo = new finfo(FILEINFO_EXTENSION);
+        $extension = explode('/', $finfo->buffer($attribute['data_raw']))[0];
+
+        // Append recognized extension, that are considered as safe
+        if (in_array($extension, ['png', 'jpeg', 'zip', 'gif', 'webp'], true)) {
+            $attribute['value'] = rtrim($attribute['value'], '.') . $extension;
+        }
+    }
+
+    /**
      * @param int $event_id
      * @param bool $increment True for increment, false for decrement,
      * @return bool
@@ -490,14 +515,16 @@ class Attribute extends AppModel
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $attributeForPublish, $action);
                 }
-                $workflowErrors = [];
-                $logging = [
+                if ($isTriggerCallable) {
+                    $workflowErrors = [];
+                    $logging = [
                         'model' => 'Attribute',
                         'action' => $action,
                         'id' => $attributeForPublish['Attribute']['id'],
                     ];
-                $triggerData = $attributeForPublish;
-                $this->executeTrigger('attribute-after-save', $triggerData, $workflowErrors, $logging);
+                    $triggerData = $attributeForPublish;
+                    $this->executeTrigger('attribute-after-save', $triggerData, $workflowErrors, $logging);
+                }
             }
         }
         if ($created && isset($attribute['event_id']) && empty($attribute['skip_auto_increment'])) {
@@ -509,22 +536,26 @@ class Attribute extends AppModel
     public function beforeDelete($cascade = true)
     {
         // delete attachments from the disk
-        $this->read(); // first read the attribute from the db
-        if ($this->typeIsAttachment($this->data['Attribute']['type'])) {
-            $this->loadAttachmentTool()->delete($this->data['Attribute']['event_id'], $this->data['Attribute']['id']);
+        $attribute = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'id' => $this->id,
+            ]
+        ]);
+        if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
+            $this->loadAttachmentTool()->delete($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
         }
         // update correlation..
-        $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
-        if (!empty($this->data['Attribute']['id'])) {
-            if ($this->pubToZmq('attribute')) {
-                $pubSubTool = $this->getPubSubTool();
-                $pubSubTool->attribute_save($this->data, 'delete');
-            }
-            $kafkaTopic = $this->kafkaTopic('attribute');
-            if ($kafkaTopic) {
-                $kafkaPubTool = $this->getKafkaPubTool();
-                $kafkaPubTool->publishJson($kafkaTopic, $this->data, 'delete');
-            }
+        $this->Correlation->beforeSaveCorrelation($attribute['Attribute']);
+
+        if ($this->pubToZmq('attribute')) {
+            $pubSubTool = $this->getPubSubTool();
+            $pubSubTool->attribute_save($attribute, 'delete');
+        }
+        $kafkaTopic = $this->kafkaTopic('attribute');
+        if ($kafkaTopic) {
+            $kafkaPubTool = $this->getKafkaPubTool();
+            $kafkaPubTool->publishJson($kafkaTopic, $attribute, 'delete');
         }
     }
 
@@ -634,6 +665,17 @@ class Attribute extends AppModel
         if (!isset($attribute['to_ids'])) {
             $attribute['to_ids'] = $this->typeDefinitions[$type]['to_ids'];
         }
+
+        if ($type === 'attachment') {
+            $this->checkAttachmentExtension($attribute);
+
+            // Disable correlation for image attachment filename that often leads to false positive correlation becuase of
+            // generic names
+            if (!isset($attribute['disable_correlation']) && $this->isImage($attribute)) {
+                $attribute['disable_correlation'] = true;
+            }
+        }
+
         // return true, otherwise the object cannot be saved
         return true;
     }
@@ -835,8 +877,8 @@ class Attribute extends AppModel
             $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
             // Clean thumbnail cache
             if ($this->isImage($attribute) && Configure::read('MISP.thumbnail_in_redis')) {
-                $redis = $this->setupRedisWithException();
-                $redis->del($redis->keys("misp:thumbnail:attribute:{$attribute['id']}:*"));
+                $redis = RedisTool::init();
+                RedisTool::deleteKeysByPattern($redis, "misp:thumbnail:attribute:{$attribute['id']}:*");
             }
         }
         return $result;
@@ -902,7 +944,7 @@ class Attribute extends AppModel
         if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
             $thumbnailInRedis = Configure::read('MISP.thumbnail_in_redis');
             if ($thumbnailInRedis) {
-                $redis = $this->setupRedisWithException();
+                $redis = RedisTool::init();
                 if ($data = $redis->get("misp:thumbnail:attribute:{$attribute['Attribute']['id']}:$outputFormat")) {
                     return $data;
                 }
@@ -924,7 +966,7 @@ class Attribute extends AppModel
         // Save just when requested default thumbnail size
         if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
             if ($thumbnailInRedis) {
-                $redis->set("misp:thumbnail:attribute:{$attribute['Attribute']['id']}:$outputFormat", $imageData, 3600);
+                $redis->setex("misp:thumbnail:attribute:{$attribute['Attribute']['id']}:$outputFormat", 3600, $imageData);
             } else {
                 $this->loadAttachmentTool()->save($attribute['Attribute']['event_id'], $attribute['Attribute']['id'], $imageData, $suffix);
             }
@@ -1018,173 +1060,17 @@ class Attribute extends AppModel
         return $data;
     }
 
-    public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false, $enforceWarninglist = false)
-    {
-        if (empty($user)) {
-            throw new MethodNotAllowedException(__('Could not read user.'));
-        }
-        // check if it's a valid type
-        if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
-            throw new UnauthorizedException(__('Invalid hash type.'));
-        }
-        $conditions = array();
-        $typeArray = array($type, 'filename|' . $type);
-        if ($type == 'md5') {
-            $typeArray[] = 'malware-sample';
-        }
-        $rules = array();
-        $eventIds = $this->Event->fetchEventIds($user, [
-            'from' => $from,
-            'to' => $to,
-            'last' => $last
-        ]);
-        if (!empty($tags)) {
-            $tag = ClassRegistry::init('Tag');
-            $args = $this->dissectArgs($tags);
-            $tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-            if (!empty($tagArray[0])) {
-                foreach ($eventIds as $k => $v) {
-                    if (!in_array($v['Event']['id'], $tagArray[0])) {
-                        unset($eventIds[$k]);
-                    }
-                }
-            }
-            if (!empty($tagArray[1])) {
-                foreach ($eventIds as $k => $v) {
-                    if (in_array($v['Event']['id'], $tagArray[1])) {
-                        unset($eventIds[$k]);
-                    }
-                }
-            }
-        }
-        App::uses('HidsExport', 'Export');
-        $continue = false;
-        $eventCount = count($eventIds);
-        if ($jobId) {
-            $this->Job = ClassRegistry::init('Job');
-            $this->Job->id = $jobId;
-            if (!$this->Job->exists()) {
-                $jobId = false;
-            }
-        }
-        foreach ($eventIds as $k => $event) {
-            $conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray, 'Attribute.event_id' => $event['Event']['id']);
-            $options = array(
-                    'conditions' => $conditions,
-                    'group' => array('Attribute.type', 'Attribute.value1'),
-                    'enforceWarninglist' => $enforceWarninglist,
-                    'flatten' => true
-            );
-            $items = $this->fetchAttributes($user, $options);
-            if (empty($items)) {
-                continue;
-            }
-            $export = new HidsExport();
-            $rules = array_merge($rules, $export->export($items, strtoupper($type), $continue));
-            $continue = true;
-            if ($jobId && ($k % 10 == 0)) {
-                $this->Job->saveField('progress', $k * 80 / $eventCount);
-            }
-        }
-        return $rules;
-    }
-
-
-    public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false, $includeAllTags = false)
-    {
-        if (empty($user)) {
-            throw new MethodNotAllowedException(__('Could not read user.'));
-        }
-        $eventIds = $this->Event->fetchEventIds($user, [
-            'from' => $from,
-            'to' => $to,
-            'last' => $last
-        ]);
-
-        // If we sent any tags along, load the associated tag names for each attribute
-        if ($tags) {
-            $tag = ClassRegistry::init('Tag');
-            $args = $this->dissectArgs($tags);
-            $tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-            if (!empty($tagArray[0])) {
-                foreach ($eventIds as $k => $v) {
-                    if (!in_array($v['Event']['id'], $tagArray[0])) {
-                        unset($eventIds[$k]);
-                    }
-                }
-            }
-            if (!empty($tagArray[1])) {
-                foreach ($eventIds as $k => $v) {
-                    if (in_array($v['Event']['id'], $tagArray[1])) {
-                        unset($eventIds[$k]);
-                    }
-                }
-            }
-        }
-
-        if ($id) {
-            foreach ($eventIds as $k => $v) {
-                if ($v['Event']['id'] !== $id) {
-                    unset($eventIds[$k]);
-                }
-            }
-        }
-
-        if ($format == 'suricata') {
-            App::uses('NidsSuricataExport', 'Export');
-        } else {
-            App::uses('NidsSnortExport', 'Export');
-        }
-
-        $rules = array();
-        foreach ($eventIds as $event) {
-            $conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
-            $valid_types = array('ip-dst', 'ip-src', 'ip-dst|port', 'ip-src|port', 'eppn', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'user-agent', 'snort');
-            $conditions['AND']['Attribute.type'] = $valid_types;
-            if (!empty($type)) {
-                $conditions['AND'][] = array('Attribute.type' => $type);
-            }
-
-            $params = array(
-                    'conditions' => $conditions, // array of conditions
-                    'recursive' => -1, // int
-                    'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'),
-                    'contain' => array('Event'=> array('fields' => array('Event.id', 'Event.threat_level_id'))),
-                    'group' => array('Attribute.type', 'Attribute.value1'), // fields to GROUP BY
-                    'enforceWarninglist' => $enforceWarninglist,
-                    'includeAllTags' => $includeAllTags,
-                    'flatten' => true
-            );
-            $items = $this->fetchAttributes($user, $params);
-            if (empty($items)) {
-                continue;
-            }
-            // export depending on the requested type
-            switch ($format) {
-                case 'suricata':
-                    $export = new NidsSuricataExport();
-                    break;
-                case 'snort':
-                    $export = new NidsSnortExport();
-                    break;
-            }
-            $rules = array_merge($rules, $export->export($items, $user['nids_sid'], $format, $continue));
-            // Only prepend the comments once
-            $continue = true;
-        }
-        return $rules;
-    }
-
     public function set_filter_tags(&$params, $conditions, $options)
     {
-        if (empty($params['tags'])) {
+        if (empty($params['tags']) && empty($params['event_tags'])) {
             return $conditions;
         }
         /** @var Tag $tag */
         $tag = ClassRegistry::init('Tag');
-        $params['tags'] = $this->dissectArgs($params['tags']);
+        $tag_key = !empty($params['tags']) ? 'tags' : 'event_tags';
+        $params[$tag_key] = $this->dissectArgs($params[$tag_key]);
         foreach (array(0, 1, 2) as $tag_operator) {
-            $tagArray[$tag_operator] = $tag->fetchTagIdsSimple($params['tags'][$tag_operator]);
+            $tagArray[$tag_operator] = $tag->fetchTagIdsSimple($params[$tag_key][$tag_operator]);
         }
         $temp = array();
         if (!empty($tagArray[0])) {
@@ -1204,19 +1090,21 @@ class Attribute extends AppModel
                     $temp,
                     $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
                 );
-                $subquery_options = array(
-                    'conditions' => array(
-                        'tag_id' => $tagArray[0]
-                    ),
-                    'fields' => array(
-                        $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
-                    )
-                );
-                $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
-                $temp = array_merge(
-                    $temp,
-                    $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
-                );
+                if ($tag_key != 'event_tags') {
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $tagArray[0]
+                        ),
+                        'fields' => array(
+                            $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                        )
+                    );
+                    $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                    $temp = array_merge(
+                        $temp,
+                        $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
+                    );
+                }
             }
         }
         if (!empty($temp)) {
@@ -1269,357 +1157,61 @@ class Attribute extends AppModel
                         $temp[$k]['OR'],
                         $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
                     );
-                    $subquery_options = array(
-                        'conditions' => array(
-                            'tag_id' => $anded_tag
-                        ),
-                        'fields' => array(
-                            $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
-                        )
-                    );
-                    $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
-                    $temp[$k]['OR'] = array_merge(
-                        $temp[$k]['OR'],
-                        $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
-                    );
+                    if ($tag_key != 'event_tags') {
+                        $subquery_options = array(
+                            'conditions' => array(
+                                'tag_id' => $anded_tag
+                            ),
+                            'fields' => array(
+                                $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                            )
+                        );
+                        $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                        $temp[$k]['OR'] = array_merge(
+                            $temp[$k]['OR'],
+                            $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
+                        );
+                    }
                 }
             }
         }
         if (!empty($temp)) {
             $conditions['AND'][] = array('AND' => $temp);
         }
-        $params['tags'] = array();
+        $params[$tag_key] = array();
         if (!empty($tagArray[0]) && empty($options['pop'])) {
-            $params['tags']['OR'] = $tagArray[0];
+            $params[$tag_key]['OR'] = $tagArray[0];
         }
         if (!empty($tagArray[1])) {
-            $params['tags']['NOT'] = $tagArray[1];
+            $params[$tag_key]['NOT'] = $tagArray[1];
         }
         if (!empty($tagArray[2]) && empty($options['pop'])) {
-            $params['tags']['AND'] = $tagArray[2];
+            $params[$tag_key]['AND'] = $tagArray[2];
         }
-        if (empty($params['tags'])) {
-            unset($params['tags']);
+        if (empty($params[$tag_key])) {
+            unset($params[$tag_key]);
         }
         return $conditions;
     }
 
-    public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $allowNotPublished = false)
-    {
-        //permissions are taken care of in fetchAttributes()
-        $conditions['AND'] = array();
-        if ($allowNonIDS === false) {
-            $conditions['AND']['Attribute.to_ids'] = 1;
-            if ($allowNotPublished === false) {
-                $conditions['AND']['Event.published'] = 1;
-            }
-        }
-        if (!is_array($type) && $type !== 'all') {
-            $conditions['AND']['Attribute.type'] = $type;
-        }
-        if ($from) {
-            $conditions['AND']['Event.date >='] = $from;
-        }
-        if ($to) {
-            $conditions['AND']['Event.date <='] = $to;
-        }
-        if ($last) {
-            $conditions['AND']['Event.publish_timestamp >='] = $last;
-        }
-
-        if ($eventId !== false) {
-            $conditions['AND'][] = array('Event.id' => $eventId);
-        } elseif ($tags !== false) {
-            $passed_param = array('tags' => $tags);
-            $conditions = $this->set_filter_tags($passed_param, $conditions, array('scope' => 'Attribute'));
-        }
-        $attributes = $this->fetchAttributes($user, array(
-                'conditions' => $conditions,
-                'order' => 'Attribute.value1 ASC',
-                'fields' => array('value'),
-                'contain' => array('Event' => array(
-                    'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
-                )),
-                'enforceWarninglist' => $enforceWarninglist,
-                'flatten' => 1
-        ));
-        return $attributes;
-    }
-
-    public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false, $enforceWarninglist = false)
-    {
-        // we can group hostname and domain as well as ip-src and ip-dst in this case
-        $conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
-        $typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'domain' => array('domain'), 'hostname' => array('hostname'));
-        if ($from) {
-            $conditions['AND']['Event.date >='] = $from;
-        }
-        if ($to) {
-            $conditions['AND']['Event.date <='] = $to;
-        }
-        if ($eventId !== false) {
-            $conditions['AND'][] = array('Event.id' => $eventId);
-        }
-        if ($tags !== false) {
-            // If we sent any tags along, load the associated tag names for each attribute
-            $tag = ClassRegistry::init('Tag');
-            $args = $this->dissectArgs($tags);
-            $tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-            $temp = array();
-            foreach ($tagArray[0] as $accepted) {
-                $temp['OR'][] = array('Event.id' => $accepted);
-            }
-            $conditions['AND'][] = $temp;
-            $temp = array();
-            foreach ($tagArray[1] as $rejected) {
-                $temp['AND'][] = array('Event.id !=' => $rejected);
-            }
-            $conditions['AND'][] = $temp;
-        }
-        $values = array();
-        foreach ($typesToFetch as $k => $v) {
-            $tempConditions = $conditions;
-            $tempConditions['type'] = $v;
-            $temp = $this->fetchAttributes(
-                    $user,
-                    array(
-                        'conditions' => $tempConditions,
-                        'fields' => array('Attribute.value'), // array of field names
-                        'enforceWarninglist' => $enforceWarninglist,
-                        'flatten' => 1
-                    )
-            );
-            if (empty($temp)) {
-                continue;
-            }
-            if ($k == 'hostname') {
-                foreach ($temp as $value) {
-                    $found = false;
-                    if (isset($values['domain'])) {
-                        foreach ($values['domain'] as $domain) {
-                            if (strpos($value['Attribute']['value'], $domain) != 0) {
-                                $found = true;
-                            }
-                        }
-                    }
-                    if (!$found) {
-                        $values[$k][] = $value['Attribute']['value'];
-                    }
-                }
-            } else {
-                foreach ($temp as $value) {
-                    $values[$k][] = $value['Attribute']['value'];
-                }
-            }
-            unset($temp);
-        }
-        return $values;
-    }
-
-    public function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $skipHeader = false)
-    {
-        App::uses('BroExport', 'Export');
-        $export = new BroExport();
-        if ($type == 'all') {
-            $types = array_keys($export->mispTypes);
-        } else {
-            $types = array($type);
-        }
-        $intel = array();
-        foreach ($types as $type) {
-            //restricting to non-private or same org if the user is not a site-admin.
-            $conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
-            if ($from) {
-                $conditions['AND']['Event.date >='] = $from;
-            }
-            if ($to) {
-                $conditions['AND']['Event.date <='] = $to;
-            }
-            if ($last) {
-                $conditions['AND']['Event.publish_timestamp >='] = $last;
-            }
-            if ($eventId !== false) {
-                $temp = array();
-                $args = $this->dissectArgs($eventId);
-                foreach ($args[0] as $accepted) {
-                    $temp['OR'][] = array('Event.id' => $accepted);
-                }
-                $conditions['AND'][] = $temp;
-                $temp = array();
-                foreach ($args[1] as $rejected) {
-                    $temp['AND'][] = array('Event.id !=' => $rejected);
-                }
-                $conditions['AND'][] = $temp;
-            }
-            if ($tags !== false) {
-                // If we sent any tags along, load the associated tag names for each attribute
-                $tag = ClassRegistry::init('Tag');
-                $args = $this->dissectArgs($tags);
-                $tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-                $temp = array();
-                foreach ($tagArray[0] as $accepted) {
-                    $temp['OR'][] = array('Event.id' => $accepted);
-                }
-                $conditions['AND'][] = $temp;
-                $temp = array();
-                foreach ($tagArray[1] as $rejected) {
-                    $temp['AND'][] = array('Event.id !=' => $rejected);
-                }
-                $conditions['AND'][] = $temp;
-            }
-            $this->Allowedlist = ClassRegistry::init('Allowedlist');
-            $this->allowedlist = $this->Allowedlist->getBlockedValues();
-            $instanceString = 'MISP';
-            if (Configure::read('MISP.host_org_id') && Configure::read('MISP.host_org_id') > 0) {
-                $this->Event->Orgc->id = Configure::read('MISP.host_org_id');
-                if ($this->Event->Orgc->exists()) {
-                    $instanceString = $this->Event->Orgc->field('name') . ' MISP';
-                }
-            }
-            $mispTypes = $export->getMispTypes($type);
-            foreach ($mispTypes as $mispType) {
-                $conditions['AND']['Attribute.type'] = $mispType[0];
-                $intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $this->allowedlist, $instanceString, $enforceWarninglist));
-            }
-        }
-        natsort($intel);
-        $intel = array_unique($intel);
-        if (empty($skipHeader)) {
-            array_unshift($intel, $export->header);
-        }
-        return $intel;
-    }
-
-    private function __bro($user, $conditions, $valueField, $export, $allowedlist, $instanceString, $enforceWarninglist)
-    {
-        $attributes = $this->fetchAttributes(
-            $user,
-            array(
-                'conditions' => $conditions, // array of conditions
-                'order' => 'Attribute.value' . $valueField . ' ASC',
-                'recursive' => -1, // int
-                'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.comment', 'Attribute.to_ids', 'Attribute.value', 'Attribute.value' . $valueField),
-                'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
-                'enforceWarninglist' => $enforceWarninglist,
-                'flatten' => 1
-            )
-        );
-        $orgs = $this->Event->Orgc->find('list', array(
-                'fields' => array('Orgc.id', 'Orgc.name')
-        ));
-        return $export->export($attributes, $orgs, $valueField, $allowedlist, $instanceString);
-    }
-
     /**
-     * @param int|false $jobId
-     * @param int|false $eventId
-     * @param int|false $attributeId
-     * @return int Number of processed attributes
+     * @param $jobId
+     * @param $eventId
+     * @param $attributeId
+     * @return void
+     * @throws Exception
+     * @deprecated Use Correlation::generateCorrelation directly
      */
     public function generateCorrelation($jobId = false, $eventId = false, $attributeId = false)
     {
-        $this->purgeCorrelations($eventId);
-
-        $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
-        $this->FuzzyCorrelateSsdeep->purge($eventId, $attributeId);
-
-        $this->query('TRUNCATE TABLE over_correlating_values');
-
-        // get all attributes..
-        if (!$eventId) {
-            $eventIds = $this->Event->find('column', [
-                'fields' => ['Event.id'],
-                'conditions' => ['Event.disable_correlation' => 0],
-            ]);
-            $full = true;
-        } else {
-            $eventIds = [$eventId];
-            $full = false;
-        }
-        $attributeCount = 0;
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job = ClassRegistry::init('Job');
-        } else {
-            $jobId = false;
-        }
-        if (!empty($eventIds)) {
-            $eventCount = count($eventIds);
-            foreach ($eventIds as $j => $currentEventId) {
-                $attributeCount = $this->__iteratedCorrelation(
-                    $jobId,
-                    $full,
-                    $attributeCount,
-                    $attributeId,
-                    $eventCount,
-                    $currentEventId,
-                    $j
-                );
-            }
-        } else {
-            $attributeCount = $this->__iteratedCorrelation($jobId, $full, $attributeCount);
-        }
-        if ($jobId) {
-            $this->Job->saveStatus($jobId, true);
-        }
-        return $attributeCount;
+        $this->Correlation->generateCorrelation($jobId, $eventId, $attributeId);
     }
 
-    private function __iteratedCorrelation(
-        $jobId = false,
-        $full = false,
-        $attributeCount = 0,
-        $attributeId = null,
-        $eventCount = null,
-        $eventId = null,
-        $j = 0
-    )
-    {
-        if ($jobId) {
-            $message = $attributeId ? __('Correlating Attribute %s', $attributeId) : __('Correlating Event %s (%s MB used)', $eventId, intval(memory_get_usage() / 1024 / 1024));
-            $this->Job->saveProgress($jobId, $message, ($j / $eventCount) * 100);
-        }
-        $attributeConditions = [
-            'Attribute.deleted' => 0,
-            'Attribute.disable_correlation' => 0,
-            'NOT' => [
-                'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
-            ],
-        ];
-        if ($eventId) {
-            $attributeConditions['Attribute.event_id'] = $eventId;
-        }
-        if ($attributeId) {
-            $attributeConditions['Attribute.id'] = $attributeId;
-        }
-        $query = [
-            'recursive' => -1,
-            'conditions' => $attributeConditions,
-            // fetch just necessary fields to save memory
-            'fields' => $this->Correlation->getFieldRules(),
-            'order' => 'Attribute.id',
-            'limit' => 5000,
-            'callbacks' => false, // memory leak fix
-        ];
-        do {
-            $attributes = $this->find('all', $query);
-            foreach ($attributes as $attribute) {
-                $attribute['Attribute']['event_id'] = $eventId;
-                $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full);
-            }
-            $fetchedAttributes = count($attributes);
-            unset($attributes);
-            $attributeCount += $fetchedAttributes;
-            if ($fetchedAttributes === 5000) { // maximum number of attributes fetched, continue in next loop
-                $query['conditions']['Attribute.id >'] = $attribute['Attribute']['id'];
-            } else {
-                break;
-            }
-        } while (true);
-        // Generating correlations can take long time, so clear CIDR cache after each event to refresh cache
-        $this->Correlation->clearCidrCache();
-        return $attributeCount;
-    }
-
+    /**
+     * @param $eventId
+     * @return void
+     * @deprecated Use Correlation::purgeCorrelations directly
+     */
     public function purgeCorrelations($eventId = false)
     {
         $this->Correlation->purgeCorrelations($eventId);
@@ -2014,7 +1606,7 @@ class Attribute extends AppModel
      * @return array
      * @throws Exception
      */
-    public function fetchAttributes(array $user, array $options = [], &$result_count = false)
+    public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -2144,13 +1736,13 @@ class Attribute extends AppModel
         if ($options['includeDecayScore']) {
             $options['includeEventTags'] = true;
         }
-        if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
-            $params['conditions']['AND']['Attribute.deleted'] = 0;
-        } else {
+        if (isset($options['deleted'])) {
             if ($options['deleted'] === "only") {
                 $options['deleted'] = 1;
             }
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = $options['deleted'];
+        } elseif (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
+            $params['conditions']['AND']['Attribute.deleted'] = 0;
         }
         if (isset($options['group'])) {
             $params['group'] = !empty($options['group']) ? $options['group'] : false;
@@ -2188,7 +1780,7 @@ class Attribute extends AppModel
         }
 
         // Do not fetch result count when `$result_count` is false
-        if ($result_count !== false) {
+        if ($result_count !== false && $real_count == true) {
             $find_params = $params;
             unset($find_params['limit']);
             $result_count = $this->find('count', $find_params);
@@ -2200,11 +1792,15 @@ class Attribute extends AppModel
         $eventTags = []; // tag cache
         $attributes = [];
         do {
+            $continue = true;
             $results = $this->find('all', $params);
             if (empty($results)) {
                 break;
             }
-
+            $iteration_result_count = count($results);
+            if ($real_count !== true) {
+                $result_count += count($results);
+            }
             if (!empty($options['includeContext'])) {
                 $eventIds = [];
                 foreach ($results as $result) {
@@ -2283,7 +1879,7 @@ class Attribute extends AppModel
             unset($attribute);
 
             if ($loop) {
-                if (count($results) < $loopLimit) { // we fetched less results than limit, so we can skip next query
+                if ($iteration_result_count < $loopLimit) { // we fetched fewer results than the limit, so we can exit the loop
                     break;
                 }
                 $params['page']++;
@@ -2366,7 +1962,7 @@ class Attribute extends AppModel
 
         $tags = $this->AttributeTag->Tag->find('all', [
             'conditions' => $conditions,
-            'fields' => ['id', 'name', 'colour', 'numerical_value'],
+            'fields' => ['id', 'name', 'colour', 'numerical_value', 'is_galaxy'],
             'recursive' => -1,
         ]);
         $tags = array_column(array_column($tags, 'Tag'), null, 'id');
@@ -2422,35 +2018,60 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function touch($attribute_id)
+    /**
+     * This method will update attribute and object timestamp and unpublish event
+     * @param int|array $attribute
+     * @return bool
+     * @throws Exception
+     */
+    public function touch($attribute)
     {
-        $attribute = $this->find('first', [
-            'conditions' => ['Attribute.id' => $attribute_id],
-            'recursive' => -1,
-        ]);
-        $event = $this->Event->find('first', [
-            'conditions' => ['Event.id' => $attribute['Attribute']['event_id']],
-            'recursive' => -1,
-        ]);
-        $timestamp = (new DateTime())->getTimestamp();
-        $event['Event']['published'] = 0;
-        $event['Event']['timestamp'] = $timestamp;
-        $attribute['Attribute']['timestamp'] = $timestamp;
-        $saveSucces = true;
-        if ($attribute['Attribute']['object_id'] != 0) {
-            $saveSucces = $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $timestamp);
+        if (!isset($attribute['Attribute'])) {
+            if (!is_numeric($attribute)) {
+                throw new InvalidArgumentException("Attribute must be array or ID.");
+            }
+            $attribute = $this->find('first', [
+                'conditions' => ['Attribute.id' => $attribute],
+                'recursive' => -1,
+            ]);
+            if (empty($attribute)) {
+                throw new NotFoundException("Attribute not found.");
+            }
         }
-        $saveSucces = $saveSucces && $this->save($attribute['Attribute'], true, ['timestamp']);
-        return $saveSucces && $this->Event->save($event, true, ['timestamp', 'published']);
+
+        // If attribute array contains event, reuse it for event unpublishing
+        $event = isset($attribute['Event']) ? $attribute : $attribute['Attribute']['event_id'];
+
+        $timestamp = time();
+        $attribute['Attribute']['timestamp'] = $timestamp;
+        $saveSuccess = $this->save($attribute['Attribute'], ['fieldList' => ['timestamp'], 'skipAuditLog' => true]);
+        if ($saveSuccess && $attribute['Attribute']['object_id'] != 0) {
+            $saveSuccess = $this->Object->updateTimestamp($attribute['Attribute']['object_id'], $timestamp);
+        }
+        if ($saveSuccess) {
+            $saveSuccess = $this->Event->unpublishEvent($event, false, $timestamp);
+        }
+        return $saveSuccess;
     }
 
-    public function attachTagsFromAttributeAndTouch($attribute_id, $event_id, $tags)
+    public function attachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options, array $user)
     {
+        $tags = $options['tags'];
+        $local = $options['local'];
+        $relationship = $options['relationship_type'];
         $touchAttribute = false;
         $success = false;
-        foreach ($tags as $tag_id) {
+        $capturedTags = [];
+        foreach ($tags as $tag_name) {
             $nothingToChange = false;
-            $saveSuccess = $this->AttributeTag->attachTagToAttribute($attribute_id, $event_id, $tag_id, false, $nothingToChange);
+            $tag_id = $this->Event->captureTagWithCache(
+                [
+                    'name' => $tag_name,
+                ],
+                $user,
+                $capturedTags
+            );
+            $saveSuccess = $this->AttributeTag->attachTagToAttribute($attribute_id, $event_id, $tag_id, $local, $relationship, $nothingToChange);
             $success = $success || !empty($saveSuccess);
             $touchAttribute = $touchAttribute || !$nothingToChange;
         }
@@ -2460,13 +2081,20 @@ class Attribute extends AppModel
         return $success;
     }
 
-    public function detachTagsFromAttributeAndTouch($attribute_id, $event_id, $tags)
+    public function detachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options)
     {
+        $tags = $options['tags'];
+        $local = $options['local'];
         $touchAttribute = false;
         $success = false;
-        foreach ($tags as $tag_id) {
+        foreach ($tags as $tag_name) {
             $nothingToChange = false;
-            $saveSuccess = $this->AttributeTag->detachTagFromAttribute($attribute_id, $event_id, $tag_id, $nothingToChange);
+            $tag_id = $this->AttributeTag->Tag->lookupTagIdFromName($tag_name);
+            if ($tag_id == -1) {
+                $success = $success || true;
+                continue;
+            }
+            $saveSuccess = $this->AttributeTag->detachTagFromAttribute($attribute_id, $event_id, $tag_id, $local, $nothingToChange);
             $success = $success || !empty($saveSuccess);
             $touchAttribute = $touchAttribute || !$nothingToChange;
         }
@@ -2673,8 +2301,8 @@ class Attribute extends AppModel
                 throw new InvalidArgumentException('Invalid date specification, must be string or array with two elements');
             }
 
-            $timestamp[0] = intval($this->resolveTimeDelta($timestamp[0]));
-            $timestamp[1] = intval($this->resolveTimeDelta($timestamp[1]));
+            $timestamp[0] = $this->resolveTimeDelta($timestamp[0]);
+            $timestamp[1] = $this->resolveTimeDelta($timestamp[1]);
             if ($timestamp[0] > $timestamp[1]) {
                 $temp = $timestamp[0];
                 $timestamp[0] = $timestamp[1];
@@ -2683,7 +2311,7 @@ class Attribute extends AppModel
             $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
             $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
         } else {
-            $timestamp = intval($this->resolveTimeDelta($timestamp));
+            $timestamp = $this->resolveTimeDelta($timestamp);
             $conditions['AND'][] = array($scope . ' >=' => $timestamp);
         }
         if ($returnRaw) {
@@ -2909,6 +2537,7 @@ class Attribute extends AppModel
                             'attribute_id' => $this->id,
                             'event_id' => $eventId,
                             'tag_id' => $tag_id,
+                            'relationship_type' => empty($tag['relationship_type']) ? null : $tag['relationship_type']
                         ];
                         $this->AttributeTag->save($at);
                     }
@@ -2924,7 +2553,7 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false)
+    public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false, $server = null)
     {
         $eventId = $event['Event']['id'];
         $attribute['event_id'] = $eventId;
@@ -3007,11 +2636,14 @@ class Attribute extends AppModel
         }
         if ($user['Role']['perm_tagger']) {
             /*
-                We should uncomment the line below in the future once we have tag soft-delete
+                We should unwrap the line below and remove the server option in the future once we have tag soft-delete
                 A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
                 has a version below x
             */
-            // $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
+            if (isset($server) && isset($server['Server']['remove_missing_tags']) && $server['Server']['remove_missing_tags']) {
+                $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
+            }
+
             if (isset($attribute['Tag'])) {
                 foreach ($attribute['Tag'] as $tag) {
                     $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
@@ -3033,28 +2665,32 @@ class Attribute extends AppModel
         return true;
     }
 
+    /**
+     * @param int $id Attribute ID
+     * @param array $user
+     * @param bool $hard
+     * @return bool
+     * @throws Exception
+     */
     public function deleteAttribute($id, array $user, $hard = false)
     {
-        $result = $this->fetchAttributes($user, array(
-            'conditions' => array('Attribute.id' => $id),
-            'flatten' => 1,
-            'deleted' => [0,1],
+        $attribute = $this->find('first', [
+            'conditions' => ['Attribute.id' => $id],
+            'contain' => ['Event'],
             'recursive' => -1,
-            'contain' => array('Event')
-        ));
-        if (empty($result)) {
-            throw new ForbiddenException(__('Invalid attribute'));
+        ]);
+        if (empty($attribute)) {
+            throw new NotFoundException(__('Invalid attribute'));
         }
-        $result = $result[0];
 
         // check for permissions
         if (!$user['Role']['perm_site_admin']) {
-            if ($result['Event']['locked']) {
-                if ($user['org_id'] != $result['Event']['org_id'] || !$user['Role']['perm_sync']) {
+            if ($attribute['Event']['locked']) {
+                if ($user['org_id'] != $attribute['Event']['org_id'] || !$user['Role']['perm_sync']) {
                     throw new ForbiddenException(__('You do not have permission to do that.'));
                 }
             } else {
-                if ($user['org_id'] != $result['Event']['orgc_id']) {
+                if ($user['org_id'] != $attribute['Event']['orgc_id']) {
                     throw new ForbiddenException(__('You do not have permission to do that.'));
                 }
             }
@@ -3063,15 +2699,15 @@ class Attribute extends AppModel
             $save = $this->delete($id);
         } else {
             if (Configure::read('Security.sanitise_attribute_on_delete')) {
-                $result['Attribute']['category'] = 'Other';
-                $result['Attribute']['type'] = 'comment';
-                $result['Attribute']['value'] = 'deleted';
-                $result['Attribute']['comment'] = '';
-                $result['Attribute']['to_ids'] = 0;
+                $attribute['Attribute']['category'] = 'Other';
+                $attribute['Attribute']['type'] = 'comment';
+                $attribute['Attribute']['value'] = 'deleted';
+                $attribute['Attribute']['comment'] = '';
+                $attribute['Attribute']['to_ids'] = 0;
             }
-            $result['Attribute']['deleted'] = 1;
-            $result['Attribute']['timestamp'] = time();
-            $save = $this->save($result);
+            $attribute['Attribute']['deleted'] = 1;
+            $attribute['Attribute']['timestamp'] = time();
+            $save = $this->save($attribute);
             $object_refs = $this->Object->ObjectReference->find('all', array(
                 'conditions' => array(
                     'ObjectReference.referenced_type' => 0,
@@ -3090,11 +2726,10 @@ class Attribute extends AppModel
             $this->Event->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
 
             // remove the published flag from the event
-            $this->Event->unpublishEvent($result['Event']['id']);
+            $this->Event->unpublishEvent($attribute);
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     public function attachValidationWarnings($adata)
@@ -3304,7 +2939,8 @@ class Attribute extends AppModel
                 $exportTool->additional_params
             );
         }
-
+        ClassRegistry::init('ConnectionManager');
+        $db = ConnectionManager::getDataSource('default');
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
@@ -3338,9 +2974,15 @@ class Attribute extends AppModel
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
         $elementCounter = 0;
+        $real_count = false;
+        $incrementTotalBy = $loop || $real_count ? 0 : 1;
         do {
-            $results = $this->fetchAttributes($user, $params, $elementCounter);
-            $totalCount = $elementCounter;
+            $results = $this->fetchAttributes($user, $params, $elementCounter, $real_count);
+            if (!$real_count) {
+                $totalCount = $params['limit'] * ($params['page'] - 1) + $elementCounter;
+            } else {
+                $totalCount = $elementCounter;
+            }
             $elementCounter = false; // do not call `count` again
             if (empty($results)) {
                 break; // nothing found, skip rest
@@ -3356,13 +2998,15 @@ class Attribute extends AppModel
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
             }
-            if ($loop && count($results) < $params['limit']) {
-                break; // do not continue if we received less results than limit
+            if (count($results) < $params['limit']) {
+                $incrementTotalBy = 0;
+                if ($loop) {
+                    break; // do not continue if we received less results than limit
+                }
             }
             $params['page'] += 1;
         } while ($loop);
-
-        return $totalCount;
+        return $totalCount + $incrementTotalBy;
     }
 
     public function set_filter_uuid(&$params, $conditions, $options)
@@ -3508,7 +3152,7 @@ class Attribute extends AppModel
             'Payload delivery' => array(
                 'desc' => __('Information about how the malware is delivered'),
                 'formdesc' => __('Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.'),
-                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'cpe', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
+                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'cpe', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
             ),
             'Artifacts dropped' => array(
                 'desc' => __('Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
@@ -3517,7 +3161,7 @@ class Attribute extends AppModel
             'Payload installation' => array(
                 'desc' => __('Info on where the malware gets installed in the system'),
                 'formdesc' => __('Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.'),
-                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'cpe','weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
+                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'cpe','weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'azure-application-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
             ),
             'Persistence mechanism' => array(
                 'desc' => __('Mechanisms used by the malware to start at boot'),
@@ -3765,6 +3409,7 @@ class Attribute extends AppModel
             'place-port-of-onward-foreign-destination' => array('desc' => __('A Port where the passenger is transiting to'), 'default_category' => 'Person', 'to_ids' => 0),
             'passenger-name-record-locator-number' => array('desc' => __('The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.'), 'default_category' => 'Person', 'to_ids' => 0),
             'mobile-application-id' => array('desc' => __('The application id of a mobile application'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'azure-application-id' => array('desc' => __('Azure Application ID.'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'chrome-extension-id' => array('desc' => __('Chrome extension id'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'cortex' => array('desc' => __('Cortex analysis result'), 'default_category' => 'External analysis', 'to_ids' => 0),
             'boolean' => array('desc' => __('Boolean value - to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),

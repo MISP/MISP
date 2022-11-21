@@ -27,6 +27,7 @@ class Module_enrich_event extends WorkflowBaseActionModule
         } else {
             $moduleOptions[] = $modules;
         }
+        sort($moduleOptions);
         $this->params = [
             [
                 'id' => 'modules',

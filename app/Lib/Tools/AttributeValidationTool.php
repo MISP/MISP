@@ -526,6 +526,7 @@ class AttributeValidationTool
             case 'favicon-mmh3':
             case 'chrome-extension-id':
             case 'mobile-application-id':
+            case 'azure-application-id':
             case 'named pipe':
                 if (strpos($value, "\n") !== false) {
                     return __('Value must not contain new line character.');
@@ -570,8 +571,7 @@ class AttributeValidationTool
             case 'float':
                 return is_numeric($value);
             case 'cortex':
-                json_decode($value);
-                return json_last_error() === JSON_ERROR_NONE;
+                return JsonTool::isValid($value);
             case 'boolean':
                 return $value == 1 || $value == 0;
             case 'AS':
@@ -635,16 +635,12 @@ class AttributeValidationTool
     }
 
     /**
-     * @param $value
+     * @param string $value
      * @return bool
      */
     private static function isSsdeep($value)
     {
-        $parts = explode(':', $value);
-        if (count($parts) !== 3) {
-            return false;
-        }
-        return self::isPositiveInteger($parts[0]);
+        return preg_match('#^([0-9]+):([0-9a-zA-Z/+]*):([0-9a-zA-Z/+]*)$#', $value);
     }
 
     /**
