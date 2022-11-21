@@ -682,6 +682,16 @@ class ACLComponent extends Component
                 'hideTag' => array('perm_tagger'),
                 'normalizeCustomTagsToTaxonomyFormat' => [],
             ),
+            'taxiiServers' => [
+                'add' => ['perm_admin'],
+                'edit' => ['perm_admin'],
+                'index' => ['perm_admin'],
+                'delete' => ['perm_admin'],
+                'view' => ['perm_admin'],
+                'push' => ['perm_admin'],
+                'getRoot' => ['perm_admin'],
+                'getCollections' => ['perm_admin']
+            ],
             'templateElements' => array(
                 'add' => array('perm_template'),
                 'delete' => array('perm_template'),
