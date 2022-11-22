@@ -6523,6 +6523,15 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
+                ],
+                'disable_instance_file_uploads' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('When enabled, the "Manage files" menu is disabled on the server settings. You can still copy files via ssh to the appropriate location and link them using MISP.settings.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true
                 ]
             ),
             'SecureAuth' => array(

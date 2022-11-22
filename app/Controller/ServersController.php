@@ -1075,6 +1075,9 @@ class ServersController extends AppController
             $this->set('correlation_metrics', $correlation_metrics);
         }
         if ($tab === 'files') {
+            if (!empty(Configure::read('Security.disable_instance_file_uploads'))) {
+                throw new MethodNotAllowedException(__('This functionality is disabled.'));
+            }
             $files = $this->Server->grabFiles();
             $this->set('files', $files);
         }
@@ -1623,6 +1626,9 @@ class ServersController extends AppController
     {
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
+        }
+        if (!empty(Configure::read('Security.disable_instance_file_uploads'))) {
+            throw new MethodNotAllowedException(__('Feature disabled.'));
         }
         $validItems = $this->Server->getFileRules();
 
