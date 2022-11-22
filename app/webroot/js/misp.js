@@ -5504,6 +5504,49 @@ function redirectIdSelection(scope, action) {
     }
 }
 
+$(document.body).on('click', '.populateActionTrigger', function() {
+    var populate_script = $(this).data('request-script');
+    populate_script = atob(populate_script);
+    populate_script = populate_script.replace(/\{\{[A-Za-z0-9#_]*\}\}/gi, function(fieldName) {
+        fieldName = fieldName.substring(2, fieldName.length -2);
+        if ($(fieldName).is('input')) {
+            return $(fieldName).val();
+        } else {
+            //fieldName = fieldName.substring(1, fieldName.length);
+            var toReturn = $(fieldName + " option:selected").val();
+            return toReturn;
+        }
+    });
+    console.log(populate_script);
+    console.log(populate_script['baseurl'] + populate_script['uri']);
+    populate_script = JSON.parse(populate_script);
+    var update_target = $(this).data('update-target');
+    $.ajax({
+        data: JSON.stringify(populate_script['body']),
+        headers: {
+            "Accept": "application/json",
+            "Content-type": "application/json"
+        },
+        success: function (data) {
+            console.log(data);
+            if (typeof(data) != 'object') {
+                $('#' + update_target).val(data);
+            } else {
+                $('#' + update_target).empty();
+                $('#' + update_target).append($('<option selected disabled hidden>').text('Choose'));
+                $.each(data, function(key, value) {
+                    $('#' + update_target).append($('<option>').val(key).text(value));
+                });
+            }
+        },
+        error: function(data) {
+            showMessage('fail', data['responseJSON']['errors']);
+        },
+        type: populate_script['type'],
+        url: baseurl + populate_script['uri']
+    })
+});
+
 $(document.body).on('click', '.hex-value-convert', function() {
     var $hexValueSpan = $(this).parent().children(':first-child');
     var val = $hexValueSpan.text().trim();

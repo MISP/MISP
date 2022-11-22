@@ -316,6 +316,11 @@
                         'requirement' => $this->Acl->canAccess('cerebrates', 'index'),
                     ),
                     array(
+                        'text' => __('List Taxii Servers'),
+                        'url' => $baseurl . '/TaxiiServers/index',
+                        'requirement' => $this->Acl->canAccess('taxiiServers', 'index'),
+                    ),
+                    array(
                         'text' => __('Event ID translator'),
                         'url' => '/servers/idTranslator',
                         'requirement' => $this->Acl->canAccess('servers', 'idTranslator')
