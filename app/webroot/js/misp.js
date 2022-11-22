@@ -5517,8 +5517,6 @@ $(document.body).on('click', '.populateActionTrigger', function() {
             return toReturn;
         }
     });
-    console.log(populate_script);
-    console.log(populate_script['baseurl'] + populate_script['uri']);
     populate_script = JSON.parse(populate_script);
     var update_target = $(this).data('update-target');
     $.ajax({
@@ -5528,7 +5526,6 @@ $(document.body).on('click', '.populateActionTrigger', function() {
             "Content-type": "application/json"
         },
         success: function (data) {
-            console.log(data);
             if (typeof(data) != 'object') {
                 $('#' + update_target).val(data);
             } else {
