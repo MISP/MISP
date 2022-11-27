@@ -3887,4 +3887,23 @@ class AppModel extends Model
             );
         ");
     }
+
+    public function findOrder($order, $order_model, $valid_order_fields)
+    {
+        if (!is_array($order)) {
+            $order_rules = explode(' ', strtolower($order));
+            $order_field = explode('.', $order_rules[0]);
+            $order_field = end($order_field);
+            if (in_array($order_field, $valid_order_fields)) {
+                $direction = 'asc';
+                if (!empty($order_rules[1]) && trim($order_rules[1]) === 'desc') {
+                    $direction = 'desc';
+                }
+            } else {
+                return null;
+            }
+            return $order_model . '.' . $order_field . ' ' . $direction;
+        }
+        return null;
+    }
 }

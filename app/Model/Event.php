@@ -1526,7 +1526,11 @@ class Event extends AppModel
             'recursive' => -1,
         );
         if (isset($params['order'])) {
-            $find_params['order'] = $params['order'];
+            $find_params['order'] = $this->findOrder(
+                $params['order'],
+                'Event',
+                ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
+            );
         }
         if (isset($params['limit'])) {
             // Get the count (but not the actual data) of results for paginators
@@ -2006,7 +2010,11 @@ class Event extends AppModel
             $params['page'] = $options['page'];
         }
         if (!empty($options['order'])) {
-            $params['order'] = $options['order'];
+            $options['order'] = $this->findOrder(
+                $options['order'],
+                'Event',
+                ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
+            );
         }
         $results = $this->find('all', $params);
         if (empty($results)) {
@@ -7048,7 +7056,7 @@ class Event extends AppModel
     }
 
 
-    public function restSearchFilterMassage($filters, $non_restrictive_export)
+    public function restSearchFilterMassage($filters, $non_restrictive_export, $user)
     {
         if (!empty($filters['ignore'])) {
             $filters['to_ids'] = array(0, 1);
@@ -7120,7 +7128,7 @@ class Event extends AppModel
             $renderView = $exportTool->renderView;
         }
         $non_restrictive_export = !empty($exportTool->non_restrictive_export);
-        $filters = $this->restSearchFilterMassage($filters, $non_restrictive_export);
+        $filters = $this->restSearchFilterMassage($filters, $non_restrictive_export, $user);
 
         $filters = $this->addFiltersFromUserSettings($user, $filters);
         if (empty($exportTool->mock_query_only)) {

@@ -2920,6 +2920,13 @@ class Attribute extends AppModel
         if (!empty($filters['score'])) {
             $params['score'] = $filters['score'];
         }
+        if (!empty($filters['order'])) {
+            $params['order'] = $this->findOrder(
+                $filters['order'],
+                'Attribute',
+                ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
+            );
+        }
         if ($paramsOnly) {
             return $params;
         }
