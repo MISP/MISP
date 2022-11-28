@@ -682,6 +682,28 @@ class AppController extends Controller
             $accessLog = ClassRegistry::init('AccessLog');
             $accessLog->logRequest($user, $this->_remoteIp(), $this->request, $includeRequestBody);
         }
+
+        if (
+            (empty(Configure::read('MISP.log_skip_access_logs_in_application_logs'))) &&
+            Configure::read('MISP.log_paranoid') || $userMonitoringEnabled
+        ) {
+            $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here;
+            if (
+                (
+                    $this->request->is('post') ||
+                    $this->request->is('put')
+                ) &&
+                (
+                    !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
+                    $userMonitoringEnabled
+                )
+            ) {
+                $payload = $this->request->input();
+                $change .= PHP_EOL . 'Request body: ' . $payload;
+            }
+            $this->loadModel('Log');
+            $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
+        }
     }
 
     /**

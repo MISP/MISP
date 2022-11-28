@@ -2399,7 +2399,7 @@ class AppModel extends Model
                         'action' => 'update_db_worker',
                         'user_id' => 0,
                         'title' => __('Issues executing run_updates'),
-                        'change' => __('Database updates are locked. Worker not spawned')
+                        'change' => __('Database updates are locked. Make sure that you have an update worker running. If you do, it might be related to an update\'s execution repeatedly failing or still being in progress.')
                     ));
                     if (!empty($job)) { // if multiple prio worker is enabled, want to mark them as done
                         $job['Job']['progress'] = 100;
