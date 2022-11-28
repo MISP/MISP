@@ -147,6 +147,9 @@ class Log extends AppModel
             }
         }
         $this->logData($this->data);
+        if ($this->data['Log']['action'] === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {
+            return false;
+        }
         return true;
     }
 
@@ -242,6 +245,9 @@ class Log extends AppModel
         ]]);
 
         if (!$result) {
+            if ($action === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {
+                return null;
+            }
             if (!empty(Configure::read('MISP.log_skip_db_logs_completely'))) {
                 return null;
             }
@@ -356,6 +362,11 @@ class Log extends AppModel
             $logIndex = Configure::read("Plugin.ElasticSearch_log_index");
             $elasticSearchClient = $this->getElasticSearchTool();
             $elasticSearchClient->pushDocument($logIndex, "log", $data);
+        }
+
+        // Do not save request action logs to syslog, because they contain no information
+        if ($data['Log']['action'] === 'request') {
+            return true;
         }
 
         // write to syslogd as well if enabled
