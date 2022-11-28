@@ -1167,7 +1167,7 @@ class UsersController extends AppController
         if ($this->request->is(['post', 'put'])) {
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
             if (!empty($this->request->data['User']['email'])) {
-                if ($this->Bruteforce->isBlocklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
+                if ($this->Bruteforce->isBlocklisted($this->request->data['User']['email'])) {
                     $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
                     throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
                 }
@@ -1213,7 +1213,7 @@ class UsersController extends AppController
             if ($this->request->is('post') || $this->request->is('put')) {
                 $this->Flash->error(__('Invalid username or password, try again'));
                 if (isset($this->request->data['User']['email'])) {
-                    $this->Bruteforce->insert($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email']);
+                    $this->Bruteforce->insert($this->request->data['User']['email']);
                 }
             }
             // populate the DB with the first role (site admin) if it's empty
@@ -1784,7 +1784,7 @@ class UsersController extends AppController
             $body = $this->__replaceEmailVariables($body);
             $body = str_replace('$validity', $validity, $body);
             $body = str_replace('$otp', $otp, $body);
-            $body = str_replace('$ip', $this->__getClientIP(), $body);
+            $body = str_replace('$ip', $this->_remoteIp(), $body);
             $body = str_replace('$username', $user['email'], $body);
 
             // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
@@ -1798,22 +1798,6 @@ class UsersController extends AppController
                 $this->Flash->error(__("The email couldn't be sent, please reach out to your administrator."));
             }
         }
-    }
-
-    /**
-    * Helper function to determine the IP of a client (proxy aware)
-    */
-    private function __getClientIP() {
-      $x_forwarded = filter_input(INPUT_SERVER, 'HTTP_X_FORWARDED_FOR', FILTER_SANITIZE_STRING);
-      $client_ip = filter_input(INPUT_SERVER, 'HTTP_CLIENT_IP', FILTER_SANITIZE_STRING);
-      if (!empty($x_forwarded)) {
-        $x_forwarded = explode(",", $x_forwarded);
-        return $x_forwarded[0];
-      } elseif(!empty($client_ip)){
-        return $client_ip;
-      } else {
-        return filter_input(INPUT_SERVER, 'REMOTE_ADDR', FILTER_SANITIZE_STRING);
-      }
     }
 
     // shows some statistics about the instance

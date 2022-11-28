@@ -5,10 +5,11 @@ App::uses('Sanitize', 'Utility');
 
 class Bruteforce extends AppModel
 {
-    public function insert($ip, $username)
+    public function insert($username)
     {
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
+        $ip = $this->_remoteIp();
         $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
         $amount = Configure::check('SecureAuth.amount') ? Configure::read('SecureAuth.amount') : 5;
         $expire = time() + $expire;
@@ -19,8 +20,8 @@ class Bruteforce extends AppModel
             'expire' => $expire
         );
         $this->save($bruteforceEntry);
-        $title = 'Failed login attempt using username ' . $username . ' from IP: ' . $_SERVER['REMOTE_ADDR'] . '.';
-        if ($this->isBlocklisted($ip, $username)) {
+        $title = 'Failed login attempt using username ' . $username . ' from IP: ' . $ip . '.';
+        if ($this->isBlocklisted($username)) {
             $title .= 'This has tripped the bruteforce protection after  ' . $amount . ' failed attempts. The user is now blocklisted for ' . $expire . ' seconds.';
         }
         $log = array(
@@ -45,11 +46,12 @@ class Bruteforce extends AppModel
         $this->query($sql);
     }
 
-    public function isBlocklisted($ip, $username)
+    public function isBlocklisted($username)
     {
         // first remove old expired rows
         $this->clean();
         // count
+        $ip = $this->_remoteIp();
         $params = array(
             'conditions' => array(
             'Bruteforce.ip' => $ip,

@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '146';
-    public $pyMispVersion = '2.4.165';
+    public $pyMispVersion = '2.4.166';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -665,11 +665,28 @@ class AppController extends Controller
     {
         $userMonitoringEnabled = Configure::read('Security.user_monitoring_enabled');
         if ($userMonitoringEnabled) {
-            $redis = $this->User->setupRedis();
-            $userMonitoringEnabled = $redis && $redis->sismember('misp:monitored_users', $user['id']);
+            try {
+                $userMonitoringEnabled = RedisTool::init()->sismember('misp:monitored_users', $user['id']);
+            } catch (Exception $e) {
+                $userMonitoringEnabled = false;
+            }
         }
 
-        if (Configure::read('MISP.log_paranoid') || $userMonitoringEnabled) {
+        $shouldBeLogged = $userMonitoringEnabled ||
+            Configure::read('MISP.log_paranoid') ||
+            (Configure::read('MISP.log_paranoid_api') && $user['logged_by_authkey']);
+
+        if ($shouldBeLogged) {
+            $includeRequestBody = !empty(Configure::read('MISP.log_paranoid_include_post_body')) || $userMonitoringEnabled;
+            /** @var AccessLog $accessLog */
+            $accessLog = ClassRegistry::init('AccessLog');
+            $accessLog->logRequest($user, $this->_remoteIp(), $this->request, $includeRequestBody);
+        }
+
+        if (
+            (empty(Configure::read('MISP.log_skip_access_logs_in_application_logs'))) &&
+            Configure::read('MISP.log_paranoid') || $userMonitoringEnabled
+        ) {
             $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here;
             if (
                 (
@@ -684,7 +701,7 @@ class AppController extends Controller
                 $payload = $this->request->input();
                 $change .= PHP_EOL . 'Request body: ' . $payload;
             }
-            $this->Log = ClassRegistry::init('Log');
+            $this->loadModel('Log');
             $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
         }
     }
@@ -1041,7 +1058,7 @@ class AppController extends Controller
                 $headerNamespace = '';
             }
             if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
-                if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $server['REMOTE_ADDR']) {
+                if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $this->_remoteIp()) {
                     $this->Log = ClassRegistry::init('Log');
                     $this->Log->create();
                     $log = array(
@@ -1050,7 +1067,7 @@ class AppController extends Controller
                             'model_id' => 0,
                             'email' => 'SYSTEM',
                             'action' => 'auth_fail',
-                            'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $server['REMOTE_ADDR'],
+                            'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->_remoteIp(),
                             'change' => null,
                     );
                     $this->Log->save($log);
@@ -1356,8 +1373,9 @@ class AppController extends Controller
     protected function _remoteIp()
     {
         $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : null;
+        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
     }
+
 
     /**
      * @param string $key

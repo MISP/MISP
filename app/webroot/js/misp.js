@@ -1695,7 +1695,7 @@ function openPopup(id, adjust_layout, callback) {
             $id.addClass('vertical-scroll');
         } else {
             if (window_height > (300 + popup_height)) {
-                var top_offset = ((window_height - popup_height) / 2) - 150;
+                var top_offset = ((window_height - popup_height) / 2) - 125;
             } else {
                 var top_offset = (window_height - popup_height) / 2;
             }
@@ -5504,6 +5504,46 @@ function redirectIdSelection(scope, action) {
     }
 }
 
+$(document.body).on('click', '.populateActionTrigger', function() {
+    var populate_script = $(this).data('request-script');
+    populate_script = atob(populate_script);
+    populate_script = populate_script.replace(/\{\{[A-Za-z0-9#_]*\}\}/gi, function(fieldName) {
+        fieldName = fieldName.substring(2, fieldName.length -2);
+        if ($(fieldName).is('input')) {
+            return $(fieldName).val();
+        } else {
+            //fieldName = fieldName.substring(1, fieldName.length);
+            var toReturn = $(fieldName + " option:selected").val();
+            return toReturn;
+        }
+    });
+    populate_script = JSON.parse(populate_script);
+    var update_target = $(this).data('update-target');
+    $.ajax({
+        data: JSON.stringify(populate_script['body']),
+        headers: {
+            "Accept": "application/json",
+            "Content-type": "application/json"
+        },
+        success: function (data) {
+            if (typeof(data) != 'object') {
+                $('#' + update_target).val(data);
+            } else {
+                $('#' + update_target).empty();
+                $('#' + update_target).append($('<option selected disabled hidden>').text('Choose'));
+                $.each(data, function(key, value) {
+                    $('#' + update_target).append($('<option>').val(key).text(value));
+                });
+            }
+        },
+        error: function(data) {
+            showMessage('fail', data['responseJSON']['errors']);
+        },
+        type: populate_script['type'],
+        url: baseurl + populate_script['uri']
+    })
+});
+
 $(document.body).on('click', '.hex-value-convert', function() {
     var $hexValueSpan = $(this).parent().children(':first-child');
     var val = $hexValueSpan.text().trim();
@@ -5678,6 +5718,36 @@ function enableWorkflowDebugMode(workflow_id, currentEnabledState, callback) {
             },
             type: "post",
             url: $formData.find('form').attr('action')
+        });
+    });
+}
+
+// Used in audit and access logs
+function filterSearch(callback) {
+    $('td[data-search]').mouseenter(function() {
+        var $td = $(this);
+        var searchValue = $td.data('search-value');
+        if (searchValue.length === 0) {
+            return;
+        }
+
+        $td.find('#quickEditButton').remove(); // clean all similar if exist
+        var $div = $('<div id="quickEditButton"></div>');
+        $div.addClass('quick-edit-row-div');
+        var $span = $('<span></span>');
+        $span.addClass('fa-as-icon fa fa-search-plus');
+        $span.css('font-size', '12px');
+        $span.prop('title', 'Filter by this value');
+        $div.append($span);
+        $td.append($div);
+
+        $span.click(function (e) {
+            var searchKey = $td.data('search');
+            callback(e, searchKey, searchValue);
+        });
+
+        $td.off('mouseleave').on('mouseleave', function() {
+            $div.remove();
         });
     });
 }

@@ -6,10 +6,22 @@ class AclHelper extends Helper
     /** @var ACLComponent */
     private $ACL;
 
+    /** @var array */
+    private $me;
+
     public function __construct(View $View, $settings = [])
     {
         parent::__construct($View, $settings);
+
         $this->ACL = $View->viewVars['aclComponent'];
+        if (!$this->ACL instanceof ACLComponent) {
+            throw new InvalidArgumentException('ACL not provided.');
+        }
+
+        $this->me = $View->viewVars['me'];
+        if (empty($this->me)) {
+            throw new InvalidArgumentException('Me variable not provided.');
+        }
     }
 
     /**
@@ -19,8 +31,7 @@ class AclHelper extends Helper
      */
     public function canAccess($controller, $action)
     {
-        $me = $this->_View->viewVars['me'];
-        return $this->ACL->canUserAccess($me, $controller, $action);
+        return $this->ACL->canUserAccess($this->me, $controller, $action);
     }
 
     /**
@@ -29,8 +40,7 @@ class AclHelper extends Helper
      */
     public function canModifyEvent(array $event)
     {
-        $me = $this->_View->viewVars['me'];
-        return $this->ACL->canModifyEvent($me, $event);
+        return $this->ACL->canModifyEvent($this->me, $event);
     }
 
     /**
@@ -39,8 +49,7 @@ class AclHelper extends Helper
      */
     public function canPublishEvent(array $event)
     {
-        $me = $this->_View->viewVars['me'];
-        return $this->ACL->canPublishEvent($me, $event);
+        return $this->ACL->canPublishEvent($this->me, $event);
     }
 
     /**
@@ -50,8 +59,7 @@ class AclHelper extends Helper
      */
     public function canModifyTag(array $event, $isTagLocal = false)
     {
-        $me = $this->_View->viewVars['me'];
-        return $this->ACL->canModifyTag($me, $event, $isTagLocal);
+        return $this->ACL->canModifyTag($this->me, $event, $isTagLocal);
     }
 
     /**
@@ -60,8 +68,7 @@ class AclHelper extends Helper
      */
     public function canDisableCorrelation(array $event)
     {
-        $me = $this->_View->viewVars['me'];
-        return $this->ACL->canDisableCorrelation($me, $event);
+        return $this->ACL->canDisableCorrelation($this->me, $event);
     }
 
     /**
@@ -70,8 +77,7 @@ class AclHelper extends Helper
      */
     public function canModifyTagCollection(array $tagCollection)
     {
-        $me = $this->_View->viewVars['me'];
-        return $this->ACL->canModifyTagCollection($me, $tagCollection);
+        return $this->ACL->canModifyTagCollection($this->me, $tagCollection);
     }
 
     /**
@@ -80,8 +86,7 @@ class AclHelper extends Helper
      */
     public function canDeleteSighting(array $sighting)
     {
-        $me = $this->_View->viewVars['me'];
-        return $this->ACL->canDeleteSighting($me, $sighting);
+        return $this->ACL->canDeleteSighting($this->me, $sighting);
     }
 
     /**
@@ -90,8 +95,7 @@ class AclHelper extends Helper
      */
     public function canEditEventReport(array $eventReport)
     {
-        $me = $this->_View->viewVars['me'];
-        return $this->ACL->canEditReport($me, $eventReport);
+        return $this->ACL->canEditEventReport($this->me, $eventReport);
     }
 
     /**
@@ -100,8 +104,7 @@ class AclHelper extends Helper
      */
     public function canModifyGalaxyCluster(array $cluster)
     {
-        $me = $this->_View->viewVars['me'];
-        return $this->ACL->canModifyGalaxyCluster($me, $cluster);
+        return $this->ACL->canModifyGalaxyCluster($this->me, $cluster);
     }
 
     /**
@@ -110,7 +113,6 @@ class AclHelper extends Helper
      */
     public function canPublishGalaxyCluster(array $cluster)
     {
-        $me = $this->_View->viewVars['me'];
-        return $this->ACL->canModifyGalaxyCluster($me, $cluster);
+        return $this->ACL->canModifyGalaxyCluster($this->me, $cluster);
     }
 }

@@ -316,6 +316,11 @@
                         'requirement' => $this->Acl->canAccess('cerebrates', 'index'),
                     ),
                     array(
+                        'text' => __('List Taxii Servers'),
+                        'url' => $baseurl . '/TaxiiServers/index',
+                        'requirement' => $this->Acl->canAccess('taxiiServers', 'index'),
+                    ),
+                    array(
                         'text' => __('Event ID translator'),
                         'url' => '/servers/idTranslator',
                         'requirement' => $this->Acl->canAccess('servers', 'idTranslator')
@@ -481,20 +486,24 @@
                 'requirement' => $isAclAudit,
                 'children' => array(
                     array(
-                        'text' => __('List Logs'),
+                        'text' => __('Application Logs'),
                         'url' => $baseurl . '/admin/logs/index'
                     ),
                     array(
-                        'text' => __('List Audit Logs'),
+                        'text' => __('Audit Logs'),
                         'url' => $baseurl . '/admin/audit_logs/index',
                         'requirement' => Configure::read('MISP.log_new_audit'),
                     ),
                     array(
+                        'text' => __('Access Logs'),
+                        'url' => $baseurl . '/admin/access_logs/index',
+                    ),
+                    array(
                         'text' => __('Search Logs'),
-                        'url' => $baseurl . '/admin/logs/search'
+                        'url' => $baseurl . '/admin/logs/search',
                     )
                 )
-                    ),
+            ),
             array(
                 'type' => 'root',
                 'text' => __('API'),

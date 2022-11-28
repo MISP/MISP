@@ -1,5 +1,5 @@
 <div class="logs index">
-    <h2><?php echo __('Logs');?></h2>
+    <h2><?php echo __('Application Logs');?></h2>
     <?php
     if ($isSearch == 1) {
         echo "<h4>" . __("Results for all log entries");

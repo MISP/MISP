@@ -5568,9 +5568,26 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'log_skip_access_logs_in_application_logs' => [
+                    'level' => 0,
+                    'description' => __('Skip adding the access log entries to the /logs/ application logs. This is **HIGHLY** recommended as your instance will be logging these entries twice otherwise, however, for compatibility reasons for auditing we maintain this behaviour until confirmed otherwise.'),
+                    'value' => false,
+                    'errorMessage' => __('Access logs are logged twice. This is generally not recommended, make sure you update your tooling.'),
+                    'test' => 'testBoolTrue',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'log_paranoid' => array(
                     'level' => 0,
                     'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'log_paranoid_api' => array(
+                    'level' => 0,
+                    'description' => __('If this functionality is enabled all API requests will be logged.'),
                     'value' => false,
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
@@ -6515,6 +6532,15 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
+                ],
+                'disable_instance_file_uploads' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('When enabled, the "Manage files" menu is disabled on the server settings. You can still copy files via ssh to the appropriate location and link them using MISP.settings.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true
                 ]
             ),
             'SecureAuth' => array(

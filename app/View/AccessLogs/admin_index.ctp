@@ -1,5 +1,5 @@
 <div class="logs index">
-    <h2><?= __('Audit logs') ?></h2>
+    <h2><?= __('Access logs') ?></h2>
     <div>
         <div id="builder"></div>
         <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
@@ -8,11 +8,11 @@
         </div>
     </div>
     <?php
-        echo $this->Html->script('moment.min');
-        echo $this->Html->script('doT');
-        echo $this->Html->script('extendext');
-        echo $this->Html->css('query-builder.default');
-        echo $this->Html->script('query-builder');
+    echo $this->Html->script('moment.min');
+    echo $this->Html->script('doT');
+    echo $this->Html->script('extendext');
+    echo $this->Html->css('query-builder.default');
+    echo $this->Html->script('query-builder');
     ?>
     <script>
         var qbOptions = {
@@ -40,58 +40,6 @@
                         todayHighlight: true,
                         autoclose: true
                     }
-                },
-                {
-                    input: "select",
-                    type: "string",
-                    operators: [
-                        "equal",
-                    ],
-                    unique: true,
-                    id: "action",
-                    label: "Action",
-                    values: <?= JsonTool::encode($actions) ?>
-                },
-                {
-                    input: "select",
-                    type: "string",
-                    operators: [
-                        "equal",
-                    ],
-                    unique: true,
-                    id: "model",
-                    label: "Model type",
-                    values: <?= JsonTool::encode($models) ?>
-                },
-                {
-                    input: "text",
-                    type: "integer",
-                    operators: [
-                        "equal",
-                    ],
-                    unique: true,
-                    id: "model_id",
-                    label: "Model ID",
-                },
-                {
-                    input: "text",
-                    type: "integer",
-                    operators: [
-                        "equal",
-                    ],
-                    unique: true,
-                    id: "event_id",
-                    label: "Belongs to event with ID",
-                },
-                {
-                    input: "text",
-                    type: "string",
-                    operators: [
-                        "contains",
-                    ],
-                    unique: true,
-                    id: "model_title",
-                    label: "Model title",
                 },
                 {
                     input: "text",
@@ -125,17 +73,6 @@
                     label: "Authentication key ID",
                 },
                 {
-                    input: "select",
-                    type: "integer",
-                    operators: [
-                        "equal",
-                    ],
-                    unique: true,
-                    id: "request_type",
-                    label: "Request type",
-                    values: {0: "Browser", 1: "API", 2: "CLI or background job"}
-                },
-                {
                     input: "text",
                     type: "string",
                     operators: [
@@ -156,6 +93,111 @@
                     id: "org",
                     label: "Organisation",
                     description: "Organisation ID, UUID or name",
+                },
+                {
+                    input: "select",
+                    type: "string",
+                    operators: [
+                        "equal",
+                    ],
+                    unique: true,
+                    id: "request_method",
+                    label: "HTTP request method",
+                    values: ["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS", "TRACE", "PATCH"],
+                },
+                {
+                    input: "text",
+                    type: "integer",
+                    operators: [
+                        "equal",
+                    ],
+                    unique: true,
+                    id: "response_code",
+                    label: "HTTP response code",
+                    validation: {
+                        min: 100,
+                        max: 599
+                    }
+                },
+                {
+                    input: "text",
+                    type: "string",
+                    operators: [
+                        "equal",
+                    ],
+                    unique: true,
+                    id: "controller",
+                    label: "Controller",
+                },
+                {
+                    input: "text",
+                    type: "string",
+                    operators: [
+                        "equal",
+                    ],
+                    unique: true,
+                    id: "action",
+                    label: "Action",
+                },
+                {
+                    input: "text",
+                    type: "string",
+                    operators: [
+                        "contains",
+                    ],
+                    unique: true,
+                    id: "url",
+                    label: "URL",
+                },
+                {
+                    input: "text",
+                    type: "string",
+                    operators: [
+                        "contains",
+                    ],
+                    unique: true,
+                    id: "user_agent",
+                    label: "User agent",
+                },
+                {
+                    type: "double",
+                    operators: [
+                        "greater_or_equal",
+                    ],
+                    unique: true,
+                    id: "memory_usage",
+                    label: "Memory usage",
+                    description: "In MB",
+                    validation: {
+                        min: 0,
+                        step: 0.01
+                    }
+                },
+                {
+                    type: "double",
+                    operators: [
+                        "greater_or_equal",
+                    ],
+                    unique: true,
+                    id: "duration",
+                    label: "Duration",
+                    description: "In milliseconds (1 second is equal to 1000 milliseconds)",
+                    validation: {
+                        min: 0,
+                    }
+                },
+                {
+                    type: "integer",
+                    operators: [
+                        "greater_or_equal",
+                    ],
+                    unique: true,
+                    id: "query_count",
+                    label: "Query count",
+                    description: "Number of SQL queries",
+                    validation: {
+                        min: 0,
+                    }
                 }
             ],
             rules: {
@@ -241,70 +283,65 @@
             <th><?= $this->LightPaginator->sort('user_id', __('User')) ?></th>
             <th><?= $this->LightPaginator->sort('ip', __('IP')) ?></th>
             <th><?= $this->LightPaginator->sort('org_id', __('Org')) ?></th>
-            <th><?= $this->LightPaginator->sort('action') ?></th>
-            <th><?= __('Model') ?></th>
-            <th><?= __('Title') ?></th>
-            <th><?= __('Change') ?></th>
+            <th><?= $this->LightPaginator->sort('request_method', __('Method')) ?></th>
+            <th><?= $this->LightPaginator->sort('url', __('URL')) ?></th>
+            <th><?= $this->LightPaginator->sort('response_code', __('Code')) ?></th>
+            <th><?= $this->LightPaginator->sort('memory_usage', __('Memory')) ?></th>
+            <th><?= $this->LightPaginator->sort('duration', __('Duration')) ?></th>
+            <th><?= $this->LightPaginator->sort('query_count', __('Queries')) ?></th>
         </tr>
         <?php foreach ($list as $item): ?>
-        <tr>
-            <td class="short"><?= $this->Time->time($item['AuditLog']['created']); ?></td>
-            <td class="short" data-search="user" data-search-value="<?= h($item['AuditLog']['user_id']) ?>"><?php
-                if (isset($item['AuditLog']['user_id']) && $item['AuditLog']['user_id'] == 0) {
-                    echo __('SYSTEM');
-                } else if (isset($item['User']['email'])) {
-                    echo '<a href="' . $baseurl . '/admin/users/view/' . h($item['User']['id']) . '">' . h($item['User']['email']) . '</a>';
-                } else {
-                    echo __('<i>Deleted user #%s</i>', h($item['AuditLog']['user_id']));
-                }
+            <tr>
+                <td class="short"><?= $this->Time->time($item['AccessLog']['created']); ?></td>
+                <td class="short" data-search="user" data-search-value="<?= h($item['AccessLog']['user_id']) ?>"><?php
+                    if (isset($item['User']['email'])) {
+                        echo '<a href="' . $baseurl . '/admin/users/view/' . h($item['User']['id']) . '">' . h($item['User']['email']) . '</a>';
+                    } else {
+                        echo __('<i>Deleted user #%s</i>', h($item['AccessLog']['user_id']));
+                    }
 
-                if ($item['AuditLog']['request_type'] == AuditLog::REQUEST_TYPE_CLI) {
-                    echo ' <i class="fas fa-terminal" title="' . __('Action done by CLI or background job') .'"></i>';
-                } else if ($item['AuditLog']['request_type'] == AuditLog::REQUEST_TYPE_API) {
-                    $key = $item['AuditLog']['authkey_id'] ? ' ' . __('by auth key #%s', h($item['AuditLog']['authkey_id'])) : '';
-                    echo ' <i class="fas fa-cogs" title="' . __('Action done trough API') . $key . '"></i>';
-                }
-                ?></td>
-            <td class="short" data-search="ip" data-search-value="<?= h($item['AuditLog']['ip']) ?>"><?= h($item['AuditLog']['ip']) ?></td>
-            <td class="short" data-search="org" data-search-value="<?= h($item['AuditLog']['org_id']) ?>">
-                <?php if (isset($item['Organisation']) && $item['Organisation']['id']) {
-                    echo $this->OrgImg->getOrgLogo($item, 24);
-                } else if ($item['AuditLog']['org_id'] != 0) {
-                    echo __('<i>Deleted org #%s</i>', h($item['AuditLog']['org_id']));
-                }
-                ?>
-            </td>
-            <td class="short" data-search="action" data-search-value="<?= h($item['AuditLog']['action']) ?>"><?= h($item['AuditLog']['action_human']) ?></td>
-            <td class="short" data-search="model" data-search-value="<?= h($item['AuditLog']['model']) . ':' . h($item['AuditLog']['model_id']) ?>">
-                <?php $title = isset($item['AuditLog']['event_info']) ? ' title="' . __('Event #%s: %s', $item['AuditLog']['event_id'], h($item['AuditLog']['event_info'])) . '"' : '' ?>
-                <?= isset($item['AuditLog']['model_link']) ? '<a href="' . h($item['AuditLog']['model_link']) . '"' . $title . '>' : '' ?>
-                <?= h($item['AuditLog']['model']) . ' #' . h($item['AuditLog']['model_id']) ?>
-                <?= isset($item['AuditLog']['model_link']) ? '</a>' : '' ?>
-            </td>
-            <td class="limitedWidth"><?= h($item['AuditLog']['title']) ?></td>
-            <td class="fullChange" data-log-id="<?= h($item['AuditLog']['id']) ?>"><?= $this->element('AuditLog/change', ['item' => $item]) ?></td>
-        </tr>
+                    if (!empty($item['AccessLog']['authkey_id'])) {
+                        echo ' <i class="fas fa-cogs" title="' . __('Request trough API by auth key #%s', h($item['AccessLog']['authkey_id'])) . '"></i>';
+                    }
+                    ?></td>
+                <td class="short" data-search="ip" data-search-value="<?= h($item['AccessLog']['ip']) ?>"><?= h($item['AccessLog']['ip']) ?></td>
+                <td class="short" data-search="org" data-search-value="<?= h($item['AccessLog']['org_id']) ?>">
+                    <?php if (isset($item['Organisation']) && $item['Organisation']['id']) {
+                        echo $this->OrgImg->getOrgLogo($item, 24);
+                    } else if ($item['AccessLog']['org_id'] != 0) {
+                        echo __('<i>Deleted org #%s</i>', h($item['AccessLog']['org_id']));
+                    }
+                    ?>
+                </td>
+                <td class="short" data-search="request_method" data-search-value="<?= h($item['AccessLog']['request_method']) ?>">
+                    <?= h($item['AccessLog']['request_method']) ?>
+                    <?= in_array($item['AccessLog']['request_method'], ['POST', 'PUT']) ? ' <a href="#" class="far fa-file request" data-log-id="' . h($item['AccessLog']['id']) . '"></i>' : '' ?>
+                </td>
+                <td class="short" data-search="controller:action" data-search-value="<?= h($item['AccessLog']['controller']) . ':' . h($item['AccessLog']['action']) ?>" title="<?= __('Controller: %s, action: %s', h($item['AccessLog']['controller']), h($item['AccessLog']['action'])) ?>"><?= h($item['AccessLog']['url']) ?></td>
+                <td class="short" data-search="response_code" data-search-value="<?= h($item['AccessLog']['response_code']) ?>"><?= h($item['AccessLog']['response_code']) ?></td>
+                <td class="short"><?= CakeNumber::toReadableSize($item['AccessLog']['memory_usage']) ?></td>
+                <td class="short"><?= $item['AccessLog']['duration'] ?> ms</td>
+                <td class="short"><?= $item['AccessLog']['query_count'] ?></td>
+            </tr>
         <?php endforeach; ?>
     </table>
     <p>
     </p>
     <div class="pagination">
         <ul>
-        <?= $paginator ?>
+            <?= $paginator ?>
         </ul>
     </div>
 </div>
 <script>
     var passedArgs = <?= $passedArgs ?>;
 
-    $('.fullChange').dblclick(function () {
+    $('.request').click(function (e) {
+        e.preventDefault();
         var id = $(this).data('log-id');
-        $.get(baseurl + "/audit_logs/fullChange/" + id, function(data) {
+        $.get(baseurl + "/admin/access_logs/request/" + id, function(data) {
             var $popoverFormLarge = $('#popover_form_large');
             $popoverFormLarge.html(data);
-            $popoverFormLarge.find("span.json").each(function () {
-                $(this).html(syntaxHighlightJson($(this).text()));
-            });
             openPopup($popoverFormLarge);
         }).fail(xhrFailCallback);
         return false;
@@ -312,10 +349,10 @@
 
     $(function() {
         filterSearch(function (e, searchKey, searchValue) {
-            if (searchKey === 'model') {
+            if (searchKey === 'controller:action') {
                 var val = searchValue.split(":");
-                passedArgs['model'] = encodeURIComponent(val[0]);
-                passedArgs['model_id'] = encodeURIComponent(val[1]);
+                passedArgs['controller'] = encodeURIComponent(val[0]);
+                passedArgs['action'] = encodeURIComponent(val[1]);
             } else {
                 passedArgs[searchKey] = encodeURIComponent(searchValue);
             }
@@ -332,5 +369,5 @@
         });
     });
 </script>
-<?= $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'logs', 'menuItem' => 'listAuditLogs']);
+<?= $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'logs', 'menuItem' => 'listAccessLogs']);
 

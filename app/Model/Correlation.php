@@ -818,6 +818,11 @@ class Correlation extends AppModel
         return true;
     }
 
+    /**
+     * @param array $query
+     * @return array|false
+     * @throws RedisException
+     */
     public function findTop(array $query)
     {
         try {
@@ -825,21 +830,23 @@ class Correlation extends AppModel
         } catch (Exception $e) {
             return false;
         }
+
         $start = $query['limit'] * ($query['page'] -1);
         $end = $query['limit'] * $query['page'] - 1;
         $list = $redis->zRevRange(self::CACHE_NAME, $start, $end, true);
         $results = [];
-        foreach ($list as $value => $count) {
-            $realValue = $this->CorrelationValue->find('first',
-                [
-                    'recursive' => -1,
-                    'conditions' => ['CorrelationValue.id' => $value],
-                    'fields' => 'CorrelationValue.value'
-                ]
-            );
+
+        $realValues = $this->CorrelationValue->find('list', [
+            'recursive' => -1,
+            'conditions' => ['CorrelationValue.id' => array_keys($list)],
+            'fields' => ['CorrelationValue.id', 'CorrelationValue.value'],
+        ]);
+
+        foreach ($list as $valueId => $count) {
+            $value = $realValues[$valueId] ?? null;
             $results[] = [
                 'Correlation' => [
-                    'value' => $realValue['CorrelationValue']['value'],
+                    'value' => $value,
                     'count' => $count,
                     'excluded' => $this->__preventExcludedCorrelations($value),
                 ]
