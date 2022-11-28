@@ -498,6 +498,10 @@
                         'text' => __('Access Logs'),
                         'url' => $baseurl . '/admin/access_logs/index',
                     ),
+                    array(
+                        'text' => __('Search Logs'),
+                        'url' => $baseurl . '/admin/logs/search',
+                    )
                 )
             ),
             array(
