@@ -1156,9 +1156,16 @@ class Workflow extends AppModel
         if (isset($options['contain'])) {
             $params['contain'] = !empty($options['contain']) ? $options['contain'] : [];
         }
-        if (isset($options['order'])) {
-            $params['order'] = !empty($options['order']) ? $options['order'] : [];
+
+        $params['order'] = [];
+        if (!empty($options['order'])) {
+            $options['order'] = $this->findOrder(
+                $options['order'],
+                'Workflow',
+                ['id', 'name', 'timestmap', 'trigger_id', 'counter']
+            );
         }
+
         $workflows = $this->find('all', $params);
         return $workflows;
     }

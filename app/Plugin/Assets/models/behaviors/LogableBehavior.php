@@ -161,10 +161,17 @@ class LogableBehavior extends ModelBehavior {
 				'limit' => 50);
 		$params = array_merge($defaults, $params);
 		$options = array(
-				'order' => $params['order'],
 				'conditions' => $params['conditions'],
 				'fields' => $params['fields'],
-				'limit' => $params['limit']);
+				'limit' => $params['limit']
+		);
+		if (!empty($options['order'])) {
+			$options['order'] = $Model->findOrder(
+				$options['order'],
+				'Attribute',
+				['id', 'action', 'model_id', 'model', 'ip', 'org', 'email']
+			);
+		}
 		if ($params[$this->settings[$Model->alias]['classField']] === NULL) {
 			$params[$this->settings[$Model->alias]['classField']] = $Model->alias;
 		}

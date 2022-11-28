@@ -1063,8 +1063,12 @@ class GalaxyCluster extends AppModel
         if (isset($options['group'])) {
             $params['group'] = $options['group'];
         }
-        if (isset($options['order'])) {
-            $params['order'] = $options['order'];
+        if (!empty($options['order'])) {
+            $options['order'] = $this->findOrder(
+                $options['order'],
+                'GalaxyCluster',
+                ['id', 'event_id', 'version', 'type', 'value', 'distribution', 'orgc_id', 'org_id', 'tag_name', 'galaxy_id']
+            );
         }
         if (isset($options['page'])) {
             $params['page'] = $options['page'];
