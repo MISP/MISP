@@ -25,7 +25,11 @@ class AuditLog extends AppModel
         ACTION_REMOVE_GALAXY = 'remove_galaxy',
         ACTION_REMOVE_GALAXY_LOCAL = 'remove_local_galaxy',
         ACTION_PUBLISH = 'publish',
-        ACTION_PUBLISH_SIGHTINGS = 'publish_sightings';
+        ACTION_PUBLISH_SIGHTINGS = 'publish_sightings',
+        ACTION_LOGIN = 'login',
+        ACTION_PASSWDCHANGE = 'password_change',
+        ACTION_LOGOUT = 'logout',
+        ACTION_LOGIN_FAILED = 'login_failed';
 
     const REQUEST_TYPE_DEFAULT = 0,
         REQUEST_TYPE_API = 1,
@@ -194,10 +198,7 @@ class AuditLog extends AppModel
     {
         $auditLog = &$this->data['AuditLog'];
         if (!isset($auditLog['ip']) && $this->logClientIp) {
-            $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-            if (isset($_SERVER[$ipHeader])) {
-                $auditLog['ip'] = $_SERVER[$ipHeader];
-            }
+            $auditLog['ip'] = $this->_remoteIp();
         }
 
         if (!isset($auditLog['user_id'])) {

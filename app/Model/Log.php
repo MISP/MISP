@@ -123,10 +123,7 @@ class Log extends AppModel
             return false;
         }
         if (Configure::read('MISP.log_client_ip')) {
-            $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-            if (isset($_SERVER[$ipHeader])) {
-                $this->data['Log']['ip'] = $_SERVER[$ipHeader];
-            }
+            $this->data['Log']['ip'] = $this->_remoteIp();
         }
         $setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '', 'ip' => '');
         foreach ($setEmpty as $field => $empty) {

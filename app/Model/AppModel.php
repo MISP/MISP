@@ -3906,4 +3906,14 @@ class AppModel extends Model
         }
         return null;
     }
+
+    /**
+     * @return string|null
+     */
+    public function _remoteIp()
+    {
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
+        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
+    }
+
 }
