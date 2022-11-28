@@ -16,7 +16,7 @@
     "require-dev": {
         "phpunit/phpunit": "^8",
         "php-parallel-lint/php-parallel-lint": "^1.2",
-        "cakephp/debug_kit": "^2.2.0"
+        "cakephp/debug_kit": "^4.7.1"
     },
     "suggest": {
         "ext-posix": "For process info fetching",
