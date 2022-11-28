@@ -1705,7 +1705,14 @@ class Attribute extends AppModel
         if (empty($options['flatten'])) {
             $params['conditions']['AND'][] = array('Attribute.object_id' => 0);
         }
-        $params['order'] = isset($options['order']) ? $options['order'] : [];
+        $params['order'] = [];
+        if (!empty($options['order'])) {
+            $options['order'] = $this->findOrder(
+                $options['order'],
+                'Attribute',
+                ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
+            );
+        }
         if (!isset($options['withAttachments'])) {
             $options['withAttachments'] = false;
         }
