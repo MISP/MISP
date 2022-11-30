@@ -71,6 +71,7 @@
                         'searchUrl' => $searchUrl,
                         'scope' => $scope,
                         'id' => $id,
+                        'tag_display_style' => $tag_display_style
                 ]);
             }
 
@@ -99,7 +100,8 @@
             'localTagAccess' => $localTagAccess,
             'searchUrl' => $searchUrl,
             'scope' => $scope,
-            'id' => $id
+            'id' => $id,
+            'tag_display_style' => $tag_display_style
         ]);
     }
     if (!empty($buttonData)) {
