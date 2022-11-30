@@ -1805,6 +1805,8 @@ class EventsController extends AppController
         $this->set('includeRelatedTags', (!empty($namedParams['includeRelatedTags'])) ? 1 : 0);
         $this->set('includeDecayScore', (!empty($namedParams['includeDecayScore'])) ? 1 : 0);
 
+        $this->__setHighlightedTags($event);
+
         if ($this->_isSiteAdmin() && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
             $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
         }
@@ -6216,5 +6218,16 @@ class EventsController extends AppController
             $this->layout = false;
             $this->render('/genericTemplates/confirm');
         }
+    }
+
+    /**
+     * @param array $event
+     * @return void
+     */
+    private function __setHighlightedTags($event)
+    {
+        $this->loadModel('Taxonomy');
+        $highlightedTags = $this->Taxonomy->getHighlightedTags($event['EventTag']);
+        $this->set('highlightedTaxonomies', $highlightedTags);
     }
 }
