@@ -48,8 +48,8 @@
     }
 
     $highlitedTags = "";
-    if (isset($highlightedTaxonomies) && $scope == 'event') {
-        foreach ($highlightedTaxonomies as $hTaxonomy) {
+    if (isset($highlightedTags) && $scope == 'event') {
+        foreach ($highlightedTags as $hTaxonomy) {
             $hButtonData = [];
             if ($full) {
                 $hButtonData[] = sprintf(
