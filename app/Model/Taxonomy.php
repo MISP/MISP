@@ -880,20 +880,28 @@ class Taxonomy extends AppModel
     }
 
     /**
-     *
-     * @param array $tags
      * @return array
      */
-    public function getHighlightedTags($tags)
+    public function getHighlightedTaxonomies()
     {
-        $highlitedTaxonomies = $this->find('all', [
+        return $this->find('all', [
             'conditions' => [
                 'highlighted' => 1,
             ]
         ]);
+    }
+
+    /**
+     *
+     * @param array $highlightedTaxonomies
+     * @param array $tags
+     * @return array
+     */
+    public function getHighlightedTags($highlightedTaxonomies, $tags)
+    {
         $highlightedTags = [];
-        if (is_array($highlitedTaxonomies) && !empty($highlitedTaxonomies)) {
-            foreach ($highlitedTaxonomies as $k => $taxonomy) {
+        if (is_array($highlightedTaxonomies) && !empty($highlightedTaxonomies)) {
+            foreach ($highlightedTaxonomies as $k => $taxonomy) {
 
                 $highlightedTags[$k] = [
                     'taxonomy' => $taxonomy,

@@ -1022,6 +1022,7 @@ class EventsController extends AppController
         if (in_array('tags', $columns, true) || in_array('clusters', $columns, true)) {
             $events = $this->Event->attachTagsToEvents($events);
             $events = $this->GalaxyCluster->attachClustersToEventIndex($user, $events, true);
+            $events = $this->__attachHighlightedTagsToEvents($events);
         }
 
         if (in_array('correlations', $columns, true)) {
@@ -6227,7 +6228,23 @@ class EventsController extends AppController
     private function __setHighlightedTags($event)
     {
         $this->loadModel('Taxonomy');
-        $highlightedTags = $this->Taxonomy->getHighlightedTags($event['EventTag']);
-        $this->set('highlightedTaxonomies', $highlightedTags);
+        $highlightedTags = $this->Taxonomy->getHighlightedTags($this->Taxonomy->getHighlightedTaxonomies(), $event['EventTag']);
+        $this->set('highlightedTags', $highlightedTags);
+    }
+
+    /**
+     *
+     * @param array $events
+     * @return array
+     */
+    private function __attachHighlightedTagsToEvents($events)
+    {
+        $this->loadModel('Taxonomy');
+        $highlightedTaxonomies = $this->Taxonomy->getHighlightedTaxonomies();
+        foreach ($events as $k => $event) {
+            $events[$k]['Event']['highlightedTags'] = $this->Taxonomy->getHighlightedTags($highlightedTaxonomies, $event['EventTag']);
+        }
+
+        return $events;
     }
 }
