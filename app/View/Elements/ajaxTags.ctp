@@ -101,7 +101,7 @@
             'localTagAccess' => $localTagAccess,
             'searchUrl' => $searchUrl,
             'scope' => $scope,
-            'id' => $id,
+            'id' => $id ?? null,
             'tag_display_style' => $tag_display_style
         ]);
     }
