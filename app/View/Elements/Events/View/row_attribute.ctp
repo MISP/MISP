@@ -218,7 +218,7 @@
                                   h($feed['id']),
                                   sprintf(
                                       '<input type="hidden" name="data[Feed][eventid]" value="%s">',
-                                      h(json_encode($feed['event_uuids']))
+                                      h(json_encode($feed['event_uuids'] ?? []))
                                   ),
                                   sprintf(
                                       '<input type="submit" class="linkButton useCursorPointer" value="%s" data-toggle="popover" data-content="%s" data-trigger="hover" style="margin-right:3px;line-height:normal;vertical-align: text-top;">',

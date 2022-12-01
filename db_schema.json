@@ -7279,6 +7279,17 @@
                 "column_type": "tinyint(1)",
                 "column_default": "0",
                 "extra": ""
+            },
+            {
+                "column_name": "highlighted",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
             }
         ],
         "taxonomy_entries": [
@@ -9257,5 +9268,5 @@
             "uuid": false
         }
     },
-    "db_version": "101"
+    "db_version": "102"
 }

@@ -1920,6 +1920,9 @@ class AppModel extends Model
                     INDEX `baseurl` (`baseurl`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
+            case 102:
+                $sqlArray[] = "ALTER TABLE `taxonomies` ADD `highlighted` tinyint(1) DEFAULT 0;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

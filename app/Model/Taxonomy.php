@@ -118,7 +118,7 @@ class Taxonomy extends AppModel
         $current = $this->find('first', array(
             'conditions' => array('namespace' => $vocab['namespace']),
             'recursive' => -1,
-            'fields' => array('version', 'enabled', 'namespace')
+            'fields' => array('version', 'enabled', 'namespace', 'highlighted')
         ));
         $current = empty($current) ? [] : $current['Taxonomy'];
         $result = $this->__updateVocab($vocab, $current);
@@ -147,6 +147,7 @@ class Taxonomy extends AppModel
             'version' => $vocab['version'],
             'exclusive' => !empty($vocab['exclusive']),
             'enabled' => $enabled,
+            'highlighted' => !empty($vocab['highlighted']),
         ]];
         $predicateLookup = array();
         foreach ($vocab['predicates'] as $k => $predicate) {
@@ -876,5 +877,47 @@ class Taxonomy extends AppModel
     private function __updateTagToNormalized($source_id, $target_id): array
     {
         return $this->Tag->mergeTag($source_id, $target_id);
+    }
+
+    /**
+     * @return array
+     */
+    public function getHighlightedTaxonomies()
+    {
+        return $this->find('all', [
+            'conditions' => [
+                'highlighted' => 1,
+            ]
+        ]);
+    }
+
+    /**
+     *
+     * @param array $highlightedTaxonomies
+     * @param array $tags
+     * @return array
+     */
+    public function getHighlightedTags($highlightedTaxonomies, $tags)
+    {
+        $highlightedTags = [];
+        if (is_array($highlightedTaxonomies) && !empty($highlightedTaxonomies)) {
+            foreach ($highlightedTaxonomies as $k => $taxonomy) {
+                $highlightedTags[$k] = [
+                    'taxonomy' => $taxonomy,
+                    'tags' => []
+                ];
+
+                foreach ($tags as $tag) {
+                    $splits = $this->splitTagToComponents($tag['Tag']['name']);
+                    if (!empty($splits) && $splits['namespace'] === $taxonomy['Taxonomy']['namespace']) {
+                        $highlightedTags[$k]['tags'][] = $tag;
+                    }
+                }
+            }
+
+            return $highlightedTags;
+        }
+
+        return $highlightedTags;
     }
 }

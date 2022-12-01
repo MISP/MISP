@@ -498,6 +498,32 @@ class TaxonomiesController extends AppController
         $this->render('ajax/toggle_required');
     }
 
+    public function toggleHighlighted($id)
+    {
+        $taxonomy = $this->Taxonomy->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Taxonomy.id' => $id)
+        ));
+        if (empty($taxonomy)) {
+            return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleHighlighted', $id, 'Invalid Taxonomy', $this->response->type());
+        }
+        if ($this->request->is('post')) {
+            $taxonomy['Taxonomy']['highlighted'] = $this->request->data['Taxonomy']['highlighted'];
+            $result = $this->Taxonomy->save($taxonomy);
+            if ($result) {
+                return $this->RestResponse->saveSuccessResponse('Taxonomy', 'toggleHighlighted', $id, $this->response->type());
+            } else {
+                return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleHighlighted', $id, $this->validationError, $this->response->type());
+            }
+        }
+
+        $this->set('highlighted', !$taxonomy['Taxonomy']['highlighted']);
+        $this->set('id', $id);
+        $this->autoRender = false;
+        $this->layout = false;
+        $this->render('ajax/toggle_highlighted');
+    }
+
     /**
      * @param string $action
      * @param int $modelId
