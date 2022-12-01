@@ -525,7 +525,7 @@ class GalaxiesController extends AppController
             }
         }
 
-        $result = $this->Galaxy->attachCluster($user, $target_type, $target_id, $cluster_id, $local);
+        $result = $this->Galaxy->attachCluster($user, $target_type, $target, $cluster_id, $local);
         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
     }
 

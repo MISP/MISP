@@ -380,16 +380,16 @@ class Galaxy extends AppModel
 
     /**
      * @param array $user
-     * @param string $target_type
+     * @param string $targetType Can be 'event', 'attribute' or 'tag_collection'
      * @param array $target
      * @param int $cluster_id
      * @param bool $local
      * @return string
      * @throws Exception
      */
-    public function attachCluster(array $user, $target_type, array $target, $cluster_id, $local = false)
+    public function attachCluster(array $user, $targetType, array $target, $cluster_id, $local = false)
     {
-        $connectorModel = Inflector::camelize($target_type) . 'Tag';
+        $connectorModel = Inflector::camelize($targetType) . 'Tag';
         $local = $local == 1 || $local === true ? 1 : 0;
         $cluster_alias = $this->GalaxyCluster->alias;
         $galaxy_alias = $this->alias;
@@ -409,36 +409,36 @@ class Galaxy extends AppModel
         }
         $this->Tag = ClassRegistry::init('Tag');
         $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1, 'local_only' => $local_only), $user, true);
-        if ($target_type === 'event') {
+        if ($targetType === 'event') {
             $target_id = $target['Event']['id'];
-        } elseif ($target_type === 'attribute') {
+        } elseif ($targetType === 'attribute') {
             $target_id = $target['Attribute']['id'];
         } else {
             $target_id = $target['TagCollection']['id'];
         }
-        $existingTag = $this->Tag->$connectorModel->hasAny(array($target_type . '_id' => $target_id, 'tag_id' => $tag_id));
+        $existingTag = $this->Tag->$connectorModel->hasAny(array($targetType . '_id' => $target_id, 'tag_id' => $tag_id));
         if ($existingTag) {
             return 'Cluster already attached.';
         }
         $this->Tag->$connectorModel->create();
-        $toSave = array($target_type . '_id' => $target_id, 'tag_id' => $tag_id, 'local' => $local);
-        if ($target_type === 'attribute') {
+        $toSave = array($targetType . '_id' => $target_id, 'tag_id' => $tag_id, 'local' => $local);
+        if ($targetType === 'attribute') {
             $toSave['event_id'] = $target['Attribute']['event_id'];
         }
         $result = $this->Tag->$connectorModel->save($toSave);
         if ($result) {
             if (!$local) {
-                if ($target_type === 'attribute') {
+                if ($targetType === 'attribute') {
                     $this->Tag->AttributeTag->Attribute->touch($target);
-                } elseif ($target_type === 'event') {
+                } elseif ($targetType === 'event') {
                     $this->Tag->EventTag->Event->unpublishEvent($target);
                 }
             }
-            if ($target_type === 'attribute' || $target_type === 'event') {
+            if ($targetType === 'attribute' || $targetType === 'event') {
                 $this->Tag->EventTag->Event->insertLock($user, $target['Event']['id']);
             }
-            $logTitle = 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')';
-            $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($target_type), $target_id, $logTitle);
+            $logTitle = 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $targetType . ' (' . $target_id . ')';
+            $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($targetType), $target_id, $logTitle);
             return 'Cluster attached.';
         }
         return 'Could not attach the cluster';
