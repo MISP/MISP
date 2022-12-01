@@ -24,8 +24,9 @@
     $full = $isAclTagger && $tagAccess && empty($static_tags_only);
     $fullLocal = $isAclTagger && $localTagAccess && empty($static_tags_only);
     $tagData = "";
-
+    $tag_display_style = $tag_display_style ?? 1;
     $buttonData = [];
+
     if ($full) {
         $buttonData[] = sprintf(
             '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" data-popover-popup="%s">%s</button>',
@@ -71,7 +72,7 @@
                         'searchUrl' => $searchUrl,
                         'scope' => $scope,
                         'id' => $id,
-                        'tag_display_style' => $tag_display_style
+                        'tag_display_style' => 2
                 ]);
             }
 
@@ -141,4 +142,3 @@
         }
         echo '</div></div></span>';
     }
-    
