@@ -102,7 +102,9 @@ class AppController extends Controller
     {
         $controller = $this->request->params['controller'];
         $action = $this->request->params['action'];
-
+        if (empty($this->Session->read('creation_timestamp'))) {
+            $this->Session->write('creation_timestamp', time());
+        }
         if (Configure::read('MISP.system_setting_db')) {
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
@@ -146,13 +148,27 @@ class AppController extends Controller
         $isAjax = $this->request->is('ajax');
         $this->set('ajax', $isAjax);
         $this->set('queryVersion', $this->__queryVersion);
-        $this->User = ClassRegistry::init('User');
 
         $language = Configure::read('MISP.language');
         if (!empty($language) && $language !== 'eng') {
             Configure::write('Config.language', $language);
         } else {
             Configure::write('Config.language', 'eng');
+        }
+
+        $this->User = ClassRegistry::init('User');
+        if ($this->Auth->user()) {
+            if ($this->User->checkForSessionDestruction($this->Auth->user('id'))) {
+                $this->Auth->logout();
+                $this->Session->destroy();
+                $message = __('User deauthenticated on administrator request. Please reauthenticate.');
+                if ($this->_isRest()) {
+                    throw new ForbiddenException($message);
+                } else {
+                    $this->Flash->warning($message);
+                    $this->_redirectToLogin();
+                }
+            }
         }
 
         // For fresh installation (salt empty) generate a new salt

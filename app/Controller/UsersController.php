@@ -1080,27 +1080,35 @@ class UsersController extends AppController
 
     public function admin_delete($id = null)
     {
-        $this->request->allowMethod(['post', 'delete']);
-
-        $user = $this->User->find('first', array(
-            'conditions' => $this->__adminFetchConditions($id),
-            'recursive' => -1
-        ));
-        if (empty($user)) {
-            throw new NotFoundException(__('Invalid user'));
-        }
-        if ($this->User->delete($id)) {
-            $fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
-            $this->User->extralog($this->Auth->user(), "delete", $fieldsDescrStr, '');
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('User', 'admin_delete', $id, $this->response->type(), 'User deleted.');
-            } else {
-                $this->Flash->success(__('User deleted'));
-                $this->redirect(array('action' => 'index'));
+        if ($this->request->is('post') || $this->request->is('delete')) {
+            $user = $this->User->find('first', array(
+                'conditions' => $this->__adminFetchConditions($id),
+                'recursive' => -1
+            ));
+            if (empty($user)) {
+                throw new NotFoundException(__('Invalid user'));
             }
+            if ($this->User->delete($id)) {
+                $fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
+                $this->User->extralog($this->Auth->user(), "delete", $fieldsDescrStr, '');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('User', 'admin_delete', $id, $this->response->type(), 'User deleted.');
+                } else {
+                    $this->Flash->success(__('User deleted'));
+                    $this->redirect(array('action' => 'index'));
+                }
+            }
+            $this->Flash->error(__('User was not deleted'));
+            $this->redirect(array('action' => 'index'));
+        } else {
+            $this->set(
+                'question',
+                __('Are you sure you want to delete the user? It is highly recommended to never delete users but to disable them instead.')
+            );
+            $this->set('title', __('Delete user'));
+            $this->set('actionName', 'Delete');
+            $this->render('/genericTemplates/confirm');
         }
-        $this->Flash->error(__('User was not deleted'));
-        $this->redirect(array('action' => 'index'));
     }
 
     public function admin_massToggleField($fieldName, $enabled)
@@ -2827,5 +2835,56 @@ class UsersController extends AppController
             $conditions['User.org_id'] = $user['org_id']; // org admin
         }
         return $conditions;
+    }
+
+    public function admin_destroy($id = null)
+    {
+        $conditionFields = ['id', 'email'];
+        $params = $this->IndexFilter->harvestParameters(['id', 'email']);
+        if (!empty($id)) {
+            $params['id'] = $id;
+        }
+        $conditions = [];
+        foreach ($conditionFields as $conditionField) {
+            if (!empty($params[$conditionField])) {
+                $conditions[$conditionField . ' LIKE'] = $params[$conditionField];
+            }
+        }
+        if (!empty($conditions)) {
+            $user_ids = $this->User->find('list', [
+                'recursive' => -1,
+                'fields' => ['email', 'id'],
+                'conditions' => $conditions
+            ]);
+        } else {
+            $user_ids = [__('Every user') => 'all'];
+        }
+        if ($this->request->is('post')) {
+            $redis = RedisTool::init();
+            $kill_before = time();
+            foreach (array_values($user_ids) as $user_id) {
+                $redis->set('misp:session_destroy:' . $user_id, $kill_before);
+            }
+            $message = __(
+                'Session destruction cutoff set to the current timestamp for the given selection (%s). Session(s) will be destroyed on the next user interaction.',
+                implode(', ', array_keys($user_ids))
+            );
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('User', 'admin_destroy', false, $this->response->type(), $message);
+            }
+            $this->Flash->success($message);
+            $this->redirect($this->referer());
+        } else {
+            $this->set(
+                'question',
+                __(
+                    'Do you really wish to destroy the session for: %s ? The session destruction will occur when the users try to interact with MISP the next time.',
+                    implode(', ', array_keys($user_ids))
+                )
+            );
+            $this->set('title', __('Destroy sessions'));
+            $this->set('actionName', 'Destroy');
+            $this->render('/genericTemplates/confirm');
+        }
     }
 }

@@ -1971,4 +1971,30 @@ class User extends AppModel
         }
         return $users;
     }
+
+    public function checkForSessionDestruction($id)
+    {
+        if (empty(CakeSession::read('creation_timestamp'))) {
+            return false;
+        }
+        $redis = $this->setupRedis();
+        if ($redis) {
+            $cutoff = $redis->get('misp:session_destroy:' . $id);
+            $allcutoff = $redis->get('misp:session_destroy:all');
+            if (
+                empty($cutoff) || 
+                (
+                    !empty($cutoff) &&
+                    !empty($allcutoff) &&
+                    $allcutoff < $cutoff
+                ) 
+            ) {
+                $cutoff = $allcutoff;
+            }
+            if ($cutoff && CakeSession::read('creation_timestamp') < $cutoff) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
