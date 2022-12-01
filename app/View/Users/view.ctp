@@ -130,7 +130,7 @@
         'js' => array('vis', 'jquery-ui.min', 'network-distribution-graph')
     ));
     echo sprintf(
-        '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s<div style="margin-top:20px;">%s%s</div></div>',
+        '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s%s<div style="margin-top:20px;">%s%s</div></div>',
         sprintf(
             '<h2>%s</h2>%s',
             __('User %s', h($user['User']['email'])),
@@ -144,6 +144,14 @@
                 h($user['User']['id'])
             ),
             __('Download user profile for data portability')
+        ),
+        sprintf(
+            '&nbsp;<a href="%s" class="btn btn-inverse">%s</a>',
+            sprintf(
+                '%s/logs/index',
+                $baseurl
+            ),
+            __('Review user logs')
         ),
         $me['Role']['perm_auth'] ? $this->element('/genericElements/accordion', array('title' => __('Auth keys'), 'url' => '/auth_keys/index/' . h($user['User']['id']))) : '',
         $this->element('/genericElements/accordion', array('title' => 'Events', 'url' => '/events/index/searchemail:' . urlencode(h($user['User']['email']))))

@@ -1093,25 +1093,29 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
 
                 case 'logs':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/admin/logs/index',
+                        'url' => $baseurl . '/logs/index',
                         'text' => __('Application Logs')
                     ));
-                    if (Configure::read('MISP.log_new_audit')) {
+                    if (Configure::read('MISP.log_new_audit') && $isAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'listAuditLogs',
                             'url' => $baseurl . '/admin/audit_logs/index',
                             'text' => __('Audit Logs'),
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'listAccessLogs',
-                        'url' => $baseurl . '/admin/access_logs/index',
-                        'text' => __('Access Logs'),
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/admin/logs/search',
-                        'text' => __('Search Logs')
-                    ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'listAccessLogs',
+                            'url' => $baseurl . '/admin/access_logs/index',
+                            'text' => __('Access Logs'),
+                        ));
+                    }
+                    if ($isAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/admin/logs/search',
+                            'text' => __('Search Logs')
+                        ));
+                    }
                     break;
 
                 case 'threads':
