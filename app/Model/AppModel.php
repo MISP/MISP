@@ -3053,6 +3053,16 @@ class AppModel extends Model
         return [$subQuery];
     }
 
+    /**
+     * Returns estimated number of table rows
+     * @return int
+     */
+    public function tableRows()
+    {
+        $rows = $this->query("SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{$this->table}';");
+        return $rows[0]['TABLES']['TABLE_ROWS'];
+    }
+
     // start a benchmark run for the given bench name
     public function benchmarkInit($name = 'default')
     {
