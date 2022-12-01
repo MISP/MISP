@@ -487,20 +487,22 @@
                 'children' => array(
                     array(
                         'text' => __('Application Logs'),
-                        'url' => $baseurl . '/admin/logs/index'
+                        'url' => $baseurl . '/logs/index'
                     ),
                     array(
                         'text' => __('Audit Logs'),
                         'url' => $baseurl . '/admin/audit_logs/index',
-                        'requirement' => Configure::read('MISP.log_new_audit'),
+                        'requirement' => Configure::read('MISP.log_new_audit') && $isAdmin,
                     ),
                     array(
                         'text' => __('Access Logs'),
                         'url' => $baseurl . '/admin/access_logs/index',
+                        'requirement' => $isSiteAdmin
                     ),
                     array(
                         'text' => __('Search Logs'),
                         'url' => $baseurl . '/admin/logs/search',
+                        'requirement' => $isAdmin
                     )
                 )
             ),

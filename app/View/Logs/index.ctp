@@ -46,12 +46,12 @@
                 'text' => h($filterData['name']),
                 'title' => __('Modify filters'),
                 'active' => isset($filter) && $filterName === $filter,
-                'url' => $baseurl . '/admin/logs/index/filter:' . h($filterName)
+                'url' => $baseurl . '/logs/index/filter:' . h($filterName)
             );
         }
         $data['children'][0]['children'][] = array(
             'requirement' => !empty($filter),
-            'url' => $baseurl . '/admin/logs/index',
+            'url' => $baseurl . '/logs/index',
             'title' => __('Remove filters'),
             'fa-icon' => 'times'
         );
