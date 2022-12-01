@@ -695,8 +695,8 @@ class AppController extends Controller
         }
 
         if (
-            (empty(Configure::read('MISP.log_skip_access_logs_in_application_logs'))) &&
-            Configure::read('MISP.log_paranoid') || $userMonitoringEnabled
+            empty(Configure::read('MISP.log_skip_access_logs_in_application_logs')) &&
+            $shouldBeLogged
         ) {
             $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here;
             if (
