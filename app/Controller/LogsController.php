@@ -1,7 +1,9 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Log $Log
+ */
 class LogsController extends AppController
 {
     public $components = array(
@@ -40,6 +42,7 @@ class LogsController extends AppController
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         unset($filterData);
+
         if ($this->_isRest()) {
             if ($filters === false) {
                 return $exception;
@@ -128,7 +131,7 @@ class LogsController extends AppController
     public function admin_index()
     {
         $this->view = 'index';
-        $this->index();
+        return $this->index();
     }
 
     // Shows a minimalistic history for the currently selected event
