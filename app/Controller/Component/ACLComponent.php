@@ -721,6 +721,7 @@ class ACLComponent extends Component
                 'acceptRegistrations' => array(),
                 'admin_add' => ['AND' => ['perm_admin', 'add_user_enabled']],
                 'admin_delete' => array('perm_admin'),
+                'admin_destroy' => array(),
                 'admin_edit' => array('perm_admin'),
                 'admin_email' => array('perm_admin'),
                 'admin_filterUserIndex' => array('perm_admin'),
