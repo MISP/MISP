@@ -385,7 +385,7 @@ class ACLComponent extends Component
                     'returnDates' => array('*'),
                     'testForStolenAttributes' => array(),
                     'pruneUpdateLogs' => array(),
-                    'index' => array('*')
+                    'index' => array('perm_audit')
             ),
         'auditLogs' => [
             'admin_index' => ['perm_audit'],

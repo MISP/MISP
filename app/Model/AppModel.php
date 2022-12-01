@@ -83,7 +83,7 @@ class AppModel extends Model
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
-        99 => false, 100 => false, 101 => false
+        99 => false, 100 => false, 101 => false, 102 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1996,6 +1996,9 @@ class AppModel extends Model
                         $this->__addIndex($table, 'uuid', null, true);
                     }
                 }
+                break;
+            case 102:
+                $sqlArray[] = "UPDATE roles SET perm_audit = 1;";
                 break;
             default:
                 return false;
