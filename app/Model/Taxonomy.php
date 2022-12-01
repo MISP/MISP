@@ -902,7 +902,6 @@ class Taxonomy extends AppModel
         $highlightedTags = [];
         if (is_array($highlightedTaxonomies) && !empty($highlightedTaxonomies)) {
             foreach ($highlightedTaxonomies as $k => $taxonomy) {
-
                 $highlightedTags[$k] = [
                     'taxonomy' => $taxonomy,
                     'tags' => []
