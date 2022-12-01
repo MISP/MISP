@@ -117,8 +117,7 @@ class AccessLog extends AppModel
      */
     public function logRequest(array $user, $remoteIp, CakeRequest $request, $includeRequestBody = true)
     {
-        $requestTime = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
-        $now = DateTime::createFromFormat('U.u', $requestTime);
+        $requestTime = $this->requestTime();
         $logClientIp = Configure::read('MISP.log_client_ip');
         $includeSqlQueries = Configure::read('MISP.log_paranoid_include_sql_queries');
 
@@ -127,7 +126,7 @@ class AccessLog extends AppModel
         }
 
         $dataToSave = [
-            'created' => $now->format('Y-m-d H:i:s.u'),
+            'created' => $requestTime->format('Y-m-d H:i:s.u'),
             'request_id' => $_SERVER['HTTP_X_REQUEST_ID'] ?? null,
             'user_id' => (int)$user['id'],
             'org_id' => (int)$user['org_id'],
@@ -191,12 +190,12 @@ class AccessLog extends AppModel
 
     /**
      * @param array $data
-     * @param float $requestTime
+     * @param DateTime $requestTime
      * @param bool $includeSqlQueries
      * @return bool
      * @throws Exception
      */
-    private function saveOnShutdown(array $data, $requestTime, $includeSqlQueries)
+    private function saveOnShutdown(array $data, DateTime $requestTime, $includeSqlQueries)
     {
         $sqlLog = $this->getDataSource()->getLog(false, false);
         $queryCount = $sqlLog['count'];
@@ -213,7 +212,7 @@ class AccessLog extends AppModel
         $data['response_code'] = http_response_code();
         $data['memory_usage'] = memory_get_peak_usage();
         $data['query_count'] = $queryCount;
-        $data['duration'] = (int)((microtime(true) - $requestTime) * 1000); // in milliseconds
+        $data['duration'] = (int)((microtime(true) - $requestTime->format('U.u')) * 1000); // in milliseconds
 
         try {
             return $this->save($data, ['atomic' => false]);
@@ -235,6 +234,20 @@ class AccessLog extends AppModel
 
         $this->publishKafkaNotification('audit', $data, 'log');
         // In future add support for sending logs to elastic
+    }
+
+    /**
+     * @return DateTime
+     */
+    private function requestTime()
+    {
+        $requestTime = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+        $requestTime = (string) $requestTime;
+        // Fix string if float value doesnt contain decimal part
+        if (strpos($requestTime, '.') === false) {
+            $requestTime .= '.0';
+        }
+        return DateTime::createFromFormat('U.u', $requestTime);
     }
 
     /**
