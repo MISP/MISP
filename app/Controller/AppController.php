@@ -102,9 +102,7 @@ class AppController extends Controller
     {
         $controller = $this->request->params['controller'];
         $action = $this->request->params['action'];
-        if (empty($this->Session->read('creation_timestamp'))) {
-            $this->Session->write('creation_timestamp', time());
-        }
+
         if (Configure::read('MISP.system_setting_db')) {
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
@@ -157,19 +155,6 @@ class AppController extends Controller
         }
 
         $this->User = ClassRegistry::init('User');
-        if ($this->Auth->user()) {
-            if ($this->User->checkForSessionDestruction($this->Auth->user('id'))) {
-                $this->Auth->logout();
-                $this->Session->destroy();
-                $message = __('User deauthenticated on administrator request. Please reauthenticate.');
-                if ($this->_isRest()) {
-                    throw new ForbiddenException($message);
-                } else {
-                    $this->Flash->warning($message);
-                    $this->_redirectToLogin();
-                }
-            }
-        }
 
         // For fresh installation (salt empty) generate a new salt
         if (!Configure::read('Security.salt')) {
@@ -471,6 +456,7 @@ class AppController extends Controller
 
     /**
      * Check if:
+     *  - session is not destroyed by admin
      *  - user exists in database
      *  - is not disabled
      *  - need to force logout
@@ -480,6 +466,7 @@ class AppController extends Controller
      *
      * @param array $user
      * @return bool
+     * @throws Exception
      */
     private function __verifyUser(array $user)
     {
@@ -488,11 +475,29 @@ class AppController extends Controller
             return true;
         }
 
+        $sessionCreationTime = $this->Session->read('creation_timestamp');
+        if (empty($sessionCreationTime)) {
+            $sessionCreationTime = $_SERVER['REQUEST_TIME'] ?? time();
+            $this->Session->write('creation_timestamp', $sessionCreationTime);
+        }
+
+        if ($this->User->checkForSessionDestruction($user['id'], $sessionCreationTime)) {
+            $this->Auth->logout();
+            $this->Session->destroy();
+            $message = __('User deauthenticated on administrator request. Please reauthenticate.');
+            if ($this->_isRest()) {
+                throw new ForbiddenException($message);
+            } else {
+                $this->Flash->warning($message);
+                $this->_redirectToLogin();
+            }
+        }
+
         // Load last user profile modification from database
         $userFromDb = $this->User->find('first', [
-            'conditions' => ['id' => $user['id']],
+            'conditions' => ['User.id' => $user['id']],
             'recursive' =>  -1,
-            'fields' => ['date_modified'],
+            'fields' => ['User.date_modified'],
         ]);
 
         // Check if user with given ID exists
