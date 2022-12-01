@@ -96,4 +96,4 @@ if ($canModifyAllTags || ($canModifyLocalTags && $tag['Tag']['local'])) {
     );
 }
 
-echo '<span class="tag-container">' . $span_scope . $span_relationship_type . $span_tag . $span_relationship . $span_delete . '</span>';
+echo '<span class="tag-container nowrap">' . $span_scope . $span_relationship_type . $span_tag . $span_relationship . $span_delete . '</span>';
