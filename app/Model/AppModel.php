@@ -3931,8 +3931,10 @@ class AppModel extends Model
      */
     public function _remoteIp()
     {
-        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: null;
+        if ($ipHeader && isset($_SERVER[$ipHeader])) {
+            return trim($_SERVER[$ipHeader]);
+        }
+        return $_SERVER['REMOTE_ADDR'] ?? null;
     }
-
 }
