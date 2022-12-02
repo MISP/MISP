@@ -5657,6 +5657,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'discussion_disable' => [
+                    'level' => 1,
+                    'description' => __('Completely disable ability for user to add discussion to events.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'showCorrelationsOnIndex' => array(
                     'level' => 1,
                     'description' => __('When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.'),

@@ -253,15 +253,18 @@
                         'url' => $baseurl . '/users/statistics'
                     ),
                     array(
-                        'type' => 'separator'
+                        'type' => 'separator',
+                        'requirement' => $this->Acl->canAccess('threads', 'index'),
                     ),
                     array(
                         'text' => __('List Discussions'),
-                        'url' => $baseurl . '/threads/index'
+                        'url' => $baseurl . '/threads/index',
+                        'requirement' => $this->Acl->canAccess('threads', 'index'),
                     ),
                     array(
                         'text' => __('Start Discussion'),
-                        'url' => $baseurl . '/posts/add'
+                        'url' => $baseurl . '/posts/add',
+                        'requirement' => $this->Acl->canAccess('posts', 'add'),
                     )
                 )
             ),
