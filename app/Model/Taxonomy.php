@@ -753,6 +753,14 @@ class Taxonomy extends AppModel
             }
             $potentiallyConflictingTaxonomy[$tagShortened]['tagNames'][] = $tagName;
         }
+        if (
+            !empty($potentiallyConflictingTaxonomy['tlp']) &&
+            count($potentiallyConflictingTaxonomy['tlp']['tagNames']) == 2 &&
+            in_array('tlp:white', $potentiallyConflictingTaxonomy['tlp']['tagNames']) &&
+            in_array('tlp:clear', $potentiallyConflictingTaxonomy['tlp']['tagNames'])
+        ) {
+            unset($potentiallyConflictingTaxonomy['tlp']);
+        }
         foreach ($potentiallyConflictingTaxonomy as $potTaxonomy) {
             if ($potTaxonomy['count'] > 1) {
                 $taxonomy = $potTaxonomy['taxonomy'];

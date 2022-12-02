@@ -6,7 +6,7 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ 2.4, develop, misp-stix ]
+    branches: [ 2.4, develop, misp-stix, taxii ]
   pull_request:
     branches: [ 2.4, develop, misp-stix ]
 
@@ -26,7 +26,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: 'recursive'
 

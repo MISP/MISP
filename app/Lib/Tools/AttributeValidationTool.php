@@ -526,6 +526,7 @@ class AttributeValidationTool
             case 'favicon-mmh3':
             case 'chrome-extension-id':
             case 'mobile-application-id':
+            case 'azure-application-id':
             case 'named pipe':
                 if (strpos($value, "\n") !== false) {
                     return __('Value must not contain new line character.');

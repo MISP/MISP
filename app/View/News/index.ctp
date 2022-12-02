@@ -1,61 +1,54 @@
-<?php
+<div class="index">
+    <h2><?= __("Latest news") ?></h2>
 
-$this->set('menuData', ['menuList' => 'news', 'menuItem' => 'index']);
+    <?php if ($hasUnreadNews): ?>
+    <div class="alert alert-success">
+        <p><?= __('You have unread news.') ?></p>
+        <a class="btn btn-success" href="<?= $homepage ?>"><?= __('Continue to homepage') ?></a>
+    </div>
+    <?php endif; ?>
 
-echo $this->element('genericElements/IndexTable/scaffold', [
-    'scaffold_data' => [
-        'data' => [
-            'data' => $newsItems,
-            'fields' => [
-                [
-                    'name' => __('Id'),
-                    'sort' => 'id',
-                    'data_path' => 'News.id'
-                ],
-                [
-                    'name' => __('User'),
-                    'sort' => 'email',
-                    'data_path' => 'User.email'
-                ],
-                [
-                    'name' => __('Title'),
-                    'sort' => 'title',
-                    'data_path' => 'News.title'
-                ],
-                [
-                    'name' => __('Message'),
-                    'sort' => 'message',
-                    'data_path' => 'News.message'
-                ],
-                [
-                    'name' => __('Created at'),
-                    'sort' => 'date_created',
-                    'data_path' => 'News.date_created',
-                    'element' => 'datetime'
-                ],
+    <div class="pagination">
+        <ul>
+            <?php
+            $pagination = $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $pagination .= $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+            $pagination .= $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            echo $pagination;
+            ?>
+        </ul>
+    </div>
 
-            ],
-            'title' => empty($ajax) ? __('News') : false,
-            'pull' => 'right',
-            'actions' => [
-                [
-                    'url' => $baseurl . '/news/edit',
-                    'url_params_data_paths' => [
-                        'News.id'
-                    ],
-                    'icon' => 'edit',
-                    'title' => 'Edit News',
-                ],
-                [
-                    'onclick' => sprintf(
-                        'openGenericModal(\'%s/news/delete/[onclick_params_data_path]\');',
-                        $baseurl
-                    ),
-                    'onclick_params_data_path' => 'News.id',
-                    'icon' => 'trash',
-                    'title' => __('Delete news'),
-                ]
-            ]
-        ]
-    ]
+    <?php foreach ($newsItems as $news): ?>
+        <h3 style="margin-bottom: 5px; font-size: 22px"><?php if ($news['News']['new']): ?><span class="label label-warning"><?= __('New') ?></span><?php endif; ?> <?= h($news['News']['title']) ?></h3>
+        <p><?= __('Published at %s%s', $this->Time->time($news['News']['date_created']), $news['User']['email'] ? __(' by %s', $news['User']['email']) : '') ?></p>
+        <div class="md" style="font-size: 14px; margin-bottom: 32px; "><?= h($news['News']['message']) ?></div>
+    <?php endforeach; ?>
+
+    <p>
+        <?= $this->Paginator->counter(array(
+            'format' => __('Page {:page} of {:pages}, showing {:current} articles out of {:count} total, starting on article {:start}, ending on {:end}')
+        ));
+        ?>
+    </p>
+    <div class="pagination">
+        <ul>
+            <?= $pagination ?>
+        </ul>
+    </div>
+</div>
+<?= $this->element('genericElements/assetLoader', [
+    'js' => [
+        'markdown-it',
+    ],
 ]);
+?>
+<script>
+    var md = window.markdownit('default');
+    md.disable(['image'])
+    $('.md').each(function (_, el) {
+        var $el = $(el);
+        $el.html(md.render($el.text()));
+    });
+</script>
+<?= $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'news', 'menuItem' => 'index']);

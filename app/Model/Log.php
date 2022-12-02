@@ -109,6 +109,8 @@ class Log extends AppModel
 
     public $actsAs = ['LightPaginator'];
 
+    private $elasticSearchClient;
+
     /**
      * Null when not defined, false when not enabled
      * @var Syslog|null|false
@@ -121,10 +123,7 @@ class Log extends AppModel
             return false;
         }
         if (Configure::read('MISP.log_client_ip')) {
-            $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-            if (isset($_SERVER[$ipHeader])) {
-                $this->data['Log']['ip'] = $_SERVER[$ipHeader];
-            }
+            $this->data['Log']['ip'] = $this->_remoteIp();
         }
         $setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '', 'ip' => '');
         foreach ($setEmpty as $field => $empty) {
@@ -349,9 +348,8 @@ class Log extends AppModel
 
     public function logData($data)
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_audit_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
-            $pubSubTool->publish($data, 'audit', 'log');
+        if ($this->pubToZmq('audit')) {
+            $this->getPubSubTool()->publish($data, 'audit', 'log');
         }
 
         $this->publishKafkaNotification('audit', $data, 'log');
@@ -1146,5 +1144,16 @@ class Log extends AppModel
                 }
                 break;
         }
+    }
+
+    private function getElasticSearchTool()
+    {
+        if (!$this->elasticSearchClient) {
+            App::uses('ElasticSearchClient', 'Tools');
+            $client = new ElasticSearchClient();
+            $client->initTool();
+            $this->elasticSearchClient = $client;
+        }
+        return $this->elasticSearchClient;
     }
 }

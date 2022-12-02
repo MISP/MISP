@@ -1,7 +1,7 @@
 <?php
 class RedisTool
 {
-    const COMPRESS_MIN_LENGTH = 200,
+    const COMPRESS_MIN_LENGTH = 256,
         BROTLI_HEADER = "\xce\xb2\xcf\x81",
         ZSTD_HEADER = "\x28\xb5\x2f\xfd";
 

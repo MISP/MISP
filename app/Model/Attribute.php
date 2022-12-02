@@ -1606,7 +1606,7 @@ class Attribute extends AppModel
      * @return array
      * @throws Exception
      */
-    public function fetchAttributes(array $user, array $options = [], &$result_count = false)
+    public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -1705,7 +1705,14 @@ class Attribute extends AppModel
         if (empty($options['flatten'])) {
             $params['conditions']['AND'][] = array('Attribute.object_id' => 0);
         }
-        $params['order'] = isset($options['order']) ? $options['order'] : [];
+        $params['order'] = [];
+        if (!empty($options['order'])) {
+            $options['order'] = $this->findOrder(
+                $options['order'],
+                'Attribute',
+                ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
+            );
+        }
         if (!isset($options['withAttachments'])) {
             $options['withAttachments'] = false;
         }
@@ -1780,7 +1787,7 @@ class Attribute extends AppModel
         }
 
         // Do not fetch result count when `$result_count` is false
-        if ($result_count !== false) {
+        if ($result_count !== false && $real_count == true) {
             $find_params = $params;
             unset($find_params['limit']);
             $result_count = $this->find('count', $find_params);
@@ -1792,11 +1799,15 @@ class Attribute extends AppModel
         $eventTags = []; // tag cache
         $attributes = [];
         do {
+            $continue = true;
             $results = $this->find('all', $params);
             if (empty($results)) {
                 break;
             }
-
+            $iteration_result_count = count($results);
+            if ($real_count !== true) {
+                $result_count += count($results);
+            }
             if (!empty($options['includeContext'])) {
                 $eventIds = [];
                 foreach ($results as $result) {
@@ -1875,7 +1886,7 @@ class Attribute extends AppModel
             unset($attribute);
 
             if ($loop) {
-                if (count($results) < $loopLimit) { // we fetched less results than limit, so we can skip next query
+                if ($iteration_result_count < $loopLimit) { // we fetched fewer results than the limit, so we can exit the loop
                     break;
                 }
                 $params['page']++;
@@ -2916,6 +2927,13 @@ class Attribute extends AppModel
         if (!empty($filters['score'])) {
             $params['score'] = $filters['score'];
         }
+        if (!empty($filters['order'])) {
+            $params['order'] = $this->findOrder(
+                $filters['order'],
+                'Attribute',
+                ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
+            );
+        }
         if ($paramsOnly) {
             return $params;
         }
@@ -2935,7 +2953,8 @@ class Attribute extends AppModel
                 $exportTool->additional_params
             );
         }
-
+        ClassRegistry::init('ConnectionManager');
+        $db = ConnectionManager::getDataSource('default');
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
@@ -2969,9 +2988,15 @@ class Attribute extends AppModel
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
         $elementCounter = 0;
+        $real_count = false;
+        $incrementTotalBy = $loop || $real_count ? 0 : 1;
         do {
-            $results = $this->fetchAttributes($user, $params, $elementCounter);
-            $totalCount = $elementCounter;
+            $results = $this->fetchAttributes($user, $params, $elementCounter, $real_count);
+            if (!$real_count) {
+                $totalCount = $params['limit'] * ($params['page'] - 1) + $elementCounter;
+            } else {
+                $totalCount = $elementCounter;
+            }
             $elementCounter = false; // do not call `count` again
             if (empty($results)) {
                 break; // nothing found, skip rest
@@ -2987,13 +3012,15 @@ class Attribute extends AppModel
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
             }
-            if ($loop && count($results) < $params['limit']) {
-                break; // do not continue if we received less results than limit
+            if (count($results) < $params['limit']) {
+                $incrementTotalBy = 0;
+                if ($loop) {
+                    break; // do not continue if we received less results than limit
+                }
             }
             $params['page'] += 1;
         } while ($loop);
-
-        return $totalCount;
+        return $totalCount + $incrementTotalBy;
     }
 
     public function set_filter_uuid(&$params, $conditions, $options)
@@ -3139,7 +3166,7 @@ class Attribute extends AppModel
             'Payload delivery' => array(
                 'desc' => __('Information about how the malware is delivered'),
                 'formdesc' => __('Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.'),
-                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'cpe', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
+                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'cpe', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
             ),
             'Artifacts dropped' => array(
                 'desc' => __('Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
@@ -3148,7 +3175,7 @@ class Attribute extends AppModel
             'Payload installation' => array(
                 'desc' => __('Info on where the malware gets installed in the system'),
                 'formdesc' => __('Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.'),
-                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'cpe','weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
+                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'cpe','weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'azure-application-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
             ),
             'Persistence mechanism' => array(
                 'desc' => __('Mechanisms used by the malware to start at boot'),
@@ -3396,6 +3423,7 @@ class Attribute extends AppModel
             'place-port-of-onward-foreign-destination' => array('desc' => __('A Port where the passenger is transiting to'), 'default_category' => 'Person', 'to_ids' => 0),
             'passenger-name-record-locator-number' => array('desc' => __('The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.'), 'default_category' => 'Person', 'to_ids' => 0),
             'mobile-application-id' => array('desc' => __('The application id of a mobile application'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'azure-application-id' => array('desc' => __('Azure Application ID.'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'chrome-extension-id' => array('desc' => __('Chrome extension id'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'cortex' => array('desc' => __('Cortex analysis result'), 'default_category' => 'External analysis', 'to_ids' => 0),
             'boolean' => array('desc' => __('Boolean value - to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),
