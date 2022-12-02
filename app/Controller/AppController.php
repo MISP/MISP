@@ -43,7 +43,6 @@ class AppController extends Controller
     private $isApiAuthed = false;
 
     public $baseurl = '';
-    public $sql_dump = false;
 
     public $restResponsePayload = null;
 
@@ -136,10 +135,6 @@ class AppController extends Controller
         if (!$this->_isRest()) {
             $this->__contentSecurityPolicy();
             $this->response->header('X-XSS-Protection', '1; mode=block');
-        }
-
-        if (!empty($this->request->params['named']['sql'])) {
-            $this->sql_dump = intval($this->request->params['named']['sql']);
         }
 
         $this->_setupDatabaseConnection();
@@ -690,7 +685,7 @@ class AppController extends Controller
 
         $shouldBeLogged = $userMonitoringEnabled ||
             Configure::read('MISP.log_paranoid') ||
-            (Configure::read('MISP.log_paranoid_api') && $user['logged_by_authkey']);
+            (Configure::read('MISP.log_paranoid_api') && isset($user['logged_by_authkey']) && $user['logged_by_authkey']);
 
         if ($shouldBeLogged) {
             $includeRequestBody = !empty(Configure::read('MISP.log_paranoid_include_post_body')) || $userMonitoringEnabled;
@@ -700,8 +695,8 @@ class AppController extends Controller
         }
 
         if (
-            (empty(Configure::read('MISP.log_skip_access_logs_in_application_logs'))) &&
-            Configure::read('MISP.log_paranoid') || $userMonitoringEnabled
+            empty(Configure::read('MISP.log_skip_access_logs_in_application_logs')) &&
+            $shouldBeLogged
         ) {
             $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here;
             if (
