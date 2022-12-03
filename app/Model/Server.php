@@ -5539,7 +5539,7 @@ class Server extends AppModel
                 ),
                 'log_client_ip_header' => array(
                     'level' => 1,
-                    'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy in front of your MISP instance.'),
+                    'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy in front of your MISP instance. Prepend the variable with "HTTP_", for example "HTTP_X_FORWARDED_FOR".'),
                     'value' => 'REMOTE_ADDR',
                     'test' => 'testForEmpty',
                     'type' => 'string',
