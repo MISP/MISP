@@ -236,8 +236,9 @@ class AppController extends Controller
             if ($this->_isRest() || $this->_isAutomation()) {
                 // disable CSRF for REST access
                 $this->Security->csrfCheck = false;
-                if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
-                    if ($this->__loginByAuthKey() === null) {
+                $loginByAuthKeyResult = $this->__loginByAuthKey();
+                if ($loginByAuthKeyResult === false || $this->Auth->user() === null) {
+                    if ($loginByAuthKeyResult === null) {
                         $this->loadModel('Log');
                         $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.");
                     }
@@ -458,6 +459,9 @@ class AppController extends Controller
                     }
                     $this->Session->destroy();
                 }
+            } else {
+                    $this->loadModel('Log');
+                    $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using an API key of incorrect length.");
             }
             return false;
         }
