@@ -25,7 +25,7 @@
     );
     $table_data[] = array('key' => __('Role'), 'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])));
     $table_data[] = array('key' => __('Event alert enabled'), 'boolean' => $user['User']['autoalert']);
-    $table_data[] = ['key' => __('Periodic Notifications'), 'html' => $periodic_notification_settings_html];
+    $table_data[] = array('key' => __('Periodic Notifications'), 'html' => $periodic_notification_settings_html);
     $table_data[] = array('key' => __('Contact alert enabled'), 'boolean' => $user['User']['contactalert']);
 
     if (!$admin_view && !$user['Role']['perm_auth']) {
@@ -160,4 +160,6 @@
         'admin_view' => ['menuList' => 'admin', 'menuItem' => 'viewUser'],
         'view' => ['menuList' => 'globalActions', 'menuItem' => 'view']
     ];
+    ?>
+    <?php
     echo $this->element('/genericElements/SideMenu/side_menu', $current_menu[$admin_view ? 'admin_view' : 'view']);
