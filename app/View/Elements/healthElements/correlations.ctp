@@ -2,7 +2,7 @@
     echo '<div style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">';
     echo sprintf(
         '<p>%s</p><p>%s</p>',
-        __('This is the correlation management interface. Its goal is to provide youwith information about the currently used correlation engine as well as the data stores of currently dormant engines.'),
+        __('This is the correlation management interface. Its goal is to provide you with information about the currently used correlation engine as well as the data stores of currently dormant engines.'),
         __('You will also find management tools for the various engines below, make sure that you keep an eye on the disk requirements as well as the exhaustion of IDs and recorrelate the instance when needed.')
     );
     echo sprintf(
