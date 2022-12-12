@@ -1661,4 +1661,6 @@ INSERT IGNORE INTO `org_blocklists` (`org_uuid`, `created`, `org_name`, `comment
 ('58d38339-7b24-4386-b4b4-4c0f950d210f', NOW(), 'Setec Astrononomy', 'default example'),
 ('58d38326-eda8-443a-9fa8-4e12950d210f', NOW(), 'Acme Finance', 'default example');
 
-INSERT IGNORE INTO `admin_settings` (`setting`, `value`) VALUES ('fix_login', NOW());
+INSERT IGNORE INTO `admin_settings` (`setting`, `value`) VALUES 
+('fix_login', NOW()),
+('default_role', 3);

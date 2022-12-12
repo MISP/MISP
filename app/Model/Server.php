@@ -5539,7 +5539,7 @@ class Server extends AppModel
                 ),
                 'log_client_ip_header' => array(
                     'level' => 1,
-                    'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy infront of your MISP instance.'),
+                    'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy in front of your MISP instance. Prepend the variable with "HTTP_", for example "HTTP_X_FORWARDED_FOR".'),
                     'value' => 'REMOTE_ADDR',
                     'test' => 'testForEmpty',
                     'type' => 'string',
@@ -5595,7 +5595,7 @@ class Server extends AppModel
                 ),
                 'log_paranoid_skip_db' => array(
                     'level' => 0,
-                    'description' => __('You can decide to skip the logging of the paranoid logs to the database.'),
+                    'description' => __('You can decide to skip the logging of the paranoid logs to the database. Logs will be just published to ZMQ or Kafka.'),
                     'value' => false,
                     'test' => 'testParanoidSkipDb',
                     'type' => 'boolean',
@@ -5609,6 +5609,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'log_paranoid_include_sql_queries' => [
+                    'level' => 0,
+                    'description' => __('If paranoid logging is enabled, include the SQL queries in the entries.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'log_user_ips' => array(
                     'level' => 0,
                     'description' => __('Log user IPs on each request. 30 day retention for lookups by IP to get the last authenticated user ID for the given IP, whilst on the reverse, indefinitely stores all associated IPs for a user ID.'),
@@ -5649,6 +5657,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'discussion_disable' => [
+                    'level' => 1,
+                    'description' => __('Completely disable ability for user to add discussion to events.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'showCorrelationsOnIndex' => array(
                     'level' => 1,
                     'description' => __('When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.'),

@@ -107,8 +107,14 @@ class FileAccessTool
         }
 
         if (file_put_contents($file, $content, LOCK_EX | (!empty($append) ? FILE_APPEND : 0)) === false) {
-            $freeSpace = disk_free_space($dir);
-            throw new Exception("An error has occurred while attempt to write to file `$file`. Maybe not enough space? ($freeSpace bytes left)");
+            if (file_exists($file) && !is_writable($file)) {
+                $errorMessage = 'File is not writeable.';
+            } else {
+                $freeSpace = disk_free_space($dir);
+                $errorMessage = "Maybe not enough space? ($freeSpace bytes left)";
+            }
+
+            throw new Exception("An error has occurred while attempt to write to file `$file`. $errorMessage");
         }
     }
 

@@ -80,7 +80,7 @@ class LogsController extends AppController
                     $conditions['Log.org'] = $orgRestriction;
                 } else {
                     // users can see their own info
-                    $conditions['Log.email'] = $this->Auth->user('email');
+                    $conditions['Log.user_id'] = $this->Auth->user('id');
                 }
             }
             $params = array(

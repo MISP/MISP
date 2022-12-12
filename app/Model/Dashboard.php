@@ -97,6 +97,7 @@ class Dashboard extends AppModel
                 }
             }
         }
+        ksort($widgets);
         return $widgets;
     }
 

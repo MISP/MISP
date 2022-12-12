@@ -83,7 +83,8 @@ class AppModel extends Model
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
-        99 => false, 100 => false, 101 => false, 102 => false
+        99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
+        105 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1921,7 +1922,24 @@ class AppModel extends Model
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 102:
+                $sqlArray[] = "UPDATE roles SET perm_audit = 1;";
+                break;
+            case 103:
                 $sqlArray[] = "ALTER TABLE `taxonomies` ADD `highlighted` tinyint(1) DEFAULT 0;";
+                break;
+            case 104:
+                $sqlArray[] = "ALTER TABLE `access_logs` ADD `query_log` blob DEFAULT NULL";
+                break;
+            case 105:
+                // set a default role if there is none
+                if (!$this->AdminSetting->getSetting('default_role')) {
+                    $role = $this->Role->findByName('User');
+                    if ($role) {
+                        $sqlArray[] = "INSERT INTO `admin_settings` (setting, value) VALUES ('default_role', '".$role['Role']['id']."');";
+                    } else {
+                        // there is no role called User, do nothing
+                    }
+                }
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1999,9 +2017,6 @@ class AppModel extends Model
                         $this->__addIndex($table, 'uuid', null, true);
                     }
                 }
-                break;
-            case 102:
-                $sqlArray[] = "UPDATE roles SET perm_audit = 1;";
                 break;
             default:
                 return false;
@@ -3928,8 +3943,10 @@ class AppModel extends Model
      */
     public function _remoteIp()
     {
-        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: null;
+        if ($ipHeader && isset($_SERVER[$ipHeader])) {
+            return trim($_SERVER[$ipHeader]);
+        }
+        return $_SERVER['REMOTE_ADDR'] ?? null;
     }
-
 }
