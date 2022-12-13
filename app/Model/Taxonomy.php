@@ -700,6 +700,12 @@ class Taxonomy extends AppModel
             // at this point, we have a duplicated namespace(-predicate)
             $taxonomy = $this->getTaxonomyForTag($newTagName);
             if (!empty($taxonomy['Taxonomy']['exclusive'])) {
+                if (
+                    ($newTagName === 'tlp:white' && in_array('tlp:clear', $tagNameList)) ||
+                    ($newTagName === 'tlp:clear' && in_array('tlp:white', $tagNameList))
+                ) {
+                    return true;
+                }
                 return false; // only one tag of this taxonomy is allowed
             } elseif (!empty($taxonomy['TaxonomyPredicate'][0]['exclusive'])) {
                 return false; // only one tag belonging to this predicate is allowed
