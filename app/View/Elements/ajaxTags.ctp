@@ -48,8 +48,8 @@
         );
     }
 
-    $highlitedTags = "";
-    if (isset($highlightedTags) && $scope == 'event') {
+    $highlightedTagsString = "";
+    if (isset($highlightedTags) && $scope === 'event') {
         foreach ($highlightedTags as $hTaxonomy) {
             $hButtonData = [];
             if ($full) {
@@ -64,19 +64,19 @@
             }
 
             $hTags = "";
-            foreach($hTaxonomy['tags'] as $hTag){
+            foreach ($hTaxonomy['tags'] as $hTag) {
                 $hTags .= $this->element('rich_tag', [
-                        'tag' => $hTag,
-                        'tagAccess' => $tagAccess,
-                        'localTagAccess' => $localTagAccess,
-                        'searchUrl' => $searchUrl,
-                        'scope' => $scope,
-                        'id' => $id,
-                        'tag_display_style' => 2
+                    'tag' => $hTag,
+                    'tagAccess' => $tagAccess,
+                    'localTagAccess' => $localTagAccess,
+                    'searchUrl' => $searchUrl,
+                    'scope' => $scope,
+                    'id' => $id,
+                    'tag_display_style' => 2
                 ]);
             }
 
-            $highlitedTags .= sprintf(
+            $highlightedTagsString .= sprintf(
                 '<tr><td style="font-weight: bold;text-transform: uppercase;">%s</td></td><td>%s</td><td>%s</td></tr>',
                 $hTaxonomy['taxonomy']['Taxonomy']['namespace'],
                 $hTags,
@@ -91,7 +91,9 @@
                 }
             }
         }
-        $tagData .= sprintf('<table>%s</table>', $highlitedTags);
+        if (!empty($highlightedTagsString)) {
+            $tagData .= sprintf('<table>%s</table>', $highlightedTagsString);
+        }
     }
 
     foreach ($tags as $tag) {
