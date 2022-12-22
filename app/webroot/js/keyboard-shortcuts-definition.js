@@ -46,6 +46,13 @@ function getShortcutsDefinition(controller, action) {
             }
         });
         shortcuts.push({
+            "key": "o",
+            "description": "Add an object",
+            "action": function () {
+                $('#object-button').click();
+            }
+        });
+        shortcuts.push({
             "key": "s",
             "description": "Focus the filter attribute bar",
             "action": function () {

@@ -85,6 +85,7 @@
       <?php
         endif;
       ?>
+      <?php if ($includeOrgColumn): ?>
       <td class="short">
         <?php
           if (!empty($extended)):
@@ -92,6 +93,7 @@
           endif;
         ?>
       </td>
+      <?php endif; ?>
       <td class="short"<?= $quickEdit('category') ?>>
         <div class="inline-field-solid">
           <?php echo h($object['category']); ?>
@@ -287,14 +289,18 @@
           <input type="checkbox" class="toids-toggle" id="toids_toggle_<?= $objectId ?>" aria-label="<?= __('Toggle IDS flag') ?>" title="<?= __('Toggle IDS flag') ?>"<?= $object['to_ids'] ? ' checked' : ''; ?><?= $mayModify ? '' : ' disabled' ?>>
       </td>
       <td class="short"<?= $quickEdit('distribution') ?>>
-          <div class="inline-field-solid<?= $object['distribution'] == 0 ? ' red' : '' ?>">
+          <div class="inline-field-solid">
               <?php
                   if ($object['distribution'] == 4):
               ?>
                   <a href="<?php echo $baseurl;?>/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
               <?php
                   else:
-                      echo h($shortDist[$object['distribution']]);
+                      if ($object['distribution'] == 0) {
+                          echo '<span class="red">' . h($shortDist[$object['distribution']]) . '</span>';
+                      } else {
+                          echo h($shortDist[$object['distribution']]);
+                      }
                   endif;
               ?>
           </div>

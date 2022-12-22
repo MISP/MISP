@@ -117,8 +117,14 @@ class UsersController extends AppController
         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')), 'status'=>200, 'type' => 'json'));
     }
 
-    public function unsubscribe($code)
+    public function unsubscribe($code, $type = null)
     {
+        if ($type === null) {
+            $type = 'autoalert';
+        } else if (!in_array($type, ['autoalert', 'notification_daily', 'notification_weekly', 'notification_monthly'], true)) {
+            throw new NotFoundException("Invalid type $type.");
+        }
+
         $user = $this->Auth->user();
 
         if (!hash_equals($this->User->unsubscribeCode($user), rtrim($code, '.'))) {
@@ -126,11 +132,11 @@ class UsersController extends AppController
             $this->redirect(['action' => 'view', 'me']);
         }
 
-        if ($user['autoalert']) {
-            $this->User->updateField($this->Auth->user(), 'autoalert', false);
-            $this->Flash->success(__('Successfully unsubscribed from event alert.'));
+        if ($user[$type]) {
+            $this->User->updateField($user, $type, false);
+            $this->Flash->success(__('Successfully unsubscribed from notification.'));
         } else {
-            $this->Flash->info(__('Already unsubscribed from event alert.'));
+            $this->Flash->info(__('Already unsubscribed from notification.'));
         }
         $this->redirect(['action' => 'view', 'me']);
     }

@@ -110,6 +110,20 @@ class AttributeValidationToolTest extends TestCase
         ]);
     }
 
+    public function testValidateAs(): void
+    {
+        $this->shouldBeValid('AS', [
+            '0',
+            0,
+            1,
+            '1',
+            4294967295,
+        ]);
+        $this->shouldBeInvalid('AS', [
+            '1.2.3.4',
+        ]);
+    }
+
     public function testCompressIpv6(): void
     {
         $this->assertEquals('1234:fd2:5621:1:89::4500', AttributeValidationTool::modifyBeforeValidation('ip-src', '1234:0fd2:5621:0001:0089:0000:0000:4500'));

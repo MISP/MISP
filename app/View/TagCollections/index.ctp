@@ -4,7 +4,7 @@
         'alias' => __('Tag Collections'),
         'controller' => 'tag_collections',
         'headers' => array(
-            'id' => array('sort' => 1),
+            'id' => array('sort' => 1, 'alias' => __('ID')),
             'uuid' => array('sort' => 1, 'alias' => __('UUID')),
             'name' => array('sort' => 1),
             'tags' => array('alias' => __('Tags')),

@@ -1,14 +1,12 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Community $Community
+ */
 class CommunitiesController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
-
-    public function beforeFilter()
-    {
-        parent::beforeFilter();
-    }
 
     public $paginate = array(
             'limit' => 60,

@@ -43,6 +43,7 @@
                     'element' => empty($user_id) ? 'links' : 'generic_field',
                     'url' => $baseurl . '/users/view',
                     'url_params_data_paths' => ['User.id'],
+                    'requirement' => $me['Role']['perm_admin'] || $me['Role']['perm_site_admin'],
                 ],
                 [
                     'name' => __('Auth Key'),

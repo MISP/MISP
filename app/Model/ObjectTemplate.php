@@ -207,11 +207,69 @@ class ObjectTemplate extends AppModel
     }
 
     /**
-     * @param array $template
-     * @param array $attributes
+     * @param array $attributeTypes Array of attribute types to check, can contains multiple types
      * @return array
      */
-    public function checkTemplateConformityBasedOnTypes(array $template, array $attributes)
+    public function fetchPossibleTemplatesBasedOnTypes(array $attributeTypes)
+    {
+        $uniqueAttributeTypes = array_unique($attributeTypes, SORT_REGULAR);
+        $potentialTemplateIds = $this->find('column', array(
+            'recursive' => -1,
+            'fields' => array(
+                'ObjectTemplate.id',
+            ),
+            'conditions' => array(
+                'ObjectTemplate.active' => true,
+                'ObjectTemplateElement.type' => $uniqueAttributeTypes,
+            ),
+            'joins' => array(
+                array(
+                    'table' => 'object_template_elements',
+                    'alias' => 'ObjectTemplateElement',
+                    'type' => 'RIGHT',
+                    'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
+                    'conditions' => array('ObjectTemplate.id = ObjectTemplateElement.object_template_id')
+                )
+            ),
+            'group' => 'ObjectTemplate.id',
+        ));
+
+        $templates = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => ['id' => $potentialTemplateIds],
+            'contain' => ['ObjectTemplateElement' => ['fields' => ['object_relation', 'type', 'multiple']]]
+        ]);
+
+        foreach ($templates as $i => $template) {
+            $res = $this->checkTemplateConformityBasedOnTypes($template, $attributeTypes);
+            $templates[$i]['ObjectTemplate']['compatibility'] = $res['valid'] ? true : $res['missingTypes'];
+            $templates[$i]['ObjectTemplate']['invalidTypes'] = $res['invalidTypes'];
+            $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
+        }
+
+        usort($templates, function($a, $b) {
+            if ($a['ObjectTemplate']['id'] == $b['ObjectTemplate']['id']) {
+                return 0;
+            } else if (is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
+                return count($a['ObjectTemplate']['compatibility']) > count($b['ObjectTemplate']['compatibility']) ? 1 : -1;
+            } else if (is_array($a['ObjectTemplate']['compatibility']) && !is_array($b['ObjectTemplate']['compatibility'])) {
+                return 1;
+            } else if (!is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
+                return -1;
+            } else { // sort based on invalidTypes count
+                return count($a['ObjectTemplate']['invalidTypes']) > count($b['ObjectTemplate']['invalidTypes']) ? 1 : -1;
+            }
+        });
+
+        return array('templates' => $templates, 'types' => $uniqueAttributeTypes);
+    }
+
+    /**
+     * @param array $template
+     * @param array $attributeTypes Array of attribute types to check, can contains multiple types
+     * @return array
+     */
+    public function checkTemplateConformityBasedOnTypes(array $template, array $attributeTypes)
     {
         $to_return = array('valid' => true, 'missingTypes' => array());
         if (!empty($template['ObjectTemplate']['requirements'])) {
@@ -222,13 +280,7 @@ class ObjectTemplate extends AppModel
             if (!empty($template['ObjectTemplate']['requirements']['required'])) {
                 foreach ($template['ObjectTemplate']['requirements']['required'] as $requiredField) {
                     $requiredType = $elementsByObjectRelationName[$requiredField]['type'];
-                    $found = false;
-                    foreach ($attributes as $attribute) {
-                        if ($attribute['Attribute']['type'] === $requiredType) {
-                            $found = true;
-                            break;
-                        }
-                    }
+                    $found = in_array($requiredType, $attributeTypes, true);
                     if (!$found) {
                         $to_return = array('valid' => false, 'missingTypes' => array($requiredType));
                     }
@@ -241,11 +293,8 @@ class ObjectTemplate extends AppModel
                 foreach ($template['ObjectTemplate']['requirements']['requiredOneOf'] as $requiredField) {
                     $requiredType = $elementsByObjectRelationName[$requiredField]['type'] ?? null;
                     $allRequiredTypes[] = $requiredType;
-                    foreach ($attributes as $attribute) {
-                        if ($attribute['Attribute']['type'] === $requiredType) {
-                            $found = true;
-                            break;
-                        }
+                    if (!$found) {
+                        $found = in_array($requiredType, $attributeTypes, true);
                     }
                 }
                 if (!$found) {
@@ -262,17 +311,17 @@ class ObjectTemplate extends AppModel
             $valid_types[$templateElement['type']] = $templateElement['multiple'];
         }
         $check_for_multiple_type = array();
-        foreach ($attributes as $attribute) {
-            if (isset($valid_types[$attribute['Attribute']['type']])) {
-                if (!$valid_types[$attribute['Attribute']['type']]) { // is not multiple
-                    if (isset($check_for_multiple_type[$attribute['Attribute']['type']])) {
-                        $to_return['invalidTypesMultiple'][] = $attribute['Attribute']['type'];
+        foreach ($attributeTypes as $attributeType) {
+            if (isset($valid_types[$attributeType])) {
+                if (!$valid_types[$attributeType]) { // is not multiple
+                    if (isset($check_for_multiple_type[$attributeType])) {
+                        $to_return['invalidTypesMultiple'][] = $attributeType;
                     } else {
-                        $check_for_multiple_type[$attribute['Attribute']['type']] = 1;
+                        $check_for_multiple_type[$attributeType] = 1;
                     }
                 }
             } else {
-                $to_return['invalidTypes'][] = $attribute['Attribute']['type'];
+                $to_return['invalidTypes'][] = $attributeType;
             }
         }
         $to_return['invalidTypes'] = array_unique($to_return['invalidTypes'], SORT_REGULAR);

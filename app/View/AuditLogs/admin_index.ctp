@@ -278,7 +278,7 @@
             <td class="short" data-search="model" data-search-value="<?= h($item['AuditLog']['model']) . ':' . h($item['AuditLog']['model_id']) ?>">
                 <?php $title = isset($item['AuditLog']['event_info']) ? ' title="' . __('Event #%s: %s', $item['AuditLog']['event_id'], h($item['AuditLog']['event_info'])) . '"' : '' ?>
                 <?= isset($item['AuditLog']['model_link']) ? '<a href="' . h($item['AuditLog']['model_link']) . '"' . $title . '>' : '' ?>
-                <?= h($item['AuditLog']['model']) . ' #' . h($item['AuditLog']['model_id']) ?>
+                <?= h($item['AuditLog']['model']) . ($item['AuditLog']['model_id'] ? ' #' . h($item['AuditLog']['model_id']) : '') ?>
                 <?= isset($item['AuditLog']['model_link']) ? '</a>' : '' ?>
             </td>
             <td class="limitedWidth"><?= h($item['AuditLog']['title']) ?></td>
