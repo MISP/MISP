@@ -2357,7 +2357,7 @@ class EventsController extends AppController
                     $results = $this->Event->addMISPExportFile($this->Auth->user(), $data, $isXml, $takeOwnership, $publish);
                 } catch (Exception $e) {
                     $this->log("Exception during processing MISP file import: {$e->getMessage()}");
-                    $this->Flash->error(__('Could not process MISP export file. %s.', $e->getMessage()));
+                    $this->Flash->error(__('Could not process MISP export file. %s', $e->getMessage()));
                     $this->redirect(['controller' => 'events', 'action' => 'add_misp_export']);
                 }
             }
