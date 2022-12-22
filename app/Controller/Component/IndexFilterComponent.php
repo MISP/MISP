@@ -44,15 +44,9 @@ class IndexFilterComponent extends Component
                 }
             }
         }
+
         if (!empty($paramArray)) {
             foreach ($paramArray as $p) {
-                if (
-                    isset($options['ordered_url_params'][$p]) &&
-                    (!in_array(strtolower((string)$options['ordered_url_params'][$p]), array('null', '0', false, 'false', null)))
-                ) {
-                    $data[$p] = $options['ordered_url_params'][$p];
-                    $data[$p] = str_replace(';', ':', $data[$p]);
-                }
                 if (isset($request->params['named'][$p])) {
                     $data[$p] = str_replace(';', ':', $request->params['named'][$p]);
                 }
@@ -67,26 +61,11 @@ class IndexFilterComponent extends Component
             }
         }
         unset($v);
-        if (!empty($options['additional_delimiters'])) {
-            if (!is_array($options['additional_delimiters'])) {
-                $options['additional_delimiters'] = array($options['additional_delimiters']);
-            }
-            foreach ($data as $k => $v) {
-                $found = false;
-                foreach ($options['additional_delimiters'] as $delim) {
-                    if (strpos($v, $delim) !== false) {
-                        $found = true;
-                        break;
-                    }
-                }
-                if ($found) {
-                    $data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
-                    foreach ($data[$k] as $k2 => $value) {
-                        $data[$k][$k2] = trim($data[$k][$k2]);
-                    }
-                }
-            }
-        }
+        
+        $data = array_filter($data, function($paramName) use ($paramArray) {
+            return !empty($paramArray[$paramName]);
+        }, ARRAY_FILTER_USE_KEY);
+
         $this->Controller->set('passedArgs', json_encode($this->Controller->passedArgs));
         return $data;
     }
