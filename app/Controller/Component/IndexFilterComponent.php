@@ -45,6 +45,18 @@ class IndexFilterComponent extends Component
             }
         }
 
+        $data = $this->__massageData($data, $request, $paramArray);
+
+        $this->Controller->set('passedArgs', json_encode($this->Controller->passedArgs));
+        return $data;
+    }
+
+    private function __massageData($data, $request, $paramArray)
+    {
+        $data = array_filter($data, function($paramName) use ($paramArray) {
+            return !empty($paramArray[$paramName]);
+        }, ARRAY_FILTER_USE_KEY);
+
         if (!empty($paramArray)) {
             foreach ($paramArray as $p) {
                 if (isset($request->params['named'][$p])) {
@@ -61,13 +73,8 @@ class IndexFilterComponent extends Component
             }
         }
         unset($v);
-        
-        $data = array_filter($data, function($paramName) use ($paramArray) {
-            return !empty($paramArray[$paramName]);
-        }, ARRAY_FILTER_USE_KEY);
-
-        $this->Controller->set('passedArgs', json_encode($this->Controller->passedArgs));
         return $data;
+
     }
 
     public function isRest()
