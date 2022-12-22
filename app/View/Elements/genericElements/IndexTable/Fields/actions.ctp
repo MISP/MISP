@@ -105,9 +105,9 @@
                         $extracted_value = Hash::extract($row, $path);
                         if (!empty($extracted_value)) {
                             if (is_string($k)) { // associative array, use cake's parameter
-                                $temp[] = h($k) . ':' . h($extracted_value[0]);
+                                $temp[] = h($k) . ':' . urlencode(h($extracted_value[0]));
                             } else {
-                                $temp[] = h($extracted_value[0]);
+                                $temp[] = urlencode(h($extracted_value[0]));
                             }
                         }
                     }

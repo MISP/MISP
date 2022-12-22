@@ -849,7 +849,7 @@ class User extends AppModel
             return true;
         }
 
-        $this->loadLog();
+        $log = $this->loadLog();
         $replyToLog = $replyToUser ? ' from ' . $replyToUser['User']['email'] : '';
 
         $gpg = $this->initializeGpg();
@@ -859,8 +859,8 @@ class User extends AppModel
 
         } catch (SendEmailException $e) {
             $this->logException("Exception during sending e-mail", $e);
-            $this->Log->create();
-            $this->Log->save(array(
+            $log->create();
+            $log->save(array(
                 'org' => 'SYSTEM',
                 'model' => 'User',
                 'model_id' => $user['User']['id'],
@@ -876,8 +876,8 @@ class User extends AppModel
         // Intentional two spaces to pass test :)
         $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $result['subject'] . '".';
 
-        $this->Log->create();
-        $this->Log->save(array(
+        $log->create();
+        $log->save(array(
             'org' => 'SYSTEM',
             'model' => 'User',
             'model_id' => $user['User']['id'],
@@ -1458,18 +1458,23 @@ class User extends AppModel
      */
     public function checkIfUserIsValid(array $user)
     {
-        $auth = Configure::read('Security.auth');
-        if (!$auth) {
-            return true;
+        static $oidc;
+
+        if ($oidc === null) {
+            $auth = Configure::read('Security.auth');
+            if (!$auth) {
+                return true;
+            }
+            if (!is_array($auth)) {
+                throw new Exception("`Security.auth` config value must be array.");
+            }
+            if (!in_array('OidcAuth.Oidc', $auth, true)) {
+                return true; // this method currently makes sense just for OIDC auth provider
+            }
+            App::uses('Oidc', 'OidcAuth.Lib');
+            $oidc = new Oidc($this);
         }
-        if (!is_array($auth)) {
-            throw new Exception("`Security.auth` config value must be array.");
-        }
-        if (!in_array('OidcAuth.Oidc', $auth, true)) {
-            return true; // this method currently makes sense just for OIDC auth provider
-        }
-        App::uses('Oidc', 'OidcAuth.Lib');
-        $oidc = new Oidc($this);
+
         return $oidc->isUserValid($user);
     }
 
@@ -1970,5 +1975,31 @@ class User extends AppModel
             }
         }
         return $users;
+    }
+
+    public function checkForSessionDestruction($id)
+    {
+        if (empty(CakeSession::read('creation_timestamp'))) {
+            return false;
+        }
+        $redis = $this->setupRedis();
+        if ($redis) {
+            $cutoff = $redis->get('misp:session_destroy:' . $id);
+            $allcutoff = $redis->get('misp:session_destroy:all');
+            if (
+                empty($cutoff) || 
+                (
+                    !empty($cutoff) &&
+                    !empty($allcutoff) &&
+                    $allcutoff < $cutoff
+                ) 
+            ) {
+                $cutoff = $allcutoff;
+            }
+            if ($cutoff && CakeSession::read('creation_timestamp') < $cutoff) {
+                return true;
+            }
+        }
+        return false;
     }
 }

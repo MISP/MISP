@@ -64,6 +64,7 @@
   <?php
     endif;
   ?>
+  <?php if ($includeOrgColumn): ?>
   <td class="short">
   <?php
     if (isset($object['Org']['name'])) {
@@ -71,6 +72,7 @@
     }
   ?>
   </td>
+  <?php endif; ?>
   <td class="short">
       <?php echo h($object['category']); ?>
   </td>

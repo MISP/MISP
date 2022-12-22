@@ -16,21 +16,21 @@ $fields = [
         'data_path' => 'Noticelist.expanded_name'
     ],
     [
-        'name' => __('ref'),
+        'name' => __('Ref'),
         'data_path' => 'Noticelist.ref',
         'element' => 'links'
     ],
     [
-        'name' => __('geographical_area'),
+        'name' => __('Geographical area'),
         'data_path' => 'Noticelist.geographical_area',
         'element' => 'list'
     ],
     [
-        'name' => __('version'),
+        'name' => __('Version'),
         'data_path' => 'Noticelist.version',
     ],
     [
-        'name' => __('enabled'),
+        'name' => __('Enabled'),
         'data_path' => 'Noticelist.enabled',
         'element' => 'toggle',
         'url' => '/noticelists/toggleEnable',

@@ -140,22 +140,19 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                     'Attribute.id'
                 ],
                 'icon' => 'comment',
-                'complex_requirement' => [
-                    'function' => function ($object) use ($isSiteAdmin, $me) {
-                        return $isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id']);
-                    }
-                ]
+                'title' => __('Add proposal'),
+                'complex_requirement' => function ($object) use ($isSiteAdmin, $me) {
+                    return $isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id']);
+                },
             ],
             [
                 'onclick' => "deleteObject('shadow_attributes', 'delete', '[onclick_params_data_path]');",
                 'onclick_params_data_path' => 'Attribute.id',
                 'icon' => 'trash',
                 'title' => __('Propose deletion'),
-                'complex_requirement' => [
-                    'function' => function ($object) use ($isSiteAdmin, $me) {
-                        return $isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id']);
-                    }
-                ]
+                'complex_requirement' => function ($object) use ($isSiteAdmin, $me) {
+                    return $isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id']);
+                }
             ],
             [
                 'title' => __('Propose enrichment'),
@@ -272,7 +269,6 @@ $class = $isSearch ? 'searchAttributes' : 'listAttributes';
 echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event-collection', 'menuItem' => $class]);
 
 ?>
-
 <script>
     // tooltips
     $(function() {

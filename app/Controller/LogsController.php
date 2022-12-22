@@ -1,7 +1,9 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Log $Log
+ */
 class LogsController extends AppController
 {
     public $components = array(
@@ -23,23 +25,24 @@ class LogsController extends AppController
         parent::beforeFilter();
 
         // No need for CSRF tokens for a search
-        if ('admin_search' == $this->request->params['action']) {
+        if ('admin_search' === $this->request->params['action']) {
             $this->Security->csrfCheck = false;
         }
     }
 
-    public function admin_index()
+    public function index()
     {
         $paramArray = array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip');
         $filterData = array(
             'request' => $this->request,
-            'named_params' => $this->params['named'],
+            'named_params' => $this->request->params['named'],
             'paramArray' => $paramArray,
             'ordered_url_params' => func_get_args()
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         unset($filterData);
+
         if ($this->_isRest()) {
             if ($filters === false) {
                 return $exception;
@@ -71,8 +74,14 @@ class LogsController extends AppController
                 }
             }
             if (!$this->_isSiteAdmin()) {
-                $orgRestriction = $this->Auth->user('Organisation')['name'];
-                $conditions['AND']['Log.org'] = $orgRestriction;
+                if ($this->_isAdmin()) {
+                    // ORG admins can see their own org info
+                    $orgRestriction = $this->Auth->user('Organisation')['name'];
+                    $conditions['Log.org'] = $orgRestriction;
+                } else {
+                    // users can see their own info
+                    $conditions['Log.user_id'] = $this->Auth->user('id');
+                }
             }
             $params = array(
                 'conditions' => $conditions,
@@ -86,30 +95,42 @@ class LogsController extends AppController
             }
             $log_entries = $this->Log->find('all', $params);
             return $this->RestResponse->viewData($log_entries, 'json');
-        } else {
-            $this->set('isSearch', 0);
-            $this->recursive = 0;
-            $validFilters = $this->Log->logMeta;
-            if (!$this->_isSiteAdmin()) {
-                $orgRestriction = $this->Auth->user('Organisation')['name'];
-                $conditions['Log.org'] = $orgRestriction;
-                $this->paginate['conditions'] = $conditions;
-            } else {
-                $validFilters = array_merge_recursive($validFilters, $this->Log->logMetaAdmin);
-            }
-            if (isset($this->params['named']['filter']) && in_array($this->params['named']['filter'], array_keys($validFilters))) {
-                $this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
-            }
-            foreach ($filters as $key => $value) {
-                if ($key === 'created') {
-                    $key = 'created >=';
-                }
-                $this->paginate['conditions']["Log.$key"] = $value;
-            }
-            $this->set('validFilters', $validFilters);
-            $this->set('filter', isset($this->params['named']['filter']) ? $this->params['named']['filter'] : false);
-            $this->set('list', $this->paginate());
         }
+
+        $this->set('isSearch', 0);
+        $this->recursive = 0;
+        $validFilters = $this->Log->logMeta;
+        if ($this->_isSiteAdmin()) {
+            $validFilters = array_merge_recursive($validFilters, $this->Log->logMetaAdmin);
+        }
+        else if (!$this->_isSiteAdmin() && $this->_isAdmin()) {
+            // ORG admins can see their own org info
+            $orgRestriction = $this->Auth->user('Organisation')['name'];
+            $conditions['Log.org'] = $orgRestriction;
+            $this->paginate['conditions'] = $conditions;
+        } else {
+            // users can see their own info
+            $conditions['Log.email'] = $this->Auth->user('email');
+            $this->paginate['conditions'] = $conditions;
+        }
+        if (isset($this->params['named']['filter']) && in_array($this->params['named']['filter'], array_keys($validFilters))) {
+            $this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
+        }
+        foreach ($filters as $key => $value) {
+            if ($key === 'created') {
+                $key = 'created >=';
+            }
+            $this->paginate['conditions']["Log.$key"] = $value;
+        }
+        $this->set('validFilters', $validFilters);
+        $this->set('filter', isset($this->params['named']['filter']) ? $this->params['named']['filter'] : false);
+        $this->set('list', $this->paginate());
+    }
+
+    public function admin_index()
+    {
+        $this->view = 'index';
+        return $this->index();
     }
 
     // Shows a minimalistic history for the currently selected event
@@ -313,7 +334,7 @@ class LogsController extends AppController
                     }
 
                     // set the same view as the index page
-                    $this->render('admin_index');
+                    $this->render('index');
                 }
             } else {
                 // get from Session

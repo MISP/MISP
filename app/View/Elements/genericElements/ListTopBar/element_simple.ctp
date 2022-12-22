@@ -1,6 +1,6 @@
 <?php
     if (!isset($data['requirement']) || $data['requirement']) {
-        if (!empty($data['onClick']) || empty($data['url'])) {
+        if (!empty($data['onClick'])) {
             $onClickParams = array();
             if (!empty($data['onClickParams'])) {
                 foreach ($data['onClickParams'] as $param) {
@@ -15,11 +15,11 @@
             $onClick = sprintf(
                 'onclick="%s%s"',
                 (empty($data['url'])) ? 'event.preventDefault();' : '',
-                (!empty($data['onClick']) ? sprintf(
+                sprintf(
                     '%s(%s)',
                     h($data['onClick']),
                     $onClickParams
-                ) : '')
+                )
             );
         }
         $dataFields = array();

@@ -57,6 +57,9 @@ class AccessLog extends AppModel
                     $result['AccessLog']['request'] = false;
                 }
             }
+            if (!empty($result['AccessLog']['query_log'])) {
+                $result['AccessLog']['query_log'] = JsonTool::decode($this->decompress($result['AccessLog']['query_log']));
+            }
             if (!empty($result['AccessLog']['memory_usage'])) {
                 $result['AccessLog']['memory_usage'] = $result['AccessLog']['memory_usage'] * 1024;
             }
@@ -90,8 +93,12 @@ class AccessLog extends AppModel
             $accessLog['request_method'] = $requestMethodIds[$accessLog['request_method']] ?? 0;
         }
 
-        if (isset($accessLog['request'])) {
-            $accessLog['request'] = $this->encodeRequest($accessLog['request']);
+        if (!empty($accessLog['request'])) {
+            $accessLog['request'] = $this->compress($accessLog['request']);
+        }
+
+        if (!empty($accessLog['query_log'])) {
+            $accessLog['query_log'] = $this->compress(JsonTool::encode($accessLog['query_log']));
         }
 
         // In database save size in kb to avoid overflow signed int type
@@ -110,12 +117,16 @@ class AccessLog extends AppModel
      */
     public function logRequest(array $user, $remoteIp, CakeRequest $request, $includeRequestBody = true)
     {
-        $requestTime = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
-        $now = DateTime::createFromFormat('U.u', $requestTime);
+        $requestTime = $this->requestTime();
         $logClientIp = Configure::read('MISP.log_client_ip');
+        $includeSqlQueries = Configure::read('MISP.log_paranoid_include_sql_queries');
+
+        if ($includeSqlQueries) {
+            $this->getDataSource()->fullDebug = true; // Enable SQL logging
+        }
 
         $dataToSave = [
-            'created' => $now->format('Y-m-d H:i:s.u'),
+            'created' => $requestTime->format('Y-m-d H:i:s.u'),
             'request_id' => $_SERVER['HTTP_X_REQUEST_ID'] ?? null,
             'user_id' => (int)$user['id'],
             'org_id' => (int)$user['org_id'],
@@ -133,12 +144,30 @@ class AccessLog extends AppModel
         }
 
         // Save data on shutdown
-        register_shutdown_function(function () use ($dataToSave, $requestTime) {
+        register_shutdown_function(function () use ($dataToSave, $requestTime, $includeSqlQueries) {
             session_write_close(); // close session to allow concurrent requests
-            $this->saveOnShutdown($dataToSave, $requestTime);
+            $this->saveOnShutdown($dataToSave, $requestTime, $includeSqlQueries);
         });
 
         return true;
+    }
+
+    /**
+     * @param DateTime $duration
+     * @return int Number of deleted entries
+     */
+    public function deleteOldLogs(DateTime $duration)
+    {
+        $this->deleteAll([
+            ['created <' => $duration->format('Y-m-d H:i:s.u')],
+        ], false);
+
+        $deleted = $this->getAffectedRows();
+        if ($deleted > 100) {
+            $dataSource = $this->getDataSource();
+            $dataSource->query('OPTIMISE TABLE ' . $dataSource->name($this->table));
+        }
+        return $deleted;
     }
 
     /**
@@ -161,18 +190,29 @@ class AccessLog extends AppModel
 
     /**
      * @param array $data
-     * @param float $requestTime
+     * @param DateTime $requestTime
+     * @param bool $includeSqlQueries
      * @return bool
      * @throws Exception
      */
-    private function saveOnShutdown(array $data, $requestTime)
+    private function saveOnShutdown(array $data, DateTime $requestTime, $includeSqlQueries)
     {
-        $queryCount = $this->getDataSource()->getLog(false, false)['count'];
+        $sqlLog = $this->getDataSource()->getLog(false, false);
+        $queryCount = $sqlLog['count'];
+
+        if ($includeSqlQueries && !empty($sqlLog['log'])) {
+            foreach ($sqlLog['log'] as &$log) {
+                $log['query'] = $this->escapeNonUnicode($log['query']);
+                unset($log['affected']); // affected is the same as numRows
+                unset($log['params']); // no need to save for your use case
+            }
+            $data['query_log'] = ['time' => $sqlLog['time'], 'log' => $sqlLog['log']];
+        }
 
         $data['response_code'] = http_response_code();
         $data['memory_usage'] = memory_get_peak_usage();
         $data['query_count'] = $queryCount;
-        $data['duration'] = (int)((microtime(true) - $requestTime) * 1000); // in milliseconds
+        $data['duration'] = (int)((microtime(true) - $requestTime->format('U.u')) * 1000); // in milliseconds
 
         try {
             return $this->save($data, ['atomic' => false]);
@@ -197,22 +237,30 @@ class AccessLog extends AppModel
     }
 
     /**
+     * @return DateTime
+     */
+    private function requestTime()
+    {
+        $requestTime = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+        $requestTime = (string) $requestTime;
+        // Fix string if float value doesnt contain decimal part
+        if (strpos($requestTime, '.') === false) {
+            $requestTime .= '.0';
+        }
+        return DateTime::createFromFormat('U.u', $requestTime);
+    }
+
+    /**
      * @param string $request
-     * @return array|bool
+     * @return array|false
      */
     private function decodeRequest($request)
     {
-        $header = substr($request, 0, 4);
-        if ($header === self::BROTLI_HEADER) {
-            if (function_exists('brotli_uncompress')) {
-                $request = brotli_uncompress(substr($request, 4));
-                if ($request === false) {
-                    return false;
-                }
-            } else {
-                return false;
-            }
+        $request = $this->decompress($request);
+        if ($request === false) {
+            return false;
         }
+
         list($contentType, $encoding, $data) = explode("\n", $request, 3);
 
         if ($encoding === 'gzip') {
@@ -229,17 +277,69 @@ class AccessLog extends AppModel
     }
 
     /**
-     * @param string $request
+     * @param string $data
+     * @return false|string
+     */
+    private function decompress($data)
+    {
+        $header = substr($data, 0, 4);
+        if ($header === self::BROTLI_HEADER) {
+            if (function_exists('brotli_uncompress')) {
+                $data = brotli_uncompress(substr($data, 4));
+                if ($data === false) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * @param string $data
      * @return string
      */
-    private function encodeRequest($request)
+    private function compress($data)
     {
         $compressionEnabled = Configure::read('MISP.log_new_audit_compress') &&
             function_exists('brotli_compress');
 
-        if ($compressionEnabled && strlen($request) >= self::COMPRESS_MIN_LENGTH) {
-            return self::BROTLI_HEADER . brotli_compress($request, 4, BROTLI_TEXT);
+        if ($compressionEnabled && strlen($data) >= self::COMPRESS_MIN_LENGTH) {
+            return self::BROTLI_HEADER . brotli_compress($data, 4, BROTLI_TEXT);
         }
-        return $request;
+        return $data;
+    }
+
+    /**
+     * @param $string
+     * @return string
+     */
+    private function escapeNonUnicode($string)
+    {
+        if (json_encode($string, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS) !== false) {
+            return $string; // string is valid unicode
+        }
+
+        if (function_exists('mb_str_split')) {
+            $result = mb_str_split($string);
+        } else {
+            $result = [];
+            $length = mb_strlen($string);
+            for ($i = 0; $i < $length; $i++) {
+                $result[] = mb_substr($string, $i, 1);
+            }
+        }
+
+        $string = '';
+        foreach ($result as $char) {
+            if (strlen($char) === 1 && !preg_match('/[[:print:]]/', $char)) {
+                $string .= '\x' . bin2hex($char);
+            } else {
+                $string .= $char;
+            }
+        }
+
+        return $string;
     }
 }

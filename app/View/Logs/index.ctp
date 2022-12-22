@@ -46,12 +46,12 @@
                 'text' => h($filterData['name']),
                 'title' => __('Modify filters'),
                 'active' => isset($filter) && $filterName === $filter,
-                'url' => $baseurl . '/admin/logs/index/filter:' . h($filterName)
+                'url' => $baseurl . '/logs/index/filter:' . h($filterName)
             );
         }
         $data['children'][0]['children'][] = array(
             'requirement' => !empty($filter),
-            'url' => $baseurl . '/admin/logs/index',
+            'url' => $baseurl . '/logs/index',
             'title' => __('Remove filters'),
             'fa-icon' => 'times'
         );
@@ -75,7 +75,7 @@
             <td class="short"><?php echo h($item['Log']['id']); ?>&nbsp;</td>
             <?php
                 if (Configure::read('MISP.log_client_ip')) {
-                    echo '<td>';
+                    echo '<td class="short">';
                     if (isset($ipSearch) && $ipSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['ip']), $ipSearchReplacePairs));
                     else echo h($item['Log']['ip']);
                     echo '</td>';
@@ -97,7 +97,7 @@
             <td class="short"><?php
                 if (isset($actionSearch) && $actionSearch != "ALL") echo nl2br($this->Highlight->highlighter(h($item['Log']['action']), $actionSearchReplacePairs));
                 else echo (h($item['Log']['action'])); ?>&nbsp;</td>
-            <td class="short"><?php
+            <td><?php
                 if (isset($titleSearch) && $titleSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['title']), $titleSearchReplacePairs));
                 else echo nl2br(h($item['Log']['title'])); ?>&nbsp;</td>
             <td><?php

@@ -26,12 +26,18 @@ class RedisTool
         }
 
         $host = Configure::read('MISP.redis_host') ?: '127.0.0.1';
-        $port = Configure::read('MISP.redis_port') ?: 6379;
+        $socket = false;
+        if ($host[0] === '/') {
+            $socket = $host;
+        } else {
+            $port = Configure::read('MISP.redis_port') ?: 6379;
+        }
         $database = Configure::read('MISP.redis_database') ?: 13;
         $pass = Configure::read('MISP.redis_password');
 
         $redis = new Redis();
-        if (!$redis->connect($host, (int) $port)) {
+        $connection = empty($socket) ? $redis->connect($host, (int) $port) : $redis->connect($host);
+        if (!$connection) {
             throw new Exception("Could not connect to Redis: {$redis->getLastError()}");
         }
         if (!empty($pass)) {

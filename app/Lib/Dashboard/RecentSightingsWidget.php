@@ -35,21 +35,21 @@ class RecentSightingsWidget
         $data = array();
         $count = 0;
 
-        foreach (JsonTool::decode($Sighting->restSearch($user, 'json', $filters)->intoString())->{'response'} as $el) {
-            $sighting = $el->{'Sighting'};
-            $event = $sighting->{'Event'};
-            $attribute = $sighting->{'Attribute'};
+        foreach (JsonTool::decode($Sighting->restSearch($user, 'json', $filters)->intoString())['response'] as $el) {
+            $sighting = $el['Sighting'];
+            $event = $sighting['Event'];
+            $attribute = $sighting['Attribute'];
 
-            if ($sighting->{'type'} == 0) $type = "Sighting";
-            elseif ($sighting->{'type'} == 1) $type = "False positive";
+            if ($sighting['type'] == 0) $type = "Sighting";
+            elseif ($sighting['type'] == 1) $type = "False positive";
             else $type = "Expiration";
 
-            $output = $attribute->{'value'} . " (id: " . $attribute->{'id'} . ") in " . $event->{'info'} . " (id: " . $event->{'id'} . ")";
+            $output = $attribute['value'] . " (id: " . $attribute['id'] . ") in " . $event['info'] . " (id: " . $event['id'] . ")";
             $data[] = array( 'title' => $type, 'value' => $output, 
                                 'html' => sprintf(
                                     ' (Event <a href="%s%s">%s</a>)',
-                                    Configure::read('MISP.baseurl') . '/events/view/', $event->{'id'},
-                                    $event->{'id'}
+                                    Configure::read('MISP.baseurl') . '/events/view/', $event['id'],
+                                    $event['id']
                                 )
                         );
             ++$count;
