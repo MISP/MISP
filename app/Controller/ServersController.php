@@ -1691,8 +1691,9 @@ class ServersController extends AppController
         if (!function_exists('getallheaders')) {
             $headers = [];
             foreach ($_SERVER as $name => $value) {
-                if (substr($name, 0, 5) === 'HTTP_') {
-                    $headers[strtolower(str_replace('_', '-', substr($name, 5)))] = $value;
+                $name = strtolower($name);
+                if (substr($name, 0, 5) === 'http_') {
+                    $headers[str_replace('_', '-', substr($name, 5))] = $value;
                 }
             }
         } else {
