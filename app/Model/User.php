@@ -214,6 +214,7 @@ class User extends AppModel
         ),
         'Post',
         'UserSetting',
+        'UserLoginProfile'
         // 'AuthKey' - readd once the initial update storm is over
     );
 
@@ -1237,6 +1238,7 @@ class User extends AppModel
         }
         if ($action == 'login') {
             $description = "User (" . $user['id'] . "): " . $user['email'];
+            $fieldsResult = json_encode($this->UserLoginProfile->_getUserProfile());
         } elseif ($action == 'logout') {
             $description = "User (" . $user['id'] . "): " . $user['email'];
         } elseif ($action == 'edit') {

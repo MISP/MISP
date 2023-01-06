@@ -1186,6 +1186,12 @@ class UsersController extends AppController
                     throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
                 }
             }
+
+            // FIXME chri - add verification of the UserLoginProfile and do the actions when suspicious logins appear
+            // actions: - reject login because IP is banned, 
+            //          - inform user (with info login success/failed), 
+            // so the code might need to be a bit lower
+
             // Check the length of the user's authkey match old format. This can be removed in future.
             $userPass = $this->User->find('first', [
                 'conditions' => ['User.email' => $this->request->data['User']['email']],
@@ -2895,5 +2901,80 @@ class UsersController extends AppController
             $this->set('actionName', 'Destroy');
             $this->render('/genericTemplates/confirm');
         }
+    }
+
+    public function view_auth_history() { 
+        $user = $this->Auth->user();  // TODO chri - is this the best way? 
+        $this->loadModel('UserLoginProfile');
+        $this->loadModel('Log');
+        $logs = $this->Log->find('all', array(
+            'conditions' => array(
+                'Log.user_id' => $user['id'],
+                'OR' => array ('Log.action' => array('login', 'login_fail', 'auth', 'auth_fail'))
+            ),
+            'fields' => array('Log.action', 'Log.created', 'Log.ip', 'Log.change', 'Log.id'),
+            'order' => array('Log.created DESC')
+        ));
+        $lst = array();
+        $prevProfile = null;
+        $prevCreatedLast = null;
+        $prevCreatedFirst = null;
+        $prevLogEntry = null;
+        $prevActions = array();
+        
+        foreach($logs as $logEntry) {
+            $loginProfile = $this->UserLoginProfile->_fromLog($logEntry['Log']);
+            $loginProfile['ip'] = $logEntry['Log']['ip'] ?? null; // transitional workaround
+            // if ($this->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
+            if (false) {
+                // continue find as same type of login
+                $prevCreatedFirst = $logEntry['Log']['created'];
+                $prevActions[] = $logEntry['Log']['action'];
+            } else {
+                // add as new entry
+                if (null != $prevProfile) {
+                    $lst[] = array(
+                        'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile),
+                        'platform' => $prevProfile['ua_platform'],
+                        'browser' => $prevProfile['ua_browser'],
+                        'region' => $prevProfile['geoip'],
+                        'ip' =>  $prevProfile['ip'],
+                        'accept_lang' => $prevProfile['accept_lang'],
+                        'last_seen' => $prevCreatedLast,
+                        'first_seen' => $prevCreatedFirst,
+                        'actions' => array_unique($prevActions),
+                        'id' => $prevLogEntry);
+                }
+                // build new entry
+                $prevProfile = $loginProfile;
+                $prevCreatedFirst = $prevCreatedLast = $logEntry['Log']['created'];
+                $prevActions = array($logEntry['Log']['action']);
+                $prevLogEntry = $logEntry['Log']['id'];
+            }
+        }
+        // add last entry
+        $lst[] = array(
+            'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile),
+            'platform' => $prevProfile['ua_platform'],
+            'browser' => $prevProfile['ua_browser'],
+            'region' => $prevProfile['geoip'],
+            'ip' =>  $prevProfile['ip'],
+            'accept_lang' => $prevProfile['accept_lang'],
+            'last_seen' => $prevCreatedLast,
+            'first_seen' => $prevCreatedFirst,
+            'actions' => array_unique($prevActions),
+            'id' => $prevLogEntry);
+        $query = [
+            'limit' => 50,
+            'page' => 1,
+            'order' => 'occurrence desc'
+        ];
+        foreach ($query as $customParam => $foo) {
+            if (isset($this->request->params['named'][$customParam])) {
+                $query[$customParam] = $this->request->params['named'][$customParam];
+            }
+        }
+        $this->__setPagingParams($query['page'], $query['limit'], count($lst), 'named');
+        $this->set('data', $lst);
     }
 }
