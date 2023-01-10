@@ -1,10 +1,10 @@
 <div class="communities view">
     <?php
         $table_data = array();
-        $table_data[] = array('key' => __('Id'), 'value' => $community['id']);
+        $table_data[] = array('key' => __('ID'), 'value' => $community['id']);
         $table_data[] = array('key' => __('UUID'), 'value' => $community['uuid']);
         $table_data[] = array('key' => __('Name'), 'value' => $community['name']);
-        $table_data[] = array('key' => __('Url'), 'url' => $community['url']);
+        $table_data[] = array('key' => __('URL'), 'url' => $community['url']);
         $table_data[] = array('key' => __('Host organisation'), 'value' => $community['org_name'] . ' (' . $community['org_uuid'] . ')');
         $table_data[] = array(
             'key' => __('Vetted by MISP-project'),
@@ -24,7 +24,7 @@
         }
         if (!empty($community['pgp_key'])) {
             $table_data[] = array(
-                'key' => __('GnuPG key'),
+                'key' => __('PGP key'),
                 'element' => 'genericElements/key',
                 'element_params' => array('key' => $community['pgp_key']),
             );
@@ -34,12 +34,13 @@
             sprintf(
                 '%s<h2>%s</h2>%s',
                 sprintf(
-                    '<img src="https://misp-project.org/org-logos/%s.png" title="%s" aria-label="%s" style="max-height: 100px;"/>',
+                    '<img src="https://misp-project.org/org-logos/%s.png" title="%s" alt="%s" aria-label="%s" style="max-height: 100px;">',
                     h($community['org_uuid']),
+                    h($community['org_name']),
                     h($community['org_name']),
                     h($community['org_name'])
                 ),
-                __('Community ') . h($community['name']),
+                __('Community %s', h($community['name'])),
                 $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
             )
         );

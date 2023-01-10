@@ -55,8 +55,17 @@
                         'id' => 'create-button',
                         'title' => $possibleAction === 'attribute' ? __('Add attribute') : __('Add proposal'),
                         'fa-icon' => 'plus',
-                        'class' => 'last modal-open',
+                        'class' => $mayModify ? 'modal-open' : 'modal-open last',
                         'url' => $baseurl . '/' . $possibleAction . 's/add/' . $eventId,
+                    ),
+                    array(
+                        'id' => 'object-button',
+                        'title' => __('Add Object'),
+                        'fa-icon' => 'list',
+                        'class' => 'last',
+                        'onClick' => 'popoverPopupNew',
+                        'onClickParams' => ['this', "$baseurl/objectTemplates/objectMetaChoice/$eventId"],
+                        'requirement' => $mayModify,
                     ),
                     array(
                         'id' => 'multi-edit-button',
@@ -148,14 +157,6 @@
             array(
                 'children' => array(
                     array(
-                        'id' => 'template-button',
-                        'title' => __('Populate using a template'),
-                        'fa-icon' => 'list',
-                        'onClick' => 'getPopup',
-                        'onClickParams' => array($eventId, 'templates', 'templateChoices'),
-                        'requirement' => $mayModify
-                    ),
-                    array(
                         'id' => 'freetext-button',
                         'title' => __('Populate using the freetext import tool'),
                         'fa-icon' => 'align-left',
@@ -206,9 +207,10 @@
                         'title' => __('Show SightingDB lookup results'),
                         'fa-icon' => 'binoculars',
                         'text' => __('SightingDB'),
-                        'active' => empty($includeSightingdb) ? false : true,
+                        'active' => !empty($includeSightingdb),
                         'onClick' => 'toggleBoolFilter',
-                        'onClickParams' => array('includeSightingdb')
+                        'onClickParams' => array('includeSightingdb'),
+                        'requirement' => $sightingsDbEnabled,
                     ),
                     array(
                         'id' => 'show_attribute_context',

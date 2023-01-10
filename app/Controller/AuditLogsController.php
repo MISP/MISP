@@ -192,10 +192,13 @@ class AuditLogsController extends AppController
             $list[$k]['AuditLog']['action_human'] = $this->actions[$item['AuditLog']['action']];
         }
 
-        $this->set('list', $list);
+        $this->set('data', $list);
         $this->set('event', $event);
         $this->set('mayModify', $this->__canModifyEvent($event));
-        $this->set('title_for_layout', __('Audit logs for event #%s', $event['Event']['id']));
+        $this->set('menuData', [
+            'menuList' => 'event',
+            'menuItem' => 'eventLog'
+        ]);
     }
 
     public function fullChange($id)

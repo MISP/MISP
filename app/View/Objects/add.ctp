@@ -15,7 +15,7 @@
     <dd>
       <?php
         echo Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' v' . h($template['ObjectTemplate']['version']);
-        if ($action == 'edit' && !$update_template_available && $newer_template_version !== false): ?>
+        if ($action === 'edit' && !$update_template_available && $newer_template_version !== false): ?>
             <a class="btn btn-mini btn-primary useCursorPointer" title="<?php echo __('Update the template of this object to the newer version: ') . h($newer_template_version) ?>" href="<?php echo $baseurl . '/objects/edit/' . h($object['Object']['id']) . '/1'; ?>">
                 <span class="fa fa-arrow-circle-up"></span>
                 <?php echo __('Update template to v%s', h($newer_template_version)) ?>
@@ -30,11 +30,11 @@
     <?php
       if (!empty($template['ObjectTemplate']['requirements']['required']) || !empty($template['ObjectTemplate']['requirements']['requiredOneOf'])):
     ?>
-        <dt>Requirements</dt>
+        <dt><?= __('Requirements') ?></dt>
         <dd>
           <?php
             if (!empty($template['ObjectTemplate']['requirements']['required'])) {
-              echo '<span class="bold">Required</span>: ' . h(implode(', ', $template['ObjectTemplate']['requirements']['required'])) . '<br />';
+              echo '<span class="bold">Required</span>: ' . h(implode(', ', $template['ObjectTemplate']['requirements']['required'])) . '<br>';
             }
             if (!empty($template['ObjectTemplate']['requirements']['requiredOneOf'])) {
               echo '<span class="bold">Required one of</span>: ' . h(implode(', ', $template['ObjectTemplate']['requirements']['requiredOneOf']));
@@ -83,15 +83,15 @@
     </dd>
     <?php
         echo $this->Form->input('first_seen', array(
-                'type' => 'text',
-                'div' => 'input hidden',
-                'required' => false,
-                ));
+            'type' => 'text',
+            'div' => 'input hidden',
+            'required' => false,
+        ));
         echo $this->Form->input('last_seen', array(
-                'type' => 'text',
-                'div' => 'input hidden',
-                'required' => false,
-                ));
+            'type' => 'text',
+            'div' => 'input hidden',
+            'required' => false,
+        ));
         if ($update_template_available && $newer_template_version !== false) {
             echo $this->Form->input('template_version', array(
                 'type' => 'text',
@@ -111,7 +111,7 @@
         <div class="red">
     <?php
             foreach ($template['warnings'] as $warning) {
-                echo h($warning) . '<br />';
+                echo h($warning) . '<br>';
             }
     ?>
         </div>
@@ -133,32 +133,33 @@
 <?php
   $row_list = array();
   foreach ($template['ObjectTemplateElement'] as $k => $element):
-    $row_list[] = $k;
+        $row_list[] = $k;
         echo $this->element(
-        'Objects/object_add_attributes',
-        array(
-          'element' => $element,
-          'k' => $k,
-          'action' => $action,
-          'enabledRows' => $enabledRows
-        )
-      );
+            'Objects/object_add_attributes',
+            array(
+              'element' => $element,
+              'k' => $k,
+              'action' => $action,
+              'enabledRows' => $enabledRows
+            )
+        );
         if ($element['multiple']):
             $lastOfType = true;
             $lookAheadArray = array_slice($template['ObjectTemplateElement'], $k, count($template['ObjectTemplateElement']), true);
             if (count($lookAheadArray) > 1) {
                 foreach ($lookAheadArray as $k2 => $temp) {
                     if ($k2 == $k) continue;
-                    if ($temp['object_relation'] == $element['object_relation']) {
+                    if ($temp['object_relation'] === $element['object_relation']) {
                         $lastOfType = false;
+                        break;
                     }
                 }
             }
             if ($lastOfType):
     ?>
             <tr id="row_<?php echo h($element['object_relation']); ?>_expand">
-                <td class="down-expand-button add_object_attribute_row" colspan="9" data-template-id="<?php echo h($template['ObjectTemplate']['id']);?>" data-target-row="<?php echo h($k); ?>" data-object-relation="<?php echo h($element['object_relation']); ?>">
-                    <span class="fa fa-angle-double-down" ></span>
+                <td class="down-expand-button add_object_attribute_row" colspan="9" title="<?= __('Add another %s attribute', h($element['object_relation'])) ?>" data-template-id="<?= intval($template['ObjectTemplate']['id']);?>" data-target-row="<?= intval($k); ?>" data-object-relation="<?= h($element['object_relation']); ?>">
+                    <span class="fa fa-angle-double-down"></span>
                 </td>
             </tr>
     <?php
@@ -230,7 +231,7 @@
                                 <span class="bold"><?php echo __('Template version') . ':'; ?></span>
                                 <span><?php echo h($object['Object']['template_version']); ?></span>
                                 <?php if ($original_template_unkown): ?>
-                                    <span class="label label-important" title="<?= __('The original object\'s template is unkown and some attributes might be lost. Please review carefully'); ?>">
+                                    <span class="label label-important" title="<?= __('The original object\'s template is unknown and some attributes might be lost. Please review carefully'); ?>">
                                     <?= __('Unkown original template'); ?>
                                     </span>
                                 <?php endif; ?>
@@ -352,23 +353,29 @@
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addObject', 'event' => $event));
     }
 ?>
-<script type="text/javascript">
-  var rows = <?php echo json_encode($row_list, true); ?>;
-  $(document).ready(function() {
+<script>
+  var rows = <?php echo json_encode($row_list); ?>;
+  $(function() {
     enableDisableObjectRows(rows);
+
     $(".Attribute_value_select").each(function() {
-      checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == '<?php echo __('Enter value manually');?>');
-      $(this).find('option:first').attr('disabled', true);
+        var $this = $(this);
+        checkAndEnable($this.parent().find('.Attribute_value'), $this.val() === '<?php echo __('Enter value manually');?>');
+        $this.find('option:first').attr('disabled', true);
+
+        // Transform to chosen if select contains more than 10 values
+        if ($this.find('option').length > 10) {
+            $this.chosen()
+        }
+    }).change(function() {
+        checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() === '<?php echo __('Enter value manually');?>');
     });
+
     $(".Attribute_distribution_select").change(function() {
       checkAndEnable($(this).parent().find('.Attribute_sharing_group_id_select'), $(this).val() == 4);
     });
-
     $(".Object_distribution_select").change(function() {
       checkAndEnable($(this).parent().find('.Object_sharing_group_id_select'), $(this).val() == 4);
-    });
-    $(".Attribute_value_select").change(function() {
-      checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == '<?php echo __('Enter value manually');?>');
     });
     $('.add_attribute_row').click(function() {
         var selector = $(this).data('target');

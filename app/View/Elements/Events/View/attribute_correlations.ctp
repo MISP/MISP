@@ -30,7 +30,7 @@
             );
             $popover = '';
             foreach ($relatedData as $k => $v) {
-                $popover .= '<span class="bold black">' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br>';
+                $popover .= '<b class="black">' . h($k) . '</b>: <span class="blue">' . h($v) . '</span><br>';
             }
             $link = $this->Html->link(
                 $relatedAttribute['id'],
@@ -51,7 +51,7 @@
         }
         if ($i > 5) {
             echo sprintf(
-                '<li class="no-side-padding correlation-collapse-button useCursorPointer linkButton %s" style="display:none;">%s</li>',
+                '<li class="no-side-padding correlation-collapse-button useCursorPointer linkButton %s" style="display:none;">%s</li> ',
                 $linkColour,
                 __('Collapse…')
             );

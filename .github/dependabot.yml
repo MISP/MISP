@@ -6,7 +6,7 @@
 version: 2
 updates:
   - package-ecosystem: "composer"
-    directory: "/"
+    directory: "/app"
     schedule:
       interval: "daily"
 

@@ -6,7 +6,7 @@ echo $this->element(
         'data' => $data,
         'fields' => [
             [
-                'key' => __('Id'),
+                'key' => __('ID'),
                 'path' => 'Noticelist.id'
             ],
             [
@@ -28,7 +28,10 @@ echo $this->element(
             ],
             [
                 'key' => __('Geographical Area'),
-                'path' => 'Noticelist.geographical_area',
+                'type' => 'custom',
+                'function' => function (array $data) {
+                    return implode('<br>', array_map('h', $data['Noticelist']['geographical_area']));
+                }
             ],
             [
                 'key' => __('Enabled'),

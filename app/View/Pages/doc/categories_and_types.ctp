@@ -1,15 +1,10 @@
-<div class="actions <?php echo $debugMode;?>">
-    <ol class="nav nav-list">
-            <li class="active"><?php echo $this->Html->link(__('Categories and Types'), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?></li>
-    </ol>
-</div>
 <div class="index">
 <h2><?php echo __('Attribute Categories and Types');?></h2>
 <h3><?php echo __('Attribute Categories vs. Types');?></h3>
 <table class="table table-striped table-hover table-condensed table-bordered">
     <tr>
         <th><?php echo __('Category');?></th>
-        <?php foreach ($categoryDefinitions as $cat => $catDef):    ?>
+        <?php foreach ($categoryDefinitions as $cat => $catDef): ?>
         <th style="width:5%; text-align:center; white-space:normal">
             <a href="#<?php echo $cat; ?>"><?php echo $cat; ?></a>
         </th>
@@ -21,7 +16,7 @@
         <th><a href="#<?php echo $type; ?>"><?php echo $type; ?></a></th>
         <?php foreach ($categoryDefinitions as $cat => $catDef): ?>
         <td style="text-align:center">
-            <?php echo in_array($type, $catDef['types'])? 'X' : ''; ?>
+            <?php echo in_array($type, $catDef['types'], true)? 'X' : ''; ?>
         </td>
         <?php endforeach; ?>
         <th><a href="#<?php echo $type; ?>"><?php echo $type; ?></a></th>
@@ -73,3 +68,4 @@
 </table>
 <p><a href="<?php echo $baseurl;?>/pages/display/doc/md/categories_and_types"><?php echo __('Click here to get the .md version for gitbook generation.');?></a></p>
 </div>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'categoriesAndTypes'));

@@ -1933,7 +1933,7 @@ class AppModel extends Model
             case 105:
                 // set a default role if there is none
                 if (!$this->AdminSetting->getSetting('default_role')) {
-                    $role = $this->Role->findByName('User');
+                    $role = ClassRegistry::init('Role')->findByName('User');
                     if ($role) {
                         $sqlArray[] = "INSERT INTO `admin_settings` (setting, value) VALUES ('default_role', '".$role['Role']['id']."');";
                     } else {

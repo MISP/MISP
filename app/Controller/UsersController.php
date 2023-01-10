@@ -117,8 +117,14 @@ class UsersController extends AppController
         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')), 'status'=>200, 'type' => 'json'));
     }
 
-    public function unsubscribe($code)
+    public function unsubscribe($code, $type = null)
     {
+        if ($type === null) {
+            $type = 'autoalert';
+        } else if (!in_array($type, ['autoalert', 'notification_daily', 'notification_weekly', 'notification_monthly'], true)) {
+            throw new NotFoundException("Invalid type $type.");
+        }
+
         $user = $this->Auth->user();
 
         if (!hash_equals($this->User->unsubscribeCode($user), rtrim($code, '.'))) {
@@ -126,11 +132,11 @@ class UsersController extends AppController
             $this->redirect(['action' => 'view', 'me']);
         }
 
-        if ($user['autoalert']) {
-            $this->User->updateField($this->Auth->user(), 'autoalert', false);
-            $this->Flash->success(__('Successfully unsubscribed from event alert.'));
+        if ($user[$type]) {
+            $this->User->updateField($user, $type, false);
+            $this->Flash->success(__('Successfully unsubscribed from notification.'));
         } else {
-            $this->Flash->info(__('Already unsubscribed from event alert.'));
+            $this->Flash->info(__('Already unsubscribed from notification.'));
         }
         $this->redirect(['action' => 'view', 'me']);
     }
@@ -1224,6 +1230,11 @@ class UsersController extends AppController
                     $this->Bruteforce->insert($this->request->data['User']['email']);
                 }
             }
+
+            //
+            // Actions needed for the first access, when the database is not populated yet.
+            // 
+
             // populate the DB with the first role (site admin) if it's empty
             if (!$this->User->Role->hasAny()) {
                 $siteAdmin = array('Role' => array(
@@ -1273,7 +1284,6 @@ class UsersController extends AppController
                 }
                 $org_id = $this->User->Organisation->id;
             }
-
             // populate the DB with the first user if it's empty
             if (!$this->User->hasAny()) {
                 if (!isset($org_id)) {
@@ -1285,7 +1295,6 @@ class UsersController extends AppController
                         $org_id = $firstOrg['Organisation']['id'];
                     }
                 }
-
                 $this->User->runUpdates();
                 $this->User->createInitialUser($org_id);
             }
@@ -1294,25 +1303,25 @@ class UsersController extends AppController
 
     private function _postlogin()
     {
-      $this->User->extralog($this->Auth->user(), "login");
-      $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
-      $this->User->id = $this->Auth->user('id');
-      $user = $this->User->find('first', array(
-          'conditions' => array(
-              'User.id' => $this->Auth->user('id')
-          ),
-          'recursive' => -1
-      ));
-      unset($user['User']['password']);
-      $this->User->updateLoginTimes($user['User']);
-      $lastUserLogin = $user['User']['last_login'];
-      $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
-      if ($lastUserLogin) {
-          $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
-          $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
-      }
-      // no state changes are ever done via GET requests, so it is safe to return to the original page:
-      $this->redirect($this->Auth->redirectUrl());
+        $this->User->extralog($this->Auth->user(), "login");
+        $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
+        $this->User->id = $this->Auth->user('id');
+        $user = $this->User->find('first', array(
+            'conditions' => array(
+                'User.id' => $this->Auth->user('id')
+            ),
+            'recursive' => -1
+        ));
+        unset($user['User']['password']);
+        $this->User->updateLoginTimes($user['User']);
+        $lastUserLogin = $user['User']['last_login'];
+        $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
+        if ($lastUserLogin) {
+            $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
+            $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
+        }
+        // no state changes are ever done via GET requests, so it is safe to return to the original page:
+        $this->redirect($this->Auth->redirectUrl());
     }
 
     public function routeafterlogin()

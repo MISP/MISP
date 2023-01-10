@@ -91,7 +91,7 @@ class EventTag extends AppModel
 
     /**
      * @param int $event_id
-     * @param int $tagId
+     * @param array $tag
      * @param bool $nothingToChange
      * @return bool
      * @throws Exception
