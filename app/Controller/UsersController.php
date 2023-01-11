@@ -2925,8 +2925,7 @@ class UsersController extends AppController
         foreach($logs as $logEntry) {
             $loginProfile = $this->UserLoginProfile->_fromLog($logEntry['Log']);
             $loginProfile['ip'] = $logEntry['Log']['ip'] ?? null; // transitional workaround
-            // if ($this->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
-            if (false) {
+            if ($this->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
                 // continue find as same type of login
                 $prevCreatedFirst = $logEntry['Log']['created'];
                 $prevActions[] = $logEntry['Log']['action'];

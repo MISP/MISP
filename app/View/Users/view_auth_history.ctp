@@ -63,7 +63,7 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
                 ),
                 'postLink' => true,
                 'postLinkConfirm' => __('Was this connection suspicious or malicious?'),
-                'icon' => 'trash',
+                'icon' => 'bug',
             ),
         ),
         'title' => __('Recent login attempts'),

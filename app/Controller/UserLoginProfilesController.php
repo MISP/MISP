@@ -51,14 +51,18 @@ class UserLoginProfilesController extends AppController
 
     public function trust($logId)
     {
-        // TODO chri - only accept valid form submissions with POST
-        $this->__setTrust($logId, 'trusted');
+        if ($this->request->is('post')) {
+            $this->__setTrust($logId, 'trusted');
+        }
+        $this->redirect(array('controller' => 'users', 'action' => 'view_auth_history'));
     }
 
     public function malicious($logId)
     {
-        // TODO chri - only accept valid form submissions with POST
-        $this->__setTrust($logId, 'malicious');
+        if ($this->request->is('post')) {
+            $this->__setTrust($logId, 'malicious');
+        }
+        $this->redirect(array('controller' => 'users', 'action' => 'view_auth_history'));
     }
 
     private function __setTrust($logId, $status)

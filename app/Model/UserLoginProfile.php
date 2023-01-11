@@ -45,15 +45,29 @@ class UserLoginProfile extends AppModel
      */
     public function _getUserProfile() {
         if (!$this->userProfile) {
-            $browser = get_browser();   // FIXME browscap.ini needs to be installed and takes a lot of memory, maybe we want a more simple 
-                                        // FIXME replace by https://github.com/browscap/browscap-php 
-                                        // this needs to be integrated in the update mechanism, for updating the capabilities page 
+            // FIXME chri - below uses https://github.com/browscap/browscap-php 
+            // this needs to be integrated in the update mechanism, building the cache dir
+            // FIXME chri - one dependency is also loading an Attribute class, and breaks MISP. - /var/www/MISP/app/Vendor/symfony/polyfill-php80/Resources/stubs/Attribute.php
+            $cacheDir = APP . DS . 'files' . DS . 'browscap';
+            $fileCache = new \League\Flysystem\Local\LocalFilesystemAdapter($cacheDir);
+            $filesystem = new \League\Flysystem\Filesystem($fileCache);
+            $cache = new \MatthiasMullie\Scrapbook\Psr16\SimpleCache(
+                new \MatthiasMullie\Scrapbook\Adapters\Flysystem($filesystem)
+            );
+            $logger = new \Monolog\Logger('name');
+            $bc = new \BrowscapPHP\Browscap($cache, $logger);
+            $browser = $bc->getBrowser();
+
+            $ip = $this->_remoteIp();
+            $geoDbReader = new GeoIp2\Database\Reader(APP . DS. 'files'.DS.'geo-open'. DS . 'GeoOpen-Country.mmdb'); // LATER chri - dev an update mechanism to take the latest geoip 
+            $record = $geoDbReader->country($ip);
+            $country = $record->country->isoCode;
             $this->userProfile = [
                 'user_agent' => env('HTTP_USER_AGENT'),
-                'ip' => $this->_remoteIp(),
+                'ip' => $ip,
                 'accept_lang' => env('HTTP_ACCEPT_LANGUAGE'),
                 'ja3' => '',   // see https://fingerprint.com/blog/what-is-tls-fingerprinting-transport-layer-security/
-                'geoip' => '',  // FIXME do geoip
+                'geoip' => $country,
                 'ua_pattern' => $browser->browser_name_pattern,
                 'ua_platform' => $browser->platform,
                 'ua_browser' => $browser->browser
@@ -71,14 +85,25 @@ class UserLoginProfile extends AppModel
     }
 
     public function _isSimilar($a, $b) {
-        if (!$a || !$b) return false;  // if one is not initialized
+        // if one is not initialized
+        if (!$a || !$b) return false;
         // coming from the same source IP, and the same browser
-        if ($a['ip'] == $b['ip'] && $a['ua_browser'] == $b['ua_browser']) {
-            return true;
-        }
+        if ($a['ip'] == $b['ip'] && $a['ua_browser'] == $b['ua_browser']) return true;
+        // transition for old logs where UA was not known
         if (!$a['ua_browser']) return false;
         // really similar session, from same region, but different IP
         if ($a['ua_browser'] == $b['ua_browser'] && 
+            $a['ua_platform'] == $b['ua_platform'] &&
+            $a['accept_lang'] == $b['accept_lang'] &&
+            $a['geoip'] == $b['geoip']) {
+            return true;
+        }
+        return false;
+    }
+
+    public function _isIdentical($a, $b) {
+        if ($a['ip'] == $b['ip'] &&
+            $a['ua_browser'] == $b['ua_browser'] && 
             $a['ua_platform'] == $b['ua_platform'] &&
             $a['accept_lang'] == $b['accept_lang'] &&
             $a['geoip'] == $b['geoip']) {
@@ -91,20 +116,24 @@ class UserLoginProfile extends AppModel
         // load Singleton
         if (!$this->knownUserProfiles) {
             $this->knownUserProfiles = $this->find('all', [
-                // 'fields' => ['UserLoginProfile.status'],
-                'conditions' => ['UserLoginProfile.user_id' => AuthComponent::user('id')], // FIXME set username
+                'conditions' => ['UserLoginProfile.user_id' => AuthComponent::user('id')],
                 'recursive' => 0],
             );
         }
         // perform check on all entries, and stop when check OK
         foreach ($this->knownUserProfiles as $knownUserProfile) {
-            // same IP
-            if ($userProfileToCheck['ip'] == $knownUserProfile['UserLoginProfile']['ip']) {
+            // when it is the same
+            if ($this->_isIdentical($knownUserProfile['UserLoginProfile'], $userProfileToCheck)) {
                 return $knownUserProfile['UserLoginProfile']['status'];
             }
             // if it is similar, more complex ruleset
             if ($this->_isSimilar($knownUserProfile['UserLoginProfile'], $userProfileToCheck)) {
-                return $knownUserProfile['UserLoginProfile']['status'];
+                return 'likely ' . $knownUserProfile['UserLoginProfile']['status'];
+            }
+            // same IP - 
+            // TODO chri - not sure this is a good way to mark something as similar
+            if ($userProfileToCheck['ip'] == $knownUserProfile['UserLoginProfile']['ip']) {
+                return 'likely ' . $knownUserProfile['UserLoginProfile']['status'];
             }
         }
         // bad news, iterated over all and no similar found
