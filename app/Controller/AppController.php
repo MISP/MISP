@@ -240,7 +240,9 @@ class AppController extends Controller
                 if ($loginByAuthKeyResult === false || $this->Auth->user() === null) {
                     if ($loginByAuthKeyResult === null) {
                         $this->loadModel('Log');
-                        $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.");
+                        $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
+                        $change = $this->UserLoginProfile->_getUserProfile();
+                        $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.", json_encode($change));
                     }
                     throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                 }
@@ -431,6 +433,10 @@ class AppController extends Controller
                     if (Configure::read('MISP.log_auth')) {
                         $this->loadModel('Log');
                         $this->Log->create();
+                        $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
+                        $change = $this->UserLoginProfile->_getUserProfile();
+                        $change['http_method'] = $_SERVER['REQUEST_METHOD'];
+                        $change['target'] = $this->request->here;
                         $log = array(
                             'org' => $user['Organisation']['name'],
                             'model' => 'User',
@@ -438,7 +444,7 @@ class AppController extends Controller
                             'email' => $user['email'],
                             'action' => 'auth',
                             'title' => "Successful authentication using API key ($authKeyToStore)",
-                            'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here,
+                            'change' => json_encode($change),
                         );
                         $this->Log->save($log);
                     }
@@ -455,13 +461,17 @@ class AppController extends Controller
                     // reset the session information
                     if ($this->_shouldLog($authKeyToStore)) {
                         $this->loadModel('Log');
-                        $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using API key ($authKeyToStore)");
+                        $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
+                        $change = $this->UserLoginProfile->_getUserProfile();
+                        $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using API key ($authKeyToStore)", json_encode($change));
                     }
                     $this->Session->destroy();
                 }
             } else {
                     $this->loadModel('Log');
-                    $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using an API key of incorrect length.");
+                    $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
+                    $change = $this->UserLoginProfile->_getUserProfile();
+                    $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using an API key of incorrect length.", json_encode($change));
             }
             return false;
         }
@@ -546,7 +556,9 @@ class AppController extends Controller
         if ($user['disabled'] || (isset($user['logged_by_authkey']) && $user['logged_by_authkey']) && !$this->User->checkIfUserIsValid($user)) {
             if ($this->_shouldLog('disabled:' . $user['id'])) {
                 $this->Log = ClassRegistry::init('Log');
-                $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], 'Login attempt by disabled user.');
+                $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
+                $change = $this->UserLoginProfile->_getUserProfile();
+                $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], 'Login attempt by disabled user.', json_encode($change));
             }
 
             $this->Auth->logout();
@@ -565,7 +577,9 @@ class AppController extends Controller
             if ($user['authkey_expiration'] < $time) {
                 if ($this->_shouldLog('expired:' . $user['authkey_id'])) {
                     $this->Log = ClassRegistry::init('Log');
-                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt by expired auth key {$user['authkey_id']}.");
+                    $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
+                    $change = $this->UserLoginProfile->_getUserProfile();
+                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt by expired auth key {$user['authkey_id']}.", json_encode($change));
                 }
                 $this->Auth->logout();
                 throw new ForbiddenException('Auth key is expired');
@@ -583,7 +597,9 @@ class AppController extends Controller
             if (!$cidrTool->contains($remoteIp)) {
                 if ($this->_shouldLog('not_allowed_ip:' . $user['authkey_id'] . ':' . $remoteIp)) {
                     $this->Log = ClassRegistry::init('Log');
-                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt from not allowed IP address {$remoteIp} for auth key {$user['authkey_id']}.");
+                    $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
+                    $change = $this->UserLoginProfile->_getUserProfile();
+                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt from not allowed IP address {$remoteIp} for auth key {$user['authkey_id']}.", json_encode($change));
                 }
                 $this->Auth->logout();
                 throw new ForbiddenException('It is not possible to use this Auth key from your IP address');
@@ -1097,6 +1113,9 @@ class AppController extends Controller
                     if (Configure::read('MISP.log_auth')) {
                         $this->Log = ClassRegistry::init('Log');
                         $this->Log->create();
+                        $change = $this->UserLoginProfile->_getUserProfile();
+                        $change['http_method'] = $_SERVER['REQUEST_METHOD'];
+                        $change['target'] = $this->request->here;
                         $log = array(
                             'org' => $user['User']['Organisation']['name'],
                             'model' => 'User',
@@ -1104,7 +1123,7 @@ class AppController extends Controller
                             'email' => $user['User']['email'],
                             'action' => 'auth',
                             'title' => 'Successful authentication using ' . $authName . ' key',
-                            'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here,
+                            'change' => json_encode($change),
                         );
                         $this->Log->save($log);
                     }
@@ -1114,6 +1133,7 @@ class AppController extends Controller
                     // reset the session information
                     $this->Log = ClassRegistry::init('Log');
                     $this->Log->create();
+                    $change = $this->UserLoginProfile->_getUserProfile();
                     $log = array(
                             'org' => 'SYSTEM',
                             'model' => 'User',
@@ -1121,7 +1141,7 @@ class AppController extends Controller
                             'email' => 'SYSTEM',
                             'action' => 'auth_fail',
                             'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ')',
-                            'change' => null,
+                            'change' => json_encode($change),
                     );
                     $this->Log->save($log);
                     if (Configure::read('CustomAuth_required')) {
