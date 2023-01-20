@@ -1725,6 +1725,7 @@ class ServersController extends AppController
         if (!$server) {
             throw new NotFoundException(__('Invalid server'));
         }
+        @session_write_close(); // close session to allow concurrent requests
         $result = $this->Server->runConnectionTest($server);
         if ($result['status'] == 1) {
             if (isset($result['info']['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $result['info']['version'])) {
