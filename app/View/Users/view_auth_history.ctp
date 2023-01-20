@@ -31,13 +31,13 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
                 'name' => __('IP'),
                 'data_path' => 'ip'
             ],
+                        [
+                'name' => __('First Seen'),
+                'data_path' => 'first_seen'
+            ],
             [
                 'name' => __('Last Seen'),
                 'data_path' => 'last_seen'
-            ],
-            [
-                'name' => __('First Seen'),
-                'data_path' => 'first_seen'
             ],
             [
                 'name' => __('Login actions'),
@@ -67,7 +67,7 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
             ),
         ),
         'title' => __('Recent login attempts'),
-        'description' => 'TODO description - the list below allows you to ...',
+        'description' => 'Below are your most recent logins, please review and confirm it was you. This information is used to alert you when we detect suspcicious logins.',
         'pull' => 'right'
         
     )

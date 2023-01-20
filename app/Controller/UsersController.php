@@ -2921,6 +2921,13 @@ class UsersController extends AppController
         $prevCreatedFirst = null;
         $prevLogEntry = null;
         $prevActions = array();
+
+        $actions_translator = [
+            'auth_fail' => 'API:failed',
+            'auth' => 'API:login',
+            'login' => 'web:login',
+            'login_fail' => 'web:failed'
+        ];
         
         foreach($logs as $logEntry) {
             $loginProfile = $this->UserLoginProfile->_fromLog($logEntry['Log']);
@@ -2928,10 +2935,14 @@ class UsersController extends AppController
             if ($this->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
                 // continue find as same type of login
                 $prevCreatedFirst = $logEntry['Log']['created'];
-                $prevActions[] = $logEntry['Log']['action'];
+                $prevActions[] = $actions_translator[$logEntry['Log']['action']] ?? $logEntry['Log']['action'];
             } else {
                 // add as new entry
                 if (null != $prevProfile) {
+                    $actionsString = '';  // count actions
+                    foreach(array_count_values($prevActions) as $action => $cnt) {
+                        $actionsString .=  $action . ' (' . $cnt . ") ";
+                    }
                     $lst[] = array(
                         'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile),
                         'platform' => $prevProfile['ua_platform'],
@@ -2941,17 +2952,21 @@ class UsersController extends AppController
                         'accept_lang' => $prevProfile['accept_lang'],
                         'last_seen' => $prevCreatedLast,
                         'first_seen' => $prevCreatedFirst,
-                        'actions' => array_unique($prevActions),
+                        'actions' => $actionsString,
                         'id' => $prevLogEntry);
                 }
                 // build new entry
                 $prevProfile = $loginProfile;
                 $prevCreatedFirst = $prevCreatedLast = $logEntry['Log']['created'];
-                $prevActions = array($logEntry['Log']['action']);
+                $prevActions[] = $actions_translator[$logEntry['Log']['action']] ?? $logEntry['Log']['action'];
                 $prevLogEntry = $logEntry['Log']['id'];
             }
         }
         // add last entry
+        $actionsString = '';  // count actions
+        foreach(array_count_values($prevActions) as $action => $cnt) {
+            $actionsString .=  $action . ' (' . $cnt . ") ";
+        }
         $lst[] = array(
             'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile),
             'platform' => $prevProfile['ua_platform'],
@@ -2961,7 +2976,7 @@ class UsersController extends AppController
             'accept_lang' => $prevProfile['accept_lang'],
             'last_seen' => $prevCreatedLast,
             'first_seen' => $prevCreatedFirst,
-            'actions' => array_unique($prevActions),
+            'actions' => $actionsString,
             'id' => $prevLogEntry);
         $query = [
             'limit' => 50,

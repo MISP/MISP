@@ -130,11 +130,6 @@ class UserLoginProfile extends AppModel
             if ($this->_isSimilar($knownUserProfile['UserLoginProfile'], $userProfileToCheck)) {
                 return 'likely ' . $knownUserProfile['UserLoginProfile']['status'];
             }
-            // same IP - 
-            // TODO chri - not sure this is a good way to mark something as similar
-            if ($userProfileToCheck['ip'] == $knownUserProfile['UserLoginProfile']['ip']) {
-                return 'likely ' . $knownUserProfile['UserLoginProfile']['status'];
-            }
         }
         // bad news, iterated over all and no similar found
         return 'unknown';
