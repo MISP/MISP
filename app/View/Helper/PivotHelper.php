@@ -3,15 +3,21 @@ App::uses('AppHelper', 'View/Helper');
 
 class PivotHelper extends AppHelper
 {
-    public function convertPivotToHTML(array $pivot, $currentEvent)
+    /**
+     * @param array $pivot
+     * @param int $currentEventId
+     * @return void
+     */
+    public function convertPivotToHTML(array $pivot, $currentEventId)
     {
-        $lookingAtRoot = false;
-        $pivotType = '';
-        if ($pivot['id'] == $currentEvent) {
+        if ($pivot['id'] == $currentEventId) {
             $lookingAtRoot = true;
-            $pivotType = ' activePivot';
+            $pivotType = 'activePivot';
+        } else {
+            $lookingAtRoot = false;
+            $pivotType = '';
         }
-        $temp = $this->__doConvert($pivot, $currentEvent, $lookingAtRoot);
+        $temp = $this->__doConvert($pivot, $currentEventId, $lookingAtRoot);
         $height = $this->__findMaxHeight($pivot);
         $height = $height + 50;
         echo '<div class="pivotElement firstPivot ' . $pivotType . '" style="height:' . $height . 'px;">';
@@ -21,7 +27,13 @@ class PivotHelper extends AppHelper
         echo '</div>';
     }
 
-    private function __doConvert($pivot, $currentEvent, $activeText=false)
+    /**
+     * @param array $pivot
+     * @param int $currentEventId
+     * @param bool $activeText
+     * @return array
+     */
+    private function __doConvert($pivot, $currentEventId, $activeText=false)
     {
         $data = null;
         $info = h($pivot['info']);
@@ -29,23 +41,24 @@ class PivotHelper extends AppHelper
         $active = '';
 
         // Colour the text white if it is a highlighted pivot element
-        $pivotType = 'pivotText';
-        $pivotSpanType = '';
         if ($activeText) {
             $pivotType = 'pivotTextBlue';
             $pivotSpanType = 'pivotSpanBlue';
+        } else {
+            $pivotType = 'pivotText';
+            $pivotSpanType = '';
         }
 
-        $data[] = '<span class="'.$pivotSpanType.'">';
+        $data[] = '<span class="' . $pivotSpanType . '">';
         if ($pivot['deletable']) {
-            $data[] = '<a class="pivotDelete fa fa-times" href="' . h(Configure::read('MISP.baseurl')) . '/events/removePivot/' . $pivot['id'] . '/' . $currentEvent . '" title="' . __('Remove pivot') . '"></a>';
+            $data[] = '<a class="pivotDelete fa fa-times" href="' . h(Configure::read('MISP.baseurl')) . '/events/removePivot/' . $pivot['id'] . '/' . $currentEventId . '" title="' . __('Remove pivot') . '"></a>';
         }
-        $data[] = '<a class="' . $pivotType . '" href="' . h(Configure::read('MISP.baseurl')) . '/events/view/' . $pivot['id'] . '/1/' . $currentEvent . '" title="' . $info . ' (' . $pivot['date'] . ')">' . $text . '</a>';
+        $data[] = '<a class="' . $pivotType . '" href="' . h(Configure::read('MISP.baseurl')) . '/events/view/' . $pivot['id'] . '/1/' . $currentEventId . '" title="' . $info . ' (' . $pivot['date'] . ')">' . $text . '</a>';
         $data[] = '</span>';
         if (!empty($pivot['children'])) {
             foreach ($pivot['children'] as $k => $v) {
                 $extra = '';
-                if ($v['id'] == $currentEvent) {
+                if ($v['id'] == $currentEventId) {
                     $active = ' activePivot';
                 }
                 if ($k > 0) {
@@ -54,8 +67,11 @@ class PivotHelper extends AppHelper
                     $extra = ' distance' . $lineDifference;
                 }
                 $data[] = '<div class="pivotElement' . $extra . $active . '" style="top:' . $pivot['children'][$k]['height'] . 'px;">';
-                if ($active != '') $temp = $this->__doConvert($v, $currentEvent, true);
-                else $temp = $this->__doConvert($v, $currentEvent);
+                if ($active != '') {
+                    $temp = $this->__doConvert($v, $currentEventId, true);
+                } else {
+                    $temp = $this->__doConvert($v, $currentEventId);
+                }
                 $data = array_merge($data, $temp);
                 $data[] = '</div>';
                 $active = '';
@@ -64,6 +80,10 @@ class PivotHelper extends AppHelper
         return $data;
     }
 
+    /**
+     * @param array $pivot
+     * @return int
+     */
     private function __findMaxHeight(array $pivot)
     {
         $height = $pivot['height'];

@@ -76,6 +76,18 @@
             'disabled' => !$isSiteAdmin,
         ),
         array(
+            'name' => __('Highlighted'),
+            'element' => 'toggle',
+            'url' => $baseurl . '/taxonomies/toggleHighlighted',
+            'url_params_data_paths' => array(
+                'Taxonomy.id'
+            ),
+            'sort' => 'highlighted',
+            'class' => 'short',
+            'data_path' => 'Taxonomy.highlighted',
+            'disabled' => !$isSiteAdmin,
+        ),
+        array(
             'name' => __('Active Tags'),
             'element' => 'custom',
             'class' => 'shortish',

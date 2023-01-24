@@ -12,14 +12,14 @@
         array(
             'key' => __('Enabled'),
             'boolean' => $data['enabled'],
-            'html' => sprintf(
+            'html' => $me['Role']['perm_warninglist'] ? sprintf(
                 ' <a href="%s/warninglists/enableWarninglist/%s%s" title="%s">%s</a>',
                 $baseurl,
                 h($warninglist['Warninglist']['id']),
                 $data['enabled'] ? '' : '/1',
                 $data['enabled'] ? __('Disable') : __('Enable'),
                 $data['enabled'] ? __('Disable') : __('Enable')
-            )
+            ): '',
         ),
     );
 
@@ -37,7 +37,7 @@
         '<div class="row-fluid"><div class="span8" style="margin:0;">%s</div></div><h4>%s</h4>',
         sprintf(
             '<h2>%s</h2>%s',
-            h(mb_strtoupper($warninglist['Warninglist']['name'])),
+            h($warninglist['Warninglist']['name']),
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
         __('Values')

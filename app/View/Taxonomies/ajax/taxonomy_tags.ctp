@@ -71,7 +71,9 @@ $actions = [
         'icon' => 'share-alt',
         'url' => $baseurl . '/tags/viewGraph',
         'url_params_data_paths' => ['existing_tag.Tag.id'],
-        'postLinkConfirm' => __('Are you sure you want to create this tag?'),
+        'complex_requirement' => function ($row) {
+            return $row['existing_tag'];
+        },
         'requirement' => $isAclTagger && $taxonomy['enabled'],
     ],
     [

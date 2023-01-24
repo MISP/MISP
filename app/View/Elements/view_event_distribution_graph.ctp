@@ -1,7 +1,7 @@
 <div id="distribution_graph_container">
     <div class="loadingPopover">
         <div class="spinner"></div>
-        <div class="loadingText"><?php echo __('Loading');?></div>
+        <div class="loadingText"><?php echo __('Loading'); ?></div>
     </div>
 
     <div id="eventdistri_graph" data-event-id="<?php echo h($event['Event']['id']); ?>" data-event-distribution="<?php echo h($event['Event']['distribution']); ?>" data-event-distribution-text="<?php echo $event['Event']['distribution'] == 4 ? h($event['SharingGroup']['name']) : h($distributionLevels[$event['Event']['distribution']]); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>" data-extended="<?php echo $extended; ?>">

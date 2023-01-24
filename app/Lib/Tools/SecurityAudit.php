@@ -138,7 +138,7 @@ class SecurityAudit
         if (!Configure::read('MISP.log_new_audit')) {
             $output['Logging'][] = [
                 'hint',
-                __('New audit log stores more information, like used authkey ID or request ID that can help when analysing or correlating audit logs.'),
+                __('New audit log stores more information, like used authkey ID or request ID that can help when analysing or correlating audit logs. Set `MISP.log_new_audit` to `true` to enable.'),
             ];
         }
 

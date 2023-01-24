@@ -83,7 +83,8 @@ class AppModel extends Model
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
-        99 => false, 100 => false,
+        99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
+        105 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1903,6 +1904,43 @@ class AppModel extends Model
                   INDEX `user_id` (`user_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
+            case 101:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxii_servers` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                    `name` varchar(191) NOT NULL,
+                    `owner` varchar(191) NOT NULL,
+                    `baseurl` int(11) NOT NULL DEFAULT 0,
+                    `api_root` varchar(191) NOT NULL DEFAULT 0,
+                    `description` text,
+                    `filters` text,
+                    `api_key` varchar(255)COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `name` (`name`),
+                    INDEX `baseurl` (`baseurl`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 102:
+                $sqlArray[] = "UPDATE roles SET perm_audit = 1;";
+                break;
+            case 103:
+                $sqlArray[] = "ALTER TABLE `taxonomies` ADD `highlighted` tinyint(1) DEFAULT 0;";
+                break;
+            case 104:
+                $sqlArray[] = "ALTER TABLE `access_logs` ADD `query_log` blob DEFAULT NULL";
+                break;
+            case 105:
+                // set a default role if there is none
+                if (!$this->AdminSetting->getSetting('default_role')) {
+                    $role = ClassRegistry::init('Role')->findByName('User');
+                    if ($role) {
+                        $sqlArray[] = "INSERT INTO `admin_settings` (setting, value) VALUES ('default_role', '".$role['Role']['id']."');";
+                    } else {
+                        // there is no role called User, do nothing
+                    }
+                }
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2382,7 +2420,7 @@ class AppModel extends Model
                         'action' => 'update_db_worker',
                         'user_id' => 0,
                         'title' => __('Issues executing run_updates'),
-                        'change' => __('Database updates are locked. Worker not spawned')
+                        'change' => __('Database updates are locked. Make sure that you have an update worker running. If you do, it might be related to an update\'s execution repeatedly failing or still being in progress.')
                     ));
                     if (!empty($job)) { // if multiple prio worker is enabled, want to mark them as done
                         $job['Job']['progress'] = 100;
@@ -3031,6 +3069,16 @@ class AppModel extends Model
             $subQuery = $lookupKey . ' IN (' . $subQuery . ') ';
         }
         return [$subQuery];
+    }
+
+    /**
+     * Returns estimated number of table rows
+     * @return int
+     */
+    public function tableRows()
+    {
+        $rows = $this->query("SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{$this->table}';");
+        return $rows[0]['TABLES']['TABLE_ROWS'];
     }
 
     // start a benchmark run for the given bench name
@@ -3869,5 +3917,36 @@ class AppModel extends Model
                 ) as c
             );
         ");
+    }
+
+    public function findOrder($order, $order_model, $valid_order_fields)
+    {
+        if (!is_array($order)) {
+            $order_rules = explode(' ', strtolower($order));
+            $order_field = explode('.', $order_rules[0]);
+            $order_field = end($order_field);
+            if (in_array($order_field, $valid_order_fields)) {
+                $direction = 'asc';
+                if (!empty($order_rules[1]) && trim($order_rules[1]) === 'desc') {
+                    $direction = 'desc';
+                }
+            } else {
+                return null;
+            }
+            return $order_model . '.' . $order_field . ' ' . $direction;
+        }
+        return null;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function _remoteIp()
+    {
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: null;
+        if ($ipHeader && isset($_SERVER[$ipHeader])) {
+            return trim($_SERVER[$ipHeader]);
+        }
+        return $_SERVER['REMOTE_ADDR'] ?? null;
     }
 }

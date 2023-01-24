@@ -1,4 +1,4 @@
-<div class="events form">
+<div class="events form" style="font-size: 14px">
 <?php echo $this->Form->create('', array('type' => 'file'));?>
     <fieldset>
         <legend><?= h(Inflector::humanize($module['name'])) ?></legend>
@@ -18,7 +18,7 @@
                     if (isset($configTypes[$config['type']]['field'])) {
                         $settings['type'] = $configTypes[$config['type']]['field'];
                     }
-                    switch($settings['type']) {
+                    switch ($settings['type']) {
                         case 'select':
                             if (isset($config['options'])) {
                                 $settings['options'] = $config['options'];
@@ -34,13 +34,12 @@
                     <span class="bold"><?= ucfirst(h($configName)) ?></span><br>
                     <?php
                         if ($settings['type'] === 'checkbox'):
+                            echo '<label class="checkbox">';
                             echo $this->Form->input('Event.config.' . $configName, $settings);
-                            if (isset($config['message']) && !empty($config['message'])):
-                                echo ' ' . h($config['message']);
-                    ?>
-                                <br>
-                    <?php
-                            endif;
+                            if (isset($config['message']) && !empty($config['message'])) {
+                                echo ' ' . h($config['message']) . '<br>';
+                            }
+                            echo '</label>';
                         else:
                             if (isset($config['message']) && !empty($config['message'])):
                             ?>
@@ -54,17 +53,18 @@
                     <?php
                 }
             }
-            $source = 'paste';
             if (in_array('paste', $module['mispattributes']['inputSource']) && in_array('file', $module['mispattributes']['inputSource'])) {
                 $source = 'both';
             } else if (in_array('file', $module['mispattributes']['inputSource'])) {
                 $source = 'file';
+            } else {
+                $source = 'paste';
             }
             if (!empty($module['mispattributes']['inputSource'])):
                 echo $this->Form->input('Event.source', array(
                     'label' => false,
-                    'checked' => $source === 'file' ? true : false,
-                    'disabled' => $source === 'both' ? false : true,
+                    'checked' => $source === 'file',
+                    'disabled' => !($source === 'both'),
                     'div' => false,
                     'style' => 'margin-bottom:5px;'
                 ));
@@ -110,7 +110,7 @@ echo $this->Form->end();
 </div>
 
 <?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'populateFrom', 'event' => $event)); ?>
-<script type="text/javascript">
+<script>
 $(function() {
     changeImportSource();
     $('#EventSource').change(function() {

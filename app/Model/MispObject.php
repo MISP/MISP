@@ -452,7 +452,37 @@ class MispObject extends AppModel
         return false;
     }
 
-    public function saveObject(array $object, $eventId, $template = false, $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
+    /**
+     * @param array $object
+     * @param array $template
+     * @return array
+     */
+    public function fillObjectDataFromTemplate(array $object, array $template)
+    {
+        $templateFields = array(
+            'name' => 'name',
+            'meta-category' => 'meta-category',
+            'description' => 'description',
+            'template_version' => 'version',
+            'template_uuid' => 'uuid'
+        );
+        foreach ($templateFields as $objectField => $templateField) {
+            $object['Object'][$objectField] = $template['ObjectTemplate'][$templateField];
+        }
+        return $object;
+    }
+
+    /**
+     * @param array $object
+     * @param int $eventId
+     * @param array $template
+     * @param array $user
+     * @param string $errorBehaviour
+     * @param bool $breakOnDuplicate
+     * @return array|array[]|bool|int|mixed|string
+     * @throws Exception
+     */
+    public function saveObject(array $object, $eventId, $template = false, array $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
     {
         $templateFields = array(
             'name' => 'name',
@@ -562,7 +592,7 @@ class MispObject extends AppModel
     //     conditions
     //     order
     //     group
-    public function fetchObjects($user, $options = array())
+    public function fetchObjects(array $user, array $options = array())
     {
         $attributeConditions = array();
         if (!$user['Role']['perm_site_admin']) {
@@ -608,8 +638,6 @@ class MispObject extends AppModel
         }
         if (isset($options['contain'])) {
             $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
-        } else {
-            $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
         }
         if (
             empty($options['metadata']) &&
@@ -662,7 +690,6 @@ class MispObject extends AppModel
         if ($options['enforceWarninglist'] && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
         }
-        $results = array_values($results);
         $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
         if (empty($options['metadata'])) {
             foreach ($results as $key => $object) {
@@ -764,7 +791,7 @@ class MispObject extends AppModel
     /**
      * Clean the attribute list up from artifacts introduced by the object form
      * @param array $attributes
-     * @return string|array
+     * @return array
      * @throws InternalErrorException
      * @throws Exception
      */
@@ -812,6 +839,70 @@ class MispObject extends AppModel
         return $attributes;
     }
 
+    /**
+     * @param array $user
+     * @param int $eventId
+     * @param array $attributes
+     * @param array $template
+     * @param int $threshold
+     * @return array
+     */
+    public function findSimilarObjects(array $user, $eventId, array $attributes, array $template, $threshold = 15)
+    {
+        $attributeValues = array_column($attributes, 'value');
+        $conditions = array(
+            'event_id' => $eventId,
+            'value1' => $attributeValues,
+            'object_id !=' => 0,
+        );
+        $similarObjects = $this->Attribute->find('all', array(
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => 'object_id, count(object_id) as similarity_amount',
+            'group' => 'object_id',
+            'order' => 'similarity_amount DESC'
+        ));
+
+        if (empty($similarObjects)) {
+            return [0, [], [], []];
+        }
+
+        $similar_object_ids = array();
+        $similar_object_similarity_amount = array();
+        foreach ($similarObjects as $obj) {
+            $similar_object_ids[] = $obj['Attribute']['object_id'];
+            $similar_object_similarity_amount[$obj['Attribute']['object_id']] = (int)$obj[0]['similarity_amount'];
+        }
+        $similar_objects_count = count($similar_object_ids);
+        $similar_object_ids = array_slice($similar_object_ids, 0, $threshold); // slice to honor the threshold
+        $similar_objects = $this->fetchObjects($user, array(
+            'conditions' => array(
+                'Object.id' => $similar_object_ids,
+                'Object.template_uuid' => $template['ObjectTemplate']['uuid']
+            )
+        ));
+        foreach ($similar_objects as $key => $obj) {
+            $similar_objects[$key]['Object']['similarity_amount'] = $similar_object_similarity_amount[$obj['Object']['id']]; // sorting function cannot use external variables
+        }
+        usort($similar_objects, function ($a, $b) { // fetch Object returns object sorted by IDs, force the sort by the similarity amount
+            if ($a['Object']['similarity_amount'] == $b['Object']['similarity_amount']) {
+                return 0;
+            }
+            return ($a['Object']['similarity_amount'] > $b['Object']['similarity_amount']) ? -1 : 1;
+        });
+
+        $simple_flattened_attribute = [];
+        $simple_flattened_attribute_noval = [];
+        foreach ($attributes as $k => $attribute) {
+            $curFlat = $attribute['object_relation'] . '.' . $attribute['type'] . '.' .$attribute['value'];
+            $simple_flattened_attribute[$curFlat] = $k;
+            $curFlatNoval = $attribute['object_relation'] . '.' . $attribute['type'];
+            $simple_flattened_attribute_noval[$curFlatNoval] = $k;
+        }
+
+        return [$similar_objects_count, $similar_objects, $simple_flattened_attribute, $simple_flattened_attribute_noval];
+    }
+
     // Set Object's *-seen (and ObjectAttribute's *-seen and ObjectAttribute's value if requested) to the provided *-seen value
     // Therefore, synchronizing the 3 values
     public function syncObjectAndAttributeSeen($object, $forcedSeenOnElements, $applyOnAttribute=True) {
@@ -851,6 +942,14 @@ class MispObject extends AppModel
         return $object;
     }
 
+    /**
+     * @param array $object
+     * @param array $objectToSave
+     * @param bool $onlyAddNewAttribute
+     * @param array $user
+     * @return array|int
+     * @throws JsonException
+     */
     public function deltaMerge(array $object, array $objectToSave, $onlyAddNewAttribute=false, array $user)
     {
         if (!isset($objectToSave['Object'])) {
@@ -965,7 +1064,6 @@ class MispObject extends AppModel
             }
         } else { // we only add the new attribute
             $newAttribute = $objectToSave['Attribute'][0];
-            $this->Event->Attribute->create();
             $newAttribute['event_id'] = $object['Object']['event_id'];
             $newAttribute['object_id'] = $object['Object']['id'];
             // Set seen of object at attribute level
@@ -980,10 +1078,9 @@ class MispObject extends AppModel
                 (!array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
             ) {
                 $newAttribute['last_seen'] = $object['Object']['last_seen'];
-                $different = true;
             }
             $saveAttributeResult = $this->Attribute->saveAttributes(array($newAttribute), $user);
-            return $saveAttributeResult ? $this->id : $this->validationErrors;
+            return $saveAttributeResult ? $this->id : $this->Attribute->validationErrors;
         }
         return $this->id;
     }
@@ -1232,51 +1329,14 @@ class MispObject extends AppModel
                 'Attribute.event_id' => $eventId,
                 'Attribute.object_id' => 0,
             ],
+            'fields' => ['Attribute.type'],
         ]);
         if (empty($attributes)) {
             return array('templates' => array(), 'types' => array());
         }
-        $attributeTypes = array();
-        foreach ($attributes as $i => $attribute) {
-            $attributeTypes[$attribute['Attribute']['type']] = true;
-            $attributes[$i]['Attribute']['object_relation'] = $attribute['Attribute']['type'];
-        }
-        $attributeTypes = array_keys($attributeTypes);
 
-        $potentialTemplateIds = $this->ObjectTemplate->find('column', array(
-            'recursive' => -1,
-            'fields' => array(
-                'ObjectTemplate.id',
-            ),
-            'conditions' => array(
-                'ObjectTemplate.active' => true,
-                'ObjectTemplateElement.type' => $attributeTypes,
-            ),
-            'joins' => array(
-                array(
-                    'table' => 'object_template_elements',
-                    'alias' => 'ObjectTemplateElement',
-                    'type' => 'RIGHT',
-                    'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
-                    'conditions' => array('ObjectTemplate.id = ObjectTemplateElement.object_template_id')
-                )
-            ),
-            'group' => 'ObjectTemplate.id',
-        ));
-
-        $templates = $this->ObjectTemplate->find('all', [
-            'recursive' => -1,
-            'conditions' => ['id' => $potentialTemplateIds],
-            'contain' => ['ObjectTemplateElement' => ['fields' => ['object_relation', 'type', 'multiple']]]
-        ]);
-
-        foreach ($templates as $i => $template) {
-            $res = $this->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributes);
-            $templates[$i]['ObjectTemplate']['compatibility'] = $res['valid'] ? true : $res['missingTypes'];
-            $templates[$i]['ObjectTemplate']['invalidTypes'] = $res['invalidTypes'];
-            $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
-        }
-        return array('templates' => $templates, 'types' => $attributeTypes);
+        $attributeTypes = array_column(array_column($attributes, 'Attribute'), 'type');
+        return $this->ObjectTemplate->fetchPossibleTemplatesBasedOnTypes($attributeTypes);
     }
 
     public function groupAttributesIntoObject(array $user, $event_id, array $object, $template, array $selected_attribute_ids, array $selected_object_relation_mapping, $hard_delete_attribute)

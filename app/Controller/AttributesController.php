@@ -1961,7 +1961,7 @@ class AttributesController extends AppController
     public function fetchViewValue($id, $field = null)
     {
         $user = $this->_closeSession();
-        $validFields = ['value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp', 'first_seen', 'last_seen'];
+        $validFields = ['value', 'comment', 'type', 'category', 'distribution', 'timestamp', 'first_seen', 'last_seen'];
         if (!isset($field) || !in_array($field, $validFields, true)) {
             throw new MethodNotAllowedException(__('Invalid field requested.'));
         }
@@ -1989,9 +1989,7 @@ class AttributesController extends AppController
         $attribute = $attribute[0];
         $result = $attribute['Attribute'][$field];
         if ($field === 'distribution') {
-            $result = $this->Attribute->shortDist[$result];
-        } elseif ($field === 'to_ids') {
-            $result = $result == 0 ? 'No' : 'Yes';
+            $this->set('shortDist', $this->Attribute->shortDist);
         } elseif ($field === 'value') {
             $this->loadModel('Warninglist');
             $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);
@@ -2006,23 +2004,27 @@ class AttributesController extends AppController
 
     public function fetchEditForm($id, $field = null)
     {
-        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'first_seen', 'last_seen');
-        if (!isset($field) || !in_array($field, $validFields)) {
-            throw new MethodNotAllowedException(__('Invalid field requested.'));
-        }
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This function can only be accessed via AJAX.'));
         }
-        $fields = array('id', 'distribution', 'event_id');
-        if ($field == 'category' || $field == 'type') {
-            $fields[] = 'type';
-            $fields[] = 'category';
+
+        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'first_seen', 'last_seen');
+        if (!isset($field) || !in_array($field, $validFields, true)) {
+            throw new NotFoundException(__('Invalid field requested.'));
+        }
+        $fieldsToFetch = array('id', 'event_id');
+        if ($field === 'category' || $field === 'type') {
+            $fieldsToFetch[] = 'type';
+            $fieldsToFetch[] = 'category';
+            if ($field === 'type') {
+                $fieldsToFetch[] = 'value';
+            }
         } else {
-            $fields[] = $field;
+            $fieldsToFetch[] = $field;
         }
         $params = array(
             'conditions' => array('Attribute.id' => $id),
-            'fields' => $fields,
+            'fields' => $fieldsToFetch,
             'flatten' => 1,
             'contain' => array(
                 'Event' => array(
@@ -2044,15 +2046,28 @@ class AttributesController extends AppController
             unset($distributionLevels[4]);
             $this->set('distributionLevels', $distributionLevels);
         } elseif ($field === 'category') {
-            $typeCategory = array();
+            $possibleCategories = [];
             foreach ($this->Attribute->categoryDefinitions as $k => $category) {
-                foreach ($category['types'] as $type) {
-                    $typeCategory[$type][] = $k;
+                if (in_array($attribute['Attribute']['type'], $category['types'], true)) {
+                    $possibleCategories[] = $k;
                 }
             }
-            $this->set('typeCategory', $typeCategory);
+            $this->set('possibleCategories', $possibleCategories);
         } elseif ($field === 'type') {
-            $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+            $possibleTypes = $this->Attribute->categoryDefinitions[$attribute['Attribute']['category']]['types'];
+            $validTypes = AttributeValidationTool::validTypesForValue($possibleTypes, $this->Attribute->getCompositeTypes(), $attribute['Attribute']['value']);
+            $options = [];
+            foreach ($possibleTypes as $possibleType) {
+                if ($this->Attribute->typeIsAttachment($possibleType)) {
+                    continue; // skip attachment types
+                }
+                $options[] = [
+                    'name' => $possibleType,
+                    'value' => $possibleType,
+                    'disabled' => !in_array($possibleType, $validTypes, true),
+                ];
+            }
+            $this->set('options', $options);
         }
         $this->set('object', $attribute['Attribute']);
         $fieldURL = ucfirst($field);
@@ -2798,10 +2813,7 @@ class AttributesController extends AppController
                 'fields' => ['Attribute.deleted', 'Attribute.event_id', 'Attribute.id', 'Attribute.object_id', 'Event.orgc_id', 'Event.user_id'],
                 'contain' => ['Event'],
             ]);
-            if (empty($attribute)) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            if ($attribute['Attribute']['deleted']) {
+            if (empty($attribute) || $attribute['Attribute']['deleted']) {
                 throw new NotFoundException(__('Invalid attribute'));
             }
             if (empty($tag_id)) {
@@ -2831,19 +2843,19 @@ class AttributesController extends AppController
             if (!$this->__canModifyTag($attribute, !empty($attributeTag['AttributeTag']['local']))) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You do not have permission to do that.')), 'status' => 200, 'type' => 'json'));
             }
-
             if (empty($attributeTag)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid attribute - tag combination.')), 'status' => 200, 'type' => 'json'));
             }
-            $tag = $this->Attribute->AttributeTag->Tag->find('first', array(
-                'conditions' => array('Tag.id' => $tag_id),
-                'recursive' => -1,
-                'fields' => array('Tag.name')
-            ));
             if ($this->Attribute->AttributeTag->delete($attributeTag['AttributeTag']['id'])) {
                 if (empty($attributeTag['AttributeTag']['local'])) {
                     $this->Attribute->touch($attribute);
                 }
+
+                $tag = $this->Attribute->AttributeTag->Tag->find('first', array(
+                    'conditions' => array('Tag.id' => $tag_id),
+                    'recursive' => -1,
+                    'fields' => array('Tag.name')
+                ));
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => empty($attributeTag['AttributeTag']['local']))), 'status' => 200, 'type'=> 'json'));

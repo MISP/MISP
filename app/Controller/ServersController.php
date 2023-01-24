@@ -1075,6 +1075,9 @@ class ServersController extends AppController
             $this->set('correlation_metrics', $correlation_metrics);
         }
         if ($tab === 'files') {
+            if (!empty(Configure::read('Security.disable_instance_file_uploads'))) {
+                throw new MethodNotAllowedException(__('This functionality is disabled.'));
+            }
             $files = $this->Server->grabFiles();
             $this->set('files', $files);
         }
@@ -1624,6 +1627,9 @@ class ServersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
+        if (!empty(Configure::read('Security.disable_instance_file_uploads'))) {
+            throw new MethodNotAllowedException(__('Feature disabled.'));
+        }
         $validItems = $this->Server->getFileRules();
 
         // Check if there were problems with the file upload
@@ -1719,6 +1725,7 @@ class ServersController extends AppController
         if (!$server) {
             throw new NotFoundException(__('Invalid server'));
         }
+        @session_write_close(); // close session to allow concurrent requests
         $result = $this->Server->runConnectionTest($server);
         if ($result['status'] == 1) {
             if (isset($result['info']['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $result['info']['version'])) {

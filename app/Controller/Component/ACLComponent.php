@@ -125,7 +125,7 @@ class ACLComponent extends Component
             'decayingModel' => array(
                 "update" => array(),
                 "export" => array('*'),
-                "import" => array('*'),
+                "import" => array('OR' => array('perm_admin', 'perm_decaying')),
                 "view" => array('*'),
                 "index" => array('*'),
                 "add" => array( 'OR' => array('perm_admin', 'perm_decaying')),
@@ -384,7 +384,8 @@ class ACLComponent extends Component
                     'event_index' => array('*'),
                     'returnDates' => array('*'),
                     'testForStolenAttributes' => array(),
-                    'pruneUpdateLogs' => array()
+                    'pruneUpdateLogs' => array(),
+                    'index' => array('perm_audit')
             ),
         'auditLogs' => [
             'admin_index' => ['perm_audit'],
@@ -395,6 +396,7 @@ class ACLComponent extends Component
         'accessLogs' => [
             'admin_index' => [],
             'admin_request' => [],
+            'admin_queryLog' => [],
         ],
         'modules' => array(
             'index' => array('perm_auth'),
@@ -434,6 +436,7 @@ class ACLComponent extends Component
                     'groupAttributesIntoObject' => array('perm_add'),
                     'revise_object' => array('perm_add'),
                     'view' => array('*'),
+                'createFromFreetext' => ['perm_add'],
             ),
             'objectReferences' => array(
                 'add' => array('perm_add'),
@@ -451,9 +454,9 @@ class ACLComponent extends Component
                 'objectChoice' => array('*'),
                 'objectMetaChoice' => array('perm_add'),
                 'view' => array('*'),
-                'viewElements' => array('*'),
                 'index' => array('*'),
-                'update' => array()
+                'update' => array(),
+                'possibleObjectTemplates' => ['*'],
             ),
             'objectTemplateElements' => array(
                 'viewElements' => array('*')
@@ -480,9 +483,9 @@ class ACLComponent extends Component
                 'display' => array('*'),
             ),
             'posts' => array(
-                'add' => array('not_read_only_authkey'),
-                'delete' => array('not_read_only_authkey'),
-                'edit' => array('not_read_only_authkey'),
+                'add' => ['AND' => ['not_read_only_authkey', 'discussion_enabled']],
+                'delete' => ['AND' => ['not_read_only_authkey', 'discussion_enabled']],
+                'edit' => ['AND' => ['not_read_only_authkey', 'discussion_enabled']],
                 'pushMessageToZMQ' => array()
             ),
             'regexp' => array(
@@ -674,6 +677,7 @@ class ACLComponent extends Component
                 'taxonomyMassHide' => array('perm_tagger'),
                 'taxonomyMassUnhide' => array('perm_tagger'),
                 'toggleRequired' => array(),
+                'toggleHighlighted' => array(),
                 'update' => array(),
                 'import' => [],
                 'export' => ['*'],
@@ -682,6 +686,16 @@ class ACLComponent extends Component
                 'hideTag' => array('perm_tagger'),
                 'normalizeCustomTagsToTaxonomyFormat' => [],
             ),
+            'taxiiServers' => [
+                'add' => ['perm_admin'],
+                'edit' => ['perm_admin'],
+                'index' => ['perm_admin'],
+                'delete' => ['perm_admin'],
+                'view' => ['perm_admin'],
+                'push' => ['perm_admin'],
+                'getRoot' => ['perm_admin'],
+                'getCollections' => ['perm_admin']
+            ],
             'templateElements' => array(
                 'add' => array('perm_template'),
                 'delete' => array('perm_template'),
@@ -703,14 +717,15 @@ class ACLComponent extends Component
                 'view' => array('*'),
             ),
             'threads' => array(
-                'index' => array('*'),
-                'view' => array('*'),
-                'viewEvent' => array('*'),
+                'index' => array('discussion_enabled'),
+                'view' => array('discussion_enabled'),
+                'viewEvent' => array('discussion_enabled'),
             ),
             'users' => array(
                 'acceptRegistrations' => array(),
                 'admin_add' => ['AND' => ['perm_admin', 'add_user_enabled']],
                 'admin_delete' => array('perm_admin'),
+                'admin_destroy' => array(),
                 'admin_edit' => array('perm_admin'),
                 'admin_email' => array('perm_admin'),
                 'admin_filterUserIndex' => array('perm_admin'),
@@ -764,7 +779,7 @@ class ACLComponent extends Component
                 'eventIndexColumnToggle' => ['*'],
             ),
             'warninglists' => array(
-                'checkValue' => array('perm_auth'),
+                'checkValue' => ['*'],
                 'delete' => ['perm_warninglist'],
                 'enableWarninglist' => ['perm_warninglist'],
                 'getToggleField' => ['perm_warninglist'],
@@ -853,6 +868,9 @@ class ACLComponent extends Component
         };
         $this->dynamicChecks['delegation_enabled'] = function (array $user) {
             return (bool)Configure::read('MISP.delegation');
+        };
+        $this->dynamicChecks['discussion_enabled'] = function (array $user) {
+            return !Configure::read('MISP.discussion_disable');
         };
         // Returns true if current user is not using advanced auth key or if authkey is not read only
         $this->dynamicChecks['not_read_only_authkey'] = function (array $user) {
@@ -975,27 +993,6 @@ class ACLComponent extends Component
     }
 
     /**
-     * Only site admin and event creator can modify an eventReport
-     *
-     * @param array $user
-     * @param array $report
-     * @return boolean
-     */
-    public function canEditReport(array $user, array $report): bool
-    {
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if (empty($report['Event'])) {
-            return __('Could not find associated event');
-        }
-        if ($report['Event']['orgc_id'] != $user['org_id']) {
-            return __('Only the creator organisation of the event can modify the report');
-        }
-        return true;
-    }
-
-    /**
      * Only users that can modify organisation can delete sightings as sighting is not linked to user.
      *
      * @param array $user
@@ -1024,7 +1021,7 @@ class ACLComponent extends Component
      */
     public function canEditEventReport(array $user, array $eventReport)
     {
-        if (!isset($report['Event'])) {
+        if (!isset($eventReport['Event'])) {
             throw new InvalidArgumentException('Passed object does not contain an Event.');
         }
         if ($user['Role']['perm_site_admin']) {

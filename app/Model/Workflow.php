@@ -621,16 +621,20 @@ class Workflow extends AppModel
                 'id' => Configure::read('MISP.host_org_id')
             ],
         ]);
+        $this->User = ClassRegistry::init('User');
         if (!empty($hostOrg)) {
+            $perms = array_keys($this->User->Role->permFlags);
+            $allPermEnabled = array_map(function($perm) {
+                return true;
+            }, array_flip($perms));
             $userForWorkflow = [
                 'email' => 'SYSTEM',
                 'id' => 0,
                 'org_id' => $hostOrg['Organisation']['id'],
-                'Role' => ['perm_site_admin' => 1],
+                'Role' => $allPermEnabled,
                 'Organisation' => $hostOrg['Organisation']
             ];
         } else {
-            $this->User = ClassRegistry::init('User');
             $userForWorkflow = $this->User->find('first', [
                 'recursive' => -1,
                 'conditions' => [
@@ -1156,9 +1160,16 @@ class Workflow extends AppModel
         if (isset($options['contain'])) {
             $params['contain'] = !empty($options['contain']) ? $options['contain'] : [];
         }
-        if (isset($options['order'])) {
-            $params['order'] = !empty($options['order']) ? $options['order'] : [];
+
+        $params['order'] = [];
+        if (!empty($options['order'])) {
+            $options['order'] = $this->findOrder(
+                $options['order'],
+                'Workflow',
+                ['id', 'name', 'timestmap', 'trigger_id', 'counter']
+            );
         }
+
         $workflows = $this->find('all', $params);
         return $workflows;
     }

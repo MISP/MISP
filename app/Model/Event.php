@@ -1526,7 +1526,11 @@ class Event extends AppModel
             'recursive' => -1,
         );
         if (isset($params['order'])) {
-            $find_params['order'] = $params['order'];
+            $find_params['order'] = $this->findOrder(
+                $params['order'],
+                'Event',
+                ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
+            );
         }
         if (isset($params['limit'])) {
             // Get the count (but not the actual data) of results for paginators
@@ -2006,7 +2010,11 @@ class Event extends AppModel
             $params['page'] = $options['page'];
         }
         if (!empty($options['order'])) {
-            $params['order'] = $options['order'];
+            $options['order'] = $this->findOrder(
+                $options['order'],
+                'Event',
+                ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
+            );
         }
         $results = $this->find('all', $params);
         if (empty($results)) {
@@ -3365,7 +3373,11 @@ class Event extends AppModel
             foreach ($event['EventTag'] as $tag) {
                 $tagId = $this->captureTagWithCache($tag['Tag'], $user, $capturedTags);
                 if ($tagId && !in_array($tagId, $event_tag_ids)) {
-                    $eventTags[] = array('tag_id' => $tagId);
+                    $eventTags[] = array(
+                        'tag_id' => $tagId,
+                        'local' => isset($tag['local']) ? $tag['local'] : 0,
+                        'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                    );
                     $event_tag_ids[] = $tagId;
                 }
             }
@@ -3380,6 +3392,7 @@ class Event extends AppModel
                     $eventTags[] = [
                         'tag_id' => $tag_id,
                         'local' => isset($tag['local']) ? $tag['local'] : 0,
+                        'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                     ];
                     $event_tag_ids[] = $tag_id;
                 }
@@ -3440,7 +3453,11 @@ class Event extends AppModel
                     $a['AttributeTag'] = array($a['AttributeTag']);
                 }
                 foreach ($a['AttributeTag'] as $tag) {
-                    $attributeTags[] = array('tag_id' => $this->captureTagWithCache($tag['Tag'], $user, $capturedTags));
+                    $attributeTags[] = array(
+                        'tag_id' => $this->captureTagWithCache($tag['Tag'], $user, $capturedTags),
+                        'local' => isset($tag['local']) ? $tag['local'] : 0,
+                        'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                    );
                 }
             }
             if (isset($a['Tag'])) {
@@ -3453,6 +3470,7 @@ class Event extends AppModel
                         $attributeTags[] = [
                             'tag_id' => $tagId,
                             'local' => isset($tag['local']) ? $tag['local'] : 0,
+                            'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                         ];
                     }
                 }
@@ -5586,6 +5604,10 @@ class Event extends AppModel
         return $resultArray;
     }
 
+    /**
+     * @param array $result
+     * @return array
+     */
     public function handleMispFormatFromModuleResult(&$result)
     {
         $defaultDistribution = $this->Attribute->defaultDistribution();
@@ -5599,7 +5621,7 @@ class Event extends AppModel
             $event['Attribute'] = $attributes;
         }
         if (!empty($result['results']['Object'])) {
-            $object = array();
+            $objects = array();
             foreach ($result['results']['Object'] as $tmp_object) {
                 $tmp_object['distribution'] = (isset($tmp_object['distribution']) ? (int)$tmp_object['distribution'] : $defaultDistribution);
                 $tmp_object['sharing_group_id'] = (isset($tmp_object['sharing_group_id']) ? (int)$tmp_object['sharing_group_id'] : 0);
@@ -5623,6 +5645,11 @@ class Event extends AppModel
         return $event;
     }
 
+    /**
+     * @param array $attribute
+     * @param int $defaultDistribution
+     * @return array
+     */
     private function __fillAttribute($attribute, $defaultDistribution)
     {
         if (is_array($attribute['type'])) {
@@ -6319,11 +6346,33 @@ class Event extends AppModel
         return $message;
     }
 
-    public function processModuleResultsData($user, $resolved_data, $id, $default_comment = '', $jobId = false, $adhereToWarninglists = false, $event_level = false)
+    /**
+     * @param array $user
+     * @param array $resolved_data
+     * @param int $id
+     * @param string $default_comment
+     * @param int|false $jobId
+     * @param bool $adhereToWarninglists
+     * @param bool $event_level
+     * @return int|string
+     * @throws JsonException
+     */
+    public function processModuleResultsData(array $user, $resolved_data, $id, $default_comment = '', $jobId = false, $adhereToWarninglists = false, $event_level = false)
     {
+        $event = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['id' => $id],
+        ]);
+        if (empty($event)) {
+            throw new Exception("Event with ID `$id` not found.");
+        }
         if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
             $this->Job->id = $jobId;
+
+            /** @var EventLock $eventLock */
+            $eventLock = ClassRegistry::init('EventLock');
+            $eventLock->insertLockBackgroundJob($event['Event']['id'], $jobId);
         }
         $failed_attributes = $failed_objects = $failed_object_attributes = $failed_reports = 0;
         $saved_attributes = $saved_objects = $saved_object_attributes = $saved_reports = 0;
@@ -6369,6 +6418,7 @@ class Event extends AppModel
                         }
                     }
                 } else {
+                    $this->Attribute->logDropped($user, $attribute);
                     $failed_attributes++;
                     $lastAttributeError = $this->Attribute->validationErrors;
                     $original_uuid = $this->__findOriginalUUID(
@@ -6384,8 +6434,7 @@ class Event extends AppModel
                 }
                 if ($jobId) {
                     $processedAttributes++;
-                    $this->Job->saveField('message', 'Attribute ' . $processedAttributes . '/' . $total_attributes);
-                    $this->Job->saveField('progress', ($processedAttributes * 100 / $items_count));
+                    $this->Job->saveProgress($jobId, "Attribute $processedAttributes/$total_attributes", $processedAttributes * 100 / $items_count);
                 }
             }
         } else {
@@ -6430,7 +6479,7 @@ class Event extends AppModel
                             if (isset($initial_attributes[$object_relation]) && in_array($object_attribute['value'], $initial_attributes[$object_relation])) {
                                 continue;
                             }
-                            if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $initial_object_id, $user)) {
+                            if ($this->__saveObjectAttribute($object_attribute, null, $event, $initial_object_id, $user)) {
                                 $saved_object_attributes++;
                             } else {
                                 $failed_object_attributes++;
@@ -6463,7 +6512,7 @@ class Event extends AppModel
                             if ($this->Object->save($object)) {
                                 $object_id = $this->Object->id;
                                 foreach ($object['Attribute'] as $object_attribute) {
-                                    if ($this->__saveObjectAttribute($object_attribute, $default_comment, $id, $object_id, $user)) {
+                                    if ($this->__saveObjectAttribute($object_attribute, null, $event, $object_id, $user)) {
                                         $saved_object_attributes++;
                                     } else {
                                         $failed_object_attributes++;
@@ -6498,8 +6547,7 @@ class Event extends AppModel
                 }
                 if ($jobId) {
                     $processedObjects++;
-                    $this->Job->saveField('message', 'Object ' . $processedObjects . '/' . $total_objects);
-                    $this->Job->saveField('progress', (($processedObjects + $total_attributes) * 100 / $items_count));
+                    $this->Job->saveProgress($jobId, "Object $processedObjects/$total_objects", ($processedObjects + $total_attributes) * 100 / $items_count);
                 }
             }
 
@@ -6566,14 +6614,13 @@ class Event extends AppModel
                 }
                 if ($jobId) {
                     $current = ($i + 1);
-                    $this->Job->saveField('message', 'EventReport ' . $current . '/' . $total_reports);
-                    $this->Job->saveField('progress', ($current * 100 / $items_count));
+                    $this->Job->saveProgress($jobId, "EventReport $current/$total_reports", $current * 100 / $items_count);
                 }
             }
         }
 
         if ($saved_attributes > 0 || $saved_objects > 0 || $saved_reports > 0) {
-            $this->unpublishEvent($id);
+            $this->unpublishEvent($event);
         }
         if ($event_level) {
             return $saved_attributes + $saved_object_attributes + $saved_reports;
@@ -6634,8 +6681,8 @@ class Event extends AppModel
             $message .= $failed_reports . $reason;
         }
         if ($jobId) {
-            $this->Job->saveField('message', 'Processing complete. ' . $message);
-            $this->Job->saveField('progress', 100);
+            $this->Job->saveStatus($jobId, true, 'Processing complete. ' . $message);
+            $eventLock->deleteBackgroundJobLock($event['Event']['id'], $jobId);
         }
         return $message;
     }
@@ -6722,28 +6769,39 @@ class Event extends AppModel
         return (!empty($original_uuid)) ? $original_uuid['Object']['uuid'] : $original_uuid;
     }
 
-    private function __saveObjectAttribute($attribute, $default_comment, $event_id, $object_id, $user)
+    /**
+     * @param array $attribute
+     * @param string|null $default_comment
+     * @param array $event
+     * @param int $object_id
+     * @param array $user
+     * @return array|bool|mixed
+     * @throws Exception
+     */
+    private function __saveObjectAttribute(array $attribute, $default_comment, array $event, $object_id, array $user)
     {
         $attribute['object_id'] = $object_id;
-        $attribute['event_id'] = $event_id;
-        if (empty($attribute['comment'])) {
+        $attribute['event_id'] = $event['Event']['id'];
+        if (empty($attribute['comment']) && $default_comment) {
             $attribute['comment'] = $default_comment;
         }
         if (!empty($attribute['data']) && !empty($attribute['encrypt'])) {
             $attribute = $this->Attribute->onDemandEncrypt($attribute);
         }
         $this->Attribute->create();
-        $attribute_save = $this->Attribute->save($attribute);
+        $attribute_save = $this->Attribute->save($attribute, ['parentEvent' => $event]);
         if ($attribute_save) {
             if (!empty($attribute['Tag'])) {
                 foreach ($attribute['Tag'] as $tag) {
                     $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
                     $relationship_type = empty($tag['relationship_type']) ? false : $tag['relationship_type'];
                     if ($tag_id) {
-                        $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $event_id, $tag_id, !empty($tag['local']), $relationship_type);
+                        $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $event['Event']['id'], $tag_id, !empty($tag['local']), $relationship_type);
                     }
                 }
             }
+        } else {
+            $this->Attribute->logDropped($user, $attribute);
         }
         return $attribute_save;
     }
@@ -7047,6 +7105,47 @@ class Event extends AppModel
         }
     }
 
+
+    public function restSearchFilterMassage($filters, $non_restrictive_export, $user)
+    {
+        if (!empty($filters['ignore'])) {
+            $filters['to_ids'] = array(0, 1);
+            $filters['published'] = array(0, 1);
+        }
+        if (!empty($filters['quickFilter'])) {
+            $filters['searchall'] = $filters['quickFilter'];
+            if (!empty($filters['value'])) {
+                unset($filters['value']);
+            }
+        }
+        if (isset($filters['searchall'])) {
+            if (!empty($filters['value'])) {
+                $filters['wildcard'] = $filters['value'];
+            } else {
+                $filters['wildcard'] = $filters['searchall'];
+            }
+        }
+
+        if (isset($filters['tag']) and !isset($filters['tags'])) {
+            $filters['tags'] = $filters['tag'];
+        }
+        if (!empty($filters['withAttachments'])) {
+            $filters['includeAttachments'] = 1;
+        }
+        if (empty($non_restrictive_export)) {
+            if (!isset($filters['to_ids'])) {
+                $filters['to_ids'] = 1;
+            }
+            if (!isset($filters['published'])) {
+                $filters['published'] = 1;
+            }
+            $filters['allow_proposal_blocking'] = 1;
+        }
+        $subqueryElements = $this->harvestSubqueryElements($filters);
+        $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
+        return $filters;
+    }
+
     /**
      * @param array $user
      * @param string $returnFormat
@@ -7075,49 +7174,18 @@ class Event extends AppModel
             $exportTool->setDefaultFilters($filters);
         }
 
-        if (empty($exportTool->non_restrictive_export)) {
-            if (!isset($filters['to_ids'])) {
-                $filters['to_ids'] = 1;
-            }
-            if (!isset($filters['published'])) {
-                $filters['published'] = 1;
-            }
-            $filters['allow_proposal_blocking'] = 1;
-        }
-
         if (!empty($exportTool->renderView)) {
             $renderView = $exportTool->renderView;
         }
+        $non_restrictive_export = !empty($exportTool->non_restrictive_export);
+        $filters = $this->restSearchFilterMassage($filters, $non_restrictive_export, $user);
 
-        if (!empty($filters['ignore'])) {
-            $filters['to_ids'] = array(0, 1);
-            $filters['published'] = array(0, 1);
-        }
-        if (!empty($filters['quickFilter'])) {
-            $filters['searchall'] = $filters['quickFilter'];
-            if (!empty($filters['value'])) {
-                unset($filters['value']);
-            }
-        }
-        if (isset($filters['searchall'])) {
-            if (!empty($filters['value'])) {
-                $filters['wildcard'] = $filters['value'];
-            } else {
-                $filters['wildcard'] = $filters['searchall'];
-            }
-        }
-
-        if (isset($filters['tag']) and !isset($filters['tags'])) {
-            $filters['tags'] = $filters['tag'];
-        }
-        $subqueryElements = $this->harvestSubqueryElements($filters);
-        $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->addFiltersFromUserSettings($user, $filters);
         if (empty($exportTool->mock_query_only)) {
             $filters['include_attribute_count'] = 1;
             $eventid = $this->filterEventIds($user, $filters, $elementCounter);
             $eventCount = count($eventid);
-            $eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
+            $eventids_chunked = $this->clusterEventIds($exportTool, $eventid);
             unset($eventid);
         } else {
             $eventids_chunked = array();
@@ -7143,9 +7211,6 @@ class Event extends AppModel
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $i = 0;
-        if (!empty($filters['withAttachments'])) {
-            $filters['includeAttachments'] = 1;
-        }
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
         unset($filters['page']);
@@ -7184,7 +7249,7 @@ class Event extends AppModel
      *  Chunk them by the attribute count to fit the memory limits
      *
      */
-    private function __clusterEventIds($exportTool, $eventIds)
+    public function clusterEventIds($exportTool, $eventIds)
     {
         $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
         $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;

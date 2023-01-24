@@ -40,13 +40,12 @@ $description = $this->Markdown->cleanup($cluster['GalaxyCluster']['description']
 $table_data = array();
 $table_data[] = array('key' => __('Cluster ID'), 'value' => $cluster['GalaxyCluster']['id']);
 $table_data[] = array('key' => __('Name'), 'value' => $cluster['GalaxyCluster']['value']);
-$table_data[] = array('key' => __('Parent Galaxy'), 'value' => $cluster['GalaxyCluster']['Galaxy']['name'] ? $cluster['GalaxyCluster']['Galaxy']['name'] : $cluster['GalaxyCluster']['Galaxy']['type']);
+$table_data[] = array('key' => __('Parent Galaxy'), 'value' => $cluster['GalaxyCluster']['Galaxy']['name'] ?: $cluster['GalaxyCluster']['Galaxy']['type']);
 $table_data[] = array('key' => __('Description'), 'value' => $description, 'value_class' => 'md');
 if (!$cluster['GalaxyCluster']['default']) {
     $table_data[] = [
         'key' => __('Published'),
         'boolean' => $cluster['GalaxyCluster']['published'],
-        'class' => !$cluster['GalaxyCluster']['published'] ? 'background-red bold' : ''
     ];
 }
 $table_data[] = array('key' => __('Default'), 'boolean' => $cluster['GalaxyCluster']['default'], 'class' => 'black');
@@ -105,7 +104,7 @@ if (!empty($extendedByHtml)) {
     <?php
         if (!empty(Configure::read('Plugin.CyCat_enable'))) {
             $titleHTML = __('CyCat Relationships');
-            $titleHTML .= sprintf('<a href="%s" onclick="event.stopPropagation()" title="%s" target="_blank"><img src="%s" style="height: 2.5em"/></a>',
+            $titleHTML .= sprintf('<a href="%s" onclick="event.stopPropagation()" title="%s" target="_blank"><img src="%s" style="height: 2.5em"></a>',
                 'https://cycat.org/',
                 __('CyCAT or the CYbersecurity Resource CATalogue aims at mapping and documenting, in a single formalism and catalogue all the available cybersecurity tools, rules, playbooks, processes and controls.'),
                 $baseurl . '/img/CyCat.ico'

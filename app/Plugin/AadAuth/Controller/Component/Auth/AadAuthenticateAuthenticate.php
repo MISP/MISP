@@ -214,7 +214,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 				];
 				$url = self::$auth_provider . self::$ad_tenant . "/oauth2/v2.0/token";
 
-				$response = (new HttpSocket())->post($url, $params, $options);
+				$response = ($this->_createHttpSocket())->post($url, $params, $options);
 
 				if (!$response->isOk()) {
 					$this->_log("warning", "Error received during Bearer token fetch (context).");
@@ -239,7 +239,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 				];
 				$url = self::$auth_provider_user . "/v1.0/me";
 
-				$response = (new HttpSocket())->get($url, null, $options);
+				$response = ($this->_createHttpSocket())->get($url, null, $options);
 
 				if (!$response->isOk()) {
 					$this->_log("warning", "Error received during user data fetch.");
@@ -303,11 +303,11 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 				'Authorization' => 'Bearer ' . $authdata["access_token"]
 			]
 		];
-				
+
 		$has_next_page = true;
 		$url = self::$auth_provider_user . "/v1.0/me/memberOf";
 		while ($has_next_page) {
-			$response = (new HttpSocket())->get($url, array(), $options);
+			$response = ($this->_createHttpSocket())->get($url, array(), $options);
 
 			if (!$response->isOk()) {
 				$this->_log("warning", "Error received during user group data fetch.");
@@ -345,5 +345,21 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 		$this->_log("warning", "The user is not a member of any of the MISP AAD groups.");
 
 		return false;
+	}
+
+	/**
+	 * Create HttpSocket with proxy settings
+	 * 
+	 * @return HttpSocket
+	 */
+	private function _createHttpSocket()
+	{
+		$httpSocket = new HttpSocket();
+		$proxy = Configure::read('Proxy');
+		if (isset($proxy['host']) && !empty($proxy['host'])) {
+			$httpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
+		}
+
+		return $httpSocket;
 	}
 }

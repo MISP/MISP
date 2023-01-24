@@ -1,4 +1,4 @@
-<div>
+<div class="sub-container">
     <div id="timeline-header" class="eventgraph_header">
         <label id="timeline-scope" class="btn center-in-network-header network-control-btn">
             <span class="useCursorPointer fa fa-object-group" style="margin-right: 3px;"></span><?php echo __('Time scope')?>
@@ -22,11 +22,13 @@
     <span class="timeline-help shortcut-help btn btn-xs btn-info">?</span>
 </div>
 <?= $this->element('genericElements/assetLoader', [
-     'js' => [
-         'moment.min',
-         'event-timeline',
-     ],
-     'css' => [
-         'event-timeline',
-     ],
- ]);
+    'js' => [
+        'moment.min',
+        'Chart.min',
+        'chartjs-adapter-moment.min',
+        'event-timeline',
+    ],
+    'css' => [
+        'event-timeline',
+    ],
+]);

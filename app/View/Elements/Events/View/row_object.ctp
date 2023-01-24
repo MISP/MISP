@@ -43,6 +43,7 @@ $objectId = intval($object['id']);
   <?php
     endif;
   ?>
+  <?php if ($includeOrgColumn): ?>
   <td class="short">
     <?php
       if ($extended):
@@ -50,6 +51,7 @@ $objectId = intval($object['id']);
       endif;
     ?>
   </td>
+  <?php endif; ?>
   <td colspan="<?= $includeRelatedTags ? 6 : 5 ?>">
     <span class="bold"><?php echo __('Object name: ');?></span><?php echo h($object['name']);?>
     <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $objectId ?>_collapsible"></span>
@@ -81,14 +83,18 @@ $objectId = intval($object['id']);
   </td>
   <td colspan="4"></td>
   <td class="shortish"<?= $quickEdit('distribution') ?>>
-    <div class="inline-field-solid<?= $object['distribution'] == 0 ? ' red' : '' ?>">
+    <div class="inline-field-solid">
       <?php
           if ($object['distribution'] == 4):
       ?>
         <a href="<?php echo $baseurl; ?>/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
       <?php
           else:
-            echo h($shortDist[$object['distribution']]);
+              if ($object['distribution'] == 0) {
+                  echo '<span class="red">' . h($shortDist[$object['distribution']]) . '</span>';
+              } else {
+                  echo h($shortDist[$object['distribution']]);
+              }
           endif;
       ?>
     </div>
@@ -136,17 +142,19 @@ $objectId = intval($object['id']);
   </td>
 </tr>
 <?php
-  if (!empty($object['Attribute'])) {
+if (!empty($object['Attribute'])) {
     end($object['Attribute']);
     $lastElement = key($object['Attribute']);
     foreach ($object['Attribute'] as $attrKey => $attribute) {
-      echo $this->element('/Events/View/row_' . $attribute['objectType'], array(
-        'object' => $attribute,
-        'mayModify' => $mayModify,
-        'mayChangeCorrelation' => $mayChangeCorrelation,
-        'fieldCount' => $fieldCount,
-        'child' => $attrKey == $lastElement ? 'last' : true
-      ));
+        echo $this->element('/Events/View/row_' . $attribute['objectType'], array(
+            'object' => $attribute,
+            'mayModify' => $mayModify,
+            'mayChangeCorrelation' => $mayChangeCorrelation,
+            'fieldCount' => $fieldCount,
+            'child' => $attrKey === $lastElement ? 'last' : true,
+        ));
     }
-    echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') .'" data-popover-popup="' . $baseurl . '/objects/quickFetchTemplateWithValidObjectAttributes/' . $objectId .'"></span></td></tr>';
-  }
+    if ($mayModify) {
+        echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') . '" data-popover-popup="' . $baseurl . '/objects/quickFetchTemplateWithValidObjectAttributes/' . $objectId . '"></span></td></tr>';
+    }
+}

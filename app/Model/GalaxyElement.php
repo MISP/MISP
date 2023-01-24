@@ -1,5 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
+
+/**
+ * @property GalaxyCluster $GalaxyCluster
+ */
 class GalaxyElement extends AppModel
 {
     public $useTable = 'galaxy_elements';

@@ -28,7 +28,7 @@ class WhoamiWidget
             array('title' => 'Email', 'value' => $user['email']),
             array('title' => 'Role', 'value' => $user['Role']['name']),
             array('title' => 'Organisation', 'value' => $user['Organisation']['name']),
-            array('title' => 'IP', 'value' => empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['REMOTE_ADDR'] : $_SERVER['HTTP_X_FORWARDED_FOR']),
+            array('title' => 'IP', 'value' => $this->Log->_remoteIp()),
             array('title' => 'Last logins', 'value' => $entries)
         );
 	}

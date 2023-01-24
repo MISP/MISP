@@ -51,9 +51,19 @@ class AccessLogsController extends AppController
                 'conditions' => $conditions,
                 'contain' => $this->paginate['contain'],
             ]);
+            foreach ($list as &$item) {
+                if (!empty($item['AccessLog']['request'])) {
+                    $item['AccessLog']['request'] = base64_encode($item['AccessLog']['request']);
+                }
+            }
             return $this->RestResponse->viewData($list, 'json');
         }
+        if (empty(Configure::read('MISP.log_skip_access_logs_in_application_logs'))) {
+            $this->Flash->warning(__('Access logs are logged in both application logs and access logs. Make sure you reconfigure your log monitoring tools and update MISP.log_skip_access_logs_in_application_logs.'));
+        }
 
+        $this->AccessLog->virtualFields['has_query_log'] = 'query_log IS NOT NULL';
+        $this->paginate['fields'][] = 'has_query_log';
         $this->paginate['conditions'] = $conditions;
         $list = $this->paginate();
 
@@ -93,6 +103,23 @@ class AccessLogsController extends AppController
         }
 
         $this->set('request', $data);
+    }
+
+    public function admin_queryLog($id)
+    {
+        $request = $this->AccessLog->find('first', [
+            'conditions' => ['AccessLog.id' => $id],
+            'fields' => ['AccessLog.query_log'],
+        ]);
+        if (empty($request)) {
+            throw new NotFoundException(__('Access log not found'));
+        }
+
+        if (empty($request['AccessLog']['query_log'])) {
+            throw new NotFoundException(__('Query log is empty'));
+        }
+
+        $this->set('queryLog', $request['AccessLog']['query_log']);
     }
 
     /**

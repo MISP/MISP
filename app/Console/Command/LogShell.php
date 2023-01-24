@@ -24,14 +24,25 @@ class LogShell extends AppShell
         ]);
         $parser->addSubcommand('export', [
             'help' => __('Export application logs to compressed file in JSON Lines format (one JSON encoded line per entry).'),
-            'parser' => array(
-                'arguments' => array(
+            'parser' => [
+                'arguments' => [
                     'file' => ['help' => __('Path to output file'), 'required' => true],
-                ),
-            ),
+                ],
+                'options' => [
+                    'without-changes' => ['boolean' => true, 'help' => __('Do not include add, edit or delete actions.')],
+                ],
+            ],
         ]);
         $parser->addSubcommand('recompress', [
             'help' => __('Recompress compressed data in logs.'),
+        ]);
+        $parser->addSubcommand('accessLogRetention', [
+            'help' => __('Delete logs that are older than specified duration.'),
+            'parser' => array(
+                'arguments' => array(
+                    'duration' => ['help' => __('Duration in days'), 'required' => true],
+                ),
+            ),
         ]);
         return $parser;
     }
@@ -39,6 +50,7 @@ class LogShell extends AppShell
     public function export()
     {
         list($path) = $this->args;
+        $withoutChanges = $this->param('without-changes');
 
         if (file_exists($path)) {
             $this->error("File $path already exists");
@@ -49,21 +61,24 @@ class LogShell extends AppShell
             $this->error("Could not open $path for writing");
         }
 
-        $rows = $this->Log->query("SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'logs';");
         /** @var ProgressShellHelper $progress */
         $progress = $this->helper('progress');
         $progress->init([
-            'total' => $rows[0]['TABLES']['TABLE_ROWS'], // just estimate, but fast
+            'total' => $this->Log->tableRows(), // just estimate, but fast
             'width' => 50,
         ]);
 
         $lastId = 0;
         while (true) {
+            $conditions = ['Log.id >' => $lastId]; // much faster than offset
+            if ($withoutChanges) {
+                $conditions['NOT'] = ['Log.action' => ['add', 'edit', 'delete']];
+            }
             $logs = $this->Log->find('all', [
-                'conditions' => ['id >' => $lastId], // much faster than offset
+                'conditions' => $conditions,
                 'recursive' => -1,
                 'limit' => 100000,
-                'order' => ['id ASC'],
+                'order' => ['Log.id ASC'],
             ]);
             if (empty($logs)) {
                 break;
@@ -183,5 +198,16 @@ class LogShell extends AppShell
     public function recompress()
     {
         $this->AuditLog->recompress();
+    }
+
+    public function accessLogRetention()
+    {
+        list($duration) = $this->args;
+        if ($duration <= 0 || !is_numeric($duration)) {
+            $this->error("Invalid duration specified.");
+        }
+        $duration = new DateTime("-$duration days");
+        $deleted = $this->AccessLog->deleteOldLogs($duration);
+        $this->out(__n("Deleted %s entry", "Deleted %s entries", $deleted, $deleted));
     }
 }

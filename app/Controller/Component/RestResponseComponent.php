@@ -608,37 +608,34 @@ class RestResponseComponent extends Component
             $type = 'csv';
         } else {
             $type = $format;
-            $dumpSql = !empty($this->Controller->sql_dump) && Configure::read('debug') > 1;
+
+            $dumpSql = intval($this->Controller->request->params['named']['sql'] ?? 0);
+            if ($dumpSql && Configure::read('debug') < 2) {
+                $dumpSql = 0; // disable dumping SQL if debugging is off
+            }
+
             if (!$raw) {
                 if (is_string($response)) {
                     $response = array('message' => $response);
                 }
                 if ($dumpSql) {
-                    $this->Log = ClassRegistry::init('Log');
-                    if ($this->Controller->sql_dump === 2) {
-                        $response = array('sql_dump' => $this->Log->getDataSource()->getLog(false, false));
+                    if ($dumpSql === 2) {
+                        $response = ['sql_dump' => $this->getSqlLog()];
                     } else {
-                        $response['sql_dump'] = $this->Log->getDataSource()->getLog(false, false);
+                        $response['sql_dump'] = $this->getSqlLog();
                     }
                 }
 
-                $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
-                if (!$this->isAutomaticTool()) {
-                    $flags |= JSON_PRETTY_PRINT; // Do not pretty print response for automatic tools
-                }
-                if (defined('JSON_THROW_ON_ERROR')) {
-                    $flags |= JSON_THROW_ON_ERROR; // Throw exception on error if supported
-                }
-                $response = json_encode($response, $flags);
+                $prettyPrint = !$this->isAutomaticTool(); // Do not pretty print response for automatic tools
+                $response = JsonTool::encode($response, $prettyPrint);
             } else {
                 if ($dumpSql) {
-                    $this->Log = ClassRegistry::init('Log');
-                    if ($this->Controller->sql_dump === 2) {
-                        $response = json_encode(array('sql_dump' => $this->Log->getDataSource()->getLog(false, false)));
+                    if ($dumpSql === 2) {
+                        $response = JsonTool::encode(['sql_dump' => $this->getSqlLog()]);
                     } else {
                         $response = substr_replace(
                             $response,
-                            sprintf(', "sql_dump": %s}', json_encode($this->Log->getDataSource()->getLog(false, false))),
+                            sprintf(', "sql_dump": %s}', JsonTool::encode($this->getSqlLog())),
                             -2
                         );
                     }
@@ -2103,5 +2100,13 @@ class RestResponseComponent extends Component
             $admin_routing = 'admin/';
         }
         return '/' . $admin_routing . $controller . '/' . $action;
+    }
+
+    /**
+     * @return array
+     */
+    private function getSqlLog()
+    {
+        return $this->Controller->User->getDataSource()->getLog(false, false);
     }
 }
