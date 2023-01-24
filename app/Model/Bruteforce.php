@@ -21,10 +21,11 @@ class Bruteforce extends AppModel
         );
         $this->save($bruteforceEntry);
         $title = 'Failed login attempt using username ' . $username . ' from IP: ' . $ip . '.';
+        $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
+        $change = $this->UserLoginProfile->_getUserProfile();
         if ($this->isBlocklisted($username)) {
-            $change = 'This has tripped the bruteforce protection after  ' . $amount . ' failed attempts. The source IP/username is now blocklisted for ' . $expire . ' seconds.';
-        } else {
-            $change = '';
+            $title .= ' Blocked against bruteforcing.';
+            $change['details'] = 'This has tripped the bruteforce protection after  ' . $amount . ' failed attempts. The source IP/username is now blocklisted for ' . $expire . ' seconds.';
         }
         // lookup the real user details
         $this->User = ClassRegistry::init('User');
@@ -48,7 +49,7 @@ class Bruteforce extends AppModel
                 'user_id' => $userId,
                 'action' => 'login_fail',
                 'title' => $title,
-                'change' => $change
+                'change' => json_encode($change)
         );
         $this->Log->save($log);
     }
