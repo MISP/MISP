@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '146';
-    public $pyMispVersion = '2.4.166';
+    private $__queryVersion = '147';
+    public $pyMispVersion = '2.4.167';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -43,7 +43,6 @@ class AppController extends Controller
     private $isApiAuthed = false;
 
     public $baseurl = '';
-    public $sql_dump = false;
 
     public $restResponsePayload = null;
 
@@ -102,7 +101,9 @@ class AppController extends Controller
     {
         $controller = $this->request->params['controller'];
         $action = $this->request->params['action'];
-
+        if (empty($this->Session->read('creation_timestamp'))) {
+            $this->Session->write('creation_timestamp', time());
+        }
         if (Configure::read('MISP.system_setting_db')) {
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
@@ -136,23 +137,33 @@ class AppController extends Controller
             $this->response->header('X-XSS-Protection', '1; mode=block');
         }
 
-        if (!empty($this->request->params['named']['sql'])) {
-            $this->sql_dump = intval($this->request->params['named']['sql']);
-        }
-
         $this->_setupDatabaseConnection();
 
         $this->set('debugMode', Configure::read('debug') >= 1 ? 'debugOn' : 'debugOff');
         $isAjax = $this->request->is('ajax');
         $this->set('ajax', $isAjax);
         $this->set('queryVersion', $this->__queryVersion);
-        $this->User = ClassRegistry::init('User');
 
         $language = Configure::read('MISP.language');
         if (!empty($language) && $language !== 'eng') {
             Configure::write('Config.language', $language);
         } else {
             Configure::write('Config.language', 'eng');
+        }
+
+        $this->User = ClassRegistry::init('User');
+        if ($this->Auth->user()) {
+            if ($this->User->checkForSessionDestruction($this->Auth->user('id'))) {
+                $this->Auth->logout();
+                $this->Session->destroy();
+                $message = __('User deauthenticated on administrator request. Please reauthenticate.');
+                if ($this->_isRest()) {
+                    throw new ForbiddenException($message);
+                } else {
+                    $this->Flash->warning($message);
+                    $this->_redirectToLogin();
+                }
+            }
         }
 
         // For fresh installation (salt empty) generate a new salt
@@ -225,8 +236,9 @@ class AppController extends Controller
             if ($this->_isRest() || $this->_isAutomation()) {
                 // disable CSRF for REST access
                 $this->Security->csrfCheck = false;
-                if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
-                    if ($this->__loginByAuthKey() === null) {
+                $loginByAuthKeyResult = $this->__loginByAuthKey();
+                if ($loginByAuthKeyResult === false || $this->Auth->user() === null) {
+                    if ($loginByAuthKeyResult === null) {
                         $this->loadModel('Log');
                         $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.");
                     }
@@ -447,6 +459,9 @@ class AppController extends Controller
                     }
                     $this->Session->destroy();
                 }
+            } else {
+                    $this->loadModel('Log');
+                    $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using an API key of incorrect length.");
             }
             return false;
         }
@@ -674,7 +689,7 @@ class AppController extends Controller
 
         $shouldBeLogged = $userMonitoringEnabled ||
             Configure::read('MISP.log_paranoid') ||
-            (Configure::read('MISP.log_paranoid_api') && $user['logged_by_authkey']);
+            (Configure::read('MISP.log_paranoid_api') && isset($user['logged_by_authkey']) && $user['logged_by_authkey']);
 
         if ($shouldBeLogged) {
             $includeRequestBody = !empty(Configure::read('MISP.log_paranoid_include_post_body')) || $userMonitoringEnabled;
@@ -684,8 +699,8 @@ class AppController extends Controller
         }
 
         if (
-            (empty(Configure::read('MISP.log_skip_access_logs_in_application_logs'))) &&
-            Configure::read('MISP.log_paranoid') || $userMonitoringEnabled
+            empty(Configure::read('MISP.log_skip_access_logs_in_application_logs')) &&
+            $shouldBeLogged
         ) {
             $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here;
             if (

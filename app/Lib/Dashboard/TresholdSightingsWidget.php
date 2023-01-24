@@ -31,21 +31,21 @@ class TresholdSightingsWidget
 
         $data = array();
         $sightings_score = array();
-        $restSearch = JsonTool::decode($Sighting->restSearch($user, 'json', $filters)->intoString())->{'response'};
+        $restSearch = JsonTool::decode($Sighting->restSearch($user, 'json', $filters)->intoString())['response'];
 
         foreach ($restSearch as $el) {
-            $sighting = $el->{'Sighting'};
-            $attribute = $sighting->{'Attribute'};
-            $event = $sighting->{'Event'};
+            $sighting = $el['Sighting'];
+            $attribute = $sighting['Attribute'];
+            $event = $sighting['Event'];
 
-            if (!array_key_exists($attribute->{'id'}, $sightings_score)) $sightings_score[$attribute->{'id'}] = array( 'value' => $attribute->{'value'},
+            if (!array_key_exists($attribute['id'], $sightings_score)) $sightings_score[$attribute['id']] = array( 'value' => $attribute['value'],
                                                                                                                 'score' => 0,
-                                                                                                                'event_title' => $event->{'info'},
-                                                                                                                'event_id' => $event->{'id'});
+                                                                                                                'event_title' => $event['info'],
+                                                                                                                'event_id' => $event['id']);
             # Sighting
-            if ($sighting->{'type'} == 0) $sightings_score[$attribute->{'id'}]['score'] = $sightings_score[$attribute->{'id'}]['score'] - 1;
+            if ($sighting['type'] == 0) $sightings_score[$attribute['id']]['score'] = $sightings_score[$attribute['id']]['score'] - 1;
             # False Positive
-            elseif ($sighting->{'type'} == 1) $sightings_score[$attribute->{'id'}]['score'] = $sightings_score[$attribute->{'id'}]['score'] + 1; 
+            elseif ($sighting['type'] == 1) $sightings_score[$attribute['id']]['score'] = $sightings_score[$attribute['id']]['score'] + 1; 
         }
 
         foreach ($sightings_score as $attribute_id => $s) {

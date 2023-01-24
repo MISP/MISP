@@ -1,6 +1,6 @@
 <?php
 $this->set('menuItem', $menuItem);
-$divider = $this->element('/genericElements/SideMenu/side_menu_divider');
+$divider = '<li class="divider"></li>';
 ?>
 <div class="actions sideMenu">
     <ul class="nav nav-list">
@@ -119,7 +119,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
-                            'url' => '/eventReports/add/' . h($event['Event']['id']),
+                            'url' => '/eventReports/add/' . $eventId,
                             'text' => __('Add Event Report')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -163,34 +163,34 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                     }
                     echo $divider;
-                    $publishButtons = ' hidden';
-                    if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && $mayPublish) {
-                        $publishButtons = "";
+                    if ($isSiteAdmin || $mayPublish) {
+                        echo '<div id="hiddenSideMenuData" class="hidden" data-event-id="' . $eventId . '"></div>';
+                        $isPublished = isset($event['Event']['published']) && 0 == $event['Event']['published'];
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'onClick' => array(
+                                'function' => 'publishPopup',
+                                'params' => array($eventId, 'alert')
+                            ),
+                            'class' => 'publishButtons not-published' . ($isPublished ? '' : ' hidden'),
+                            'text' => __('Publish Event')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'onClick' => array(
+                                'function' => 'publishPopup',
+                                'params' => array($eventId, 'publish')
+                            ),
+                            'class' => 'publishButtons not-published' . ($isPublished ? '' : ' hidden'),
+                            'text' => __('Publish (no email)')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'onClick' => array(
+                                'function' => 'publishPopup',
+                                'params' => array($eventId, 'unpublish')
+                            ),
+                            'class' => (isset($event['Event']['published']) && (1 == $event['Event']['published'] && $mayModify)) ? '' : 'hidden',
+                            'text' => __('Unpublish')
+                        ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'onClick' => array(
-                            'function' => 'publishPopup',
-                            'params' => array($eventId, 'alert')
-                        ),
-                        'class' => 'publishButtons not-published' . $publishButtons,
-                        'text' => __('Publish Event')
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'onClick' => array(
-                            'function' => 'publishPopup',
-                            'params' => array($eventId, 'publish')
-                        ),
-                        'class' => 'publishButtons not-published' . $publishButtons,
-                        'text' => __('Publish (no email)')
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'onClick' => array(
-                            'function' => 'publishPopup',
-                            'params' => array($eventId, 'unpublish')
-                        ),
-                        'class' => (isset($event['Event']['published']) && (1 == $event['Event']['published'] && $mayModify)) ? '' : 'hidden',
-                        'text' => __('Unpublish')
-                    ));
                     if (!empty($event['Event']['published']) && $me['Role']['perm_sighting']) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'onClick' => array(
@@ -652,10 +652,6 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/user_settings/setSetting',
                         'text' => __('Set Setting')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/dashboards',
-                        'text' => __('Dashboard')
-                    ));
                     if ($this->Acl->canAccess('organisations', 'index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'indexOrg',
@@ -733,6 +729,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'element_id' => 'userGuide',
                         'url' => $baseurl . '/pages/display/doc/general',
                         'text' => __('User Guide')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'categoriesAndTypes',
+                        'url' => $baseurl . '/pages/display/doc/categories_and_types',
+                        'text' => __('Categories & Types'),
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/users/terms',
@@ -1093,25 +1094,29 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
 
                 case 'logs':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/admin/logs/index',
+                        'url' => $baseurl . '/logs/index',
                         'text' => __('Application Logs')
                     ));
-                    if (Configure::read('MISP.log_new_audit')) {
+                    if (Configure::read('MISP.log_new_audit') && $isAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'listAuditLogs',
                             'url' => $baseurl . '/admin/audit_logs/index',
                             'text' => __('Audit Logs'),
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'listAccessLogs',
-                        'url' => $baseurl . '/admin/access_logs/index',
-                        'text' => __('Access Logs'),
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/admin/logs/search',
-                        'text' => __('Search Logs')
-                    ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'listAccessLogs',
+                            'url' => $baseurl . '/admin/access_logs/index',
+                            'text' => __('Access Logs'),
+                        ));
+                    }
+                    if ($isAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/admin/logs/search',
+                            'text' => __('Search Logs')
+                        ));
+                    }
                     break;
 
                 case 'threads':
@@ -1726,7 +1731,6 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
                 }
                 break;
-
             }
         ?>
     </ul>

@@ -1,3 +1,4 @@
+<?php $canAccessDiscussion = $this->Acl->canAccess('threads', 'view') ?>
 <div id="eventToggleButtons">
     <button class="btn btn-inverse toggle-left qet" id="pivots_toggle" data-toggle-type="pivots">
         <span class="fas fa-minus" title="<?php echo __('Toggle pivot graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle pivot graph');?>"></span><?php echo __('Pivots');?>
@@ -20,12 +21,14 @@
     <button class="btn btn-inverse toggle qet" id="eventreport_toggle" data-toggle-type="eventreport">
         <span class="fas fa-plus" title="<?php echo __('Toggle reports');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle reports');?>"></span><?php echo __('Event reports');?>
     </button>
-    <button class="btn btn-inverse toggle qet" id="attributes_toggle" data-toggle-type="attributes">
+    <button class="btn btn-inverse <?= $canAccessDiscussion ? 'toggle' : 'toggle-right' ?> qet" id="attributes_toggle" data-toggle-type="attributes">
         <span class="fas fa-minus" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>"></span><?php echo __('Attributes');?>
     </button>
+    <?php if ($canAccessDiscussion): ?>
     <button class="btn btn-inverse toggle-right qet" id="discussions_toggle" data-toggle-type="discussions">
         <span class="fas fa-minus" title="<?php echo __('Toggle discussions');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle discussions');?>"></span><?php echo __('Discussion');?>
     </button>
+    <?php endif; ?>
 </div>
 <br>
 <br>
@@ -83,9 +86,11 @@ $(document.body).tooltip({
     $('.tooltip').not(":last").remove();
 });
 
+<?php if ($this->Acl->canAccess('threads', 'view')): ?>
 $.get("<?php echo $baseurl; ?>/threads/view/<?php echo h($event['Event']['id']); ?>/true", function(data) {
     $("#discussions_div").html(data);
 });
+<?php endif; ?>
 
 $.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1<?= $extended ? '/extended_event:1' : ''?>", function(data) {
     $("#eventreport_content").html(data);

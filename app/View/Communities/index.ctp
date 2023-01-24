@@ -31,7 +31,7 @@
             ),
             'fields' => array(
                 array(
-                    'name' => __('Id'),
+                    'name' => __('ID'),
                     'sort' => 'id',
                     'class' => 'short',
                     'data_path' => 'id',
@@ -76,14 +76,16 @@
                     'url_params_data_paths' => array(
                         'uuid'
                     ),
-                    'icon' => 'eye'
+                    'icon' => 'eye',
+                    'title' => __('View'),
                 ),
                 array(
                     'url' => $baseurl . '/communities/requestAccess',
                     'url_params_data_paths' => array(
                         'uuid'
                     ),
-                    'icon' => 'comments'
+                    'icon' => 'comments',
+                    'title' => __('Request access'),
                 )
             )
         )
@@ -91,12 +93,12 @@
     echo '</div>';
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'list_communities'));
 ?>
-<script type="text/javascript">
+<script>
     var passedArgsArray = <?php echo $passedArgs; ?>;
     if (passedArgsArray['context'] === undefined) {
         passedArgsArray['context'] = 'vetted';
     }
-    $(document).ready(function() {
+    $(function() {
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter('/context:' + passedArgsArray['context']);
         });

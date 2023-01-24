@@ -367,6 +367,9 @@ class TagsController extends AppController
         // Remove galaxy tags
         $event = $this->Tag->removeGalaxyClusterTags($user, $event);
 
+        $highlightedTags = $this->Taxonomy->getHighlightedTags($this->Taxonomy->getHighlightedTaxonomies(), $event['EventTag']);
+        $this->set('highlightedTaxonomies', $highlightedTags);
+
         $this->set('tags', $event['EventTag']);
         $this->set('missingTaxonomies', $this->Tag->EventTag->Event->missingTaxonomies($event));
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);

@@ -158,3 +158,8 @@
 #timeline-typeahead {
     width: 400px;
 }
+
+#eventtimeline_div > div.timechart-container,
+#eventtimeline_div > div.timechart-container > canvas {
+	position: relative;
+}
