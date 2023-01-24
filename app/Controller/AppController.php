@@ -432,21 +432,17 @@ class AppController extends Controller
                     // User found in the db, add the user info to the session
                     if (Configure::read('MISP.log_auth')) {
                         $this->loadModel('Log');
-                        $this->Log->create();
                         $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
                         $change = $this->UserLoginProfile->_getUserProfile();
                         $change['http_method'] = $_SERVER['REQUEST_METHOD'];
                         $change['target'] = $this->request->here;
-                        $log = array(
-                            'org' => $user['Organisation']['name'],
-                            'model' => 'User',
-                            'model_id' => $user['id'],
-                            'email' => $user['email'],
-                            'action' => 'auth',
-                            'title' => "Successful authentication using API key ($authKeyToStore)",
-                            'change' => json_encode($change),
-                        );
-                        $this->Log->save($log);
+                        $this->Log->createLogEntry(
+                            $user,
+                            'auth',
+                            'User',
+                            $user['id'],
+                            "Successful authentication using API key ($authKeyToStore)",
+                            json_encode($change));
                     }
                     $storeAPITime = Configure::read('MISP.store_api_access_time');
                     if (!empty($storeAPITime) && $storeAPITime) {
@@ -1091,17 +1087,13 @@ class AppController extends Controller
             if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
                 if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $this->_remoteIp()) {
                     $this->Log = ClassRegistry::init('Log');
-                    $this->Log->create();
-                    $log = array(
-                            'org' => 'SYSTEM',
-                            'model' => 'User',
-                            'model_id' => 0,
-                            'email' => 'SYSTEM',
-                            'action' => 'auth_fail',
-                            'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->_remoteIp(),
-                            'change' => null,
-                    );
-                    $this->Log->save($log);
+                    $this->Log->createLogEntry(
+                        'SYSTEM',
+                        'auth_fail',
+                        'User',
+                        0,
+                        'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->_remoteIp(),
+                        null);
                     $this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
                 }
                 $temp = $this->_checkExternalAuthUser($server[$headerNamespace . $header]);
@@ -1112,38 +1104,30 @@ class AppController extends Controller
                     $this->Session->write(AuthComponent::$sessionKey, $user['User']);
                     if (Configure::read('MISP.log_auth')) {
                         $this->Log = ClassRegistry::init('Log');
-                        $this->Log->create();
                         $change = $this->UserLoginProfile->_getUserProfile();
                         $change['http_method'] = $_SERVER['REQUEST_METHOD'];
                         $change['target'] = $this->request->here;
-                        $log = array(
-                            'org' => $user['User']['Organisation']['name'],
-                            'model' => 'User',
-                            'model_id' => $user['User']['id'],
-                            'email' => $user['User']['email'],
-                            'action' => 'auth',
-                            'title' => 'Successful authentication using ' . $authName . ' key',
-                            'change' => json_encode($change),
-                        );
-                        $this->Log->save($log);
+                        $this->Log->createLogEntry(
+                            $user,
+                            'auth',
+                            'User',
+                            $user['User']['id'],
+                            'Successful authentication using ' . $authName . ' key',
+                            json_encode($change));
                     }
                     $result = true;
                 } else {
                     // User not authenticated correctly
                     // reset the session information
                     $this->Log = ClassRegistry::init('Log');
-                    $this->Log->create();
                     $change = $this->UserLoginProfile->_getUserProfile();
-                    $log = array(
-                            'org' => 'SYSTEM',
-                            'model' => 'User',
-                            'model_id' => 0,
-                            'email' => 'SYSTEM',
-                            'action' => 'auth_fail',
-                            'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ')',
-                            'change' => json_encode($change),
-                    );
-                    $this->Log->save($log);
+                    $this->Log->createLogEntry(
+                        'SYSTEM',
+                        'auth_fail',
+                        'User',
+                        0,
+                        'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ')',
+                        json_encode($change));
                     if (Configure::read('CustomAuth_required')) {
                         $this->Session->destroy();
                         $this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));

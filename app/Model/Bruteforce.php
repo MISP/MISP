@@ -8,7 +8,6 @@ class Bruteforce extends AppModel
     public function insert($username)
     {
         $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
         $ip = $this->_remoteIp();
         $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
         $amount = Configure::check('SecureAuth.amount') ? Configure::read('SecureAuth.amount') : 5;
@@ -40,18 +39,13 @@ class Bruteforce extends AppModel
             $org = 'SYSTEM';
             $userId = 0;
         }
-
-        $log = array(
-                'org' => $org,
-                'model' => 'User',
-                'model_id' => $userId,
-                'email' => $username,
-                'user_id' => $userId,
-                'action' => 'login_fail',
-                'title' => $title,
-                'change' => json_encode($change)
-        );
-        $this->Log->save($log);
+        $this->Log->createLogEntry(
+            $user,
+            'login_fail',
+            'User',
+            $userId,
+            $title,
+            json_encode($change));
     }
 
     public function clean()
