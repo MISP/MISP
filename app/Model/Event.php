@@ -2097,7 +2097,7 @@ class Event extends AppModel
             // Include information about event creator user email. This information is included for:
             // - users from event creator org
             // - site admins
-            // In export, this information will be included in `event_creator_email` field just for auditors of event creator org.
+            // In export, this information will be included in `event_creator_email` field for auditors of event creator org and site admins.
             $sameOrg = $event['Event']['orgc_id'] === $user['org_id'];
             if ($sameOrg || $user['Role']['perm_site_admin']) {
                 if (!isset($userEmails[$event['Event']['user_id']])) {
@@ -2105,7 +2105,7 @@ class Event extends AppModel
                 }
 
                 $userEmail = $userEmails[$event['Event']['user_id']];
-                if ($sameOrg && $user['Role']['perm_audit']) {
+                if ($sameOrg && $user['Role']['perm_audit'] || $user['Role']['perm_site_admin']) {
                     $event['Event']['event_creator_email'] = $userEmail;
                 }
                 $event['User']['email'] = $userEmail;
