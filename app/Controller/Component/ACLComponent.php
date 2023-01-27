@@ -125,7 +125,7 @@ class ACLComponent extends Component
             'decayingModel' => array(
                 "update" => array(),
                 "export" => array('*'),
-                "import" => array('*'),
+                "import" => array('OR' => array('perm_admin', 'perm_decaying')),
                 "view" => array('*'),
                 "index" => array('*'),
                 "add" => array( 'OR' => array('perm_admin', 'perm_decaying')),
