@@ -50,7 +50,7 @@ MISP, Malware Information Sharing Platform and Threat Sharing, core functionalit
 - **export**: generating IDS, OpenIOC, plain text, CSV, MISP XML or JSON output to integrate with other systems (network IDS, host IDS, custom tools), Cache format (used for forensic tools), STIX (XML and JSON) 1 and 2, NIDS export (Suricata, Snort and Bro/Zeek) or RPZ zone. Many other formats can be easily added via the [misp-modules](https://github.com/MISP/misp-modules).
 - **import**: bulk-import, batch-import, import from OpenIOC, GFI sandbox, ThreatConnect CSV, MISP standard format or STIX 1.1/2.0. Many other formats easily added via the [misp-modules](https://github.com/MISP/misp-modules).
 - Flexible **free text import** tool to ease the integration of unstructured reports into MISP.
-- A gentle system to **collaborate** on events and attributes allowing MISP users to propose changes or updates to attributes/indicators.
+- A user-friendly system to **collaborate** on events and attributes allowing MISP users to propose changes or updates to attributes/indicators.
 - **data-sharing**: automatically exchange and synchronize with other parties and trust-groups using MISP.
 - **delegating of sharing**: allows for a simple, pseudo-anonymous mechanism to delegate publication of event/indicators to another organization.
 - Flexible **API** to integrate MISP with your own solutions. MISP is bundled with [PyMISP](https://github.com/MISP/PyMISP) which is a flexible Python Library to fetch, add or update events attributes, handle malware samples or search for attributes. An exhaustive restSearch API to easily search for indicators in MISP and exports those in all the format supported by MISP.
