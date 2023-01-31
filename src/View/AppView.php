@@ -42,7 +42,7 @@ class AppView extends View
         $this->loadHelper('Hash');
         $this->loadHelper('PrettyPrint');
         $this->loadHelper('FormFieldMassage');
-        $this->loadHelper('Paginator', ['templates' => 'cerebrate-pagination-templates']);
+        $this->loadHelper('Paginator', ['templates' => 'misp-pagination-templates']);
         $this->loadHelper('Tags.Tag');
         $this->loadHelper('ACL');
     }
