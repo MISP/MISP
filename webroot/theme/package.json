@@ -1,0 +1,18 @@
+{
+  "name": "theme",
+  "version": "1.0.0",
+  "description": "Create theme for the application",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "autobuild": "sass --no-source-map --watch scss:../css/themes",
+    "build": "sass --no-source-map scss:../css/themes",
+    "build-with-map": "sass scss:../css/themes"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bootstrap": "^5.1.1",
+    "sass": "^1.45.0"
+  }
+}

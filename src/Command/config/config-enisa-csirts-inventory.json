@@ -1,0 +1,32 @@
+{
+    "format": "json",
+    "mapping": {
+        "name": "data.{n}.short-team-name",
+        "uuid": {
+                "path": "data.{n}.team-name",
+                "override": false,
+                "massage": "genUUID"
+        },
+        "url": "data.{n}.website",
+        "contacts": "data.{n}.email",
+        "ISO 3166-1 Code": "data.{n}.country-code",
+        "website": "data.{n}.website",
+        "enisa-geo-group": "data.{n}.enisa-geo-group",
+        "is-approved": "data.{n}.is_approved",
+        "first-member-type": "data.{n}.first-member-type",
+        "team-name": "data.{n}.team-name",
+        "oes-coverage": {
+            "path": "data.{n}.oes-coverage",
+            "massage": "nullToEmptyString"
+        },
+        "enisa-tistatus": "data.{n}.enisa-tistatus",
+        "csirt-network-status": "data.{n}.csirt-network-status",
+        "constituency": "data.{n}.constituency",
+        "establishment": "data.{n}.establishment",
+        "email": "data.{n}.email",
+        "country-name": "data.{n}.country-name",
+        "short-team-name": "data.{n}.short-team-name",
+        "key": "data.{n}.key"
+    },
+    "metaTemplateUUID": "089c68c7-d97e-4f21-a798-159cd10f7864"
+}

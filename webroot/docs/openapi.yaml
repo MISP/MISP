@@ -1,0 +1,2554 @@
+openapi: 3.0.0
+info:
+  version: 1.3.0
+  title: Cerebrate Project API
+  description: |
+    Cerebrate is an open-source platform meant to act as a trusted contact information provider and interconnection orchestrator for other security tools.
+
+servers:
+  - url: https://cerebrate.local
+
+tags:
+  - name: Individuals
+    description: "Individuals are natural persons. They are meant to describe the basic information about an individual that may or may not be a user of this community. Users in genral require an individual object to identify the person behind them - however, no user account is required to store information about an individual. Individuals can have affiliations to organisations and broods as well as cryptographic keys, using which their messages can be verified and which can be used to securely contact them."
+  - name: Users
+    description: "Users enrolled in this Cerebrate instance."
+  - name: Organisations
+    description: "Organisations can be equivalent to legal entities or specific individual teams within such entities. Their purpose is to relate individuals to their affiliations and for release control of information using the Trust Circles."
+  - name: Tags
+    description: "Tags can be attached to entity to quickly classify them, allowing further filtering and searches."
+  - name: Inbox
+    description: "Inbox messages represent A list of requests to be manually processed."
+  - name: SharingGroups
+    description: "Sharing groups are distribution lists usable by tools that can exchange information with a list of trusted partners. Create recurring or ad hoc sharing groups and share them with the members of the sharing group."
+  - name: Broods
+    description: "Cerebrate can connect to other Cerebrate instances to exchange trust information and to instrument interconnectivity between connected local tools. Each such Cerebrate instance with its connected tools is considered to be a brood."
+  - name: EncryptionKeys
+    description: "Assign encryption keys to the user, used to securely communicate or validate messages coming from the user."
+  - name: AuthKeys
+    description: "Authkeys are used for API access. A user can have more than one authkey, so if you would like to use separate keys per tool that queries Cerebrate, add additional keys. Use the comment field to make identifying your keys easier."
+  - name: LocalTools
+    description: "Cerebrate can connect to local tools via individual connectors, built to expose the various functionalities of the given tool via Cerebrate. Simply view the connectors' details and the accompanying instance list to manage the connections using the given connector."
+  - name: MetaTemplates
+    description: ""
+
+paths:
+  /individuals/index:
+    get:
+      summary: "Get individuals list"
+      operationId: getIndividuals
+      tags:
+        - Individuals
+      parameters:
+        - $ref: "#/components/parameters/quickFilter"
+      responses:
+        "200":
+          $ref: "#/components/responses/IndividualListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /individuals/view/{individualId}:
+    get:
+      summary: "Get individual by ID"
+      operationId: getIndividualById
+      tags:
+        - Individuals
+      parameters:
+        - $ref: "#/components/parameters/individualId"
+      responses:
+        "200":
+          $ref: "#/components/responses/IndividualResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /individuals/add:
+    post:
+      summary: "Add individual"
+      operationId: addIndividual
+      tags:
+        - Individuals
+      requestBody:
+        $ref: "#/components/requestBodies/CreateIndividualRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/IndividualResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /individuals/edit/{individualId}:
+    put:
+      summary: "Edit individual"
+      operationId: editIndividual
+      tags:
+        - Individuals
+      parameters:
+        - $ref: "#/components/parameters/individualId"
+      requestBody:
+        $ref: "#/components/requestBodies/EditIndividualRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/IndividualResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /individuals/delete/{individualId}:
+    delete:
+      summary: "Delete individual by ID"
+      operationId: deleteIndividualById
+      tags:
+        - Individuals
+      parameters:
+        - $ref: "#/components/parameters/individualId"
+      responses:
+        "200":
+          $ref: "#/components/responses/IndividualResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /users/index:
+    get:
+      summary: "Get users list"
+      operationId: getUsers
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/quickFilter"
+      responses:
+        "200":
+          $ref: "#/components/responses/UserListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /users/view:
+    get:
+      summary: "Get information about the current user"
+      operationId: viewUserMe
+      tags:
+        - Users
+      responses:
+        "200":
+          $ref: "#/components/responses/UserResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /users/view/{userId}:
+    get:
+      summary: "Get information of a user by ID"
+      operationId: viewUserById
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      responses:
+        "200":
+          $ref: "#/components/responses/UserResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /users/add:
+    post:
+      summary: "Add user"
+      operationId: addUser
+      tags:
+        - Users
+      requestBody:
+        $ref: "#/components/requestBodies/CreateUserRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/UserResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /users/edit:
+    put:
+      summary: "Edit current user"
+      operationId: editUser
+      tags:
+        - Users
+      requestBody:
+        $ref: "#/components/requestBodies/EditUserRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/UserResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /users/edit/{userId}:
+    put:
+      summary: "Edit current user"
+      operationId: editUserById
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      requestBody:
+        $ref: "#/components/requestBodies/EditUserRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/UserResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /users/delete/{userId}:
+    delete:
+      summary: "Delete user by ID"
+      operationId: deleteUserById
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      responses:
+        "200":
+          $ref: "#/components/responses/UserResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /organisations/add:
+    post:
+      summary: "Add organisation"
+      operationId: addOrganisation
+      tags:
+        - Organisations
+      requestBody:
+        $ref: "#/components/requestBodies/CreateOrganisationRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/OrganisationResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /organisations/edit/{organisationId}:
+    put:
+      summary: "Edit organisation"
+      operationId: editOrganisation
+      tags:
+        - Organisations
+      parameters:
+        - $ref: "#/components/parameters/organisationId"
+      requestBody:
+        $ref: "#/components/requestBodies/EditOrganisationRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/OrganisationResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /organisations/index:
+    get:
+      summary: "Get organisations"
+      operationId: getOrganisations
+      tags:
+        - Organisations
+      parameters:
+        - $ref: "#/components/parameters/quickFilter"
+      responses:
+        "200":
+          $ref: "#/components/responses/OrganisationListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /organisations/view/{organisationId}:
+    get:
+      summary: "View organisation by ID"
+      operationId: getOrganisationById
+      tags:
+        - Organisations
+      parameters:
+        - $ref: "#/components/parameters/organisationId"
+      responses:
+        "200":
+          $ref: "#/components/responses/OrganisationResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /organisations/delete/{organisationId}:
+    delete:
+      summary: "Delete organisation by ID"
+      operationId: deleteOrganisationById
+      tags:
+        - Organisations
+      parameters:
+        - $ref: "#/components/parameters/organisationId"
+      responses:
+        "200":
+          $ref: "#/components/responses/OrganisationResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /organisations/tag/{organisationId}:
+    post:
+      summary: "Tag organisation by ID"
+      operationId: tagOrganisationById
+      tags:
+        - Organisations
+      parameters:
+        - $ref: "#/components/parameters/organisationId"
+      requestBody:
+        $ref: "#/components/requestBodies/TagOrganisationRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/OrganisationResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /organisations/untag/{organisationId}:
+    post:
+      summary: "Remove organisation tag by ID"
+      operationId: untagOrganisationById
+      tags:
+        - Organisations
+      parameters:
+        - $ref: "#/components/parameters/organisationId"
+      requestBody:
+        $ref: "#/components/requestBodies/UntagOrganisationRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/OrganisationResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /tags/index:
+    get:
+      summary: "Get tags list"
+      operationId: getTags
+      tags:
+        - Tags
+      parameters:
+        - $ref: "#/components/parameters/quickFilter"
+      responses:
+        "200":
+          $ref: "#/components/responses/TagListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /inbox/index:
+    get:
+      summary: "Get inbox list"
+      operationId: getinbox
+      tags:
+        - Inbox
+      parameters:
+        - $ref: "#/components/parameters/quickFilter"
+      responses:
+        "200":
+          $ref: "#/components/responses/InboxListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /inbox/createEntry/User/Registration:
+    post:
+      summary: "Create user registration inbox entry"
+      operationId: createUserRegistrationInboxEntry
+      tags:
+        - Inbox
+      requestBody:
+        $ref: "#/components/requestBodies/CreateUserRegistrationInboxEntryRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/CreateUserRegistrationInboxEntryResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /inbox/createEntry/LocalTool/AcceptedRequest:
+    post:
+      summary: "Create accepted connection request inbox entry"
+      operationId: createAcceptedRequestInboxEntry
+      tags:
+        - Inbox
+      requestBody:
+        $ref: "#/components/requestBodies/CreateAcceptedRequestInboxEntryRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AcceptedRequestInboxResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /inbox/process/{inboxId}:
+    post:
+      summary: "Process inbox entry"
+      operationId: processInboxEntry
+      tags:
+        - Inbox
+      parameters:
+        - $ref: "#/components/parameters/inboxId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ProcessInboxResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /sharingGroups/index:
+    get:
+      summary: "Get a sharing groups list"
+      operationId: getSharingGroups
+      tags:
+        - SharingGroups
+      parameters:
+        - $ref: "#/components/parameters/quickFilter"
+      responses:
+        "200":
+          $ref: "#/components/responses/SharingGroupListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /sharingGroups/add:
+    post:
+      summary: "Add sharing group"
+      operationId: addSharingGroup
+      tags:
+        - SharingGroups
+      requestBody:
+        $ref: "#/components/requestBodies/CreateSharingGroupRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/IndividualResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /sharingGroups/view/{sharingGroupId}:
+    get:
+      summary: "Get sharing group by ID"
+      operationId: getSharingGroupById
+      tags:
+        - SharingGroups
+      parameters:
+        - $ref: "#/components/parameters/sharingGroupId"
+      responses:
+        "200":
+          $ref: "#/components/responses/SharingGroupResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /sharingGroups/delete/{sharingGroupId}:
+    delete:
+      summary: "Delete sharing group by ID"
+      operationId: deleteSharingGroupById
+      tags:
+        - SharingGroups
+      parameters:
+        - $ref: "#/components/parameters/sharingGroupId"
+      responses:
+        "200":
+          $ref: "#/components/responses/SharingGroupResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /sharingGroups/edit/{sharingGroupId}:
+    put:
+      summary: "Edit sharing group"
+      operationId: editSharingGroup
+      tags:
+        - SharingGroups
+      parameters:
+        - $ref: "#/components/parameters/sharingGroupId"
+      requestBody:
+        $ref: "#/components/requestBodies/EditSharingGroupRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/SharingGroupResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /broods/index:
+    get:
+      summary: "Get broods list"
+      operationId: getBroods
+      tags:
+        - Broods
+      parameters:
+        - $ref: "#/components/parameters/quickFilter"
+      responses:
+        "200":
+          $ref: "#/components/responses/BroodListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /broods/view/{broodId}:
+    get:
+      summary: "Get brood by ID"
+      operationId: getBroodById
+      tags:
+        - Broods
+      parameters:
+        - $ref: "#/components/parameters/broodId"
+      responses:
+        "200":
+          $ref: "#/components/responses/BroodResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /broods/add:
+    post:
+      summary: "Add brood"
+      operationId: addBrood
+      tags:
+        - Broods
+      requestBody:
+        $ref: "#/components/requestBodies/CreateBroodRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/BroodResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /broods/edit/{broodId}:
+    put:
+      summary: "Edit brood"
+      operationId: editBrood
+      tags:
+        - Broods
+      parameters:
+        - $ref: "#/components/parameters/broodId"
+      requestBody:
+        $ref: "#/components/requestBodies/EditBroodRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/BroodResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /broods/delete/{broodId}:
+    delete:
+      summary: "Delete brood by ID"
+      operationId: deleteBroodById
+      tags:
+        - Broods
+      parameters:
+        - $ref: "#/components/parameters/broodId"
+      responses:
+        "200":
+          $ref: "#/components/responses/BroodResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /broods/testConnection/{broodId}:
+    get:
+      summary: "Test brood connection by ID"
+      operationId: testBroodConnectionById
+      tags:
+        - Broods
+      parameters:
+        - $ref: "#/components/parameters/broodId"
+      responses:
+        "200":
+          $ref: "#/components/responses/TestBroodConnectionResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  # EncryptionKeys
+  /encryptionKeys/index:
+    get:
+      summary: "Get encryption keys list"
+      operationId: getEncryptionKeys
+      tags:
+        - EncryptionKeys
+      parameters:
+        - $ref: "#/components/parameters/quickFilter"
+      responses:
+        "200":
+          $ref: "#/components/responses/EncryptionKeyListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /encryptionKeys/view/{encryptionKeyId}:
+    get:
+      summary: "Get encryption key by ID"
+      operationId: getEncryptionKeyId
+      tags:
+        - EncryptionKeys
+      parameters:
+        - $ref: "#/components/parameters/encryptionKeyId"
+      responses:
+        "200":
+          $ref: "#/components/responses/EncryptionKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /encryptionKeys/add:
+    post:
+      summary: "Add encryption key"
+      operationId: addEncryptionKey
+      tags:
+        - EncryptionKeys
+      requestBody:
+        $ref: "#/components/requestBodies/CreateEncryptionKeyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/EncryptionKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /encryptionKeys/edit/{encryptionKeyId}:
+    put:
+      summary: "Edit encryption key"
+      operationId: editEncryptionKey
+      tags:
+        - EncryptionKeys
+      parameters:
+        - $ref: "#/components/parameters/encryptionKeyId"
+      requestBody:
+        $ref: "#/components/requestBodies/EditEncryptionKeyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/EncryptionKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /encryptionKeys/delete/{encryptionKeyId}:
+    delete:
+      summary: "Delete encryption key by ID"
+      operationId: deleteEncryptionKeyById
+      tags:
+        - EncryptionKeys
+      parameters:
+        - $ref: "#/components/parameters/encryptionKeyId"
+      responses:
+        "200":
+          $ref: "#/components/responses/EncryptionKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  # AuthKeys
+  /authKeys/index:
+    get:
+      summary: "Get auth keys list"
+      operationId: getAuthKeys
+      tags:
+        - AuthKeys
+      parameters:
+        - $ref: "#/components/parameters/quickFilter"
+      responses:
+        "200":
+          $ref: "#/components/responses/AuthKeyListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /authKeys/add:
+    post:
+      summary: "Add auth keys"
+      operationId: addAuthKey
+      tags:
+        - AuthKeys
+      requestBody:
+        $ref: "#/components/requestBodies/CreateAuthKeyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AuthKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /authKeys/delete/{authKeyId}:
+    delete:
+      summary: "Delete auth key by ID"
+      operationId: deleteAuthKeyById
+      tags:
+        - AuthKeys
+      parameters:
+        - $ref: "#/components/parameters/authKeyId"
+      responses:
+        "200":
+          $ref: "#/components/responses/AuthKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /localTools/add:
+    post:
+      summary: "Add a local tool connection"
+      operationId: addLocalTool
+      tags:
+        - LocalTools
+      requestBody:
+        $ref: "#/components/requestBodies/CreateLocalToolConnectionRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/LocalToolResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /localTools/broodTools/{broodId}:
+    get:
+      summary: "Get brood exposed tools"
+      operationId: getBroodExposedTools
+      tags:
+        - LocalTools
+      parameters:
+        - $ref: "#/components/parameters/broodId"
+      responses:
+        "200":
+          $ref: "#/components/responses/GetExposedBroodToolsResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /localTools/connectionRequest/{broodId}/{localToolId}:
+    post:
+      summary: "Issue a local tool connection request"
+      operationId: issueLocalToolConnectionRequest
+      tags:
+        - LocalTools
+      parameters:
+        - $ref: "#/components/parameters/broodId"
+        - $ref: "#/components/parameters/localToolId"
+      requestBody:
+        $ref: "#/components/requestBodies/IssueLocalToolConnectionRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/IncomingConnectionRequestInboxResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  # MetaTemplates
+  /metaTemplates/createNewTemplate/{metaTemplateUuid}:
+    post:
+      summary: "Load a MetaTemplate"
+      operationId: loadMetaTemplate
+      tags:
+        - MetaTemplates
+      parameters:
+        - $ref: "#/components/parameters/metaTemplateUuid"
+      responses:
+        "200":
+          $ref: "#/components/responses/LoadMetaTemplateResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /metaTemplates/toggle/{metaTemplateId}/enabled:
+    post:
+      summary: "Toggle MetaTemplate enabled/disabled"
+      operationId: toggleEnableMetaTemplate
+      tags:
+        - MetaTemplates
+      parameters:
+        - $ref: "#/components/parameters/metaTemplateId"
+      responses:
+        "200":
+          $ref: "#/components/responses/MetaTemplateResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /metaTemplates/update/{metaTemplateId}:
+    post:
+      summary: "Update MetaTemplate by ID"
+      operationId: updateMetaTemplateById
+      tags:
+        - MetaTemplates
+      parameters:
+        - $ref: "#/components/parameters/metaTemplateId"
+      responses:
+        "200":
+          $ref: "#/components/responses/UpdateMetaTemplateResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /metaTemplates/updateAllTemplates:
+    post:
+      summary: "Update all MetaTemplates"
+      operationId: updateAllMetaTemplates
+      tags:
+        - MetaTemplates
+      responses:
+        "200":
+          $ref: "#/components/responses/UpdateMetaTemplateResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+components:
+  schemas:
+    # General
+    UUID:
+      type: string
+      format: uuid
+      maxLength: 36
+      example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
+
+    ID:
+      type: integer
+      format: int32
+      example: 1
+
+    DateTime:
+      type: string
+      format: datetime
+      example: "2022-01-05T11:19:26+00:00"
+
+    Email:
+      type: string
+      format: email
+      example: "user@example.com"
+
+    ModelName:
+      type: string
+      enum:
+        - "Organisation"
+        - "User"
+        - "Individual"
+        - "EncryptionKey"
+        - "Role"
+        - "Tag"
+        - "SharingGroup"
+        - "Brood"
+
+    # Individuals
+    IndividualFirstName:
+      type: string
+      example: "John"
+
+    IndividualLastName:
+      type: string
+      example: "Doe"
+
+    IndividualFullName:
+      type: string
+      example: "John Doe"
+
+    IndividualPosition:
+      type: string
+      example: "Security Analyst"
+
+    Individual:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        email:
+          $ref: "#/components/schemas/Email"
+        first_name:
+          $ref: "#/components/schemas/IndividualFirstName"
+        last_name:
+          $ref: "#/components/schemas/IndividualLastName"
+        full_name:
+          $ref: "#/components/schemas/IndividualFullName"
+        position:
+          $ref: "#/components/schemas/IndividualPosition"
+        tags:
+          $ref: "#/components/schemas/TagList"
+        aligments:
+          $ref: "#/components/schemas/AligmentList"
+        created:
+          $ref: "#/components/schemas/DateTime"
+        modified:
+          $ref: "#/components/schemas/DateTime"
+
+    # Users
+    Username:
+      type: string
+      example: "admin"
+
+    IndividualList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Individual"
+
+    User:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        username:
+          $ref: "#/components/schemas/Username"
+        role_id:
+          $ref: "#/components/schemas/ID"
+        individual_id:
+          $ref: "#/components/schemas/ID"
+        disabled:
+          type: boolean
+        created:
+          $ref: "#/components/schemas/DateTime"
+        modified:
+          $ref: "#/components/schemas/DateTime"
+        organisation_id:
+          $ref: "#/components/schemas/ID"
+        organisation:
+          $ref: "#/components/schemas/Organisation"
+        individual:
+          $ref: "#/components/schemas/Individual"
+        role:
+          $ref: "#/components/schemas/Role"
+        # user_settings: TODO
+        # user_settings_by_name: TODO
+        # user_settings_by_name_with_fallback: TODO
+
+    UserList:
+      type: array
+      items:
+        $ref: "#/components/schemas/User"
+
+    # Organisations
+    OrganisationName:
+      type: string
+
+    OrganisationUrl:
+      type: string
+
+    OrganisationSector:
+      type: string
+      nullable: true
+
+    OrganisationType:
+      type: string
+      nullable: true
+
+    OrganisationContacts:
+      type: string
+      nullable: true
+
+    OrganisationNationality:
+      type: string
+      nullable: true
+
+    Organisation:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        name:
+          $ref: "#/components/schemas/OrganisationName"
+        url:
+          $ref: "#/components/schemas/OrganisationUrl"
+        nationality:
+          $ref: "#/components/schemas/OrganisationNationality"
+        sector:
+          $ref: "#/components/schemas/OrganisationSector"
+        type:
+          $ref: "#/components/schemas/OrganisationType"
+        contacts:
+          $ref: "#/components/schemas/OrganisationContacts"
+        created:
+          $ref: "#/components/schemas/DateTime"
+        modified:
+          $ref: "#/components/schemas/DateTime"
+        tags:
+          $ref: "#/components/schemas/TagList"
+        aligments:
+          $ref: "#/components/schemas/AligmentList"
+
+    OrganisationList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Organisation"
+
+    # Tags
+    TagName:
+      type: string
+      example: "white"
+
+    TagNamespace:
+      type: string
+      nullable: true
+      example: "tlp"
+
+    TagPredicate:
+      type: string
+      nullable: true
+
+    TagValue:
+      type: string
+      nullable: true
+
+    TagColour:
+      type: string
+      example: "FFFFFF"
+
+    TagTextColour:
+      type: string
+      example: "white"
+
+    Tag:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        name:
+          $ref: "#/components/schemas/TagName"
+        namespace:
+          $ref: "#/components/schemas/TagNamespace"
+        predicate:
+          $ref: "#/components/schemas/TagPredicate"
+        value:
+          $ref: "#/components/schemas/TagValue"
+        colour:
+          $ref: "#/components/schemas/TagColour"
+        text_colour:
+          $ref: "#/components/schemas/TagTextColour"
+        counter:
+          type: integer
+        created:
+          $ref: "#/components/schemas/DateTime"
+        modified:
+          $ref: "#/components/schemas/DateTime"
+
+    TagList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Tag"
+
+    # Alignments
+    Alignment:
+      type: object
+
+    AligmentList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Alignment"
+
+    # Roles
+    RoleName:
+      type: string
+      maxLength: 255
+      example: "admin"
+
+    Role:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        name:
+          $ref: "#/components/schemas/RoleName"
+        is_default:
+          type: boolean
+        perm_admin:
+          type: boolean
+        perm_sync:
+          type: boolean
+        perm_org_admin:
+          type: boolean
+
+    # Inbox
+    InboxScope:
+      type: string
+      enum:
+        - "User"
+        - "LocalTool"
+        - "Brood"
+        - "Proposal"
+        - "Synchronisation"
+
+    InboxAction:
+      type: string
+      enum:
+        - "Registration"
+        - "IncomingConnectionRequest"
+        - "AcceptedRequest"
+        - "DeclinedRequest"
+        - "Synchronisation"
+        - "OneWaySynchronization"
+        - "ProposalEdit"
+        - "DataExchange"
+
+    InboxTitle:
+      type: string
+
+    InboxOrigin:
+      type: string
+
+    InboxComment:
+      type: string
+      nullable: true
+
+    InboxDescription:
+      type: string
+      nullable: true
+
+    Inbox:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        scope:
+          $ref: "#/components/schemas/InboxScope"
+        action:
+          $ref: "#/components/schemas/InboxAction"
+        title:
+          $ref: "#/components/schemas/InboxTitle"
+        origin:
+          $ref: "#/components/schemas/InboxOrigin"
+        comment:
+          $ref: "#/components/schemas/InboxComment"
+        description:
+          $ref: "#/components/schemas/InboxDescription"
+        user_id:
+          $ref: "#/components/schemas/ID"
+        created:
+          $ref: "#/components/schemas/DateTime"
+        modified:
+          $ref: "#/components/schemas/DateTime"
+
+    UserRegistrationInbox:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/Inbox"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+            user:
+              $ref: "#/components/schemas/User"
+            local_tool_connector_name:
+              $ref: "#/components/schemas/LocalToolConnector"
+
+    AcceptedRequestInbox:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/Inbox"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                email:
+                  $ref: "#/components/schemas/Email"
+                authkey:
+                  $ref: "#/components/schemas/AuthKeyRaw"
+                url:
+                  type: string
+                reflected_user_id:
+                  $ref: "#/components/schemas/ID"
+                connectorName:
+                  $ref: "#/components/schemas/LocalToolConnector"
+                cerebrateURL:
+                  type: string
+                local_tool_id:
+                  $ref: "#/components/schemas/ID"
+                remote_tool_id:
+                  $ref: "#/components/schemas/ID"
+                tool_name:
+                  type: string
+            local_tool_connector_name:
+              $ref: "#/components/schemas/LocalToolConnector"
+
+    IncomingConnectionRequestInbox:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/Inbox"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                connectorName:
+                  $ref: "#/components/schemas/LocalToolConnector"
+                cerebrateURL:
+                  type: string
+                  example: "http://192.168.0.1"
+                local_tool_id:
+                  type: integer
+                remote_tool_id:
+                  type: integer
+
+    InboxList:
+      type: array
+      items:
+        anyOf:
+          - $ref: "#/components/schemas/UserRegistrationInbox"
+          - $ref: "#/components/schemas/IncomingConnectionRequestInbox"
+          - $ref: "#/components/schemas/AcceptedRequestInbox"
+
+    # SharingGroups
+    SharingGroupName:
+      type: string
+
+    SharingGroupReleasability:
+      type: string
+
+    SharingGroupDescription:
+      type: string
+
+    SharingGroup:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        name:
+          $ref: "#/components/schemas/SharingGroupName"
+        releasability:
+          $ref: "#/components/schemas/SharingGroupReleasability"
+        description:
+          $ref: "#/components/schemas/SharingGroupDescription"
+        organisation_id:
+          $ref: "#/components/schemas/ID"
+        user_id:
+          $ref: "#/components/schemas/ID"
+        active:
+          type: boolean
+        local:
+          type: boolean
+        sharing_group_orgs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Organisation"
+        user:
+          $ref: "#/components/schemas/User"
+        organisation:
+          $ref: "#/components/schemas/Organisation"
+        created:
+          $ref: "#/components/schemas/DateTime"
+        modified:
+          $ref: "#/components/schemas/DateTime"
+
+    SharingGroupList:
+      type: array
+      items:
+        $ref: "#/components/schemas/SharingGroup"
+
+    # Broods
+    BroodName:
+      type: string
+
+    BroodDescription:
+      type: string
+
+    BroodUrl:
+      type: string
+
+    BroodIsTrusted:
+      type: boolean
+      description: "Trusted upstream source"
+
+    BroodIsPull:
+      type: boolean
+      description: "Enable pulling of trust information"
+
+    Brood:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        name:
+          $ref: "#/components/schemas/BroodName"
+        url:
+          $ref: "#/components/schemas/BroodUrl"
+        description:
+          $ref: "#/components/schemas/BroodDescription"
+        organisation_id:
+          $ref: "#/components/schemas/ID"
+        trusted:
+          $ref: "#/components/schemas/BroodIsTrusted"
+        pull:
+          $ref: "#/components/schemas/BroodIsPull"
+        skip_proxy:
+          type: boolean
+        authkey:
+          $ref: "#/components/schemas/AuthKeyRaw"
+        organisation:
+          $ref: "#/components/schemas/Organisation"
+        created:
+          $ref: "#/components/schemas/DateTime"
+        modified:
+          $ref: "#/components/schemas/DateTime"
+
+    BroodList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Brood"
+
+    # EncryptionKeys
+    EncryptionKeyType:
+      type: string
+      enum:
+        - "pgp"
+        - "smime"
+
+    EncryptionKeyValue:
+      type: string
+      example: |
+        -----BEGIN PGP PUBLIC KEY BLOCK-----
+        ...
+        -----END PGP PUBLIC KEY BLOCK-----
+
+    EncryptionKeyExpiration:
+      type: integer
+      description: "UNIX timestamp or null of there is no expiration"
+      nullable: true
+
+    EncryptionKey:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        type:
+          $ref: "#/components/schemas/EncryptionKeyType"
+        encryption_key:
+          $ref: "#/components/schemas/EncryptionKeyValue"
+        revoked:
+          type: boolean
+        expires:
+          $ref: "#/components/schemas/EncryptionKeyExpiration"
+        owner_id:
+          $ref: "#/components/schemas/ID"
+        owner_model:
+          $ref: "#/components/schemas/ModelName"
+        created:
+          $ref: "#/components/schemas/DateTime"
+        modified:
+          $ref: "#/components/schemas/DateTime"
+
+    EncryptionKeyList:
+      type: array
+      items:
+        $ref: "#/components/schemas/EncryptionKey"
+
+    # AuthKeys
+    AuthKeyRaw:
+      type: string
+
+    AuthKeyHashed:
+      type: string
+
+    AuthKeyExpiration:
+      type: integer
+      description: "0 or UNIX timestamp"
+      example: 0
+
+    AuthKeyCreatedAt:
+      type: integer
+      description: "UNIX timestamp"
+
+    AuthKeyComment:
+      type: string
+
+    AuthKey:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        authkey:
+          $ref: "#/components/schemas/AuthKeyHashed"
+        authkey_start:
+          type: string
+          example: abcd
+        authkey_end:
+          type: string
+          example: abcd
+        created:
+          $ref: "#/components/schemas/AuthKeyCreatedAt"
+        expiration:
+          $ref: "#/components/schemas/AuthKeyExpiration"
+          type: integer
+          description: "0 or UNIX timestamp"
+        user_id:
+          $ref: "#/components/schemas/ID"
+        comment:
+          $ref: "#/components/schemas/AuthKeyComment"
+        user:
+          $ref: "#/components/schemas/User"
+
+    AuthKeyList:
+      type: array
+      items:
+        $ref: "#/components/schemas/AuthKey"
+
+    # LocalTools
+    LocalToolName:
+      type: string
+
+    LocalToolConnector:
+      type: string
+      nullable: true
+      enum:
+        - "MispConnector"
+
+    LocalToolSettings:
+      type: string
+      description: "Stringified JSON representing tool settings"
+
+    LocalToolDescription:
+      type: string
+
+    LocalToolIsExposed:
+      type: boolean
+
+    LocalTool:
+      type: object
+      properties:
+        name:
+          $ref: "#/components/schemas/LocalToolName"
+        connector:
+          $ref: "#/components/schemas/LocalToolConnector"
+        settings:
+          $ref: "#/components/schemas/LocalToolSettings"
+        description:
+          $ref: "#/components/schemas/LocalToolDescription"
+        exposed:
+          $ref: "#/components/schemas/LocalToolIsExposed"
+
+    LocalToolList:
+      type: array
+      items:
+        $ref: "#/components/schemas/LocalTool"
+
+    # MetaTemplates
+
+    MetaTemplateScope:
+      type: string
+      enum:
+        - "organisation"
+
+    MetaTemplateName:
+      type: string
+
+    MetaTemplateNamespace:
+      type: string
+      example: "cerebrate"
+
+    MetaTemplateDescription:
+      type: string
+
+    MetaTemplateVersion:
+      type: string
+      example: "1.0"
+
+    MetaTemplateSource:
+      type: string
+      example: "Cerebrate"
+
+    MetaTemplateIsEnabled:
+      type: boolean
+
+    MetaTemplateIsDefault:
+      type: boolean
+
+    MetaTemplate:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        scope:
+          $ref: "#/components/schemas/MetaTemplateScope"
+        name:
+          $ref: "#/components/schemas/MetaTemplateName"
+        namespace:
+          $ref: "#/components/schemas/MetaTemplateNamespace"
+        description:
+          $ref: "#/components/schemas/MetaTemplateDescription"
+        version:
+          $ref: "#/components/schemas/MetaTemplateVersion"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        source:
+          $ref: "#/components/schemas/MetaTemplateSource"
+        enabled:
+          $ref: "#/components/schemas/MetaTemplateIsEnabled"
+        is_default:
+          $ref: "#/components/schemas/MetaTemplateIsDefault"
+        created:
+          $ref: "#/components/schemas/DateTime"
+        modified:
+          $ref: "#/components/schemas/DateTime"
+
+    # Errors
+    ApiError:
+      type: object
+      required:
+        - message
+        - url
+        - code
+      properties:
+        message:
+          type: string
+        url:
+          type: string
+          example: "/users"
+        code:
+          type: integer
+          example: 500
+
+    UnauthorizedApiError:
+      type: object
+      required:
+        - message
+        - url
+        - code
+      properties:
+        message:
+          type: string
+          example: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
+        url:
+          type: string
+          example: "/users"
+        code:
+          type: integer
+          example: 403
+
+    MethodNotAllowedApiError:
+      type: object
+      required:
+        - message
+        - url
+        - code
+      properties:
+        message:
+          type: string
+          example: "You do not have permission to use this functionality."
+        url:
+          type: string
+          example: "/users/index"
+        code:
+          type: integer
+          example: 405
+
+    NotFoundApiError:
+      type: object
+      required:
+        - message
+        - url
+        - code
+      properties:
+        message:
+          type: string
+          example: "Invalid user"
+        url:
+          type: string
+          example: "/users/users/view/1234"
+        code:
+          type: integer
+          example: 404
+
+  parameters:
+    individualId:
+      name: individualId
+      in: path
+      description: "Numeric ID of the User"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+
+    userId:
+      name: userId
+      in: path
+      description: "Numeric ID of the User"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+
+    organisationId:
+      name: organisationId
+      in: path
+      description: "Numeric ID of the Organisation"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+
+    sharingGroupId:
+      name: sharingGroupId
+      in: path
+      description: "Numeric ID of the Sharing Group"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+
+    broodId:
+      name: broodId
+      in: path
+      description: "Numeric ID of the Brood"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+
+    encryptionKeyId:
+      name: encryptionKeyId
+      in: path
+      description: "Numeric ID of the EncryptionKey"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+
+    authKeyId:
+      name: authKeyId
+      in: path
+      description: "Numeric ID of the AuthKey"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+
+    localToolId:
+      name: localToolId
+      in: path
+      description: "Numeric ID of the local tool"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+
+    inboxId:
+      name: inboxId
+      in: path
+      description: "Numeric ID of the local tool"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+
+    quickFilter:
+      name: quickFilter
+      in: query
+      description: "Quick filter used to match multiple attributes such as name, description, emails, etc."
+      schema:
+        type: string
+        example: "user@example.com"
+
+    metaTemplateUuid:
+      name: metaTemplateUuid
+      in: path
+      description: "UUID of the MetaTemplate"
+      required: true
+      schema:
+        $ref: "#/components/schemas/UUID"
+
+    metaTemplateId:
+      name: metaTemplateId
+      in: path
+      description: "Numeric ID of the MetaTemplate"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |
+        The authorization is performed by using the following header in the HTTP requests:
+
+            Authorization: YOUR_API_KEY
+
+  requestBodies:
+    # Individuals
+    CreateIndividualRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              email:
+                $ref: "#/components/schemas/Email"
+              first_name:
+                $ref: "#/components/schemas/IndividualFirstName"
+              last_name:
+                $ref: "#/components/schemas/IndividualLastName"
+              position:
+                $ref: "#/components/schemas/IndividualPosition"
+
+    EditIndividualRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              email:
+                $ref: "#/components/schemas/IndividualLastName"
+              first_name:
+                $ref: "#/components/schemas/IndividualFirstName"
+              last_name:
+                type: boolean
+              position:
+                $ref: "#/components/schemas/IndividualPosition"
+
+    # Users
+    CreateUserRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              individual_id:
+                $ref: "#/components/schemas/ID"
+              organisation_id:
+                $ref: "#/components/schemas/ID"
+              role_id:
+                $ref: "#/components/schemas/ID"
+              disabled:
+                type: boolean
+              username:
+                $ref: "#/components/schemas/Username"
+              password:
+                type: string
+
+    EditUserRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                $ref: "#/components/schemas/ID"
+              individual_id:
+                $ref: "#/components/schemas/ID"
+              organisation_id:
+                $ref: "#/components/schemas/ID"
+              role_id:
+                $ref: "#/components/schemas/ID"
+              disabled:
+                type: boolean
+              username:
+                $ref: "#/components/schemas/Username"
+              password:
+                type: string
+
+    # Organisations
+    CreateOrganisationRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              name:
+                $ref: "#/components/schemas/OrganisationName"
+              url:
+                $ref: "#/components/schemas/OrganisationUrl"
+              nationality:
+                $ref: "#/components/schemas/OrganisationNationality"
+              sector:
+                $ref: "#/components/schemas/OrganisationSector"
+              type:
+                $ref: "#/components/schemas/OrganisationType"
+              contacts:
+                $ref: "#/components/schemas/OrganisationContacts"
+
+    EditOrganisationRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              name:
+                $ref: "#/components/schemas/OrganisationName"
+              url:
+                $ref: "#/components/schemas/OrganisationUrl"
+              nationality:
+                $ref: "#/components/schemas/OrganisationNationality"
+              sector:
+                $ref: "#/components/schemas/OrganisationSector"
+              type:
+                $ref: "#/components/schemas/OrganisationType"
+              contacts:
+                $ref: "#/components/schemas/OrganisationContacts"
+
+    TagOrganisationRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              tag_list:
+                type: string
+                description: "Stringified JSON array of the tag names to add."
+                example: '["red"]'
+
+    UntagOrganisationRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              tag_list:
+                type: string
+                description: "Stringified JSON array of the tag names to remove."
+                example: '["red"]'
+
+    # Inbox
+    CreateUserRegistrationInboxEntryRequest:
+      description: "Create user registration inbox entry request"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+                format: email
+              password:
+                type: string
+
+    CreateAcceptedRequestInboxEntryRequest:
+      description: "Create accepted connection request inbox entry request"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              email:
+                $ref: "#/components/schemas/Email"
+              authkey:
+                $ref: "#/components/schemas/AuthKeyRaw"
+              url:
+                type: string
+              reflected_user_id:
+                $ref: "#/components/schemas/ID"
+              connectorName:
+                $ref: "#/components/schemas/LocalToolConnector"
+              cerebrateURL:
+                type: string
+              local_tool_id:
+                $ref: "#/components/schemas/ID"
+              remote_tool_id:
+                $ref: "#/components/schemas/ID"
+              tool_name:
+                type: string
+
+    # SharingGroups
+    CreateSharingGroupRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              name:
+                $ref: "#/components/schemas/SharingGroupName"
+              releasability:
+                $ref: "#/components/schemas/SharingGroupReleasability"
+              description:
+                $ref: "#/components/schemas/SharingGroupDescription"
+              organisation_id:
+                $ref: "#/components/schemas/ID"
+              user_id:
+                $ref: "#/components/schemas/ID"
+              active:
+                type: boolean
+              local:
+                type: boolean
+
+    EditSharingGroupRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              name:
+                $ref: "#/components/schemas/SharingGroupName"
+              releasability:
+                $ref: "#/components/schemas/SharingGroupReleasability"
+              description:
+                $ref: "#/components/schemas/SharingGroupDescription"
+              organisation_id:
+                $ref: "#/components/schemas/ID"
+              user_id:
+                $ref: "#/components/schemas/ID"
+              active:
+                type: boolean
+              local:
+                type: boolean
+
+    # Broods
+    CreateBroodRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              name:
+                $ref: "#/components/schemas/BroodName"
+              url:
+                $ref: "#/components/schemas/BroodUrl"
+              description:
+                $ref: "#/components/schemas/BroodDescription"
+              organisation_id:
+                $ref: "#/components/schemas/ID"
+              trusted:
+                $ref: "#/components/schemas/BroodIsTrusted"
+              pull:
+                $ref: "#/components/schemas/BroodIsPull"
+              skip_proxy:
+                type: boolean
+              authkey:
+                $ref: "#/components/schemas/AuthKeyRaw"
+
+    EditBroodRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              name:
+                $ref: "#/components/schemas/BroodName"
+              url:
+                $ref: "#/components/schemas/BroodUrl"
+              description:
+                $ref: "#/components/schemas/BroodDescription"
+              organisation_id:
+                $ref: "#/components/schemas/ID"
+              trusted:
+                $ref: "#/components/schemas/BroodIsTrusted"
+              pull:
+                $ref: "#/components/schemas/BroodIsPull"
+              skip_proxy:
+                type: boolean
+              authkey:
+                $ref: "#/components/schemas/AuthKeyRaw"
+
+    CreateEncryptionKeyRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              type:
+                $ref: "#/components/schemas/EncryptionKeyType"
+              encryption_key:
+                $ref: "#/components/schemas/EncryptionKeyValue"
+              revoked:
+                type: boolean
+              expires:
+                $ref: "#/components/schemas/EncryptionKeyExpiration"
+              owner_id:
+                $ref: "#/components/schemas/ID"
+              owner_model:
+                $ref: "#/components/schemas/ModelName"
+
+    EditEncryptionKeyRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              type:
+                $ref: "#/components/schemas/EncryptionKeyType"
+              encryption_key:
+                $ref: "#/components/schemas/EncryptionKeyValue"
+              revoked:
+                type: boolean
+              expires:
+                $ref: "#/components/schemas/EncryptionKeyExpiration"
+              owner_id:
+                $ref: "#/components/schemas/ID"
+              owner_model:
+                $ref: "#/components/schemas/ModelName"
+
+    # AuthKeys
+    CreateAuthKeyRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              authkey:
+                $ref: "#/components/schemas/AuthKeyRaw"
+              expiration:
+                $ref: "#/components/schemas/AuthKeyExpiration"
+              user_id:
+                $ref: "#/components/schemas/ID"
+              comment:
+                $ref: "#/components/schemas/AuthKeyComment"
+
+    # LocalTools
+    CreateLocalToolConnectionRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                $ref: "#/components/schemas/LocalToolName"
+              connector:
+                $ref: "#/components/schemas/LocalToolConnector"
+              settings:
+                $ref: "#/components/schemas/LocalToolSettings"
+              description:
+                $ref: "#/components/schemas/LocalToolDescription"
+              exposed:
+                $ref: "#/components/schemas/LocalToolIsExposed"
+
+    IssueLocalToolConnectionRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              local_tool_id:
+                type: integer
+  responses:
+    # Individuals
+    IndividualResponse:
+      description: "Individual response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Individual"
+
+    IndividualListResponse:
+      description: "Individuals list response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/IndividualList"
+
+    # Users
+    UserResponse:
+      description: "User response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/User"
+
+    UserListResponse:
+      description: "Users list response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UserList"
+
+    # Organisations
+    OrganisationResponse:
+      description: "Organisation response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Organisation"
+
+    OrganisationListResponse:
+      description: "Organisations list response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OrganisationList"
+
+    # Tags
+    TagResponse:
+      description: "Tag response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Tag"
+
+    TagListResponse:
+      description: "Tags list response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TagList"
+
+    # Inbox
+    UserRegistrationInboxResponse:
+      description: "User registration inbox response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UserRegistrationInbox"
+
+    IncomingConnectionRequestInboxResponse:
+      description: "Incoming connection request inbox response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/IncomingConnectionRequestInbox"
+
+    AcceptedRequestInboxResponse:
+      description: "Accepted connection request inbox response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/IncomingConnectionRequestInbox"
+
+    ProcessInboxResponse:
+      description: "Process inbox response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+              success:
+                type: boolean
+              message:
+                type: string
+                example: "Interconnection for `http://cerebrate.remote`'s  finalised"
+              errors:
+                type: string
+                nullable: true
+
+    InboxListResponse:
+      description: "Inbox list response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InboxList"
+
+    CreateUserRegistrationInboxEntryResponse:
+      description: "Create user registration inbox response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                allOf:
+                  - $ref: "#/components/schemas/UserRegistrationInbox"
+                  - properties:
+                      local_tool_connector_name:
+                        type: string
+                        nullable: true
+              success:
+                type: boolean
+              message:
+                type: string
+                example: "User account creation requested. Please wait for an admin to approve your account."
+              errors:
+                type: array
+                items:
+                  type: object
+                  # TODO: describe
+
+    AcceptedRequestInboxEntryResponse:
+      description: "Accepted request inbox response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                allOf:
+                  - $ref: "#/components/schemas/AcceptedRequestInbox"
+                  - properties:
+                      local_tool_connector_name:
+                        type: string
+                        nullable: true
+              success:
+                type: boolean
+              message:
+                type: string
+                example: "User account creation requested. Please wait for an admin to approve your account."
+              errors:
+                type: array
+                items:
+                  type: object
+                  # TODO: describe
+
+    # SharingGroups
+    SharingGroupResponse:
+      description: "Sharing group response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SharingGroup"
+
+    SharingGroupListResponse:
+      description: "Sharing groups list response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SharingGroupList"
+
+    # Broods
+    BroodResponse:
+      description: "Brood response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Brood"
+
+    BroodListResponse:
+      description: "Brood list response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BroodList"
+
+    TestBroodConnectionResponse:
+      description: "Brood list response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                description: "HTTP status code"
+                example: 200
+              response:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "0.1"
+                  application:
+                    type: string
+                    example: "Cerebrate"
+                  user:
+                    type: string
+                    example: "sync"
+              ping:
+                type: number
+                format: float
+
+    # EncryptionKeys
+    EncryptionKeyResponse:
+      description: "Encryption key response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EncryptionKey"
+
+    EncryptionKeyListResponse:
+      description: "Encryption key list response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EncryptionKeyList"
+
+    # AuthKeys
+    AuthKeyResponse:
+      description: "Auth key response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthKey"
+
+    AuthKeyListResponse:
+      description: "Auth key list response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthKeyList"
+
+    # LocalTools
+    LocalToolResponse:
+      description: "Local tool response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/LocalTool"
+
+    GetExposedBroodToolsResponse:
+      description: "Local tool response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/LocalToolList"
+
+    # MetaTemplates
+    MetaTemplateResponse:
+      description: "MetaTemplate response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MetaTemplate"
+
+    LoadMetaTemplateResponse:
+      description: "Load MetaTemplate response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              update_errors:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "Cannot update meta-template, update strategy not provided or not allowed"
+              files_processed:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UUID"
+              success:
+                type: boolean
+
+    UpdateMetaTemplateResponse:
+      description: "Update MetaTemplate response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              update_errors:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "Cannot update meta-template, update strategy not provided or not allowed"
+              files_processed:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UUID"
+              success:
+                type: boolean
+    # Errors
+    ApiErrorResponse:
+      description: "Unexpected API error"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+
+    UnauthorizedApiErrorResponse:
+      description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UnauthorizedApiError"
+
+    MethodNotAllowedApiErrorResponse:
+      description: "Method not allowed. Your User Role is not allowed to access this resource."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MethodNotAllowedApiError"
+
+security:
+  - ApiKeyAuth: []

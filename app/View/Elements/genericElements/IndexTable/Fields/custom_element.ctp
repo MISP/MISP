@@ -1,1 +1,0 @@
-<?= $this->element($field['element_path'], ['item' => $row]) ?>

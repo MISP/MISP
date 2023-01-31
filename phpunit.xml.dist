@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit colors="true" processIsolation="false" stopOnFailure="false" bootstrap="tests/bootstrap.php">
+    <php>
+        <ini name="memory_limit" value="-1" />
+        <ini name="apc.enable_cli" value="1" />
+        <env name="WIREMOCK_HOST" value="localhost" />
+        <env name="WIREMOCK_PORT" value="8080" />
+        <env name="OPENAPI_SPEC" value="webroot/docs/openapi.yaml" />
+        <env name="SKIP_DB_MIGRATIONS" value="0" />
+    </php>
+
+    <!-- Add any additional test suites you want to run here -->
+    <testsuites>
+        <testsuite name="app">
+            <directory>tests/TestCase/</directory>
+        </testsuite>
+        <testsuite name="controller">
+            <directory>./tests/TestCase/Controller</directory>
+        </testsuite>
+        <testsuite name="api">
+            <directory>./tests/TestCase/Api</directory>
+        </testsuite>
+    </testsuites>
+
+    <extensions>
+        <extension class="\Cake\TestSuite\Fixture\PHPUnitExtension" />
+    </extensions>
+
+    <!-- Ignore vendor tests in code coverage reports -->
+    <filter>
+        <whitelist>
+            <directory suffix=".php">src/</directory>
+            <directory suffix=".php">plugins/*/src/</directory>
+            <exclude>
+                <file>src/Console/Installer.php</file>
+            </exclude>
+        </whitelist>
+    </filter>
+</phpunit>

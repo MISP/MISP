@@ -1,1 +1,0 @@
-This plugin is not used anymore, but it is here to keep backward compatibility.

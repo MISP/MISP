@@ -1,0 +1,7 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+    RewriteRule .* - [env=HTTP_AUTHORIZATION:%{HTTP:Authorization},last]
+</IfModule>
+

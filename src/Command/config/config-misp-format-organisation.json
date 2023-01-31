@@ -1,0 +1,11 @@
+{
+    "format": "json",
+    "mapping": {
+        "name": "{n}.Organisation.name",
+        "uuid": "{n}.Organisation.uuid",
+        "nationality": "{n}.Organisation.nationality"
+    },
+    "sourceHeaders": {
+        "Authorization": "~~YOUR_API_KEY_HERE~~"
+    }
+}

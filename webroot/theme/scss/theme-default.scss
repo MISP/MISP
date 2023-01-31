@@ -1,0 +1,161 @@
+$theme: "app-default";
+
+@import "../node_modules/bootstrap/scss/functions";
+@import "../node_modules/bootstrap/scss/variables";
+@import "../node_modules/bootstrap/scss/mixins";
+
+@import "./mixins/background";
+
+$cerebrateColor: #924da6;
+$bodyBackgroundImageStopColor: tint-color($cerebrateColor, 62) !default;
+$enabledBackgroundSVG: true !default;
+$bodyBackgroundBlendmode: normal !default;
+
+$panelBgColor: $white !default;
+$panelShadow: 0 0 35px 0 rgba(154, 161, 171, 0.25) !default;
+$panelBorder: none !default;
+
+$loadingOverlayDefaultColor: $light !default;
+$loadingOverlayDefaultOpacity: 0.75 !default;
+
+$topNavbarColor: $dark !default;
+$navbarActiveColor: #d6d6d6 !default;
+$headerBreadcrumbLinksBoxshadow: 0 2px 2px 0 rgba(0, 0, 0, 0.16), 0 2px 6px 0 rgba(0, 0, 0, 0.12) !default;
+$headerBreadcrumbLinksBGColor: $light !default;
+
+$sidebarBgColor: $light !default;
+$sidebarTextColor: $black !default;
+$sidebarActiveColor: $black !default;
+$sidebarActiveBgColor: #dbdbdb !default;
+$sidebarHoverColor: #ebebeb !default;
+$sidebarBorder: #ddd !default;
+$sidebarShadows: 0 2px 2px 0 rgba(0, 0, 0, 0.16), 0 2px 6px 0 rgba(0, 0, 0, 0.12) !default;
+$sidebarLockButton: $light !default;
+$activeSidebarLinkColor: var(--cerebrate-color) !default;
+
+// $calloutBorderColor: $gray-200 !default;
+$calloutBgColor: $panelBgColor !default;
+$calloutShadow: $panelShadow !default;
+
+@import "additional/bootstrap-additional";
+
+/* Body */
+body {
+    @if $enabledBackgroundSVG {
+        background-color: var(--bs-body-bg);
+        @include background-svg($bodyBackgroundImageStopColor);
+        background-attachment: fixed;
+        background-size: cover;
+        background-blend-mode: $bodyBackgroundBlendmode;
+    }
+}
+
+.panel {
+    background-color: $panelBgColor;
+    border: $panelBorder;
+    box-shadow: $panelShadow;
+}
+
+.loading-overlay {
+    background-color: $loadingOverlayDefaultColor;
+    opacity: $loadingOverlayDefaultOpacity;
+}
+
+/* Top navbar */
+.top-navbar {
+    background-color: $topNavbarColor;
+}
+
+.center-navbar nav.header-breadcrumb {
+    color: $white;
+}
+
+header.top-navbar .header-menu > a:hover,
+header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
+    color: $navbarActiveColor !important;
+}
+
+.top-navbar .center-navbar nav.header-breadcrumb li.header-breadcrumb-item a {
+    color: $white;
+}
+
+.top-navbar .right-navbar .header-menu a.nav-link {
+    color: $white;
+}
+
+.top-navbar .left-navbar .navbar-brand img {
+    filter: invert(1);
+}
+
+.top-navbar .left-navbar .navbar-brand:hover img {
+    filter: invert(1) drop-shadow(0px 0px 3px $white);
+}
+
+.top-navbar .composed-app-icon-container > .app-icon {
+    background-color:$white;
+}
+
+.breadcrumb-link-container {
+    box-shadow: $headerBreadcrumbLinksBoxshadow;
+    background-color: $headerBreadcrumbLinksBGColor;
+}
+
+/* Sidebar */
+.sidebar {
+    transition: width .08s linear;
+    box-shadow: $sidebarShadows;
+    background-color: $sidebarBgColor;
+}
+
+.sidebar ~ main.content:after {
+    background: $black;
+}
+
+.sidebar .sidebar-wrapper {
+    border-right: 1px solid $sidebarBorder;
+}
+
+.sidebar .sidebar-wrapper {
+    border-right: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.sidebar ul.sidebar-elements li > a.sidebar-link {
+    color: $sidebarTextColor;
+}
+
+.sidebar ul.sidebar-elements li > a.sidebar-link.active {
+    background-color: $sidebarActiveBgColor;
+    color: $sidebarActiveColor
+}
+
+.sidebar ul.sidebar-elements li > a.sidebar-link.have-active-child {
+    background-color: $sidebarActiveBgColor;
+    color: $sidebarActiveColor;
+}
+.sidebar ul.sidebar-elements li > a.sidebar-link.have-active-child::after {
+    background-color: $activeSidebarLinkColor;
+}
+
+.sidebar ul.sidebar-elements li > a.sidebar-link:hover {
+    background-color: $sidebarHoverColor;
+    color: $sidebarActiveColor;
+}
+
+.sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child,
+.sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child {
+    background-color: unset;
+}
+
+.sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child:hover,
+.sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child:hover {
+    background-color: $sidebarHoverColor;
+}
+
+
+ul.sidebar-elements li > a.sidebar-link.active::after {
+    background-color: $activeSidebarLinkColor;
+}
+
+.lock-sidebar > a.btn {
+    background-color: $sidebarLockButton;
+}

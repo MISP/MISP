@@ -1,0 +1,371 @@
+## Model connectivity graph
+
+```mermaid
+graph LR
+   FuzzyCorrelateSsdeep-->Attribute
+   Feed-->Event
+   Feed-->Warninglist
+   Feed-->Attribute
+   Feed-->Server
+   Feed-->SharingGroup
+   Feed-->Tag
+   Feed-->Job
+   Feed-->User
+   Feed-->Log
+   AttributeTag-->Tag
+   AttributeTag-->Attribute
+   AttributeTag-->GalaxyCluster
+   Event-->EventBlocklist
+   Event-->CryptographicKey
+   Event-->Attribute
+   Event-->EventTag
+   Event-->SharingGroup
+   Event-->Sighting
+   Event-->ShadowAttribute
+   Event-->Thread
+   Event-->Correlation
+   Event-->Server
+   Event-->Log
+   Event-->AttributeTag
+   Event-->DecayingModel
+   Event-->Feed
+   Event-->Warninglist
+   Event-->User
+   Event-->Sightingdb
+   Event-->GalaxyCluster
+   Event-->Job
+   Event-->NotificationLog
+   Event-->AdminSetting
+   Event-->OrgBlocklist
+   Event-->EventLock
+   Event-->EventReport
+   Event-->TagCollection
+   Event-->Module
+   Event-->EventDelegation
+   Event-->Allowedlist
+   Event-->Taxonomy
+   Event-->UserSetting
+   Taxonomy-->Tag
+   TaxiiServer-->Event
+   TaxiiServer-->Allowedlist
+   TaxiiServer-->Job
+   WorkflowBlueprint-->Workflow
+   User-->Role
+   User-->Server
+   User-->AuthKey
+   User-->Event
+   User-->Log
+   User-->Organisation
+   User-->Inbox
+   User-->EventDelegation
+   User-->UserSetting
+   Noticelist-->NoticelistEntry
+   SharingGroupServer-->SharingGroup
+   ObjectTemplate-->ObjectTemplateElement
+   Bruteforce-->Log
+   Bruteforce-->User
+   AuthKey-->User
+   Thread-->Event
+   Thread-->SharingGroup
+   GalaxyClusterRelationTag-->Tag
+   GalaxyClusterRelationTag-->Log
+   DecayingModel-->DecayingModelMapping
+   DecayingModel-->Taxonomy
+   DecayingModel-->Tag
+   DecayingModel-->Log
+   DecayingModel-->Attribute
+   DecayingModel-->Sighting
+   Log-->Organisation
+   Log-->Job
+   Log-->User
+   Log-->Event
+   Log-->GalaxyCluster
+   Log-->EventBlocklist
+   Log-->Attribute
+   Log-->ShadowAttribute
+   Log-->ObjectReference
+   Log-->MispObject
+   ObjectReference-->Attribute
+   TagCollection-->TagCollectionTag
+   Organisation-->User
+   Organisation-->Event
+   Organisation-->Log
+   Module-->Server
+   Module-->Workflow
+   Module-->User
+   Module-->Attribute
+   Module-->Event
+   Cerebrate-->Organisation
+   Cerebrate-->SharingGroup
+   DecayingModelMapping-->DecayingModel
+   Role-->User
+   CorrelationExclusion-->Correlation
+   CorrelationExclusion-->Job
+   Job-->Event
+   ShadowAttribute-->Attribute
+   ShadowAttribute-->Organisation
+   ShadowAttribute-->Event
+   ShadowAttribute-->User
+   ShadowAttribute-->Job
+   ShadowAttribute-->Log
+   Server-->GalaxyCluster
+   Server-->Event
+   Server-->EventBlocklist
+   Server-->OrgBlocklist
+   Server-->Log
+   Server-->Sighting
+   Server-->User
+   Server-->Module
+   Server-->Workflow
+   Server-->TagCollection
+   Server-->Organisation
+   Server-->Attribute
+   Server-->AdminSetting
+   Server-->Galaxy
+   Server-->ObjectTemplate
+   Server-->Noticelist
+   Server-->Taxonomy
+   Server-->Warninglist
+   Server-->Correlation
+   Server-->Tag
+   MispObject-->Event
+   MispObject-->Attribute
+   MispObject-->ObjectReference
+   MispObject-->SharingGroup
+   MispObject-->Warninglist
+   MispObject-->ObjectTemplate
+   MispObject-->Allowedlist
+   MispObject-->Sightingdb
+   SightingdbOrg-->Sightingdb
+   Dashboard-->User
+   EventTag-->Event
+   AuditLog-->User
+   AuditLog-->Organisation
+   Sighting-->Attribute
+   Sighting-->Organisation
+   Sighting-->Event
+   Sighting-->Server
+   Galaxy-->GalaxyCluster
+   Galaxy-->Log
+   Galaxy-->Tag
+   Workflow-->Job
+   Workflow-->Log
+   Workflow-->Organisation
+   Workflow-->User
+   Workflow-->Module
+   Correlation-->OverCorrelatingValue
+   Correlation-->FuzzyCorrelateSsdeep
+   Correlation-->Event
+   Correlation-->Job
+   Correlation-->Attribute
+   Correlation-->CorrelationValue
+   Correlation-->CorrelationExclusion
+   Tag-->EventTag
+   Tag-->UserSetting
+   Tag-->AttributeTag
+   Tag-->GalaxyClusterRelationTag
+   Tag-->GalaxyCluster
+   Tag-->Event
+   Tag-->Attribute
+   OrgBlocklist-->Organisation
+   SharingGroupBlueprint-->Organisation
+   SharingGroupBlueprint-->SharingGroup
+   SharingGroupBlueprint-->Log
+   GalaxyClusterRelation-->SharingGroup
+   GalaxyClusterRelation-->ObjectRelationship
+   GalaxyClusterRelation-->GalaxyClusterRelationTag
+   GalaxyClusterRelation-->Log
+   GalaxyClusterRelation-->Event
+   UserSetting-->User
+   EventDelegation-->Event
+   OverCorrelatingValue-->Attribute
+   SharingGroup-->Event
+   SharingGroup-->Thread
+   SharingGroup-->Attribute
+   SharingGroup-->Organisation
+   SharingGroup-->SharingGroupServer
+   SharingGroup-->SharingGroupOrg
+   SharingGroup-->Log
+   SharingGroup-->User
+   Warninglist-->WarninglistEntry
+   Warninglist-->WarninglistType
+   GalaxyElement-->GalaxyCluster
+   Post-->User
+   Post-->Event
+   Post-->Thread
+   GalaxyCluster-->GalaxyClusterRelation
+   GalaxyCluster-->GalaxyElement
+   GalaxyCluster-->Galaxy
+   GalaxyCluster-->GalaxyClusterBlocklist
+   GalaxyCluster-->SharingGroup
+   GalaxyCluster-->Log
+   GalaxyCluster-->Server
+   GalaxyCluster-->OrgBlocklist
+   GalaxyCluster-->Event
+   GalaxyCluster-->Organisation
+   GalaxyCluster-->Attribute
+   GalaxyCluster-->Tag
+   EventReport-->Event
+   EventReport-->SharingGroup
+   EventReport-->ObjectTemplate
+   EventReport-->Galaxy
+   EventReport-->Warninglist
+   EventReport-->GalaxyCluster
+   EventReport-->Tag
+   EventReport-->Module
+   EventReport-->EventTag
+   Attribute-->Event
+   Attribute-->AttributeTag
+   Attribute-->Correlation
+   Attribute-->Sighting
+   Attribute-->FuzzyCorrelateSsdeep
+   Attribute-->SharingGroup
+   Attribute-->Warninglist
+   Attribute-->DecayingModel
+   Attribute-->Allowedlist
+   Attribute-->Sightingdb
+    style FuzzyCorrelateSsdeep fill:#ffbb00,color:#000
+    style Attribute fill:#ff2200,color:#fff
+    style Feed fill:#ff2200,color:#fff
+    style Event fill:#ff2200,color:#fff
+    style Warninglist fill:#ffbb00,color:#000
+    style Server fill:#ff2200,color:#fff
+    style SharingGroup fill:#ff2200,color:#fff
+    style Tag fill:#ff2200,color:#fff
+    style Job fill:#ffbb00,color:#000
+    style User fill:#ff2200,color:#fff
+    style Log fill:#ff2200,color:#fff
+    style AttributeTag fill:#ff2200,color:#fff
+    style GalaxyCluster fill:#ff2200,color:#fff
+    style EventBlocklist fill:#0b7300,color:#fff
+    style CryptographicKey fill:#0b7300,color:#fff
+    style EventTag fill:#ffbb00,color:#000
+    style Sighting fill:#ff2200,color:#fff
+    style ShadowAttribute fill:#ff2200,color:#fff
+    style Thread fill:#ffbb00,color:#000
+    style Correlation fill:#ff2200,color:#fff
+    style DecayingModel fill:#ff2200,color:#fff
+    style Sightingdb fill:#0b7300,color:#fff
+    style NotificationLog fill:#0b7300,color:#fff
+    style AdminSetting fill:#0b7300,color:#fff
+    style OrgBlocklist fill:#ffbb00,color:#000
+    style EventLock fill:#0b7300,color:#fff
+    style EventReport fill:#ff2200,color:#fff
+    style TagCollection fill:#ffbb00,color:#000
+    style Module fill:#ff2200,color:#fff
+    style EventDelegation fill:#ffbb00,color:#000
+    style Allowedlist fill:#0b7300,color:#fff
+    style Taxonomy fill:#ffbb00,color:#000
+    style UserSetting fill:#ffbb00,color:#000
+    style TaxiiServer fill:#ff2200,color:#fff
+    style WorkflowBlueprint fill:#ffbb00,color:#000
+    style Workflow fill:#ff2200,color:#fff
+    style Role fill:#ffbb00,color:#000
+    style AuthKey fill:#ffbb00,color:#000
+    style Organisation fill:#ff2200,color:#fff
+    style Inbox fill:#0b7300,color:#fff
+    style Noticelist fill:#ffbb00,color:#000
+    style NoticelistEntry fill:#0b7300,color:#fff
+    style SharingGroupServer fill:#ffbb00,color:#000
+    style ObjectTemplate fill:#ffbb00,color:#000
+    style ObjectTemplateElement fill:#0b7300,color:#fff
+    style Bruteforce fill:#ffbb00,color:#000
+    style GalaxyClusterRelationTag fill:#ffbb00,color:#000
+    style DecayingModelMapping fill:#ffbb00,color:#000
+    style ObjectReference fill:#ffbb00,color:#000
+    style MispObject fill:#ff2200,color:#fff
+    style TagCollectionTag fill:#0b7300,color:#fff
+    style Cerebrate fill:#ffbb00,color:#000
+    style CorrelationExclusion fill:#ffbb00,color:#000
+    style Galaxy fill:#ff2200,color:#fff
+    style SightingdbOrg fill:#ffbb00,color:#000
+    style Dashboard fill:#ffbb00,color:#000
+    style AuditLog fill:#ffbb00,color:#000
+    style OverCorrelatingValue fill:#ffbb00,color:#000
+    style CorrelationValue fill:#0b7300,color:#fff
+    style SharingGroupBlueprint fill:#ff2200,color:#fff
+    style GalaxyClusterRelation fill:#ff2200,color:#fff
+    style ObjectRelationship fill:#0b7300,color:#fff
+    style SharingGroupOrg fill:#0b7300,color:#fff
+    style WarninglistEntry fill:#0b7300,color:#fff
+    style WarninglistType fill:#0b7300,color:#fff
+    style GalaxyElement fill:#ffbb00,color:#000
+    style Post fill:#ff2200,color:#fff
+    style GalaxyClusterBlocklist fill:#0b7300,color:#fff
+```
+
+
+
+
+## Complexity waves
+### Wave 1
+- [ ] AdminSetting
+- [ ] Allowedlist
+- [ ] CorrelationValue
+- [ ] CryptographicKey
+- [ ] EventBlocklist
+- [ ] EventLock
+- [ ] GalaxyClusterBlocklist
+- [ ] Inbox
+- [ ] NoticelistEntry
+- [ ] NotificationLog
+- [ ] ObjectRelationship
+- [ ] ObjectTemplateElement
+- [ ] SharingGroupOrg
+- [ ] Sightingdb
+- [ ] TagCollectionTag
+- [ ] WarninglistEntry
+- [ ] WarninglistType
+### Wave 2
+- [ ] AuditLog
+- [ ] AuthKey
+- [ ] Bruteforce
+- [ ] Cerebrate
+- [ ] CorrelationExclusion
+- [ ] Dashboard
+- [ ] DecayingModelMapping
+- [ ] EventDelegation
+- [ ] EventTag
+- [ ] FuzzyCorrelateSsdeep
+- [ ] GalaxyClusterRelationTag
+- [ ] GalaxyElement
+- [ ] Job
+- [ ] Noticelist
+- [ ] ObjectReference
+- [ ] ObjectTemplate
+- [ ] OrgBlocklist
+- [ ] OverCorrelatingValue
+- [ ] Role
+- [ ] SharingGroupServer
+- [ ] SightingdbOrg
+- [ ] TagCollection
+- [ ] Taxonomy
+- [ ] Thread
+- [ ] UserSetting
+- [ ] Warninglist
+- [ ] WorkflowBlueprint
+### Wave 3
+- [ ] Attribute
+- [ ] AttributeTag
+- [ ] Correlation
+- [ ] DecayingModel
+- [ ] Event
+- [ ] EventReport
+- [ ] Feed
+- [ ] Galaxy
+- [ ] GalaxyCluster
+- [ ] GalaxyClusterRelation
+- [ ] Log
+- [ ] MispObject
+- [ ] Module
+- [ ] Organisation
+- [ ] Post
+- [ ] Server
+- [ ] ShadowAttribute
+- [ ] SharingGroup
+- [ ] SharingGroupBlueprint
+- [ ] Sighting
+- [ ] Tag
+- [ ] TaxiiServer
+- [ ] User
+- [ ] Workflow

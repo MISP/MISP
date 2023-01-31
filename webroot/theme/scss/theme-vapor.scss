@@ -1,0 +1,28 @@
+// Your variable overrides can go here, e.g.:
+// $h1-font-size: 3rem;
+$theme: "app-vapor";
+
+@import "vapor/variables";
+
+$enabledBackgroundSVG: false;
+
+$panelBgColor: #363636;
+$panelShadow: none;
+$panelBorder: 1px solid #454545;
+
+$loadingOverlayDefaultColor: $dark !default;
+$loadingOverlayDefaultOpacity: 0.65 !default;
+
+$topNavbarColor: $primary;
+
+$sidebarBgColor: $dark;
+$sidebarTextColor: $white;
+$sidebarActiveColor: $success;
+$sidebarActiveBgColor: $gray-800;
+$sidebarHoverColor: $gray-700;
+$sidebarBorder: none;
+$sidebarShadows: none;
+$sidebarLockButton: unset;
+$activeSidebarLinkColor: $primary;
+
+@import "theme-default";

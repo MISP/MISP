@@ -1,0 +1,72 @@
+/* Home page styles */
+@font-face {
+    font-family: 'cakefont';
+    src: url('../font/cakedingbats-webfont.eot');
+    src: url('../font/cakedingbats-webfont.eot?#iefix') format('embedded-opentype'),
+    url('../font/cakedingbats-webfont.woff2') format('woff2'),
+    url('../font/cakedingbats-webfont.woff') format('woff'),
+    url('../font/cakedingbats-webfont.ttf') format('truetype'),
+    url('../font/cakedingbats-webfont.svg#cake_dingbatsregular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+body {
+    padding: 60px 0;
+}
+header {
+    margin-bottom: 60px;
+}
+img {
+    margin-bottom: 30px;
+}
+h1 {
+    font-weight: bold;
+}
+ul {
+    list-style-type: none;
+    margin: 0 0 30px 0;
+    padding-left: 25px;
+}
+a {
+    color: #0071BC;
+    text-decoration: underline;
+}
+hr {
+    border-bottom: 1px solid #e7e7e7;
+    border-top: 0;
+    margin-bottom: 35px;
+}
+
+.text-center {
+    text-align: center;
+}
+.links a {
+    margin-right: 10px;
+}
+.release-name {
+    color: #D33C43;
+    font-weight: 400;
+    font-style: italic;
+}
+.bullet:before {
+    font-family: 'cakefont', sans-serif;
+    font-size: 18px;
+    display: inline-block;
+    margin-left: -1.3em;
+    width: 1.2em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    vertical-align: -1px;
+}
+.success:before {
+    color: #88c671;
+    content: "\0056";
+}
+.problem:before {
+    color: #d33d44;
+    content: "\0057";
+}
+.cake-error {
+    padding: 10px;
+    margin: 10px 0;
+}

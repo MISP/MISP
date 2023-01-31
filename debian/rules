@@ -1,6 +1,0 @@
-#!/usr/bin/make -f
-%:
-	dh $@ --with apache2
-
-override_dh_auto_install:
-	dh_auto_build

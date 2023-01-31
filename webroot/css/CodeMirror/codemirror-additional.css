@@ -1,0 +1,33 @@
+.cm-s-default {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+.CodeMirror-gutters {
+    border-radius: 0.25rem 0 0 0.25rem;
+}
+
+.CodeMirror.is-invalid {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23dc3545' viewBox='0 0 12 12'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    background-position: top calc(0.375em + 0.1875rem) right calc(0.375em + 0.1875rem);
+}
+
+.CodeMirror.is-invalid .CodeMirror-gutters {
+    /* background-color: #dc3545 !important; */
+}
+
+.CodeMirror.is-invalid .CodeMirror-linenumber {
+    /* color: white !important; */
+}
+
+.CodeMirror-hints {
+    z-index: 1060 !important; /* Make sure hint is above modal */
+}
+
+.CodeMirror pre.CodeMirror-placeholder {
+    color: #999; 
+}

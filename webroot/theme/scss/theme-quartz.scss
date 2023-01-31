@@ -1,0 +1,30 @@
+// Your variable overrides can go here, e.g.:
+// $h1-font-size: 3rem;
+$theme: "app-slate";
+
+@import "quartz/variables";
+
+$enabledBackgroundSVG: false;
+
+$panelBgColor: $card-bg;
+$panelBorder: none;
+
+$loadingOverlayDefaultColor: $light !default;
+$loadingOverlayDefaultOpacity: 0.35 !default;
+
+$topNavbarColor: $primary;
+$navbarActiveColor: #d6d6d6;
+$headerBreadcrumbLinksBGColor: $secondary;
+
+$sidebarBgColor: $secondary;
+$sidebarTextColor: $white;
+$sidebarActiveColor: $nav-tabs-link-active-color;
+$sidebarActiveBgColor: $nav-tabs-link-active-bg;
+$sidebarHoverColor: $nav-tabs-link-active-bg;
+$sidebarBorder: none;
+$sidebarShadows: none;
+$sidebarLockButton: $secondary;
+$activeSidebarLinkColor: $primary;
+
+@import "theme-default";
+@import "../node_modules/bootstrap/scss/buttons";

@@ -1,0 +1,10 @@
+@mixin toast-variant($background, $border, $color) {
+    color: $color;
+    @include gradient-bg($background);
+    border-color: $border;
+
+    strong {
+        border-top-color: darken($border, 5%);
+    }
+}
+  

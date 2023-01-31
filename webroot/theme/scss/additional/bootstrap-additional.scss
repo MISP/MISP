@@ -1,0 +1,208 @@
+@import "../../node_modules/bootstrap/scss/functions";
+@import "../../node_modules/bootstrap/scss/variables";
+@import "../../node_modules/bootstrap/scss/mixins";
+@import "../../node_modules/bootstrap/scss/utilities";
+
+@import "../mixins/callout";
+@import "../mixins/toast";
+@import "../mixins/forms-severity";
+
+$calloutBgColor: $white !default;
+$calloutShadow: 0 0 35px 0 rgba(154, 161, 171, 0.25) !default;;
+$calloutBorderColor: $gray-200 !default;
+
+/* Callout */
+.callout {
+    border: 1px solid  $calloutBorderColor;
+    border-radius: .25rem;
+    background-color: $calloutBgColor;
+    box-shadow: $calloutShadow;
+}
+    
+@each $color, $value in $theme-colors {
+    .callout-#{$color} {
+        @include callout-variant($value);
+        border-left-width: .25rem;
+        border-left-style: solid;
+    }
+}
+
+
+/* Toasts */
+$toast-bg-level:                    -70% !default;
+$toast-border-level:                -60% !default;
+$toast-color-level:                 70% !default;
+
+.toast {
+    min-width: 250px;
+}
+
+@each $color, $value in $theme-colors {
+    .toast-#{$color} {
+        @include toast-variant(shift-color($value, $toast-bg-level), shift-color($value, $toast-border-level), shift-color($value, $toast-color-level));
+    }
+}
+
+/* Dropdown-item */
+.dropdown-item {
+    @each $color, $value in $theme-colors {
+        &.dropdown-item-#{$color} {
+            color: color-contrast($value);
+            text-decoration: none;
+            background-color: $value;
+
+            &:hover {
+                color: color-contrast($value);
+                background-color: if(color-contrast($value) == $color-contrast-light, shade-color($value, $btn-hover-bg-shade-amount), tint-color($value, $btn-hover-bg-tint-amount))
+            }
+        }
+
+        &.dropdown-item-outline-#{$color} {
+            &:hover {
+                color: color-contrast($value);
+                background-color: $value;
+            }
+        }
+    }
+}
+
+.btn-outline-text {
+    @include button-outline-variant($body-color);
+}
+
+/* Progress Timeline */
+.progress-timeline {
+    padding: 0.2em 0.2em 0.5em 0.2em;
+    ul {
+        position: relative;
+        padding: 0;
+    }
+    li {
+        list-style-type: none;
+        position: relative
+    }
+    li.progress-inactive {
+        opacity: 0.5;
+    }
+    .progress-line {
+        height: 2px;
+    }
+    .progress-line.progress-inactive {
+        opacity: 0.5;
+    }
+}
+
+/* Forms severity */
+.form-control.is-invalid {
+    &.info {
+        @include form-control-validation-severity-state($info);
+    }
+    &.warning {
+        @include form-control-validation-severity-state($warning);
+    }
+}
+
+.form-select.is-invalid:not([multiple]):not([size]),
+.form-select.is-invalid:not([multiple])[size="1"]
+.form-select.is-invalid {
+    &.info {
+        @include form-select-validation-severity-state($info);
+    }
+    &.warning {
+        @include form-select-validation-severity-state($warning);
+    }
+}
+
+.form-check-input.is-invalid {
+    &.info {
+        @include form-check-input-validation-severity-state($info);
+    }
+    &.warning {
+        @include form-check-input-validation-severity-state($warning);
+    }
+}
+
+/* Utilities */
+// Use bootstrap's utilities API with something like this
+// $utilities: map-merge(
+//     $utilities,
+//     (
+//         "max-width": map-merge(
+//             map-get($utilities, "max-width"),
+//             (
+//                 values: map-merge(
+//                     map-get(map-get($utilities, "max-width"), "values"),
+//                     (
+//                         25: 25%,
+//                         50: 50%,
+//                         75: 75%,
+//                     ),
+//                 ),
+//             ),
+//         )
+//     )
+// );
+.mw-75 {
+    max-width: 75% !important;
+}
+.mw-66 {
+    max-width: 66% !important;
+}
+.mw-50 {
+    max-width: 50% !important;
+}
+.mw-33 {
+    max-width: 33% !important;
+}
+.mw-25 {
+    max-width: 25% !important;
+}
+.mh-75 {
+    max-height: 75% !important;
+}
+.mh-66 {
+    max-height: 66% !important;
+}
+.mh-50 {
+    max-height: 50% !important;
+}
+.mh-33 {
+    max-height: 33% !important;
+}
+.mh-25 {
+    max-height: 25% !important;
+}
+
+.p-abs-center-y {
+    top: 50%;
+    transform: translateY(-50%);
+}
+.p-abs-center-x {
+    left: 50%;
+    transform: translateX(-50%);
+}
+.p-abs-center-both {
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+}
+
+.fs-7 {
+    font-size: .875rem !important;
+}
+.fs-8 {
+    font-size: .7rem !important;
+}
+
+.btn-xs, .btn-group-xs > .btn {
+    padding: 0.1rem;
+    font-size: 0.7rem;
+    border-radius: 0.15rem;
+    line-height: 1.15;
+}
+
+.btn-check:focus + .btn.btn-xs, .btn.btn-xs:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+@import '../../../scss/custom.scss';

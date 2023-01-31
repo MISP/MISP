@@ -1,0 +1,1 @@
+<?= $this->Form->postLink(__('Toggle'), ['action' => 'toggle', $entity->id, $fieldName], ['confirm' => __('Are you sure you want to toggle {0} of {1}?', $fieldName. $entity->id)]) ?>
