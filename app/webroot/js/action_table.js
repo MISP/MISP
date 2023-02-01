@@ -162,7 +162,7 @@ class ActionTable {
         tr.id = "tr_" + this.__uuidv4();
         for (var col of row) {
             var td = document.createElement('td');
-            td.innerHTML = col;
+            td.textContent = col;
             tr.appendChild(td);
         }
         this.__add_action_button(tr);
