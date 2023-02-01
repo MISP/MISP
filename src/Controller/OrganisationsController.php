@@ -60,8 +60,6 @@ class OrganisationsController extends AppController
         if (!empty($responsePayload)) {
             return $responsePayload;
         }
-        $this->set('alignmentScope', 'individuals');
-        $this->set('metaGroup', 'ContactDB');
     }
 
     public function filtering()
