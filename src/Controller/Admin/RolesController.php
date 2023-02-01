@@ -39,7 +39,6 @@ class RolesController extends AppController
             return $responsePayload;
         }
         $this->set('permFlags', $this->Roles->permFlags());
-        $this->set('metaGroup', $this->isAdmin ? 'Administration' : 'Cerebrate');
         $dropdownData = [
             'options' => $this->Roles->premissionLevelName,
         ];
@@ -48,45 +47,17 @@ class RolesController extends AppController
 
     public function edit($id = null)
     {
-        $this->Role->id = $id;
-        if (!$this->Role->exists() && !$this->request->is('get')) {
-            throw new NotFoundException(__('Invalid Role'));
+        $this->CRUD->edit($id);
+        $responsePayload = $this->CRUD->getResponsePayload();
+        if (!empty($responsePayload)) {
+            return $responsePayload;
         }
-        if ($this->request->is('post') || $this->request->is('put')) {
-            if (!isset($this->request->data['Role'])) {
-                $this->request->data = array('Role' => $this->request->data);
-            }
-            $this->request->data['Role']['id'] = $id;
-            if ($this->Role->save($this->request->data)) {
-                if ($this->_isRest()) {
-                    $role = $this->Role->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('Role.id' => $this->Role->id)
-                    ));
-                    return $this->RestResponse->viewData($role, $this->response->type());
-                } else {
-                    $this->Flash->success(__('The Role has been saved'));
-                    $this->redirect(array('action' => 'index', 'admin' => false));
-                }
-            } else {
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Role', 'admin_edit', false, $this->Role->validationErrors, $this->response->type());
-                } else {
-                    if (!($this->Session->check('Message.flash'))) {
-                        $this->Role->Session->setFlash(__('The Role could not be saved. Please, try again.'));
-                    }
-                }
-            }
-        } else {
-            if ($this->_isRest()) {
-                return $this->RestResponse->describe('Roles', 'admin_edit', false, $this->response->type());
-            }
-            $this->request->data['Role']['id'] = $id;
-            $this->request->data = $this->Role->read(null, $id);
-        }
-        $this->set('options', $this->Role->premissionLevelName);
-        $this->set('permFlags', $this->Role->permFlags);
-        $this->set('id', $id);
+        $this->set('permFlags', $this->Roles->permFlags());
+        $dropdownData = [
+            'options' => $this->Roles->premissionLevelName,
+        ];
+        $this->set(compact('dropdownData'));
+        $this->render('add');
     }
 
     public function delete($id = null)

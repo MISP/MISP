@@ -84,17 +84,18 @@ $fields[] = [
 if ($isSiteAdmin) {
     $actions = [
         [
-            'url' => '/roles/edit',
-            'url_params_data_paths' => ['id'],
+            'open_modal' => '/admin/roles/edit/[onclick_params_data_path]',
+            'modal_params_data_path' => 'id',
             'icon' => 'edit',
             'title' => __('Edit role'),
+            'requirement' => $loggedUser['Role']['perm_admin']
         ],
         [
-            'class' => 'modal-open',
-            'url' => "/roles/delete",
-            'url_params_data_paths' => ['id'],
+            'open_modal' => '/admin/roles/delete/[onclick_params_data_path]',
+            'modal_params_data_path' => 'id',
             'icon' => 'trash',
             'title' => __('Delete role'),
+            'requirement' => $loggedUser['Role']['perm_admin']
         ]
     ];
 } else {
