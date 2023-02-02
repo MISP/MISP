@@ -1221,6 +1221,7 @@ class UsersController extends AppController
                 // Password is converted to hashed form automatically
                 $this->User->save(['id' => $this->Auth->user('id'), 'password' => $passwordToSave], false, ['password']);
             }
+            // login was successful, do everything that is needed such as logging and more:
             $this->_postlogin();
         } else {
             $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
@@ -1229,10 +1230,12 @@ class UsersController extends AppController
             if (str_replace("//", "/", $this->webroot . $this->Session->read('Auth.redirect')) == $this->webroot && $this->Session->read('Message.auth.message') == $this->Auth->authError) {
                 $this->Session->delete('Message.auth');
             }
-            // don't display "invalid user" before first login attempt
+            // Login was failed, do everything that is needed such as blocklisting, logging and more
+            // Also don't display "invalid user" before first login attempt
             if ($this->request->is('post') || $this->request->is('put')) {
                 $this->Flash->error(__('Invalid username or password, try again'));
                 if (isset($this->request->data['User']['email'])) {
+                    // increase bruteforce attempt and log
                     $this->Bruteforce->insert($this->request->data['User']['email']);
                 }
             }
@@ -1319,6 +1322,7 @@ class UsersController extends AppController
             'recursive' => -1
         ));
         unset($user['User']['password']);
+        // update login timestamp and welcome user
         $this->User->updateLoginTimes($user['User']);
         $lastUserLogin = $user['User']['last_login'];
         $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
@@ -1326,6 +1330,26 @@ class UsersController extends AppController
             $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
             $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
         }
+
+        // verify UserLoginProfile trust status and perform actions (such as sending email), only do this is emailing is not disabled on the instance
+        if(!$this->User->UserLoginProfile->_isTrusted() && !Configure::read('MISP.disable_emailing')) {
+            $this->Flash->info("Not yet known loginProfile, sending email in background to validate");   // FIXME chri - remove this and replace by email alert with link to validation page.
+            // Email construction
+            $body = new SendEmailTemplate('userloginprofile_newlogin');
+            $body->set('userLoginProfile', $this->User->UserLoginProfile->_getUserProfile());
+            $body->set('baseurl', Configure::read('MISP.baseurl'));
+            $body->set('misp_org', Configure::read('MISP.org'));
+            $body->referenceId("login-alert|{}");  // TODO chri - set a logid here from the current login
+
+            // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
+            $result = $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] New sign in.");
+            if ($result) {
+                // all is well, email sent to user
+            } else {
+                // email flow system already logs errors
+            }
+        }
+
         // no state changes are ever done via GET requests, so it is safe to return to the original page:
         $this->redirect($this->Auth->redirectUrl());
     }
@@ -2953,6 +2977,7 @@ class UsersController extends AppController
                         'last_seen' => $prevCreatedLast,
                         'first_seen' => $prevCreatedFirst,
                         'actions' => $actionsString,
+                        'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile)) ? true : false,
                         'id' => $prevLogEntry);
                 }
                 // build new entry
@@ -2977,6 +3002,7 @@ class UsersController extends AppController
             'last_seen' => $prevCreatedLast,
             'first_seen' => $prevCreatedFirst,
             'actions' => $actionsString,
+            'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile)) ? true : false,
             'id' => $prevLogEntry);
         $query = [
             'limit' => 50,

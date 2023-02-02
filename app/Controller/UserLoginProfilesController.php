@@ -62,6 +62,8 @@ class UserLoginProfilesController extends AppController
         if ($this->request->is('post')) {
             $this->__setTrust($logId, 'malicious');
         }
+        $this->Flash->info(__('You marked a login suspicious. We highly recommend you to change your password NOW !'));
+        // FIXME chri - raise an alert to the logs so that MISP admins and org admins are aware and can filter on this.
         $this->redirect(array('controller' => 'users', 'action' => 'view_auth_history'));
     }
 
@@ -78,17 +80,13 @@ class UserLoginProfilesController extends AppController
             'fields' => array('Log.action', 'Log.created', 'Log.ip', 'Log.change', 'Log.id'),
             'order' => array('Log.created DESC')
         ));
-        debug($log);
-        // check if the userLoginProfile is already there, or not
+        // FIXME chri - check if the userLoginProfile is already there, or not
 
         // add it if it isn't there yet
         $data = $this->UserLoginProfile->_fromLog($log['Log']);
         $data['status'] = $status;
         $data['user_id'] = $user['id'];
-        // debug($data);
         $this->UserLoginProfile->save($data);
-        // debug($this->UserLoginProfile);
-        debug("Saved");
         if (empty($log)) {
             // FIXME throw error saying there is an issue.
         }

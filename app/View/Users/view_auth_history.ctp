@@ -44,6 +44,7 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
                 'data_path' => 'actions'
             ]
         ],
+        // FIXME chri - ask Andras how to show/hide the actions based on the 'actions_button' variable/boolean
         'actions' => array(
              array(
                 'title' => __('Trust'),

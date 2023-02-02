@@ -134,5 +134,13 @@ class UserLoginProfile extends AppModel
         // bad news, iterated over all and no similar found
         return 'unknown';
     }
+    
+    public function _isTrusted() {
+        if (strpos($this->_getTrustStatus($this->_getUserProfile()), 'trusted') !== false) {
+            return true;
+        }
+        return false;
+    }
+
 
 }
