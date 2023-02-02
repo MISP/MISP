@@ -30,13 +30,13 @@ class Bruteforce extends AppModel
         $this->User = ClassRegistry::init('User');
         $user = $this->User->find('first', array(
             'conditions' => array('User.email' => $username),
-            'fields' => array('User.id', 'Organisation.name'),
+            'fields' => array('User.id', 'Organisation.name', 'User.email'),
             'recursive' => 0));
+        $user = array_merge($user, $user['User']);
         if ($user) {
-            $org = $user['Organisation']['name'];
             $userId = $user['User']['id'];
         } else {
-            $org = 'SYSTEM';
+            $user = 'SYSTEM';
             $userId = 0;
         }
         $this->Log->createLogEntry(
