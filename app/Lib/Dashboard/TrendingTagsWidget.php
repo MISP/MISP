@@ -40,8 +40,8 @@ class TrendingTagsWidget
 
         $tagColours = [];
         $allTags = [];
+        $this->render = $this->getRenderer($options);
         if (!empty($options['over_time'])) {
-            $this->render = 'MultiLineChart';
 
             $tagOvertime = [];
             if (!empty($eventIds)) {
@@ -134,5 +134,10 @@ class TrendingTagsWidget
         } else {
             return true;
         }
+    }
+
+    public function getRenderer(array $options)
+    {
+        return !empty($options['over_time']) ? 'MultiLineChart' : 'BarChart';
     }
 }
