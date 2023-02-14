@@ -2584,6 +2584,9 @@ class EventsController extends AppController
             if (isset($this->request->data['json'])) {
                 $this->request->data = $this->_jsonDecode($this->request->data['json']);
             }
+            if (isset($this->request->data['Event'])) {
+                $this->request->data = $this->request->data['Event'];
+            }
             $eventToSave = $event;
             $capturedObjects = ['Attribute', 'Object', 'Tag', 'Galaxy', 'EventReport'];
             foreach ($capturedObjects as $objectType) {
