@@ -10,7 +10,13 @@
                 [
                     'field' => 'json',
                     'class' => 'input-big-chungus',
-                    'type' => 'textarea'
+                    'type' => 'textarea',
+                ],
+                [
+                    'field' => 'regenerate_uuids',
+                    'type' => 'checkbox',
+                    'label' => __('Regenerate UUIDs'),
+                    'title' => __('test'),
                 ],
             ],
             'submit' => [

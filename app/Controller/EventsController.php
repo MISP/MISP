@@ -2557,7 +2557,7 @@ class EventsController extends AppController
         }
     }
 
-    public function populate($id)
+    public function populate($id, $regenerateUUIDs=false)
     {
         if ($this->request->is('get') && $this->_isRest()) {
             return $this->RestResponse->describe('Events', 'populate', false, $this->response->type());
@@ -2579,6 +2579,7 @@ class EventsController extends AppController
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             if (isset($this->request->data['Event'])) {
+                $regenerateUUIDs = $this->request->data['Event']['regenerate_uuids'] ?? false;
                 $this->request->data = $this->request->data['Event'];
             }
             if (isset($this->request->data['json'])) {
@@ -2591,6 +2592,12 @@ class EventsController extends AppController
             $capturedObjects = ['Attribute', 'Object', 'Tag', 'Galaxy', 'EventReport'];
             foreach ($capturedObjects as $objectType) {
                 if (!empty($this->request->data[$objectType])) {
+                    if (!empty($regenerateUUIDs)) {
+                        foreach ($this->request->data[$objectType] as $i => $obj) {
+                            unset($this->request->data[$objectType][$i]['id']);
+                            unset($this->request->data[$objectType][$i]['uuid']);
+                        }
+                    }
                     $eventToSave['Event'][$objectType] = $this->request->data[$objectType];
                 }
             }
