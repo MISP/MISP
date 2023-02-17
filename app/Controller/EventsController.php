@@ -2324,6 +2324,9 @@ class EventsController extends AppController
         if ($this->request->is('post')) {
             $results = array();
             if (!empty($this->request->data)) {
+                if (empty($this->request->data['Event'])) {
+                    $this->request->data['Event'] = $this->request->data;
+                }
                 if (!empty($this->request->data['Event']['filecontent'])) {
                     $data = $this->request->data['Event']['filecontent'];
                     $isXml = $data[0] === '<';
@@ -4317,8 +4320,8 @@ class EventsController extends AppController
                 'checkbox' => false,
             ),
             'bro' => array(
-                'url' => $this->baseurl . '/attributes/bro/download/all/false/' . $id,
-                // 'url' => '/attributes/restSearch/returnFormat:bro/published:1||0/eventid:' . $id,
+                // 'url' => $this->baseurl . '/attributes/bro/download/all/false/' . $id,
+                'url' => $this->baseurl . '/attributes/restSearch/returnFormat:bro/published:1||0/eventid:' . $id,
                 'text' => __('Bro rules'),
                 'requiresPublished' => false,
                 'checkbox' => false,
