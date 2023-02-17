@@ -4308,7 +4308,7 @@ class EventsController extends AppController
             ),
             'bro' => array(
                 'url' => $this->baseurl . '/attributes/bro/download/all/false/' . $id,
-                // 'url' => '/attributes/restSearch/returnFormat:bro/published:1||0/eventid:' . $id,
+                // 'url' => $this->baseurl . '/attributes/restSearch/returnFormat:bro/published:1||0/eventid:' . $id,
                 'text' => __('Bro rules'),
                 'requiresPublished' => false,
                 'checkbox' => false,
