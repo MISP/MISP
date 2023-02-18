@@ -175,17 +175,48 @@ class Sighting extends AppModel
     }
 
     /**
+     *
+     * * Params:
+     *  - includeEvent (bool)
+     *  - includeAttribute (bool)
+     *  - includeUuid (bool) - Add attribute and event UUID to sighting
+     *  - order (string) - order by
+     *  - limit (int)
+     *  -
+     *
+     * @param array $user
+     * @param array $params The same params as for `getSightings` method
+     * @return array
+     */
+    public function fetchSightings(array $user, array $params = [])
+    {
+        $sightingIds = $this->fetchSightingsIdsByFilters($params);
+        return $this->getSightings($user, $sightingIds, $params);
+    }
+
+    /**
      * Fetch sightings with proper ACL checks
+     *
+     * Params:
+     *  - includeEvent (bool)
+     *  - includeAttribute (bool)
+     *  - includeUuid (bool) - Add attribute and event UUID to sighting
+     *  - order (string) - order by
+     *  - limit (int)
      *
      * @param array $user
      * @param array $ids Sightings IDs
-     * @param bool $includeEvent
-     * @param bool $includeAttribute
-     * @param bool $includeUuid Add attribute and event UUID to sighting
+     * @param array $params
      * @return array
      */
-    private function getSightings(array $user, array $ids, $includeEvent = true, $includeAttribute = false, $includeUuid = false)
+    private function getSightings(array $user, array $ids, array $params)
     {
+        $includeEvent = $params['includeEvent'] ?? false;
+        $includeAttribute = $params['includeAttribute'] ?? false;
+        $includeUuid = $params['includeUuid'] ?? false;
+        $order = $params['order'] ?? 'Sighting.id';
+        $limit = $params['limit'] ?? null;
+
         $eventFields = $includeEvent ? ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'] : ['Event.org_id'];
         if ($includeUuid && !$includeEvent) {
             $eventFields[] = 'Event.uuid';
@@ -230,7 +261,8 @@ class Sighting extends AppModel
         $sightings = $this->find('all', [
             'recursive' => -1,
             'conditions' => $conditions,
-            'order' => 'Sighting.id',
+            'order' => $order,
+            'limit' => $limit,
         ]);
 
         if (empty($sightings)) {
@@ -965,30 +997,13 @@ class Sighting extends AppModel
     }
 
     /**
-     * @param array $user
-     * @param string $returnFormat
+     * Fetch sighting IDs matching the filters without ACL checks
+     *
      * @param array $filters
-     * @return TmpFileTool
-     * @throws Exception
+     * @return array
      */
-    public function restSearch(array $user, $returnFormat, $filters)
+    private function fetchSightingsIdsByFilters(array $filters)
     {
-        $allowedContext = array('event', 'attribute');
-        // validate context
-        if (isset($filters['context']) && !in_array($filters['context'], $allowedContext, true)) {
-            throw new MethodNotAllowedException(__('Invalid context %s.', $filters['context']));
-        }
-        // ensure that an id or uuid is provided if context is set
-        if (!empty($filters['context']) && !(isset($filters['id']) || isset($filters['uuid'])) ) {
-            throw new MethodNotAllowedException(__('An ID or UUID must be provided if the context is set.'));
-        }
-
-        if (!isset($this->validFormats[$returnFormat][1])) {
-            throw new NotFoundException('Invalid output format.');
-        }
-        App::uses($this->validFormats[$returnFormat][1], 'Export');
-        $exportTool = new $this->validFormats[$returnFormat][1]();
-
         // construct filtering conditions
         if (isset($filters['from']) && isset($filters['to'])) {
             $timeCondition = array($filters['from'], $filters['to']);
@@ -1061,6 +1076,38 @@ class Sighting extends AppModel
             }
         }
 
+        return $this->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['Sighting.id'],
+            'contain' => $contain,
+        ]);
+    }
+
+    /**
+     * @param array $user
+     * @param string $returnFormat
+     * @param array $filters
+     * @return TmpFileTool
+     * @throws Exception
+     */
+    public function restSearch(array $user, $returnFormat, $filters)
+    {
+        $allowedContext = array('event', 'attribute');
+        // validate context
+        if (isset($filters['context']) && !in_array($filters['context'], $allowedContext, true)) {
+            throw new MethodNotAllowedException(__('Invalid context %s.', $filters['context']));
+        }
+        // ensure that an id or uuid is provided if context is set
+        if (!empty($filters['context']) && !(isset($filters['id']) || isset($filters['uuid'])) ) {
+            throw new MethodNotAllowedException(__('An ID or UUID must be provided if the context is set.'));
+        }
+
+        if (!isset($this->validFormats[$returnFormat][1])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        App::uses($this->validFormats[$returnFormat][1], 'Export');
+        $exportTool = new $this->validFormats[$returnFormat][1]();
+
         $includeAttribute = isset($filters['includeAttribute']) && $filters['includeAttribute'];
         $includeEvent = isset($filters['includeEvent']) && $filters['includeEvent'];
         $includeUuid = isset($filters['includeUuid']) && $filters['includeUuid'];
@@ -1087,16 +1134,17 @@ class Sighting extends AppModel
         $separator = $exportTool->separator($exportToolParams);
 
         // fetch sightings matching the query without ACL checks
-        $sightingIds = $this->find('column', [
-            'conditions' => $conditions,
-            'fields' => ['Sighting.id'],
-            'contain' => $contain,
-            'order' => 'Sighting.id',
-        ]);
+        $sightingIds = $this->fetchSightingsIdsByFilters($filters);
+
+        $params = [
+            'includeEvent' => $includeEvent,
+            'includeAttribute' => $includeAttribute,
+            'includeUuid' => $includeUuid,
+        ];
 
         foreach (array_chunk($sightingIds, 500) as $chunk) {
             // fetch sightings with ACL checks and sighting policies
-            $sightings = $this->getSightings($user, $chunk, $includeEvent, $includeAttribute, $includeUuid);
+            $sightings = $this->getSightings($user, $chunk, $params);
             foreach ($sightings as $sighting) {
                 $tmpfile->writeWithSeparator($exportTool->handler($sighting, $exportToolParams), $separator);
             }

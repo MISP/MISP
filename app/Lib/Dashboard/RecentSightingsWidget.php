@@ -21,39 +21,37 @@ class RecentSightingsWidget
 
 	public function handler($user, $options = array())
 	{
-        $params = array(
-            'last' => empty($options['last']) ? "1d" : $options['last'],
-            'limit' => empty($options['limit']) ? "10" : $options['limit']
-        );
-        $last = $params['last'];
-        $limit = $params['limit'];
+        $last = empty($options['last']) ? "1d" : $options['last'];
+        $limit = empty($options['limit']) ? 10 : $options['limit'];
 
         /** @var Sighting $Sighting */
         $Sighting = ClassRegistry::init('Sighting');
+        $sightings = $Sighting->fetchSightings($user, [
+            'last' => $last,
+            'includeAttribute' => true,
+            'includeEvent' => true,
+            'limit' => $limit,
+            'order' => 'Sighting.id DESC',
+        ]);
 
-        $filters = array('last' => $last, 'includeAttribute' => 'true', 'includeEvent' => 'true');
         $data = array();
-        $count = 0;
+        foreach ($sightings as $el) {
+            $sighting = $el->{'Sighting'};
+            $event = $sighting->{'Event'};
+            $attribute = $sighting->{'Attribute'};
 
-        foreach (JsonTool::decode($Sighting->restSearch($user, 'json', $filters)->intoString())['response'] as $el) {
-            $sighting = $el['Sighting'];
-            $event = $sighting['Event'];
-            $attribute = $sighting['Attribute'];
-
-            if ($sighting['type'] == 0) $type = "Sighting";
-            elseif ($sighting['type'] == 1) $type = "False positive";
+            if ($sighting->{'type'} == 0) $type = "Sighting";
+            elseif ($sighting->{'type'} == 1) $type = "False positive";
             else $type = "Expiration";
 
-            $output = $attribute['value'] . " (id: " . $attribute['id'] . ") in " . $event['info'] . " (id: " . $event['id'] . ")";
+            $output = $attribute->{'value'} . " (id: " . $attribute->{'id'} . ") in " . $event->{'info'} . " (id: " . $event->{'id'} . ")";
             $data[] = array( 'title' => $type, 'value' => $output, 
                                 'html' => sprintf(
                                     ' (Event <a href="%s%s">%s</a>)',
-                                    Configure::read('MISP.baseurl') . '/events/view/', $event['id'],
-                                    $event['id']
+                                    Configure::read('MISP.baseurl') . '/events/view/', $event->{'id'},
+                                    $event->{'id'}
                                 )
                         );
-            ++$count;
-            if ($count >= $limit ) break;
         }
         return $data;
 	}
