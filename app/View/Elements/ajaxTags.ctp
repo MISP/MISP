@@ -75,6 +75,9 @@
                     'tag_display_style' => 2
                 ]);
             }
+            if (empty($hTags)) {
+                $hTags = sprintf('<span class="grey">-%s-</span>', __('none'));
+            }
 
             $highlightedTagsString .= sprintf(
                 '<tr><td style="font-weight: bold;text-transform: uppercase;">%s</td></td><td>%s</td><td>%s</td></tr>',
