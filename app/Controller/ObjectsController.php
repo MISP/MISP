@@ -1218,8 +1218,18 @@ class ObjectsController extends AppController
             ));
 
             foreach ($object_references as $i => $object_reference) {
-                $temp_object = $this->MispObject->find('first', array('id' => $object_reference['ObjectReference']['object_id'], 'recursive' => -1));
-                $temp_attribute = $this->MispObject->Attribute->find('first', array('id' => $object_reference['ObjectReference']['referenced_id'], 'recursive' => -1));
+                $temp_object = $this->MispObject->find('first', [
+                    'conditions' => [
+                        'id' => $object_reference['ObjectReference']['object_id']
+                    ],
+                    'recursive' => -1
+                ]);
+                $temp_attribute = $this->MispObject->Attribute->find('first', [
+                    'conditions' => [
+                        'id' => $object_reference['ObjectReference']['referenced_id'],
+                    ],
+                    'recursive' => -1
+                ]);
                 if (!empty($temp_object) && !empty($temp_attribute)) {
                     $temp_object = $temp_object['Object'];
                     $temp_attribute = $temp_attribute['Attribute'];
