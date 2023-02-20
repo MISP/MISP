@@ -59,14 +59,13 @@ class UserLoginProfile extends AppModel
             $browser = $bc->getBrowser();
 
             $ip = $this->_remoteIp();
-            $geoDbReader = new GeoIp2\Database\Reader(APP . DS. 'files'.DS.'geo-open'. DS . 'GeoOpen-Country.mmdb'); // LATER chri - dev an update mechanism to take the latest geoip 
+            $geoDbReader = new GeoIp2\Database\Reader(APP . DS. 'files'.DS.'geo-open'. DS . 'GeoOpen-Country.mmdb');  // GeoIP file managed by MISP
             $record = $geoDbReader->country($ip);
             $country = $record->country->isoCode;
             $this->userProfile = [
                 'user_agent' => env('HTTP_USER_AGENT'),
                 'ip' => $ip,
                 'accept_lang' => env('HTTP_ACCEPT_LANGUAGE'),
-                'ja3' => '',   // see https://fingerprint.com/blog/what-is-tls-fingerprinting-transport-layer-security/
                 'geoip' => $country,
                 'ua_pattern' => $browser->browser_name_pattern,
                 'ua_platform' => $browser->platform,
@@ -77,7 +76,7 @@ class UserLoginProfile extends AppModel
     }
 
     public function _fromLog($logEntry) {
-        $data = json_decode('{"user_agent": "", "ip": "", "accept_lang":"", "ja3":"", "geoip":"", "ua_pattern":"", "ua_platform":"", "ua_browser":""}', true);
+        $data = json_decode('{"user_agent": "", "ip": "", "accept_lang":"", "geoip":"", "ua_pattern":"", "ua_platform":"", "ua_browser":""}', true);
         $data = array_merge($data, json_decode($logEntry['change'], true) ?? []);
         $data['ip'] = $logEntry['ip'];
         

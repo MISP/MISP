@@ -68,11 +68,6 @@
                     'data_path' => 'UserLoginProfile.accept_lang',
                 ],
                 [
-                    'name' => __('JA3 Client ID'),
-                    'sort' => 'UserLoginProfile.ja3',
-                    'data_path' => 'UserLoginProfile.ja3',
-                ],
-                [
                     'name' => __('GeoIP'),
                     'sort' => 'UserLoginProfile.geoip',
                     'data_path' => 'UserLoginProfile.geoip',

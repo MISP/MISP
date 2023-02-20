@@ -1333,13 +1333,12 @@ class UsersController extends AppController
 
         // verify UserLoginProfile trust status and perform actions (such as sending email), only do this is emailing is not disabled on the instance
         if(!$this->User->UserLoginProfile->_isTrusted() && !Configure::read('MISP.disable_emailing')) {
-            $this->Flash->info("Not yet known loginProfile, sending email in background to validate");   // FIXME chri - remove this and replace by email alert with link to validation page.
             // Email construction
             $body = new SendEmailTemplate('userloginprofile_newlogin');
             $body->set('userLoginProfile', $this->User->UserLoginProfile->_getUserProfile());
             $body->set('baseurl', Configure::read('MISP.baseurl'));
             $body->set('misp_org', Configure::read('MISP.org'));
-            $body->referenceId("login-alert|{}");  // TODO chri - set a logid here from the current login
+            $body->referenceId("login-alert|{}");  // FIXME chri - set a logid here from the current login
 
             // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
             $result = $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] New sign in.");
@@ -2928,7 +2927,7 @@ class UsersController extends AppController
     }
 
     public function view_auth_history() { 
-        $user = $this->Auth->user();  // TODO chri - is this the best way? 
+        $user = $this->Auth->user();
         $this->loadModel('UserLoginProfile');
         $this->loadModel('Log');
         $logs = $this->Log->find('all', array(
