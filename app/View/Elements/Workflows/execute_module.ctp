@@ -159,9 +159,9 @@ $type_mapper = [
             .addClass(jqXHR.status == 200 ? 'label-success' : 'label-important')
         if (typeof result === 'object') {
             $executionResultText.text(JSON.stringify(result, '', 4));
+            $('#executionResultHtml').empty();
         } else {
             $('#executionResultHtml').html(result);
-            // $executionResultText.text(result);
         }
     }
 
