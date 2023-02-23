@@ -5,6 +5,7 @@ class Module_ms_teams_webhook extends Module_webhook
 {
     public $id = 'ms-teams-webhook';
     public $name = 'MS Teams Webhook';
+    public $version = '0.2';
     public $description = 'Perform callbacks to the MS Teams webhook provided by the "Incoming Webhook" connector';
     public $icon_path = 'MS_Teams.png';
 
@@ -37,7 +38,7 @@ class Module_ms_teams_webhook extends Module_webhook
         ];
     }
 
-    protected function doRequest($url, $contentType, $data)
+    protected function doRequest($url, $contentType, $data, $headers = [], $serverConfig = null)
     {
         $data = '{"text":"' . implode($data) . '"}';
         return parent::doRequest($url, $contentType, $data);
