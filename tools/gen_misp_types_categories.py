@@ -167,10 +167,10 @@ with open('../../misp-book/categories-and-types/README.md', 'w') as f:
 # Find the offset of the start header: "### MISP default attributes and categories"
 # Find the offset of the end/next header:  "## MISP objects"
 # Replace our new content in between
-print("Updating MISP website - ../../misp-website/_pages/datamodels.md")
+print("Updating MISP website - ../../misp-website/content/datamodels.md")
 misp_website = []
 store_lines = True
-with open('../../misp-website/_pages/datamodels.md', 'r') as f:
+with open('../../misp-website/content/datamodels.md', 'r') as f:
     for line in f:
         # start marker
         if store_lines:
@@ -183,7 +183,7 @@ with open('../../misp-website/_pages/datamodels.md', 'r') as f:
         elif line.startswith('## MISP objects'):
             store_lines = True
             misp_website.append(line)
-with open('../../misp-website/_pages/datamodels.md', 'w') as f:
+with open('../../misp-website/content/datamodels.md', 'w') as f:
     f.write(''.join(misp_website))
 
 
