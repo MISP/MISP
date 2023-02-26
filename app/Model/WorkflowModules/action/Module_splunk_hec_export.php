@@ -43,6 +43,14 @@ class Module_splunk_hec_export extends Module_webhook
                 'type' => 'input',
                 'placeholder' => '00000000-0000-0000-000000000000'
             ],
+	    [
+                'id' => 'source_type',
+                'label' => __('Source Type'),
+                'type' => 'select',
+                'type' => 'input',
+		'default' => '',
+                'placeholder' => 'misp:event'
+            ],
             [
                 'id' => 'event_per_attribute',
                 'label' => __('Create one Splunk Event per Attribute'),
@@ -110,10 +118,10 @@ class Module_splunk_hec_export extends Module_webhook
             $splunk_events = $extracted_events;
         }
 
-        return $this->sendToSplunk($splunk_events, $params['hec_token']['value'], $params['url']['value']);
+        return $this->sendToSplunk($splunk_events, $params['hec_token']['value'], $params['url']['value'], $params['source_type']['value']);
     }
 
-    protected function sendToSplunk(array $splunk_events, $token, $url): bool
+    protected function sendToSplunk(array $splunk_events, $token, $url, $source_type): bool
     {
         foreach ($splunk_events as $splunk_event) {
             try {
@@ -127,6 +135,9 @@ class Module_splunk_hec_export extends Module_webhook
 		$hec_event = [
 		    'event' => $splunk_event
 		];
+		if (!empty($source_type)) {
+		    $hec_event['sourcetype'] = $source_type;
+		}
 
                 $response = $this->doRequest(
                     $url,
