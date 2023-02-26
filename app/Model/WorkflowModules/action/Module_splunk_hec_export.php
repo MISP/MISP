@@ -123,10 +123,15 @@ class Module_splunk_hec_export extends Module_webhook
                 $serverConfig = [
                     'Server' => ['self_signed' => empty($params['verify_tls']['value'])]
                 ];
+
+		$hec_event = [
+		    'event' => $splunk_event
+		];
+
                 $response = $this->doRequest(
                     $url,
                     'json',
-                    $splunk_event,
+                    $hec_event,
                     $headers,
                     $serverConfig,
                 );
