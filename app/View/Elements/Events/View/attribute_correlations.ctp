@@ -33,10 +33,10 @@
                 $popover .= '<b class="black">' . h($k) . '</b>: <span class="blue">' . h($v) . '</span><br>';
             }
             $link = $this->Html->link(
-                $relatedAttribute['id'],
+                $relatedAttribute['Event']['id'],
                     $withPivot ?
-                            ['controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']] :
-                            ['controller' => 'events', 'action' => 'view', $relatedAttribute['id']],
+                            ['controller' => 'events', 'action' => 'view', $relatedAttribute['Event']['id'], true, $event['Event']['id']] :
+                            ['controller' => 'events', 'action' => 'view', $relatedAttribute['Event']['id']],
                 ['class' => ($relatedAttribute['org_id'] == $me['org_id']) ? $linkColour : 'blue']
             );
             echo sprintf(
