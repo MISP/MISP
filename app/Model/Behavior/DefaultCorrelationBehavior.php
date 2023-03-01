@@ -527,7 +527,6 @@ class DefaultCorrelationBehavior extends ModelBehavior
             $correlation[$prefix . 'object_id'] &&
             (
                 $correlation[$prefix . 'object_distribution'] == 0 ||
-                $correlation[$prefix . 'object_distribution'] == 5 ||
                 (
                     $correlation[$prefix . 'object_distribution'] == 4 &&
                     !in_array($correlation[$prefix . 'object_sharing_group_id'], $sgids)
