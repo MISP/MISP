@@ -220,18 +220,7 @@ class Sighting extends AppModel
             return [];
         }
 
-        // Create conditions for fetching just sightings that user can see according to sightings policy
-        $conditions = $this->createConditionsByAttributes($user, $attributes);
-        if (empty($conditions)) {
-            return [];
-        }
-
-        $conditions['Sighting.id'] = $ids;
-        $sightings = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'order' => 'Sighting.id',
-        ]);
+        $sightings = $this->filterSightingsByAttributeACL($user, $attributes, $ids);
 
         if (empty($sightings)) {
             return [];
@@ -367,6 +356,51 @@ class Sighting extends AppModel
         $conditions = $this->createConditionsByAttributes($user, $attributes);
         $groupedSightings = $this->fetchGroupedSightings($conditions, $user);
         return $this->generateStatistics($groupedSightings, $csvWithFalsePositive);
+    }
+
+    /**
+     * @param array $user
+     * @param array $attributes Attributes with `Attribute.id`, `Event.id` and `Event.org_id` fields
+     * @param array $ids
+     * @return array
+     */
+    private function filterSightingsByAttributeACL(array $user, array $attributes, array $ids)
+    {
+        $sightingsPolicy = $this->sightingsPolicy();
+        $attributesKeyed = [];
+        $hostOrgId = Configure::read('MISP.host_org_id');
+        $userOrgId = $user['org_id'];
+        foreach ($attributes as $attribute) {
+            $attributesKeyed[$attribute['Attribute']['id']] = $attribute;
+        }
+        unset($attributes);
+        $sightings = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'Sighting.id' => $ids
+            ],
+            'order' => 'Sighting.id'
+        ]);
+        foreach ($sightings as $k => $sighting) {
+            $attribute = $attributesKeyed[$sighting['Sighting']['attribute_id']];
+            $ownEvent = $attribute['Event']['org_id'] == $userOrgId;
+            if (!$ownEvent) {
+                if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+                    if ($sighting['Sighting']['org_id'] != $userOrgId) {
+                        unset($sightings[$k]);
+                    }
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+                    if (!$this->isreporter($attribute['Event']['id'], $userOrgId)) {
+                        unset($sightings[$k]);
+                    }
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                    if (!in_array($sighting['Sighting']['org_id'], [$userOrgId, $hostOrgId])) {
+                        unset($sightings[$k]);
+                    }
+                }
+            }
+        }
+        return array_values($sightings);
     }
 
     /**
