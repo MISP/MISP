@@ -144,7 +144,7 @@ class Module_splunk_hec_export extends Module_webhook
                     'json',
                     $hec_event,
                     $headers,
-                    $serverConfig,
+                    $serverConfig
                 );
                 if (!$response->isOk()) {
                     if ($response->code === 403 || $response->code === 401) {
