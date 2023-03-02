@@ -1691,8 +1691,9 @@ class ServersController extends AppController
         if (!function_exists('getallheaders')) {
             $headers = [];
             foreach ($_SERVER as $name => $value) {
-                if (substr($name, 0, 5) === 'HTTP_') {
-                    $headers[strtolower(str_replace('_', '-', substr($name, 5)))] = $value;
+                $name = strtolower($name);
+                if (substr($name, 0, 5) === 'http_') {
+                    $headers[str_replace('_', '-', substr($name, 5))] = $value;
                 }
             }
         } else {
@@ -1725,6 +1726,7 @@ class ServersController extends AppController
         if (!$server) {
             throw new NotFoundException(__('Invalid server'));
         }
+        @session_write_close(); // close session to allow concurrent requests
         $result = $this->Server->runConnectionTest($server);
         if ($result['status'] == 1) {
             if (isset($result['info']['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $result['info']['version'])) {

@@ -2097,7 +2097,7 @@ class Event extends AppModel
             // Include information about event creator user email. This information is included for:
             // - users from event creator org
             // - site admins
-            // In export, this information will be included in `event_creator_email` field just for auditors of event creator org.
+            // In export, this information will be included in `event_creator_email` field for auditors of event creator org and site admins.
             $sameOrg = $event['Event']['orgc_id'] === $user['org_id'];
             if ($sameOrg || $user['Role']['perm_site_admin']) {
                 if (!isset($userEmails[$event['Event']['user_id']])) {
@@ -2105,7 +2105,7 @@ class Event extends AppModel
                 }
 
                 $userEmail = $userEmails[$event['Event']['user_id']];
-                if ($sameOrg && $user['Role']['perm_audit']) {
+                if ($sameOrg && $user['Role']['perm_audit'] || $user['Role']['perm_site_admin']) {
                     $event['Event']['event_creator_email'] = $userEmail;
                 }
                 $event['User']['email'] = $userEmail;
@@ -3373,7 +3373,11 @@ class Event extends AppModel
             foreach ($event['EventTag'] as $tag) {
                 $tagId = $this->captureTagWithCache($tag['Tag'], $user, $capturedTags);
                 if ($tagId && !in_array($tagId, $event_tag_ids)) {
-                    $eventTags[] = array('tag_id' => $tagId);
+                    $eventTags[] = array(
+                        'tag_id' => $tagId,
+                        'local' => isset($tag['local']) ? $tag['local'] : 0,
+                        'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                    );
                     $event_tag_ids[] = $tagId;
                 }
             }
@@ -3388,6 +3392,7 @@ class Event extends AppModel
                     $eventTags[] = [
                         'tag_id' => $tag_id,
                         'local' => isset($tag['local']) ? $tag['local'] : 0,
+                        'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                     ];
                     $event_tag_ids[] = $tag_id;
                 }
@@ -3448,7 +3453,11 @@ class Event extends AppModel
                     $a['AttributeTag'] = array($a['AttributeTag']);
                 }
                 foreach ($a['AttributeTag'] as $tag) {
-                    $attributeTags[] = array('tag_id' => $this->captureTagWithCache($tag['Tag'], $user, $capturedTags));
+                    $attributeTags[] = array(
+                        'tag_id' => $this->captureTagWithCache($tag['Tag'], $user, $capturedTags),
+                        'local' => isset($tag['local']) ? $tag['local'] : 0,
+                        'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                    );
                 }
             }
             if (isset($a['Tag'])) {
@@ -3461,6 +3470,7 @@ class Event extends AppModel
                         $attributeTags[] = [
                             'tag_id' => $tagId,
                             'local' => isset($tag['local']) ? $tag['local'] : 0,
+                            'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                         ];
                     }
                 }

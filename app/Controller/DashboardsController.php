@@ -183,9 +183,9 @@ class DashboardsController extends AppController
         } else {
             $data = $dashboardWidget->handler($user, $valueConfig);
         }
-
+        $renderer = method_exists($dashboardWidget, 'getRenderer') ? $dashboardWidget->getRenderer($valueConfig) : $dashboardWidget->render;
         $config = array(
-            'render' => $dashboardWidget->render,
+            'render' => $renderer,
             'autoRefreshDelay' => empty($dashboardWidget->autoRefreshDelay) ? false : $dashboardWidget->autoRefreshDelay,
             'widget_config' => empty($valueConfig['widget_config']) ? array() : $valueConfig['widget_config']
         );
