@@ -33,6 +33,7 @@ tools/mkdocs
 /app/tmp/cache/persistent/myapp*
 /app/tmp/cache/views/myapp*
 /app/tmp/cache/misp_feed*
+/app/tmp/browscap/*
 /app/files/*
 /app/tmp/cache/feeds/*.cache
 app/Lib/EventWarning/Custom/*
@@ -69,6 +70,8 @@ app/Lib/EventWarning/Custom/*
 !/app/files/empty
 /app/files/terms/*
 !/app/files/terms/empty
+!/app/files/browscap
+!/app/files/geo-open
 /app/webroot/img/logo.png
 /app/webroot/img/custom/*
 !/app/webroot/img/custom/empty

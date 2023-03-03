@@ -39,27 +39,44 @@ class UserLoginProfile extends AppModel
         'order' => ''
     ]];
 
+    protected $browscapCacheDir = APP . DS . 'tmp' . DS . 'browscap';
+    protected $browscapIniFile = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
+    protected $geoIpDbFile = APP . DS . 'files' . DS . 'geo-open' . DS . 'GeoOpen-Country.mmdb';  // GeoIP file managed by MISP
+
+    public function _buildBrowscapCache() {
+        $this->log("Browscap - building new cache from browscap.ini file.", "info");
+        $fileCache = new \League\Flysystem\Local\LocalFilesystemAdapter($this->browscapCacheDir);
+        $filesystem = new \League\Flysystem\Filesystem($fileCache);
+        $cache = new \MatthiasMullie\Scrapbook\Psr16\SimpleCache(
+            new \MatthiasMullie\Scrapbook\Adapters\Flysystem($filesystem)
+        );
+        $logger = new \Monolog\Logger('name');
+        $bc = new \BrowscapPHP\BrowscapUpdater($cache, $logger);
+        $bc->convertFile($this->browscapIniFile);
+    }
+
     /**
      * slow function - don't call it too often 
      * @return array
      */
     public function _getUserProfile() {
         if (!$this->userProfile) {
-            // FIXME chri - below uses https://github.com/browscap/browscap-php 
-            // this needs to be integrated in the update mechanism, building the cache dir
-            // FIXME chri - one dependency is also loading an Attribute class, and breaks MISP. - /var/www/MISP/app/Vendor/symfony/polyfill-php80/Resources/stubs/Attribute.php
-            $cacheDir = APP . DS . 'files' . DS . 'browscap';
-            $fileCache = new \League\Flysystem\Local\LocalFilesystemAdapter($cacheDir);
-            $filesystem = new \League\Flysystem\Filesystem($fileCache);
-            $cache = new \MatthiasMullie\Scrapbook\Psr16\SimpleCache(
-                new \MatthiasMullie\Scrapbook\Adapters\Flysystem($filesystem)
-            );
-            $logger = new \Monolog\Logger('name');
-            $bc = new \BrowscapPHP\Browscap($cache, $logger);
-            $browser = $bc->getBrowser();
-
+            // below uses https://github.com/browscap/browscap-php 
+            try {
+                $fileCache = new \League\Flysystem\Local\LocalFilesystemAdapter($this->browscapCacheDir);
+                $filesystem = new \League\Flysystem\Filesystem($fileCache);
+                $cache = new \MatthiasMullie\Scrapbook\Psr16\SimpleCache(
+                    new \MatthiasMullie\Scrapbook\Adapters\Flysystem($filesystem)
+                );
+                $logger = new \Monolog\Logger('name');
+                $bc = new \BrowscapPHP\Browscap($cache, $logger);
+                $browser = $bc->getBrowser();
+            } catch (\BrowscapPHP\Exception $e) {
+                $this->_buildBrowscapCache();
+                return $this->_getUserProfile();
+            }
             $ip = $this->_remoteIp();
-            $geoDbReader = new GeoIp2\Database\Reader(APP . DS. 'files'.DS.'geo-open'. DS . 'GeoOpen-Country.mmdb');  // GeoIP file managed by MISP
+            $geoDbReader = new GeoIp2\Database\Reader($this->geoIpDbFile);
             $record = $geoDbReader->country($ip);
             $country = $record->country->isoCode;
             $this->userProfile = [

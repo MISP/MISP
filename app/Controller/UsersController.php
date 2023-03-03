@@ -1187,11 +1187,6 @@ class UsersController extends AppController
                 }
             }
 
-            // FIXME chri - add verification of the UserLoginProfile and do the actions when suspicious logins appear
-            // actions: - reject login because IP is banned, 
-            //          - inform user (with info login success/failed), 
-            // so the code might need to be a bit lower
-
             // Check the length of the user's authkey match old format. This can be removed in future.
             $userPass = $this->User->find('first', [
                 'conditions' => ['User.email' => $this->request->data['User']['email']],
