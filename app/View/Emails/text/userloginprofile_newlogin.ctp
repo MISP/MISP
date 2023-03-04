@@ -1,6 +1,6 @@
 Hello,
 
-Your account on MISP <?= $misp_org; ?>) was just signed into from a new device or location.
+Your account on MISP <?= $misp_org; ?> was just signed into from a new device or location.
 
 - Operating System: <?= $userLoginProfile['ua_platform']; ?>
 

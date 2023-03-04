@@ -158,5 +158,17 @@ class UserLoginProfile extends AppModel
         return false;
     }
 
+    public function _isSuspicious() {
+        // previously marked loginuserprofile as malicious by the user
+        if (strpos($this->_getTrustStatus($this->_getUserProfile()), 'malicious') !== false) {
+            return 'UserLoginProfile was marked as malicious';
+        }
+        // FIXME chri - use other data to identify suspicious logins, such as:
+        // - other marked 'malicious' userloginprofiles
+        // - warning lists
+        // - ...
+        return false;
+    }
+
 
 }

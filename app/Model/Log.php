@@ -26,6 +26,7 @@ class Log extends AppModel
                     'attachTags',
                     'auth',
                     'auth_fail',
+                    'auth_alert',
                     'blocklisted',
                     'captureRelations',
                     'change_pw',
@@ -248,7 +249,6 @@ class Log extends AppModel
             if (!empty(Configure::read('MISP.log_skip_db_logs_completely'))) {
                 return null;
             }
-
             throw new Exception("Cannot save log because of validation errors: " . json_encode($this->validationErrors));
         }
 
