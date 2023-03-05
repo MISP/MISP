@@ -2897,7 +2897,10 @@ class UsersController extends AppController
         }
     }
     public function logout401() {
-        #To use this, set Plugin.CustomAuth_custom_logout to /users/logout401
+        # You should read the documentation in docs/CONFIG.ApacheSecureAuth.md
+        # before using this endpoint. It is not useful without webserver config
+        # changes.
+        # To use this, set Plugin.CustomAuth_custom_logout to /users/logout401
         $this->response->statusCode(401);
     }
 }
