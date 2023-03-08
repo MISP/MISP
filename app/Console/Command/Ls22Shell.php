@@ -120,7 +120,7 @@ class Ls22Shell extends AppShell
                         'short' => 's',
                         'required' => true
                     ],
-                    'json' => [
+                    'value' => [
                         'help' => 'The value to set for the given setting',
                         'short' => 'v',
                         'required' => true
