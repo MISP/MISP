@@ -101,6 +101,33 @@ class Ls22Shell extends AppShell
                 ),
             ),
         ]);
+        $parser->addSubcommand('setSetting', [
+            'help' => __('Set a setting on the given MISP instance(s).'),
+            'parser' => array(
+                'options' => array(
+                    'instances' => [
+                        'help' => 'Path to the instance file, by default "instances.csv" from the local directory',
+                        'short' => 'i',
+                        'required' => true
+                    ],
+                    'misp_url_filter' => [
+                        'help' => 'The url of the instance to execute changes on. If not set, all are updated.',
+                        'short' => 'm',
+                        'required' => false
+                    ],
+                    'setting' => [
+                        'help' => 'The setting to modify',
+                        'short' => 's',
+                        'required' => true
+                    ],
+                    'json' => [
+                        'help' => 'The value to set for the given setting',
+                        'short' => 'v',
+                        'required' => true
+                    ]
+                ),
+            ),
+        ]);
         $parser->addSubcommand('addWarninglist', [
             'help' => __('Inject warninglist'),
             'parser' => array(
@@ -357,6 +384,26 @@ class Ls22Shell extends AppShell
                 '<%s>%s</%s>',
                 $response->isOk() ? 'info' : 'error',
                 $response->isOk() ? 'OK' : 'Could not create warninglist',
+                $response->isOk() ? 'info' : 'error'
+            );
+            $this->out($server['Server']['url'] . ': ' . $statusWrapped, 1, Shell::NORMAL);
+        }
+    }
+
+    public function setSetting()
+    {
+        $setting = $this->param('setting');
+        $value = $this->param('value');
+        $this->__getInstances($this->param('instances'));
+        foreach ($this->__servers as $server) {
+            $HttpSocket = $this->Server->setupHttpSocket($server, null);
+            $request = $this->Server->setupSyncRequest($server, 'Server');
+            $payload = ["value" => $value];
+            $response = $HttpSocket->post($server['Server']['url'] . '/server/serverSettingsEdit/' . $setting, json_encode($value), $request);
+            $statusWrapped = sprintf(
+                '<%s>%s</%s>',
+                $response->isOk() ? 'info' : 'error',
+                $response->isOk() ? 'OK' : 'Setting updated',
                 $response->isOk() ? 'info' : 'error'
             );
             $this->out($server['Server']['url'] . ': ' . $statusWrapped, 1, Shell::NORMAL);
