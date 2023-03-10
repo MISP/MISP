@@ -38,7 +38,7 @@
             <br>
             <?php
             echo sprintf('<h5>%s</h5>',
-                __('You have been successfully logged out.'),
+                __('You have been successfully logged out.')
             );
             ?>
         </td>
