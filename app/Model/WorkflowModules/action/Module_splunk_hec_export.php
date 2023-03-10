@@ -43,12 +43,12 @@ class Module_splunk_hec_export extends Module_webhook
                 'type' => 'input',
                 'placeholder' => '00000000-0000-0000-000000000000'
             ],
-	    [
+            [
                 'id' => 'source_type',
                 'label' => __('Source Type'),
                 'type' => 'select',
                 'type' => 'input',
-		'default' => '',
+            'default' => '',
                 'placeholder' => 'misp:event'
             ],
             [
@@ -132,12 +132,12 @@ class Module_splunk_hec_export extends Module_webhook
                     'Server' => ['self_signed' => empty($params['verify_tls']['value'])]
                 ];
 
-		$hec_event = [
-		    'event' => $splunk_event
-		];
-		if (!empty($source_type)) {
-		    $hec_event['sourcetype'] = $source_type;
-		}
+                $hec_event = [
+                    'event' => $splunk_event
+                ];
+                if (!empty($source_type)) {
+                    $hec_event['sourcetype'] = $source_type;
+                }
 
                 $response = $this->doRequest(
                     $url,
