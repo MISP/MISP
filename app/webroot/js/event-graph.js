@@ -715,7 +715,7 @@ class EventGraph {
             if ( node.node_type == 'object' ) {
                 var group =  'object';
                 var label = dataHandler.generate_label(node);
-                var labelHtml = label + '</br><i>' + escapeHtml(node.comment) + '</i>'
+                var labelHtml = escapeHtml(label) + '</br><i>' + escapeHtml(node.comment) + '</i>'
                 label += ' ' + escapeHtml(node.comment)
                 var striped_value = that.strip_text_value(label);
                 node_conf = {
@@ -742,7 +742,7 @@ class EventGraph {
                     id: node.id,
                     uuid: node.uuid,
                     label: label,
-                    title: label,
+                    title: escapeHtml(label),
                     group: group,
                     mass: 20,
                     color: {
@@ -766,15 +766,15 @@ class EventGraph {
                 node_conf = {
                     id: node.id,
                     label: striped_value,
-                    title: label,
+                    title: escapeHtml(label),
                     group: group
                 };
                 dataHandler.mapping_value_to_nodeID.set(label, node.id);
             } else {
                 group =  'attribute';
-                label = node.type + ': ' + node.label;
+                label = escapeHtml(node.type) + ': ' + node.label;
                 label += ' ' + escapeHtml(node.comment)
-                var labelHtml = label + '</br><i>' + escapeHtml(node.comment) + '</i>'
+                var labelHtml = escapeHtml(label) + '</br><i>' + escapeHtml(node.comment) + '</i>'
                 var striped_value = that.strip_text_value(label);
                 node_conf = {
                     id: node.id,
@@ -1053,7 +1053,7 @@ class EventGraph {
                         x: parent_pos.x,
                         y: parent_pos.y,
                         label: attr.object_relation + ': ' + striped_value,
-                        title: attr.object_relation + ': ' + attr.value,
+                        title: escapeHtml(attr.object_relation) + ': ' + escapeHtml(attr.value),
                         group: 'obj_relation',
                         color: {
                             background: parent_color
