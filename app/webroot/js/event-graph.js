@@ -822,7 +822,7 @@ class EventGraph {
                 from: rel.from,
                 to: rel.to,
                 label: rel.type,
-                title: rel.comment,
+                title: escapeHtml(rel.comment),
                 color: {
                     opacity: 1.0,
                 }
