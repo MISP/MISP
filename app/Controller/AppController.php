@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '147';
-    public $pyMispVersion = '2.4.168';
+    public $pyMispVersion = '2.4.169';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -170,7 +170,7 @@ class AppController extends Controller
                 throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
             }
         }
-        
+
         // For fresh installation (salt empty) generate a new salt
         if (!Configure::read('Security.salt')) {
             $this->User->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
@@ -200,7 +200,7 @@ class AppController extends Controller
         } else {
             $this->Auth->authenticate[AuthComponent::ALL]['userFields'] = $authUserFields;
         }
-        
+
         $userLoggedIn = false;
         if (Configure::read('Plugin.CustomAuth_enable')) {
             $userLoggedIn = $this->__customAuthentication($_SERVER);
@@ -310,7 +310,7 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
-            $preAuthActions = array('login', 'register', 'getGpgPublicKey');
+            $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
                 $preAuthActions[] = 'email_otp';
             }
