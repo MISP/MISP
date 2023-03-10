@@ -29,7 +29,7 @@ class UsersController extends AppController
         parent::beforeFilter();
 
         // what pages are allowed for non-logged-in users
-        $allowedActions = array('login', 'logout', 'getGpgPublicKey');
+        $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401');
         if(!empty(Configure::read('Security.email_otp_enabled'))) {
           $allowedActions[] = 'email_otp';
         }
@@ -3030,5 +3030,13 @@ class UsersController extends AppController
         }
         $this->__setPagingParams($query['page'], $query['limit'], count($lst), 'named');
         $this->set('data', $lst);
+    }
+
+    public function logout401() {
+        # You should read the documentation in docs/CONFIG.ApacheSecureAuth.md
+        # before using this endpoint. It is not useful without webserver config
+        # changes.
+        # To use this, set Plugin.CustomAuth_custom_logout to /users/logout401
+        $this->response->statusCode(401);
     }
 }

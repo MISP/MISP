@@ -750,6 +750,7 @@ class ACLComponent extends Component
                 'initiatePasswordReset' => ['AND' => ['perm_admin', 'password_change_enabled']],
                 'login' => array('*'),
                 'logout' => array('*'),
+                'logout401' => array('*'),
                 'notificationSettings' => ['*'],
                 'register' => array('*'),
                 'registrations' => array(),
