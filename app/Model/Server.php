@@ -3996,14 +3996,21 @@ class Server extends AppModel
         try {
             $composer = FileAccessTool::readJsonFromFile(APP . DS . 'composer.json');
             $extensions = [];
+            $dependencies = [];
             foreach ($composer['require'] as $require => $foo) {
                 if (substr($require, 0, 4) === 'ext-') {
                     $extensions[substr($require, 4)] = true;
+                }
+                else if (mb_strpos($require, '/') !== false) {  // external dependencies have namespaces, so a /
+                    $dependencies[$require] = true;
                 }
             }
             foreach ($composer['suggest'] as $suggest => $reason) {
                 if (substr($suggest, 0, 4) === 'ext-') {
                     $extensions[substr($suggest, 4)] = $reason;
+                }
+                else if (mb_strpos($suggest, '/') !== false) {  // external dependencies have namespaces, so a /
+                    $dependencies[$suggest] = $reason;
                 }
             }
         } catch (Exception $e) {
@@ -4011,6 +4018,7 @@ class Server extends AppModel
             $extensions = ['redis' => '', 'gd' => '', 'ssdeep' => '', 'zip' => '', 'intl' => '']; // Default extensions
         }
 
+        // check PHP extensions
         $results = ['cli' => false];
         foreach ($extensions as $extension => $reason) {
             $results['extensions'][$extension] = [
@@ -4022,9 +4030,9 @@ class Server extends AppModel
                 'info' => $reason === true ? null : $reason,
             ];
         }
-        if (is_readable(APP . '/files/scripts/selftest.php')) {
+        if (is_readable(APP . DS . 'files' . DS . 'scripts' . DS . 'selftest.php')) {
             try {
-                $execResult = ProcessTool::execute(['php', APP . '/files/scripts/selftest.php', json_encode(array_keys($extensions))]);
+                $execResult = ProcessTool::execute(['php', APP . DS . 'files' . DS . 'scripts' . DS . 'selftest.php', json_encode(array_keys($extensions))]);
             } catch (Exception $e) {
                 // pass
             }
@@ -4037,6 +4045,7 @@ class Server extends AppModel
             }
         }
 
+        // version check
         $minimalVersions = [
             'redis' => '2.2.8', // because of sAddArray method
         ];
@@ -4052,6 +4061,22 @@ class Server extends AppModel
                 }
             }
         }
+
+        // check PHP dependencies, installed in the Vendor directory, just check presence of the folder
+        foreach ($dependencies as $dependency => $reason) {
+            try {
+                $version = \Composer\InstalledVersions::getVersion($dependency);
+            } catch (Exception $e) {
+                $version = false;
+            }
+            $results['dependencies'][$dependency] = [
+                'version' => $version,
+                'version_outdated' => false,
+                'required' => $reason === true,
+                'info' => $reason === true ? null : $reason,
+            ];
+        }
+
         return $results;
     }
 
