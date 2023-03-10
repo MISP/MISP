@@ -1329,7 +1329,7 @@ class UsersController extends AppController
         // there are reasons to believe there is evil happening, suspicious. Inform user and (org)admins.
         $suspiciousness_reason = $this->User->UserLoginProfile->_isSuspicious();
         if ($suspiciousness_reason) {
-            // generate log entry (the SIEM component should ensure (org)admins are informed)
+            // raise an alert (the SIEM component should ensure (org)admins are informed)
             $this->loadModel('Log');
             $this->Log->createLogEntry($this->Auth->user(), 'auth_alert', 'User', $this->Auth->user('id'), 'Suspicious login.', $suspiciousness_reason);
             // inform user of the suspicious login

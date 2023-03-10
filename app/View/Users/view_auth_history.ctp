@@ -4,9 +4,7 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
     'data' => array(
         'light_paginator' => 1,
         'data' => $data,
-        // 'top_bar' => [
-        //     'pull' => 'right',
-        'fields' => [
+          'fields' => [
             [
                 'name' => __('Status'),
                 'data_path' => 'status'
@@ -44,7 +42,6 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
                 'data_path' => 'actions'
             ]
         ],
-        // FIXME chri - ask Andras how to show/hide the actions based on the 'actions_button' variable/boolean
         'actions' => array(
              array(
                 'title' => __('Trust'),
@@ -55,6 +52,9 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
                 'postLink' => true,
                 'postLinkConfirm' => __('Are you sure you want to mark this connection as trusted?'),
                 'icon' => 'shield-alt',
+                'complex_requirement' => function ($object) {
+                    return 'unknown' == $object['status'] || mb_strpos($object['status'], 'likely') !== false;
+                }
             ),
             array(
                 'title' => __('Malicious'),
@@ -65,6 +65,9 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
                 'postLink' => true,
                 'postLinkConfirm' => __('Was this connection suspicious or malicious?'),
                 'icon' => 'bug',
+                'complex_requirement' => function ($object) { 
+                    return 'unknown' == $object['status'] || mb_strpos($object['status'], 'likely') !== false;
+                }
             ),
         ),
         'title' => __('Recent login attempts'),

@@ -26,7 +26,8 @@ class UserLoginProfilesController extends AppController
             // 'quickFilters' => ['comment', 'authkey_start', 'authkey_end', 'User.email'],
             // 'contain' => ['User.id', 'User.email'],
             'conditions' => ['user_id' => $this->Auth->user('id')],
-            'order' => ['created_at DESC'] // FIXME chri - not working, ask Andras
+            'order' => ['created_at DESC'], // FIXME chri - not working, ask Andras
+            'fields' => 'UserLoginProfile.*' // FIXME chri - not working, ask Andras
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -61,10 +62,13 @@ class UserLoginProfilesController extends AppController
     {
         if ($this->request->is('post')) {
             $this->__setTrust($logId, 'malicious');
+            $this->Flash->info(__('You marked a login suspicious. We highly recommend you to change your password NOW !'));
+            $this->loadModel('Log');
+            $details = 'User reported syspicious login for log ID: '. $logId;
+            // raise an alert (the SIEM component should ensure (org)admins are informed)
+            $this->Log->createLogEntry($this->Auth->user(), 'auth_alert', 'User', $this->Auth->user('id'), 'Suspicious login reported.', $details);
         }
-        $this->Flash->info(__('You marked a login suspicious. We highly recommend you to change your password NOW !'));
-        // FIXME chri - raise an alert to the logs so that MISP admins and org admins are aware and can filter on this.
-        $this->redirect(array('controller' => 'users', 'action' => 'view_auth_history'));
+        $this->redirect(array('controller' => 'users', 'action' => 'view_auth_history'));        
     }
 
     private function __setTrust($logId, $status)
@@ -80,17 +84,12 @@ class UserLoginProfilesController extends AppController
             'fields' => array('Log.action', 'Log.created', 'Log.ip', 'Log.change', 'Log.id'),
             'order' => array('Log.created DESC')
         ));
-        // FIXME chri - check if the userLoginProfile is already there, or not
-
+        // LATER check if the userLoginProfile is already there, or not
         // add it if it isn't there yet
         $data = $this->UserLoginProfile->_fromLog($log['Log']);
         $data['status'] = $status;
         $data['user_id'] = $user['id'];
         $this->UserLoginProfile->save($data);
-        if (empty($log)) {
-            // FIXME throw error saying there is an issue.
-        }
-
     }
 
 }
