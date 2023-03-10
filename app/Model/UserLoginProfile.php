@@ -161,10 +161,21 @@ class UserLoginProfile extends AppModel
     public function _isSuspicious() {
         // previously marked loginuserprofile as malicious by the user
         if (strpos($this->_getTrustStatus($this->_getUserProfile()), 'malicious') !== false) {
-            return 'UserLoginProfile was marked as malicious';
+            return _('The UserLoginProfile was reported as malicious in the past.');
+        }
+        // same IP as previous malicious user
+        $maliciousWithSameIP = $this->find('first', [
+            'conditions' => [
+                'UserLoginProfile.ip' => $this->_getUserProfile()['ip'],
+                'UserLoginProfile.status' => 'malicious'
+        ],
+            'recursive' => 0,
+            'fields' => array('UserLoginProfile.*')],
+        );
+        if ($maliciousWithSameIP) {
+            return _('Source IP was reported as as malicious in the past.');
         }
         // FIXME chri - use other data to identify suspicious logins, such as:
-        // - other marked 'malicious' userloginprofiles
         // - warning lists
         // - ...
         return false;
