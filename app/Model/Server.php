@@ -4063,18 +4063,20 @@ class Server extends AppModel
         }
 
         // check PHP dependencies, installed in the Vendor directory, just check presence of the folder
-        foreach ($dependencies as $dependency => $reason) {
-            try {
-                $version = \Composer\InstalledVersions::getVersion($dependency);
-            } catch (Exception $e) {
-                $version = false;
+        if (class_exists('\Composer\InstalledVersions')) {
+            foreach ($dependencies as $dependency => $reason) {
+                try {
+                    $version = \Composer\InstalledVersions::getVersion($dependency);
+                } catch (Exception $e) {
+                    $version = false;
+                }
+                $results['dependencies'][$dependency] = [
+                    'version' => $version,
+                    'version_outdated' => false,
+                    'required' => $reason === true,
+                    'info' => $reason === true ? null : $reason,
+                ];
             }
-            $results['dependencies'][$dependency] = [
-                'version' => $version,
-                'version_outdated' => false,
-                'required' => $reason === true,
-                'info' => $reason === true ? null : $reason,
-            ];
         }
 
         return $results;
