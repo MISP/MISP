@@ -62,23 +62,41 @@ class UserLoginProfile extends AppModel
     public function _getUserProfile() {
         if (!$this->userProfile) {
             // below uses https://github.com/browscap/browscap-php 
-            try {
-                $fileCache = new \League\Flysystem\Local\LocalFilesystemAdapter($this->browscapCacheDir);
-                $filesystem = new \League\Flysystem\Filesystem($fileCache);
-                $cache = new \MatthiasMullie\Scrapbook\Psr16\SimpleCache(
-                    new \MatthiasMullie\Scrapbook\Adapters\Flysystem($filesystem)
-                );
-                $logger = new \Monolog\Logger('name');
-                $bc = new \BrowscapPHP\Browscap($cache, $logger);
-                $browser = $bc->getBrowser();
-            } catch (\BrowscapPHP\Exception $e) {
-                $this->_buildBrowscapCache();
-                return $this->_getUserProfile();
+            if (class_exists('\BrowscapPHP\Browscap')) {
+                try {
+                    $fileCache = new \League\Flysystem\Local\LocalFilesystemAdapter($this->browscapCacheDir);
+                    $filesystem = new \League\Flysystem\Filesystem($fileCache);
+                    $cache = new \MatthiasMullie\Scrapbook\Psr16\SimpleCache(
+                        new \MatthiasMullie\Scrapbook\Adapters\Flysystem($filesystem)
+                    );
+                    $logger = new \Monolog\Logger('name');
+                    $bc = new \BrowscapPHP\Browscap($cache, $logger);
+                    $browser = $bc->getBrowser();
+                } catch (\BrowscapPHP\Exception $e) {
+                    $this->_buildBrowscapCache();
+                    return $this->_getUserProfile();
+                }
+            } else {
+                // a primitive OS & browser extraction capability
+                $ua = env('HTTP_USER_AGENT');
+                $browser = new stdClass();
+                $browser->browser_name_pattern = $ua;
+                if (mb_strpos($ua, 'Linux') !== false)  $browser->platform = "Linux";
+                else if (mb_strpos($ua, 'Windows') !== false)  $browser->platform = "Windows";
+                else if (mb_strpos($ua, 'like Mac OS X') !== false)  $browser->platform = "ipadOS";
+                else if (mb_strpos($ua, 'Mac OS X') !== false)  $browser->platform = "macOS";
+                else if (mb_strpos($ua, '') !== false) $browser->platform = 'Android';
+                else $browser->platform = 'unknown';
+                $browser->browser = "browser";
             }
             $ip = $this->_remoteIp();
-            $geoDbReader = new GeoIp2\Database\Reader($this->geoIpDbFile);
-            $record = $geoDbReader->country($ip);
-            $country = $record->country->isoCode;
+            if (class_exists('GeoIp2\Database\Reader')) {
+                $geoDbReader = new GeoIp2\Database\Reader($this->geoIpDbFile);
+                $record = $geoDbReader->country($ip);
+                $country = $record->country->isoCode;
+            } else {
+                $country = 'unknown';
+            }
             $this->userProfile = [
                 'user_agent' => env('HTTP_USER_AGENT'),
                 'ip' => $ip,
@@ -104,11 +122,20 @@ class UserLoginProfile extends AppModel
         // if one is not initialized
         if (!$a || !$b) return false;
         // coming from the same source IP, and the same browser
-        if ($a['ip'] == $b['ip'] && $a['ua_browser'] == $b['ua_browser']) return true;
+        if ($a['ip'] == $b['ip'] && $a['ua_browser'] == $b['ua_browser']) 
+            return true;
         // transition for old logs where UA was not known
-        if (!$a['ua_browser']) return false;
-        // really similar session, from same region, but different IP
+        if (!$a['ua_browser']) 
+            return false;
+        // really similar session, from same browser, region, but different IP
         if ($a['ua_browser'] == $b['ua_browser'] && 
+            $a['ua_platform'] == $b['ua_platform'] &&
+            $a['accept_lang'] == $b['accept_lang'] &&
+            $a['geoip'] == $b['geoip']) {
+            return true;
+        }
+        // similar browser pattern, OS and region
+        if ($a['ua_pattern'] == $b['ua_pattern'] && 
             $a['ua_platform'] == $b['ua_platform'] &&
             $a['accept_lang'] == $b['accept_lang'] &&
             $a['geoip'] == $b['geoip']) {
