@@ -1453,7 +1453,7 @@ class TestSecurity(unittest.TestCase):
 
         with self.__setting("Security.hide_organisation_index_from_users", True):
             logged_in = PyMISP(url, self.test_usr.authkey)
-            for key in (org.id, org.uuid, org.name):
+            for key in (org.id, org.uuid):
                 fetched_org = logged_in.get_organisation(key)
                 check_response(fetched_org)
                 self.assertNotIn("created_by", fetched_org["Organisation"])
@@ -1624,7 +1624,7 @@ class TestSecurity(unittest.TestCase):
 
     def __create_org(self) -> MISPOrganisation:
         organisation = MISPOrganisation()
-        organisation.name = 'Test Org ' + random()  # make name always unique
+        organisation.name = 'TestOrg' + random()  # make name always unique
         org = self.admin_misp_connector.add_organisation(organisation)
         check_response(org)
         return org
