@@ -75,7 +75,8 @@ jobs:
         run: |
               sudo chown $USER:www-data $HOME/.composer
               pushd app
-              sudo -H -u $USER php composer.phar install --no-progress
+              sudo -H -u $USER composer config --no-plugins allow-plugins.composer/installers true
+              sudo -H -u $USER composer install --no-progress
               popd
               cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
               # Set perms
@@ -137,6 +138,13 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.server_settings_skip_backup_rotate" 1'
               sudo chown -R $USER:www-data `pwd`/app/Config
               sudo chmod -R 777 `pwd`/app/Config
+
+              # fix perms (?)
+              namei -m  /home/runner/work
+              sudo chmod +x /home/runner/work
+              sudo chmod +x /home/runner
+              sudo chmod +x /home
+              sudo chmod +x /
 
       - name: DB Update
         run: |
@@ -244,13 +252,11 @@ jobs:
               . ./venv/bin/activate
               pushd PyMISP
               python tests/testlive_comprehensive.py
+              python tests/test_mispevent.py
               popd
               python tests/testlive_security.py -v
               python tests/testlive_sync.py
               python tests/testlive_comprehensive_local.py -v
-              pushd PyMISP
-              python tests/test_mispevent.py
-              popd
               cp PyMISP/tests/keys.py PyMISP/examples/events/
               pushd PyMISP/examples/events/
               python ./create_massive_dummy_events.py -l 5 -a 30
