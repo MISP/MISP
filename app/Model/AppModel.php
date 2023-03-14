@@ -84,7 +84,7 @@ class AppModel extends Model
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
-        105 => false
+        105 => false, 106 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1910,7 +1910,7 @@ class AppModel extends Model
                     `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
                     `name` varchar(191) NOT NULL,
                     `owner` varchar(191) NOT NULL,
-                    `baseurl` int(11) NOT NULL DEFAULT 0,
+                    `baseurl` varchar(191) NOT NULL,
                     `api_root` varchar(191) NOT NULL DEFAULT 0,
                     `description` text,
                     `filters` text,
@@ -1940,6 +1940,9 @@ class AppModel extends Model
                         // there is no role called User, do nothing
                     }
                 }
+                break;
+            case 106:
+                $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `baseurl` varchar(191) NOT NULL;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

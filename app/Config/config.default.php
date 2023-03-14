@@ -213,12 +213,13 @@ $config = array(
     // Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.
     // Feel free to enable it and report back to us if you run into any issues.
     //
-    // Uncomment the following to enable Kerberos authentication
+    // Uncomment the following to enable Kerberos/LDAP authentication
     // needs PHP LDAP support enabled (e.g. compile flag --with-ldap or Debian package php5-ldap)
     /*
-    'ApacheSecureAuth' => array( // Configuration for kerberos authentication
+    'ApacheSecureAuth' => array( // Configuration for kerberos/LDAP authentication
         'apacheEnv'          => 'REMOTE_USER',           // If proxy variable = HTTP_REMOTE_USER, If BasicAuth ldap = PHP_AUTH_USER
-        'ldapServer'         => 'ldap://example.com',   // FQDN or IP
+        'ldapServer'         => 'ldap://example.com',   // FQDN or IP, ldap:// for LDAP or LDAP+STARTTLS, ldaps:// for LDAPS
+        'starttls'           => true, // true for STARTTLS, ignored for LDAPS
         'ldapProtocol'       => 3,
         'ldapNetworkTimeout' => -1,  // use -1 for unlimited network timeout
         'ldapReaderUser'     => 'cn=userWithReadAccess,ou=users,dc=example,dc=com', // DN ou RDN LDAP with reader user right
