@@ -29,6 +29,8 @@ class Ls22Shell extends AppShell
 
     public function getOptionParser()
     {
+        $this->stdout->styles('green', array('text' => 'green'));
+
         $parser = parent::getOptionParser();
         $parser->addSubcommand('enableTaxonomy', [
             'help' => __('Enable a taxonomy with all its tags.'),
@@ -96,6 +98,33 @@ class Ls22Shell extends AppShell
                     'json' => [
                         'help' => 'JSON delta to push (such as \'{"push": 1}\').',
                         'short' => 'j',
+                        'required' => true
+                    ]
+                ),
+            ),
+        ]);
+        $parser->addSubcommand('setSetting', [
+            'help' => __('Set a setting on the given MISP instance(s).'),
+            'parser' => array(
+                'options' => array(
+                    'instances' => [
+                        'help' => 'Path to the instance file, by default "instances.csv" from the local directory',
+                        'short' => 'i',
+                        'required' => true
+                    ],
+                    'misp_url_filter' => [
+                        'help' => 'The url of the instance to execute changes on. If not set, all are updated.',
+                        'short' => 'm',
+                        'required' => false
+                    ],
+                    'setting' => [
+                        'help' => 'The setting to modify',
+                        'short' => 's',
+                        'required' => true
+                    ],
+                    'value' => [
+                        'help' => 'The value to set for the given setting',
+                        'short' => 'v',
                         'required' => true
                     ]
                 ),
@@ -363,6 +392,26 @@ class Ls22Shell extends AppShell
         }
     }
 
+    public function setSetting()
+    {
+        $setting = $this->param('setting');
+        $value = $this->param('value');
+        $this->__getInstances($this->param('instances'));
+        foreach ($this->__servers as $server) {
+            $HttpSocket = $this->Server->setupHttpSocket($server, null);
+            $request = $this->Server->setupSyncRequest($server, 'Server');
+            $payload = ["value" => $value];
+            $response = $HttpSocket->post($server['Server']['url'] . '/server/serverSettingsEdit/' . $setting, json_encode($value), $request);
+            $statusWrapped = sprintf(
+                '<%s>%s</%s>',
+                $response->isOk() ? 'info' : 'error',
+                $response->isOk() ? 'OK' : 'Setting updated',
+                $response->isOk() ? 'info' : 'error'
+            );
+            $this->out($server['Server']['url'] . ': ' . $statusWrapped, 1, Shell::NORMAL);
+        }
+    }
+
     public function scores()
     {
         $results = [];
@@ -401,6 +450,8 @@ class Ls22Shell extends AppShell
             }
             $time_range[] = $this->param['to'];
         }
+        $event_extended_uuids = [];
+        $event_uuid_per_org = [];
         foreach ($org_mapping as $org_name => $org_id) {
             $time_range = [];
             $params = [
@@ -415,6 +466,7 @@ class Ls22Shell extends AppShell
             $results[$org_name] = [
                 'attribute_count' => 0,
                 'object_count' => 0,
+                'event_count' => count($events['response']),
                 'connected_elements' => 0,
                 'event_tags' => 0,
                 'attribute_tags' => 0,
@@ -423,9 +475,16 @@ class Ls22Shell extends AppShell
                 'attribute_attack' => 0,
                 'attribute_other' => 0,
                 'score' => 0,
-                'warnings' => 0
+                'warnings' => 0,
+                'events_extended' => 0,
+                'extending_events' => 0,
             ];
             foreach ($events['response'] as $event) {
+                $event_uuid_per_org[$event['Event']['uuid']] = $org_name;
+                if (!empty($event['Event']['extends_uuid'])) {
+                    $event_extended_uuids[$org_name] = $event['Event']['extends_uuid'];
+                }
+
                 if (!empty($event['Event']['Tag'])) {
                     foreach ($event['Event']['Tag'] as $tag) {
                         if (substr($tag['name'], 0, 32) === 'misp-galaxy:mitre-attack-pattern') {
@@ -458,7 +517,7 @@ class Ls22Shell extends AppShell
                         }
                     }
                     if (!empty($attribute['warnings'])) {
-                        $result[$org_name]['warnings'] += 1;
+                        $results[$org_name]['warnings'] += 1;
                     }
                 }
                 $results[$org_name]['attribute_count'] += count($event['Event']['Attribute']);
@@ -485,6 +544,18 @@ class Ls22Shell extends AppShell
 
             }
         }
+
+        foreach ($event_extended_uuids as $orgc => $uuid) {
+            $org_name =  $event_uuid_per_org[$uuid];
+            if ($orgc != $org_name) {
+                // Add point for org extending another event
+                $results[$orgc]['extending_events'] += 1;
+                // Add point for org getting their event extended
+                $results[$org_name]['events_extended'] += 1;
+            }
+        }
+
+
         $scores = [];
         foreach ($results as $k => $result) {
             $totalCount = $result['attribute_count'] + $result['object_count'];
@@ -499,8 +570,9 @@ class Ls22Shell extends AppShell
                 $results[$k]['metrics']['connectedness'] = 100 * ($result['connected_elements'] / ($result['attribute_count'] + $result['object_count']));
                 $results[$k]['metrics']['attack_weight'] = 100 * (2*($result['attack']) + $result['attribute_attack']) / ($result['attribute_count'] + $result['object_count']);
                 $results[$k]['metrics']['other_weight'] = 100 * (2*($result['other']) + $result['attribute_other']) / ($result['attribute_count'] + $result['object_count']);
+                $results[$k]['metrics']['collaboration'] = 100 * ((2*$result['events_extended'] + $result['extending_events']) / $result['event_count']);
             }
-            foreach (['connectedness', 'attack_weight', 'other_weight', 'warnings'] as $metric) {
+            foreach (['connectedness', 'attack_weight', 'other_weight', 'warnings', 'collaboration'] as $metric) {
                 if (empty($results[$k]['metrics'][$metric])) {
                     $results[$k]['metrics'][$metric] = 0;
                 }
@@ -512,13 +584,15 @@ class Ls22Shell extends AppShell
                     20 * $results[$k]['metrics']['warnings'] +
                     20 * $results[$k]['metrics']['connectedness'] +
                     40 * $results[$k]['metrics']['attack_weight'] +
-                    20 * $results[$k]['metrics']['other_weight']
+                    10 * $results[$k]['metrics']['other_weight'] +
+                    10 * $results[$k]['metrics']['collaboration']
                 ) / 100;
             $scores[$k]['total'] = $results[$k]['score'];
             $scores[$k]['warnings'] = round(20 * $results[$k]['metrics']['warnings']);
             $scores[$k]['connectedness'] = round(20 * $results[$k]['metrics']['connectedness']);
             $scores[$k]['attack_weight'] = round(40 * $results[$k]['metrics']['attack_weight']);
-            $scores[$k]['other_weight'] = round(20 * $results[$k]['metrics']['other_weight']);
+            $scores[$k]['other_weight'] = round(10 * $results[$k]['metrics']['other_weight']);
+            $scores[$k]['collaboration'] = round(10 * $results[$k]['metrics']['collaboration']);
         }
         arsort($scores, SORT_DESC);
         $this->out(str_repeat('=', 128), 1, Shell::NORMAL);
@@ -534,15 +608,17 @@ class Ls22Shell extends AppShell
             $score_string[1] = str_repeat('█', round($score['connectedness']/100));
             $score_string[2] = str_repeat('█', round($score['attack_weight']/100));
             $score_string[3] = str_repeat('█', round($score['other_weight']/100));
+            $score_string[4] = str_repeat('█', round($score['collaboration']/100));
             $this->out(sprintf(
                 '| %s | %s | %s |',
                 str_pad($org, 10, ' ', STR_PAD_RIGHT),
                 sprintf(
-                    '<error>%s</error><warning>%s</warning><question>%s</question><info>%s</info>%s',
+                    '<error>%s</error><warning>%s</warning><question>%s</question><info>%s</info><green>%s</green>%s',
                     $score_string[0],
                     $score_string[1],
                     $score_string[2],
                     $score_string[3],
+                    $score_string[4],
                     str_repeat(' ', 100 - mb_strlen(implode('', $score_string)))
                 ),
                 str_pad($score['total'] . '%', 8, ' ', STR_PAD_RIGHT)
@@ -555,6 +631,7 @@ class Ls22Shell extends AppShell
             '<warning>█: Connectedness</warning>',
             '<question>█: ATT&CK context</question>',
             '<info>█: Other Context</info>',
+            '<green>█: Collaboration</green>',
             str_repeat(' ', 52)
         ), 1, Shell::NORMAL);
         $this->out(str_repeat('=', 128), 1, Shell::NORMAL);

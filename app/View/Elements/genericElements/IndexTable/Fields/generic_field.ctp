@@ -1,5 +1,8 @@
 <?php
     $data = Hash::extract($row, $field['data_path']);
+    if (!empty($field['empty']) && empty($data)) {
+        $data = $field['empty'];
+    }
     if (is_array($data)) {
         if (count($data) > 1) {
             $implodeGlue = isset($field['array_implode_glue']) ? $field['array_implode_glue'] : ', ';

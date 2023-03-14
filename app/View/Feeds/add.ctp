@@ -73,7 +73,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'field' => 'orgc_id',
                 'label' => __('Creator organisation'),
                 'options' => $dropdownData['orgs'],
-                'value' => $this->request->params['action'] === 'add' ? $me['org_id'] : '',
+                'value' => $this->request->params['action'] === 'add' ? $me['org_id'] : null,
                 'type' => 'dropdown',
                 'div' => ['id' => 'OrgcDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'class' => 'form-control span6'

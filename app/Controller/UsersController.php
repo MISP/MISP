@@ -29,7 +29,7 @@ class UsersController extends AppController
         parent::beforeFilter();
 
         // what pages are allowed for non-logged-in users
-        $allowedActions = array('login', 'logout', 'getGpgPublicKey');
+        $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401');
         if(!empty(Configure::read('Security.email_otp_enabled'))) {
           $allowedActions[] = 'email_otp';
         }
@@ -1230,6 +1230,11 @@ class UsersController extends AppController
                     $this->Bruteforce->insert($this->request->data['User']['email']);
                 }
             }
+
+            //
+            // Actions needed for the first access, when the database is not populated yet.
+            // 
+
             // populate the DB with the first role (site admin) if it's empty
             if (!$this->User->Role->hasAny()) {
                 $siteAdmin = array('Role' => array(
@@ -1279,7 +1284,6 @@ class UsersController extends AppController
                 }
                 $org_id = $this->User->Organisation->id;
             }
-
             // populate the DB with the first user if it's empty
             if (!$this->User->hasAny()) {
                 if (!isset($org_id)) {
@@ -1291,7 +1295,6 @@ class UsersController extends AppController
                         $org_id = $firstOrg['Organisation']['id'];
                     }
                 }
-
                 $this->User->runUpdates();
                 $this->User->createInitialUser($org_id);
             }
@@ -1300,25 +1303,25 @@ class UsersController extends AppController
 
     private function _postlogin()
     {
-      $this->User->extralog($this->Auth->user(), "login");
-      $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
-      $this->User->id = $this->Auth->user('id');
-      $user = $this->User->find('first', array(
-          'conditions' => array(
-              'User.id' => $this->Auth->user('id')
-          ),
-          'recursive' => -1
-      ));
-      unset($user['User']['password']);
-      $this->User->updateLoginTimes($user['User']);
-      $lastUserLogin = $user['User']['last_login'];
-      $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
-      if ($lastUserLogin) {
-          $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
-          $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
-      }
-      // no state changes are ever done via GET requests, so it is safe to return to the original page:
-      $this->redirect($this->Auth->redirectUrl());
+        $this->User->extralog($this->Auth->user(), "login");
+        $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
+        $this->User->id = $this->Auth->user('id');
+        $user = $this->User->find('first', array(
+            'conditions' => array(
+                'User.id' => $this->Auth->user('id')
+            ),
+            'recursive' => -1
+        ));
+        unset($user['User']['password']);
+        $this->User->updateLoginTimes($user['User']);
+        $lastUserLogin = $user['User']['last_login'];
+        $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
+        if ($lastUserLogin) {
+            $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
+            $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
+        }
+        // no state changes are ever done via GET requests, so it is safe to return to the original page:
+        $this->redirect($this->Auth->redirectUrl());
     }
 
     public function routeafterlogin()
@@ -2892,5 +2895,12 @@ class UsersController extends AppController
             $this->set('actionName', 'Destroy');
             $this->render('/genericTemplates/confirm');
         }
+    }
+    public function logout401() {
+        # You should read the documentation in docs/CONFIG.ApacheSecureAuth.md
+        # before using this endpoint. It is not useful without webserver config
+        # changes.
+        # To use this, set Plugin.CustomAuth_custom_logout to /users/logout401
+        $this->response->statusCode(401);
     }
 }

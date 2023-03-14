@@ -41,7 +41,7 @@ The objective of MISP is to foster the sharing of structured information within 
 
 MISP, Malware Information Sharing Platform and Threat Sharing, core functionalities are:
 
-- An **efficient IOC and indicators** database allowing to store technical and non-technical information about malware samples, incidents, attackers and intelligence.
+- An **efficient IOC and indicators** database, allowing to store technical and non-technical information about malware samples, incidents, attackers and intelligence.
 - Automatic **correlation** finding relationships between attributes and indicators from malware, attack campaigns or analysis. The correlation engine includes correlation between attributes and more advanced correlations like Fuzzy hashing correlation (e.g. ssdeep) or CIDR block matching. Correlation can also be enabled or event disabled per attribute.
 - A **flexible data model** where complex [objects](https://www.misp-project.org/objects.html) can be expressed and **linked together to express threat intelligence, incidents or connected elements**.
 - Built-in **sharing functionality** to ease data sharing using different model of distributions. MISP can automatically synchronize events and attributes among different MISP instances. Advanced filtering functionalities can be used to meet each organization's sharing policy including a **flexible sharing group** capacity and an attribute level distribution mechanisms.
@@ -50,9 +50,9 @@ MISP, Malware Information Sharing Platform and Threat Sharing, core functionalit
 - **export**: generating IDS, OpenIOC, plain text, CSV, MISP XML or JSON output to integrate with other systems (network IDS, host IDS, custom tools), Cache format (used for forensic tools), STIX (XML and JSON) 1 and 2, NIDS export (Suricata, Snort and Bro/Zeek) or RPZ zone. Many other formats can be easily added via the [misp-modules](https://github.com/MISP/misp-modules).
 - **import**: bulk-import, batch-import, import from OpenIOC, GFI sandbox, ThreatConnect CSV, MISP standard format or STIX 1.1/2.0. Many other formats easily added via the [misp-modules](https://github.com/MISP/misp-modules).
 - Flexible **free text import** tool to ease the integration of unstructured reports into MISP.
-- A gentle system to **collaborate** on events and attributes allowing MISP users to propose changes or updates to attributes/indicators.
+- A user-friendly system to **collaborate** on events and attributes allowing MISP users to propose changes or updates to attributes/indicators.
 - **data-sharing**: automatically exchange and synchronize with other parties and trust-groups using MISP.
-- **delegating of sharing**: allows a simple pseudo-anonymous mechanism to delegate publication of event/indicators to another organization.
+- **delegating of sharing**: allows for a simple, pseudo-anonymous mechanism to delegate publication of event/indicators to another organization.
 - Flexible **API** to integrate MISP with your own solutions. MISP is bundled with [PyMISP](https://github.com/MISP/PyMISP) which is a flexible Python Library to fetch, add or update events attributes, handle malware samples or search for attributes. An exhaustive restSearch API to easily search for indicators in MISP and exports those in all the format supported by MISP.
 - **Adjustable taxonomy** to classify and tag events following your own classification schemes or [existing classification](https://github.com/MISP/misp-taxonomies). The taxonomy can be local to your MISP but also shareable among MISP instances.
 - **Intelligence vocabularies** called MISP galaxy and bundled with existing [threat actors, malware, RAT, ransomware or MITRE ATT&CK](https://www.misp-project.org/galaxy.html) which can be easily linked with events and attributes in MISP.
@@ -108,16 +108,16 @@ License
 
 This software is licensed under [GNU Affero General Public License version 3](http://www.gnu.org/licenses/agpl-3.0.html)
 
-* Copyright (C) 2012-2022 Christophe Vandeplas
+* Copyright (C) 2012-2023 Christophe Vandeplas
 * Copyright (C) 2012 Belgian Defence
 * Copyright (C) 2012 NATO / NCIRC
-* Copyright (C) 2013-2022 Andras Iklody
-* Copyright (C) 2015-2022 CIRCL - Computer Incident Response Center Luxembourg
+* Copyright (C) 2013-2023 Andras Iklody
+* Copyright (C) 2015-2023 CIRCL - Computer Incident Response Center Luxembourg
 * Copyright (C) 2016 Andreas Ziegler
-* Copyright (C) 2018-2022 Sami Mokaddem
-* Copyright (C) 2018-2022 Christian Studer
-* Copyright (C) 2015-2022 Alexandre Dulaunoy
+* Copyright (C) 2018-2023 Sami Mokaddem
+* Copyright (C) 2018-2023 Christian Studer
+* Copyright (C) 2015-2023 Alexandre Dulaunoy
 * Copyright (C) 2018-2022 Steve Clement
-* Copyright (C) 2020-2022 Jakub Onderka
+* Copyright (C) 2020-2023 Jakub Onderka
 
 For more information, [the list of authors and contributors](AUTHORS) is available.

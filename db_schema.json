@@ -7349,11 +7349,11 @@
             {
                 "column_name": "baseurl",
                 "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "varchar(191)",
                 "column_default": "0",
                 "extra": ""
             },
@@ -9472,5 +9472,5 @@
             "uuid": false
         }
     },
-    "db_version": "105"
+    "db_version": "106"
 }

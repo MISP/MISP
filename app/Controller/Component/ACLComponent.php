@@ -125,7 +125,7 @@ class ACLComponent extends Component
             'decayingModel' => array(
                 "update" => array(),
                 "export" => array('*'),
-                "import" => array('*'),
+                "import" => array('OR' => array('perm_admin', 'perm_decaying')),
                 "view" => array('*'),
                 "index" => array('*'),
                 "add" => array( 'OR' => array('perm_admin', 'perm_decaying')),
@@ -750,6 +750,7 @@ class ACLComponent extends Component
                 'initiatePasswordReset' => ['AND' => ['perm_admin', 'password_change_enabled']],
                 'login' => array('*'),
                 'logout' => array('*'),
+                'logout401' => array('*'),
                 'notificationSettings' => ['*'],
                 'register' => array('*'),
                 'registrations' => array(),

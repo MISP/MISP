@@ -38,10 +38,10 @@ class ApacheAuthenticate extends BaseAuthenticate
         }
         return $returnCode;
     }
-	
+
     private function getEmailAddress($ldapEmailField, $ldapUserData)
     {
-	// return the email address of an LDAP user if one of the fields in $ldapEmaiLField exists
+        // return the email address of an LDAP user if one of the fields in $ldapEmaiLField exists
         foreach($ldapEmailField as $field) {
             if (isset($ldapUserData[0][$field][0])) {
                 return $ldapUserData[0][$field][0];
@@ -72,6 +72,14 @@ class ApacheAuthenticate extends BaseAuthenticate
         // LDAP protocol configuration
         ldap_set_option($ldapconn, LDAP_OPT_PROTOCOL_VERSION, Configure::read('ApacheSecureAuth.ldapProtocol'));
         ldap_set_option($ldapconn, LDAP_OPT_REFERRALS, Configure::read('ApacheSecureAuth.ldapAllowReferrals', true));
+
+        if (Configure::read('ApacheSecureAuth.starttls', false) == true) {
+            # Default is false, sine STARTTLS support is a new feature
+            # Ignored on ldaps://, but can trigger problems for orgs
+            # using unencrypted LDAP. Loose comparison allows users to
+            # use # true / 1 / etc.
+            ldap_start_tls($ldapconn);
+        }
 
         if ($ldapconn) {
             // LDAP bind
@@ -105,7 +113,6 @@ class ApacheAuthenticate extends BaseAuthenticate
             } else {
                 die("User not found in LDAP");
             }
-		
             // close LDAP connection
             ldap_close($ldapconn);
         }
