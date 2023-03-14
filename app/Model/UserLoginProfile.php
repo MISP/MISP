@@ -95,7 +95,7 @@ class UserLoginProfile extends AppModel
                 $record = $geoDbReader->country($ip);
                 $country = $record->country->isoCode;
             } else {
-                $country = 'unknown';
+                $country = 'None';
             }
             $this->userProfile = [
                 'user_agent' => env('HTTP_USER_AGENT'),
@@ -114,7 +114,6 @@ class UserLoginProfile extends AppModel
         $data = json_decode('{"user_agent": "", "ip": "", "accept_lang":"", "geoip":"", "ua_pattern":"", "ua_platform":"", "ua_browser":""}', true);
         $data = array_merge($data, json_decode($logEntry['change'], true) ?? []);
         $data['ip'] = $logEntry['ip'];
-        
         return $data;
     }
 
