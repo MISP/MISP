@@ -93,28 +93,14 @@
             'pull' => 'right',
             'actions' => [
                 [
-                    'url' => $baseurl . '/user_login_profile/view',
-                    'url_params_data_paths' => array(
-                        'UserLoginProfile.id'
-                    ),
-                    'icon' => 'eye',
-                    'dbclickAction' => true,
-                    'title' => 'View details',
-                ],
-                [
-                    'url' => $baseurl . '/UserLoginProfile/edit',
-                    'url_params_data_paths' => array(
-                        'UserLoginProfile.id'
-                    ),
-                    'icon' => 'edit',
-                    'title' => 'Edit entry',
-                ],
-                [
                     'class' => 'modal-open',
-                    'url' => "$baseurl/UserLoginProfile/delete",
+                    'url' => "$baseurl/UserLoginProfiles/admindelete",
                     'url_params_data_paths' => ['UserLoginProfile.id'],
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to delete this profile?'),    
                     'icon' => 'trash',
                     'title' => __('Delete entry'),
+                    'requirement' => $delete_buttons
                 ]
             ]
         ]
