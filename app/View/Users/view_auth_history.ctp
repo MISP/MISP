@@ -76,6 +76,15 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
         
     )
 ));
+echo sprintf(
+    '&nbsp;<a href="%s" class="btn btn-inverse">%s</a>',
+    sprintf(
+        '%s/userLoginProfiles/index/%s',
+        $baseurl,
+        $user_id
+    ),
+    __('Review user login profiles')
+);
 echo '</div>';
 
 if (!$this->request->is('ajax')) {

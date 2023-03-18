@@ -2941,17 +2941,33 @@ class UsersController extends AppController
         }
     }
 
-    public function view_auth_history() { 
-        $user = $this->Auth->user();
+    public function view_auth_history($user_id = null) { 
+        if ($user_id && $this->_isAdmin()) {   // org and site admins
+            $user = $this->User->find('first', array(
+                'recursive' => -1,
+                'conditions' => $this->__adminFetchConditions($user_id),
+                'contain' => [
+                    'UserSetting',
+                    'Role',
+                    'Organisation'
+                ]
+            ));
+            if (empty($user)) {
+                throw new NotFoundException(__('Invalid user'));
+            }
+        } else {
+            $user_id = $this->Auth->user('id');
+        }
         $this->loadModel('UserLoginProfile');
         $this->loadModel('Log');
         $logs = $this->Log->find('all', array(
             'conditions' => array(
-                'Log.user_id' => $user['id'],
+                'Log.user_id' => $user_id,
                 'OR' => array ('Log.action' => array('login', 'login_fail', 'auth', 'auth_fail'))
             ),
             'fields' => array('Log.action', 'Log.created', 'Log.ip', 'Log.change', 'Log.id'),
             'order' => array('Log.created DESC')
+            // TODO chri - limit the number of rows / or by age
         ));
         $lst = array();
         $prevProfile = null;
@@ -2967,6 +2983,7 @@ class UsersController extends AppController
             'login_fail' => 'web:failed'
         ];
         
+        // group authentications by type of loginprofile, to make the list shorter
         foreach($logs as $logEntry) {
             $loginProfile = $this->UserLoginProfile->_fromLog($logEntry['Log']);
             $loginProfile['ip'] = $logEntry['Log']['ip'] ?? null; // transitional workaround
@@ -2982,7 +2999,7 @@ class UsersController extends AppController
                         $actionsString .=  $action . ' (' . $cnt . ") ";
                     }
                     $lst[] = array(
-                        'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile),
+                        'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
                         'platform' => $prevProfile['ua_platform'],
                         'browser' => $prevProfile['ua_browser'],
                         'region' => $prevProfile['geoip'],
@@ -2991,7 +3008,7 @@ class UsersController extends AppController
                         'last_seen' => $prevCreatedLast,
                         'first_seen' => $prevCreatedFirst,
                         'actions' => $actionsString,
-                        'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile)) ? true : false,
+                        'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
                         'id' => $prevLogEntry);
                 }
                 // build new entry
@@ -3007,7 +3024,7 @@ class UsersController extends AppController
             $actionsString .=  $action . ' (' . $cnt . ") ";
         }
         $lst[] = array(
-            'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile),
+            'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
             'platform' => $prevProfile['ua_platform'],
             'browser' => $prevProfile['ua_browser'],
             'region' => $prevProfile['geoip'],
@@ -3016,7 +3033,7 @@ class UsersController extends AppController
             'last_seen' => $prevCreatedLast,
             'first_seen' => $prevCreatedFirst,
             'actions' => $actionsString,
-            'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile)) ? true : false,
+            'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
             'id' => $prevLogEntry);
         $query = [
             'limit' => 50,
@@ -3030,6 +3047,7 @@ class UsersController extends AppController
         }
         $this->__setPagingParams($query['page'], $query['limit'], count($lst), 'named');
         $this->set('data', $lst);
+        $this->set('user_id', $user_id);
     }
 
     public function logout401() {

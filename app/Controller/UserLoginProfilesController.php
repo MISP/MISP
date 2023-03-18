@@ -22,11 +22,9 @@ class UserLoginProfilesController extends AppController
     {
         $delete_buttons = false;
         // normal user
-        if (!$user_id) {
-            $conditions = ['user_id' => $this->Auth->user('id')];
-        }
+        $conditions = ['user_id' => $this->Auth->user('id')];
         // org admin can see people from their own org
-        else if (!$this->_isSiteAdmin() && $this->_isAdmin()) { 
+        if (!$this->_isSiteAdmin() && $this->_isAdmin()) { 
             $conditions = ['User.org_id' => $this->Auth->user('org_id'),
                            'user_id' => $user_id]; 
             $delete_buttons = true;
@@ -82,7 +80,7 @@ class UserLoginProfilesController extends AppController
     {
         if ($this->request->is('post') || $this->request->is('delete')) {
             $profile = $this->UserLoginProfile->find('first', array(
-                'conditions' => $this->__deleteFetchConditions($id),
+                'conditions' => $this->__deleteFetchConditions($id), // only allow (org/site) admins or own user to delete their data 
                 'fields' => ['UserLoginProfile.*']
             ));
             if (empty($profile)) {

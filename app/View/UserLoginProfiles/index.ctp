@@ -52,7 +52,7 @@
                     'data_path' => 'UserLoginProfile.user_agent',
                 ],
                 [
-                    'name' => ('Created at'),
+                    'name' => ('Reported on'),
                     'data_path' => 'UserLoginProfile.created_at',
                     'element' => 'datetime',
                     'empty' => __('Never'),

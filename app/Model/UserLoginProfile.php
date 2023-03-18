@@ -43,6 +43,8 @@ class UserLoginProfile extends AppModel
     protected $browscapIniFile = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
     protected $geoIpDbFile = APP . DS . 'files' . DS . 'geo-open' . DS . 'GeoOpen-Country.mmdb';  // GeoIP file managed by MISP
 
+    private $knownUserProfiles = [];
+
     public function _buildBrowscapCache() {
         $this->log("Browscap - building new cache from browscap.ini file.", "info");
         $fileCache = new \League\Flysystem\Local\LocalFilesystemAdapter($this->browscapCacheDir);
@@ -154,16 +156,19 @@ class UserLoginProfile extends AppModel
         return false;
     }
 
-    public function _getTrustStatus($userProfileToCheck) {
-        // load Singleton
-        if (!$this->knownUserProfiles) {
-            $this->knownUserProfiles = $this->find('all', [
-                'conditions' => ['UserLoginProfile.user_id' => AuthComponent::user('id')],
+    public function _getTrustStatus($userProfileToCheck, $user_id = null) {
+        if (!$user_id) {
+            $user_id = AuthComponent::user('id');
+        }
+        // load Singleton / caching
+        if (!isset($this->knownUserProfiles[$user_id])) {
+            $this->knownUserProfiles[$user_id] = $this->find('all', [
+                'conditions' => ['UserLoginProfile.user_id' => $user_id],
                 'recursive' => 0],
             );
         }
         // perform check on all entries, and stop when check OK
-        foreach ($this->knownUserProfiles as $knownUserProfile) {
+        foreach ($this->knownUserProfiles[$user_id] as $knownUserProfile) {
             // when it is the same
             if ($this->_isIdentical($knownUserProfile['UserLoginProfile'], $userProfileToCheck)) {
                 return $knownUserProfile['UserLoginProfile']['status'];
@@ -201,7 +206,7 @@ class UserLoginProfile extends AppModel
         if ($maliciousWithSameIP) {
             return _('Source IP was reported as as malicious in the past.');
         }
-        // FIXME chri - use other data to identify suspicious logins, such as:
+        // LATER - use other data to identify suspicious logins, such as:
         // - warning lists
         // - ...
         return false;
