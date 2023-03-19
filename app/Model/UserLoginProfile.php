@@ -87,7 +87,7 @@ class UserLoginProfile extends AppModel
                 else if (mb_strpos($ua, 'Windows') !== false)  $browser->platform = "Windows";
                 else if (mb_strpos($ua, 'like Mac OS X') !== false)  $browser->platform = "ipadOS";
                 else if (mb_strpos($ua, 'Mac OS X') !== false)  $browser->platform = "macOS";
-                else if (mb_strpos($ua, '') !== false) $browser->platform = 'Android';
+                else if (mb_strpos($ua, 'Android') !== false) $browser->platform = 'Android';
                 else $browser->platform = 'unknown';
                 $browser->browser = "browser";
             }
