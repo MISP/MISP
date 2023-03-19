@@ -73,6 +73,10 @@
                     'name' => __('Allowed IPs'),
                     'data_path' => 'AuthKey.allowed_ips',
                 ],
+                [
+                    'name' => __('Seen IPs'),
+                    'data_path' => 'AuthKey.unique_ips'
+                ]
             ],
             'title' => empty($ajax) ? __('Authentication key Index') : false,
             'description' => empty($ajax) ? __('A list of API keys bound to a user.') : false,
