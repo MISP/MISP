@@ -190,6 +190,9 @@ class AuthKey extends AppModel
                     $possibleAuthkey['AuthKey']['unique_ips'][] = $remote_ip;
                 }
                 if ($update_db_ip) {
+                    // prevent double entries due to race condition
+                    $possibleAuthkey['AuthKey']['unique_ips'] = array_unique($possibleAuthkey['AuthKey']['unique_ips']);
+                    // save in db
                     $this->save($possibleAuthkey);
                 }
                 // fetch user
