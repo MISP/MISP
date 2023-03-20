@@ -15,7 +15,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 !!! notice
     If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/xINSTALL.ubuntu2204).
 
-{% include generic/core.md %}
+[!generic/core.md!]()
 
 ### 1/ Minimal Ubuntu install
 -------------------------
