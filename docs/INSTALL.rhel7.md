@@ -10,7 +10,7 @@
 {!generic/manual-install-notes.md!}
 
 !!! notice
-    If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
+    If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel7).
 
 {!generic/community.md!}
 
