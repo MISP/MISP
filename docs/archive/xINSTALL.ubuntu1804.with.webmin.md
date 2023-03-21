@@ -6,9 +6,13 @@
 !!! notice
     Tested semi-working by @SteveClement on 20181120.
 
-`{% include_relative generic/community.md %}`
+{% comment %}
+{% include_relative generic/community.md %}
+{% endcomment %}
 
-`{% include_relative generic/globalVariables.md %}`
+{% comment %}
+{% include_relative generic/globalVariables.md %}
+{% endcomment %}
 
 ```bash
 PHP_ETC_BASE=/etc/php/7.2
@@ -30,9 +34,13 @@ Assuming you created the subdomanin misp.yourserver.tld to where MISP will be in
 - OpenSSH server
 - This guide assumes a user name of 'misp' with sudo working
 
-`{% include_relative generic/sudo_etckeeper.md %}`
+{% comment %}
+{% include_relative generic/sudo_etckeeper.md %}
+{% endcomment %}
 
-`{% include_relative generic/ethX.md %}`
+{% comment %}
+{% include_relative generic/ethX.md %}
+{% endcomment %}
 
 #### Make sure your system is up2date
 ```bash
@@ -431,11 +439,17 @@ sudo systemctl status rc-local.service
     # ${PATH_TO_MISP}/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
 ```
 
-`{% include_relative generic/INSTALL.done.md %}`
+{% comment %}
+{% include_relative generic/INSTALL.done.md %}
+{% endcomment %}
 
-`{% include_relative generic/recommended.actions.md %}`
+{% comment %}
+{% include_relative generic/recommended.actions.md %}
+{% endcomment %}
 
-`{% include_relative generic/hardening.md %}`
+{% comment %}
+{% include_relative generic/hardening.md %}
+{% endcomment %}
 
 ### Optional features
 -----------------

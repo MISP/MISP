@@ -6,7 +6,9 @@
 !!! warning
     NOT working: pydeep, lief
 
-`{% include_relative generic/globalVariables.md %}`
+{% comment %}
+{% include_relative generic/globalVariables.md %}
+{% endcomment %}
 
 ```bash
 PHP_ETC_BASE=/usr/local/etc
@@ -434,7 +436,9 @@ then
 fi
 ```
 
-`{% include_relative generic/MISP_CAKE_init.md %}`
+{% comment %}
+{% include_relative generic/MISP_CAKE_init.md %}
+{% endcomment %}
 
 ```bash
 sudo gsed -i -e '$i \sudo -u www bash /usr/local/www/MISP/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
@@ -461,9 +465,13 @@ sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install .
 sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install stix2
 ```
 
-`{% include_relative generic/INSTALL.done.md %}`
+{% comment %}
+{% include_relative generic/INSTALL.done.md %}
+{% endcomment %}
 
-`{% include_relative generic/recommended.actions.md %}`
+{% comment %}
+{% include_relative generic/recommended.actions.md %}
+{% endcomment %}
 
 ### Optional features
 -----------------
