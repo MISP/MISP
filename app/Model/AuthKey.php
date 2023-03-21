@@ -184,16 +184,16 @@ class AuthKey extends AppModel
                 // store IP in db if not there yet
                 $remote_ip = $this->_remoteIp();
                 $update_db_ip = true;
-                if (is_array($possibleAuthkey['AuthKey']['unique_ips']) && in_array($remote_ip, $possibleAuthkey['AuthKey']['unique_ips'])) {
+                if (in_array($remote_ip, $possibleAuthkey['AuthKey']['unique_ips'])) {
                     $update_db_ip = false;  // IP already seen, skip saving in DB
-                } else {   // first time an IP is seen for this API key
+                } else {   // first time this IP is seen for this API key
                     $possibleAuthkey['AuthKey']['unique_ips'][] = $remote_ip;
                 }
                 if ($update_db_ip) {
                     // prevent double entries due to race condition
                     $possibleAuthkey['AuthKey']['unique_ips'] = array_unique($possibleAuthkey['AuthKey']['unique_ips']);
                     // save in db
-                    $this->save($possibleAuthkey);
+                    $this->save($possibleAuthkey, ['fieldList' => ['unique_ips']]);
                 }
                 // fetch user
                 $user = $this->User->getAuthUser($possibleAuthkey['AuthKey']['user_id']);
