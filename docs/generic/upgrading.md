@@ -12,7 +12,7 @@ If this fails most likely permissions are the reason.
 
 More details can be found in [MISP Book](https://www.circl.lu/doc/misp/faq/#update-misp-fails) to resolve the issue.
 
-To fix permissions refer to [the install guide](https://misp.github.io/MISP/INSTALL.ubuntu1804/#5-set-the-permissions).
+To fix permissions refer to [the install guide](https://misp.github.io/MISP/INSTALL.ubuntu1804#5-set-the-permissions).
 
 Another way is to open a shell on your MISP instance and go to the main MISP directory and pull the latest code:
 
@@ -22,7 +22,7 @@ sudo -H -u www-data git pull origin 2.4
 sudo -H -u www-data git submodule update --init --recursive
 ```
 
-If the above fails, your permissons might be wrong. [Click here for the fix the permissions guide](https://misp.github.io/MISP/INSTALL.ubuntu1804/#5-set-the-permissions).
+If the above fails, your permissons might be wrong. [Click here for the fix the permissions guide](https://misp.github.io/MISP/INSTALL.ubuntu1804#5-set-the-permissions).
 
 ##### MISP Dependencies
 

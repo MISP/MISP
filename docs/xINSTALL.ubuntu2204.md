@@ -5,7 +5,7 @@
 
 ### -1/ Installer and Manual install instructions
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/xINSTALL.ubuntu2204).
 
 ### 0/ MISP Ubuntu 22.04-server install - status
 -------------------------
@@ -13,7 +13,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20211002
 
 !!! notice
-    If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu2204/).
+    If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/xINSTALL.ubuntu2204).
 
 {!generic/core.md!}
 

@@ -3,7 +3,7 @@
 
 {!generic/manual-install-notes.md!}
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804).
 
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
@@ -11,7 +11,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210401 (works with **Ubuntu 19.04/20.04/21.04** too)
 
 !!! notice
-    If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
+    If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804).
 
 {!generic/core.md!}
 
