@@ -1,12 +1,12 @@
 # INSTALLATION INSTRUCTIONS
-## for FreeBSD 12.0-amd64
+## for FreeBSD 12.0-amd64!}
 
 ### 0/ WIP /!\ You are warned, this does not work yet! /!\
 
 !!! warning
     NOT working: pydeep, lief
 
-{!generic/globalVariables.md!}
+{% generic/globalVariables.md %}
 
 ```bash
 PHP_ETC_BASE=/usr/local/etc
@@ -434,7 +434,7 @@ then
 fi
 ```
 
-{!generic/MISP_CAKE_init.md!}
+{% generic/MISP_CAKE_init.md %}
 
 ```bash
 sudo gsed -i -e '$i \sudo -u www bash /usr/local/www/MISP/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
@@ -461,9 +461,9 @@ sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install .
 sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install stix2
 ```
 
-{!generic/INSTALL.done.md!}
+{% generic/INSTALL.done.md %}
 
-{!generic/recommended.actions.md!}
+{% generic/recommended.actions.md %}
 
 ### Optional features
 -----------------

@@ -25,9 +25,9 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 ### 0/ MISP CentOS 7 Minimal NetInstall - Status
 --------------------------------------------
 
-{!generic/community.md!}
+{% generic/community.md %}
 
-{!generic/rhelVScentos.md!}
+{% generic/rhelVScentos.md %}
 
 !!! notice
     Semi-maintained and tested by @SteveClement, CentOS 7.6-1804 on 20190410<br />
@@ -37,7 +37,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     Maintenance for CentOS 7 will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
     CentOS 7.6-1810 [NetInstallURL](http://mirror.centos.org/centos/7.6.1810/os/x86_64/)
 
-{!generic/globalVariables.md!}
+{% generic/globalVariables.md %}
 
 ```bash
 # <snippet-begin 0_RHEL_PHP_INI.sh>
@@ -597,14 +597,14 @@ ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 sudo sed -i -e '$i \sudo -u apache ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
 ```
 
-{!generic/misp-dashboard-rhel.md!}
+{% generic/misp-dashboard-rhel.md %}
 
-{!generic/misp-dashboard-cake.md!}
+{% generic/misp-dashboard-cake.md %}
 
-{!generic/MISP_CAKE_init.md!}
+{% generic/MISP_CAKE_init.md %}
 
-{!generic/INSTALL.done.md!}
+{% generic/INSTALL.done.md %}
 
-{!generic/recommended.actions.md!}
+{% generic/recommended.actions.md %}
 
-{!generic/hardening.md!}
+{% generic/hardening.md %}

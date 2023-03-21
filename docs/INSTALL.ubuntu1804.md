@@ -1,7 +1,7 @@
 # INSTALLATION INSTRUCTIONS
 ## for Ubuntu 18.04.5-server
 
-{!generic/manual-install-notes.md!}
+{% generic/manual-install-notes.md %}
 
 Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804).
 
@@ -13,7 +13,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 !!! notice
     If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804).
 
-{!generic/core.md!}
+{% generic/core.md %}
 
 ### 1/ Minimal Ubuntu install
 -------------------------
@@ -42,9 +42,9 @@ aptUpgrade () {
 # <snippet-end 0_apt-upgrade.sh>
 ```
 
-{!generic/sudo_etckeeper.md!}
+{% generic/sudo_etckeeper.md %}
 
-{!generic/ethX.md!}
+{% generic/ethX.md %}
 
 #### install postfix, there will be some questions.
 ```bash
@@ -61,7 +61,7 @@ sudo apt-get install postfix dialog -qy
     sudo postfix reload
     ```
 
-{!generic/globalVariables.md!}
+{% generic/globalVariables.md %}
 
 ### 2/ Install LAMP & dependencies
 ------------------------------
@@ -433,7 +433,7 @@ configMISP () {
 # <snippet-end 2_configMISP.sh>
 ```
 
-{!generic/gnupg.md!}
+{% generic/gnupg.md %}
 
 !!! notice
     If entropy is not high enough, you can install havegd and then start the service
@@ -487,15 +487,15 @@ echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-{!generic/MISP_CAKE_init.md!}
+{% generic/MISP_CAKE_init.md %}
 
-{!generic/misp-modules-debian.md!}
+{% generic/misp-modules-debian.md %}
 
-{!generic/misp-modules-cake.md!}
+{% generic/misp-modules-cake.md %}
 
-{!generic/INSTALL.done.md!}
+{% generic/INSTALL.done.md %}
 
-{!generic/recommended.actions.md!}
+{% generic/recommended.actions.md %}
 
 ### Optional features
 -----------------
@@ -518,17 +518,17 @@ installKafka () {
 # <snippet-end 4_kafka.sh>
 ```
 
-{!generic/misp-dashboard-debian.md!}
+{% generic/misp-dashboard-debian.md %}
 
-{!generic/misp-dashboard-cake.md!}
+{% generic/misp-dashboard-cake.md %}
 
-{!generic/viper-debian.md!}
+{% generic/viper-debian.md %}
 
-{!generic/ssdeep-debian.md!}
+{% generic/ssdeep-debian.md %}
 
-{!generic/mail_to_misp-debian.md!}
+{% generic/mail_to_misp-debian.md %}
 
-{!generic/hardening.md!}
+{% generic/hardening.md %}
 
 # INSTALL.sh
 
@@ -536,4 +536,4 @@ installKafka () {
     The following section is an administrative section that is used by the "[INSTALL.sh](https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh)" script.
     Please ignore.
 
-{!generic/supportFunctions.md!}
+{% generic/supportFunctions.md %}

@@ -8,9 +8,9 @@
     This is mostly the install [@SteveClement](https://twitter.com/SteveClement) uses for testing, qc and random development.
     Maintained and tested by @SteveClement on 20200405
 
-{!generic/known-issues-debian.md!}
+{% generic/known-issues-debian.md %}
 
-{!generic/globalVariables.md!}
+{% generic/globalVariables.md %}
 
 ```bash
 PHP_ETC_BASE=/etc/php/7.3
@@ -24,9 +24,9 @@ PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 - OpenSSH server
 - This guide assumes a user name of 'misp' with sudo working
 
-{!generic/sudo_etckeeper.md!}
+{% generic/sudo_etckeeper.md %}
 
-{!generic/ethX.md!}
+{% generic/ethX.md %}
 
 #### Add $MISP_USER to staff and ${WWW_USER}
 
@@ -443,7 +443,7 @@ then
 fi
 ```
 
-{!generic/MISP_CAKE_init.md!}
+{% generic/MISP_CAKE_init.md %}
 
 ```bash
 # Add the following lines before the last line (exit 0). Make sure that you replace ${WWW_USER} with your apache user:
@@ -452,18 +452,18 @@ sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
 sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
 ```
 
-{!generic/misp-modules-debian.md!}
+{% generic/misp-modules-debian.md %}
 
-{!generic/misp-modules-cake.md!}
+{% generic/misp-modules-cake.md %}
 
 ```bash
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-{!generic/INSTALL.done.md!}
+{% generic/INSTALL.done.md %}
 
-{!generic/recommended.actions.md!}
+{% generic/recommended.actions.md %}
 
 ### Optional features
 -------------------
@@ -497,16 +497,16 @@ sudo phpenmod rdkafka
 sudo service apache2 restart
 ```
 
-{!generic/misp-dashboard-debian.md!}
+{% generic/misp-dashboard-debian.md %}
 
-{!generic/misp-dashboard-cake.md!}
+{% generic/misp-dashboard-cake.md %}
 
-{!generic/viper-debian.md!}
+{% generic/viper-debian.md %}
 
-{!generic/ssdeep-debian.md!}
+{% generic/ssdeep-debian.md %}
 
-{!generic/mail_to_misp-debian.md!}
+{% generic/mail_to_misp-debian.md %}
 
-{!generic/upgrading.md!}
+{% generic/upgrading.md %}
 
-{!generic/hardening.md!}
+{% generic/hardening.md %}
