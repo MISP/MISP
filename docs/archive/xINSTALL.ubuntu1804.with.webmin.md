@@ -6,9 +6,9 @@
 !!! notice
     Tested semi-working by @SteveClement on 20181120.
 
-{% generic/community.md %}
+{% include_relative generic/community.md %}
 
-{% generic/globalVariables.md %}
+{% include_relative generic/globalVariables.md %}
 
 ```bash
 PHP_ETC_BASE=/etc/php/7.2
@@ -30,9 +30,9 @@ Assuming you created the subdomanin misp.yourserver.tld to where MISP will be in
 - OpenSSH server
 - This guide assumes a user name of 'misp' with sudo working
 
-{% generic/sudo_etckeeper.md %}
+{% include_relative generic/sudo_etckeeper.md %}
 
-{% generic/ethX.md %}
+{% include_relative generic/ethX.md %}
 
 #### Make sure your system is up2date
 ```bash
@@ -431,11 +431,11 @@ sudo systemctl status rc-local.service
     # ${PATH_TO_MISP}/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
 ```
 
-{% generic/INSTALL.done.md %}
+{% include_relative generic/INSTALL.done.md %}
 
-{% generic/recommended.actions.md %}
+{% include_relative generic/recommended.actions.md %}
 
-{% generic/hardening.md %}
+{% include_relative generic/hardening.md %}
 
 ### Optional features
 -----------------

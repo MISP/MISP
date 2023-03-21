@@ -16,7 +16,7 @@
 !!! notice
     As of OpenBSD 6.4 the native httpd has rewrite rules and php 5.6 is gone too.
 
-{% generic/globalVariables.md %}
+{% include_relative generic/globalVariables.md %}
 
 ```bash
 export AUTOMAKE_VERSION=1.16
@@ -594,9 +594,9 @@ doas vi /etc/rc.local
 ${SUDO_WWW} bash /var/www/htdocs/MISP/app/Console/worker/start.sh
 ``` 
 
-{% generic/INSTALL.done.md %}
+{% include_relative generic/INSTALL.done.md %}
 
-{% generic/recommended.actions.md %}
+{% include_relative generic/recommended.actions.md %}
 
 #### MISP Modules
 ```
@@ -916,4 +916,4 @@ doas $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
 doas $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 ```
 
-{% generic/hardening.md %}
+{% include_relative generic/hardening.md %}
