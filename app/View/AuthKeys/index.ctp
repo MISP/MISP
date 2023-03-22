@@ -75,7 +75,8 @@
                 ],
                 [
                     'name' => __('Seen IPs'),
-                    'data_path' => 'AuthKey.unique_ips'
+                    'data_path' => 'AuthKey.unique_ips',
+                    'element' => 'authkey_pin',
                 ]
             ],
             'title' => empty($ajax) ? __('Authentication key Index') : false,
