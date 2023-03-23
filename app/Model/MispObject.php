@@ -400,15 +400,7 @@ class MispObject extends AppModel
             $attributeArray = $object['Attribute'];
         }
         foreach ($attributeArray as $attribute) {
-            if ($attribute['type'] === 'malware-sample') {
-                if (strpos($attribute['value'], '|') === false && !empty($attribute['data'])) {
-                    $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
-                }
-            }
-            $attributeValueAfterModification = AttributeValidationTool::modifyBeforeValidation($attribute['type'], $attribute['value']);
-            $attributeValueAfterModification = $this->Attribute->runRegexp($attribute['type'], $attributeValueAfterModification);
-
-            $newObjectAttributes[] = sha1($attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $attributeValueAfterModification, true);
+            $newObjectAttributes[] = $this->getObjectAttributeHash($attribute);
         }
         $newObjectAttributeCount = count($newObjectAttributes);
         if (!empty($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']])) {
@@ -433,7 +425,7 @@ class MispObject extends AppModel
                         'conditions' => array('Attribute.deleted' => 0)
                     )
                 ),
-                'fields' => array('template_uuid'),
+                'fields' => array('template_uuid', 'uuid'),
                 'conditions' => array('template_uuid' => $object['Object']['template_uuid'], 'Object.deleted' => 0, 'event_id' => $eventId)
             ));
         }
@@ -441,10 +433,12 @@ class MispObject extends AppModel
             $temp = array();
             if (!empty($existingObject['Attribute']) && $newObjectAttributeCount === count($existingObject['Attribute'])) {
                 foreach ($existingObject['Attribute'] as $existingAttribute) {
-                    $temp[] = sha1($existingAttribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value'], true);
+                    $temp[] = $this->getObjectAttributeHash($existingAttribute);
                 }
+
                 if (empty(array_diff($temp, $newObjectAttributes))) {
                     $duplicatedObjectId = $existingObject['Object']['id'];
+                    $duplicateObjectUuid = $existingObject['Object']['uuid'];
                     return true;
                 }
             }
@@ -1706,5 +1700,18 @@ class MispObject extends AppModel
         } else {
             return $newValue != $originalValue;
         }
+    }
+
+    private function getObjectAttributeHash($attribute)
+    {
+        if ($attribute['type'] === 'malware-sample') {
+            if (strpos($attribute['value'], '|') === false && !empty($attribute['data'])) {
+                $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
+            }
+        }
+        $attributeValueAfterModification = AttributeValidationTool::modifyBeforeValidation($attribute['type'], $attribute['value']);
+        $attributeValueAfterModification = $this->Attribute->runRegexp($attribute['type'], $attributeValueAfterModification);
+
+        return sha1($attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $attributeValueAfterModification, true);
     }
 }
