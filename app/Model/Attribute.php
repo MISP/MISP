@@ -736,29 +736,9 @@ class Attribute extends AppModel
             return true;
         }
 
-        $type = $this->data['Attribute']['type'];
-        $conditions = array(
-            'Attribute.event_id' => $this->data['Attribute']['event_id'],
-            'Attribute.type' => $type,
-            'Attribute.category' => $this->data['Attribute']['category'],
-            'Attribute.deleted' => 0,
-            'Attribute.object_id' => 0,
-        );
+        $existingAttribute = $this->findAttributeByValue($fields['value']);
 
-        $value = $fields['value'];
-        if (in_array($type, $this->getCompositeTypes(), true)) {
-            $value = explode('|', $value);
-            $conditions['Attribute.value1'] = $value[0];
-            $conditions['Attribute.value2'] = $value[1];
-        } else {
-            $conditions['Attribute.value1'] = $value;
-        }
-
-        if (isset($this->data['Attribute']['id'])) {
-            $conditions['Attribute.id !='] = $this->data['Attribute']['id'];
-        }
-
-        return !$this->hasAny($conditions);
+        return empty($existingAttribute);
     }
 
     public function validateTypeValue($fields)
@@ -2515,6 +2495,10 @@ class Attribute extends AppModel
                 unset($attribute['sharing_group_id']);
             }
         }
+        if (isset($attribute['breakOnDuplicate']) && $attribute['breakOnDuplicate'] === false) {
+            $this->data['Attribute'];
+            unset($this->validate['value']['uniqueValue']);
+        }
         if (!$this->save(['Attribute' => $attribute], $params)) {
             $this->logDropped($user, $attribute);
         } else {
@@ -3525,5 +3509,67 @@ class Attribute extends AppModel
             // Not convinced about this.
             //'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
         );
+    }
+
+    private function findAttributeByValue($value)
+    {
+        $type = $this->data['Attribute']['type'];
+        $conditions = [
+            'Attribute.event_id' => $this->data['Attribute']['event_id'],
+            'Attribute.type' => $type,
+            'Attribute.deleted' => 0,
+            'Attribute.object_id' => 0,
+        ];
+
+        if (isset($this->data['Attribute']['category'])) {
+            $conditions['Attribute.category'] = $this->data['Attribute']['category'];
+        }
+
+        if (in_array($type, $this->getCompositeTypes(), true)) {
+            $value = explode('|', $value);
+            $conditions['Attribute.value1'] = $value[0];
+            $conditions['Attribute.value2'] = $value[1];
+        } else {
+            $conditions['Attribute.value1'] = $value;
+        }
+
+        if (isset($this->data['Attribute']['id'])) {
+            $conditions['Attribute.id !='] = $this->data['Attribute']['id'];
+        }
+
+        return $this->find('first', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => ['Attribute.id', 'Attribute.uuid']
+        ]);
+    }
+
+    /**
+     * If there is no id set but attribute value is set, check if the attribute already exists (by value) 
+     *
+     * {@inheritdoc }
+     *
+     * @param int|string $id ID of record to check for existence
+     * @return bool True if such a record exists
+     */
+    public function exists($id = null)
+    {
+        if (!isset($this->data['Attribute']['breakOnDuplicate']) || $this->data['Attribute']['breakOnDuplicate'] !== false) {
+            return parent::exists($id);
+        }
+
+        // find existing attribute by value
+        if (empty($id) && isset($this->data['Attribute']['value'])) {
+            $existingAttribute = $this->findAttributeByValue($this->data['Attribute']['value']);
+            if (!empty($existingAttribute)) {
+                $this->id = $existingAttribute['Attribute']['id'];
+                $this->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
+                $this->data['Attribute']['uuid'] = $existingAttribute['Attribute']['uuid'];
+
+                return true;
+            }
+        }
+
+        return parent::exists($id);
     }
 }
