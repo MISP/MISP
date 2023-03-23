@@ -258,7 +258,8 @@ class AuthKeysController extends AppController
                 $this->Flash->error(__('Failed to set IP as source'));
             }
         }
-        $this->redirect(['controller' => 'auth_keys', 'action' => 'index']);
+        $this->redirect($this->referer());
+        // $this->redirect(['controller' => 'auth_keys', 'view' => 'index']);
     }
 
     /**

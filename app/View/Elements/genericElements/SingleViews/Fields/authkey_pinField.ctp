@@ -1,10 +1,10 @@
 <?php
-    $data_path = Hash::extract($row, $field['data_path']);
+    $data_path = Hash::extract($data, $field['path']);
     $result = [];
     foreach ($data_path as $key => $ip) {
         $data_ip['ip'] = $ip; 
         $action = ['class' => 'modal-open',
-                    'url' => $baseurl. "/authKeys/pin/" . h($row['AuthKey']['id']) . '/' . h($ip),
+                    'url' => $baseurl. "/authKeys/pin/" . h($data['AuthKey']['id']) . '/' . h($ip),
                     'icon' => 'thumbtack',
                     'postLink' => true,
                     'postLinkConfirm' => __('Use this as only possible source IP?'),

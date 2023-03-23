@@ -84,13 +84,8 @@ echo $this->element('genericElements/SingleViews/single_view', [
         ],
         [
             'key' => __('Seen IPs'),
-            'type' => 'custom',
-            'function' => function (array $data) {
-                if (is_array($data['AuthKey']['unique_ips'])) {
-                    return implode("<br />", array_map('h', $data['AuthKey']['unique_ips']));
-                }
-                return '';
-            }
+            'path' => 'AuthKey.unique_ips',
+            'type' => 'authkey_pin'
         ]
     ],
 ]);
