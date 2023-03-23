@@ -83,6 +83,7 @@ $sidebarOpen = $loggedUser->user_settings_by_name_with_fallback['ui.sidebar.expa
         <main role="main" class="content">
             <div class="container-fluid mt-1">
                 <?= $this->Flash->render() ?>
+                <?= $this->fetch('actionBar') ?>
                 <?= $this->fetch('content') ?>
             </div>
         </main>

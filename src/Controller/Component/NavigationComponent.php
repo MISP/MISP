@@ -77,6 +77,8 @@ class NavigationComponent extends Component
         'Feeds' => 'rss',
         'Roles' => 'id-badge',
         'API' => 'code',
+        'UserSettings' => 'user-cog',
+        'Inbox' => 'inbox',
     ];
 
     public function initialize(array $config): void
@@ -86,8 +88,8 @@ class NavigationComponent extends Component
 
     public function beforeRender($event)
     {
-        $this->fullBreadcrumb = null;
-        //$this->fullBreadcrumb = $this->genBreadcrumb();
+        // $this->fullBreadcrumb = null;
+        $this->fullBreadcrumb = $this->genBreadcrumb();
     }
 
     public function getSideMenu(): array
@@ -196,7 +198,6 @@ class NavigationComponent extends Component
         $CRUDControllers = [
             //'Individuals',
             'Organisations',
-            'EncryptionKeys',
             'SharingGroups',
             'Roles',
             'Users',
@@ -253,7 +254,7 @@ class BreadcrumbFactory
             ]);
         } else if ($action === 'add') {
             $item = $this->genRouteConfig($controller, $action, [
-                'label' => __('[new {0}]', $controller),
+                'label' => __('Create {0}', $controller),
                 'icon' => 'plus',
                 'url' => "/{$controller}/add",
             ]);
@@ -272,6 +273,7 @@ class BreadcrumbFactory
                 'url' => "/{$controller}/delete/{{id}}",
                 'url_vars' => ['id' => 'id'],
                 'textGetter' => !empty($table->getDisplayField()) ? $table->getDisplayField() : 'id',
+                'variant' => 'danger',
             ]);
         }
         $item['route_path'] = "{$controller}:{$action}";
@@ -292,6 +294,7 @@ class BreadcrumbFactory
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'label');
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'textGetter');
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'badge');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'variant');
         return $routeConfig;
     }
 
@@ -329,6 +332,7 @@ class BreadcrumbFactory
         $this->addLink($controller, 'edit', $controller, 'view');
         $this->addSelfLink($controller, 'edit');
 
+        $this->addAction($controller, 'index', $controller, 'add');
         $this->addAction($controller, 'view', $controller, 'add');
         $this->addAction($controller, 'view', $controller, 'delete');
         $this->addAction($controller, 'edit', $controller, 'add');

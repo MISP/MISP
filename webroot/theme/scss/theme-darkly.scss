@@ -2,6 +2,7 @@
 // $h1-font-size: 3rem;
 $theme: "app-darkly";
 
+@import "../node_modules/bootstrap/scss/functions";
 @import "darkly/variables";
 
 $bodyBackgroundBlendmode: soft-light;
@@ -24,10 +25,11 @@ $sidebarTextColor: $white;
 $sidebarActiveColor: $nav-tabs-link-active-color;
 $sidebarActiveBgColor: #595f64;
 $sidebarHoverColor: #60676c;
+$sidebarSubmenuColor: shade-color($sidebarActiveBgColor, 30%);
 $sidebarBorder: none;
 $sidebarShadows: none;
 $sidebarLockButton: unset;
-$activeSidebarLinkColor: var(--cerebrate-color);
+$activeSidebarLinkColor: var(--application-color);
 
 $calloutBorderColor: 1px solid none;
 

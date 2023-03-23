@@ -1,3 +1,94 @@
+:root {
+  --bs-blue: #1ba2f6;
+  --bs-indigo: #6610f2;
+  --bs-purple: #6f42c1;
+  --bs-pink: #ea39b8;
+  --bs-red: #e44c55;
+  --bs-orange: #f1b633;
+  --bs-yellow: #ffc107;
+  --bs-green: #3cf281;
+  --bs-teal: #3f81a2;
+  --bs-cyan: #32fbe2;
+  --bs-white: #fff;
+  --bs-gray: #6c757d;
+  --bs-gray-dark: #343a40;
+  --bs-gray-100: #f8f9fa;
+  --bs-gray-200: #e9ecef;
+  --bs-gray-300: #dee2e6;
+  --bs-gray-400: #ced4da;
+  --bs-gray-500: #adb5bd;
+  --bs-gray-600: #6c757d;
+  --bs-gray-700: #495057;
+  --bs-gray-800: #343a40;
+  --bs-gray-900: #170229;
+  --bs-primary: #6f42c1;
+  --bs-secondary: #ea39b8;
+  --bs-success: #3cf281;
+  --bs-info: #1ba2f6;
+  --bs-warning: #ffc107;
+  --bs-danger: #e44c55;
+  --bs-light: #44d9e8;
+  --bs-dark: #170229;
+  --bs-primary-rgb: 111, 66, 193;
+  --bs-secondary-rgb: 234, 57, 184;
+  --bs-success-rgb: 60, 242, 129;
+  --bs-info-rgb: 27, 162, 246;
+  --bs-warning-rgb: 255, 193, 7;
+  --bs-danger-rgb: 228, 76, 85;
+  --bs-light-rgb: 68, 217, 232;
+  --bs-dark-rgb: 23, 2, 41;
+  --bs-white-rgb: 255, 255, 255;
+  --bs-black-rgb: 0, 0, 0;
+  --bs-body-color-rgb: 50, 251, 226;
+  --bs-body-bg-rgb: 26, 9, 51;
+  --bs-font-sans-serif: Lato, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --bs-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --bs-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+  --bs-body-font-family: var(--bs-font-sans-serif);
+  --bs-body-font-size: 1rem;
+  --bs-body-font-weight: 400;
+  --bs-body-line-height: 1.5;
+  --bs-body-color: #32fbe2;
+  --bs-body-bg: #1a0933;
+}
+
+.fade {
+  transition: opacity 0.15s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fade {
+    transition: none;
+  }
+}
+.fade:not(.show) {
+  opacity: 0;
+}
+
+.collapse:not(.show) {
+  display: none;
+}
+
+.collapsing {
+  height: 0;
+  overflow: hidden;
+  transition: height 0.35s cubic-bezier(0, 0.71, 0.58, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .collapsing {
+    transition: none;
+  }
+}
+.collapsing.collapse-horizontal {
+  width: 0;
+  height: auto;
+  transition: width 0.35s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .collapsing.collapse-horizontal {
+    transition: none;
+  }
+}
+
 /* Callout */
 .callout {
   border: 1px solid #e9ecef;
@@ -471,7 +562,15 @@
   height: 100%;
 }
 
+:root {
+  --application-color: #2fa1db;
+}
+
 /* Body */
+body {
+  background-color: #190932;
+}
+
 .panel {
   background-color: #363636;
   border: 1px solid #454545;
@@ -529,6 +628,29 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
   background-color: #170229;
 }
 
+/* Scroolbar */
+.sidebar-scroll {
+  overflow-x: hidden;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 3px;
+  background: #ffffff00;
+}
+
+.sidebar-scroll::-webkit-scrollbar * {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  background: rgba(15, 5, 30, 0.6);
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(13, 5, 25, 0.6);
+}
+
 .sidebar ~ main.content:after {
   background: #000;
 }
@@ -574,10 +696,26 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
   background-color: #495057;
 }
 
+.sidebar ul.sidebar-elements li > a.sidebar-link.active:hover {
+  background-color: #5d6166;
+  color: #3cf281;
+}
+
 ul.sidebar-elements li > a.sidebar-link.active::after {
   background-color: #6f42c1;
 }
 
 .lock-sidebar > a.btn {
   background-color: unset;
+}
+
+.sidebar ul.sidebar-elements li ul.sub-menu {
+  background-color: #230f34;
+  box-shadow: inset #11111a1a 0px 0px 0px 1px;
+}
+
+/* Action bar */
+.action-bar {
+  box-shadow: 0 0.15rem 0.3rem #00000026;
+  background-color: #1a0933;
 }

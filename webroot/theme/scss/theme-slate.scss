@@ -2,8 +2,8 @@
 // $h1-font-size: 3rem;
 $theme: "app-slate";
 
-$input-btn-padding-y:         .375rem;
-$input-btn-padding-x:         .75rem;
+$input-btn-padding-y: .375rem;
+$input-btn-padding-x: .75rem;
 
 @import "slate/variables";
 
@@ -28,7 +28,7 @@ $sidebarHoverColor: #60676c;
 $sidebarBorder: none;
 $sidebarShadows: none;
 $sidebarLockButton: $secondary;
-$activeSidebarLinkColor: var(--cerebrate-color);
+$activeSidebarLinkColor: var(--application-color);
 
 @import "theme-default";
 @import "../node_modules/bootstrap/scss/buttons";

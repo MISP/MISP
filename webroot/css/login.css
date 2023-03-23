@@ -18,7 +18,7 @@ body {
 }
 
 .cerebrate-background-logo {
-    background-color: var(--cerebrate-color);
+    background-color: var(--application-color);
     -webkit-mask: url(/img/icon-composition/z.svg) no-repeat;
     mask: url(/img/icon-composition/z.svg) no-repeat;
     -webkit-mask-size: 400px 400px;

@@ -61,7 +61,7 @@
 <li class="<?= !empty($children) ? 'parent collapsed' : '' ?>">
     <?php if (!empty($children) || !empty($url)): ?>
         <a
-            class="d-flex align-items-center sidebar-link <?= !empty($children) ? 'collapsed' : '' ?> <?= $active ? 'active' : '' ?> <?= $hasActiveChild ? 'have-active-child' : '' ?>"
+            class="d-flex align-items-center sidebar-link <?= (!empty($children) && !$hasActiveChild) ? 'collapsed' : '' ?> <?= $active ? 'active' : '' ?> <?= $hasActiveChild ? 'have-active-child' : '' ?>"
             href="<?= h($url) ?>"
             <?= !empty($children) ? 'data-bs-toggle="collapse"' : '' ?>
             <?= $hasActiveChild ? 'aria-expanded="true"' : '' ?>
@@ -71,6 +71,7 @@
                 if ($childHasNotification || ($hasNotification && !empty($children))) {
                     echo $this->Bootstrap->notificationBubble([
                         'variant' => $childHasNotification ? $childNotificationVariant : $notificationVariant,
+                        'borderVariant' => 'light',
                     ]);
                 }
                 ?>

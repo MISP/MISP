@@ -1,24 +1,6 @@
-:root {
-    --cerebrate-color: #924da6;
-}
-
 .pagination li.page-item > a.page-link > .ellipsis {
     line-height: 12px;
     vertical-align: top;
-}
-
-.footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  /* Set the fixed height of the footer here */
-  height: 60px;
-  line-height: 60px; /* Vertically center the text there */
-  background-color: #f5f5f5;
-}
-
-.black {
-    color:black;
 }
 
 .loading-overlay-container {
@@ -94,7 +76,7 @@ input[type="checkbox"]:disabled.change-cursor {
 }
 
 .select2-container {
-    z-index: 900;
+    z-index: 1060;
 }
 
 .select2-container--bootstrap-5 {

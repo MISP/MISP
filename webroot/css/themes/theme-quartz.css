@@ -1,3 +1,94 @@
+:root {
+  --bs-blue: #3a8fd9;
+  --bs-indigo: #6610f2;
+  --bs-purple: #686dc3;
+  --bs-pink: #e83283;
+  --bs-red: #fc346f;
+  --bs-orange: #fd7e14;
+  --bs-yellow: #ffc107;
+  --bs-green: #41d7a7;
+  --bs-teal: #528fb3;
+  --bs-cyan: #39cbfb;
+  --bs-white: #fff;
+  --bs-gray: #6c757d;
+  --bs-gray-dark: #343a40;
+  --bs-gray-100: #f8f9fa;
+  --bs-gray-200: #e9e9e8;
+  --bs-gray-300: #dee2e6;
+  --bs-gray-400: #ced4da;
+  --bs-gray-500: #adb5bd;
+  --bs-gray-600: #6c757d;
+  --bs-gray-700: #495057;
+  --bs-gray-800: #343a40;
+  --bs-gray-900: #212529;
+  --bs-primary: #e83283;
+  --bs-secondary: rgba(255, 255, 255, 0.4);
+  --bs-success: #41d7a7;
+  --bs-info: #39cbfb;
+  --bs-warning: #ffc107;
+  --bs-danger: #fd7e14;
+  --bs-light: #e9e9e8;
+  --bs-dark: #212529;
+  --bs-primary-rgb: 232, 50, 131;
+  --bs-secondary-rgb: 255, 255, 255;
+  --bs-success-rgb: 65, 215, 167;
+  --bs-info-rgb: 57, 203, 251;
+  --bs-warning-rgb: 255, 193, 7;
+  --bs-danger-rgb: 253, 126, 20;
+  --bs-light-rgb: 233, 233, 232;
+  --bs-dark-rgb: 33, 37, 41;
+  --bs-white-rgb: 255, 255, 255;
+  --bs-black-rgb: 0, 0, 0;
+  --bs-body-color-rgb: 255, 255, 255;
+  --bs-body-bg-rgb: 104, 109, 195;
+  --bs-font-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --bs-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --bs-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+  --bs-body-font-family: var(--bs-font-sans-serif);
+  --bs-body-font-size: 1rem;
+  --bs-body-font-weight: 400;
+  --bs-body-line-height: 1.5;
+  --bs-body-color: #fff;
+  --bs-body-bg: #686dc3;
+}
+
+.fade {
+  transition: opacity 0.15s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fade {
+    transition: none;
+  }
+}
+.fade:not(.show) {
+  opacity: 0;
+}
+
+.collapse:not(.show) {
+  display: none;
+}
+
+.collapsing {
+  height: 0;
+  overflow: hidden;
+  transition: height 0.35s cubic-bezier(0, 0.71, 0.58, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .collapsing {
+    transition: none;
+  }
+}
+.collapsing.collapse-horizontal {
+  width: 0;
+  height: auto;
+  transition: width 0.35s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .collapsing.collapse-horizontal {
+    transition: none;
+  }
+}
+
 /* Callout */
 .callout {
   border: 1px solid #e9e9e8;
@@ -471,7 +562,15 @@
   height: 100%;
 }
 
+:root {
+  --application-color: #2fa1db;
+}
+
 /* Body */
+body {
+  background-color: #666bbf;
+}
+
 .panel {
   background-color: transparent;
   border: none;
@@ -529,6 +628,29 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
   background-color: rgba(255, 255, 255, 0.4);
 }
 
+/* Scroolbar */
+.sidebar-scroll {
+  overflow-x: hidden;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 3px;
+  background: #ffffff00;
+}
+
+.sidebar-scroll::-webkit-scrollbar * {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  background: rgba(61, 64, 115, 0.6);
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(51, 54, 96, 0.6);
+}
+
 .sidebar ~ main.content:after {
   background: #000;
 }
@@ -560,7 +682,7 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link:hover {
-  background-color: #fff;
+  background-color: rgba(255, 255, 255, 0.46);
   color: #343a40;
 }
 
@@ -571,7 +693,12 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child:hover,
 .sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child:hover {
-  background-color: #fff;
+  background-color: rgba(255, 255, 255, 0.46);
+}
+
+.sidebar ul.sidebar-elements li > a.sidebar-link.active:hover {
+  background-color: rgba(255, 255, 255, 0.58);
+  color: #343a40;
 }
 
 ul.sidebar-elements li > a.sidebar-link.active::after {
@@ -580,6 +707,17 @@ ul.sidebar-elements li > a.sidebar-link.active::after {
 
 .lock-sidebar > a.btn {
   background-color: rgba(255, 255, 255, 0.4);
+}
+
+.sidebar ul.sidebar-elements li ul.sub-menu {
+  background-color: rgba(211, 211, 211, 0.43);
+  box-shadow: inset #11111a1a 0px 0px 0px 1px;
+}
+
+/* Action bar */
+.action-bar {
+  box-shadow: 0 0.15rem 0.3rem #00000026;
+  background-color: #686dc3;
 }
 
 .btn {
