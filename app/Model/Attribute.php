@@ -2482,6 +2482,9 @@ class Attribute extends AppModel
         if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = $this->defaultDistribution();
         }
+        if (isset($params['breakOnDuplicate'])) {
+            $this->data['Attribute']['breakOnDuplicate'] = (bool)$params['breakOnDuplicate'];
+        }
         $params = array(
             'fieldList' => self::CAPTURE_FIELDS,
         );
