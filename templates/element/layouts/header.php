@@ -2,7 +2,7 @@
     <div class="left-navbar">
         <a class="navbar-brand d-sm-block d-none" href="<?= $baseurl ?>">
             <div class="composed-app-icon-container">
-                <span class="app-icon w-100 h-100" title="<?= __('MISP') ?>"></span>
+                <span class="app-icon w-100 h-100" style="top: 0.2em; position: absolute;"></span>
             </div>
         </a>
         <button class="navbar-toggler d-sm-none" type="button" data-bs-toggle="collapse" data-bs-target="#app-sidebar" aria-controls="app-sidebar" aria-expanded="false" aria-label="Toggle navigation">

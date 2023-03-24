@@ -27,7 +27,6 @@ use Cake\Routing\Router;
                     'text' => h($actionEntry['label']),
                     'icon' => h($actionEntry['icon']),
                     'variant' => $actionEntry['variant'] ?? 'primary',
-                    'size' => 'sm',
                     'class' => ['text-nowrap'],
                     'onclick' => $onclickFunction,
                 ], $buttonBadge);
@@ -56,7 +55,6 @@ use Cake\Routing\Router;
                     'text' => h($linkEntry['label']),
                     'variant' => 'link',
                     'outline' => $active,
-                    'size' => 'sm',
                     'class' => ['text-nowrap'],
                     'attrs' => [
                         'href' => $url,

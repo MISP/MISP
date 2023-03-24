@@ -23,6 +23,10 @@ body {
     margin-right: 0;
 }
 
+.table thead > tr > th {
+    padding: 0.5rem;
+}
+
 /* navbar-toggler breakpoint */
 @media (max-width: 576px) {
     body {

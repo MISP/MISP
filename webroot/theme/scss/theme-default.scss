@@ -10,16 +10,23 @@ $font-size-base: .875rem;
 $line-height-base: 1.25;
 $line-height-sm: 1.15;
 $line-height-lg: 1.5;
+$table-cell-padding-y: .25rem;
+$table-cell-padding-x: .25rem;
+$table-cell-padding-y-sm: .0rem;
+$table-cell-padding-x-sm: .0rem;
+$table-cell-vertical-align: middle;
 
 /* Effect and transition */
 $transition-collapse: height .35s cubic-bezier(0, 0.71, 0.58, 1);
+$btnTransitionSec: .15s;
+$btn-transition: color $btnTransitionSec ease-out, background-color $btnTransitionSec ease-out, border-color $btnTransitionSec ease-out, box-shadow $btnTransitionSec ease-out !default;
 
 @import "../node_modules/bootstrap/scss/variables";
 @import "../node_modules/bootstrap/scss/maps";
 @import "../node_modules/bootstrap/scss/mixins";
 @import "../node_modules/bootstrap/scss/root";
 @import "../node_modules/bootstrap/scss/transitions";
-// @import "../node_modules/bootstrap/scss/tables";
+@import "../node_modules/bootstrap/scss/tables";
 
 @import "./mixins/background";
 
