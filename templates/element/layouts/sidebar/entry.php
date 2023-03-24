@@ -66,7 +66,27 @@
             <?= !empty($children) ? 'data-bs-toggle="collapse"' : '' ?>
             <?= $hasActiveChild ? 'aria-expanded="true"' : '' ?>
         >
+        <?php if (is_array($icon)):?>
+            <i class="position-relative sidebar-icon">
+                <?php if (!empty($icon['stacked'])):?>
+                    <?=
+                        sprintf('<span class="fa-stack fa-stack-small stacked-sidebar-icon">%s%s</span>',
+                            $this->Bootstrap->node('span', [
+                                'class' => sprintf('fas fa-stack-2x fa-%s %s', h($icon['stacked'][0]['icon'] ?? ''), h($icon['stacked'][0]['class'] ?? '')),
+                                'style' => h($icon['stacked'][0]['style'] ?? ''),
+                            ]),
+                            $this->Bootstrap->node('span', [
+                                'class' => sprintf('fas fa-stack-1x fa-%s %s', h($icon['stacked'][1]['icon'] ?? ''), h($icon['stacked'][1]['class'] ?? '')),
+                                'style' => h($icon['stacked'][1]['style'] ?? ''),
+                            ]),
+                        )
+                    ?>
+                <?php else: ?>
+                    <?= $icon['html'] ?? '' ?>
+                <?php endif; ?>
+        <?php else:?>
             <i class="position-relative sidebar-icon <?= $this->FontAwesome->getClass($icon) ?>">
+        <?php endif;?>
                 <?php
                 if ($childHasNotification || ($hasNotification && !empty($children))) {
                     echo $this->Bootstrap->notificationBubble([

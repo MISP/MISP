@@ -33,6 +33,10 @@
 .text-black {color:black;}
 .text-white {color:white;}
 
+.fa-stack-small {
+    font-size: 0.7em;
+}
+
 .lh-1 {
     line-height: 1;
 }

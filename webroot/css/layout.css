@@ -409,7 +409,7 @@ ul.sidebar-elements > li ul {
 }
 
 ul.sidebar-elements > li ul li > a.sidebar-link {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     padding-left: 35px;
     padding-right: 17px;
 }
@@ -474,6 +474,16 @@ ul.sidebar-elements > li.category > span.category-divider > hr {
     margin: 0;
     height: 1px;
     flex: 1 0 auto;
+}
+
+.sidebar .image-sidebar-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.sidebar .sub-menu .image-sidebar-icon {
+    width: 15px;
+    height: 15px;
 }
 
 /* 

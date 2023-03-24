@@ -32,9 +32,9 @@ class Sidemenu {
                     'icon' => $this->iconTable['Dashboard'],
                     'url' => '/dashboards',
                 ],
-                'Others' => [
-                    'label' => __('Others'),
-                    'icon' => 'plus-square',
+                'More' => [
+                    'label' => __('More'),
+                    'icon' => 'ellipsis-h',
                     'children' => [
                         'Attributes' => [
                             'label' => __('List Attributes'),
@@ -59,6 +59,18 @@ class Sidemenu {
                     ],
                 ],
             ],
+            __('Directory') => [
+                'Organisations' => [
+                    'label' => __('Organisations'),
+                    'icon' => $this->iconTable['Organisations'],
+                    'url' => '/organisations/index',
+                ],
+                'SharingGroups' => [
+                    'label' => __('Sharing Groups'),
+                    'icon' => $this->iconTable['SharingGroups'],
+                    'url' => '/sharing_groups/index',
+                ],
+            ],
             __('Knowledge Base') => [
                 'Tags' => [
                     'label' => __('Tags'),
@@ -75,9 +87,9 @@ class Sidemenu {
                     'icon' => $this->iconTable['Galaxies'],
                     'url' => '/galaxies/index',
                 ],
-                'Others' => [
-                    'label' => __('Others'),
-                    'icon' => 'plus-square',
+                'More' => [
+                    'label' => __('More'),
+                    'icon' => 'ellipsis-h',
                     'children' => [
                         'ObjectTemplates' => [
                             'label' => __('Object Templates'),
@@ -145,18 +157,6 @@ class Sidemenu {
                     'url' => '/correlation_exclusions/index',
                 ],
             ],
-            __('Directory') => [
-                'Organisations' => [
-                    'label' => __('Organisations'),
-                    'icon' => $this->iconTable['Organisations'],
-                    'url' => '/organisations/index',
-                ],
-                'SharingGroups' => [
-                    'label' => __('Sharing Groups'),
-                    'icon' => $this->iconTable['SharingGroups'],
-                    'url' => '/sharing_groups/index',
-                ],
-            ],
             __('Synchronisation') => [
                 'Servers' => [
                     'label' => __('List Servers'),
@@ -168,9 +168,9 @@ class Sidemenu {
                     'icon' => $this->iconTable['Feeds'],
                     'url' => '/feeds/index',
                 ],
-                'Others' => [
-                    'label' => __('Others'),
-                    'icon' => 'plus-square',
+                'More' => [
+                    'label' => __('More'),
+                    'icon' => 'ellipsis-h',
                     'children' => [
                         'Communities' => [
                             'label' => __('Communities'),
