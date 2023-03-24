@@ -1,3 +1,6 @@
+/* Colors */
+/* Sizes */
+/* Effect and transition */
 :root {
   --bs-blue: #1ba2f6;
   --bs-indigo: #6610f2;
@@ -9,6 +12,7 @@
   --bs-green: #3cf281;
   --bs-teal: #3f81a2;
   --bs-cyan: #32fbe2;
+  --bs-black: #000;
   --bs-white: #fff;
   --bs-gray: #6c757d;
   --bs-gray-dark: #343a40;
@@ -40,16 +44,30 @@
   --bs-white-rgb: 255, 255, 255;
   --bs-black-rgb: 0, 0, 0;
   --bs-body-color-rgb: 50, 251, 226;
-  --bs-body-bg-rgb: 26, 9, 51;
+  --bs-body-bg-rgb: 249, 250, 251;
   --bs-font-sans-serif: Lato, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   --bs-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --bs-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
   --bs-body-font-family: var(--bs-font-sans-serif);
-  --bs-body-font-size: 1rem;
+  --bs-body-font-size: 0.875rem;
   --bs-body-font-weight: 400;
-  --bs-body-line-height: 1.5;
+  --bs-body-line-height: 1.25;
   --bs-body-color: #32fbe2;
-  --bs-body-bg: #1a0933;
+  --bs-body-bg: #f9fafb;
+  --bs-border-width: 0;
+  --bs-border-style: solid;
+  --bs-border-color: #dee2e6;
+  --bs-border-color-translucent: rgba(0, 0, 0, 0.175);
+  --bs-border-radius: 0.15rem;
+  --bs-border-radius-sm: 0.05rem;
+  --bs-border-radius-lg: 0.5rem;
+  --bs-border-radius-xl: 1rem;
+  --bs-border-radius-2xl: 2rem;
+  --bs-border-radius-pill: 50rem;
+  --bs-link-color: #32fbe2;
+  --bs-link-hover-color: #28c9b5;
+  --bs-code-color: #ea39b8;
+  --bs-highlight-bg: #fff3cd;
 }
 
 .fade {
@@ -329,28 +347,20 @@
 }
 
 .btn-outline-text {
-  color: #32fbe2;
-  border-color: #32fbe2;
-}
-.btn-outline-text:hover {
-  color: #fff;
-  background-color: #32fbe2;
-  border-color: #32fbe2;
-}
-.btn-check:focus + .btn-outline-text, .btn-outline-text:focus {
-  box-shadow: 0 0 0 0.25rem rgba(50, 251, 226, 0.5);
-}
-.btn-check:checked + .btn-outline-text, .btn-check:active + .btn-outline-text, .btn-outline-text:active, .btn-outline-text.active, .btn-outline-text.dropdown-toggle.show {
-  color: #fff;
-  background-color: #32fbe2;
-  border-color: #32fbe2;
-}
-.btn-check:checked + .btn-outline-text:focus, .btn-check:active + .btn-outline-text:focus, .btn-outline-text:active:focus, .btn-outline-text.active:focus, .btn-outline-text.dropdown-toggle.show:focus {
-  box-shadow: 0 0 0 0.25rem rgba(50, 251, 226, 0.5);
-}
-.btn-outline-text:disabled, .btn-outline-text.disabled {
-  color: #32fbe2;
-  background-color: transparent;
+  --bs-btn-color: #32fbe2;
+  --bs-btn-border-color: #32fbe2;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #32fbe2;
+  --bs-btn-hover-border-color: #32fbe2;
+  --bs-btn-focus-shadow-rgb: 50, 251, 226;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #32fbe2;
+  --bs-btn-active-border-color: #32fbe2;
+  --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  --bs-btn-disabled-color: #32fbe2;
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: #32fbe2;
+  --bs-gradient: none;
 }
 
 /* Progress Timeline */

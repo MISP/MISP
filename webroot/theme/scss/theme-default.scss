@@ -15,6 +15,7 @@ $line-height-lg: 1.5;
 $transition-collapse: height .35s cubic-bezier(0, 0.71, 0.58, 1);
 
 @import "../node_modules/bootstrap/scss/variables";
+@import "../node_modules/bootstrap/scss/maps";
 @import "../node_modules/bootstrap/scss/mixins";
 @import "../node_modules/bootstrap/scss/root";
 @import "../node_modules/bootstrap/scss/transitions";
