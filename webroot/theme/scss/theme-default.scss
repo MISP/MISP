@@ -2,18 +2,28 @@ $theme: "app-default";
 
 @import "../node_modules/bootstrap/scss/functions";
 
+/* Colors */
+$body-bg: #f9fafb;
+
+/* Sizes */
+$font-size-base: .875rem;
+$line-height-base: 1.25;
+$line-height-sm: 1.15;
+$line-height-lg: 1.5;
+
+/* Effect and transition */
 $transition-collapse: height .35s cubic-bezier(0, 0.71, 0.58, 1);
 
 @import "../node_modules/bootstrap/scss/variables";
 @import "../node_modules/bootstrap/scss/mixins";
 @import "../node_modules/bootstrap/scss/root";
 @import "../node_modules/bootstrap/scss/transitions";
+// @import "../node_modules/bootstrap/scss/tables";
 
 @import "./mixins/background";
 
 $applicationColor: #2fa1db;
 
-$body-bg: #f9fafb;
 $bodyBg: $body-bg;
 $scrollbarWidth: 3px !default;
 $scrollbarBgContainer: #ffffff00 !default;
