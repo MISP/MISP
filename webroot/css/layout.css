@@ -226,6 +226,7 @@ main.content {
 .sidebar-wrapper {
     width: 100%;
     height: 100%;
+    font-size: 0.9rem;
 }
 
 .sidebar-scroll {
@@ -308,10 +309,11 @@ ul.sidebar-elements li > a.sidebar-link {
     position: relative;
     display: block;
     padding: 0 calc((var(--sidebar-width-collapsed) - 25px) / 2);
-    line-height: 35px;
+    line-height: 2em;
     overflow: hidden;
     white-space: nowrap;
     text-decoration: none;
+    text-transform: capitalize;
 }
 
 ul.sidebar-elements li > a.sidebar-link.active::after {
@@ -342,15 +344,26 @@ ul.sidebar-elements > li > a.sidebar-link > * {
     vertical-align: middle;
 }
 
+a.sidebar-link > i.sidebar-icon .stacked-sidebar-icon {
+    width: 2em;
+    max-width: 2.5em;
+}
+
 ul.sidebar-elements li.parent .sub-menu > li > a.sidebar-link > i.sidebar-icon {
     margin-right: 8px;
+    width: 14px;
 }
 
 ul.sidebar-elements > li > a.sidebar-link > i.sidebar-icon {
     margin-right: 10px;
-    font-size: 19px;
+    font-size: 1.2em;
     min-width: 25px;
     line-height: 19px;
+}
+
+ul.sidebar-elements > li > a.sidebar-link > i.sidebar-icon .stacked-sidebar-icon {
+    min-width: 25px;
+    max-width: 2.5em;
 }
 
 .sidebar.expanded ul.sidebar-elements > li > a.sidebar-link > span.text,
@@ -363,7 +376,7 @@ ul.sidebar-elements > li > a.sidebar-link > span.text {
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.2s linear;
-    line-height: 40px;
+    line-height: 2em;
     white-space: nowrap;
 }
 
@@ -402,32 +415,32 @@ ul.sidebar-elements li.parent > a.sidebar-link:not(.collapsed)::before {
     display: none;
 }
 
-ul.sidebar-elements > li ul {
-    padding: 10px 0;
+ul.sidebar-elements > li ul.sub-menu {
+    padding: 0.5em 0;
     list-style: none;
     line-height: 20px;
 }
 
 ul.sidebar-elements > li ul li > a.sidebar-link {
-    font-size: 0.95rem;
+    font-size: 0.95em;
     padding-left: 35px;
     padding-right: 17px;
 }
 
 ul.sidebar-elements > li ul li > ul > li > a.sidebar-link {
-    font-size: 0.85rem;
+    font-size: 0.85em;
     padding-left: 50px;
     padding-right: 14px;
 }
 
 ul.sidebar-elements > li ul li > ul > li > ul > li > a.sidebar-link {
-    font-size: 0.8rem;
+    font-size: 0.8em;
     padding-left: 65px;
     padding-right: 11px;
 }
 
 ul.sidebar-elements > li ul li > ul > li > ul > li > ul > li > a.sidebar-link {
-    font-size: 0.78rem;
+    font-size: 0.78em;
     padding-left: 80px;
     padding-right: 8px;
 }
@@ -436,9 +449,8 @@ ul.sidebar-elements > li ul li > ul > li > ul > li > ul > li > a.sidebar-link {
 ul.sidebar-elements > li.category {
     white-space: nowrap;
     display: flex;
-    padding: 15px calc((var(--sidebar-width-collapsed) - 25px) / 2) 0;
+    padding: 0.25em calc((var(--sidebar-width-collapsed) - 25px) / 2) 0;
     line-height: 30px;
-    
 }
 
 .sidebar.expanded ul.sidebar-elements > li.category > span.category-label,

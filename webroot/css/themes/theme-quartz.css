@@ -668,13 +668,13 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.active {
-  background-color: #fff;
   color: #343a40;
+  background-color: #fff;
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.have-active-child {
-  background-color: #fff;
   color: #343a40;
+  background-color: #fff;
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.have-active-child::after {
@@ -682,23 +682,24 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link:hover {
-  background-color: rgba(255, 255, 255, 0.46);
-  color: #343a40;
+  color: rgba(255, 255, 255, 0.46);
+  background-color: #e9e9e8;
 }
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child,
 .sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child {
-  background-color: unset;
+  color: unset;
 }
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child:hover,
 .sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child:hover {
-  background-color: rgba(255, 255, 255, 0.46);
+  color: rgba(255, 255, 255, 0.46);
+  background-color: #e9e9e8;
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.active:hover {
-  background-color: rgba(255, 255, 255, 0.58);
-  color: #343a40;
+  color: rgba(255, 255, 255, 0.58);
+  background-color: #dee2e6;
 }
 
 ul.sidebar-elements li > a.sidebar-link.active::after {
@@ -710,8 +711,12 @@ ul.sidebar-elements li > a.sidebar-link.active::after {
 }
 
 .sidebar ul.sidebar-elements li ul.sub-menu {
-  background-color: rgba(211, 211, 211, 0.43);
+  background-color: white;
   box-shadow: inset #11111a1a 0px 0px 0px 1px;
+}
+
+.sidebar ul.sidebar-elements li ul.sub-menu li > a.sidebar-link {
+  color: rgba(211, 211, 211, 0.43);
 }
 
 /* Action bar */

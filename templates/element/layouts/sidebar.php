@@ -4,7 +4,7 @@
 <div class="sidebar-wrapper d-flex flex-column">
     <div class="sidebar-scroll">
         <div class="sidebar-content">
-            <ul class="sidebar-elements">
+            <ul id="sidebar-elements" class="sidebar-elements">
                 <?php foreach ($menu as $category => $categorized) : ?>
                     <?php if ($category == '__bookmarks') : ?>
                         <?php if ($bookmarkIncluded) : ?>

@@ -32,9 +32,9 @@ class Sidemenu {
                     'icon' => $this->iconTable['Dashboard'],
                     'url' => '/dashboards',
                 ],
-                'More' => [
-                    'label' => __('More'),
-                    'icon' => 'ellipsis-h',
+                'ListExport' => [
+                    'label' => __('List & Export'),
+                    'icon' => 'list-alt',
                     'children' => [
                         'Attributes' => [
                             'label' => __('List Attributes'),
@@ -47,7 +47,7 @@ class Sidemenu {
                             'url' => '/shadow_attributes/index/all:0',
                         ],
                         'Delegation' => [
-                            'label' => __('View Delegation'),
+                            'label' => __('View Delegations'),
                             'icon' => $this->iconTable['Events'],
                             'url' => 'event_delegations/index/context:pending',
                         ],
@@ -87,9 +87,9 @@ class Sidemenu {
                     'icon' => $this->iconTable['Galaxies'],
                     'url' => '/galaxies/index',
                 ],
-                'More' => [
-                    'label' => __('More'),
-                    'icon' => 'ellipsis-h',
+                'Templates' => [
+                    'label' => __('Templates'),
+                    'icon' => 'ruler',
                     'children' => [
                         'ObjectTemplates' => [
                             'label' => __('Object Templates'),
@@ -168,9 +168,9 @@ class Sidemenu {
                     'icon' => $this->iconTable['Feeds'],
                     'url' => '/feeds/index',
                 ],
-                'More' => [
-                    'label' => __('More'),
-                    'icon' => 'ellipsis-h',
+                'Communities' => [
+                    'label' => __('Communities'),
+                    'icon' => 'handshake',
                     'children' => [
                         'Communities' => [
                             'label' => __('Communities'),
@@ -245,7 +245,7 @@ class Sidemenu {
                 ],
                 'RestClient' => [
                     'label' => __('REST Client'),
-                    'icon' => 'envelope-square',
+                    'icon' => $this->iconTable['RestClient'],
                     'url' => '/api/rest',
                 ],
                 'Statistics' => [

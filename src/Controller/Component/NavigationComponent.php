@@ -53,22 +53,25 @@ class NavigationComponent extends Component
             ['icon' => 'exclamation-triangle', 'class' => 'fa-inverse', 'style' => 'top: 0.2em;'],
         ]],
         'Workflows' => 'sitemap',
-        'CorrelationsExclusions' => 'ban',
+        'CorrelationsExclusions' => ['stacked' => [
+            ['icon' => 'ban'],
+            ['icon' => 'project-diagram', 'class' => '', 'style' => ''],
+        ]],
         'DecayingModels' => 'hourglass',
         'ImportRegexp' => 'file-import',
         'SignatureAllowedlists' => 'fingerprint',
         'NoticeLists' => 'list-alt',
         'Correlations' => 'project-diagram',
         'Servers' => 'server',
-        'Communities' => 'address-book',
+        'Communities' => 'user-friends',
         'Cerebrate' => ['html' => '<img class="image-sidebar-icon" style="" src="/img/cerebrate-icon-purple.png"></img>'],
         'TaxiiServers' => ['html' => '<img class="image-sidebar-icon" style="" src="/img/taxii-icon.png"></img>'],
         'ServerSettings' => 'cogs',
         'Jobs' => 'robot',
         'BlockRules' => 'ban',
         'Logs' => 'history',
-        'AccessLogs' => 'history',
-        'ApplicationLogs' => 'history',
+        'AccessLogs' => 'door-open',
+        'ApplicationLogs' => 'list-ul',
         'OrganisationsRules' => ['stacked' => [
             ['icon' => 'ban'],
             ['icon' => 'building']
@@ -85,6 +88,10 @@ class NavigationComponent extends Component
         'API' => 'code',
         'UserSettings' => 'user-cog',
         'Inbox' => 'inbox',
+        'RestClient' =>  ['stacked' => [
+            ['icon' => 'cloud'],
+            ['icon' => 'cog', 'class' => 'fa-inverse']
+        ]],
     ];
 
     public function initialize(array $config): void

@@ -668,13 +668,13 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.active {
-  background-color: #595f64;
   color: #fff;
+  background-color: #595f64;
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.have-active-child {
-  background-color: #595f64;
   color: #fff;
+  background-color: #595f64;
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.have-active-child::after {
@@ -682,23 +682,24 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link:hover {
-  background-color: #60676c;
-  color: #fff;
+  color: #60676c;
+  background-color: #ebebeb;
 }
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child,
 .sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child {
-  background-color: unset;
+  color: unset;
 }
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child:hover,
 .sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child:hover {
-  background-color: #60676c;
+  color: #60676c;
+  background-color: #ebebeb;
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.active:hover {
-  background-color: #50565a;
-  color: #fff;
+  color: #008462;
+  background-color: #dee2e6;
 }
 
 ul.sidebar-elements li > a.sidebar-link.active::after {
@@ -710,8 +711,12 @@ ul.sidebar-elements li > a.sidebar-link.active::after {
 }
 
 .sidebar ul.sidebar-elements li ul.sub-menu {
-  background-color: #3e4346;
+  background-color: #acafb2;
   box-shadow: inset #11111a1a 0px 0px 0px 1px;
+}
+
+.sidebar ul.sidebar-elements li ul.sub-menu li > a.sidebar-link {
+  color: #3e4346;
 }
 
 /* Action bar */
