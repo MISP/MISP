@@ -52,7 +52,6 @@ foreach ($statistics['usage'] as $scope => $graphData) {
         $pieChart
     );
     $statPie = $this->Bootstrap->card([
-        'bodyVariant' => 'secondary',
         'bodyHTML' => $panelHtml,
         'bodyClass' => 'py-1 px-2',
         'class' => ['shadow-sm', 'h-100']

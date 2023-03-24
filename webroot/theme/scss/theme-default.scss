@@ -13,7 +13,8 @@ $transition-collapse: height .35s cubic-bezier(0, 0.71, 0.58, 1);
 
 $applicationColor: #2fa1db;
 
-$bodyBg: shade-color($body-bg, 2%) !default;
+$body-bg: #f9fafb;
+$bodyBg: $body-bg;
 $scrollbarWidth: 3px !default;
 $scrollbarBgContainer: #ffffff00 !default;
 $scrollbarBg: rgba(shade-color($bodyBg, 40%), 0.6) !default;

@@ -568,7 +568,7 @@
 
 /* Body */
 body {
-  background-color: #666bbf;
+  background-color: #f9fafb;
 }
 
 .panel {
@@ -644,11 +644,11 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 
 .sidebar-scroll::-webkit-scrollbar-thumb {
   border-radius: 5px;
-  background: rgba(61, 64, 115, 0.6);
+  background: rgba(149, 150, 151, 0.6);
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(51, 54, 96, 0.6);
+  background: rgba(125, 125, 126, 0.6);
 }
 
 .sidebar ~ main.content:after {
@@ -722,7 +722,7 @@ ul.sidebar-elements li > a.sidebar-link.active::after {
 /* Action bar */
 .action-bar {
   box-shadow: 0 0.15rem 0.3rem #00000026;
-  background-color: #686dc3;
+  background-color: #f9fafb;
 }
 
 .btn {

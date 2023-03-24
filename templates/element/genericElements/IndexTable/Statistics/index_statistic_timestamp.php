@@ -87,7 +87,6 @@ $cardContent = sprintf(
 );
 
 $card = $this->Bootstrap->card([
-    'bodyVariant' => 'secondary',
     'bodyHTML' => $cardContent,
     'bodyClass' => 'py-1 px-2',
     'class' => ['shadow-sm', 'h-100']
