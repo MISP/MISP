@@ -41,7 +41,7 @@ foreach ($statistics['usage'] as $scope => $graphData) {
             'nodeType' => 'a',
             'onclick' => '',
             'class' => ['btn-statistics-pie-configurator-' . $seedPiechart],
-            'params' => [
+            'attrs' => [
                 'data-bs-toggle' => 'popover',
             ]
         ])
@@ -52,7 +52,7 @@ foreach ($statistics['usage'] as $scope => $graphData) {
         $pieChart
     );
     $statPie = $this->Bootstrap->card([
-        'variant' => 'secondary',
+        'bodyVariant' => 'secondary',
         'bodyHTML' => $panelHtml,
         'bodyClass' => 'py-1 px-2',
         'class' => ['shadow-sm', 'h-100']

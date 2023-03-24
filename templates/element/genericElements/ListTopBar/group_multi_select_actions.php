@@ -7,10 +7,10 @@
                 'text' => $child['text'],
                 'outline' => !empty($child['outline']),
                 'icon' => $child['icon'] ?? null,
-                'params' => array_merge([
+                'onclick' => 'multiActionClickHandler(this)',
+                'attrs' => array_merge([
                     'data-onclick-function' => $child['onclick'] ?? '',
                     'data-table-random-value' => $tableRandomValue,
-                    'onclick' => 'multiActionClickHandler(this)'
                 ], $child['params'] ?? [])
             ]);
         }

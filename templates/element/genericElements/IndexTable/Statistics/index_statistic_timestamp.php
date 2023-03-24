@@ -38,7 +38,7 @@ $panelControlHtml = sprintf(
         'nodeType' => 'a',
         'onclick' => '',
         'class' => ['btn-statistics-days-configurator-' . $seed,],
-        'params' => [
+        'attrs' => [
             'data-bs-toggle' => 'popover',
         ]
     ])
@@ -46,13 +46,13 @@ $panelControlHtml = sprintf(
 $createdNumber = empty($timeline['created']) ? '' : sprintf(
     '<div class="lh-1 d-flex align-items-center" title="%s">%s<span class="ms-1"> %s</span></div>',
     __('{0} Created', $timeline['created']['variation']),
-    $this->Bootstrap->icon('plus', ['class' => ['fa-fw'], 'params' => ['style' => 'font-size: 60%;']]),
+    $this->Bootstrap->icon('plus', ['class' => ['fa-fw'], 'attrs' => ['style' => 'font-size: 60%;']]),
     $timeline['created']['variation']
 );
 $modifiedNumber = empty($timeline['modified']) ? '' : sprintf(
     '<div class="lh-1 d-flex align-items-center" title="%s">%s<span class="ms-1"> %s</span></div>',
     __('{0} Modified', $timeline['modified']['variation']),
-    $this->Bootstrap->icon('edit', ['class' => ['fa-fw'], 'params' => ['style' => 'font-size: 60%;']]),
+    $this->Bootstrap->icon('edit', ['class' => ['fa-fw'], 'attrs' => ['style' => 'font-size: 60%;']]),
     $timeline['modified']['variation']
 );
 $activityNumbers = sprintf('<div class="my-1 fs-5">%s%s</div>', $createdNumber, $modifiedNumber);
@@ -87,7 +87,7 @@ $cardContent = sprintf(
 );
 
 $card = $this->Bootstrap->card([
-    'variant' => 'secondary',
+    'bodyVariant' => 'secondary',
     'bodyHTML' => $cardContent,
     'bodyClass' => 'py-1 px-2',
     'class' => ['shadow-sm', 'h-100']

@@ -45,6 +45,13 @@ use Cake\Routing\Router;
                 if (!empty($actionEntry['badge'])) {
                     $badgeNumber += 1;
                 }
+                if (!empty($actionEntry['isPOST'])) {
+                    $onclickFunction = sprintf('UI.overlayUntilResolve(this, UI.submissionModalAutoGuess(\'%s\'))', h(Router::url($actionEntry['url'])));
+                } else if (!empty($actionEntry['isRedirect'])) {
+                    $onclickFunction = sprintf('window.location.replace(\'%s\');', h(Router::url($actionEntry['url'])));
+                } else {
+                    $onclickFunction = sprintf('UI.overlayUntilResolve(this, UI.modalFromUrl(\'%s\'))', h(Router::url($actionEntry['url'])));
+                }
                 $buttonBadge = !empty($actionEntry['badge']) ? $this->Bootstrap->badge($actionEntry['badge']) : '';
                 echo $this->Bootstrap->button([
                     'text' => h($actionEntry['label']),
@@ -52,33 +59,10 @@ use Cake\Routing\Router;
                     'variant' => $actionEntry['variant'] ?? 'primary',
                     'size' => 'sm',
                     'class' => ['text-nowrap'],
-                    'onclick' => sprintf('UI.overlayUntilResolve(this, UI.submissionModalAutoGuess(\'%s\'))', h(Router::url($actionEntry['url']))),
+                    'onclick' => $onclickFunction,
                 ], $buttonBadge);
             }
             echo '</div>';
         }
     ?>
 </div>
-
-<!-- 
-<div class="breadcrumb-link-container position-absolute end-0 d-flex">
-    <div class="header-breadcrumb-children d-none d-md-flex btn-group">
-        <?= $breadcrumbLinks ?>
-        <?php if (!empty($breadcrumbAction)) : ?>
-            <a class="btn btn-primary btn-sm dropdown-toggle" href="#" role="button" id="dropdownMenuBreadcrumbAction" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <?= __('Actions') ?>
-                <?=
-                $badgeNumber == 0 ? '' : $this->Bootstrap->badge([
-                    'text' => h($badgeNumber),
-                    'variant' => 'warning',
-                    'pill' => false,
-                    'title' => __n('There is {0} action available', 'There are {0} actions available', $badgeNumber, h($badgeNumber)),
-                ])
-                ?>
-            </a>
-            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuBreadcrumbAction">
-                <?= $breadcrumbAction ?>
-            </div>
-        <?php endif; ?>
-    </div>
-</div> -->

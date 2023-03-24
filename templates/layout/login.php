@@ -27,7 +27,7 @@
 </head>
 
 <body>
-    <div class="position-absolute cerebrate-background-logo"></div>
+    <div class="position-absolute"></div>
     <?= $this->Flash->render() ?>
     <?= $this->fetch('content') ?>
     <div id="mainModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="mediumModalLabel" aria-hidden="true"></div>

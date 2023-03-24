@@ -17,30 +17,6 @@ body {
     /* background by SVGBackgrounds.com */
 }
 
-.cerebrate-background-logo {
-    background-color: var(--application-color);
-    -webkit-mask: url(/img/icon-composition/z.svg) no-repeat;
-    mask: url(/img/icon-composition/z.svg) no-repeat;
-    -webkit-mask-size: 400px 400px;
-    mask-size: 400px 400px;
-    width: 400px;
-    height: 400px;
-    opacity: 0.15;
-    -webkit-transform: rotate(100deg);
-    transform: rotate(100deg);
-    -webkit-transform-origin: center;
-    transform-origin: center;
-    left: calc(50% - 120px);
-    top: 30%;
-}
-
-.cerebrate-background-logo:hover {
-    -webkit-animation:spin 6s linear infinite;
-    animation:spin 6s linear infinite;   
-    -webkit-animation-delay: 2s;
-    animation-delay: 2s;
-}
-
 @-webkit-keyframes spin { 
     100% { -webkit-transform: rotate(460deg); } 
 }

@@ -77,7 +77,7 @@ $cardContent = sprintf(
 );
 
 echo $this->Bootstrap->card([
-    'variant' => 'secondary',
+    'bodyVariant' => 'secondary',
     'bodyHTML' => $cardContent,
     'bodyClass' => 'p-3',
     'class' => ['shadow-sm', (empty($panelNoGrow) ? 'grow-on-hover' : '')]

@@ -15,9 +15,9 @@
         ],
         [
             [
-                '_open' => true,
+                'open' => true,
                 'header' => [
-                    'title' => __('Meta fields')
+                    'text' => __('Meta fields')
                 ],
                 'body' => $metaTemplateString,
             ],

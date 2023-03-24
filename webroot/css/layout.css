@@ -19,6 +19,10 @@ body {
     margin-bottom: 1rem;
 }
 
+.top-navbar .left-navbar .navbar-brand {
+    margin-right: 0;
+}
+
 /* navbar-toggler breakpoint */
 @media (max-width: 576px) {
     body {
@@ -576,31 +580,65 @@ ul.sidebar-elements > li.category > span.category-divider > hr {
 
 .composed-app-icon-container {
     height: calc(var(--navbar-height) - 10px);
-    width: calc(var(--navbar-height) - 10px);
+    width: calc(var(--navbar-height) - 0px);
     position: relative;
     display: block;
 }
 
 .composed-app-icon-container > .app-icon {
     display: inline-block;
-    mask-image: url(/img/icon-composition/sheet-all.svg), url(/img/icon-composition/z.svg);
-    mask-position: 0 0, 2.4px calc((var(--navbar-height) - 10px) / 2);
+    mask-image: url(/img/icon-composition/sheet-all.svg),
+        url(/img/icon-composition/bubble.svg),
+        url(/img/icon-composition/bubble.svg),
+        url(/img/icon-composition/bubble.svg);
+    mask-position: 0 0, 0 0, 6px 0, 12px 0;
     mask-repeat: no-repeat;
-    mask-size: contain, cover;
-    mask-composite: source-out;
-    mask-composite: subtract;
-    -webkit-mask-image: url(/img/icon-composition/sheet-all.svg), url(/img/icon-composition/z.svg);
-    -webkit-mask-position: 0 0, 2.4px calc((var(--navbar-height) - 10px) / 2);
+    mask-size: contain, 100%, 100%, 100%;
+    mask-composite: xor;
+    -webkit-mask-image: url(/img/icon-composition/sheet-all.svg),
+        url(/img/icon-composition/bubble.svg),
+        url(/img/icon-composition/bubble.svg),
+        url(/img/icon-composition/bubble.svg);
+    -webkit-mask-position: 0 0, 0 0, 6px 0, 12px 0;
     -webkit-mask-repeat: no-repeat;
-    -webkit-mask-size: contain, cover;
-    -webkit-mask-composite: source-out;
-    -webkit-mask-composite: subtract;
-    transition-timing-function: ease-out;
-    transition-duration: 0.2s;
-    transition-property: -webkit-mask-position;
+    -webkit-mask-size: contain, 100%, 100%, 100%;
+    -webkit-mask-composite: xor;
 }
 
 .composed-app-icon-container > .app-icon:hover {
-    mask-position: 0 0, 2.4px calc(0.75 * (var(--navbar-height) - 10px) / 2);
-    -webkit-mask-position: 0 0, 2.4px calc(0.75 * (var(--navbar-height) - 10px) / 2);
+    animation: MoveUpDown 1.5s linear infinite;
+    background: linear-gradient(0deg, #fff 0%, #fff 54%, #2fa1db 54%);
+}
+
+@keyframes MoveUpDown {
+    0%, 100% {
+        mask-size: contain, 100%, 100%, 100%;
+        -webkit-mask-size: contain, 100%, 100%, 100%;
+        mask-position: 0 0, 0 0, 6px 0, 12px 0;
+        -webkit-mask-position: 0 0, 0 0, 6px 0, 12px 0;
+    }
+    5% {
+        mask-size: contain, 200%, 100%, 100%;
+        -webkit-mask-size: contain, 200%, 100%, 100%;
+        mask-position: 0 0, -30px -8px, 6px 0, 12px 0;
+        -webkit-mask-position: 0 0, -30px -8px, 6px 0, 12px 0;
+    }
+    15% {
+        mask-size: contain, 100%, 200%, 100%;
+        -webkit-mask-size: contain, 100%, 200%, 100%;
+        mask-position: 0 0, 0 0, -24px -8px, 12px 0;
+        -webkit-mask-position: 0 0, 0 0, -24px -8px, 12px 0;
+    }
+    25% {
+        mask-size: contain, 100%, 100%, 200%;
+        -webkit-mask-size: contain, 100%, 100%, 200%;
+        mask-position: 0 0, 0 0, 6px 0, -18.5px -8px;
+        -webkit-mask-position: 0 0, 0 0, 6px 0, -18.5px -8px;
+    }
+    35% {
+        mask-size: contain, 100%, 100%, 100%;
+        -webkit-mask-size: contain, 100%, 100%, 100%;
+        mask-position: 0 0, 0 0, 6px 0, 12px 0;
+        -webkit-mask-position: 0 0, 0 0, 6px 0, 12px 0;
+    }
 }

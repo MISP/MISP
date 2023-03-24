@@ -26,7 +26,7 @@ if (!empty($meta_template)) {
     }
 }
 
-$availableMetaColumnsHtml = $this->Bootstrap->genNode('form', [
+$availableMetaColumnsHtml = $this->Bootstrap->node('form', [
     'class' => ['visible-meta-column-form', 'px-2 py-1'],
 ], $availableMetaColumnsHtml);
 echo $availableMetaColumnsHtml;

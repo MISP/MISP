@@ -19,12 +19,12 @@ $filteringForm = $this->Bootstrap->table(
     [
         'fields' => [
             [
-                'key' => 'fieldname', 'label' => __('Field'), 'formatter' => function ($field, $row) {
+                'path' => 'fieldname', 'label' => __('Field'), 'formatter' => function ($field, $row) {
                     return sprintf('<span class="fieldName" data-fieldname="%s">%s</span>', h($field), h($field));
                 }
             ],
             [
-                'key' => 'operator', 'label' => __('Operator'), 'formatter' => function ($field, $row) use ($typeMap) {
+                'path' => 'operator', 'label' => __('Operator'), 'formatter' => function ($field, $row) use ($typeMap) {
                     $fieldName = $row['fieldname'];
                     $type = $typeMap[$fieldName] ?? 'text';
                     $options = [
@@ -41,25 +41,34 @@ $filteringForm = $this->Bootstrap->table(
                 }
             ],
             [
-                'key' => 'value',
+                'path' => 'value',
                 'labelHtml' => sprintf(
                     '%s %s',
                     __('Value'),
                     sprintf('<sup class="fa fa-info" title="%s"><sup>', __('Supports strict matches and LIKE matches with the `%` character.&#10;Example: `%.com`'))
                 ),
-                'formatter' => function ($field, $row) use ($typeMap, $formTypeMap) {
+                'formatter' => function ($field, $row) use ($typeMap, $formTypeMap, $filtersConfig) {
                     $fieldName = $row['fieldname'];
                     $formType = $formTypeMap[$typeMap[$fieldName]] ?? 'text';
+                    $fieldData = [
+                        'field' => $fieldName,
+                        'type' => $formType,
+                        'label' => '',
+                        'class' => 'fieldValue form-control-sm'
+                    ];
+                    if (!empty($filtersConfig[$fieldName]['multiple'])) {
+                        $fieldData['type'] = 'dropdown';
+                        $fieldData['multiple'] = true;
+                        $fieldData['select2'] = [
+                            'tags' => true,
+                            'tokenSeparators' => [',', ' '],
+                        ];
+                    }
                     $this->Form->setTemplates([
                         'formGroup' => '<div class="col-sm-10">{{input}}</div>',
                     ]);
                     return $this->element('genericElements/Form/fieldScaffold', [
-                        'fieldData' => [
-                            'field' => $fieldName,
-                            'type' => $formType,
-                            'label' => '',
-                            'class' => 'fieldValue form-control-sm'
-                        ],
+                        'fieldData' => $fieldData,
                         'params' => []
                     ]);
                 }
@@ -71,23 +80,23 @@ $filteringForm = $this->Bootstrap->table(
 
 $filteringMetafields = '';
 if ($metaFieldsEnabled) {
-    $helpText = $this->Bootstrap->genNode('sup', [
+    $helpText = $this->Bootstrap->node('sup', [
         'class' => ['ms-1 fa fa-info'],
         'title' => __('Include help'),
         'data-bs-toggle' => 'tooltip',
     ]);
-    $filteringMetafields = $this->Bootstrap->genNode('h5', [], __('Meta Fields') . $helpText);
+    $filteringMetafields = $this->Bootstrap->node('h5', [], __('Meta Fields') . $helpText);
     $filteringMetafields .= $this->element('genericElements/IndexTable/metafield_filtering', $metaTemplates);
 }
 
 $filteringTags = '';
 if ($taggingEnabled) {
-    $helpText = $this->Bootstrap->genNode('sup', [
+    $helpText = $this->Bootstrap->node('sup', [
         'class' => ['ms-1 fa fa-info'],
         'title' => __('Supports negation matches (with the `!` character) and LIKE matches (with the `%` character).&#10;Example: `!exportable`, `%able`'),
         'data-bs-toggle' => 'tooltip',
     ]);
-    $filteringTags = $this->Bootstrap->genNode('h5', [
+    $filteringTags = $this->Bootstrap->node('h5', [
         'class' => 'mt-2'
     ], __('Tags') . $helpText);
     $filteringTags .= $this->Tag->tags([], [
@@ -104,7 +113,9 @@ echo $this->Bootstrap->modal([
     'size' => !empty($metaFieldsEnabled) ? 'xl' : 'lg',
     'type' => 'confirm',
     'bodyHtml' => $modalBody,
-    'confirmText' => __('Filter'),
+    'confirmButton' => [
+        'text' => __('Filter'),
+    ],
     'confirmFunction' => 'filterIndex'
 ]);
 ?>
@@ -167,6 +178,36 @@ echo $this->Bootstrap->modal([
             }
             setFilteringValues($filteringTable, field, value, operator)
         }
+        if (tags.length > 0) {
+            setFilteringTags($filteringTable, tags)
+        }
+    }
+
+    function setFilteringValues($filteringTable, field, value, operator) {
+        $row = $filteringTable.find('td > span.fieldName').filter(function() {
+            return $(this).data('fieldname') == field
+        }).closest('tr')
+        $row.find('.fieldOperator').val(operator)
+        const $formElement = $row.find('.fieldValue');
+        if ($formElement.attr('type') === 'datetime-local') {
+            $formElement.val(moment(value).format('yyyy-MM-DDThh:mm:ss'))
+        } else if ($formElement.is('select') && Array.isArray(value)) {
+            let newOptions = [];
+            value.forEach(aValue => {
+                const existingOption = $formElement.find('option').filter(function() {
+                    return $(this).val() === aValue
+                })
+                if (existingOption.length == 0) {
+                    newOptions.push(new Option(aValue, aValue, true, true))
+                }
+            })
+            $formElement.append(newOptions).trigger('change');
+        } else {
+            $formElement.val(value)
+        }
+    }
+
+    function setFilteringTags($filteringTable, tags) {
         $select = $filteringTable.closest('.modal-body').find('select.select2-input')
         let passedTags = []
         tags.forEach(tagname => {
@@ -181,19 +222,6 @@ echo $this->Bootstrap->modal([
             .append(passedTags)
             .val(tags)
             .trigger('change')
-    }
-
-    function setFilteringValues($filteringTable, field, value, operator) {
-        $row = $filteringTable.find('td > span.fieldName').filter(function() {
-            return $(this).data('fieldname') == field
-        }).closest('tr')
-        $row.find('.fieldOperator').val(operator)
-        const $formElement = $row.find('.fieldValue');
-        if ($formElement.attr('type') === 'datetime-local') {
-            $formElement.val(moment(value).format('yyyy-MM-DDThh:mm:ss'))
-        } else {
-            $formElement.val(value)
-        }
     }
 
     function getDataFromRow($row) {

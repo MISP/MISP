@@ -1,28 +1,38 @@
-<div class="modal-dialog" role="document">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title"><?= h($title) ?></h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-            </button>
-        </div>
-        <div class="modal-body">
-            <p><?= h($question) ?></p>
-        </div>
-        <div class="modal-footer">
-            <?= $this->Form->postLink(
-                h($actionName),
-                $path,
-                ['class' => 'btn btn-primary button-execute', 'id' => 'submitButton']
-                )
-            ?>
-            <button type="button" class="btn btn-secondary cancel-button" data-bs-dismiss="modal"><?= __('Cancel') ?></button>
-        </div>
-    </div>
-</div>
-<script type="text/javascript">
-    $(document).keydown(function(e) {
-        if(e.which === 13 && e.ctrlKey) {
-            $('.button-execute').click();
-        }
-    });
-</script>
+<?php
+/**
+ * Supported parameters:
+ * - title: The title of the modal
+ * - question: The content of the modal's body.
+ * - actionName: The text of the confirm button. Basically what the confirmation will do
+ * - modalOptions: Additional options to be passed to the modal
+ */
+
+$form = $this->element('genericElements/Form/genericForm', [
+    'entity' => null,
+    'ajax' => false,
+    'raw' => true,
+    'data' => [
+        'fields' => [
+        ],
+        'submit' => [
+            'action' => $this->request->getParam('action')
+        ]
+    ]
+]);
+$formHTML = sprintf('<div class="d-none">%s</div>', $form);
+$bodyMessage = h($question ?? '');
+$bodyHTML = sprintf('%s%s', $formHTML, $bodyMessage);
+
+$defaultOptions = [
+    'size' => 'lg',
+    'title' => isset($title) ? h($title) : __('Confirm'),
+    'type' => 'confirm',
+    'confirmButton' => [
+        'text' => !empty($actionName) ? h($actionName) : __('Confirm'),
+        'variant' => 'primary',
+    ],
+];
+$modalOptions = array_merge($defaultOptions, $modalOptions ?? []);
+$modalOptions['bodyHtml'] = $bodyHTML;
+
+echo $this->Bootstrap->modal($modalOptions);

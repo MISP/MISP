@@ -189,3 +189,21 @@ function mergeDeep(target, ...sources) {
 
     return mergeDeep(target, ...sources);
 }
+
+function download(filename, data, type='application/json') {
+    const blob = new Blob([data], {type: type})
+    const a = window.document.createElement('a')
+    const objectURL = URL.createObjectURL(blob)
+    a.href = objectURL
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(objectURL)
+}
+
+function sanitize(unsafeText) {
+    const decoder = $('<div>')
+    decoder.text(unsafeText)
+    return decoder.html()
+}

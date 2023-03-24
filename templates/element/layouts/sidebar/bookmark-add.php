@@ -6,7 +6,5 @@ echo $this->Bootstrap->button([
     'variant' => 'primary',
     'size' => 'sm',
     'class' => 'mb-1',
-    'params' => [
-        'id' => 'btn-add-bookmark',
-    ]
+    'id' => 'btn-add-bookmark',
 ]);

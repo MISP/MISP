@@ -8,6 +8,15 @@ class FormFieldMassageHelper extends Helper
 {
     public function prepareFormElement(\Cake\View\Helper\FormHelper $form, array $controlParams, array $fieldData): string
     {
+        if (!empty($fieldData['tooltip'])) {
+            $form->setTemplates([
+                'label' => '{{text}}{{tooltip}}',
+            ]);
+            $controlParams['templateVars'] = array_merge(
+                $controlParams['templateVars'] ?? [],
+                ['tooltip' => $fieldData['tooltip'],]
+            );
+        }
         if (!empty($fieldData['stateDependence'])) {
             $controlParams['data-dependence-source'] = h($fieldData['stateDependence']['source']);
             $controlParams['data-dependence-option'] = h($fieldData['stateDependence']['option']);
