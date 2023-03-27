@@ -25,7 +25,7 @@ use Cake\Routing\Router;
                 $buttonBadge = !empty($actionEntry['badge']) ? $this->Bootstrap->badge($actionEntry['badge']) : '';
                 echo $this->Bootstrap->button([
                     'text' => h($actionEntry['label']),
-                    'icon' => h($actionEntry['icon']),
+                    'icon' => h($actionEntry['icon'] ?? false),
                     'variant' => $actionEntry['variant'] ?? 'primary',
                     'class' => ['text-nowrap'],
                     'onclick' => $onclickFunction,
@@ -58,8 +58,9 @@ use Cake\Routing\Router;
                 }
                 echo $this->Bootstrap->button([
                     'nodeType' => 'a',
-                    'text' => h($linkEntry['label']),
-                    'icon' => h($linkEntry['icon']),
+                    'text' => $linkEntry['label'],
+                    'icon' => $linkEntry['icon'],
+                    'badge' => $linkEntry['badge'] ?? false,
                     'variant' => 'link',
                     'outline' => $active,
                     'class' => ['text-nowrap', 'text-decoration-none', 'btn-link-hover-shadow'],
