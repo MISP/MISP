@@ -207,4 +207,8 @@ $toast-color-level:                 70% !default;
     box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
 }
 
+.btn.btn-link.btn-link-hover-shadow:hover {
+    box-shadow: 0 0.1rem 0.15rem #00000038;
+}
+
 @import '../../../scss/custom.scss';

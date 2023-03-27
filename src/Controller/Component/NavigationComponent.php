@@ -21,22 +21,6 @@ class NavigationComponent extends Component
     public $breadcrumb = null;
     public $fullBreadcrumb = null;
     public $iconToTableMapping = [
-        // 'Organisations' => 'building',
-        // 'EncryptionKeys' => 'key',
-        // 'SharingGroups' => 'user-friends',
-        // 'Connectivity' => 'network-wired',
-        // 'Roles' => 'id-badge',
-        // 'Users' => 'users',
-        // 'UserSettings' => 'user-cog',
-        // 'Inbox' => 'inbox',
-        // 'Instance' => 'server',
-        // 'Tags' => 'tags',
-        // 'API' => 'code',
-        // 'Feeds' => 'rss',
-        // 'Events' => 'project-diagram',
-        // 'Context' => 'book-reader',
-        // 'Insights' => 'lightbulb',
-
         'Events' => 'envelope-open-text',
         'Attributes' => 'cube',
         'PeriodicReport' => 'newspaper',
@@ -62,7 +46,7 @@ class NavigationComponent extends Component
         'SignatureAllowedlists' => 'fingerprint',
         'NoticeLists' => 'list-alt',
         'Correlations' => 'project-diagram',
-        'Servers' => 'server',
+        'Servers' => 'network-wired',
         'Communities' => 'user-friends',
         'Cerebrate' => ['html' => '<img class="image-sidebar-icon" style="" src="/img/cerebrate-icon-purple.png"></img>'],
         'TaxiiServers' => ['html' => '<img class="image-sidebar-icon" style="" src="/img/taxii-icon.png"></img>'],
@@ -308,6 +292,7 @@ class BreadcrumbFactory
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'textGetter');
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'badge');
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'variant');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'is-go-to');
         return $routeConfig;
     }
 
@@ -345,8 +330,8 @@ class BreadcrumbFactory
         $this->addLink($controller, 'edit', $controller, 'view');
         $this->addSelfLink($controller, 'edit');
 
-        $this->addAction($controller, 'index', $controller, 'add');
-        $this->addAction($controller, 'view', $controller, 'add');
+        // $this->addAction($controller, 'index', $controller, 'add');
+        // $this->addAction($controller, 'view', $controller, 'add');
         $this->addAction($controller, 'view', $controller, 'delete');
         $this->addAction($controller, 'edit', $controller, 'add');
         $this->addAction($controller, 'edit', $controller, 'delete');

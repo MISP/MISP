@@ -8,6 +8,12 @@ class UsersNavigation extends BaseNavigation
 {
     public function addRoutes()
     {
+        $this->bcf->addRoute('Users', 'registrations', [
+            'label' => __('Pending Registration'),
+            'url' => '/users/registrations',
+            'icon' => 'user-clock',
+            // 'is-go-to' => true,
+        ]);
         $this->bcf->addRoute('Users', 'settings', [
             'label' => __('User settings'),
             'url' => '/users/settings/',
@@ -103,5 +109,7 @@ class UsersNavigation extends BaseNavigation
         $this->bcf->addSelfLink('Users', 'settings', [
             'label' => __('Account settings')
         ]);
+
+        $this->bcf->addLink('Users', 'index', 'Users', 'registrations');
     }
 }

@@ -35,8 +35,14 @@ use Cake\Routing\Router;
         }
 
         if (!empty($links)) {
+            $goToLinks = [];
             echo '<div class="ms-auto">';
+            echo '<div>';
             foreach ($links as $i => $linkEntry) {
+                if (!empty($linkEntry['is-go-to'])) {
+                    $goToLinks[] = $linkEntry;
+                    continue;
+                }
                 if (empty($linkEntry['route_path'])) {
                     $active = false;
                 } else {
@@ -53,12 +59,42 @@ use Cake\Routing\Router;
                 echo $this->Bootstrap->button([
                     'nodeType' => 'a',
                     'text' => h($linkEntry['label']),
+                    'icon' => h($linkEntry['icon']),
                     'variant' => 'link',
                     'outline' => $active,
-                    'class' => ['text-nowrap'],
+                    'class' => ['text-nowrap', 'text-decoration-none', 'btn-link-hover-shadow'],
                     'attrs' => [
                         'href' => $url,
                     ],
+                ]);
+            }
+            echo '</div>';
+
+            if (!empty($goToLinks)) {
+                $jumpToButtons = array_map(function($link) {
+                    $url = Router::url($link['url']);
+                    return [
+                        'nodeType' => 'a',
+                        'text' => h($link['label']),
+                        'variant' => 'link',
+                        'icon' => h($link['icon']),
+                        'class' => ['text-nowrap'],
+                        'attrs' => [
+                            'href' => h($url),
+                        ],
+                    ];
+                }, $goToLinks);
+                echo $this->Bootstrap->dropdownMenu([
+                    'dropdown-class' => '',
+                    'alignment' => 'end',
+                    'direction' => 'down',
+                    'button' => [
+                        'text' => 'Go To',
+                        'variant' => 'secondary',
+                    ],
+                    'submenu_direction' => 'end',
+                    'attrs' => [],
+                    'menu' => $jumpToButtons,
                 ]);
             }
             echo '</div>';
