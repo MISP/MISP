@@ -412,6 +412,23 @@ class BreadcrumbFactory
         $this->endpoints[$sourceController][$sourceAction]['actions'] = $links;
     }
 
+    public function addCustomAction(string $sourceController, string $sourceAction, string $targetUrl, string $label, $overrides = [])
+    {
+        $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        if (!is_array($overrides)) {
+            throw new \Exception(sprintf("Override closure for custom action %s:%s must return an array", $sourceController, $sourceAction), 1);
+        }
+        $actionConfig = [
+            'url' => $targetUrl,
+            'label' => $label,
+            'route_path' => 'foo:bar'
+        ];
+        $actionConfig = array_merge($actionConfig, $overrides);
+        $links = array_merge($routeSourceConfig['actions'] ?? [], [$actionConfig]);
+        $this->endpoints[$sourceController][$sourceAction]['actions'] = $links;
+    }
+
     public function removeLink(string $sourceController, string $sourceAction, string $targetController, string $targetAction)
     {
         $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
