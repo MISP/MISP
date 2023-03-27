@@ -40,6 +40,7 @@ use App\View\Helper\BootstrapHelper;
  *         [
  *             'text' => __('Eye'),
  *             'icon' => 'eye-slash',
+ *             'variant' => 'primary',
  *             'keepOpen' => true,
  *             'menu' => [
  *                 ['header' => true, 'text' => 'nested menu'],
@@ -184,8 +185,15 @@ class BootstrapDropdownMenu extends BootstrapGeneric
             }
             $classes = array_merge($classes, $entry['class']);
         }
+        if (!empty($entry['variant'])) {
+            if (empty($entry['outline'])) {
+                $classes[] = "dropdown-item-{$entry['variant']}";
+            } else {
+                $classes[] = "dropdown-item-outline-{$entry['variant']}";
+            }
+        }
         $params = $entry['attrs'] ?? [];
-        $params['href'] = '#';
+        $params['href'] = !empty($params['href']) ? $params['href'] : '#';
 
         if (!empty($entry['menu'])) {
             $classes[] = 'dropdown-toggle';
