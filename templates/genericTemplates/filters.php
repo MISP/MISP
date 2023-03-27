@@ -11,7 +11,7 @@ $formTypeMap = $this->Form->getConfig('typeMap');
 
 $filteringForm = $this->Bootstrap->table(
     [
-        'small' => true,
+        'small' => false,
         'striped' => false,
         'hover' => false,
         'tableClass' => ['indexFilteringTable'],
