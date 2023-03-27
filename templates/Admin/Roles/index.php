@@ -114,7 +114,10 @@ echo $this->element('genericElements/IndexTable/index_table', [
                             'type' => 'simple',
                             'text' => __('Add role'),
                             'class' => 'btn btn-primary',
-                            'popover_url' => '/roles/add'
+                            'popover_url' => '/roles/add',
+                            'button' => [
+                                'icon' => 'plus',
+                            ]
                         ]
                     ]
                 ],

@@ -10,8 +10,10 @@ echo $this->element('genericElements/IndexTable/index_table', [
                         'data' => [
                             'type' => 'simple',
                             'text' => __('Add organisation'),
-                            'class' => 'btn btn-primary',
-                            'popover_url' => '/organisations/add'
+                            'popover_url' => '/organisations/add',
+                            'button' => [
+                                'icon' => 'plus',
+                            ]
                         ]
                     ]
                 ],

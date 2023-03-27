@@ -48,7 +48,10 @@ echo $this->element('genericElements/IndexTable/index_table', [
                             'icon' => 'plus',
                             'text' => __('Add User'),
                             'class' => 'btn btn-primary',
-                            'popover_url' => '/users/add'
+                            'popover_url' => '/users/add',
+                            'button' => [
+                                'icon' => 'plus',
+                            ]
                         ]
                     ]
                 ],
