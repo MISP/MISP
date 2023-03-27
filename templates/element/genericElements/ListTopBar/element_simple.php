@@ -15,9 +15,9 @@
                 if (!empty($data['onClickParams'])) {
                     foreach ($data['onClickParams'] as $param) {
                         if ($param === 'this') {
-                            $onClickParams[] = h($param);
+                            $onClickParams[] = $param;
                         } else {
-                            $onClickParams[] = '\'' . h($param) . '\'';
+                            $onClickParams[] = '\'' . $param . '\'';
                         }
                     }
                 }

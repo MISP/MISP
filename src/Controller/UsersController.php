@@ -11,7 +11,7 @@ use Cake\Http\Exception\NotFoundException;
 
 class UsersController extends AppController
 {
-    public $filterFields = ['email', 'Organisations.name', 'Organisations.id'];
+    public $filterFields = ['email', 'autoalert', 'contactalert', 'termsaccepted', 'disabled' ,'Organisations.name', 'Roles.name', ];
     public $quickFilterFields = [['email' => true]];
     public $containFields = ['Roles', /*'UserSettings',*/ 'Organisations'];
 
@@ -30,6 +30,18 @@ class UsersController extends AppController
             'contain' => $this->containFields,
             'filters' => $this->filterFields,
             'quickFilters' => $this->quickFilterFields,
+            'contextFilters' => [
+                'custom' => [
+                    [
+                        'label' => __('Active'),
+                        'filterCondition' => ['Users.disabled' => 0],
+                    ],
+                    [
+                        'label' => __('Disabled'),
+                        'filterCondition' => ['Users.disabled' => 1],
+                    ]
+                ],
+            ],
             'conditions' => $conditions,
             'afterFind' => function($data) use ($keycloakUsersParsed) {
                 // TODO: We might want to uncomment this at some point Still need to evaluate the impact
@@ -50,6 +62,11 @@ class UsersController extends AppController
             $this->Users->Roles->find('list')->select(['id', 'name'])->order(['name' => 'asc'])->where(['perm_admin' => 0])->all()->toArray()
         );
         $this->set('metaGroup', $this->isAdmin ? 'Administration' : 'Cerebrate');
+    }
+
+    public function filtering()
+    {
+        $this->CRUD->filtering();
     }
 
     public function add()

@@ -39,8 +39,8 @@
                 $this->Url->build($urlParams, [
                     'escape' => false, // URL builder escape `&` when multiple ? arguments
                 ]),
-                "#table-container-${tableRandomValue}",
-                "#table-container-${tableRandomValue} table.table",
+                "#table-container-{$tableRandomValue}",
+                "#table-container-{$tableRandomValue} table.table",
             ],
             'class' => 'btn-sm'
         ];
