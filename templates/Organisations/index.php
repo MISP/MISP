@@ -87,13 +87,14 @@ echo $this->element('genericElements/IndexTable/index_table', [
             ],
             */
         ],
+        'primary_id_path' => 'id',
         'title' => __('Organisation Index'),
         'description' => __('A list of organisations known to your MISP instance. This list can get populated either directly, by adding new organisations or by fetching them from trusted remote sources.'),
         'actions' => [
             [
                 'url' => '/organisations/view',
                 'url_params_data_paths' => ['id'],
-                'icon' => 'eye'
+                'icon' => 'eye',
             ],
             [
                 'open_modal' => '/organisations/edit/[onclick_params_data_path]',
