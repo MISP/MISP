@@ -37,7 +37,7 @@ use Cake\Routing\Router;
         if (!empty($links)) {
             $goToLinks = [];
             echo '<div class="ms-auto">';
-            echo '<div>';
+            echo '<div class="d-flex gap-1">';
             foreach ($links as $i => $linkEntry) {
                 if (!empty($linkEntry['is-go-to'])) {
                     $goToLinks[] = $linkEntry;
