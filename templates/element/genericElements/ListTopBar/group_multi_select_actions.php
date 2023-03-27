@@ -1,18 +1,54 @@
 <?php
+    $dropdownTreshold = 3;
+
     if (!isset($data['requirement']) || $data['requirement']) {
         $buttons = '';
-        foreach ($data['children'] as $child) {
-            $buttons .= $this->Bootstrap->button([
-                'variant' => $child['variant'] ?? 'primary',
-                'text' => $child['text'],
-                'outline' => !empty($child['outline']),
-                'icon' => $child['icon'] ?? null,
-                'onclick' => 'multiActionClickHandler(this)',
-                'attrs' => array_merge([
-                    'data-onclick-function' => $child['onclick'] ?? '',
+        $hasHeader = array_filter($data['children'], function($entry) {
+            return !empty($entry['is-header']);
+        });
+        $data['force-dropdown'] = !empty($data['force-dropdown']) ? $data['force-dropdown'] : $hasHeader;
+        if (!empty($data['force-dropdown']) || count($data['children']) > $dropdownTreshold) {
+            $menuOptions = [];
+            foreach ($data['children'] as $child) {
+                $menuOptions[] = [
+                    'header' => !empty($child['is-header']),
+                    'variant' => $child['variant'] ?? '',
+                    'text' => $child['text'],
+                    'outline' => !empty($child['outline']),
+                    'icon' => $child['icon'] ?? null,
+                    'attrs' => array_merge([
+                        'onclick' => 'multiActionClickHandler(this)',
+                        'data-onclick-function' => $child['onclick'] ?? '',
+                        'data-table-random-value' => $tableRandomValue,
+                    ], $child['params'] ?? [])
+                ];
+            }
+            $buttons = $this->Bootstrap->dropdownMenu([
+                'button' => [
+                    'text' => __('Actions'),
+                    'icon' => 'check-square',
+                    'variant' => 'primary',
+                    'class' => [''],
+                ],
+                'attrs' => [
                     'data-table-random-value' => $tableRandomValue,
-                ], $child['params'] ?? [])
+                ],
+                'menu' => $menuOptions,
             ]);
+        } else {
+            foreach ($data['children'] as $child) {
+                $buttons .= $this->Bootstrap->button([
+                    'variant' => $child['variant'] ?? 'primary',
+                    'text' => $child['text'],
+                    'outline' => !empty($child['outline']),
+                    'icon' => $child['icon'] ?? null,
+                    'onclick' => 'multiActionClickHandler(this)',
+                    'attrs' => array_merge([
+                        'data-onclick-function' => $child['onclick'] ?? '',
+                        'data-table-random-value' => $tableRandomValue,
+                    ], $child['params'] ?? [])
+                ]);
+            }
         }
         echo sprintf(
             '<div class="multi_select_actions btn-group me-2 flex-wrap collapse" role="group" aria-label="button-group" data-table-random-value="%s">%s</div>',
