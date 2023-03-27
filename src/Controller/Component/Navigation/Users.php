@@ -33,6 +33,8 @@ class UsersNavigation extends BaseNavigation
         $passedData = $this->request->getParam('pass');
         $currentUserId = empty($this->currentUserId) ? null : $this->currentUserId;
         $currentUser = $this->currentUser;
+
+        $this->bcf->addLink('Users', 'index', 'UserSettings', 'index');
         $this->bcf->addLink('Users', 'view', 'UserSettings', 'index', function ($config) use ($bcf, $request, $passedData, $currentUser) {
             if (!empty($passedData[0])) {
                 $user_id = $passedData[0];
@@ -110,6 +112,15 @@ class UsersNavigation extends BaseNavigation
             'label' => __('Account settings')
         ]);
 
-        $this->bcf->addLink('Users', 'index', 'Users', 'registrations');
+        $this->bcf->addLink('Users', 'index', 'Users', 'registrations', [
+            // 'badge' => ['text' => 123, 'variant' => 'warning']
+        ]);
+    }
+
+    public function addActions()
+    {
+        $this->bcf->addCustomAction('Users', 'index', '/admin/users/email', __('Contact Users'), [
+            'icon' => 'comment-dots',
+        ]);
     }
 }
