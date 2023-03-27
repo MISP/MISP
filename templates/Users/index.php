@@ -56,31 +56,16 @@ echo $this->element('genericElements/IndexTable/index_table', [
                     ]
                 ],
                 [
-                    'type' => 'simple',
-                    'children' => [
-                        [
-                            'url' => $baseurl . '/admin/users/index',
-                            'text' => __('All'),
-                            'active' => !isset($passedArgsArray['disabled']),
-                        ],
-                        [
-                            'url' => $baseurl . '/admin/users/index/searchdisabled:0',
-                            'text' => __('Active'),
-                            'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "0",
-                        ],
-                        [
-                            'url' => $baseurl . '/admin/users/index/searchdisabled:1',
-                            'text' => __('Disabled'),
-                            'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "1",
-                        ]
-                    ]
+                    'type' => 'context_filters',
+                    'context_filters' => $filteringContexts
                 ],
                 [
                     'type' => 'search',
                     'button' => __('Search'),
                     'placeholder' => __('Enter value to search'),
                     'data' => '',
-                    'searchKey' => 'value'
+                    'searchKey' => 'value',
+                    'allowFilering' => true
                 ],
                 [
                     'type' => 'table_action',
