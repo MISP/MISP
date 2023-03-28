@@ -1,13 +1,14 @@
 <?php
-    $contextArray = [];
-    foreach ($data['context_filters'] as $filteringContext) {
+
+if(!function_exists("generateFilterLinkConfiguration")) {
+    function generateFilterLinkConfiguration($filteringContext, $viewContext, $request, $tableRandomValue) {
         $filteringContext['filterCondition'] = empty($filteringContext['filterCondition']) ? [] : $filteringContext['filterCondition'];
         $urlParams = [
-            'controller' => $this->request->getParam('controller'),
+            'controller' => $request->getParam('controller'),
             'action' => 'index',
             '?' => array_merge($filteringContext['filterCondition'], ['filteringLabel' => $filteringContext['label']])
         ];
-        $currentQuery = $this->request->getQuery();
+        $currentQuery = $request->getQuery();
         $filteringLabel = !empty($currentQuery['filteringLabel']) ? $currentQuery['filteringLabel'] : '';
         $fakeFilteringLabel = !empty($fakeFilteringLabel) ? $fakeFilteringLabel : false;
         unset($currentQuery['page'], $currentQuery['limit'], $currentQuery['sort'], $currentQuery['filteringLabel']);
@@ -36,7 +37,7 @@
             'onClick' => 'changeIndexContext',
             'onClickParams' => [
                 'this',
-                $this->Url->build($urlParams, [
+                $viewContext->Url->build($urlParams, [
                     'escape' => false, // URL builder escape `&` when multiple ? arguments
                 ]),
                 "#table-container-{$tableRandomValue}",
@@ -45,14 +46,77 @@
             'class' => 'btn-sm'
         ];
         if (!empty($filteringContext['viewElement'])) {
-            $contextItem['html'] = $this->element(
+            $contextItem['html'] = $viewContext->element(
                 $filteringContext['viewElement'],
                 $filteringContext['viewElementParams'] ?? []
             );
         } else {
             $contextItem['text'] = $filteringContext['label'];
         }
-        $contextArray[] = $contextItem;
+        return $contextItem;
+    }
+}
+
+
+    $contextArray = [];
+    foreach ($data['context_filters'] as $filteringContext) {
+        if (!empty($filteringContext['is_group'])) {
+            $groupHasOneLinkActive = false;
+            $activeGroupName = null;
+            $dropdownMenu = [];
+            foreach ($filteringContext['filters'] as $filteringSubContext) {
+                $linkContext = generateFilterLinkConfiguration($filteringSubContext, $this, $this->request, $tableRandomValue);
+                if (!empty($linkContext['onClick']) || empty($linkContext['url'])) {
+                    $onClickParams = [];
+                    if (!empty($linkContext['onClickParams'])) {
+                        $onClickParams = array_map(function($param) {
+                            return $param === 'this' ? $param : sprintf('\'%s\'', $param);
+                        }, $linkContext['onClickParams']);
+                    }
+                    $onClickParams = implode(',', $onClickParams);
+                    $onClick = sprintf(
+                        '%s%s',
+                        (empty($linkContext['url'])) ? 'event.preventDefault();' : '',
+                        (!empty($linkContext['onClick']) ? sprintf(
+                            '%s(%s)',
+                            h($linkContext['onClick']),
+                            $onClickParams
+                        ) : '')
+                    );
+                } else if(!empty($linkContext['url'])) {
+                    $onClick = sprintf(
+                        '%s',
+                        sprintf('window.location=\'%s\'', $linkContext['url'])
+                    );
+                }
+                if ($linkContext['active']) {
+                    $groupHasOneLinkActive = true;
+                    $activeGroupName = $filteringSubContext['label'];
+                }
+                $dropdownMenu[] = [
+                    'text' => $filteringSubContext['label'],
+                    'icon' => $filteringSubContext['icon'] ?? false,
+                    'variant' => $linkContext['active'] ? 'primary' : '',
+                    'attrs' => [
+                        'onclick' => $onClick,
+                    ],
+                ];
+            }
+            $dropdownHtml = $this->Bootstrap->dropdownMenu([
+                'button' => [
+                    'icon' => $filteringContext['icon'] ?? false,
+                    'text' => ($filteringContext['label'] ?? __('Quick Filters')) . ($groupHasOneLinkActive ? sprintf(': %s', $activeGroupName) : ''),
+                    'variant' => $groupHasOneLinkActive ? 'primary' : ($filteringContext['variant'] ?? 'light'),
+                ],
+                'menu' => $dropdownMenu,
+            ]);
+            $contextArray[] = [
+                'type' => 'raw_html',
+                'html' => $dropdownHtml,
+            ];
+        } else {
+            $contextArray[] = generateFilterLinkConfiguration($filteringContext, $this, $this->request, $tableRandomValue);
+        }
     }
 
     $dataGroup = [
