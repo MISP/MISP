@@ -267,6 +267,33 @@ class CRUDComponent extends Component
     }
 
     /**
+     * From the provided fields and type mapping, convert any boolean field from the type `checkhox` to the type `radio`.
+     *
+     * @param array $fieldsConfig The array of fields to transform
+     * @param array $typeMap The mapping from the DB to the field type
+     * @param boolean $includeAny Should an `Any` option be included
+     * @param boolean $includeBoth Shoud a `Both` option be included
+     * @return array
+     */
+    public function transformBooleanFieldsIntoRadio(array $fieldsConfig, array $typeMap, bool $includeAny = true, bool $isInline = true): array
+    {
+        foreach ($typeMap as $fieldname => $type) {
+            if ($type == 'boolean') {
+                $fieldsConfig[$fieldname]['type'] = 'radio';
+                $fieldsConfig[$fieldname]['inline'] = $isInline;
+                $fieldsConfig[$fieldname]['default'] = 'any';
+                $fieldsConfig[$fieldname]['options'] = [];
+                if ($includeAny) {
+                    $fieldsConfig[$fieldname]['options'][] = ['value' => 'any', 'text' => __('Any'),];
+                }
+                $fieldsConfig[$fieldname]['options'][] = ['value' => 1, 'text' => __('Enabled'),];
+                $fieldsConfig[$fieldname]['options'][] = ['value' => 0, 'text' => __('Disabled'),];
+            }
+        }
+        return $fieldsConfig;
+    }
+
+    /**
      * getResponsePayload Returns the adaquate response payload based on the request context
      *
      * @return false or Array
@@ -1258,6 +1285,7 @@ class CRUDComponent extends Component
                         continue;
                     }
                     $activeFilters[$filter] = $filterValue;
+                    $filterValue = $this->convertBooleanAnyAndBothIfNeeded($filter, $filterValue);
                     if (is_array($filterValue)) {
                         $query = $this->setInCondition($query, $filter, $filterValue);
                     } else {
@@ -1473,6 +1501,17 @@ class CRUDComponent extends Component
             $prefixedConditions["${prefix}.${condField}"] = $condValue;
         }
         return $prefixedConditions;
+    }
+
+    protected function convertBooleanAnyAndBothIfNeeded(string $filterName, $filterValue)
+    {
+        $typeMap = $this->Table->getSchema()->typeMap();
+        if (!empty($typeMap[$filterName]) && $typeMap[$filterName] === 'boolean') {
+            if ($filterValue === 'any') {
+                return [true, false];
+            }
+        }
+        return $filterValue;
     }
 
     public function taggingSupported()
