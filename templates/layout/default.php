@@ -30,7 +30,6 @@ $sidebarOpen = $loggedUser->user_settings_by_name_with_fallback['ui.sidebar.expa
     </title>
     <?= $this->Html->meta('icon') ?>
     <?php
-        echo $this->Html->css('themes/bootstrap-' . $bsTheme);
         echo $this->Html->css('themes/theme-' . $bsTheme);
     ?>
     <?= $this->Html->css('main.css') ?>

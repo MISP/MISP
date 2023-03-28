@@ -10,6 +10,7 @@ $font-size-base: .875rem;
 $line-height-base: 1.25;
 $line-height-sm: 1.15;
 $line-height-lg: 1.5;
+$navbar-brand-padding-y: 0.3125rem;
 $table-cell-padding-y: .25rem;
 $table-cell-padding-x: .25rem;
 $table-cell-padding-y-sm: .0rem;
@@ -26,7 +27,7 @@ $btn-transition: color $btnTransitionSec ease-out, background-color $btnTransiti
 @import "../node_modules/bootstrap/scss/mixins";
 @import "../node_modules/bootstrap/scss/root";
 @import "../node_modules/bootstrap/scss/transitions";
-@import "../node_modules/bootstrap/scss/tables";
+@import "../node_modules/bootstrap/scss/bootstrap";
 
 @import "./mixins/background";
 
