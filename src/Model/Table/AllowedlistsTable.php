@@ -40,30 +40,6 @@ class AllowedlistsTable extends AppTable
         return $rules;
     }
 
-    public $validate = array(
-        'name' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-            'userdefined' => array(
-                'rule' => array('validateValue'),
-                'message' => 'Name not in the right format. Allowedlist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.',             //'allowEmpty' => false,
-                //'allowEmpty' => false,
-                //'required' => true,
-                //'last' => false, // Stop validation after this rule
-                //'on' => 'create', // Limit validation to 'create' or 'update' operations
-            ),
-            'unique' => array(
-                    'rule' => 'isUnique', //array('valueIsUnique'),
-                    'message' => 'A similar name already exists.',
-                    //'allowEmpty' => false,
-                    //'required' => true,
-                    //'last' => false, // Stop validation after this rule
-                    //'on' => 'create', // Limit validation to 'create' or 'update' operations
-            ),
-        ),
-    );
-
     // regexp validation
     public function isValidRegex($value, array $context)
     {
