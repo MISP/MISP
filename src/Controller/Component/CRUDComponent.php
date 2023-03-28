@@ -205,7 +205,7 @@ class CRUDComponent extends Component
         }
     }
 
-    public function filtering(): void
+    public function filtering(array $options = []): void
     {
         if ($this->taggingSupported()) {
             $this->Controller->set('taggingEnabled', true);
@@ -245,6 +245,11 @@ class CRUDComponent extends Component
         $typeMap = array_filter($typeMap, function ($field) use ($filtersName) {
             return in_array($field, $filtersName);
         }, ARRAY_FILTER_USE_KEY);
+        if (!empty($options['afterFind'])) {
+            $overrides = $options['afterFind']($filtersConfig, $typeMap);
+            $filtersConfig = $overrides['filtersConfig'];
+            $typeMap = $overrides['typeMap'];
+        }
         $this->Controller->set('typeMap', $typeMap);
         $this->Controller->set('filters', $filtersName);
         $this->Controller->set('filtersConfig', $filtersConfig);
