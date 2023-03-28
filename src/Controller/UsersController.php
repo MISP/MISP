@@ -80,7 +80,15 @@ class UsersController extends AppController
 
     public function filtering()
     {
-        $this->CRUD->filtering();
+        $this->CRUD->filtering([
+            'afterFind' => function ($filtersConfig, $typeMap) {
+                $newFilterConfig = $this->CRUD->transformBooleanFieldsIntoRadio($filtersConfig, $typeMap);
+                return [
+                    'typeMap' => $typeMap,
+                    'filtersConfig' => $newFilterConfig,
+                ];
+            }
+        ]);
     }
 
     public function add()
