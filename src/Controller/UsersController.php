@@ -11,7 +11,7 @@ use Cake\Http\Exception\NotFoundException;
 
 class UsersController extends AppController
 {
-    public $filterFields = ['email', 'autoalert', 'contactalert', 'termsaccepted', 'disabled' ,'Organisations.name', 'Roles.name', ];
+    public $filterFields = ['email', 'autoalert', 'contactalert', 'termsaccepted', 'disabled', 'role_id' ,'Organisations.name', 'Roles.name', ];
     public $quickFilterFields = [['email' => true]];
     public $containFields = ['Roles', /*'UserSettings',*/ 'Organisations'];
 
@@ -26,21 +26,35 @@ class UsersController extends AppController
         if (!empty(Configure::read('keycloak.enabled'))) {
             // $keycloakUsersParsed = $this->Users->getParsedKeycloakUser();
         }
+        $roles = $this->Users->Roles->find('list')->all()->toArray();
+        $roleFilters = [];
+        foreach ($roles as $roleID => $roleName) {
+            $roleFilters[] = [
+                'label' => __('{0}', h($roleName)),
+                'filterCondition' => ['role_id' => h($roleID)],
+            ];
+        }
+        $rolesForContext = [[
+            'is_group' => true,
+            'icon' => $this->Navigation->iconToTableMapping['Roles'],
+            'label' => __('Roles'),
+            'filters' => $roleFilters,
+        ]];
         $this->CRUD->index([
             'contain' => $this->containFields,
             'filters' => $this->filterFields,
             'quickFilters' => $this->quickFilterFields,
             'contextFilters' => [
-                'custom' => [
+                'custom' => array_merge([
                     [
                         'label' => __('Active'),
-                        'filterCondition' => ['Users.disabled' => 0],
+                        'filterCondition' => ['disabled' => 0],
                     ],
                     [
                         'label' => __('Disabled'),
-                        'filterCondition' => ['Users.disabled' => 1],
+                        'filterCondition' => ['disabled' => 1],
                     ]
-                ],
+                ], $rolesForContext),
             ],
             'conditions' => $conditions,
             'afterFind' => function($data) use ($keycloakUsersParsed) {
