@@ -36,6 +36,11 @@ $filteringForm = $this->Bootstrap->table(
                             sprintf('<option value="%s">%s</option>', '>=', '>='),
                             sprintf('<option value="%s">%s</option>', '<=', '<='),
                         ];
+                    } else if ($type === 'radio' || $type === 'boolean') {
+                        $options = [
+                            sprintf('<option value="%s">%s</option>', '=', __('is')),
+                            sprintf('<option value="%s">%s</option>', '!=', __('is not')),
+                        ];
                     }
                     return sprintf('<select class="fieldOperator form-select form-select-sm">%s</select>', implode('', $options));
                 }
@@ -54,7 +59,7 @@ $filteringForm = $this->Bootstrap->table(
                         'field' => $fieldName,
                         'type' => $formType,
                         'label' => '',
-                        'class' => 'fieldValue form-control-sm'
+                        'class' => 'fieldValue'
                     ];
                     if (!empty($filtersConfig[$fieldName]['multiple'])) {
                         $fieldData['type'] = 'dropdown';
@@ -64,6 +69,7 @@ $filteringForm = $this->Bootstrap->table(
                             'tokenSeparators' => [',', ' '],
                         ];
                     }
+                    $fieldData = array_merge($fieldData, $filtersConfig[$fieldName]);
                     $this->Form->setTemplates([
                         'formGroup' => '<div class="col-sm-10">{{input}}</div>',
                     ]);
@@ -138,7 +144,10 @@ echo $this->Bootstrap->modal([
             if (rowData['operator'] != '=') {
                 fullFilter += ` ${rowData['operator']}`
             }
-            if (rowData['value'].length > 0) {
+            if (
+                rowData['value'].length > 0 &&
+                !(rowData['_type'] === 'radio' && rowData['value'] === 'any')
+            ) {
                 activeFilters[fullFilter] = rowData['value']
             }
         })
@@ -202,6 +211,10 @@ echo $this->Bootstrap->modal([
                 }
             })
             $formElement.append(newOptions).trigger('change');
+        } else if ($formElement.attr('type') === 'radio') {
+            $formElement.filter(function() {
+                return $(this).val() == value
+            }).prop('checked', true)
         } else {
             $formElement.val(value)
         }
@@ -231,9 +244,12 @@ echo $this->Bootstrap->modal([
         const $formElement = $row.find('.fieldValue');
         if ($formElement.attr('type') === 'datetime-local') {
             rowData['value'] = $formElement.val().length > 0 ? moment($formElement.val()).toISOString() : $formElement.val()
+        } else if ($formElement.attr('type') === 'radio') {
+            rowData['value'] = $formElement.filter(':checked').val()
         } else {
             rowData['value'] = $formElement.val()
         }
+        rowData['_type'] = $formElement.attr('type')
         return rowData
     }
 
