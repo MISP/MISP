@@ -91,7 +91,8 @@ body {
     right: 0;
     padding: 0;
     margin-bottom: 0;
-    z-index: 1020;
+    /* z-index: 1020; */
+    z-index: 1040;
 }
 
 main.content {
@@ -102,14 +103,33 @@ main.content {
 
 .sidebar {
     margin-top: var(--navbar-height);
-    overflow: hidden;
-    position: fixed;
+    /* overflow: hidden; */
+    overflow: visible;
+    /* position: fixed; */
+    position: absolute;
     top: 0;
-    bottom: 0;
+    /* bottom: 0; */
     width: var(--sidebar-width-collapsed);
     left: 0;
     transform:translateZ(0) scale(1,1);
     z-index:1039;
+}
+
+
+.sidebar .sidebar-link-container {
+    overflow: visible;
+    position: relative;
+}
+.sidebar .sidebar-link-container .submenu-container {
+    display: none;
+    position: absolute;
+    left: 100%;
+}
+.sidebar .sidebar-link-container:hover .submenu-container {
+    display: block;
+}
+.sidebar .sidebar-link-container .submenu-container:hover {
+    display: block;
 }
 
 .sidebar.expanded, .sidebar:hover {
@@ -131,9 +151,9 @@ main.content {
 }
 
 .sidebar:hover:not(.expanded) ~ main.content:after {
-    bottom: 0;
+    /* bottom: 0;
     right:0;
-    opacity: 0.5;
+    opacity: 0.5; */
 }
 
 .left-navbar {
@@ -236,11 +256,12 @@ main.content {
 .sidebar-scroll {
     position: relative;
     width: 100%;
-    overflow-y: hidden;
+    /* overflow-y: hidden; */
+    overflow: visible !important;
 }
 
 .sidebar-scroll:hover {
-    overflow-y: auto;
+    /* overflow-y: auto; */
 }
 
 .sidebar-content {
@@ -394,7 +415,8 @@ ul.sidebar-elements li.parent > a.sidebar-link::before {
     font-size: 1rem;
     order: 6 !important;
     margin-left: auto;
-    transition: transform 0.3s ease-out;
+    /* transition: transform 0.3s ease-out; */
+    transform: rotate(180deg);
 }
 
 ul.sidebar-elements li.parent > a.sidebar-link:not(.collapsed)::before {
@@ -426,8 +448,8 @@ ul.sidebar-elements > li ul.sub-menu {
 }
 
 ul.sidebar-elements > li ul li > a.sidebar-link {
-    font-size: 0.95em;
-    padding-left: 35px;
+    font-size: 1em;
+    padding-left: 17px;
     padding-right: 17px;
 }
 

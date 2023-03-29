@@ -12908,7 +12908,7 @@ ul.sidebar-elements li > a.sidebar-link.active::after {
 }
 
 .sidebar ul.sidebar-elements li ul.sub-menu {
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.4);
   box-shadow: inset #11111a1a 0px 0px 0px 1px;
 }
 

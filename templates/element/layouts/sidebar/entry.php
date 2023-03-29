@@ -58,12 +58,11 @@
     $childNotificationVariant = array_flip($severity)[$childMaxSeverity];
 ?>
 
-<li class="<?= !empty($children) ? 'parent collapsed' : '' ?>">
+<li class="sidebar-link-container <?= !empty($children) ? 'parent' : '' ?>">
     <?php if (!empty($children) || !empty($url)): ?>
         <a
             class="d-flex align-items-center sidebar-link <?= (!empty($children) && !$hasActiveChild) ? 'collapsed' : '' ?> <?= $active ? 'active' : '' ?> <?= $hasActiveChild ? 'have-active-child' : '' ?>"
             href="<?= h($url) ?>"
-            <?= !empty($children) ? 'data-bs-toggle="collapse"' : '' ?>
             <?= $hasActiveChild ? 'aria-expanded="true"' : '' ?>
         >
         <?php if (is_array($icon)):?>
@@ -109,6 +108,7 @@
         </a>
         <?php if (!empty($children)): ?>
             <?= $this->element('layouts/sidebar/sub-menu', [
+                    'submenuName' => $label,
                     'seed' => $seed,
                     'children' => $children,
                     'open' => $hasActiveChild,

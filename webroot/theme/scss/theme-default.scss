@@ -65,7 +65,8 @@ $sidebarHoverBgColor: $gray-200 !default;
 $sidebarHoverActiveBgColor: $gray-300 !default;
 
 $sidebarSubmenuColor: $gray-700 !default;
-$sidebarSubmenuBgColor: tint-color($sidebarActiveBgColor, 50%) !default;
+// $sidebarSubmenuBgColor: tint-color($sidebarActiveBgColor, 50%) !default;
+$sidebarSubmenuBgColor: #{$sidebarBgColor} !default;
 $sidebarBorder: #ddd !default;
 $sidebarShadows: 0 2px 2px 0 rgba(0, 0, 0, 0.16), 0 2px 6px 0 rgba(0, 0, 0, 0.12) !default;
 $sidebarLockButton: $light !default;
