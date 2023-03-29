@@ -88,6 +88,12 @@ CREATE TABLE IF NOT EXISTS `attribute_tags` (
   INDEX `tag_id` (`tag_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+-- -------------------------------------------------------
+
+--
+-- Table structure for table `auth_keys`
+--
+
 CREATE TABLE IF NOT EXISTS `auth_keys` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `uuid` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -98,6 +104,8 @@ CREATE TABLE IF NOT EXISTS `auth_keys` (
     `expiration` int(10) unsigned NOT NULL,
     `user_id` int(10) unsigned NOT NULL,
     `comment` text COLLATE utf8mb4_unicode_ci,
+    `allowed_ips` text COLLATE utf8mb4_unicode_ci,
+    `unique_ips` text COLLATE utf8mb4_unicode_ci,
     PRIMARY KEY (`id`),
     KEY `authkey_start` (`authkey_start`),
     KEY `authkey_end` (`authkey_end`),
