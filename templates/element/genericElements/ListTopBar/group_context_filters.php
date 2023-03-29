@@ -108,6 +108,7 @@ if(!function_exists("generateFilterLinkConfiguration")) {
                     'text' => ($filteringContext['label'] ?? __('Quick Filters')) . ($groupHasOneLinkActive ? sprintf(': %s', $activeGroupName) : ''),
                     'variant' => $groupHasOneLinkActive ? 'primary' : ($filteringContext['variant'] ?? 'light'),
                 ],
+                'direction' => 'down',
                 'menu' => $dropdownMenu,
             ]);
             $contextArray[] = [

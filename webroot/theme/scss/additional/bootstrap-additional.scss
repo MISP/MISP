@@ -94,6 +94,15 @@ $toast-color-level:                 70% !default;
     }
 }
 
+/* Buttons */
+.btn-group > .dropdown > .btn.dropdown-toggle {
+    border-top-left-radius: 0;
+}
+.btn-group > .dropdown:not(:last-child) > .btn.dropdown-toggle {
+    border-top-right-radius: 0;
+}
+
+
 /* Forms severity */
 .form-control.is-invalid {
     &.info {
