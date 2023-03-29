@@ -72,9 +72,8 @@ class ACLComponent extends Component
                 'add' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
                 'delete' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
                 'edit' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
-                'pin' => ['AND' => ['perm_auth', 'not_read_only_authkey']],
                 'index' => ['perm_auth'],
-                'view' => ['perm_auth'],
+                'view' => ['perm_auth']
             ],
             'cerebrates' => [
                 'add' => [],

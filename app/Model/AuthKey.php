@@ -104,12 +104,6 @@ class AuthKey extends AppModel
             if (isset($val['AuthKey']['allowed_ips'])) {
                 $results[$key]['AuthKey']['allowed_ips'] = JsonTool::decode($val['AuthKey']['allowed_ips']);
             }
-            if (isset($val['AuthKey']['unique_ips'])) {
-                $results[$key]['AuthKey']['unique_ips'] = JsonTool::decode($val['AuthKey']['unique_ips']);
-            } else {
-                $results[$key]['AuthKey']['unique_ips'] = [];
-            }
-            
         }
         return $results;
     }
@@ -121,13 +115,6 @@ class AuthKey extends AppModel
                 $this->data['AuthKey']['allowed_ips'] = null;
             } else {
                 $this->data['AuthKey']['allowed_ips'] = JsonTool::encode($this->data['AuthKey']['allowed_ips']);
-            }
-        }
-        if (isset($this->data['AuthKey']['unique_ips'])) {
-            if (empty($this->data['AuthKey']['unique_ips'])) {
-                $this->data['AuthKey']['unique_ips'] = null;
-            } else {
-                $this->data['AuthKey']['unique_ips'] = JsonTool::encode($this->data['AuthKey']['unique_ips']);
             }
         }
         return true;
@@ -175,27 +162,12 @@ class AuthKey extends AppModel
 
         $possibleAuthkeys = $this->find('all', [
             'recursive' => -1,
-            'fields' => ['id', 'authkey', 'user_id', 'expiration', 'allowed_ips', 'read_only', 'unique_ips'],
+            'fields' => ['id', 'authkey', 'user_id', 'expiration', 'allowed_ips', 'read_only'],
             'conditions' => $conditions,
         ]);
         $passwordHasher = $this->getHasher();
         foreach ($possibleAuthkeys as $possibleAuthkey) {
-            if ($passwordHasher->check($authkey, $possibleAuthkey['AuthKey']['authkey'])) {  // valid authkey
-                // store IP in db if not there yet
-                $remote_ip = $this->_remoteIp();
-                $update_db_ip = true;
-                if (in_array($remote_ip, $possibleAuthkey['AuthKey']['unique_ips'])) {
-                    $update_db_ip = false;  // IP already seen, skip saving in DB
-                } else {   // first time this IP is seen for this API key
-                    $possibleAuthkey['AuthKey']['unique_ips'][] = $remote_ip;
-                }
-                if ($update_db_ip) {
-                    // prevent double entries due to race condition
-                    $possibleAuthkey['AuthKey']['unique_ips'] = array_unique($possibleAuthkey['AuthKey']['unique_ips']);
-                    // save in db
-                    $this->save($possibleAuthkey, ['fieldList' => ['unique_ips']]);
-                }
-                // fetch user
+            if ($passwordHasher->check($authkey, $possibleAuthkey['AuthKey']['authkey'])) {
                 $user = $this->User->getAuthUser($possibleAuthkey['AuthKey']['user_id']);
                 if ($user) {
                     $user = $this->setUserData($user, $possibleAuthkey);

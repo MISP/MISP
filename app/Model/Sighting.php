@@ -786,7 +786,7 @@ class Sighting extends AppModel
                 foreach ($values as $value) {
                     foreach (array('value1', 'value2') as $field) {
                         $conditions['OR'][] = array(
-                            'Attribute.' . $field => $value
+                            'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
                         );
                     }
                 }
