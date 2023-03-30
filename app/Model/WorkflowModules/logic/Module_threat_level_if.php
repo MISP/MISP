@@ -12,22 +12,21 @@ class Module_threat_level_if extends WorkflowBaseLogicModule
     public $outputs = 2;
     public $html_template = 'if';
 
+    private $Event;
+
     private $operators = [
         'equals' => 'Is',
         'not_equals' => 'Is not',
         'greater_or_equal_than' => 'Greater or equal than',
         'less_or_equal_than' => 'Less or equal than',
     ];
-    private $threatlevels_mapping = [
-	['name' => 'High', 'value' => '1'],
-	['name' => 'Medium', 'value' => '2'],
-	['name' => 'Low', 'value' => '3'],
-	['name' => 'Undefined', 'value' => '4'],
-    ];
+    private $threatlevels_mapping;
 
     public function __construct()
     {
         parent::__construct();
+	$this->Event = ClassRegistry::init('Event');
+	$this->threatlevels_mapping = $this->Event->ThreatLevel->listThreatLevels();
 
         $this->params = [
             [
@@ -53,7 +52,7 @@ class Module_threat_level_if extends WorkflowBaseLogicModule
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
 
-        $operator = $params['condition']['value'];
+	$operator = $params['condition']['value'];
         $selected_threatlevel = $params['threatlevel']['value'];
 
         $data = $roamingData->getData();
