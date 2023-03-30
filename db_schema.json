@@ -8868,11 +8868,11 @@
             {
                 "column_name": "data",
                 "is_nullable": "YES",
-                "data_type": "text",
-                "character_maximum_length": "65535",
+                "data_type": "longtext",
+                "character_maximum_length": "4294967295",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
-                "column_type": "text",
+                "column_type": "longtext",
                 "column_default": null,
                 "extra": ""
             }
@@ -9472,5 +9472,5 @@
             "uuid": false
         }
     },
-    "db_version": "106"
+    "db_version": "108"
 }
