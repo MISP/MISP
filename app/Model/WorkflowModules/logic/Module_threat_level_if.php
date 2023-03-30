@@ -11,10 +11,7 @@ class Module_threat_level_if extends WorkflowBaseLogicModule
     public $inputs = 1;
     public $outputs = 2;
     public $html_template = 'if';
-    public $expect_misp_core_format = true;
-    public $params = [];
 
-    private $Attribute, $SharingGroup;
     private $operators = [
         'equals' => 'Is',
         'not_equals' => 'Is not',
