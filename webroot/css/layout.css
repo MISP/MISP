@@ -531,6 +531,7 @@ ul.sidebar-elements > li.category > span.category-divider > hr {
 */
 .center-navbar nav.header-breadcrumb {
     padding: 0.5rem 0.75rem;
+    font-size: 1rem;
 }
 
 .center-navbar nav.header-breadcrumb > ol {
