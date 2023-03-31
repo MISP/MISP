@@ -285,6 +285,8 @@ class WorkflowsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($module, $this->response->type());
         }
+        if (!isset($module['Workflow']))
+            $module['Workflow'] = ['counter' => false, 'id' => false];
         $this->set('data', $module);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'view_module']);
     }
