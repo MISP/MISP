@@ -5,6 +5,7 @@ class Module_tag_if extends WorkflowBaseLogicModule
 {
     public $id = 'tag-if';
     public $name = 'IF :: Tag';
+    public $version = '0.2';
     public $description = 'Tag IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
     public $icon = 'code-branch';
     public $inputs = 1;
@@ -25,16 +26,25 @@ class Module_tag_if extends WorkflowBaseLogicModule
     {
         parent::__construct();
         $conditions = [
-            'Tag.is_galaxy' => 0,
+            'Tag.is_galaxy' => [0, 1],
         ];
         $this->Tag = ClassRegistry::init('Tag');
-        $tags = $this->Tag->find('all', [
+        $allTags = $this->Tag->find('all', [
             'conditions' => $conditions,
             'recursive' => -1,
             'order' => ['name asc'],
-            'fields' => ['Tag.id', 'Tag.name']
+            'fields' => ['Tag.id', 'Tag.name', 'Tag.is_galaxy']
         ]);
-        $tags = array_column(array_column($tags, 'Tag'), 'name');
+        $tags = [];
+        $clusters = [];
+        foreach ($allTags as $tag) {
+            if ($tag['Tag']['is_galaxy']) {
+                $readableTagName = substr($tag['Tag']['name'], 12);
+                $clusters[] = $readableTagName;
+            } else {
+                $tags[] = $tag['Tag']['name'];
+            }
+        }
         $this->params = [
             [
                 'id' => 'scope',
@@ -62,6 +72,14 @@ class Module_tag_if extends WorkflowBaseLogicModule
                 'options' => $tags,
                 'placeholder' => __('Pick a tag'),
             ],
+            [
+                'id' => 'clusters',
+                'label' => __('Galaxy Clusters'),
+                'type' => 'picker',
+                'multiple' => true,
+                'options' => $clusters,
+                'placeholder' => __('Pick a Galaxy Cluster'),
+            ],
         ];
     }
 
@@ -70,12 +88,14 @@ class Module_tag_if extends WorkflowBaseLogicModule
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
 
-        $value = $params['tags']['value'];
+        $selectedTags = $params['tags']['value'];
+        $selectedClusters = $params['clusters']['value'];
+        $allSelectedTags = array_merge($selectedTags, $selectedClusters);
         $operator = $params['condition']['value'];
         $scope = $params['scope']['value'];
         $data = $roamingData->getData();
         $extracted = $this->__getTagFromScope($scope, $data);
-        $eval = $this->evaluateCondition($extracted, $operator, $value);
+        $eval = $this->evaluateCondition($extracted, $operator, $allSelectedTags);
         return !empty($eval);
     }
 

@@ -48,7 +48,7 @@ echo $this->element('genericElements/SingleViews/single_view', [
             'type' => 'custom',
             'function' => function (array $data) {
                 if (is_array($data['AuthKey']['allowed_ips'])) {
-                    return implode("<br>", array_map('h', $data['AuthKey']['allowed_ips']));
+                    return implode("<br />", array_map('h', $data['AuthKey']['allowed_ips']));
                 }
                 return __('All');
             }
@@ -83,9 +83,9 @@ echo $this->element('genericElements/SingleViews/single_view', [
             'requirement' => isset($keyUsage),
         ],
         [
-            'key' => __('Unique IPs'),
-            'raw' => $uniqueIps,
-            'requirement' => isset($keyUsage),
+            'key' => __('Seen IPs'),
+            'path' => 'AuthKey.unique_ips',
+            'type' => 'authkey_pin'
         ]
     ],
 ]);
