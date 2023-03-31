@@ -308,7 +308,7 @@ class BreadcrumbFactory
         return $arr;
     }
 
-    public function addRoute($controller, $action, $config = []) {
+    public function addRoute(string $controller, string $action, array $config = []) {
         $this->endpoints[$controller][$action] = $this->genRouteConfig($controller, $action, $config);
     }
 
@@ -354,7 +354,7 @@ class BreadcrumbFactory
     {
         $routeSourceConfig = $this->get($sourceController, $sourceAction);
         $routeTargetConfig = $this->get($targetController, $targetAction);
-        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeTargetConfig);
         if (!is_array($overrides)) {
             throw new \Exception(sprintf("Override closure for %s:%s -> %s:%s must return an array", $sourceController, $sourceAction, $targetController, $targetAction), 1);
         }
@@ -374,7 +374,7 @@ class BreadcrumbFactory
     {
         $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
         $routeTargetConfig = $this->getRouteConfig($targetController, $targetAction);
-        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeTargetConfig);
         if (is_null($overrides)) {
             // Overrides is null, the link should not be added
             return;
@@ -390,20 +390,27 @@ class BreadcrumbFactory
     public function addCustomLink(string $sourceController, string $sourceAction, string $targetUrl, string $label, $overrides = [])
     {
         $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
-        $links = array_merge($routeSourceConfig['links'] ?? [], [[
+        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        if (!is_array($overrides)) {
+            throw new \Exception(sprintf("Override closure for custom action %s:%s must return an array", $sourceController, $sourceAction), 1);
+        }
+        $linkConfig = [
             'url' => $targetUrl,
             'icon' => 'link',
             'label' => $label,
             'route_path' => 'foo:bar'
-        ]]);
+        ];
+        $linkConfig = array_merge($linkConfig, $overrides);
+        $links = array_merge($routeSourceConfig['links'] ?? [], [$linkConfig]);
         $this->endpoints[$sourceController][$sourceAction]['links'] = $links;
+
     }
 
     public function addAction(string $sourceController, string $sourceAction, string $targetController, string $targetAction, $overrides = [])
     {
         $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
         $routeTargetConfig = $this->getRouteConfig($targetController, $targetAction);
-        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeTargetConfig);
         if (!is_array($overrides)) {
             throw new \Exception(sprintf("Override closure for %s:%s -> %s:%s must return an array", $sourceController, $sourceAction, $targetController, $targetAction), 1);
         }
