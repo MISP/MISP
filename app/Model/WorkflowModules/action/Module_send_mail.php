@@ -5,7 +5,7 @@ class Module_send_mail extends WorkflowBaseActionModule
 {
     public $id = 'send-mail';
     public $name = 'Send Mail';
-    public $description = 'Allow to send a Mail to a list or recipients';
+    public $description = 'Allow to send a Mail to a list or recipients. Requires functional misp-modules to be functional.';
     public $icon = 'envelope';
     public $inputs = 1;
     public $outputs = 1;
