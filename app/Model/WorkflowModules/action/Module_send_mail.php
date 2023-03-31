@@ -24,7 +24,10 @@ class Module_send_mail extends WorkflowBaseActionModule
             'conditions' => [],
             'recursive' => -1,
         ]);
-        $users = array_merge(['All accounts'], array_column(array_column($this->all_users, 'User'), 'email'));
+        $users = array_merge(
+            ['All accounts'],
+            ['All admins'],
+            array_column(array_column($this->all_users, 'User'), 'email'));
         $this->params = [
             [
                 'id' => 'recipients',
@@ -70,11 +73,18 @@ class Module_send_mail extends WorkflowBaseActionModule
         if (in_array('All accounts', $params['recipients']['value'])) {
             $users = $this->all_users;
         } else {
+            $conditions = [];
+            if (in_array('All admins', $params['recipients']['value'])) {
+                $admin_role = $this->User->Role->find('first', [
+                    'conditions' => ['Role.name' => 'admin'],
+                    'fields' => 'Role.id']);
+                $conditions['OR']['User.role_id'] = $admin_role['Role']['id']; 
+                $params['recipients']['value'] = array_diff($params['recipients']['value'], ['All admins']);
+            }
+            $conditions['OR']['User.email'] = $params['recipients']['value'];
             $users = $this->User->find('all', [
-                'conditions' => [
-                    'User.email' => $params['recipients']['value']
-                ],
-                'recursive' => -1,
+                'conditions' => $conditions,
+                'recursive' => 0,
             ]);
         }
 
