@@ -40,7 +40,11 @@ use Cake\Routing\Router;
             echo '<div class="d-flex gap-1">';
             foreach ($links as $i => $linkEntry) {
                 if (!empty($linkEntry['is-go-to'])) {
-                    $goToLinks[] = $linkEntry;
+                    if (is_bool($linkEntry['is-go-to'])) {
+                        $goToLinks['_root'][] = $linkEntry;
+                    } else {
+                        $goToLinks[$linkEntry['is-go-to']][] = $linkEntry;
+                    }
                     continue;
                 }
                 if (empty($linkEntry['route_path'])) {
@@ -72,19 +76,37 @@ use Cake\Routing\Router;
             echo '</div>';
 
             if (!empty($goToLinks)) {
-                $jumpToButtons = array_map(function($link) {
-                    $url = Router::url($link['url']);
-                    return [
-                        'nodeType' => 'a',
-                        'text' => h($link['label']),
-                        'variant' => 'link',
-                        'icon' => h($link['icon']),
-                        'class' => ['text-nowrap'],
-                        'attrs' => [
-                            'href' => h($url),
-                        ],
-                    ];
-                }, $goToLinks);
+                $menu = [];
+                foreach ($goToLinks as $menuID => $links) {
+                    $jumpToButtons = array_map(function($link) {
+                        $url = Router::url($link['url']);
+                        return [
+                            'nodeType' => 'a',
+                            'text' => h($link['label']),
+                            'variant' => 'link',
+                            'icon' => h($link['icon']),
+                            'class' => ['text-nowrap'],
+                            'attrs' => [
+                                'href' => h($url),
+                            ],
+                        ];
+                    }, $links);
+                    if ($menuID === '_root') {
+                        $menu = array_merge($menu, $jumpToButtons);
+                    } else {
+                        $subMenuConfig = $goToMenu[$menuID] ?? [];
+                        $subMenu = [
+                            'nodeType' => 'a',
+                            'text' => h($subMenuConfig['label']),
+                            'variant' => h($subMenuConfig['variant'] ?? 'link'),
+                            'icon' => h($subMenuConfig['icon']),
+                            'class' => ['text-nowrap'],
+                            'keepOpen' => true,
+                            'menu' => $jumpToButtons
+                        ];
+                        $menu[] = $subMenu;
+                    }
+                }
                 echo $this->Bootstrap->dropdownMenu([
                     'dropdown-class' => '',
                     'alignment' => 'end',
@@ -92,10 +114,11 @@ use Cake\Routing\Router;
                     'button' => [
                         'text' => 'Go To',
                         'variant' => 'secondary',
+                        'icon' => 'location-arrow',
                     ],
-                    'submenu_direction' => 'end',
+                    'submenu_direction' => 'start',
                     'attrs' => [],
-                    'menu' => $jumpToButtons,
+                    'menu' => $menu,
                 ]);
             }
             echo '</div>';
