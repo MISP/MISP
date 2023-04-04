@@ -64,7 +64,7 @@ echo $this->Breadcrumbs->render(
         echo $this->element('layouts/action-bar', [
             'links' => $lastCrumb['links'] ?? [],
             'actions' => $lastCrumb['actions'] ?? [],
-            'route_path' => $lastCrumb['route_path'],
+            'route_path' => $lastCrumb['route_path'] ?? '',
             'goToMenu' => $lastCrumb['goToMenu'] ?? [],
             'linkMenu' => $lastCrumb['linkMenu'] ?? [],
             'actionMenu' => $lastCrumb['actionMenu'] ?? [],
