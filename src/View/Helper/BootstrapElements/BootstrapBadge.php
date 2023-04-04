@@ -16,6 +16,7 @@ use App\View\Helper\BootstrapGeneric;
  * - icon: Should the button have an icon right before the text
  * - title: The title of the badge
  * - class: Additional class to add to the button
+ * - attrs: Additional HTML attributes
  * 
  * # Usage:
  *  echo $this->Bootstrap->badge([
@@ -35,6 +36,7 @@ class BootstrapBadge extends BootstrapGeneric
         'icon' => false,
         'title' => '',
         'class' => [],
+        'attrs' => [],
     ];
 
     function __construct(array $options)
@@ -59,7 +61,7 @@ class BootstrapBadge extends BootstrapGeneric
 
     private function genBadge(): string
     {
-        $html = $this->node('span', [
+        $html = $this->node('span', array_merge([
             'class' => array_merge($this->options['class'], [
                 'ms-1',
                 'badge',
@@ -68,7 +70,7 @@ class BootstrapBadge extends BootstrapGeneric
             ]),
             'title' => $this->options['title'],
             'id' => $this->options['id'] ?? '',
-        ], [
+        ], $this->options['attrs']), [
             $this->genIcon(),
             $this->options['html'] ?? h($this->options['text'])
         ]);
