@@ -19,7 +19,6 @@ echo $this->element('genericElements/IndexTable/index_table', [
                 ],
                 [
                     'type' => 'context_filters',
-                    'context_filters' => $filteringContexts
                 ],
                 [
                     'type' => 'search',

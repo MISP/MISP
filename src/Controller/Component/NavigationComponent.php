@@ -225,7 +225,6 @@ class BreadcrumbFactory
 {
     private $endpoints = [];
     private $iconToTableMapping = [];
-    private $goToMenu = [];
 
     public function __construct($iconToTableMapping)
     {
@@ -454,6 +453,16 @@ class BreadcrumbFactory
     public function registerGoToMenuConfig(string $sourceController, string $sourceAction, string $goToID, array $config = []): void
     {
         $this->endpoints[$sourceController][$sourceAction]['goToMenu'][$goToID] = $config;
+    }
+
+    public function registerLinkMenuConfig(string $sourceController, string $sourceAction, string $menuID, array $config = []): void
+    {
+        $this->endpoints[$sourceController][$sourceAction]['linkMenu'][$menuID] = $config;
+    }
+
+    public function registerActionMenuConfig(string $sourceController, string $sourceAction, string $menuID, array $config = []): void
+    {
+        $this->endpoints[$sourceController][$sourceAction]['actionMenu'][$menuID] = $config;
     }
 
     public function getRouteConfig($controller, $action, $fullRoute = false)

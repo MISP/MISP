@@ -1,6 +1,8 @@
 <?php
 
 use Cake\Routing\Router;
+use Cake\Utility\Inflector;
+
 ?>
 
 <div class="action-bar d-flex flex-nowrap flex-row mt-2 mb-1 rounded">
@@ -8,6 +10,7 @@ use Cake\Routing\Router;
         if (!empty($actions)) {
             echo '<div>';
             $badgeNumber = 0;
+            $actionsInMenu = [];
             foreach ($actions as $i => $actionEntry) {
                 if (!empty($actionEntry['url_vars'])) {
                     $actionEntry['url'] = $this->DataFromPath->buildStringFromDataPath($actionEntry['url'], $entity, $actionEntry['url_vars']);
@@ -23,19 +26,50 @@ use Cake\Routing\Router;
                     $onclickFunction = sprintf('UI.overlayUntilResolve(this, UI.modalFromUrl(\'%s\'))', h(Router::url($actionEntry['url'])));
                 }
                 $buttonBadge = !empty($actionEntry['badge']) ? $this->Bootstrap->badge($actionEntry['badge']) : '';
-                echo $this->Bootstrap->button([
+                $buttonConfig = [
                     'text' => h($actionEntry['label']),
                     'icon' => h($actionEntry['icon'] ?? false),
                     'variant' => $actionEntry['variant'] ?? 'primary',
                     'class' => ['text-nowrap'],
                     'onclick' => $onclickFunction,
-                ], $buttonBadge);
+                    'badge' => $buttonBadge,
+                ];
+                if (!empty($actionEntry['menu'])) {
+                    $actionsInMenu[$actionEntry['menu']][] = $buttonConfig;
+                } else {
+                    echo $this->Bootstrap->button($buttonConfig, $buttonBadge);
+                }
+            }
+            if (!empty($actionsInMenu)) {
+                foreach ($actionsInMenu as $menuID => $actions) {
+                    $defaultMenuConfig = [
+                        'text' => Inflector::humanize($menuID),
+                        'variant' => 'primary',
+                        'outline' => true,
+                    ];
+                    $menuConfig = array_merge($defaultMenuConfig, $actionMenu[$menuID] ?? []);
+                    $menuConfig['text'] = $menuConfig['label'] ?: $menuConfig['text'];
+                    $actions = array_map(function($action) {
+                        $action['outline'] = true;
+                        return $action;
+                    }, $actions);
+                    echo $this->Bootstrap->dropdownMenu([
+                        'dropdown-class' => '',
+                        'alignment' => 'start',
+                        'direction' => 'down',
+                        'button' => $menuConfig,
+                        'submenu_direction' => 'end',
+                        'attrs' => [],
+                        'menu' => $actions,
+                    ]);
+                }
             }
             echo '</div>';
         }
 
         if (!empty($links)) {
             $goToLinks = [];
+            $linksInMenu = [];
             echo '<div class="ms-auto">';
             echo '<div class="d-flex gap-1">';
             foreach ($links as $i => $linkEntry) {
@@ -60,7 +94,7 @@ use Cake\Routing\Router;
                 } else {
                     $url = Router::url($linkEntry['url']);
                 }
-                echo $this->Bootstrap->button([
+                $buttonConfig = [
                     'nodeType' => 'a',
                     'text' => $linkEntry['label'],
                     'icon' => $linkEntry['icon'],
@@ -71,7 +105,36 @@ use Cake\Routing\Router;
                     'attrs' => [
                         'href' => $url,
                     ],
-                ]);
+                ];
+                if (!empty($linkEntry['menu'])) {
+                    $linksInMenu[$linkEntry['menu']][] = $buttonConfig;
+                } else {
+                    echo $this->Bootstrap->button($buttonConfig, $buttonBadge);
+                }
+            }
+            if (!empty($linksInMenu)) {
+                foreach ($linksInMenu as $menuID => $links) {
+                    $defaultMenuConfig = [
+                        'text' => Inflector::humanize($menuID),
+                        'variant' => 'secondary',
+                        'outline' => true,
+                    ];
+                    $menuConfig = array_merge($defaultMenuConfig, $linkMenu[$menuID] ?? []);
+                    $menuConfig['text'] = $menuConfig['label'] ?: $menuConfig['text'];
+                    $links = array_map(function($link) {
+                        $action['outline'] = true;
+                        return $link;
+                    }, $links);
+                    echo $this->Bootstrap->dropdownMenu([
+                        'dropdown-class' => '',
+                        'alignment' => 'end',
+                        'direction' => 'down',
+                        'button' => $menuConfig,
+                        'submenu_direction' => 'end',
+                        'attrs' => [],
+                        'menu' => $links,
+                    ]);
+                }
             }
             echo '</div>';
 

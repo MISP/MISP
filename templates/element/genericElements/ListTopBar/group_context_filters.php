@@ -59,7 +59,7 @@ if(!function_exists("generateFilterLinkConfiguration")) {
 
 
     $contextArray = [];
-    foreach ($data['context_filters'] as $filteringContext) {
+    foreach (($filteringContexts ?? []) as $filteringContext) {
         if (!empty($filteringContext['is_group'])) {
             $groupHasOneLinkActive = false;
             $activeGroupName = null;

@@ -66,6 +66,8 @@ echo $this->Breadcrumbs->render(
             'actions' => $lastCrumb['actions'] ?? [],
             'route_path' => $lastCrumb['route_path'],
             'goToMenu' => $lastCrumb['goToMenu'] ?? [],
+            'linkMenu' => $lastCrumb['linkMenu'] ?? [],
+            'actionMenu' => $lastCrumb['actionMenu'] ?? [],
         ]);
     ?>
 <?php // endif; ?>

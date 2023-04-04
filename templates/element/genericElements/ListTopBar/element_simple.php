@@ -47,7 +47,7 @@
         } else {
             $btnOptions['variant'] = 'secondary';
         }
-        $btnOptions['text'] = $data['button']['text'] ?? $data['text'];
+        $btnOptions['text'] = $data['button']['text'] ?? ($data['text'] ?? '');
         if (!empty($onClick)) {
             $btnOptions['onclick'] = $onClick;
         }
