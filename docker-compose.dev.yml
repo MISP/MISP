@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  php-fpm:
+    build:
+      context: .
+      dockerfile: docker/misp/Dockerfile
+      target: dev
+    volumes:
+      - ./bin:/var/www/html/bin
+      - ./config:/var/www/html/config
+      - ./libraries:/var/www/html/libraries
+      - ./plugins:/var/www/html/plugins
+      - ./src:/var/www/html/src
+      - ./templates:/var/www/html/templates
+      - ./tests:/var/www/html/tests
+      - ./tools:/var/www/html/tools
+      - ./webroot:/var/www/html/webroot
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  nginx:
+    volumes:
+      - ./webroot:/var/www/html/webroot
