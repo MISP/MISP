@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  php-fpm:
+  misp:
     build:
       context: .
       dockerfile: docker/misp/Dockerfile

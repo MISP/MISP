@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  php-fpm:
+  misp:
     image: misp3/php:8.2-fpm
     build:
       context: .
@@ -31,7 +31,6 @@ services:
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile
-      target: prod
     restart: unless-stopped
     ports:
       - "80:80"
@@ -40,7 +39,7 @@ services:
       - ./docker/nginx/certs:/etc/nginx/certs
     entrypoint: /usr/local/bin/entrypoint.sh
     depends_on:
-      - php-fpm
+      - misp
     networks:
       - frontend-network
     healthcheck:
