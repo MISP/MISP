@@ -8,11 +8,10 @@ services:
       dockerfile: docker/misp/Dockerfile
       target: prod
     restart: unless-stopped
-    tty: true
     environment:
-      MISP_DB: misp
-      MISP_DB_USER: misp
-      MISP_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      MISP_DB: ${MYSQL_DATABASE:-misp}
+      MISP_DB_USER: ${MYSQL_USER:-misp}
+      MISP_DB_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - ./docker/misp/config/app_local.php:/var/www/html/config/app_local.php
       - ./docker/misp/logs:/var/www/html/logs
@@ -32,6 +31,8 @@ services:
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile
+      target: prod
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
@@ -48,22 +49,25 @@ services:
       timeout: 10s
       retries: 5
 
+
   db:
-    image: postgres:13
-    restart: always
+    image: mariadb:10
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: misp
-      POSTGRES_USER: misp
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-misp}
+      MYSQL_USER: ${MYSQL_USER:-misp}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./docker/db/misp-2.4.169.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - backend-network
     healthcheck:
-      test: "pg_isready --username=$$POSTGRES_USER --dbname=$$POSTGRES_DB"
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   redis:
     image: redis:7
@@ -80,3 +84,4 @@ networks:
 
 volumes:
   db_data:
+    

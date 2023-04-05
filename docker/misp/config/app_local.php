@@ -25,18 +25,7 @@ return [
      * Development Mode:
      * true: Errors and warnings shown.
      */
-    'debug' => filter_var(env('DEBUG', true), FILTER_VALIDATE_BOOLEAN),
-
-    /*
-     * Security and encryption configuration
-     *
-     * - salt - A random string used in security hashing methods.
-     *   The salt value is also used as the encryption key.
-     *   You should treat it as extremely sensitive data.
-     */
-    'Security' => [
-        'salt' => env('SECURITY_SALT', '__SALT__'),
-    ],
+    'debug' => filter_var(env('DEBUG', false), FILTER_VALIDATE_BOOLEAN),
 
     /*
      * Connection information used by the ORM to connect
@@ -46,7 +35,6 @@ return [
      */
     'Datasources' => [
         'default' => [
-            'driver' => 'Postgres',
             'host' => 'db',
             /*
              * CakePHP will use the default DB port based on the driver selected
@@ -56,28 +44,27 @@ return [
             //'port' => 'non_standard_port_number',
 
             'username' => env('MISP_DB_USER', 'misp'),
-            'password' => env('MISP_DB_USER'),
-            'database' => env('MISP_DB', 'misp'),
+            'password' => env('MISP_DB_PASSWORD'),
+            'database' => env('MISP_DB', 'misp3'),
             /**
-             * If not using the default 'public' schema with the PostgreSQL driver
-             * set it here.
-             */
+         * If not using the default 'public' schema with the PostgreSQL driver
+         * set it here.
+         */
             //'schema' => 'myapp',
 
             /**
-             * You can use a DSN string to set the entire configuration
-             */
+         * You can use a DSN string to set the entire configuration
+         */
             // 'url' => env('DATABASE_URL', null),
         ],
         /*
          * The test connection is used during the test suite.
          */
         'test' => [
-            'driver' => 'Postgres',
             'host' => 'db',
             'username' => 'misp',
             'password' => 'misp',
-            'database' => 'misp_test',
+            'database' => 'misp3_test',
         ],
     ],
 

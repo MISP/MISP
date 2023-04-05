@@ -18,7 +18,15 @@ services:
       - ./webroot:/var/www/html/webroot
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    environment:
+      - UID=${UID:-1000}
+      - GID=${GID:-1000}
+      - DEBUG=${DEBUG:-1}
 
   nginx:
     volumes:
       - ./webroot:/var/www/html/webroot
+
+  db:
+    ports:
+      - "3306:3306"
