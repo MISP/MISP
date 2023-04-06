@@ -2499,7 +2499,6 @@ class Attribute extends AppModel
             }
         }
         if (isset($attribute['breakOnDuplicate']) && $attribute['breakOnDuplicate'] === false) {
-            $this->data['Attribute'];
             unset($this->validate['value']['uniqueValue']);
         }
         if (!$this->save(['Attribute' => $attribute], $params)) {
