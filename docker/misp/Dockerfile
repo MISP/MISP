@@ -13,7 +13,10 @@ RUN apt-get -y update \
     && apt-get install -y libicu-dev libpq-dev \
     && docker-php-ext-configure intl \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-    && docker-php-ext-install intl pdo pdo_mysql mysqli
+    && docker-php-ext-install intl pdo pdo_mysql mysqli \
+    && apt-get remove -y --purge libicu-dev && \
+    && apt-get clean \
+	&& rm -rf /var/lib/apt/lists/*
 
 # Copy custom php-fpm config file
 COPY docker/misp/config/php-fpm.conf /usr/local/etc/php-fpm.conf
@@ -55,7 +58,9 @@ RUN pecl install -f xdebug \
 # Install additional packages
 RUN apt-get update \
     && apt-get install -y \
-    git
+    git \
+    && apt-get clean \
+	&& rm -rf /var/lib/apt/lists/*
 
 # Write Xdebug configuration
 RUN echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
@@ -83,7 +88,9 @@ USER root
 # Install additional packages
 RUN apt-get update \
     && apt-get install -y \
-    git
+    git \
+    && apt-get clean \
+	&& rm -rf /var/lib/apt/lists/*
 
 # Clone MISP repository
 RUN git clone --branch ${MISP_TAG_OR_BRANCH} --depth 1 https://github.com/MISP/MISP.git /var/www/html

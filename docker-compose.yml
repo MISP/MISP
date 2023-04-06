@@ -13,9 +13,13 @@ services:
       MISP_DB: ${MYSQL_DATABASE:-misp}
       MISP_DB_USER: ${MYSQL_USER:-misp}
       MISP_DB_PASSWORD: ${MYSQL_PASSWORD}
+      ADMIN_ORG: ${ADMIN_ORG:-ORGNAME}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:admin@admin.test}
+      ADMIN_KEY: ${ADMIN_KEY}
+      GPG_PASSPHRASE: ${GPG_PASSPHRASE}
     volumes:
-      - ./docker/misp/config/app_local.php:/var/www/html/config/app_local.php
-      - ./docker/misp/logs:/var/www/html/logs
+      - ./docker/misp/config/app_local.php:/var/www/html/config/app_local.php:delegated
+      - ./docker/misp/logs:/var/www/html/logs:delegated
     networks:
       - backend-network
       - frontend-network
@@ -27,7 +31,7 @@ services:
       timeout: 10s
       retries: 5
 
-  nginx:
+  webserver:
     image: misp3/nginx
     build:
       context: .
@@ -37,7 +41,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./docker/nginx/certs:/etc/nginx/certs
+      - ./docker/nginx/certs:/etc/nginx/certs:delegated
     entrypoint: /usr/local/bin/entrypoint.sh
     depends_on:
       - misp
