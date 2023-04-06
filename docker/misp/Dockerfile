@@ -2,6 +2,9 @@
 FROM php:8.2-fpm AS base
 ARG MISP_TAG_OR_BRANCH
 
+# Install Composer
+FROM composer:latest AS composer
+COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 USER root
 
@@ -17,9 +20,6 @@ COPY docker/misp/config/php-fpm.conf /usr/local/etc/php-fpm.conf
 
 # Set working directory
 WORKDIR /var/www/html
-
-# Install Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Set permissions for log file
 RUN touch /var/run/php-fpm.pid /var/log/php-fpm.error.log /var/log/php-fpm.slow.log \
