@@ -1,4 +1,4 @@
-FROM nginx:1.23.4
+FROM nginx:1.23
 
 # Copy nginx.conf to container
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
