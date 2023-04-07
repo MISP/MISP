@@ -2498,7 +2498,7 @@ class Attribute extends AppModel
                 unset($attribute['sharing_group_id']);
             }
         }
-        if (isset($attribute['breakOnDuplicate']) && $attribute['breakOnDuplicate'] === false) {
+        if (isset($this->data['Attribute']['breakOnDuplicate']) && $this->data['Attribute']['breakOnDuplicate'] === false) {
             unset($this->validate['value']['uniqueValue']);
         }
         if (!$this->save(['Attribute' => $attribute], $params)) {
