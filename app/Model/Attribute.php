@@ -736,7 +736,7 @@ class Attribute extends AppModel
             return true;
         }
 
-        $existingAttribute = $this->findAttributeByValue($fields['value']);
+        $existingAttribute = $this->findAttributeByValue($this->data['Attribute']);
 
         return empty($existingAttribute);
     }
@@ -2482,8 +2482,9 @@ class Attribute extends AppModel
         if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = $this->defaultDistribution();
         }
+        $breakOnDuplicate = true;
         if (isset($params['breakOnDuplicate'])) {
-            $this->data['Attribute']['breakOnDuplicate'] = (bool)$params['breakOnDuplicate'];
+            $breakOnDuplicate = (bool)$params['breakOnDuplicate'];
         }
         $params = array(
             'fieldList' => self::CAPTURE_FIELDS,
@@ -2498,8 +2499,15 @@ class Attribute extends AppModel
                 unset($attribute['sharing_group_id']);
             }
         }
-        if (isset($this->data['Attribute']['breakOnDuplicate']) && $this->data['Attribute']['breakOnDuplicate'] === false) {
+        // if breakOnDuplicate=false, try to find the existing attribute by value and set the id and uuid
+        if ($breakOnDuplicate === false) {
             unset($this->validate['value']['uniqueValue']);
+            $existingAttribute = $this->findAttributeByValue($attribute);
+            if (!empty($existingAttribute)) {
+                $attribute['id'] = $existingAttribute['Attribute']['id'];
+                $attribute['uuid'] = $existingAttribute['Attribute']['uuid'];
+                $this->id = $attribute['id'];
+            }
         }
         if (!$this->save(['Attribute' => $attribute], $params)) {
             $this->logDropped($user, $attribute);
@@ -3513,30 +3521,30 @@ class Attribute extends AppModel
         );
     }
 
-    private function findAttributeByValue($value)
+    private function findAttributeByValue($attribute)
     {
-        $type = $this->data['Attribute']['type'];
+        $type = $attribute['type'];
         $conditions = [
-            'Attribute.event_id' => $this->data['Attribute']['event_id'],
+            'Attribute.event_id' => $attribute['event_id'],
             'Attribute.type' => $type,
             'Attribute.deleted' => 0,
             'Attribute.object_id' => 0,
         ];
 
-        if (isset($this->data['Attribute']['category'])) {
-            $conditions['Attribute.category'] = $this->data['Attribute']['category'];
+        if (isset($attribute['category'])) {
+            $conditions['Attribute.category'] = $attribute['category'];
         }
 
         if (in_array($type, $this->getCompositeTypes(), true)) {
-            $value = explode('|', $value);
+            $value = explode('|', $attribute['value']);
             $conditions['Attribute.value1'] = $value[0];
             $conditions['Attribute.value2'] = $value[1];
         } else {
-            $conditions['Attribute.value1'] = $value;
+            $conditions['Attribute.value1'] = $attribute['value'];
         }
 
-        if (isset($this->data['Attribute']['id'])) {
-            $conditions['Attribute.id !='] = $this->data['Attribute']['id'];
+        if (isset($attribute['id'])) {
+            $conditions['Attribute.id !='] = $attribute['id'];
         }
 
         return $this->find('first', [
@@ -3544,34 +3552,5 @@ class Attribute extends AppModel
             'conditions' => $conditions,
             'fields' => ['Attribute.id', 'Attribute.uuid']
         ]);
-    }
-
-    /**
-     * If there is no id set but attribute value is set, check if the attribute already exists (by value) 
-     *
-     * {@inheritdoc }
-     *
-     * @param int|string $id ID of record to check for existence
-     * @return bool True if such a record exists
-     */
-    public function exists($id = null)
-    {
-        if (!isset($this->data['Attribute']['breakOnDuplicate']) || $this->data['Attribute']['breakOnDuplicate'] !== false) {
-            return parent::exists($id);
-        }
-
-        // find existing attribute by value
-        if (empty($id) && isset($this->data['Attribute']['value'])) {
-            $existingAttribute = $this->findAttributeByValue($this->data['Attribute']['value']);
-            if (!empty($existingAttribute)) {
-                $this->id = $existingAttribute['Attribute']['id'];
-                $this->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
-                $this->data['Attribute']['uuid'] = $existingAttribute['Attribute']['uuid'];
-
-                return true;
-            }
-        }
-
-        return parent::exists($id);
     }
 }
