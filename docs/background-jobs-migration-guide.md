@@ -46,6 +46,7 @@ Run on your MISP instance the following commands.
     directory=/var/www/MISP
     command=/var/www/MISP/app/Console/cake start_worker default
     process_name=%(program_name)s_%(process_num)02d
+    startsecs=0
     numprocs=5
     autostart=true
     autorestart=true
@@ -59,6 +60,7 @@ Run on your MISP instance the following commands.
     directory=/var/www/MISP
     command=/var/www/MISP/app/Console/cake start_worker prio
     process_name=%(program_name)s_%(process_num)02d
+    startsecs=0
     numprocs=5
     autostart=true
     autorestart=true
@@ -72,6 +74,7 @@ Run on your MISP instance the following commands.
     directory=/var/www/MISP
     command=/var/www/MISP/app/Console/cake start_worker email
     process_name=%(program_name)s_%(process_num)02d
+    startsecs=0
     numprocs=5
     autostart=true
     autorestart=true
@@ -85,6 +88,7 @@ Run on your MISP instance the following commands.
     directory=/var/www/MISP
     command=/var/www/MISP/app/Console/cake start_worker update
     process_name=%(program_name)s_%(process_num)02d
+    startsecs=0
     numprocs=1
     autostart=true
     autorestart=true
@@ -98,6 +102,7 @@ Run on your MISP instance the following commands.
     directory=/var/www/MISP
     command=/var/www/MISP/app/Console/cake start_worker cache
     process_name=%(program_name)s_%(process_num)02d
+    startsecs=0
     numprocs=5
     autostart=true
     autorestart=true
