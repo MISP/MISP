@@ -35,6 +35,9 @@ use Cake\Utility\Inflector;
                     'badge' => $buttonBadge,
                 ];
                 if (!empty($actionEntry['menu'])) {
+                    if (!empty($actionEntry['menu_primary'])) {
+                        $buttonConfig['_menu_primary'] = $actionEntry['menu_primary'];
+                    }
                     $actionsInMenu[$actionEntry['menu']][] = $buttonConfig;
                 } else {
                     echo $this->Bootstrap->button($buttonConfig, $buttonBadge);
@@ -47,8 +50,18 @@ use Cake\Utility\Inflector;
                         'variant' => 'primary',
                         'outline' => true,
                     ];
-                    $menuConfig = array_merge($defaultMenuConfig, $actionMenu[$menuID] ?? []);
-                    $menuConfig['text'] = $menuConfig['label'] ?: $menuConfig['text'];
+                    $actionMenuRootConfig = $actionMenu[$menuID] ?? [];
+                    if (empty($actionMenuRootConfig)) {
+                        $primaryItem = array_filter($actions, function ($action) {
+                            return !empty($action['_menu_primary']);
+                        });
+                        if (!empty($primaryItem)) {
+                            $actionMenuRootConfig = $primaryItem[0];
+                            $actionMenuRootConfig['split'] = true;
+                        }
+                    }
+                    $menuConfig = array_merge($defaultMenuConfig, $actionMenuRootConfig);
+                    $menuConfig['text'] = $menuConfig['label'] ?? $menuConfig['text'];
                     $actions = array_map(function($action) {
                         $action['outline'] = true;
                         return $action;
