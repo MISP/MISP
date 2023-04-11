@@ -379,6 +379,7 @@ a.sidebar-link > i.sidebar-icon .stacked-sidebar-icon {
 ul.sidebar-elements li.parent .sub-menu > li > a.sidebar-link > .sidebar-icon {
     margin-right: 8px;
     width: 14px;
+    text-align: center;
 }
 
 ul.sidebar-elements > li > a.sidebar-link > .sidebar-icon {
@@ -692,4 +693,10 @@ ul.sidebar-elements > li.category > span.category-divider > hr {
         mask-position: 0 0, 0 0, 6px 0, 12px 0;
         -webkit-mask-position: 0 0, 0 0, 6px 0, 12px 0;
     }
+}
+
+/* Others */
+.dropdown-menu .dropdown-item > .dropdown-item-icon {
+    width: 16px;
+    text-align: center;
 }

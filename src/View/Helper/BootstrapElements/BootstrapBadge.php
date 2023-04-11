@@ -38,13 +38,15 @@ class BootstrapBadge extends BootstrapGeneric
         'class' => [],
         'attrs' => [],
     ];
+    private $bsHelper;
 
-    function __construct(array $options)
+    function __construct(array $options, $bsHelper)
     {
         $this->allowedOptionValues = [
             'variant' => BootstrapGeneric::$variants,
         ];
         $this->processOptions($options);
+        $this->bsHelper = $bsHelper;
     }
 
     private function processOptions(array $options): void
@@ -82,7 +84,7 @@ class BootstrapBadge extends BootstrapGeneric
         if (!empty($this->options['icon'])) {
             $bsIcon = new BootstrapIcon($this->options['icon'], [
                 'class' => [(!empty($this->options['text']) ? 'me-1' : '')]
-            ]);
+            ], $this->bsHelper);
             return $bsIcon->icon();
         }
         return '';

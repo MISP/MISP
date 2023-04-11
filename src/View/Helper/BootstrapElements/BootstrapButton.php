@@ -50,10 +50,11 @@ class BootstrapButton extends BootstrapGeneric
         'onclick' => false,
         'attrs' => [],
     ];
+    private $bsHelper;
 
     private $bsClasses = [];
 
-    function __construct(array $options)
+    function __construct(array $options, $bsHelper)
     {
         $this->allowedOptionValues = [
             'variant' => array_merge(BootstrapGeneric::$variants, ['link', 'text']),
@@ -61,6 +62,7 @@ class BootstrapButton extends BootstrapGeneric
             'type' => ['button', 'submit', 'reset']
         ];
         $this->processOptions($options);
+        $this->bsHelper = $bsHelper;
     }
 
     private function processOptions(array $options): void
@@ -109,7 +111,7 @@ class BootstrapButton extends BootstrapGeneric
         $html .= $this->genImage();
         $html .= $this->options['html'] ?? h($this->options['text']);
         if (!empty($this->options['badge'])) {
-            $bsBadge = new BootstrapBadge($this->options['badge']);
+            $bsBadge = new BootstrapBadge($this->options['badge'], $this->bsHelper);
             $html .= $bsBadge->badge();
         }
         $html .= $this->nodeClose($this->options['nodeType']);
@@ -121,7 +123,7 @@ class BootstrapButton extends BootstrapGeneric
         if (!empty($this->options['icon'])) {
             $bsIcon = new BootstrapIcon($this->options['icon'], [
                 'class' => [(!empty($this->options['text']) ? 'me-1' : '')]
-            ]);
+            ], $this->bsHelper);
             return $bsIcon->icon();
         }
         return '';

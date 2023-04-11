@@ -49,7 +49,7 @@ const COMPACT_ATTRIBUTES = [
 
 class BootstrapHelper extends Helper
 {
-    public $helpers = ['FontAwesome'];
+    public $helpers = ['FontAwesome', 'Icon'];
 
     /**
      * Creates a Bootstrap tabs from the given options
@@ -109,20 +109,20 @@ class BootstrapHelper extends Helper
      */
     public function button(array $options): string
     {
-        $bsButton = new BootstrapButton($options);
+        $bsButton = new BootstrapButton($options, $this);
         return $bsButton->button();
     }
 
     /**
      * Creates a Bootstrap tabs from the given options
      *
-     * @param string $icon See BootstrapElements\BootstrapTabs
+     * @param $icon The icon options. See IconHelper\icon
      * @param array $options See BootstrapElements\BootstrapTabs
      * @return string
      */
-    public function icon(string $icon, array $options = []): string
+    public function icon($icon, array $options = []): string
     {
-        $bsIcon = new BootstrapIcon($icon, $options);
+        $bsIcon = new BootstrapIcon($icon, $options, $this);
         return $bsIcon->icon();
     }
 
@@ -134,7 +134,7 @@ class BootstrapHelper extends Helper
      */
     public function badge(array $options): string
     {
-        $bsBadge = new BootstrapBadge($options);
+        $bsBadge = new BootstrapBadge($options, $this);
         return $bsBadge->badge();
     }
 
@@ -146,7 +146,7 @@ class BootstrapHelper extends Helper
      */
     public function modal(array $options): string
     {
-        $bsModal = new BootstrapModal($options);
+        $bsModal = new BootstrapModal($options, $this);
         return $bsModal->modal();
     }
 

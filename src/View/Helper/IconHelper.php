@@ -11,10 +11,13 @@ class IconHelper extends Helper
 
     public function icon($icon)
     {
-        if (!empty($icon['icons'])) {
+        if (!empty($icon['icons']) || !empty($icon['stacked'])) {
+            if (!empty($icon['stacked'])) {
+                $icon['icons'] = $icon['stacked'];
+            }
             return $this->stackedIcons($icon);
         } else if (!empty($icon['image'])) {
-            return $this->image($icon['image']);
+            return $this->image($icon);
         } else if (!empty($icon['html'])) {
             return $this->rawHtml($icon['html']);
         }
@@ -57,7 +60,7 @@ class IconHelper extends Helper
         return $this->Bootstrap->node('img', [
             'class' => h($image['class'] ?? ''),
             'style' => h($image['style'] ?? ''),
-            'src' => h($image['src'] ?? ''),
+            'src' => h($image['image'] ?? ''),
             'title' => h($image['title'] ?? null)
         ]);
     }

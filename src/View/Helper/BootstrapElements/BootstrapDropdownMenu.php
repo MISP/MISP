@@ -185,14 +185,14 @@ class BootstrapDropdownMenu extends BootstrapGeneric
         $classes = [];
         $icon = '';
         if (!empty($entry['icon'])) {
-            $icon = $this->btHelper->icon($entry['icon'], ['class' => 'me-2']);
+            $icon = $this->btHelper->icon($entry['icon'], ['class' => 'me-1 dropdown-item-icon']);
         }
         $badge = '';
         if (!empty($entry['badge'])) {
             $bsBadge = new BootstrapBadge(array_merge(
                 ['class' => ['ms-auto']],
                 $entry['badge']
-            ));
+            ), $this->btHelper);
             $badge = $bsBadge->badge();
         }
 

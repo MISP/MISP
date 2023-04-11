@@ -74,7 +74,7 @@
                             'class' => 'position-relative sidebar-icon',
                         ], $stackedIcons);
                     } else if (!empty($icon['image'])) {
-                        $icon['image']['class'] = sprintf('%s %s', $icon['class'] ?? '', 'sidebar-icon image-sidebar-icon');
+                        $icon['class'] = sprintf('%s %s', $icon['class'] ?? '', 'sidebar-icon image-sidebar-icon');
                         echo $this->Icon->icon($icon);
                     } else {
                         $icon = ['icon' => $icon];

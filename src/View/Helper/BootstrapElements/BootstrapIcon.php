@@ -19,7 +19,10 @@ use App\View\Helper\BootstrapGeneric;
  */
 class BootstrapIcon extends BootstrapGeneric
 {
+    public $helpers = ['Icon'];
+    
     private $icon = '';
+    private $bsHelper;
     private $defaultOptions = [
         'id' => '',
         'class' => [],
@@ -27,10 +30,11 @@ class BootstrapIcon extends BootstrapGeneric
         'attrs' => [],
     ];
 
-    function __construct(string $icon, array $options = [])
+    function __construct($icon, array $options = [], $bsHelper)
     {
         $this->icon = $icon;
         $this->processOptions($options);
+        $this->bsHelper = $bsHelper;
     }
 
     private function processOptions(array $options): void
@@ -47,17 +51,18 @@ class BootstrapIcon extends BootstrapGeneric
 
     private function genIcon(): string
     {
-        $html = $this->node('span', array_merge(
-            [
-                'id' => $this->options['id'] ?? '',
-                'class' => array_merge(
-                    $this->options['class'],
-                    ["fa fa-{$this->icon}"]
-                ),
-                'title' => h($this->options['title'])
-            ],
-            $this->options['attrs']
-        ));
+        $options = [
+            'id' => $this->options['id'] ?? '',
+            'class' => implode('', $this->options['class']),
+            'title' => h($this->options['title']),
+        ];
+        $options = array_merge($this->options['attrs'], $options);
+        if (is_array($this->icon)) {
+            $options = array_merge($options, $this->icon);
+        } else {
+            $options = array_merge($options, ['icon' => $this->icon]);
+        }
+        $html = $this->bsHelper->Icon->icon($options);
         return $html;
     }
 }

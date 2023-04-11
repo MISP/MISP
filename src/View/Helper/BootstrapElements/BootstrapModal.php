@@ -156,8 +156,9 @@ class BootstrapModal extends BootstrapGeneric
         'confirmFunction' => '', // Will be called with the following arguments confirmFunction(modalObject, tmpApi)
         'cancelOnclick' => ''
     ];
+    private $bsHelper;
 
-    function __construct(array $options)
+    function __construct(array $options, $bsHelper)
     {
         $this->allowedOptionValues = [
             'size' => ['sm', 'lg', 'xl', ''],
@@ -167,6 +168,7 @@ class BootstrapModal extends BootstrapGeneric
             'footer-variant' =>  array_merge(BootstrapGeneric::$variants, ['']),
         ];
         $this->processOptions($options);
+        $this->bsHelper = $bsHelper;
     }
 
     private function processOptions(array $options): void
@@ -289,7 +291,7 @@ class BootstrapModal extends BootstrapGeneric
             'attrs' => [
                 'data-bs-dismiss' => $this->options['confirmOnclick'] ?? 'modal',
             ],
-        ]))->button();
+        ], $this->bsHelper))->button();
     }
 
     private function getFooterConfirm(): string
@@ -304,7 +306,7 @@ class BootstrapModal extends BootstrapGeneric
             ],
             $this->options['cancelButton'],
         );
-        $buttonCancel = (new BootstrapButton($buttonCancelConfig))->button();
+        $buttonCancel = (new BootstrapButton($buttonCancelConfig, ), $this->bsHelper)->button();
 
         $defaultConfig = [
             'variant' => 'primary',
@@ -320,7 +322,7 @@ class BootstrapModal extends BootstrapGeneric
             $defaultConfig,
             $this->options['confirmButton'],
         );
-        $buttonConfirm = (new BootstrapButton($buttonConfirmConfig))->button();
+        $buttonConfirm = (new BootstrapButton($buttonConfirmConfig, $this->bsHelper))->button();
         return $buttonCancel . $buttonConfirm;
     }
 
@@ -342,7 +344,7 @@ class BootstrapModal extends BootstrapGeneric
                 $defaultConfig,
                 $buttonConfig,
             );
-            $buttons[] = (new BootstrapButton($buttonConfig))->button();
+            $buttons[] = (new BootstrapButton($buttonConfig, $this->bsHelper))->button();
         }
         return implode('', $buttons);
     }
