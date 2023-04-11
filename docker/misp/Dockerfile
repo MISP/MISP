@@ -1,22 +1,23 @@
+# Install Composer
+FROM composer:latest AS composer
+
 # Base image with necessary extensions and configurations
 FROM php:8.2-fpm AS base
 ARG MISP_TAG_OR_BRANCH
 
-# Install Composer
-FROM composer:latest AS composer
-COPY --from=composer /usr/bin/composer /usr/bin/composer
-
 USER root
+
+# Copy Composer from Composer image
+COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 # Install additional PHP extensions
 RUN apt-get -y update \
-    && apt-get install -y libicu-dev libpq-dev \
+    && apt-get install -y libicu-dev libpq-dev zip libzip-dev default-mysql-client \
     && docker-php-ext-configure intl \
-    && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-    && docker-php-ext-install intl pdo pdo_mysql mysqli \
-    && apt-get remove -y --purge libicu-dev && \
+    && docker-php-ext-install intl pdo pdo_mysql mysqli zip \
+    && apt-get remove -y --purge libicu-dev libzip-dev \
     && apt-get clean \
-	&& rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy custom php-fpm config file
 COPY docker/misp/config/php-fpm.conf /usr/local/etc/php-fpm.conf
@@ -60,7 +61,7 @@ RUN apt-get update \
     && apt-get install -y \
     git \
     && apt-get clean \
-	&& rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Write Xdebug configuration
 RUN echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
@@ -76,7 +77,12 @@ RUN chown -R www-data:www-data /var/www/html
 
 # Install dependencies
 USER www-data
-RUN composer install --dev --no-cache
+RUN composer install --no-autoloader
+RUN composer dump-autoload --optimize && \
+    composer run-script post-install-cmd
+
+# Make cake shell executable
+RUN chmod +x /var/www/html/bin/cake
 
 USER root
 CMD ["php-fpm", "-F"]
@@ -90,7 +96,7 @@ RUN apt-get update \
     && apt-get install -y \
     git \
     && apt-get clean \
-	&& rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Clone MISP repository
 RUN git clone --branch ${MISP_TAG_OR_BRANCH} --depth 1 https://github.com/MISP/MISP.git /var/www/html
@@ -104,5 +110,8 @@ COPY docker/misp/config/php.ini /usr/local/etc/php/php.ini
 
 # Install only production dependencies
 RUN composer install --no-dev --optimize-autoloader --no-cache --no-interaction --no-progress --no-suggest --no-scripts
+
+# Make cake shell executable
+RUN chmod +x /var/www/html/bin/cake
 
 CMD ["php-fpm", "-F"]

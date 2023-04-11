@@ -13,13 +13,15 @@ services:
       MISP_DB: ${MYSQL_DATABASE:-misp}
       MISP_DB_USER: ${MYSQL_USER:-misp}
       MISP_DB_PASSWORD: ${MYSQL_PASSWORD}
-      ADMIN_ORG: ${ADMIN_ORG:-ORGNAME}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:admin@admin.test}
-      ADMIN_KEY: ${ADMIN_KEY}
+      ADMIN_ORG: ${ADMIN_ORG}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD}
+      ADMIN_USER_API_KEY: ${ADMIN_USER_API_KEY}
       GPG_PASSPHRASE: ${GPG_PASSPHRASE}
     volumes:
       - ./docker/misp/config/app_local.php:/var/www/html/config/app_local.php:delegated
       - ./docker/misp/logs:/var/www/html/logs:delegated
+    entrypoint: /usr/local/bin/entrypoint.sh
     networks:
       - backend-network
       - frontend-network
@@ -68,7 +70,8 @@ services:
     networks:
       - backend-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      # test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD", "mysql", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}", "-e", "SHOW DATABASES LIKE '${MYSQL_DATABASE}';"]
       interval: 10s
       timeout: 5s
       retries: 3

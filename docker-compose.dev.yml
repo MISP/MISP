@@ -19,11 +19,14 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - UID=${UID:-1000}
-      - GID=${GID:-1000}
-      - DEBUG=${DEBUG:-1}
+      UID: ${UID:-1000}
+      GID: ${GID:-1000}
+      DEBUG: ${DEBUG:-1}
+      ADMIN_ORG: ${ADMIN_ORG:-ORGNAME}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@admin.test}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-admin}
 
-  nginx:
+  webserver:
     volumes:
       - ./webroot:/var/www/html/webroot
 

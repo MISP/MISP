@@ -1632,16 +1632,6 @@ CREATE TABLE "organisations" (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table "organisations"
---
-
-LOCK TABLES "organisations" WRITE;
-/*!40000 ALTER TABLE "organisations" DISABLE KEYS */;
-INSERT INTO "organisations" VALUES (1,'ORGNAME','2023-04-05 08:56:40','2023-04-05 08:56:40','Automatically generated admin organisation','ADMIN','','',0,'a1f2be0f-73a4-4b4a-9a87-26a8ae0511fb',NULL,1,NULL,NULL);
-/*!40000 ALTER TABLE "organisations" ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table "over_correlating_values"
 --
 
