@@ -376,12 +376,12 @@ a.sidebar-link > i.sidebar-icon .stacked-sidebar-icon {
     max-width: 2.5em;
 }
 
-ul.sidebar-elements li.parent .sub-menu > li > a.sidebar-link > i.sidebar-icon {
+ul.sidebar-elements li.parent .sub-menu > li > a.sidebar-link > .sidebar-icon {
     margin-right: 8px;
     width: 14px;
 }
 
-ul.sidebar-elements > li > a.sidebar-link > i.sidebar-icon {
+ul.sidebar-elements > li > a.sidebar-link > .sidebar-icon {
     margin-right: 10px;
     font-size: 1.2em;
     min-width: 25px;

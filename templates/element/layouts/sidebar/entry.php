@@ -65,27 +65,23 @@
             href="<?= h($url) ?>"
             <?= $hasActiveChild ? 'aria-expanded="true"' : '' ?>
         >
-        <?php if (is_array($icon)):?>
-            <i class="position-relative sidebar-icon">
-                <?php if (!empty($icon['stacked'])):?>
-                    <?=
-                        sprintf('<span class="fa-stack fa-stack-small stacked-sidebar-icon">%s%s</span>',
-                            $this->Bootstrap->node('span', [
-                                'class' => sprintf('fas fa-stack-2x fa-%s %s', h($icon['stacked'][0]['icon'] ?? ''), h($icon['stacked'][0]['class'] ?? '')),
-                                'style' => h($icon['stacked'][0]['style'] ?? ''),
-                            ]),
-                            $this->Bootstrap->node('span', [
-                                'class' => sprintf('fas fa-stack-1x fa-%s %s', h($icon['stacked'][1]['icon'] ?? ''), h($icon['stacked'][1]['class'] ?? '')),
-                                'style' => h($icon['stacked'][1]['style'] ?? ''),
-                            ]),
-                        )
-                    ?>
-                <?php else: ?>
-                    <?= $icon['html'] ?? '' ?>
-                <?php endif; ?>
-        <?php else:?>
-            <i class="position-relative sidebar-icon <?= $this->FontAwesome->getClass($icon) ?>">
-        <?php endif;?>
+                <?php
+                    if (!empty($icon['stacked'])) {
+                        $icon = ['icons' => $icon['stacked']];
+                        $icon['class'] = 'stacked-sidebar-icon';
+                        $stackedIcons = $this->Icon->icon($icon);
+                        echo $this->Bootstrap->node('span', [
+                            'class' => 'position-relative sidebar-icon',
+                        ], $stackedIcons);
+                    } else if (!empty($icon['image'])) {
+                        $icon['image']['class'] = sprintf('%s %s', $icon['class'] ?? '', 'sidebar-icon image-sidebar-icon');
+                        echo $this->Icon->icon($icon);
+                    } else {
+                        $icon = ['icon' => $icon];
+                        $icon['class'] = 'position-relative sidebar-icon';
+                        echo $this->Icon->icon($icon);
+                    }
+                ?>
                 <?php
                 if ($childHasNotification || ($hasNotification && !empty($children))) {
                     echo $this->Bootstrap->notificationBubble([
