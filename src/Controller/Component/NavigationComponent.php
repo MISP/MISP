@@ -23,6 +23,7 @@ class NavigationComponent extends Component
     public $iconToTableMapping = [
         'Events' => 'envelope-open-text',
         'Attributes' => 'cube',
+        'Objects' => 'cubes',
         'PeriodicReport' => 'newspaper',
         'Dashboard' => 'chart-line',
         'Proposals' => 'pen-square',
@@ -122,6 +123,11 @@ class NavigationComponent extends Component
             ];
         }, $bookmarks);
         return $links;
+    }
+
+    public function getIconToTableMapping(): array
+    {
+        return $this->iconToTableMapping;
     }
 
     public function getBreadcrumb(): array
@@ -224,7 +230,7 @@ class NavigationComponent extends Component
 class BreadcrumbFactory
 {
     private $endpoints = [];
-    private $iconToTableMapping = [];
+    public $iconToTableMapping = [];
 
     public function __construct($iconToTableMapping)
     {
@@ -419,6 +425,16 @@ class BreadcrumbFactory
         $this->endpoints[$sourceController][$sourceAction]['actions'] = $links;
     }
 
+    /**
+     * Add a custom action to the action bar
+     *
+     * @param string $sourceController The source controller name
+     * @param string $sourceAction The source action name
+     * @param string $targetUrl The target URL for that action
+     * @param string $label The text to be displayed in the button
+     * @param array $overrides Optional overrides to apply on this action
+     * @return void
+     */
     public function addCustomAction(string $sourceController, string $sourceAction, string $targetUrl, string $label, $overrides = [])
     {
         $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
