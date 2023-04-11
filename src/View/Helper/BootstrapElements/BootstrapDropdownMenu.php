@@ -67,6 +67,8 @@ class BootstrapDropdownMenu extends BootstrapGeneric
         'submenu_classes' => [],
         'attrs' => [],
     ];
+    private $menu;
+    private $btHelper;
 
     function __construct(array $options, BootstrapHelper $btHelper)
     {
@@ -99,7 +101,10 @@ class BootstrapDropdownMenu extends BootstrapGeneric
 
     public function genDropdownWrapper(string $toggle = '', string $menu = '', $direction = null, $classes = null): string
     {
-        $classes = !is_null($classes) ? $classes :  $this->options['dropdown-class'];
+        $classes = !is_null($classes) ? $classes : $this->options['dropdown-class'];
+        if (!empty($this->options['button']['split'])) {
+            $classes[] = 'btn-group';
+        }
         $direction = !is_null($direction) ? $direction : $this->options['direction'];
         $content = $toggle . $menu;
         $html = $this->node('div', array_merge(
@@ -127,7 +132,26 @@ class BootstrapDropdownMenu extends BootstrapGeneric
             ]
         ];
         $options = array_merge_recursive($this->options['button'], $defaultOptions);
-        return $this->btHelper->button($options);
+        if (!empty($this->options['button']['split'])) {
+            $optionsMainButton = $options;
+            unset($optionsMainButton['attrs']['data-bs-toggle']);
+            unset($optionsMainButton['attrs']['aria-expanded']);
+            $optionsMainButton['class'] = array_filter($optionsMainButton['class'], function($classname) {
+                return $classname != 'dropdown-toggle';
+            });
+            $optionsSplitButton = [
+                'variant' => $options['variant'],
+                'outline' => $options['outline'],
+                'badge' => $options['badge'],
+                'class' => ['dropdown-toggle dropdown-toggle-split'],
+                'attrs' => $options['attrs'],
+            ];
+            $html = $this->btHelper->button($optionsMainButton);
+            $html .= $this->btHelper->button($optionsSplitButton);
+            return $html;
+        } else {
+            return $this->btHelper->button($options);
+        }
     }
 
     private function genDropdownMenu(array $entries, $alignment = null): string
