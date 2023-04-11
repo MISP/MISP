@@ -282,7 +282,7 @@ ul.sidebar-elements {
 
 .sidebar .lock-sidebar > a::before {
     content: "\f101";
-    font-family: 'Font Awesome 5 Free';
+    font-family: 'Font Awesome 6 Free';
     font-weight: 900;
     transition: margin-left 0.1s ease-out;
     margin-left: 0;
@@ -412,7 +412,7 @@ ul.sidebar-elements li.parent > a.sidebar-link::before {
     visibility: hidden;
     content: "\f104";
     float: right;
-    font-family: 'Font Awesome 5 Free';
+    font-family: 'Font Awesome 6 Free';
     font-weight: 900;
     font-size: 1rem;
     order: 6 !important;
