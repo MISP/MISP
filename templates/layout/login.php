@@ -16,6 +16,8 @@
     <?= $this->Html->css('login.css') ?>
     <?= $this->Html->css('main.css') ?>
     <?= $this->Html->css('font-awesome') ?>
+    <?= $this->Html->css('fa-brand') ?>
+    <?= $this->Html->css('fa-solid') ?>
     <?= $this->Html->script('jquery-3.5.1.min.js') ?>
     <?= $this->Html->script('popper.min.js') ?>
     <?= $this->Html->script('bootstrap.bundle.js') ?>
