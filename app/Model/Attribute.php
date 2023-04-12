@@ -736,29 +736,9 @@ class Attribute extends AppModel
             return true;
         }
 
-        $type = $this->data['Attribute']['type'];
-        $conditions = array(
-            'Attribute.event_id' => $this->data['Attribute']['event_id'],
-            'Attribute.type' => $type,
-            'Attribute.category' => $this->data['Attribute']['category'],
-            'Attribute.deleted' => 0,
-            'Attribute.object_id' => 0,
-        );
+        $existingAttribute = $this->findAttributeByValue($this->data['Attribute']);
 
-        $value = $fields['value'];
-        if (in_array($type, $this->getCompositeTypes(), true)) {
-            $value = explode('|', $value);
-            $conditions['Attribute.value1'] = $value[0];
-            $conditions['Attribute.value2'] = $value[1];
-        } else {
-            $conditions['Attribute.value1'] = $value;
-        }
-
-        if (isset($this->data['Attribute']['id'])) {
-            $conditions['Attribute.id !='] = $this->data['Attribute']['id'];
-        }
-
-        return !$this->hasAny($conditions);
+        return empty($existingAttribute);
     }
 
     public function validateTypeValue($fields)
@@ -2502,6 +2482,10 @@ class Attribute extends AppModel
         if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = $this->defaultDistribution();
         }
+        $breakOnDuplicate = true;
+        if (isset($params['breakOnDuplicate'])) {
+            $breakOnDuplicate = (bool)$params['breakOnDuplicate'];
+        }
         $params = array(
             'fieldList' => self::CAPTURE_FIELDS,
         );
@@ -2513,6 +2497,16 @@ class Attribute extends AppModel
         } elseif (!empty($attribute['sharing_group_id'])) {
             if (!$this->SharingGroup->checkIfAuthorised($user, $attribute['sharing_group_id'])) {
                 unset($attribute['sharing_group_id']);
+            }
+        }
+        // if breakOnDuplicate=false, try to find the existing attribute by value and set the id and uuid
+        if ($breakOnDuplicate === false) {
+            unset($this->validate['value']['uniqueValue']);
+            $existingAttribute = $this->findAttributeByValue($attribute);
+            if (!empty($existingAttribute)) {
+                $attribute['id'] = $existingAttribute['Attribute']['id'];
+                $attribute['uuid'] = $existingAttribute['Attribute']['uuid'];
+                $this->id = $attribute['id'];
             }
         }
         if (!$this->save(['Attribute' => $attribute], $params)) {
@@ -3525,5 +3519,38 @@ class Attribute extends AppModel
             // Not convinced about this.
             //'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
         );
+    }
+
+    private function findAttributeByValue($attribute)
+    {
+        $type = $attribute['type'];
+        $conditions = [
+            'Attribute.event_id' => $attribute['event_id'],
+            'Attribute.type' => $type,
+            'Attribute.deleted' => 0,
+            'Attribute.object_id' => 0,
+        ];
+
+        if (isset($attribute['category'])) {
+            $conditions['Attribute.category'] = $attribute['category'];
+        }
+
+        if (in_array($type, $this->getCompositeTypes(), true)) {
+            $value = explode('|', $attribute['value']);
+            $conditions['Attribute.value1'] = $value[0];
+            $conditions['Attribute.value2'] = $value[1];
+        } else {
+            $conditions['Attribute.value1'] = $attribute['value'];
+        }
+
+        if (isset($attribute['id'])) {
+            $conditions['Attribute.id !='] = $attribute['id'];
+        }
+
+        return $this->find('first', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => ['Attribute.id', 'Attribute.uuid']
+        ]);
     }
 }
