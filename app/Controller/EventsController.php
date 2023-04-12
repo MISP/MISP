@@ -2320,7 +2320,7 @@ class EventsController extends AppController
         // set the id
         $this->set('id', $id);
         // set whether it is published or not
-        $this->set('published', $this->Event->data['Event']['published']);
+        $this->set('published', $this->Event->data['Event']['published'] ?? false);
     }
 
     public function add_misp_export()
@@ -3528,6 +3528,7 @@ class EventsController extends AppController
                 'category' => 'External analysis',
                 'uuid' =>  CakeText::uuid(),
                 'type' => 'attachment',
+                'sharing_group_id' => '0',
                 'value' => $this->data['Event']['submittedioc']['name'],
                 'to_ids' => false,
                 'distribution' => $dist,
@@ -3542,7 +3543,7 @@ class EventsController extends AppController
 
             $fieldList = array(
                     'Event' => array('published', 'timestamp'),
-                    'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment')
+                    'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment', 'sharing_group_id')
             );
             // Save it all
             $saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
