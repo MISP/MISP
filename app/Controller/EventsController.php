@@ -111,6 +111,10 @@ class EventsController extends AppController
         if (in_array($this->request->action, ['checkLocks', 'getDistributionGraph'], true)) {
             $this->Security->doNotGenerateToken = true;
         }
+
+        if (Configure::read('Plugin.CustomAuth_enable') && in_array($this->request->action, ['saveFreeText'], true)) {
+            $this->Security->csrfCheck = false;
+        }
     }
 
     /**
