@@ -5884,7 +5884,7 @@ class Event extends AppModel
                 $data = array('Event' => $data);
             }
             if (!empty($decoded['stix_version'])) {
-                $stix_version = $decoded['stix_version'];
+                $stix_version = 'STIX ' . $decoded['stix_version'];
             }
             $created_id = false;
             $validationIssues = false;
