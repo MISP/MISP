@@ -10,7 +10,7 @@
 ### 0/ WIP! You are warned, this does only partially work!
 ------------
 
-{!generic/globalVariables.md!}
+{% include_relative generic/globalVariables.md %}
 
 ```bash
 export AUTOMAKE_VERSION=1.16
@@ -456,9 +456,9 @@ sudo vi /etc/rc.local
 sudo -u www bash $PATH_TO_MISP/app/Console/worker/start.sh
 ``` 
 
-{!generic/INSTALL.done.md!}
+{% include_relative generic/INSTALL.done.md %}
 
-{!generic/recommended.actions.md!}
+{% include_relative generic/recommended.actions.md %}
 
 #### MISP Modules
 ```
@@ -771,4 +771,4 @@ sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" fals
 sudo -u www $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 ```
 
-{!generic/hardening.md!}
+{% include_relative generic/hardening.md %}

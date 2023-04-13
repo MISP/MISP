@@ -101,4 +101,6 @@ pgloader --type mysql --with "reset sequences" --with "data only" --set "mainten
 systemctl stop mysql
 systemctl disable mysql
 
-{!generic/hardening.md!}
+{% comment %}
+{% include_relative generic/hardening.md %}
+{% endcomment %}

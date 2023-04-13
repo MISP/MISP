@@ -2,17 +2,17 @@
 
 On the following pages you will find stock install instructions for getting a base MISP system running.
 
-- [INSTALL.ubuntu2204.md](https://github.com/MISP/MISP/blob/2.4/docs/xINSTALL.ubuntu2204.md)
-- [INSTALL.ubuntu2004.md](https://github.com/MISP/MISP/blob/2.4/docs/INSTALL.ubuntu2004.md)
-- [INSTALL.ubuntu1804.md](https://github.com/MISP/MISP/blob/2.4/docs/INSTALL.ubuntu1804.md)
-- [INSTALL.rhel8.md](https://github.com/MISP/MISP/blob/2.4/docs/INSTALL.rhel8.md)
-- [INSTALL.rhel7.md](https://github.com/MISP/MISP/blob/2.4/docs/INSTALL.rhel7.md)
-- [INSTALL.kali.md](https://github.com/MISP/MISP/blob/2.4/docs/INSTALL.kali.md)
-- [INSTALL.NetBSD.md](https://github.com/MISP/MISP/blob/2.4/docs/xINSTALL.NetBSD.md)
-- [INSTALL.OpenBSD.md](https://github.com/MISP/MISP/blob/2.4/docs/xINSTALL.OpenBSD.md)
-- [INSTALL.centos7.md](https://github.com/MISP/MISP/blob/2.4/docs/xINSTALL.centos7.md)
-- [INSTALL.debian10.md](https://github.com/MISP/MISP/blob/2.4/docs/xINSTALL.debian10.md)
-- [INSTALL.tsurugi.md](https://github.com/MISP/MISP/blob/2.4/docs/xINSTALL.tsurugi.md)
+- [INSTALL.ubuntu2204](https://misp.github.io/MISP/xINSTALL.ubuntu2204)
+- [INSTALL.ubuntu2004](https://misp.github.io/MISP/INSTALL.ubuntu2004)
+- [INSTALL.ubuntu1804](https://misp.github.io/MISP/INSTALL.ubuntu1804)
+- [INSTALL.rhel8](https://misp.github.io/MISP/INSTALL.rhel8)
+- [INSTALL.rhel7](https://misp.github.io/MISP/INSTALL.rhel7)
+- [INSTALL.kali](https://misp.github.io/MISP/INSTALL.kali)
+- [INSTALL.NetBSD](https://misp.github.io/MISP/xINSTALL.NetBSD)
+- [INSTALL.OpenBSD](https://misp.github.io/MISP/xINSTALL.OpenBSD)
+- [INSTALL.centos7](https://misp.github.io/MISP/xINSTALL.centos7)
+- [INSTALL.debian10](https://misp.github.io/MISP/xINSTALL.debian10)
+- [INSTALL.tsurugi](https://misp.github.io/MISP/xINSTALL.tsurugi)
 
 For full documentation visit [misp-book](https://www.circl.lu/doc/misp/).
 

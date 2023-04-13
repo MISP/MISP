@@ -22,8 +22,16 @@ class GalaxiesController extends AppController
     public function index()
     {
         $aclConditions = array();
-        $filters = $this->IndexFilter->harvestParameters(array('value', 'enabled'));
-        $searchConditions = array();
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => ['value', 'enabled'],
+            'ordered_url_params' => [],
+            'additional_delimiters' => PHP_EOL
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        $searchConditions = [];
         if (empty($filters['value'])) {
             $filters['value'] = '';
         } else {
