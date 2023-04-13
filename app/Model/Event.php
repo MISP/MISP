@@ -5877,7 +5877,7 @@ class Event extends AppModel
         $tempFile = file_get_contents($file);
         unlink($file);
         $decoded = JsonTool::decode($result);
-        if ($result === '1') {
+        if (!empty($decoded['success'])) {
             $data = FileAccessTool::readAndDelete($output_path);
             $data = $this->jsonDecode($data);
             if (empty($data['Event'])) {
