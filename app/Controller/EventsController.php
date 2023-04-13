@@ -2374,12 +2374,18 @@ class EventsController extends AppController
         $this->set('title_for_layout', __('Import from MISP Export File'));
     }
 
-    public function upload_stix($stix_version = '1', $publish = false)
+    public function upload_stix($stix_version = '1', $publish = false, $galaxies_as_tags = true, $debug = false)
     {
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 if (isset($this->params['named']['publish'])) {
                     $publish = $this->params['named']['publish'];
+                }
+                if (isset($this->params['named']['galaxies_as_tags'])) {
+                    $galaxies_as_tags = $this->params['named']['galaxies_as_tags'];
+                }
+                if (isset($this->params['named']['debugging'])) {
+                    $debug = $this->params['named']['debugging'];
                 }
                 $filePath = FileAccessTool::writeToTempFile($this->request->input());
                 $result = $this->Event->upload_stix(
@@ -2387,7 +2393,9 @@ class EventsController extends AppController
                     $filePath,
                     $stix_version,
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
-                    $publish
+                    $publish,
+                    $galaxies_as_tags,
+                    $debug
                 );
                 if (is_numeric($result)) {
                     $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $result));
@@ -2406,12 +2414,17 @@ class EventsController extends AppController
                     if (!move_uploaded_file($this->data['Event']['stix']['tmp_name'], $filePath)) {
                         throw new Exception("Could not move uploaded STIX file.");
                     }
+                    if (isset($this->data['Event']['debug'])) {
+                        $debug = $this->data['Event']['debug'];
+                    }
                     $result = $this->Event->upload_stix(
                         $this->Auth->user(),
                         $filePath,
                         $stix_version,
                         $original_file,
-                        $this->data['Event']['publish']
+                        $this->data['Event']['publish'],
+                        !boolval($this->data['Event']['galaxies_parsing']),
+                        $debug
                     );
                     if (is_numeric($result)) {
                         $this->Flash->success(__('STIX document imported.'));

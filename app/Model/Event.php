@@ -5837,40 +5837,54 @@ class Event extends AppModel
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish)
+    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $galaxies_as_tags, $debug = false)
     {
         $scriptDir = APP . 'files' . DS . 'scripts';
-        if ($stix_version == '2') {
+        if ($stix_version == '2' || $stix_version == '2.0' || $stix_version == '2.1') {
             $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
-            $output_path = $file . '.stix2';
+            $output_path = $file . '.out';
+            $shell_command = [
+                ProcessTool::pythonBin(),
+                $scriptFile,
+                '-i', $file
+            ];
+            if ($galaxies_as_tags) {
+                $shell_command[] = '--galaxies_as_tags';
+            }
+            if ($debug) {
+                $shell_command[] = '-d';
+            }
             $stix_version = "STIX 2.0";
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
             $scriptFile = $scriptDir . DS . 'stix2misp.py';
             $output_path = $file . '.json';
+            $shell_command = [
+                ProcessTool::pythonBin(),
+                $scriptFile,
+                $file,
+                Configure::read('MISP.default_event_distribution'),
+                Configure::read('MISP.default_attribute_distribution'),
+                $this->__getTagNamesFromSynonyms($scriptDir)
+            ];
             $stix_version = "STIX 1.1";
         } else {
             throw new InvalidArgumentException('Invalid STIX version');
         }
-
-        $shell_command = [
-            ProcessTool::pythonBin(),
-            $scriptFile,
-            $file,
-            Configure::read('MISP.default_event_distribution'),
-            Configure::read('MISP.default_attribute_distribution'),
-            $this->__getTagNamesFromSynonyms($scriptDir),
-        ];
 
         $result = ProcessTool::execute($shell_command, null, true);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
         $result = trim(end($result));
         $tempFile = file_get_contents($file);
         unlink($file);
+        $decoded = JsonTool::decode($result);
         if ($result === '1') {
             $data = FileAccessTool::readAndDelete($output_path);
             $data = $this->jsonDecode($data);
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
+            }
+            if (!empty($decoded['stix_version'])) {
+                $stix_version = $decoded['stix_version'];
             }
             $created_id = false;
             $validationIssues = false;
@@ -5889,13 +5903,8 @@ class Event extends AppModel
                 return $result;
             }
             return $validationIssues;
-        } else if ($result === '2') {
-            $response = __('Issues while loading the stix file.');
-        } elseif ($result === '3') {
-            $response = __('Issues with the maec library.');
-        } else {
-            $response = __('Issues executing the ingestion script or invalid input.');
         }
+        $response = __($decoded['error']);
         if (!$user['Role']['perm_site_admin']) {
             $response .= ' ' . __('Please ask your administrator to');
         } else {
