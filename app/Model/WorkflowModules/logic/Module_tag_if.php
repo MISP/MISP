@@ -5,7 +5,7 @@ class Module_tag_if extends WorkflowBaseLogicModule
 {
     public $id = 'tag-if';
     public $name = 'IF :: Tag';
-    public $version = '0.2';
+    public $version = '0.3';
     public $description = 'Tag IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
     public $icon = 'code-branch';
     public $inputs = 1;
@@ -21,6 +21,11 @@ class Module_tag_if extends WorkflowBaseLogicModule
         'not_in_or' => 'Is not tagged with any (OR)',
         'not_in_and' => 'Is not tagged with all (AND)',
     ];
+
+    private function getDisplayTag($fullTag)
+    {
+        return substr($fullTag, 12);
+    }
 
     public function __construct()
     {
@@ -39,7 +44,7 @@ class Module_tag_if extends WorkflowBaseLogicModule
         $clusters = [];
         foreach ($allTags as $tag) {
             if ($tag['Tag']['is_galaxy']) {
-                $readableTagName = substr($tag['Tag']['name'], 12);
+                $readableTagName = $this->getDisplayTag($tag['Tag']['name']);
                 $clusters[] = $readableTagName;
             } else {
                 $tags[] = $tag['Tag']['name'];
@@ -90,6 +95,9 @@ class Module_tag_if extends WorkflowBaseLogicModule
 
         $selectedTags = $params['tags']['value'];
         $selectedClusters = $params['clusters']['value'];
+        $selectedClusters = array_map(function($tagName) {
+            return "misp-galaxy:{$tagName}"; // restored stripped part for display purposes
+        }, $selectedClusters);
         $allSelectedTags = array_merge($selectedTags, $selectedClusters);
         $operator = $params['condition']['value'];
         $scope = $params['scope']['value'];
