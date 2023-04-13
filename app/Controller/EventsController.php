@@ -111,6 +111,10 @@ class EventsController extends AppController
         if (in_array($this->request->action, ['checkLocks', 'getDistributionGraph'], true)) {
             $this->Security->doNotGenerateToken = true;
         }
+
+        if (Configure::read('Plugin.CustomAuth_enable') && in_array($this->request->action, ['saveFreeText'], true)) {
+            $this->Security->csrfCheck = false;
+        }
     }
 
     /**
@@ -2316,7 +2320,7 @@ class EventsController extends AppController
         // set the id
         $this->set('id', $id);
         // set whether it is published or not
-        $this->set('published', $this->Event->data['Event']['published']);
+        $this->set('published', $this->Event->data['Event']['published'] ?? false);
     }
 
     public function add_misp_export()
@@ -2599,6 +2603,12 @@ class EventsController extends AppController
                         foreach ($this->request->data[$objectType] as $i => $obj) {
                             unset($this->request->data[$objectType][$i]['id']);
                             unset($this->request->data[$objectType][$i]['uuid']);
+                            if ($objectType === 'Object' && !empty($this->request->data[$objectType][$i]['Attribute'])) {
+                                foreach ($this->request->data[$objectType][$i]['Attribute'] as $j => $attr) {
+                                    unset($this->request->data[$objectType][$i]['Attribute'][$j]['id']);
+                                    unset($this->request->data[$objectType][$i]['Attribute'][$j]['uuid']);
+                                }
+                            }
                         }
                     }
                     $eventToSave['Event'][$objectType] = $this->request->data[$objectType];
@@ -3524,6 +3534,7 @@ class EventsController extends AppController
                 'category' => 'External analysis',
                 'uuid' =>  CakeText::uuid(),
                 'type' => 'attachment',
+                'sharing_group_id' => '0',
                 'value' => $this->data['Event']['submittedioc']['name'],
                 'to_ids' => false,
                 'distribution' => $dist,
@@ -3538,7 +3549,7 @@ class EventsController extends AppController
 
             $fieldList = array(
                     'Event' => array('published', 'timestamp'),
-                    'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment')
+                    'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment', 'sharing_group_id')
             );
             // Save it all
             $saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));

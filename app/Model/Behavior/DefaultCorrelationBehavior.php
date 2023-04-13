@@ -95,7 +95,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
             return [
                 $value,
                 (int) $a['Event']['id'],
-                (int) $a['Attribute']['object_id'],
+                (int) ($a['Attribute']['object_id'] ?? 0),
                 (int) $a['Attribute']['id'],
                 (int) $a['Event']['org_id'],
                 (int) $a['Attribute']['distribution'],
@@ -105,7 +105,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 (int) $a['Event']['sharing_group_id'],
                 empty($a['Attribute']['object_id']) ? 0 : (int) $a['Object']['sharing_group_id'],
                 (int) $b['Event']['id'],
-                (int) $b['Attribute']['object_id'],
+                (int) ($b['Attribute']['object_id'] ?? 0),
                 (int) $b['Attribute']['id'],
                 (int) $b['Event']['org_id'],
                 (int) $b['Attribute']['distribution'],

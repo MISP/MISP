@@ -190,7 +190,7 @@ class IOCImportComponent extends Component
 
         $duplicateFilter = array();
         // check if we have any attributes, if yes, add their UUIDs to our list of success-array
-        if (count($event['Attribute']) > 0) {
+        if (isset($event['Attribute']) && count($event['Attribute']) > 0) {
             foreach ($event['Attribute'] as $k => $attribute) {
                 $condensed = strtolower($attribute['value']) . $attribute['category'] . $attribute['type'];
                 if (!in_array($condensed, $duplicateFilter)) {

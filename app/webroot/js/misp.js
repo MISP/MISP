@@ -3835,6 +3835,7 @@ function filterAttributes(filter) {
             data["searchFor"] = filter;
         }
     }
+    currentUri = resetPaginationParameters(currentUri)
     fetchAttributes(currentUri, data);
 }
 
@@ -3851,6 +3852,21 @@ function toggleBoolFilter(param) {
         res[param] = 1;
     }
     fetchAttributes(currentUri, res);
+}
+
+function resetPaginationParameters(currentUri) {
+    var newUri = []
+    currentUri.split('/').forEach(function(el) {
+        if (
+            el.startsWith('sort:') ||
+            el.startsWith('direction:') ||
+            el.startsWith('page:')
+        ) {
+            return
+        }
+        newUri.push(el)
+    })
+    return newUri.join('/')
 }
 
 function recursiveInject(result, rules) {

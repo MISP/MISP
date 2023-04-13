@@ -150,6 +150,22 @@ class Log extends AppModel
         return true;
     }
 
+    public function afterSave($created, $options = array())
+    {
+        // run workflow if needed, but skip workflow for certain types, to prevent loops
+        if (!in_array($this->data['Log']['model'], ['Log', 'Workflow'])) {
+            $trigger_id = 'log-after-save';
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'Log',
+                'action' => 'execute_workflow',
+                'id' => $this->data['Log']['user_id']
+            ];
+            $this->executeTrigger($trigger_id, $this->data, $workflowErrors);
+        }
+        return true;
+    }
+
     public function returnDates($org = 'all')
     {
         $conditions = array();

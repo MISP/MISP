@@ -238,6 +238,30 @@ class AuthKeysController extends AppController
         ]);
     }
 
+    public function pin($id, $ip) {
+        if ($this->request->is('post')) {
+            // find entry, to confirm user is authorized
+            $conditions = $this->__prepareConditions();
+            $conditions['AND'][]['AuthKey.id'] = $id;
+            $authKey = $this->AuthKey->find(
+                'first',
+                ['conditions' => $conditions,
+                'recursive'=> 1
+                ]
+            );
+            // update the key with the source IP
+            if ($authKey) {
+                $authKey['AuthKey']['allowed_ips'] = $ip;
+                $this->AuthKey->save($authKey, ['fieldList' => ['allowed_ips']]);
+                $this->Flash->success(__('IP address set as allowed source for the Key.'));
+            } else {
+                $this->Flash->error(__('Failed to set IP as source'));
+            }
+        }
+        $this->redirect($this->referer());
+        // $this->redirect(['controller' => 'auth_keys', 'view' => 'index']);
+    }
+
     /**
      * Return conditions according to current user permission.
      * @return array
