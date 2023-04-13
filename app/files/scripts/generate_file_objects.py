@@ -20,7 +20,7 @@ def check():
     try:
         import pydeep  # noqa
     except ImportError:
-        missing_dependencies['pydeep'] = 'Please install pydeep: pip install git+https://github.com/kbandla/pydeep.git'
+        missing_dependencies['pydeep'] = 'Please install pydeep: pip install pydeep2'
     try:
         import lief  # noqa
     except ImportError:

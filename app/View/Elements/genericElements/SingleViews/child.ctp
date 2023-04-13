@@ -3,7 +3,6 @@
  * create single view child index
  *
  */
-    $randomId = bin2hex(openssl_random_pseudo_bytes(8));
     if (!empty($child['url_params'])) {
         if (!is_array($child['url_params'])) {
             $child['url_params'] = [$child['url_params']];

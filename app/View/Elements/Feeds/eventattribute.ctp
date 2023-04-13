@@ -35,7 +35,7 @@
         </ul>
     </div>
 <br />
-<div id="attributeList" class="attributeListContainer">
+<div id="attributeList">
     <table class="table table-striped table-condensed">
         <tr>
             <th><?php echo $this->Paginator->sort('timestamp', __('Date'));?></th>
@@ -47,6 +47,7 @@
             <th><?php echo $this->Paginator->sort('comment');?></th>
             <th><?php echo __('Related Events');?></th>
             <th><?php echo __('Feed hits');?></th>
+            <th><?php echo __('Distribution');?></th>
             <th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
         </tr>
         <?php
@@ -113,9 +114,6 @@
         <?php
             endif;
         ?>
-        $('.screenshot').click(function() {
-            screenshotPopup($(this).attr('src'), $(this).attr('title'));
-        });
     });
 </script>
 <?php

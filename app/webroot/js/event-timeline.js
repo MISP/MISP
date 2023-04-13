@@ -1,4 +1,6 @@
 var max_displayed_char_timeline = 64;
+var imgSize = '80';
+var timeChart;
 var eventTimeline;
 var items_timeline;
 var items_backup;
@@ -7,7 +9,7 @@ var mapping_text_to_id = new Map();
 var user_manipulation = $('#event_timeline').data('user-manipulation');
 var extended_text = $('#event_timeline').data('extended') == 1 ? "extended:1/" : "";
 var container_timeline = document.getElementById('event_timeline');
-var hardThreshold = 1000;
+var hardThreshold = 500;
 var softThreshold = 200;
 var timeline_disabled = false;
 var default_editable = {
@@ -19,7 +21,7 @@ var relationship_type_mapping = {
    'followed-by': 'after',
    'preceding-by': 'before',
 }
-var shortcut_text = "<b>ALT+Mouse_Wheel</b> Zoom IN/OUT"
+var shortcut_text_timeline = "<b>ALT+Mouse_Wheel</b> Zoom IN/OUT"
     + "\n<b>CTRL</b> Multi select"
 var options = {
     template: function (item, element, data) {
@@ -179,7 +181,19 @@ function build_attr_template(attr) {
     if (!attr.seen_enabled) {
         span.addClass('timestamp-attr');
     }
-    span.text(attr.content);
+    if (attr.attribute_type == 'attachment' && attr.is_image) {
+        var $img = $('<img/>')
+            .addClass('screenshot img-rounded')
+            .attr('alt', attr.content)
+            .attr('title', attr.content)
+            .attr('loading', 'lazy')
+            .attr('src', '/attributes/viewPicture/' + attr.orig_id + '/1')
+            .attr('width', imgSize)
+            .attr('height', imgSize);
+        span.append($img)
+    } else {
+        span.text(attr.content);
+    }
     span.data('seen_enabled', attr.seen_enabled);
     var html = span[0].outerHTML;
     return html;
@@ -191,8 +205,26 @@ function build_object_template(obj) {
     if (!obj.seen_enabled) {
         table.addClass('timestamp-obj');
     }
+    var $imgContainer = $('<div/>');
+    for (var attr of obj.Attribute) {
+        if (attr.attribute_type == 'attachment' && attr.is_image) {
+            var $img = $('<img/>')
+                .addClass('screenshot img-rounded')
+                .attr('alt', attr.content)
+                .attr('title', attr.content)
+                .attr('loading', 'lazy')
+                .attr('src', '/attributes/viewPicture/' + attr.id + '/1')
+                .attr('width', imgSize)
+                .attr('height', imgSize)
+                .attr('style', $imgContainer.length > 0 ? 'margin-left: 5px' : '');
+            $imgContainer.append($img)
+        }
+    }
     var bolt_html = obj.overwrite_enabled ? " <i class=\"fa fa-bolt\" style=\"color: yellow; font-size: large;\" title=\"The Object is overwritten by its attributes\">" : "";
     table.append($('<tr class="timeline-objectName"><th>'+obj.content+bolt_html+'</th><th></th></tr>'));
+    if ($imgContainer.length > 0) {
+        table.append($('<tr/>').append('<td colspan="2"/>').append($imgContainer));
+    }
     for (var attr of obj.Attribute) {
         var overwritten = obj.overwrite_enabled && (attr.contentType == "first-seen" || attr.contentType == "last-seen") ? " <i class=\"fa fa-bolt\" style=\"color: yellow;\" title=\"Overwrite object "+attr.contentType+"\"></i>" : "";
         table.append(
@@ -479,6 +511,7 @@ function reload_timeline() {
                 eventTimeline.setGroups(null);
             }
             items_timeline.add(data.items);
+            eventTimeline.fit()
         },
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
@@ -513,13 +546,14 @@ function enable_timeline() {
         },
         success: function( data, textStatus, jQxhr ){
             if (data.items.length > hardThreshold) {
-                $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: Too much data to show</div>');
+                $('#eventtimeline_div .sub-container').html('<div class="alert alert-danger" style="margin: 10px;">Event timeline: Too much data to show. Showing timestamp distribution instead</div><div class="timechart-container"><canvas id="timechart-canvas"></canvas></div>');
                 timeline_disabled = true;
+                build_time_chart(data.items)
                 return;
             } else if (data.items.length > softThreshold) {
                 var res = confirm('You are about to draw a lot ('+data.items.length+') of items in the timeline. Do you wish to continue?');
                 if (!res) {
-                    $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: Too much data to show</div>');
+                    $('#eventtimeline_div .sub-container').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: Too much data to show</div>');
                     timeline_disabled = true;
                     return;
                 }
@@ -572,7 +606,7 @@ function enable_timeline() {
             $('.timeline-help').popover({
                 container: 'body',
                 title: 'Shortcuts',
-                content: shortcut_text,
+                content: shortcut_text_timeline,
                 placement: 'left',
                 trigger: 'hover',
                 template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content preWarp"></div></div>',
@@ -661,6 +695,202 @@ $('#fullscreen-btn-timeline').click(function() {
     }, 1);
     eventTimeline.setOptions({maxHeight: height_val});
 });
+
+function build_timestamp_map(data) {
+    var timestampsMap = {
+        timestamp: {},
+        first_seen: {},
+        last_seen: {},
+        sightings: {},
+    }
+    data.forEach(function (item) {
+        if (item.timestamp) {
+            if (!timestampsMap.timestamp[item.timestamp]) {
+                timestampsMap.timestamp[item.timestamp] = 0
+            }
+            timestampsMap.timestamp[item.timestamp] += 1
+        }
+        if (item.first_seen) {
+            if (!timestampsMap.first_seen[item.first_seen]) {
+                timestampsMap.first_seen[item.first_seen] = 0
+            }
+            timestampsMap.first_seen[item.first_seen] += 1
+        }
+        if (item.last_seen) {
+            if (!timestampsMap.last_seen[item.last_seen]) {
+                timestampsMap.last_seen[item.last_seen] = 0
+            }
+            timestampsMap.last_seen[item.last_seen] += 1
+        }
+        if (item.date_sighting.length > 0) {
+            item.date_sighting.forEach(sighting => {
+                if (!timestampsMap.sightings[sighting]) {
+                    timestampsMap.sightings[sighting] = 0
+                }
+                timestampsMap.sightings[sighting] += 1
+            });
+        }
+    })
+    return timestampsMap
+}
+
+function build_time_chart(data) {
+    var timestampsMap = build_timestamp_map(data)
+    var timestampData = []
+    var timestampFSData = []
+    var timestampLSData = []
+    var timestampSightingsData = []
+    Object.keys(timestampsMap.timestamp).forEach(function (time) {
+        timestampData.push({
+            timestamp: moment.unix(time),
+            amount: timestampsMap.timestamp[time],
+        })
+    })
+    Object.keys(timestampsMap.first_seen).forEach(function (time) {
+        timestampFSData.push({
+            timestamp: moment(time),
+            amount: timestampsMap.first_seen[time],
+        })
+    })
+    Object.keys(timestampsMap.last_seen).forEach(function (time) {
+        timestampLSData.push({
+            timestamp: moment(time),
+            amount: timestampsMap.last_seen[time],
+        })
+    })
+    Object.keys(timestampsMap.sightings).forEach(function (time) {
+        timestampSightingsData.push({
+            timestamp: moment.unix(time),
+            amount: timestampsMap.sightings[time],
+        })
+    })
+    timestampDataGrouped = []
+    timestampData.map(function(item) {
+        var formatedDate = item.timestamp.format('YYYY-MM-d')
+        if (!timestampDataGrouped[formatedDate]) {
+            timestampDataGrouped[formatedDate] = {
+                timestamp: item.timestamp.startOf('day'),
+                amount: item.amount
+            }
+        } else {
+            timestampDataGrouped[formatedDate].amount += item.amount
+        }
+    })
+    timestampFSDataGrouped = []
+    timestampFSData.map(function(item) {
+        var formatedDate = item.timestamp.format('YYYY-MM-d')
+        if (!timestampFSDataGrouped[formatedDate]) {
+            timestampFSDataGrouped[formatedDate] = {
+                timestamp: item.timestamp.startOf('day'),
+                amount: item.amount
+            }
+        } else {
+            timestampFSDataGrouped[formatedDate].amount += item.amount
+        }
+    })
+    timestampLSDataGrouped = []
+    timestampLSData.map(function(item) {
+        var formatedDate = item.timestamp.format('YYYY-MM-d')
+        if (!timestampLSDataGrouped[formatedDate]) {
+            timestampLSDataGrouped[formatedDate] = {
+                timestamp: item.timestamp.startOf('day'),
+                amount: item.amount
+            }
+        } else {
+            timestampLSDataGrouped[formatedDate].amount += item.amount
+        }
+    })
+    timestampSightingsDataGrouped = []
+    timestampSightingsData.map(function(item) {
+        var formatedDate = item.timestamp.format('YYYY-MM-d')
+        if (!timestampSightingsDataGrouped[formatedDate]) {
+            timestampSightingsDataGrouped[formatedDate] = {
+                timestamp: item.timestamp.startOf('day'),
+                amount: item.amount
+            }
+        } else {
+            timestampSightingsDataGrouped[formatedDate].amount += item.amount
+        }
+    })
+    timestampDataGrouped = Object.values(timestampDataGrouped)
+    timestampFSDataGrouped = Object.values(timestampFSDataGrouped)
+    timestampLSDataGrouped = Object.values(timestampLSDataGrouped)
+    timestampSightingsDataGrouped = Object.values(timestampSightingsDataGrouped)
+    var data = {
+        datasets: [
+            {
+                label: 'Timestamps',
+                data: timestampDataGrouped,
+                type: 'bar',
+                parsing: {
+                    xAxisKey: 'timestamp',
+                    yAxisKey: 'amount'
+                },
+            },
+            {
+                label: 'first_seen Timestamps',
+                data: timestampFSDataGrouped,
+                type: 'bar',
+                parsing: {
+                    xAxisKey: 'timestamp',
+                    yAxisKey: 'amount'
+                },
+            },
+            {
+                label: 'last_seen Timestamps',
+                data: timestampLSDataGrouped,
+                type: 'bar',
+                parsing: {
+                    xAxisKey: 'timestamp',
+                    yAxisKey: 'amount'
+                },
+            },
+            {
+                label: 'Sightings',
+                data: timestampSightingsDataGrouped,
+                type: 'line',
+                parsing: {
+                    xAxisKey: 'timestamp',
+                    yAxisKey: 'amount'
+                },
+            },
+        ]
+    }
+    var config = {
+        type: 'line',
+        data: data,
+        options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Time Occurences'
+                }
+            },
+            scales: {
+                x: {
+                    type: 'timeseries',
+                    display: true,
+                    offset: true,
+                    time: {
+                        unit: 'day',
+                        round: 'day',
+                        tooltipFormat: "YYYY-MM-d",
+                    },
+                },
+                y: {
+                    type: 'logarithmic',
+                    ticks: {
+                        callback: function (val, index) {
+                            return val % 1 === 0 ? this.getLabelForValue(val) : '';
+                        },
+                    },
+                }
+            }
+        },
+    }
+    var ctx = document.getElementById('timechart-canvas')
+    timeChart = new Chart(ctx, config)
+}
 
 // init_scope_menu
 var menu_scope_timeline, menu_display_timeline;

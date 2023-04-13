@@ -83,10 +83,6 @@ class AWSS3Client
         } else {
             $s3Config['http']['verify'] = false;
         }
-        echo 'Settings=====';
-        var_dump($settings);
-        echo 'S3Config=====';
-        var_dump($s3Config);
         $s3Client = new Aws\S3\S3Client($s3Config);
         $this->__client = $s3Client;
         $this->__settings = $settings;

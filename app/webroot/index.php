@@ -32,17 +32,15 @@ if (!defined('DS')) {
 
 /**
  * The full path to the directory which holds "app", WITHOUT a trailing DS.
- *
  */
 if (!defined('ROOT')) {
-	define('ROOT', dirname(dirname(dirname(__FILE__))));
+	define('ROOT', dirname(__DIR__, 2));
 }
 /**
  * The actual directory name for the "app".
- *
  */
 if (!defined('APP_DIR')) {
-	define('APP_DIR', basename(dirname(dirname(__FILE__))));
+	define('APP_DIR', basename(dirname(__DIR__)));
 }
 
 /**
@@ -73,10 +71,10 @@ if (!defined('CAKE_CORE_INCLUDE_PATH') && file_exists($vendorPath . DS . $dispat
  * Change at your own risk.
  */
 if (!defined('WEBROOT_DIR')) {
-	define('WEBROOT_DIR', basename(dirname(__FILE__)));
+	define('WEBROOT_DIR', basename(__DIR__));
 }
 if (!defined('WWW_ROOT')) {
-	define('WWW_ROOT', dirname(__FILE__) . DS);
+	define('WWW_ROOT', __DIR__ . DS);
 }
 
 if (!defined('CAKE_CORE_INCLUDE_PATH')) {

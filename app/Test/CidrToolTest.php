@@ -5,6 +5,17 @@ use PHPUnit\Framework\TestCase;
 
 class CidrToolTest extends TestCase
 {
+    public function testValidate(): void
+    {
+        $this->assertTrue(CidrTool::validate('1.2.3.4'));
+        $this->assertTrue(CidrTool::validate('1.2.3.4/32'));
+        $this->assertTrue(CidrTool::validate('::1'));
+        $this->assertTrue(CidrTool::validate('::1/128'));
+        $this->assertFalse(CidrTool::validate('::1/a'));
+        $this->assertFalse(CidrTool::validate('1.2.3.4/a'));
+        $this->assertFalse(CidrTool::validate('1.2.3.4/32, 1.2.3.4'));
+    }
+
     public function testEmptyList(): void
     {
         $cidrTool = new CidrTool([]);

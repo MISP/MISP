@@ -156,8 +156,8 @@ class AttachmentTool
         } else {
             $filepath = $this->attachmentDir() . DS . $path;
             $file = new File($filepath);
-            if (!$file->exists()) {
-                throw new NotFoundException("File '$filepath' does not exists.");
+            if (!is_file($file->path)) {
+                throw new NotFoundException("File '$filepath' does not exist.");
             }
         }
 
@@ -281,6 +281,7 @@ class AttachmentTool
             $s3 = $this->loadS3Client();
             $s3->deleteDirectory($eventId);
         } else {
+            App::uses('Folder', 'Utility');
             $dirPath = $this->attachmentDir();
 
             foreach (array($dirPath, $dirPath . DS . 'shadow') as $dirPath) {
@@ -386,10 +387,11 @@ class AttachmentTool
      * @param string $data
      * @param int $maxWidth
      * @param int $maxHeight
+     * @param string $outputFormat Can be 'png' or 'webp'
      * @return string
      * @throws Exception
      */
-    public function resizeImage($data, $maxWidth, $maxHeight)
+    public function resizeImage($data, $maxWidth, $maxHeight, $outputFormat = 'png')
     {
         $image = imagecreatefromstring($data);
         if ($image === false) {
@@ -424,9 +426,17 @@ class AttachmentTool
 
         // Output image to string
         ob_start();
-        imagepng($imageThumbnail, null, 9);
-        $imageData = ob_get_contents();
-        ob_end_clean();
+        if ($outputFormat === 'webp') {
+            if (!function_exists('imagewebp')) {
+                throw new InvalidArgumentException("Webp image format is not supported.");
+            }
+            imagewebp($imageThumbnail);
+        } elseif ($outputFormat === 'png') {
+            imagepng($imageThumbnail, null, 9);
+        } else {
+            throw new InvalidArgumentException("Unsupported image format $outputFormat.");
+        }
+        $imageData = ob_get_clean();
         imagedestroy($imageThumbnail);
 
         return $imageData;
@@ -460,7 +470,8 @@ class AttachmentTool
      */
     public function attachmentDirIsS3()
     {
-        return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
+        $attachmentsDir = Configure::read('MISP.attachments_dir');
+        return $attachmentsDir && substr($attachmentsDir, 0, 2) === "s3";
     }
 
     /**

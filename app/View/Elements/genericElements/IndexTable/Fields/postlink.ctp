@@ -5,7 +5,7 @@
  *    - data_path: The path to the data used to display as the text representation of the link
  *    - payload_paths: Payloads to encode as form values - key value list with the key being the field name and value being in the typical dot notation extraction path
  */
-    $randomId = bin2hex(openssl_random_pseudo_bytes(8));
+    $randomId = dechex(mt_rand());
     $fieldsArray = [];
     if (!empty($field['payload_paths'])) {
         foreach ($field['payload_paths'] as $fieldName => $path) {
@@ -54,7 +54,7 @@
         );
     }
     echo sprintf(
-        '%s<a href="#" onClick="event.preventDefault(); %s">%s</a>',
+        '%s<a href="#" onclick="event.preventDefault(); %s">%s</a>',
         $form,
         $onclick,
         $text

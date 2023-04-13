@@ -33,30 +33,42 @@
             echo '<div style="margin-bottom: 5px; font-size: 14px;">';
             echo $this->Form->input('Attribute.' . $k . '.type', $formSettings);
             echo '<span class="bold">' . Inflector::humanize(h($element['object_relation'])) . '</span>';
-            echo ' :: ' . h($element['type']) . '';
+            echo ' :: ' . h($element['type']);
             echo '<br>';
             echo '<span class="immutableAttributeDescription">' . h($element['description']) . '</span>';
             echo '</div>';
-        ?>
 
-
-        <?php
+            $categoryFormInfo = $this->element('genericElements/Form/formInfo', [
+                'field' => [
+                    'field' => 'category'
+                ],
+                'modelForForm' => 'Attribute0',
+                'fieldDesc' => $fieldDesc['category'],
+            ]);
             $formSettings = array(
               'options' => array_combine($element['categories'], $element['categories']),
               'default' => $element['default_category'],
-              'div' => true
+              'div' => true,
+              'label' => __('Category') . ' ' . $categoryFormInfo,   
             );
             echo $this->Form->input('Attribute.' . $k . '.category', $formSettings);
         ?>
 
         <div class='input'>
         <?php
+            $distributionFormInfo = $this->element('genericElements/Form/formInfo', [
+                'field' => [
+                    'field' => 'distribution'
+                ],
+                'modelForForm' => 'Attribute0',
+                'fieldDesc' => $fieldDesc['distribution'],
+            ]);
             echo $this->Form->input('Attribute.' . $k . '.distribution', array(
                 'class' => 'Attribute_distribution_select',
                 'options' => $distributionData['levels'],
                 'default' => !empty($element['distribution']) ? $element['distribution'] : $distributionData['initial'],
                 'div' => false,
-                'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
+                'label' => __('Distribution ') . $distributionFormInfo,
             ));
         ?>
         </div>
@@ -131,22 +143,8 @@
 </div>
 
 <script>
-<?php
-    $formInfoTypes = array('distribution' => 'Distribution');
-    echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
-    foreach ($formInfoTypes as $formInfoType => $humanisedName) {
-        echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
-        foreach ($info[$formInfoType] as $key => $formInfoData) {
-            echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
-        }
-        echo '}' . PHP_EOL;
-    }
-?>
-
 $(function() {
-    initPopoverContent('Attribute0');
     $('#Attribute0Distribution').change(function() {
-        initPopoverContent('Attribute0');
         if ($('#Attribute0Distribution').val() == 4) $('#SGContainer').show();
         else $('#SGContainer').hide();
     });

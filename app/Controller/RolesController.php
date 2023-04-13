@@ -10,7 +10,6 @@ App::uses('AppController', 'Controller');
 class RolesController extends AppController
 {
     public $components = array(
-        'Security',
         'Session',
         'RequestHandler'
     );

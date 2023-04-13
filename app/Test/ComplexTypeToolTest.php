@@ -361,11 +361,9 @@ EOT;
 
         $this->assertEquals('https://www.virustotal.com/example', $results[0]['value']);
         $this->assertEquals('link', $results[0]['default_type']);
-        $this->assertFalse($results[0]['to_ids']);
 
         $this->assertEquals('https://virustotal.com/example', $results[1]['value']);
         $this->assertEquals('link', $results[1]['default_type']);
-        $this->assertFalse($results[1]['to_ids']);
     }
 
     public function testCheckFreeTextUrlHybridAnalysis(): void
@@ -375,7 +373,6 @@ EOT;
         $this->assertCount(1, $results);
         $this->assertEquals('https://www.hybrid-analysis.com/example', $results[0]['value']);
         $this->assertEquals('link', $results[0]['default_type']);
-        $this->assertFalse($results[0]['to_ids']);
     }
 
     // Issue https://github.com/MISP/MISP/issues/4908

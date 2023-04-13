@@ -5,7 +5,7 @@
 ------------------------------------
 
 !!! notice
-    Please use [Debian 10](https://misp.github.io/MISP/xINSTALL.debian10/) as everything works as expected.
+    Please use [Debian 10](https://misp.github.io/MISP/xINSTALL.debian10) as everything works as expected.
 
 
 !!! notice
@@ -23,9 +23,13 @@
 - OpenSSH server
 - This guide assumes a user name of 'misp' with sudo working
 
-{!generic/known-issues-debian.md!}
+{% comment %}
+{% include_relative generic/known-issues-debian.md %}
+{% endcomment %}
 
-{!generic/globalVariables.md!}
+{% comment %}
+{% include_relative generic/globalVariables.md %}
+{% endcomment %}
 
 ```bash
 PHP_ETC_BASE=/etc/php/7.0
@@ -35,9 +39,13 @@ sudo adduser $MISP_USER staff
 sudo adduser $MISP_USER ${WWW_USER}
 ```
 
-{!generic/sudo_etckeeper.md!}
+{% comment %}
+{% include_relative generic/sudo_etckeeper.md %}
+{% endcomment %}
 
-{!generic/ethX.md!}
+{% comment %}
+{% include_relative generic/ethX.md %}
+{% endcomment %}
 
 #### Make sure your system is up2date
 ```bash
@@ -465,7 +473,9 @@ then
     sudo chmod u+x /etc/rc.local
 fi
 ```
-{!generic/MISP_CAKE_init.md!}
+{% comment %}
+{% include_relative generic/MISP_CAKE_init.md %}
+{% endcomment %}
 
 ```bash
 # Add the following lines before the last line (exit 0). Make sure that you replace ${WWW_USER} with your apache user:
@@ -474,16 +484,22 @@ sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
 sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
 ```
 
-{!generic/misp-modules-debian.md!}
+{% comment %}
+{% include_relative generic/misp-modules-debian.md %}
+{% endcomment %}
 
 ```bash
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-{!generic/INSTALL.done.md!}
+{% comment %}
+{% include_relative generic/INSTALL.done.md %}
+{% endcomment %}
 
-{!generic/recommended.actions.md!}
+{% comment %}
+{% include_relative generic/recommended.actions.md %}
+{% endcomment %}
 
 ### Optional features
 -------------------
@@ -517,14 +533,26 @@ sudo phpenmod rdkafka
 sudo service apache2 restart
 ```
 
-{!generic/misp-dashboard-debian.md!}
+{% comment %}
+{% include_relative generic/misp-dashboard-debian.md %}
+{% endcomment %}
 
-{!generic/viper-debian.md!}
+{% comment %}
+{% include_relative generic/viper-debian.md %}
+{% endcomment %}
 
-{!generic/ssdeep-debian.md!}
+{% comment %}
+{% include_relative generic/ssdeep-debian.md %}
+{% endcomment %}
 
-{!generic/mail_to_misp-debian.md!}
+{% comment %}
+{% include_relative generic/mail_to_misp-debian.md %}
+{% endcomment %}
 
-{!generic/upgrading.md!}
+{% comment %}
+{% include_relative generic/upgrading.md %}
+{% endcomment %}
 
-{!generic/hardening.md!}
+{% comment %}
+{% include_relative generic/hardening.md %}
+{% endcomment %}

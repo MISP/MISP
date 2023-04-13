@@ -11,7 +11,7 @@ class DistributionGraphTool
     /** @var array */
     private $__serverList;
 
-    public function construct(Event $eventModel, array $servers, array $user, $extended_view=0)
+    public function __construct(Event $eventModel, array $servers, array $user, $extended_view=0)
     {
         $this->__eventModel = $eventModel;
         $this->__serverList = $servers;
@@ -33,8 +33,6 @@ class DistributionGraphTool
             ];
         }
         $this->__json['distributionInfo'][5] = ""; // inherit event. Will be deleted afterward
-
-        return true;
     }
 
     private function __fetchAndAddDistributionInfo($elem)

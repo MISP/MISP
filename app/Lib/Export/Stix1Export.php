@@ -13,6 +13,7 @@ class Stix1Export extends StixExport
             ProcessTool::pythonBin(),
             $this->__framing_script,
             'stix1',
+            '-s', $this->__scope,
             '-v', $this->__version,
             '-n', Configure::read('MISP.baseurl'),
             '-o', Configure::read('MISP.org'),
@@ -20,18 +21,18 @@ class Stix1Export extends StixExport
         ];
     }
 
-    protected function __parse_misp_events(array $filenames)
+    protected function __parse_misp_data()
     {
         $command = [
             ProcessTool::pythonBin(),
             $this->__scripts_dir . 'misp2stix.py',
+            '-s', $this->__scope,
             '-v', $this->__version,
             '-f', $this->__return_format,
             '-o', Configure::read('MISP.org'),
             '-i',
         ];
-        $command = array_merge($command, $filenames);
-
+        $command = array_merge($command, $this->__filenames);
         return ProcessTool::execute($command, null, true);
     }
 }

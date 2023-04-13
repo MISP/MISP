@@ -141,19 +141,19 @@
                 <span id="lastModifiedField" title="<?= __('Last updated') ?>" class="label"></span>
                 <span>
                     <span title="<?= __('Toggle autocompletion while typing'); ?>">
-                        <input type="checkbox" id="autocompletionCB" style="margin: 0 2px 0 0" checked="checked"></input>
+                        <input type="checkbox" id="autocompletionCB" style="margin: 0 2px 0 0" checked="checked">
                         <span class="<?= $this->FontAwesome->getClass('magic') ?> useCursorPointer icon" onclick="$autocompletionCB[0].checked = !$autocompletionCB[0].checked"></span>
                     </span>
                 </span>
                 <span>
                     <span title="<?= __('Synchronize scrolling'); ?>">
-                        <input type="checkbox" id="syncScrollCB" style="margin: 0 2px 0 0" checked="checked"></input>
+                        <input type="checkbox" id="syncScrollCB" style="margin: 0 2px 0 0" checked="checked">
                         <span class="<?= $this->FontAwesome->getClass('link') ?> useCursorPointer icon" onclick="$syncScrollCB[0].checked = !$syncScrollCB[0].checked"></span>
                     </span>
                 </span>
                 <span>
                     <span title="<?= __('Automatically render markdown when typing'); ?>">
-                        <input type="checkbox" id="autoRenderMarkdownCB" style="margin: 0 2px 0 0" checked="checked"></input>
+                        <input type="checkbox" id="autoRenderMarkdownCB" style="margin: 0 2px 0 0" checked="checked">
                         <span class="<?= $this->FontAwesome->getClass('markdown') ?> useCursorPointer icon" onclick="$autoRenderMarkdownCB[0].checked = !$autoRenderMarkdownCB[0].checked"></span>
                     </span>
                 </span>
@@ -189,8 +189,10 @@
 <?php
     echo $this->element('genericElements/assetLoader', array(
         'js' => array(
+            'jquery-ui.min',
             'doT',
             'markdown-it',
+            'mermaid',
             'highlight.min',
             'FileSaver',
         ),

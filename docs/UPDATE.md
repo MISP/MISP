@@ -81,7 +81,7 @@ cd /var/www/MISP/PyMISP
 python3 setup.py install
 ```
 
-# 6. For RHEL/CentOS: enable python3 for php-fpm
+# 6. For RHEL: enable python3 for php-fpm
 ```bash
 echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php71/sysconfig/php-fpm
 sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php71/php-fpm.d/www.conf

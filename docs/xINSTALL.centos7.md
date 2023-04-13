@@ -2,22 +2,22 @@
 ## for CentOS 7.x
 
 
-Please use the Red Hat Enterprise Linux 7 Instructions for a CentOS 7 install. [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
+Please use the Red Hat Enterprise Linux 7 Instructions for a CentOS 7 install. [click here](https://misp.github.io/MISP/INSTALL.rhel7).
 
 ### -1/ Installer and Manual install instructions
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.rhel7).
 
 !!! warning
     In the **future**, to install MISP on a fresh CentOS 7 install all you need to do is:
 
     ```bash
     # Please check the installer options first to make the best choice for your install
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
     bash /tmp/INSTALL.sh
 
     # This will install MISP Core
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
+    wget --no-cache -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
     bash /tmp/INSTALL.sh -c
     ```
     **The above does NOT work yet**
@@ -25,9 +25,9 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 ### 0/ MISP CentOS 7 Minimal NetInstall - Status
 --------------------------------------------
 
-{!generic/community.md!}
+{% include_relative generic/community.md %}
 
-{!generic/rhelVScentos.md!}
+{% include_relative generic/rhelVScentos.md %}
 
 !!! notice
     Semi-maintained and tested by @SteveClement, CentOS 7.6-1804 on 20190410<br />
@@ -37,7 +37,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     Maintenance for CentOS 7 will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
     CentOS 7.6-1810 [NetInstallURL](http://mirror.centos.org/centos/7.6.1810/os/x86_64/)
 
-{!generic/globalVariables.md!}
+{% include_relative generic/globalVariables.md %}
 
 ```bash
 # <snippet-begin 0_RHEL_PHP_INI.sh>
@@ -200,8 +200,8 @@ cd ${PATH_TO_MISP}/app/files/scripts/mixbox
 $SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-# install STIX2.0 library to support STIX 2.0 export:
-cd ${PATH_TO_MISP}/cti-python-stix2
+# Install misp-stix
+cd ${PATH_TO_MISP}/app/files/scripts/misp-stix
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
@@ -597,14 +597,14 @@ ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 sudo sed -i -e '$i \sudo -u apache ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
 ```
 
-{!generic/misp-dashboard-centos.md!}
+{% include_relative generic/misp-dashboard-rhel.md %}
 
-{!generic/misp-dashboard-cake.md!}
+{% include_relative generic/misp-dashboard-cake.md %}
 
-{!generic/MISP_CAKE_init.md!}
+{% include_relative generic/MISP_CAKE_init.md %}
 
-{!generic/INSTALL.done.md!}
+{% include_relative generic/INSTALL.done.md %}
 
-{!generic/recommended.actions.md!}
+{% include_relative generic/recommended.actions.md %}
 
-{!generic/hardening.md!}
+{% include_relative generic/hardening.md %}

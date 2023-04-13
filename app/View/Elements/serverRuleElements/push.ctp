@@ -4,11 +4,15 @@
         $tagBlockRules = [];
         $orgAllowRules = [];
         $orgBlockRules = [];
+        $attributeTypeBlockRules = [];
+        $objectTypeBlockRules = [];
         if (!empty($ruleObject)) {
             $tagAllowRules = mapIDsToObject($allTags, $ruleObject['tags']['OR']);
             $tagBlockRules = mapIDsToObject($allTags, $ruleObject['tags']['NOT']);
             $orgAllowRules = mapIDsToObject($allOrganisations, $ruleObject['orgs']['OR']);
             $orgBlockRules = mapIDsToObject($allOrganisations, $ruleObject['orgs']['NOT']);
+            $attributeTypeBlockRules = !empty($ruleObject['type_attributes']['NOT']) ? $ruleObject['type_attributes']['NOT'] : [];
+            $objectTypeBlockRules = !empty($ruleObject['type_objects']['NOT']) ? $ruleObject['type_objects']['NOT'] : [];
         }
         function mapIDsToObject($data, $ids) {
             $result = [];
@@ -58,5 +62,33 @@
             'disableFreeText' => true
         ]);
     ?>
+
+    <?php
+    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) {
+        echo $this->element('serverRuleElements/rules_filtering_type', [
+            'technique' => 'push',
+            'allowEmptyOptions' => true,
+            'allAttributeTypes' => $allAttributeTypes,
+            'attributeTypeBlockRules' => $attributeTypeBlockRules,
+            'allObjectTypes' => $allObjectTypes,
+            'objectTypeBlockRules' => $objectTypeBlockRules,
+        ]);
+    }
+    ?>
     <div style="height: 50px;"></div>
 </div>
+
+<script>
+    var pullRemoteRules404Error = '<?= __('Connection error or the remote version is not supporting remote filter lookups (v2.4.142+). Make sure that the remote instance is accessible and that it is up to date.') ?>'
+    var cm;
+    $(function() {
+        var serverID = "<?= isset($id) ? $id : '' ?>"
+        <?php if (empty($attributeTypeBlockRules) && empty($objectTypeBlockRules)) : ?>
+            $('div.server-rule-container-push .type-filtering-subcontainer').hide()
+        <?php else : ?>
+            $('div.server-rule-container-push #type-filtering-cb').prop('checked', true)
+            $('div.server-rule-container-push #type-filtering-notice-cb').prop('checked', true)
+            $('div.server-rule-container-push .type-filtering-container').show()
+        <?php endif; ?>
+    })
+</script>

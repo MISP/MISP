@@ -435,7 +435,7 @@ POST a MISP Feed descriptor JSON to this API to add a Feed.
 | delta_merge |integer |Merge attributes (only add new attribute, remove revoked attributes) |
 | distribution |integer | |
 | sharing_group_id |integer | |
-| tag_id |integer |A tad ID to attach to created events |
+| tag_id |integer |A tag ID to attach to created events |
 | pull_rules |string |Not supported |
 | rules |string |Not supported |
 | event_id |integer | |
@@ -472,7 +472,7 @@ POST a MISP Feed descriptor JSON to this API to edit a Feed.
 | delta_merge |integer |Merge attributes (only add new attribute, remove revoked attributes) |
 | distribution |integer | |
 | sharing_group_id |integer | |
-| tag_id |integer |A tad ID to attach to created events |
+| tag_id |integer |A tag ID to attach to created events |
 | pull_rules |string |Not supported |
 | rules |string |Not supported |
 | event_id |integer | |

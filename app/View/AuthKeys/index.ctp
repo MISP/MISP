@@ -16,15 +16,9 @@
                                 'type' => 'simple',
                                 'fa-icon' => 'plus',
                                 'text' => __('Add authentication key'),
-                                'class' => 'btn btn-primary',
-                                'onClick' => 'openGenericModal',
-                                'onClickParams' => [
-                                    sprintf(
-                                        '%s/auth_keys/add%s',
-                                        $baseurl,
-                                        empty($user_id) ? '' : ('/' . $user_id)
-                                    )
-                                ]
+                                'class' => 'btn-primary modal-open',
+                                'url' => "$baseurl/auth_keys/add" . (empty($user_id) ? '' : ('/' . $user_id)),
+                                'requirement' => $canCreateAuthkey
                             ]
                         ]
                     ],
@@ -49,6 +43,7 @@
                     'element' => empty($user_id) ? 'links' : 'generic_field',
                     'url' => $baseurl . '/users/view',
                     'url_params_data_paths' => ['User.id'],
+                    'requirement' => $me['Role']['perm_admin'] || $me['Role']['perm_site_admin'],
                 ],
                 [
                     'name' => __('Auth Key'),
@@ -78,6 +73,11 @@
                     'name' => __('Allowed IPs'),
                     'data_path' => 'AuthKey.allowed_ips',
                 ],
+                [
+                    'name' => __('Seen IPs'),
+                    'data_path' => 'AuthKey.unique_ips',
+                    'element' => 'authkey_pin',
+                ]
             ],
             'title' => empty($ajax) ? __('Authentication key Index') : false,
             'description' => empty($ajax) ? __('A list of API keys bound to a user.') : false,
@@ -101,11 +101,9 @@
                     'title' => 'Edit auth key',
                 ],
                 [
-                    'onclick' => sprintf(
-                        'openGenericModal(\'%s/authKeys/delete/[onclick_params_data_path]\');',
-                        $baseurl
-                    ),
-                    'onclick_params_data_path' => 'AuthKey.id',
+                    'class' => 'modal-open',
+                    'url' => "$baseurl/authKeys/delete",
+                    'url_params_data_paths' => ['AuthKey.id'],
                     'icon' => 'trash',
                     'title' => __('Delete auth key'),
                 ]

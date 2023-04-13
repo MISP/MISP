@@ -4,6 +4,7 @@
 <span id="pull_tags_NOT" style="display:none;"><?php echo __('Events with the following tags blocked'); ?>: <span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
 <span id="pull_orgs_OR" style="display:none;"><?php echo __('Events with the following organisations allowed'); ?>: <span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
 <span id="pull_orgs_NOT" style="display:none;"><?php echo __('Events with the following organisations blocked'); ?>: <span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
+<span id="pull_url_params" style="display:none;"><?php echo __('Additional parameters: '); ?><span id="pull_url_params_text" style="color:green;"></span><br /></span>
 <span id="pull_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify'); ?></span><br /><br />
 
 <div id="hiddenRuleForms">
@@ -23,7 +24,8 @@
                         'context' =>  $this->Form->defaultModel,
                         'allTags' => $fieldData['tags'],
                         'allOrganisations' => $fieldData['orgs'],
-                        'ruleObject' => $pullRules
+                        'ruleObject' => $pullRules,
+                        'coreMirrorHints' => $supportedUrlparams,
                     ])
                 ]
             ],

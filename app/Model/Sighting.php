@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('ProcessTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
@@ -79,13 +80,7 @@ class Sighting extends AppModel
         $pubToZmq = $this->pubToZmq('sighting');
         $kafkaTopic = $this->kafkaTopic('sighting');
         if ($pubToZmq || $kafkaTopic) {
-            $user = array(
-                'org_id' => -1,
-                'Role' => array(
-                    'perm_site_admin' => 1
-                )
-            );
-            $sighting = $this->getSighting($this->id, $user);
+            $sighting = $this->getSighting($this->id);
             if ($pubToZmq) {
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->sighting_save($sighting, 'add');
@@ -103,13 +98,7 @@ class Sighting extends AppModel
         $pubToZmq = $this->pubToZmq('sighting');
         $kafkaTopic = $this->kafkaTopic('sighting');
         if ($pubToZmq || $kafkaTopic) {
-            $user = array(
-                'org_id' => -1,
-                'Role' => array(
-                    'perm_site_admin' => 1
-                )
-            );
-            $sighting = $this->getSighting($this->id, $user);
+            $sighting = $this->getSighting($this->id);
             if ($pubToZmq) {
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->sighting_save($sighting, 'delete');
@@ -186,12 +175,101 @@ class Sighting extends AppModel
     }
 
     /**
-     * @param int $id
+     * Fetch sightings with proper ACL checks
+     *
      * @param array $user
-     * @param bool $withEvent
+     * @param array $ids Sightings IDs
+     * @param bool $includeEvent
+     * @param bool $includeAttribute
+     * @param bool $includeUuid Add attribute and event UUID to sighting
      * @return array
      */
-    public function getSighting($id, array $user, $withEvent = true)
+    private function getSightings(array $user, array $ids, $includeEvent = true, $includeAttribute = false, $includeUuid = false)
+    {
+        $eventFields = $includeEvent ? ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'] : ['Event.org_id'];
+        if ($includeUuid && !$includeEvent) {
+            $eventFields[] = 'Event.uuid';
+        }
+
+        $attributeFields = $includeAttribute ? ['Attribute.id', 'Attribute.value','Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids'] : ['Attribute.id', 'Attribute.value'];
+        if ($includeUuid && !$includeAttribute) {
+            $attributeFields[] = 'Attribute.uuid';
+        }
+
+        // Fetch all attributes that are connected to sightings and user can see them
+        $attributeConditions = $this->Attribute->buildConditions($user);
+        $subQueryOptions = [
+            'fields' => ['DISTINCT Sighting.attribute_id'],
+            'conditions' => ['Sighting.id' => $ids],
+        ];
+        $attributeConditions[] = $this->subQueryGenerator($this, $subQueryOptions, 'Attribute.id');
+        $attributes = $this->Attribute->find('all', [
+            'recursive' => -1,
+            'conditions' => $attributeConditions,
+            'contain' => [
+                'Event' => [
+                    'fields' => $eventFields,
+                ],
+                'Object',
+            ],
+            'fields' => $attributeFields,
+            'order' => [],
+        ]);
+
+        if (empty($attributes)) {
+            return [];
+        }
+
+        $sightings = $this->filterSightingsByAttributeACL($user, $attributes, $ids);
+
+        if (empty($sightings)) {
+            return [];
+        }
+
+        $attributesById = [];
+        foreach ($attributes as $attribute) {
+            $attributesById[$attribute['Attribute']['id']] = $attribute;
+        }
+
+        $anonymise = Configure::read('Plugin.Sightings_anonymise');
+        $results = [];
+        foreach ($sightings as $sighting) {
+            $sightingAttribute = $attributesById[$sighting['Sighting']['attribute_id']];
+
+            if ($anonymise && $sighting['Sighting']['org_id'] != $user['org_id']) {
+                unset($sighting['Sighting']['org_id']);
+            }
+
+            // rearrange it to match the event format of fetchevent
+            $result = $sighting['Sighting'];
+            $result['value'] = $sightingAttribute['Attribute']['value'];
+            if ($includeUuid) {
+                $result['attribute_uuid'] = $sightingAttribute['Attribute']['uuid'];
+                $result['event_uuid'] = $sightingAttribute['Event']['uuid'];
+            }
+            if ($includeAttribute) {
+                $result['Attribute'] = $sightingAttribute['Attribute'];
+            }
+            if ($includeEvent) {
+                $sightingAttribute['Event']['Orgc']['name'] = $this->getOrganisationById($sightingAttribute['Event']['orgc_id'])['name'];
+                $result['Event'] = $sightingAttribute['Event'];
+            }
+            if (isset($result['org_id']) && $result['org_id'] != 0) {
+                $result['Organisation'] = $this->getOrganisationById($result['org_id']);
+            }
+            $results[] = ['Sighting' => $result];
+        }
+
+        return $results;
+    }
+
+    /**
+     * Return sighting without ACL checks
+     *
+     * @param int $id
+     * @return array
+     */
+    public function getSighting($id)
     {
         $sighting = $this->find('first', array(
             'recursive' => -1,
@@ -200,7 +278,7 @@ class Sighting extends AppModel
                     'fields' => array('Attribute.value', 'Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids')
                 ),
                 'Event' => array(
-                    'fields' => $withEvent ? ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'] : ['Event.org_id'],
+                    'fields' => ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'],
                 )
             ),
             'conditions' => array('Sighting.id' => $id)
@@ -209,44 +287,14 @@ class Sighting extends AppModel
             return array();
         }
 
-        $ownEvent = $user['Role']['perm_site_admin'] || $sighting['Event']['org_id'] == $user['org_id'];
-        if (!$ownEvent) {
-            $sightingPolicy = $this->sightingsPolicy();
-            // if sighting policy == 0 then return false if the sighting doesn't belong to the user
-            if ($sightingPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
-                if ($sighting['Sighting']['org_id'] != $user['org_id']) {
-                    return array();
-                }
-            }
-            // if sighting policy == 1, the user can only see the sighting if they've sighted something in the event once
-            else if ($sightingPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                if (!$this->isReporter($sighting['Sighting']['event_id'], $user['org_id'])) {
-                    return array();
-                }
-            }
-            else if ($sightingPolicy === self::SIGHTING_POLICY_HOST_ORG) {
-                if ($sighting['Sighting']['org_id'] != $user['org_id'] || $sighting['Sighting']['org_id'] != Configure::read('MISP.host_org_id')) {
-                    return array();
-                }
-            }
-        }
-
         // Put event organisation name from cache
-        if ($withEvent) {
-            $sighting['Event']['Orgc']['name'] = $this->getOrganisationById($sighting['Event']['orgc_id'])['name'];
-        }
+        $sighting['Event']['Orgc']['name'] = $this->getOrganisationById($sighting['Event']['orgc_id'])['name'];
 
-        $anonymise = Configure::read('Plugin.Sightings_anonymise');
-        if ($anonymise && $sighting['Sighting']['org_id'] != $user['org_id']) {
-            unset($sighting['Sighting']['org_id']);
-        }
         // rearrange it to match the event format of fetchevent
         $result = array(
             'Sighting' => $sighting['Sighting']
         );
-        if ($withEvent) {
-            $result['Sighting']['Event'] = $sighting['Event'];
-        }
+        $result['Sighting']['Event'] = $sighting['Event'];
         $result['Sighting']['Attribute'] = $sighting['Attribute'];
         return $result;
     }
@@ -305,28 +353,89 @@ class Sighting extends AppModel
             return ['data' => [], 'csv' => []];
         }
 
+        $conditions = $this->createConditionsByAttributes($user, $attributes);
+        $groupedSightings = $this->fetchGroupedSightings($conditions, $user);
+        return $this->generateStatistics($groupedSightings, $csvWithFalsePositive);
+    }
+
+    /**
+     * @param array $user
+     * @param array $attributes Attributes with `Attribute.id`, `Event.id` and `Event.org_id` fields
+     * @param array $ids
+     * @return array
+     */
+    private function filterSightingsByAttributeACL(array $user, array $attributes, array $ids)
+    {
+        $sightingsPolicy = $this->sightingsPolicy();
+        $attributesKeyed = [];
+        $hostOrgId = Configure::read('MISP.host_org_id');
+        $userOrgId = $user['org_id'];
+        foreach ($attributes as $attribute) {
+            $attributesKeyed[$attribute['Attribute']['id']] = $attribute;
+        }
+        unset($attributes);
+        $sightings = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'Sighting.id' => $ids
+            ],
+            'order' => 'Sighting.id'
+        ]);
+        foreach ($sightings as $k => $sighting) {
+            $attribute = $attributesKeyed[$sighting['Sighting']['attribute_id']];
+            $ownEvent = $attribute['Event']['org_id'] == $userOrgId;
+            if (!$ownEvent) {
+                if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+                    if ($sighting['Sighting']['org_id'] != $userOrgId) {
+                        unset($sightings[$k]);
+                    }
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+                    if (!$this->isreporter($attribute['Event']['id'], $userOrgId)) {
+                        unset($sightings[$k]);
+                    }
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                    if (!in_array($sighting['Sighting']['org_id'], [$userOrgId, $hostOrgId])) {
+                        unset($sightings[$k]);
+                    }
+                }
+            }
+        }
+        return array_values($sightings);
+    }
+
+    /**
+     * @param array $user
+     * @param array $attributes Attributes with `Attribute.id`, `Event.id` and `Event.org_id` fields
+     * @return array
+     */
+    private function createConditionsByAttributes(array $user, array $attributes)
+    {
         $sightingsPolicy = $this->sightingsPolicy();
 
+        if ($sightingsPolicy === self::SIGHTING_POLICY_EVERYONE || $user['Role']['perm_site_admin']) {
+            return ['Sighting.attribute_id' => array_column(array_column($attributes, 'Attribute'), 'id')];
+        }
+
+        $hostOrgId = Configure::read('MISP.host_org_id');
+        $userOrgId = $user['org_id'];
         $conditions = [];
         foreach ($attributes as $attribute) {
             $attributeConditions = ['Sighting.attribute_id' => $attribute['Attribute']['id']];
-            $ownEvent = $user['Role']['perm_site_admin'] || $attribute['Event']['org_id'] == $user['org_id'];
+            $ownEvent = $attribute['Event']['org_id'] == $userOrgId;
             if (!$ownEvent) {
                 if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
-                    $attributeConditions['Sighting.org_id'] = $user['org_id'];
+                    $attributeConditions['Sighting.org_id'] = $userOrgId;
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                    if (!$this->isReporter($attribute['Event']['id'], $user['org_id'])) {
+                    if (!$this->isReporter($attribute['Event']['id'], $userOrgId)) {
                         continue; // skip attribute
                     }
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
-                    $attributeConditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
+                    $attributeConditions['Sighting.org_id'] = [$userOrgId, $hostOrgId];
                 }
             }
             $conditions['OR'][] = $attributeConditions;
         }
-
-        $groupedSightings = $this->fetchGroupedSightings($conditions, $user);
-        return $this->generateStatistics($groupedSightings, $csvWithFalsePositive);
+        return $conditions;
     }
 
     /**
@@ -677,7 +786,7 @@ class Sighting extends AppModel
                 foreach ($values as $value) {
                     foreach (array('value1', 'value2') as $field) {
                         $conditions['OR'][] = array(
-                            'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
+                            'Attribute.' . $field => $value
                         );
                     }
                 }
@@ -744,7 +853,7 @@ class Sighting extends AppModel
         $tempFile->close();
         $scriptFile = APP . "files" . DS . "scripts" . DS . "stixsighting2misp.py";
         // Execute the python script and point it to the temporary filename
-        $result = shell_exec($this->getPythonVersion() . ' ' . $scriptFile . ' ' . $randomFileName);
+        $result = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile, $randomFileName]);
         // The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
         // If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
         $result = json_decode($result, true);
@@ -799,7 +908,6 @@ class Sighting extends AppModel
      */
     public function listSightings(array $user, $ids, $context, $orgId = false, $sightingsType = false, $orderDesc = true)
     {
-        $this->Event = ClassRegistry::init('Event');
         $ids = is_array($ids) ? $ids : $this->explodeIdList($ids);
 
         $objectIds = [];
@@ -890,12 +998,19 @@ class Sighting extends AppModel
         return $sightings;
     }
 
-    public function restSearch($user, $returnFormat, $filters)
+    /**
+     * @param array $user
+     * @param string $returnFormat
+     * @param array $filters
+     * @return TmpFileTool
+     * @throws Exception
+     */
+    public function restSearch(array $user, $returnFormat, $filters)
     {
         $allowedContext = array('event', 'attribute');
         // validate context
         if (isset($filters['context']) && !in_array($filters['context'], $allowedContext, true)) {
-            throw new MethodNotAllowedException(__('Invalid context.'));
+            throw new MethodNotAllowedException(__('Invalid context %s.', $filters['context']));
         }
         // ensure that an id or uuid is provided if context is set
         if (!empty($filters['context']) && !(isset($filters['id']) || isset($filters['uuid'])) ) {
@@ -928,7 +1043,6 @@ class Sighting extends AppModel
         }
 
         if (isset($filters['org_id'])) {
-            $this->Organisation = ClassRegistry::init('Organisation');
             if (!is_array($filters['org_id'])) {
                 $filters['org_id'] = array($filters['org_id']);
             }
@@ -954,6 +1068,16 @@ class Sighting extends AppModel
         }
 
         if (!empty($filters['id'])) {
+            if (is_array($filters['id'])) {
+                foreach ($filters['id'] as $id) {
+                    if (!is_int($id) || !is_numeric($id)) {
+                        throw new BadRequestException("Invalid ID `$id` provided.");
+                    }
+                }
+            } else if (!is_int($filters['id']) || !is_numeric($filters['id'])) {
+                throw new BadRequestException("Invalid ID `{$filters['id']}` provided.");
+            }
+
             if ($filters['context'] === 'attribute') {
                 $conditions['Sighting.attribute_id'] = $filters['id'];
             } elseif ($filters['context'] === 'event') {
@@ -971,15 +1095,10 @@ class Sighting extends AppModel
             }
         }
 
-        // fetch sightings matching the query
-        $sightingIds = $this->find('column', [
-            'conditions' => $conditions,
-            'fields' => ['Sighting.id'],
-            'contain' => $contain,
-        ]);
-
         $includeAttribute = isset($filters['includeAttribute']) && $filters['includeAttribute'];
         $includeEvent = isset($filters['includeEvent']) && $filters['includeEvent'];
+        $includeUuid = isset($filters['includeUuid']) && $filters['includeUuid'];
+
         $requestedAttributes = ['id', 'attribute_id', 'event_id', 'org_id', 'date_sighting', 'uuid', 'source', 'type'];
         if ($includeAttribute) {
             $requestedAttributes = array_merge($requestedAttributes, ['attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value']);
@@ -1001,14 +1120,18 @@ class Sighting extends AppModel
         $tmpfile->write($exportTool->header($exportToolParams));
         $separator = $exportTool->separator($exportToolParams);
 
-        foreach ($sightingIds as $sightingId) {
-            // apply ACL and sighting policies
-            $sighting = $this->getSighting($sightingId, $user, $includeEvent);
-            if (!empty($sighting)) {
-                $sighting['Sighting']['value'] = $sighting['Sighting']['Attribute']['value'];
-                if (!$includeAttribute) {
-                    unset($sighting['Sighting']['Attribute']);
-                }
+        // fetch sightings matching the query without ACL checks
+        $sightingIds = $this->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['Sighting.id'],
+            'contain' => $contain,
+            'order' => 'Sighting.id',
+        ]);
+
+        foreach (array_chunk($sightingIds, 500) as $chunk) {
+            // fetch sightings with ACL checks and sighting policies
+            $sightings = $this->getSightings($user, $chunk, $includeEvent, $includeAttribute, $includeUuid);
+            foreach ($sightings as $sighting) {
                 $tmpfile->writeWithSeparator($exportTool->handler($sighting, $exportToolParams), $separator);
             }
         }
@@ -1101,9 +1224,93 @@ class Sighting extends AppModel
             $existingUuids = array_column($toSave, 'uuid');
             $this->Event->publishSightingsRouter($event['Event']['id'], $user, $passAlong, $existingUuids);
             return count($toSave);
-        } else {
-            return 0;
         }
+
+        return 0;
+    }
+
+    /**
+     * Push sightings to remote server.
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @return array
+     * @throws Exception
+     */
+    public function pushSightings(array $user, ServerSyncTool $serverSync)
+    {
+        $server = $serverSync->server();
+
+        if (!$serverSync->server()['Server']['push_sightings']) {
+            return [];
+        }
+        $this->Server = ClassRegistry::init('Server');
+
+        try {
+            $eventArray = $this->Server->getEventIndexFromServer($serverSync);
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            return [];
+        }
+
+        // Fetch local events that has sightings
+        $localEvents = $this->Event->find('list', [
+            'fields' => ['Event.uuid', 'Event.sighting_timestamp'],
+            'conditions' => [
+                'Event.uuid' => array_column($eventArray, 'uuid'),
+                'Event.sighting_timestamp >' => 0,
+            ],
+        ]);
+
+        // Filter just local events that has sighting_timestamp newer than remote event
+        $eventUuids = [];
+        foreach ($eventArray as $event) {
+            if (isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
+                $eventUuids[] = $event['uuid'];
+            }
+        }
+        unset($localEvents, $eventArray);
+
+        $fakeSyncUser = [
+            'org_id' => $server['Server']['remote_org_id'],
+            'Role' => [
+                'perm_site_admin' => 0,
+            ],
+        ];
+
+        $successes = [];
+        // now process the $eventUuids to push each of the events sequentially
+        // check each event and push sightings when needed
+        foreach ($eventUuids as $eventUuid) {
+            $event = $this->Event->fetchEvent($user, ['event_uuid' => $eventUuid, 'metadata' => true]);
+            if (empty($event)) {
+                continue;
+            }
+            $event = $event[0];
+
+            if (empty($this->Server->eventFilterPushableServers($event, [$server]))) {
+                continue;
+            }
+            if (!$this->Event->checkDistributionForPush($event, $server)) {
+                continue;
+            }
+
+            // Process sightings in batch to keep memory requirements low
+            foreach ($this->fetchUuidsForEventToPush($event, $fakeSyncUser) as $batch) {
+                // Filter out sightings that already exists on remote server
+                $existingSightings = $serverSync->filterSightingUuidsForPush($event, $batch);
+                $newSightings = array_diff($batch, $existingSightings);
+                if (empty($newSightings)) {
+                    continue;
+                }
+
+                $conditions = ['Sighting.uuid' => $newSightings];
+                $sightings = $this->attachToEvent($event, $fakeSyncUser, null, $conditions, true);
+                $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
+            }
+
+            $successes[] = 'Sightings for event ' .  $event['Event']['id'];
+        }
+        return $successes;
     }
 
     /**
@@ -1138,12 +1345,85 @@ class Sighting extends AppModel
         $eventUuids = [];
         foreach ($remoteEvents as $remoteEvent) {
             if (isset($localEvents[$remoteEvent['uuid']]) && $localEvents[$remoteEvent['uuid']] < $remoteEvent['sighting_timestamp']) {
-                $eventUuids[] = $remoteEvent['uuid'];
+                $eventUuids[$remoteEvent['uuid']] = $remoteEvent['sighting_timestamp'];
             }
         }
         unset($remoteEvents, $localEvents);
 
+        if (empty($eventUuids)) {
+            return 0;
+        }
+
+        $this->removeFetched($serverSync->serverId(), $eventUuids);
+        if (empty($eventUuids)) {
+            return 0;
+        }
+
+        if ($serverSync->isSupported(ServerSyncTool::FEATURE_SIGHTING_REST_SEARCH)) {
+            return $this->pullSightingNewWay($user, $eventUuids, $serverSync);
+        } else {
+            return $this->pullSightingOldWay($user, $eventUuids, $serverSync);
+        }
+    }
+
+    /**
+     * New way how to fetch sighting for events without fetching the whole event.
+     *
+     * @param array $user
+     * @param array $eventUuids With UUID in key and remote sighting_timestamp as value
+     * @param ServerSyncTool $serverSync
+     * @return int
+     * @throws Exception
+     */
+    private function pullSightingNewWay(array $user, array $eventUuids, ServerSyncTool $serverSync)
+    {
+        $uuids = array_keys($eventUuids);
         $saved = 0;
+        $savedEventUuids = [];
+        foreach (array_chunk($uuids, 100) as $chunk) {
+            try {
+                $sightings = $serverSync->fetchSightingsForEvents($chunk);
+            } catch (Exception $e) {
+                $this->logException("Failed downloading the sightings from {$serverSync->server()['Server']['name']}.", $e);
+                continue;
+            }
+
+            $sightingsToSave = [];
+            foreach ($sightings as $sighting) {
+                $sighting = $sighting['Sighting'];
+                $eventUuid = $sighting['event_uuid'];
+                $sightingsToSave[$eventUuid][] = $sighting;
+            }
+
+            foreach ($sightingsToSave as $eventUuid => $sightings) {
+                $savedForEvent = $this->bulkSaveSightings($eventUuid, $sightings, $user, $serverSync->serverId());
+                if ($savedForEvent) {
+                    $saved += $savedForEvent;
+                    $savedEventUuids[] = $eventUuid;
+                }
+            }
+        }
+
+        // Save to Redis that we fetched event sightings, that was not saved. This avoid fetching sightings for
+        // same event that has sightings not visible to user again and again.
+        foreach (array_diff($uuids, $savedEventUuids) as $notSavedUuid) {
+            $this->saveEmptyFetchedEvent($serverSync->serverId(), $notSavedUuid, $eventUuids[$notSavedUuid]);
+        }
+
+        return $saved;
+    }
+
+    /**
+     * @param array $user
+     * @param array $eventUuids With UUID in key and remote sighting_timestamp as value
+     * @param ServerSyncTool $serverSync
+     * @return int
+     * @throws Exception
+     */
+    private function pullSightingOldWay(array $user, array $eventUuids, ServerSyncTool $serverSync)
+    {
+        $saved = 0;
+        $savedEventUuids = [];
         // We don't need some of the event data, like correlations and event reports
         $params = [
             'deleted' => [0, 1],
@@ -1158,7 +1438,7 @@ class Sighting extends AppModel
         ];
         // now process the $eventUuids to pull each of the events sequentially
         // download each event and save sightings
-        foreach ($eventUuids as $eventUuid) {
+        foreach ($eventUuids as $eventUuid => $sightingTimestamp) {
             try {
                 $event = $serverSync->fetchEvent($eventUuid, $params)->json();
             } catch (Exception $e) {
@@ -1185,13 +1465,55 @@ class Sighting extends AppModel
                 }
             }
             if (!empty($sightings)) {
-                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $serverSync->serverId());
-                if (is_numeric($result)) {
+                $result = $this->bulkSaveSightings($eventUuid, $sightings, $user, $serverSync->serverId());
+                if ($result) {
                     $saved += $result;
+                    $savedEventUuids[] = $eventUuid;
                 }
             }
         }
+
+        // Save to Redis that we fetched event sightings, that was not saved. This avoid fetching sightings for
+        // same event that has sightings not visible to user again and again.
+        foreach (array_diff(array_keys($eventUuids), $savedEventUuids) as $notSavedEventUuid) {
+            $this->saveEmptyFetchedEvent($serverSync->serverId(), $notSavedEventUuid, $eventUuids[$notSavedEventUuid]);
+        }
+
         return $saved;
+    }
+
+    /**
+     * Remove from fetching events that was already fetched with the same sighting_timestamp
+     * @param int $serverId
+     * @param array $eventUuids
+     * @return void
+     * @throws RedisException
+     */
+    private function removeFetched($serverId, array &$eventUuids)
+    {
+        $lastFetched = RedisTool::init()->hMGet("misp:fetched_sightings:$serverId", array_keys($eventUuids));
+        foreach ($lastFetched as $uuid => $savedTimestamp) {
+            if ($savedTimestamp == $eventUuids[$uuid]) {
+                unset($eventUuids[$uuid]); // event with the same sighting_timestamp was already fetched
+            }
+        }
+    }
+
+    /**
+     * Save to Redis event uuid with sighting timestamp that was fetched from remote server, but no sightings was
+     * saved to database.
+     *
+     * @param int $serverId
+     * @param string $eventUuid
+     * @param int $sightingTimestamp
+     * @return void
+     * @throws RedisException
+     */
+    private function saveEmptyFetchedEvent($serverId, $eventUuid, $sightingTimestamp)
+    {
+        $redis = RedisTool::init();
+        $redis->hSet("misp:fetched_sightings:$serverId", $eventUuid, $sightingTimestamp);
+        $redis->expire("misp:fetched_sightings:$serverId", 24 * 3600); // keep for one day
     }
 
     /**
@@ -1230,7 +1552,7 @@ class Sighting extends AppModel
         }
         return $this->Organisation->find('list', [
             'fields' => ['Organisation.uuid', 'Organisation.id'],
-            'conditions' => ['Organisation.uuid' => array_unique(array_column($organisations, 'uuid'))],
+            'conditions' => ['Organisation.uuid' => array_unique(array_column($organisations, 'uuid'), SORT_REGULAR)],
         ]);
     }
 
@@ -1245,15 +1567,10 @@ class Sighting extends AppModel
      */
     private function isReporter($eventId, $orgId)
     {
-        return (bool)$this->find('first', array(
-            'recursive' => -1,
-            'callbacks' => false,
-            'fields' => ['Sighting.id'],
-            'conditions' => array(
-                'Sighting.event_id' => $eventId,
-                'Sighting.org_id' => $orgId,
-            )
-        ));
+        return $this->hasAny([
+            'Sighting.event_id' => $eventId,
+            'Sighting.org_id' => $orgId,
+        ]);
     }
 
     /**
@@ -1277,7 +1594,7 @@ class Sighting extends AppModel
             $org = $org['Organisation'];
         }
         $this->orgCache[$orgId] = $org;
-        return $this->orgCache[$orgId];
+        return $org;
     }
 
     /**
@@ -1294,7 +1611,7 @@ class Sighting extends AppModel
 
     private function dateVirtualColumn()
     {
-        if (in_array($this->getDataSource()->config['datasource'], ['Database/Mysql', 'Database/MysqlObserver'], true)) {
+        if ($this->isMysql()) {
             return 'DATE(FROM_UNIXTIME(Sighting.date_sighting))';
         } else {
             return "to_char(date(to_timestamp(Sighting.date_sighting)), 'YYYY-MM-DD')"; // PostgreSQL

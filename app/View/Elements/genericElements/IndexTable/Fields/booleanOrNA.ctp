@@ -16,8 +16,16 @@ if (is_null($flag)) {
     $aria = __('No');
 }
 
+$classes = ['fa', "fa-$icon"];
+if (!empty($field['colors'])) {
+    $classes[] = $icon == 'check' ? 'green' : 'grey';
+} else {
+    $classes[] = 'black';
+}
+
 echo sprintf(
-    '<i class="black fa fa-%s" role="img" aria-label="%s"></i>%s',
-    $icon, $aria, $text
+    '<i class="%s" role="img" aria-label="%s"></i>%s',
+    implode(' ', $classes),
+    $aria, $text
 );
 ?>

@@ -1,6 +1,6 @@
 <div class="object_value_field">
   <?php
-    if ($element['type'] == 'malware-sample' || $element['type'] == 'attachment'):
+    if ($element['type'] === 'malware-sample' || $element['type'] === 'attachment'):
       if ($action != 'edit'):
         echo $this->Form->file('Attribute.' . $k . '.Attachment', array(
           'class' => 'Attribute_attachment'

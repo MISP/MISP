@@ -1,4 +1,4 @@
-# INSTALLATION INSTRUCTIONS
+# INSTALLATION INSTRUCTIONS!}
 ## for OpenBSD 7.0-amd64
 
 !!! warning
@@ -16,7 +16,7 @@
 !!! notice
     As of OpenBSD 6.4 the native httpd has rewrite rules and php 5.6 is gone too.
 
-{!generic/globalVariables.md!}
+{% include_relative generic/globalVariables.md %}
 
 ```bash
 export AUTOMAKE_VERSION=1.16
@@ -353,20 +353,20 @@ cd /var/www/htdocs/MISP/app/files/scripts/python-maec
 $SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install mixbox to accommodate the new STIX dependencies:
+# Install mixbox to accommodate the new STIX dependencies:
 cd /var/www/htdocs/MISP/app/files/scripts/mixbox
 $SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install PyMISP
+# Install PyMISP
 cd /var/www/htdocs/MISP/PyMISP
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install support for STIX 2.0
-cd /var/www/htdocs/MISP/cti-python-stix2
+# Install misp-stix
+cd /var/www/htdocs/MISP/app/files/scripts/misp-stix
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install python-magic and pydeep
+# Install python-magic and pydeep
 doas /usr/local/virtualenvs/MISP/bin/pip install python-magic
 doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/pydeep.git
 ```
@@ -594,9 +594,9 @@ doas vi /etc/rc.local
 ${SUDO_WWW} bash /var/www/htdocs/MISP/app/Console/worker/start.sh
 ``` 
 
-{!generic/INSTALL.done.md!}
+{% include_relative generic/INSTALL.done.md %}
 
-{!generic/recommended.actions.md!}
+{% include_relative generic/recommended.actions.md %}
 
 #### MISP Modules
 ```
@@ -916,4 +916,4 @@ doas $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
 doas $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 ```
 
-{!generic/hardening.md!}
+{% include_relative generic/hardening.md %}

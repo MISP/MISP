@@ -478,7 +478,7 @@ $(document).ready( function() {
   	return false;
   }
 
-  $(document).on('keydown', function(e) {
+  $("#chart").on('keydown', function(e) {
   	if (e.which == 69) {
   		if (highlighted == undefined) {
   			showPane(root['nodes'][0], 'selected');
@@ -522,7 +522,7 @@ $(document).ready( function() {
   });
   */
 
-  $(document).on('keydown', function(e) {
+  $("#chart").on('keydown', function(e) {
   	if (e.which == 88) {
   		e.preventDefault();
   		if (e.ctrlKey) {

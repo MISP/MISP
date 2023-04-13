@@ -3,26 +3,44 @@
 /**
  * @property Log $Log
  * @property AuditLog $AuditLog
+ * @property AccessLog $AccessLog
  * @property Server $Server
  */
 class LogShell extends AppShell
 {
-    public $uses = ['Log', 'AuditLog', 'Server'];
+    public $uses = ['Log', 'AuditLog', 'AccessLog', 'Server'];
 
     public function getOptionParser()
     {
         $parser = parent::getOptionParser();
         $parser->addSubcommand('auditStatistics', [
-            'help' => __('Show statistics from audit logs.'),
+            'help' => __('Show statistics for audit logs.'),
+        ]);
+        $parser->addSubcommand('accessStatistics', [
+            'help' => __('Show statistics for access logs.'),
         ]);
         $parser->addSubcommand('statistics', [
-            'help' => __('Show statistics from logs.'),
+            'help' => __('Show statistics for application logs.'),
         ]);
         $parser->addSubcommand('export', [
-            'help' => __('Export logs to compressed file in JSON Lines format (one JSON encoded line per entry).'),
+            'help' => __('Export application logs to compressed file in JSON Lines format (one JSON encoded line per entry).'),
+            'parser' => [
+                'arguments' => [
+                    'file' => ['help' => __('Path to output file'), 'required' => true],
+                ],
+                'options' => [
+                    'without-changes' => ['boolean' => true, 'help' => __('Do not include add, edit or delete actions.')],
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('recompress', [
+            'help' => __('Recompress compressed data in logs.'),
+        ]);
+        $parser->addSubcommand('accessLogRetention', [
+            'help' => __('Delete logs that are older than specified duration.'),
             'parser' => array(
                 'arguments' => array(
-                    'file' => ['help' => __('Path to output file'), 'required' => true],
+                    'duration' => ['help' => __('Duration in days'), 'required' => true],
                 ),
             ),
         ]);
@@ -32,6 +50,7 @@ class LogShell extends AppShell
     public function export()
     {
         list($path) = $this->args;
+        $withoutChanges = $this->param('without-changes');
 
         if (file_exists($path)) {
             $this->error("File $path already exists");
@@ -42,21 +61,24 @@ class LogShell extends AppShell
             $this->error("Could not open $path for writing");
         }
 
-        $rows = $this->Log->query("SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'logs';");
         /** @var ProgressShellHelper $progress */
         $progress = $this->helper('progress');
         $progress->init([
-            'total' => $rows[0]['TABLES']['TABLE_ROWS'], // just estimate, but fast
+            'total' => $this->Log->tableRows(), // just estimate, but fast
             'width' => 50,
         ]);
 
         $lastId = 0;
         while (true) {
+            $conditions = ['Log.id >' => $lastId]; // much faster than offset
+            if ($withoutChanges) {
+                $conditions['NOT'] = ['Log.action' => ['add', 'edit', 'delete']];
+            }
             $logs = $this->Log->find('all', [
-                'conditions' => ['id >' => $lastId], // much faster than offset
+                'conditions' => $conditions,
                 'recursive' => -1,
                 'limit' => 100000,
-                'order' => ['id ASC'],
+                'order' => ['Log.id ASC'],
             ]);
             if (empty($logs)) {
                 break;
@@ -77,7 +99,7 @@ class LogShell extends AppShell
                 if ($log['id'] > $lastId) {
                     $lastId = $log['id'];
                 }
-                $lines .= json_encode($log, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
+                $lines .= JsonTool::encode($log) . "\n";
             }
             if (gzwrite($file, $lines) === false) {
                 $this->error("Could not write data to $path");
@@ -144,7 +166,48 @@ class LogShell extends AppShell
         $this->out('Change field:');
         $this->out('-------------');
         $this->out(str_pad(__('Compressed items:'), 20) . $this->AuditLog->compressionStats['compressed']);
+        $this->out(str_pad(__('Total size:'), 20) . CakeNumber::toReadableSize($this->AuditLog->compressionStats['bytes_total']));
         $this->out(str_pad(__('Uncompressed size:'), 20) . CakeNumber::toReadableSize($this->AuditLog->compressionStats['bytes_uncompressed']));
         $this->out(str_pad(__('Compressed size:'), 20) . CakeNumber::toReadableSize($this->AuditLog->compressionStats['bytes_compressed']));
+    }
+
+    public function accessStatistics()
+    {
+        $count = $this->AccessLog->find('count');
+        $first = $this->AccessLog->find('first', [
+            'recursive' => -1,
+            'fields' => ['created'],
+            'order' => ['id ASC'],
+        ]);
+        $last = $this->AccessLog->find('first', [
+            'recursive' => -1,
+            'fields' => ['created'],
+            'order' => ['id DESC'],
+        ]);
+
+        $this->out(str_pad(__('Count:'), 20) . $count);
+        $this->out(str_pad(__('First:'), 20) . $first['AccessLog']['created']);
+        $this->out(str_pad(__('Last:'), 20) . $last['AccessLog']['created']);
+
+        $usage = $this->Server->dbSpaceUsage()['access_logs'];
+        $this->out(str_pad(__('Data size:'), 20) . CakeNumber::toReadableSize($usage['data_in_bytes']));
+        $this->out(str_pad(__('Index size:'), 20) . CakeNumber::toReadableSize($usage['index_in_bytes']));
+        $this->out(str_pad(__('Reclaimable size:'), 20) . CakeNumber::toReadableSize($usage['reclaimable_in_bytes']), 2);
+    }
+
+    public function recompress()
+    {
+        $this->AuditLog->recompress();
+    }
+
+    public function accessLogRetention()
+    {
+        list($duration) = $this->args;
+        if ($duration <= 0 || !is_numeric($duration)) {
+            $this->error("Invalid duration specified.");
+        }
+        $duration = new DateTime("-$duration days");
+        $deleted = $this->AccessLog->deleteOldLogs($duration);
+        $this->out(__n("Deleted %s entry", "Deleted %s entries", $deleted, $deleted));
     }
 }

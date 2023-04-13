@@ -44,30 +44,21 @@ def _handle_errors(errors: dict):
 
 def _process_misp_files(version: str, input_names: Union[list, None], debug: bool):
     if input_names is None:
-        print('No input file provided.', file=sys.stderr)
-        print(json.dumps({'success': 1}))
+        print(json.dumps({'error': 'No input file provided.'}))
         return
     try:
         parser = MISPtoSTIX20Parser() if version == '2.0' else MISPtoSTIX21Parser()
-        for name in input_names[:-1]:
+        for name in input_names:
             parser.parse_json_content(name)
             with open(f'{name}.out', 'wt', encoding='utf-8') as f:
-                f.write(f'{json.dumps(parser.stix_objects, cls=STIXJSONEncoder)},')
-        name = input_names[-1]
-        parser.parse_json_content(name)
-        with open(f'{name}.out', 'wt', encoding='utf-8') as f:
-            f.write(json.dumps(parser.stix_objects, cls=STIXJSONEncoder))
+                f.write(f'{json.dumps(parser.stix_objects, cls=STIXJSONEncoder)}')
         errors = parser.errors
         if errors:
             _handle_errors(errors)
         print(json.dumps({'success': 1}))
     except Exception as e:
-        print(json.dumps(
-            {
-                'error': e.__str__(),
-                'traceback': ''.join(traceback.format_tb(e.__traceback__))
-            }
-        ))
+        print(json.dumps({'error': e.__str__()}))
+        traceback.print_tb(e.__traceback__)
 
 
 if __name__ == "__main__":

@@ -17,9 +17,11 @@ $config = array(
         'user_monitoring_enabled'           => false,
         'authkey_keep_session'              => false,
         'disable_local_feed_access'         => false,
+        'enable_svg_logos'                  => false,
         //'auth'                            => array('CertAuth.Certificate'), // additional authentication methods
         //'auth'                            => array('ShibbAuth.ApacheShibb'),
         //'auth'                            => array('AadAuth.AadAuthenticate'),
+        //'auth'                            => array('LinOTPAuth.LinOTP'),
     ),
     'MISP' => array(
         'baseurl'                        => '',
@@ -69,6 +71,7 @@ $config = array(
         'enableOrgBlocklisting'          => true,
         'log_client_ip'                  => false,
         'log_auth'                       => false,
+        'store_api_access_time'          => false,
         'disableUserSelfManagement'      => false,
         'disable_user_login_change'      => false,
         'disable_user_password_change'   => false,
@@ -104,6 +107,7 @@ $config = array(
         'user_email_notification_ban_amount_threshold' => 10,
         'user_email_notification_ban_refresh_on_retry' => true,
         'warning_for_all'                => true,
+        'enable_synchronisation_filtering_on_type' => false,
     ),
     'GnuPG' => array(
         'onlyencrypted'     => false,
@@ -143,7 +147,7 @@ $config = array(
         'max_job_history_ttl' => 86400,
         'supervisor_host' => 'localhost',
         'supervisor_port' => 9001,
-        'supervisor_user' => '',
+        'supervisor_user' => 'supervisor',
         'supervisor_password' => '',
     ),
     // Uncomment the following to enable client SSL certificate authentication
@@ -202,17 +206,20 @@ $config = array(
         'realm' => 'lino', // the (default) realm of all the users logging in through this system
         'userModel' => 'User', // name of the User class (MISP class) to check if the user exists
         'userModelKey' => 'email', // User field that will be used for querying.
+        'verifyssl' => true, // Verify TLS Certificate or not
+        'mixedauth' => false, // false=>Query only LinOTP or true=>OTP from LinOTP, Password from MISP
     ),
     */
     // Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.
     // Feel free to enable it and report back to us if you run into any issues.
     //
-    // Uncomment the following to enable Kerberos authentication
+    // Uncomment the following to enable Kerberos/LDAP authentication
     // needs PHP LDAP support enabled (e.g. compile flag --with-ldap or Debian package php5-ldap)
     /*
-    'ApacheSecureAuth' => array( // Configuration for kerberos authentication
+    'ApacheSecureAuth' => array( // Configuration for kerberos/LDAP authentication
         'apacheEnv'          => 'REMOTE_USER',           // If proxy variable = HTTP_REMOTE_USER, If BasicAuth ldap = PHP_AUTH_USER
-        'ldapServer'         => 'ldap://example.com',   // FQDN or IP
+        'ldapServer'         => 'ldap://example.com',   // FQDN or IP, ldap:// for LDAP or LDAP+STARTTLS, ldaps:// for LDAPS
+        'starttls'           => true, // true for STARTTLS, ignored for LDAPS
         'ldapProtocol'       => 3,
         'ldapNetworkTimeout' => -1,  // use -1 for unlimited network timeout
         'ldapReaderUser'     => 'cn=userWithReadAccess,ou=users,dc=example,dc=com', // DN ou RDN LDAP with reader user right

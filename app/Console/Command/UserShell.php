@@ -14,10 +14,24 @@ class UserShell extends AppShell
         $parser->addSubcommand('list', [
             'help' => __('Get list of user accounts.'),
             'parser' => [
+                'arguments' => [
+                    'userId' => ['help' => __('User ID or e-mail address.'), 'required' => true],
+                ],
                 'options' => [
                     'json' => ['help' => __('Output as JSON.'), 'boolean' => true],
                 ],
             ]
+        ]);
+        $parser->addSubcommand('authkey', [
+            'help' => __('Get information about given authkey.'),
+            'parser' => [
+                'arguments' => [
+                    'authkey' => ['help' => __('Authentication key. If not provide, it will be read from STDIN.')],
+                ],
+            ]
+        ]);
+        $parser->addSubcommand('authkey_valid', [
+            'help' => __('Check if given authkey by STDIN is valid.'),
         ]);
         $parser->addSubcommand('block', [
             'help' => __('Immediately block user.'),
@@ -34,6 +48,18 @@ class UserShell extends AppShell
                     'userId' => ['help' => __('User ID or e-mail address.'), 'required' => true],
                 ],
             ],
+        ]);
+        $parser->addSubcommand('check_validity', [
+            'help' => __('Check users validity from external identity provider and block not valid user.'),
+            'parser' => [
+                'arguments' => [
+                    'userId' => ['help' => __('User ID or e-mail address. If not provided, all users will be checked.'), 'required' => false],
+                ],
+                'options' => [
+                    'block_invalid' => ['help' => __('Block user that are considered invalid.'), 'boolean' => true],
+                    'update' => ['help' => __('Update user role or organisation.'), 'boolean' => true],
+                ],
+            ]
         ]);
         $parser->addSubcommand('change_pw', [
             'help' => __('Change user password.'),
@@ -52,6 +78,7 @@ class UserShell extends AppShell
             'parser' => [
                 'arguments' => [
                     'userId' => ['help' => __('User ID or e-mail address.'), 'required' => true],
+                    'authKey' => ['help' => __('Optional new authentication key.'), 'required' => false],
                 ],
             ],
         ]);
@@ -82,6 +109,17 @@ class UserShell extends AppShell
 
     public function list()
     {
+        $userId = isset($this->args[0]) ? $this->args[0] : null;
+        if ($userId) {
+            $conditions = ['OR' => [
+                'User.id' => $userId,
+                'User.email LIKE' => "%$userId%",
+                'User.sub LIKE' => "%$userId%",
+            ]];
+        } else {
+            $conditions = [];
+        }
+
         if ($this->params['json']) {
             // do not fetch sensitive or big values
             $schema = $this->User->schema();
@@ -97,6 +135,7 @@ class UserShell extends AppShell
             $users = $this->User->find('all', [
                 'recursive' => -1,
                 'fields' => $fields,
+                'conditions' => $conditions,
                 'contain' => ['Organisation', 'Role', 'UserSetting'],
             ]);
 
@@ -104,11 +143,105 @@ class UserShell extends AppShell
         } else {
             $users = $this->User->find('column', [
                 'fields' => ['email'],
+                'conditions' => $conditions,
             ]);
             foreach ($users as $user) {
                 $this->out($user);
             }
         }
+    }
+
+    public function authkey()
+    {
+        if (isset($this->args[0])) {
+            $authkey = $this->args[0];
+        } else {
+            $authkey = fgets(STDIN); // read line from STDIN
+        }
+        $authkey = trim($authkey);
+        if (strlen($authkey) !== 40) {
+            $this->error('Authkey has not valid format.');
+        }
+        if (Configure::read('Security.advanced_authkeys')) {
+            $user = $this->User->AuthKey->getAuthUserByAuthKey($authkey, true);
+            if (empty($user)) {
+                $this->error("Given authkey doesn't belong to any user.");
+            }
+
+            $isExpired = $user['authkey_expiration'] && $user['authkey_expiration'] < time();
+
+            $this->out($this->json([
+                'user_id' => $user['id'],
+                'email' => $user['email'],
+                'org_id' => $user['org_id'],
+                'authkey_id' => $user['authkey_id'],
+                'authkey_expiration' => $user['authkey_expiration'],
+                'authkey_expired' => $isExpired,
+                'allowed_ips' => $user['allowed_ips'],
+                'authkey_read_only' => $user['authkey_read_only'],
+            ]));
+
+            $this->_stop($isExpired ? 2 : 0);
+        } else {
+            $user = $this->User->getAuthUserByAuthkey($authkey);
+            if (empty($user)) {
+                $this->error("Given authkey doesn't belong to any user.");
+            }
+            $this->out($this->json([
+                'user_id' => $user['id'],
+                'email' => $user['email'],
+                'org_id' => $user['org_id'],
+            ]));
+        }
+    }
+
+    /**
+     * Reads line from stdin and checks if authkey is valid. Returns '1' to stdout if key is valid and '0' if not.
+     */
+    public function authkey_valid()
+    {
+        $cache = [];
+        do {
+            $authkey = fgets(STDIN); // read line from STDIN
+            $authkey = trim($authkey);
+            if (strlen($authkey) !== 40) {
+                fwrite(STDOUT, "0\n");  // authkey is not in valid format
+                continue;
+            }
+            $time = time();
+            // Generate hash from authkey to not store raw authkey in memory
+            $keyHash = hash('sha256', $authkey, true);
+            if (isset($cache[$keyHash]) && $cache[$keyHash][1] > $time) {
+                fwrite(STDOUT, $cache[$keyHash][0] ? "1\n" : "0\n");
+                continue;
+            }
+
+            $user = false;
+            for ($i = 0; $i < 5; $i++) {
+                try {
+                    if (Configure::read('Security.advanced_authkeys')) {
+                        $user = $this->User->AuthKey->getAuthUserByAuthKey($authkey);
+                    } else {
+                        $user = $this->User->getAuthUserByAuthkey($authkey);
+                    }
+                    break;
+                } catch (PDOException $e) {
+                    $this->log($e->getMessage());
+                    // Reconnect in case of failure and try again
+                    try {
+                        $this->User->getDataSource()->connect();
+                    } catch (MissingConnectionException $e) {
+                        sleep(1);
+                        $this->log($e->getMessage());
+                    }
+                }
+            }
+
+            $user = (bool)$user;
+            // Cache results for 5 seconds
+            $cache[$keyHash] = [$user, $time + 5];
+            fwrite(STDOUT, $user ? "1\n" : "0\n");
+        } while (true);
     }
 
     public function block()
@@ -133,6 +266,55 @@ class UserShell extends AppShell
         $this->out("User $userId unblocked.");
     }
 
+    public function check_validity()
+    {
+        $auth = Configure::read('Security.auth');
+        if (!$auth) {
+            $this->error('External authentication is not enabled');
+        }
+        if (!is_array($auth)) {
+            throw new Exception("`Security.auth` config value must be array.");
+        }
+        if (!in_array('OidcAuth.Oidc', $auth, true)) {
+            $this->error('This method is currently supported just by OIDC auth provider');
+        }
+
+        App::uses('Oidc', 'OidcAuth.Lib');
+        $oidc = new Oidc($this->User);
+
+        $conditions = ['User.disabled' => false]; // fetch just not disabled users
+
+        $userId = isset($this->args[0]) ? $this->args[0] : null;
+        if ($userId) {
+            $conditions['OR'] = [
+                'User.id' => $userId,
+                'User.email LIKE' => "%$userId%",
+                'User.sub LIKE' => "%$userId%",
+            ];
+        }
+
+        $users = $this->User->find('all', [
+            'recursive' => -1,
+            'contain' => ['UserSetting'],
+            'conditions' => $conditions,
+        ]);
+        $blockInvalid = $this->params['block_invalid'];
+        $update = $this->params['update'];
+
+        foreach ($users as $user) {
+            $user['User']['UserSetting'] = $user['UserSetting'];
+            $user = $user['User'];
+
+            if ($blockInvalid) {
+                $result = $oidc->blockInvalidUser($user, true, $update);
+            } else {
+                $result = $oidc->isUserValid($user, true, $update);
+            }
+
+            $this->out("{$user['email']}: " . ($result ? '<success>valid</success>' : '<error>invalid</error>'));
+        }
+    }
+
     public function change_pw()
     {
         list($userId, $newPassword) = $this->args;
@@ -153,12 +335,24 @@ class UserShell extends AppShell
 
     public function change_authkey()
     {
-        list($userId) = $this->args;
+        $newkey = null;
+        if (isset($this->args[1])) {
+            list($userId, $newkey) = $this->args;
+        } else {
+            list($userId) = $this->args;
+        }
         $user = $this->getUser($userId);
+
+        # validate new authentication key if provided
+        if (!empty($newkey) && (strlen($newkey) != 40 || !ctype_alnum($newkey))) {
+            $this->error('The new auth key needs to be 40 characters long and only alphanumeric.');
+        }
 
         if (empty(Configure::read('Security.advanced_authkeys'))) {
             $oldKey = $user['authkey'];
-            $newkey = $this->User->generateAuthKey();
+            if (empty($newkey)) {
+                $newkey = $this->User->generateAuthKey();
+            }
             $this->User->updateField($user, 'authkey', $newkey);
             $this->Log->createLogEntry('SYSTEM', 'reset_auth_key', 'User', $user['id'],
                 __('Authentication key for user %s (%s) updated.', $user['id'], $user['email']),
@@ -166,7 +360,7 @@ class UserShell extends AppShell
             );
             $this->out("Authentication key changed to: $newkey");
         } else {
-            $newkey = $this->User->AuthKey->resetAuthKey($user['id']);
+            $newkey = $this->User->AuthKey->resetAuthKey($user['id'], null, $newkey);
             if ($newkey) {
                 $this->out("Old authentication keys disabled and new key created: $newkey");
             } else {

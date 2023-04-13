@@ -14,7 +14,7 @@ edit_uri: ""
 #dev_addr: "192.168.10.34:8000"
 
 # Copyright
-copyright: "Copyright &copy; 2021 MISP Project"
+copyright: "Copyright &copy; 2022 MISP Project"
 
 # Options
 extra:
@@ -84,12 +84,10 @@ nav:
       - 'S/MIME': 'CONFIG.SMIME.md'
     - Update MISP: 'UPDATE.md'
     - Upgrading MISP: 'UPGRADE.md'
+    - Migrating BG Jobs: 'background-jobs-migration-guide.md'
     - Old guides:
-      - '2.3 to 2.4 upgrade': 'archive/old-2_3to2_4-UPGRADE.md'
       - 'Ubuntu 18.04 \w webmin': 'archive/xINSTALL.ubuntu1804.with.webmin.md'
-      - 'Ubuntu 16.04': 'archive/INSTALL.ubuntu1604.md'
       - 'Debian 9': 'archive/xINSTALL.debian9.md'
-      - 'Centos 6': 'archive/xINSTALL.centos6.md'
       - 'FreeBSD': 'archive/xINSTALL.FreeBSD.md'
     - About:
       - 'MISP Release Notes': 'Changelog.md'

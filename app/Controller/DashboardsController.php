@@ -12,17 +12,20 @@ class DashboardsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        $this->Security->unlockedActions = array_merge(array('renderWidget', 'getForm'), $this->Security->unlockedActions);
+        $this->Security->unlockedActions[] = 'renderWidget';
+        $this->Security->unlockedActions[] = 'getForm';
+        if ($this->request->action === 'renderWidget') {
+            $this->Security->doNotGenerateToken = true;
+        }
     }
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999
+        'limit' => 60,
+        'maxLimit' => 9999
     );
 
     public function index($template_id = false)
     {
-        $this->loadModel('UserSetting');
         if (empty($template_id)) {
             $params = array(
                 'conditions' => array(
@@ -30,7 +33,7 @@ class DashboardsController extends AppController
                     'UserSetting.setting' => 'dashboard'
                 )
             );
-            $userSettings = $this->UserSetting->find('first', $params);
+            $userSettings = $this->User->UserSetting->find('first', $params);
         } else {
             $dashboardTemplate = $this->Dashboard->getDashboardTemplate($this->Auth->user(), $template_id);
             if (empty($dashboardTemplate)) {
@@ -80,7 +83,6 @@ class DashboardsController extends AppController
                 // continue, we just don't load the widget
             }
         }
-        $this->layout = 'dashboard';
         $this->set('widgets', $widgets);
     }
 
@@ -112,22 +114,20 @@ class DashboardsController extends AppController
     public function updateSettings()
     {
         if ($this->request->is('post')) {
-            $this->UserSetting = ClassRegistry::init('UserSetting');
             if (!isset($this->request->data['Dashboard']['value'])) {
                 throw new InvalidArgumentException(__('No setting data found.'));
             }
             $data = array(
                 'UserSetting' => array(
-                    'user_id' => $this->Auth->user('id'),
                     'setting' => 'dashboard',
                     'value' => $this->request->data['Dashboard']['value']
                 )
             );
-            $result = $this->UserSetting->setSetting($this->Auth->user(), $data);
+            $result = $this->User->UserSetting->setSetting($this->Auth->user(), $data);
             if ($result) {
                 return $this->RestResponse->saveSuccessResponse('Dashboard', 'updateSettings', false, false, __('Settings updated.'));
             }
-            return $this->RestResponse->saveFailResponse('Dashboard', 'updateSettings', false, $this->UserSetting->validationErrors, $this->response->type());
+            return $this->RestResponse->saveFailResponse('Dashboard', 'updateSettings', false, $this->User->UserSetting->validationErrors, $this->response->type());
         }
     }
 
@@ -150,11 +150,11 @@ class DashboardsController extends AppController
 
     public function renderWidget($widget_id, $force = false)
     {
+        $user = $this->_closeSession();
+
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('This endpoint can only be reached via POST requests.'));
         }
-
-        @session_write_close(); // allow concurrent AJAX requests (session hold lock by default)
 
         if (empty($this->request->data['data'])) {
             $this->request->data = array('data' => $this->request->data);
@@ -163,27 +163,29 @@ class DashboardsController extends AppController
             throw new MethodNotAllowedException(__('You need to specify the widget to use along with the configuration.'));
         }
         $value = $this->request->data['data'];
-        $valueConfig = json_decode($value['config'], true);
-        $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $value['widget']);
+        $valueConfig = $this->_jsonDecode($value['config']);
+        $dashboardWidget = $this->Dashboard->loadWidget($user, $value['widget']);
 
-        $redis = $this->Dashboard->setupRedis();
-        $org_scope = $this->_isSiteAdmin() ? 0 : $this->Auth->user('org_id');
-        $lookup_hash = hash('sha256', $value['widget'] . $value['config']);
-        $cacheKey = 'misp:dashboard:' . $org_scope . ':' . $lookup_hash;
-        $data = $redis->get($cacheKey);
-        if (!isset($dashboardWidget->cacheLifetime)) {
-            $dashboardWidget->cacheLifetime = false;
-        }
-        if (empty($dashboardWidget->cacheLifetime) || empty($data)) {
-            $data = $dashboardWidget->handler($this->Auth->user(), $valueConfig);
-            if (!empty($dashboardWidget->cacheLifetime)) {
-                $redis->setex($cacheKey, $dashboardWidget->cacheLifetime, json_encode(array('data' => $data)));
+        $cacheLifetime = $dashboardWidget->cacheLifetime ?? false;
+        if ($cacheLifetime !== false) {
+            $orgScope = $this->_isSiteAdmin() ? 0 : $user['org_id'];
+            $lookupHash = sha1($value['widget'] . $value['config'], true);
+            $cacheKey = "misp:dashboard:$orgScope:$lookupHash";
+
+            $redis = RedisTool::init();
+            $data = $redis->get($cacheKey);
+            if (!empty($data)) {
+                $data = RedisTool::deserialize($data);
+            } else {
+                $data = $dashboardWidget->handler($user, $valueConfig);
+                $redis->setex($cacheKey, $cacheLifetime, RedisTool::serialize($data));
             }
         } else {
-            $data = json_decode($data, true)['data'];
+            $data = $dashboardWidget->handler($user, $valueConfig);
         }
+        $renderer = method_exists($dashboardWidget, 'getRenderer') ? $dashboardWidget->getRenderer($valueConfig) : $dashboardWidget->render;
         $config = array(
-            'render' => $dashboardWidget->render,
+            'render' => $renderer,
             'autoRefreshDelay' => empty($dashboardWidget->autoRefreshDelay) ? false : $dashboardWidget->autoRefreshDelay,
             'widget_config' => empty($valueConfig['widget_config']) ? array() : $valueConfig['widget_config']
         );
@@ -236,7 +238,6 @@ class DashboardsController extends AppController
 
     public function saveTemplate($update = false)
     {
-        $this->loadModel('UserSetting');
         if (!empty($update)) {
             $conditions = array('Dashboard.id' => $update);
             if (Validation::uuid($update)) {
@@ -259,7 +260,7 @@ class DashboardsController extends AppController
             }
             $data = $this->request->data;
             if (empty($update)) { // save the template stored in user setting and make it persistent
-                $data['value'] = $this->UserSetting->getSetting($this->Auth->user('id'), 'dashboard');
+                $data['value'] = $this->User->UserSetting->getSetting($this->Auth->user('id'), 'dashboard');
             }
             $result = $this->Dashboard->saveDashboardTemplate($this->Auth->user(), $data, $update);
             if ($this->_isRest()) {
@@ -278,7 +279,6 @@ class DashboardsController extends AppController
         } else {
             $this->layout = false;
         }
-        $this->loadModel('User');
         $permFlags = array(0 => __('Unrestricted'));
         foreach ($this->User->Role->permFlags as $perm_flag => $perm_data) {
             $permFlags[$perm_flag] = $perm_data['text'];

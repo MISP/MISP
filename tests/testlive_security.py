@@ -17,7 +17,7 @@ from lxml.html import fromstring
 from enum import Enum
 
 try:
-    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting
+    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting, Distribution
     from pymisp.exceptions import PyMISPError, NoKey, MISPServerError
 except ImportError:
     if sys.version_info < (3, 6):
@@ -47,6 +47,7 @@ class ROLE(Enum):
 def check_response(response):
     if isinstance(response, dict) and "errors" in response:
         raise Exception(response["errors"])
+    return response
 
 
 def login(url: str, email: str, password: str) -> requests.Session:
@@ -130,7 +131,7 @@ class TestSecurity(unittest.TestCase):
     def setUpClass(cls):
         warnings.simplefilter("ignore", ResourceWarning)
 
-        # Connect as admin
+        # Connect as site admin
         cls.admin_misp_connector = PyMISP(url, key)
         # Set expected config values
         check_response(cls.admin_misp_connector.set_server_setting('debug', 1, force=True))
@@ -415,12 +416,16 @@ class TestSecurity(unittest.TestCase):
 
         time.sleep(1)
 
+    def test_advanced_authkeys_non_exists_user(self):
+        new_auth_key = send(self.admin_misp_connector, "POST", "authKeys/add/9999", check_errors=False)
+        self.assertErrorResponse(new_auth_key)
+        self.assertIn("user_id", new_auth_key["errors"][1]["errors"])
+
     def test_advanced_authkeys_own_key_not_possible(self):
-        with self.__setting("Security.advanced_authkeys", True):
-            authkey = ("a" * 40)
-            auth_key = self.__create_advanced_authkey(self.test_usr.id, {"authkey": authkey})
-            self.__delete_advanced_authkey(auth_key["id"])
-            self.assertNotEqual(authkey, auth_key["authkey_raw"])
+        authkey = ("a" * 40)
+        auth_key = self.__create_advanced_authkey(self.test_usr.id, {"authkey": authkey})
+        self.__delete_advanced_authkey(auth_key["id"])
+        self.assertNotEqual(authkey, auth_key["authkey_raw"])
 
     def test_advanced_authkeys_reset_own(self):
         with self.__setting("Security.advanced_authkeys", True):
@@ -1249,6 +1254,7 @@ class TestSecurity(unittest.TestCase):
 
             # Publish
             self.assertSuccessfulResponse(self.admin_misp_connector.publish(created_event))
+            time.sleep(6);
 
             # Event is published, so normal user should see that event
             self.assertTrue(logged_in.event_exists(created_event.uuid))
@@ -1393,6 +1399,11 @@ class TestSecurity(unittest.TestCase):
 
         self.admin_misp_connector.delete_organisation(org)
 
+    def test_org_hide_index(self):
+        with self.__setting("Security.hide_organisation_index_from_users", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            self.assertErrorResponse(logged_in.organisations())
+
     def test_org_hide_org_cannot_set(self):
         org = self.__create_org()
         with self.__setting("Security.hide_organisation_index_from_users", True):
@@ -1442,7 +1453,7 @@ class TestSecurity(unittest.TestCase):
 
         with self.__setting("Security.hide_organisation_index_from_users", True):
             logged_in = PyMISP(url, self.test_usr.authkey)
-            for key in (org.id, org.uuid, org.name):
+            for key in (org.id, org.uuid):
                 fetched_org = logged_in.get_organisation(key)
                 check_response(fetched_org)
                 self.assertNotIn("created_by", fetched_org["Organisation"])
@@ -1525,7 +1536,8 @@ class TestSecurity(unittest.TestCase):
         event = user1.add_event(self.__generate_event())
         check_response(event)
         check_response(user1.add_sighting(s, event.Attribute[0]))
-        self.assertEqual(len(user1.sightings(event)), 1, "User should see hos own sighting")
+        self.assertEqual(len(user1.sightings(event)), 1, "User should see only own sighting")
+        self.assertEqual(len(user1.search_sightings('event', event.id)), 1)
 
         org = self.__create_org()
         user = self.__create_user(org.id, ROLE.USER)
@@ -1533,11 +1545,52 @@ class TestSecurity(unittest.TestCase):
         user2.global_pythonify = True
 
         self.assertEqual(len(user2.sightings(event)), 0, "User should not seen any sighting")
+        self.assertEqual(len(user2.search_sightings('event', event.id)), 0)
 
         with self.__setting({"MISP.host_org_id": self.test_org.id, "Plugin.Sightings_policy": 3}):
             self.assertEqual(len(user2.sightings(event)), 1, "User should see host org sighting")
+            self.assertEqual(len(user2.search_sightings('event', event.id)), 1)
 
         self.admin_misp_connector.delete_event(event)
+        self.admin_misp_connector.delete_user(user)
+        self.admin_misp_connector.delete_organisation(org)
+
+    def test_sighting_rest_search_permission(self):
+        s = MISPSighting()
+        s.source = 'Testcases'
+        s.type = '1'
+
+        user1 = PyMISP(url, self.test_usr.authkey)
+        user1.global_pythonify = True
+
+        private_event = check_response(user1.add_event(self.__generate_event(Distribution.your_organisation_only)))
+        check_response(user1.add_sighting(s, private_event.Attribute[0]))
+        self.assertEqual(len(user1.sightings(private_event)), 1, "User should see hos own sighting")
+
+        sightings = user1.search_sightings("event", private_event.id)
+        self.assertEqual(len(sightings), 1, sightings)
+
+        org = self.__create_org()
+        user = self.__create_user(org.id, ROLE.USER)
+        user2 = PyMISP(url, user.authkey)
+        user2.global_pythonify = True
+
+        self.assertFalse(user2.event_exists(private_event), "User should not see the event")
+
+        sightings = user2.sightings(private_event)
+        self.assertErrorResponse(sightings, "User should not seen any sighting for private event")
+
+        sightings = user2.search_sightings("event", private_event.id)
+        self.assertEqual(len(sightings), 0, "User should not seen any sighting from private event from rest search")
+
+        with self.__setting("Plugin.Sightings_policy", 2):  # set sighting policy to everyone
+            sightings = user2.sightings(private_event)
+            self.assertErrorResponse(sightings, "User should not seen any sighting for private event")
+
+            sightings = user2.search_sightings("event", private_event.id)
+            self.assertEqual(len(sightings), 0, "User should not seen any sighting from private event from rest search")
+
+        self.admin_misp_connector.delete_event(private_event)
         self.admin_misp_connector.delete_user(user)
         self.admin_misp_connector.delete_organisation(org)
 
@@ -1560,7 +1613,7 @@ class TestSecurity(unittest.TestCase):
         # User should be able to delete self setting
         check_response(self.admin_misp_connector.delete_user_setting('publish_alert_filter'))
 
-    def __generate_event(self, distribution: int = 1) -> MISPEvent:
+    def __generate_event(self, distribution: int = Distribution.this_community_only) -> MISPEvent:
         mispevent = MISPEvent()
         mispevent.info = 'This is a super simple test'
         mispevent.distribution = distribution
@@ -1571,7 +1624,7 @@ class TestSecurity(unittest.TestCase):
 
     def __create_org(self) -> MISPOrganisation:
         organisation = MISPOrganisation()
-        organisation.name = 'Test Org ' + random()  # make name always unique
+        organisation.name = 'TestOrg' + random()  # make name always unique
         org = self.admin_misp_connector.add_organisation(organisation)
         check_response(org)
         return org
@@ -1619,7 +1672,7 @@ class TestSecurity(unittest.TestCase):
     def __create_advanced_authkey(self, user_id: int, data: Optional[dict] = None) -> dict:
         auth_key = send(self.admin_misp_connector, "POST", f'authKeys/add/{user_id}', data=data)["AuthKey"]
         # it is not possible to call `assertEqual`, because we use this method in `setUpClass` method
-        assert user_id == auth_key["user_id"], "Key was created for different user"
+        assert int(user_id) == int(auth_key["user_id"]), f"Key was created for different user ({user_id} != {auth_key['user_id']})"
         return auth_key
 
     def __login(self, user: MISPUser) -> PyMISP:

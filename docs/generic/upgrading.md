@@ -12,7 +12,7 @@ If this fails most likely permissions are the reason.
 
 More details can be found in [MISP Book](https://www.circl.lu/doc/misp/faq/#update-misp-fails) to resolve the issue.
 
-To fix permissions refer to [the install guide](https://misp.github.io/MISP/INSTALL.ubuntu1804/#5-set-the-permissions).
+To fix permissions refer to [the install guide](https://misp.github.io/MISP/INSTALL.ubuntu1804#5-set-the-permissions).
 
 Another way is to open a shell on your MISP instance and go to the main MISP directory and pull the latest code:
 
@@ -22,7 +22,7 @@ sudo -H -u www-data git pull origin 2.4
 sudo -H -u www-data git submodule update --init --recursive
 ```
 
-If the above fails, your permissons might be wrong. [Click here for the fix the permissions guide](https://misp.github.io/MISP/INSTALL.ubuntu1804/#5-set-the-permissions).
+If the above fails, your permissons might be wrong. [Click here for the fix the permissions guide](https://misp.github.io/MISP/INSTALL.ubuntu1804#5-set-the-permissions).
 
 ##### MISP Dependencies
 
@@ -46,8 +46,7 @@ sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -U .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
 sudo -u www-data git pull
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -U .
-# install STIX2.0 library to support STIX 2.0 export:
-cd ${PATH_TO_MISP}/cti-python-stix2
+cd ${PATH_TO_MISP}/app/files/scripts/misp-stix
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -U .
 
 # install mixbox to accommodate the new STIX dependencies:

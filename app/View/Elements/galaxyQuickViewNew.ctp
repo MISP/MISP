@@ -1,17 +1,18 @@
 <?php
 // When viewing remote server or feed event
 if (isset($preview) && $preview) {
-    $mayModify = false;
-    $isAclTagger = false;
     $static_tags_only = true;
 } else {
     $preview = false;
 }
-$tagAccess = ($isSiteAdmin || ($mayModify && $isAclTagger));
-if (empty($local_tag_off) || !empty($event)) {
-    $localTagAccess = ($isSiteAdmin || ($mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id'))) && $isAclTagger;
-} else {
-    $localTagAccess = false;
+
+if ($target_type === 'event' || $target_type === 'attribute') {
+    $tagAccess = $this->Acl->canModifyTag($event);
+    if (empty($local_tag_off) || !empty($event)) {
+        $localTagAccess = $this->Acl->canModifyTag($event, true);
+    } else {
+        $localTagAccess = false;
+    }
 }
 
 $editButtonsEnabled = empty($static_tags_only) && $tagAccess;
@@ -19,8 +20,8 @@ $editButtonsLocalEnabled = empty($static_tags_only) && $localTagAccess && empty(
 
 $sortClusters = function (array $clusters) {
     usort($clusters, function (array $a, array $b) {
-        $aExternalId = isset($a['meta']['external_id'][0]) ? $a['meta']['external_id'][0] : null;
-        $bExternalId = isset($b['meta']['external_id'][0]) ? $b['meta']['external_id'][0] : null;
+        $aExternalId = $a['meta']['external_id'][0] ?? null;
+        $bExternalId = $b['meta']['external_id'][0] ?? null;
         if ($aExternalId && $bExternalId) {
             return strcmp($aExternalId, $bExternalId);
         }
@@ -58,7 +59,7 @@ $generatePopover = function (array $cluster) use ($normalizeKey) {
     }
     $popover = '<h4 class="blue" style="white-space: nowrap">' . h($cluster['value']) . '</h4>';
     foreach ($clusterFields as $clusterField) {
-        $key = '<span class="blue bold">' . h($normalizeKey($clusterField['key'])) . '</span>';
+        $key = '<b class="blue">' . h($normalizeKey($clusterField['key'])) . '</b>';
         if (is_array($clusterField['value'])) {
             if ($clusterField['key'] === 'country') {
                 $value = [];
@@ -91,53 +92,101 @@ $generatePopover = function (array $cluster) use ($normalizeKey) {
         <?php endif ;?>
     </h3>
     <ul>
-    <?php foreach ($sortClusters($galaxy['GalaxyCluster']) as $cluster): ?>
-        <li>
-            <b <?php if (!$preview): ?>class="useCursorPointer" data-clusterid="<?= h($cluster['id']) ?>"<?php endif; ?> data-content="<?= h($generatePopover($cluster)) ?>">
-                <i class="fas fa-<?= $cluster['local'] ? 'user' : 'globe-americas' ?>" title="<?= $cluster['local'] ? __('Local galaxy') : __('Global galaxy') ?>"></i>
-                <?= h($cluster['value']) ?>
-            </b>
-            <?php if (!$preview): ?>
-            <a href="<?= $baseurl ?>/galaxy_clusters/view/<?= h($cluster['id']) ?>" class="black fa fa-search" title="<?= __('View details about this cluster') ?>" aria-label="<?= __('View cluster') ?>"></a>
-            <a href="<?= $baseurl ?>/events/index/searchtag:<?= h($cluster['tag_id']) ?>" class="black fa fa-list" title="<?= __('View all events containing this cluster') ?>" aria-label="<?= __('View all events containing this cluster') ?>"></a>
-            <?php endif ;?>
-            <?php if ($editButtonsEnabled || ($editButtonsLocalEnabled && $cluster['local'])) {
-echo $this->Form->create(false, [
-    'id' => false, // prevent duplicate ids
-    'url' => $baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'],
-    'style' => 'display: inline-block; margin: 0px;'
-]);
-echo sprintf(
-    '<a href="#" class="black fa fa-trash useCursorPointer" role="button" tabindex="0" aria-label="%s" title="%s" onclick="popoverConfirm(this);"></a>',
-    __('Detach'),
-    __('Are you sure you want to detach %s from this event?', h($cluster['value']))
-);
-echo $this->Form->end();
-}
-?>
-        </li>
-    <?php endforeach; ?>
+    <?php 
+        foreach ($sortClusters($galaxy['GalaxyCluster']) as $cluster) {
+            $action_html = '';
+            if (!$preview) {
+                $action_items = [
+                    [
+                        'url' => $baseurl . '/galaxy_clusters/view/' . h($cluster['id']),
+                        'onClick' => false,
+                        'class' => 'black fa fa-search',
+                        'title' => __('View details about this cluster')
+                    ],
+                    [
+                        'url' => $baseurl . '/events/index/searchtag:' . h($cluster['tag_id']),
+                        'onClick' => false,
+                        'class' => 'black fa fa-list',
+                        'title' => __('View all events containing this cluster')
+                    ]
+                ];
+                if ($editButtonsEnabled || ($editButtonsLocalEnabled && $cluster['local'])) {
+                    if ($target_type !== 'tag_collection') {
+                        $action_items[] = [
+                            'url' => sprintf(
+                                "%s/tags/modifyTagRelationship/%s/%s",
+                                $baseurl,
+                                h($target_type),
+                                h($cluster[$target_type . '_tag_id'])
+                            ),
+                            'onClick' => false,
+                            'class' => 'useCursorPointer black fas fa-project-diagram modal-open',
+                            'title' => __('Modify tag relationship')
+                        ];
+                    }
+                    $action_items[] = [
+                        'url' => $baseurl . '/galaxy_clusters/detach/' . intval($target_id) . '/' . h($target_type) . '/' . h($cluster['tag_id']),
+                        'onClick' => sprintf(
+                            "confirmClusterDetach(this, '%s', %s)",
+                            h($target_type),
+                            intval($target_id)
+                        ),
+                        'class' => 'black fas fa-trash',
+                        'aria_label' => __('Detach'),
+                        'title' => __('Are you sure you want to detach %s from this %s?', h($cluster['value']), $target_type),
+                    ];
+                }
+                foreach ($action_items as $action_item) {
+                    $action_html .= sprintf(
+                        '<a %s %s title="%s" aria-label="%s" class="%s" role="button" tabindex="0"></a> ',
+                        empty($action_item['url']) ? '' : 'href="' . $action_item['url'] . '"',
+                        $action_item['onClick'] ? 'onClick="' . $action_item['onClick'] . '"' : '',
+                        $action_item['title'],
+                        empty($action_item['aria_label']) ? $action_item['title'] : $action_item['aria_label'],
+                        $action_item['class']
+                    );
+                }
+            }
+            echo sprintf(
+                '<li>%s %s</li>',
+                sprintf(
+                    '%s<b %s data-content="%s"><i class="fas fa-%s" title="%s"></i> %s</b>',
+                    empty($cluster['relationship_type']) ?  '' : sprintf(
+                        '<span class="tagComplete white" style="background-color:black">%s:</span> ',
+                        h($cluster['relationship_type'])
+                    ),
+                    $preview ? '' : 'class="useCursorPointer" data-clusterid="' . h($cluster['id']) . '"',
+                    h($generatePopover($cluster)),
+                    $cluster['local'] ? 'user' : 'globe-americas',
+                    $cluster['local'] ? __('Local galaxy') : __('Global galaxy'),
+
+                    h($cluster['value'])
+                ),
+                $action_html
+            );
+        }
+    ?>
     </ul>
 <?php endforeach; ?>
 </div>
 <?php endif; ?>
 <?php
 if ($editButtonsEnabled) {
+    $link = "$baseurl/galaxies/selectGalaxyNamespace/" . h($target_id) . "/" . h($target_type) . "/local:0";
     echo sprintf(
-        '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="false" role="button" tabindex="0" aria-label="' . __('Add new cluster') . '" title="' . __('Add new cluster') . '">%s</button>',
-        'useCursorPointer btn btn-inverse addGalaxy',
-        h($target_type),
-        h($target_id),
+        '<button class="%s" data-popover-popup="%s" role="button" tabindex="0" aria-label="' . __('Add new cluster') . '" title="' . __('Add new cluster') . '">%s</button>',
+        'useCursorPointer addButton btn btn-inverse',
+        $link,
         '<i class="fas fa-globe-americas"></i> <i class="fas fa-plus"></i>'
     );
 }
 
 if ($editButtonsLocalEnabled) {
+    $link = "$baseurl/galaxies/selectGalaxyNamespace/" . h($target_id) . "/" . h($target_type) . "/local:1";
     echo sprintf(
-        '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="true" role="button" tabindex="0" aria-label="' . __('Add new local cluster') . '" title="' . __('Add new local cluster') . '">%s</button>',
-        'useCursorPointer btn btn-inverse addGalaxy',
-        h($target_type),
-        h($target_id),
+        '<button class="%s" data-popover-popup="%s" role="button" tabindex="0" aria-label="' . __('Add new local cluster') . '" title="' . __('Add new local cluster') . '">%s</button>',
+        'useCursorPointer addButton btn btn-inverse',
+        $link,
         '<i class="fas fa-user"></i> <i class="fas fa-plus"></i>'
     );
 }

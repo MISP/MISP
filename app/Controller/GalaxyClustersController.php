@@ -9,34 +9,35 @@ class GalaxyClustersController extends AppController
     public $components = array('Session', 'RequestHandler');
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
-            'recursive' => -1,
-            'order' => array(
-                'GalaxyCluster.version' => 'DESC',
-                'GalaxyCluster.value' => 'ASC'
+        'limit' => 60,
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'recursive' => -1,
+        'order' => array(
+            'GalaxyCluster.version' => 'DESC',
+            'GalaxyCluster.value' => 'ASC'
+        ),
+        'contain' => array(
+            'Tag' => array(
+                'fields' => array('Tag.id'),
+                /*
+                'EventTag' => array(
+                    'fields' => array('EventTag.event_id')
+                ),
+                'AttributeTag' => array(
+                    'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
+                )
+                */
             ),
-            'contain' => array(
-                'Tag' => array(
-                    'fields' => array('Tag.id'),
-                    /*
-                    'EventTag' => array(
-                        'fields' => array('EventTag.event_id')
-                    ),
-                    'AttributeTag' => array(
-                        'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
-                    )
-                    */
-                ),
-                'GalaxyElement' => array(
-                    'conditions' => array('GalaxyElement.key' => 'synonyms'),
-                    'fields' => array('value')
-                ),
-            )
+            'GalaxyElement' => array(
+                'conditions' => array('GalaxyElement.key' => 'synonyms'),
+                'fields' => array('value')
+            ),
+        )
     );
 
     public function index($galaxyId)
     {
+        $galaxyId = $this->Toolbox->findIdByUuid($this->GalaxyCluster->Galaxy, $galaxyId);
         $filters = $this->IndexFilter->harvestParameters(array('context', 'searchall'));
         $aclConditions = $this->GalaxyCluster->buildConditions($this->Auth->user());
         $contextConditions = array();
@@ -47,7 +48,7 @@ class GalaxyClustersController extends AppController
         }
 
         if ($filters['context'] == 'default') {
-                $contextConditions['GalaxyCluster.default'] = true;
+            $contextConditions['GalaxyCluster.default'] = true;
         } elseif ($filters['context'] == 'custom') {
             $contextConditions['GalaxyCluster.default'] = false;
         } elseif ($filters['context'] == 'org') {
@@ -146,16 +147,15 @@ class GalaxyClustersController extends AppController
                 'GalaxyCluster.default' => 0,
             ]
         ]);
-        $this->loadModel('Attribute');
-        $distributionLevels = $this->Attribute->distributionLevels;
-        unset($distributionLevels[5]);
+        $this->loadModel('Event');
+        $distributionLevels = $this->Event->shortDist;
         $this->set('distributionLevels', $distributionLevels);
         $this->set('list', $clusters);
         $this->set('galaxy_id', $galaxyId);
         $this->set('custom_cluster_count', $customClusterCount);
 
         if ($this->request->is('ajax')) {
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('ajax/index');
         }
     }
@@ -180,29 +180,30 @@ class GalaxyClustersController extends AppController
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($cluster, $this->response->type());
-        } else {
-            $clusters = [$cluster];
-            $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
-            $cluster = $clusters[0];
-            $cluster = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $cluster);
-            $this->set('id', $id);
-            $this->set('galaxy', ['Galaxy' => $cluster['GalaxyCluster']['Galaxy']]);
-            $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
-            $this->set('cluster', $cluster);
-            $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
-            if (!empty($cluster['GalaxyCluster']['extended_from'])) {
-                $newVersionAvailable = $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['version'] > $cluster['GalaxyCluster']['extends_version'];
-            } else {
-                $newVersionAvailable = false;
-            }
-            $this->set('newVersionAvailable', $newVersionAvailable);
-            $this->loadModel('Attribute');
-            $distributionLevels = $this->Attribute->distributionLevels;
-            $this->set('distributionLevels', $distributionLevels);
-            if (!$cluster['GalaxyCluster']['default'] && !$cluster['GalaxyCluster']['published'] && $cluster['GalaxyCluster']['orgc_id'] == $this->Auth->user()['org_id']) {
-                $this->Flash->warning(__('This cluster is not published. Users will not be able to use it'));
-            }
         }
+
+        $clusters = [$cluster];
+        $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
+        $cluster = $clusters[0];
+        $cluster = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $cluster);
+        $this->set('id', $cluster['GalaxyCluster']['id']);
+        $this->set('galaxy', ['Galaxy' => $cluster['GalaxyCluster']['Galaxy']]);
+        $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
+        $this->set('cluster', $cluster);
+        $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
+        if (!empty($cluster['GalaxyCluster']['extended_from'])) {
+            $newVersionAvailable = $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['version'] > $cluster['GalaxyCluster']['extends_version'];
+        } else {
+            $newVersionAvailable = false;
+        }
+        $this->set('newVersionAvailable', $newVersionAvailable);
+        $this->loadModel('Attribute');
+        $distributionLevels = $this->Attribute->distributionLevels;
+        $this->set('distributionLevels', $distributionLevels);
+        if (!$cluster['GalaxyCluster']['default'] && !$cluster['GalaxyCluster']['published'] && $cluster['GalaxyCluster']['orgc_id'] == $this->Auth->user()['org_id']) {
+            $this->Flash->warning(__('This cluster is not published. Users will not be able to use it'));
+        }
+        $this->set('title_for_layout', __('Galaxy cluster %s', $cluster['GalaxyCluster']['value']));
     }
 
     /**
@@ -544,162 +545,32 @@ class GalaxyClustersController extends AppController
         }
     }
 
-    public function attachToEvent($event_id, $tag_name)
-    {
-        $this->loadModel('Event');
-        $this->Event->id = $event_id;
-        $this->Event->recursive = -1;
-        $event = $this->Event->read(array(), $event_id);
-        if (empty($event)) {
-            throw new MethodNotAllowedException('Invalid Event.');
-        }
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-            if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-                throw new MethodNotAllowedException('Invalid Event.');
-            }
-        }
-        $tag = $this->Event->EventTag->Tag->find('first', array('conditions' => array('Tag.name' => $tag_name), 'recursive' => -1));
-        if (empty($tag)) {
-            $this->Event->EventTag->Tag->create();
-            $this->Event->EventTag->Tag->save(array('name' => $tag_name, 'colour' => '#0088cc', 'exportable' => 1));
-            $tag_id = $this->Event->EventTag->Tag->id;
-        } else {
-            $tag_id = $tag['Tag']['id'];
-        }
-        $existingEventTag = $this->Event->EventTag->find('first', array('conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id), 'recursive' => -1));
-        if (empty($existingEventTag)) {
-            $cluster = $this->GalaxyCluster->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('GalaxyCluster.tag_name' => $existingEventTag['Tag']['name'])
-            ));
-            $this->Event->EventTag->create();
-            $this->Event->EventTag->save(array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id));
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                'org' => $this->Auth->user('Organisation')['name'],
-                'model' => 'Event',
-                'model_id' => $event_id,
-                'email' => $this->Auth->user('email'),
-                'action' => 'galaxy',
-                'title' => 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to event (' . $event_id . ')',
-                'change' => ''
-            ));
-            $event['Event']['published'] = 0;
-            $date = new DateTime();
-            $event['Event']['timestamp'] = $date->getTimestamp();
-            $this->Event->save($event);
-            $this->Flash->success('Galaxy attached.');
-        } else {
-            $this->Flash->error('Galaxy already attached.');
-        }
-        $this->redirect($this->referer());
-    }
-
     public function detach($target_id, $target_type, $tag_id)
     {
-        $this->loadModel('Event');
-        if ($target_type == 'attribute') {
-            $attribute = $this->Event->Attribute->find('first', array(
-                'recursive' => -1,
-                'fields' => array('id', 'event_id'),
-                'conditions' => array('Attribute.id' => $target_id)
-            ));
-            if (empty($attribute)) {
-                throw new MethodNotAllowedException('Invalid Attribute.');
-            }
-            $event_id = $attribute['Attribute']['event_id'];
-        } elseif ($target_type == 'event') {
-            $event_id = $target_id;
-        } elseif ($target_type === 'tag_collection') {
-            // pass
-        } else {
-            throw new MethodNotAllowedException('Invalid options');
+        if ($this->request->is('ajax') && $this->request->is('get')) {
+            $this->set('url', Router::url());
+            return $this->render('/Elements/emptyForm', false);
         }
 
-        if ($target_type === 'tag_collection') {
-            $tag_collection = $this->GalaxyCluster->Tag->TagCollectionTag->TagCollection->fetchTagCollection($this->Auth->user(), array(
-                'conditions' => array('TagCollection.id' => $target_id),
-                'contain' => array('Organisation', 'TagCollectionTag' => array('Tag'))
-            ));
-            if (empty($tag_collection)) {
-                throw new MethodNotAllowedException('Invalid Tag Collection');
-            }
-            $tag_collection = $tag_collection[0];
-            if (!$this->_isSiteAdmin()) {
-                if (!$this->userRole['perm_tag_editor'] || $this->Auth->user('org_id') !== $tag_collection['TagCollection']['org_id']) {
-                    throw new MethodNotAllowedException('Invalid Tag Collection');
-                }
-            }
-        } else {
-            $this->Event->id = $event_id;
-            $this->Event->recursive = -1;
-            $event = $this->Event->read(array(), $event_id);
-            if (empty($event)) {
-                throw new MethodNotAllowedException('Invalid Event.');
-            }
-            if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-                if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-                    throw new MethodNotAllowedException('Invalid Event.');
-                }
-            }
-        }
+        $this->request->allowMethod(['post']);
 
-        if ($target_type == 'attribute') {
-            $existingTargetTag = $this->Event->Attribute->AttributeTag->find('first', array(
-                'conditions' => array('AttributeTag.tag_id' => $tag_id, 'AttributeTag.attribute_id' => $target_id),
-                'recursive' => -1,
-                'contain' => array('Tag')
-            ));
-        } elseif ($target_type == 'event') {
-            $existingTargetTag = $this->Event->EventTag->find('first', array(
-                'conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $target_id),
-                'recursive' => -1,
-                'contain' => array('Tag')
-            ));
-        } elseif ($target_type == 'tag_collection') {
-            $existingTargetTag = $this->GalaxyCluster->Tag->TagCollectionTag->find('first', array(
-                'conditions' => array('TagCollectionTag.tag_id' => $tag_id, 'TagCollectionTag.tag_collection_id' => $target_id),
-                'recursive' => -1,
-                'contain' => array('Tag')
-            ));
-        }
-
-        if (empty($existingTargetTag)) {
-            $this->Flash->error('Galaxy not attached.');
-        } else {
-            $cluster = $this->GalaxyCluster->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('GalaxyCluster.tag_name' => $existingTargetTag['Tag']['name'])
-            ));
-            if ($target_type == 'event') {
-                $result = $this->Event->EventTag->delete($existingTargetTag['EventTag']['id']);
-            } elseif ($target_type == 'attribute') {
-                $result = $this->Event->Attribute->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
-            } elseif ($target_type == 'tag_collection') {
-                $result = $this->GalaxyCluster->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
-            }
-            if ($result) {
-                $event['Event']['published'] = 0;
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Event->save($event);
-                $this->Flash->success('Galaxy successfully detached.');
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'model' => ucfirst($target_type),
-                    'model_id' => $target_id,
-                    'email' => $this->Auth->user('email'),
-                    'action' => 'galaxy',
-                    'title' => 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') from ' . $target_type . ' (' . $target_id . ')',
-                    'change' => ''
-                ));
+        try {
+            $this->GalaxyCluster->Galaxy->detachClusterByTagId($this->Auth->user(), $target_id, $target_type, $tag_id);
+        } catch (NotFoundException $e) {
+            if (!$this->request->is('ajax')) {
+                $this->Flash->error($e->getMessage());
             } else {
-                $this->Flash->error('Could not detach galaxy from event.');
+                throw $e;
             }
         }
+
+        $message = __('Galaxy successfully detached.');
+
+        if ($this->request->is('ajax')) {
+            return $this->RestResponse->viewData(['saved' => true, 'check_publish' => true, 'success' => $message], 'json');
+        }
+
+        $this->Flash->success($message);
         $this->redirect($this->referer());
     }
 

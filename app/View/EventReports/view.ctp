@@ -66,7 +66,7 @@
     <div style="margin-bottom: 15px;"></div>
 </div>
 <?php
-    if (!isset($ajax) || !$ajax) {
-        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'eventReports', 'menuItem' => 'view'));
-    }
+if (!isset($ajax) || !$ajax) {
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'eventReports', 'menuItem' => 'view', 'canEdit' => $canEdit));
+}
 ?>

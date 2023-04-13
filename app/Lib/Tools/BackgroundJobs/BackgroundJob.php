@@ -66,10 +66,8 @@ class BackgroundJob implements JsonSerializable
 
     /**
      * Run the job command
-     *
-     * @return self
      */
-    public function run(): self
+    public function run(): void
     {
         $descriptorSpec = [
             1 => ["pipe", "w"], // stdout
@@ -90,28 +88,49 @@ class BackgroundJob implements JsonSerializable
             ['BACKGROUND_JOB_ID' => $this->id]
         );
 
-        $stdout = stream_get_contents($pipes[1]);
-        $this->setOutput($stdout);
-        fclose($pipes[1]);
-
-        $stderr = stream_get_contents($pipes[2]);
-        $this->setError($stderr);
-        fclose($pipes[2]);
-
-        $this->returnCode = proc_close($process);
+        $this->pool($process, $pipes);
 
         if ($this->returnCode === 0 && empty($stderr)) {
             $this->setStatus(BackgroundJob::STATUS_COMPLETED);
             $this->setProgress(100);
-
-            CakeLog::info("[JOB ID: {$this->id()}] - completed.");
         } else {
             $this->setStatus(BackgroundJob::STATUS_FAILED);
-
-            CakeLog::error("[JOB ID: {$this->id()}] - failed with error code {$this->returnCode}. STDERR: {$stderr}. STDOUT: {$stdout}.");
         }
+    }
 
-        return $this;
+    private function pool($process, array $pipes)
+    {
+        stream_set_blocking($pipes[1], false);
+        stream_set_blocking($pipes[2], false);
+
+        $this->output = '';
+        $this->error = '';
+
+        while (true) {
+            $read = [$pipes[1], $pipes[2]];
+            $write = null;
+            $except = null;
+
+            if (false === ($changedStreams = stream_select($read, $write, $except, 5))) {
+                throw new RuntimeException("Could not select stream");
+            } elseif ($changedStreams > 0) {
+                $this->output .= stream_get_contents($pipes[1]);
+                $this->error .= stream_get_contents($pipes[2]);
+            }
+            $status = proc_get_status($process);
+            if (!$status['running']) {
+                // Just in case read rest data from stream
+                $this->output .= stream_get_contents($pipes[1]);
+                $this->error .= stream_get_contents($pipes[2]);
+
+                fclose($pipes[1]);
+                fclose($pipes[2]);
+
+                proc_close($process);
+                $this->returnCode = $status['exitcode'];
+                break;
+            }
+        }
     }
 
     public function jsonSerialize(): array
@@ -127,6 +146,11 @@ class BackgroundJob implements JsonSerializable
             'error' => $this->error,
             'metadata' => $this->metadata,
         ];
+    }
+
+    public function __sleep(): array
+    {
+        return ['id', 'command', 'args', 'createdAt', 'updatedAt', 'status', 'output', 'error', 'metadata'];
     }
 
     public function id(): string

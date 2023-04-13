@@ -3,7 +3,7 @@
     ```bash
     sudo -H -u www-data $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
     ```
-    or on CentOS
+    or on Rocky Linux
     ```bash
     sudo -u apache $RUN_PHP "$CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python""
     ```

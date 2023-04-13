@@ -42,6 +42,9 @@ foreach ($servers as $server):
     $rules['pull'] = json_decode($server['Server']['pull_rules'], true);
     $syncOptions = array('pull', 'push');
     $fieldOptions = array('tags', 'orgs');
+    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) {
+        $fieldOptions = array_merge($fieldOptions, ['type_attributes', 'type_objects']);
+    }
     $typeOptions = array('OR' => array('colour' => 'green', 'text' => 'allowed'), 'NOT' => array('colour' => 'red', 'text' => 'blocked'));
     $ruleDescription = array('pull' => '', 'push' => '');
     foreach ($syncOptions as $syncOption) {

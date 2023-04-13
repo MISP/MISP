@@ -114,7 +114,7 @@ class CakeEmailExtended extends CakeEmail
             throw new InvalidArgumentException("Expected instance of CakeEmailBody, " . gettype($this->body) . " given.");
         }
 
-        $this->_boundary = md5(uniqid());
+        $this->_boundary = md5(mt_rand());
 
         $rendered = [];
         if (!empty($this->body->text)) {
@@ -191,7 +191,7 @@ class MimeMultipart
     public function __construct($subtype = 'mixed', $additionalTypes = array())
     {
         $this->subtype = $subtype;
-        $this->boundary = md5(uniqid());
+        $this->boundary = md5(mt_rand());
         $this->additionalTypes = $additionalTypes;
     }
 
@@ -482,6 +482,10 @@ class SendEmail
                 'In-Reply-To' => $reference,
                 'References' => $reference,
             ]);
+        }
+
+        if ($body instanceof SendEmailTemplate && $body->listUnsubscribe()) {
+            $email->addHeaders(['List-Unsubscribe' => "<{$body->listUnsubscribe()}>"]);
         }
 
         $signed = false;

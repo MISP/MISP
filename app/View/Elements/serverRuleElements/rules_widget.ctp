@@ -4,6 +4,7 @@ $pickerDisplayed = false;
 ?>
 <div>
     <div style="display: flex;" class="rules-widget-container container-seed-<?= $seed ?> scope-<?= Inflector::pluralize(h($scope)) ?>" data-funname="initRuleWidgetPicker<?= $seed ?>">
+        <?php if (empty($disableAllow)): ?>
         <div style="flex-grow: 1;">
             <div class="bold green" style="display: flex; align-items: center;">
                 <?= __('Allowed %s (OR)', Inflector::pluralize(h($scopeI18n)));?>
@@ -28,11 +29,13 @@ $pickerDisplayed = false;
                 <?php endforeach; ?>
             </select>
         </div>
+        <?php endif; ?>
         <div style="display: flex; margin: 0 0.5em; flex-shrink: 1; padding-top: 20px;">
             <div style="display: flex; flex-direction: column;">
                 <?php if(!empty($options) || $allowEmptyOptions): ?>
                     <?php $pickerDisplayed = true; ?>
                     <div class="input-prepend input-append">
+                        <?php if (empty($disableAllow)): ?>
                         <button
                             class="btn"
                             type="button"
@@ -43,19 +46,31 @@ $pickerDisplayed = false;
                         >
                         <i class="<?= $this->FontAwesome->getClass('caret-left') ?>"></i>
                         </button>
+                        <?php endif; ?>
                         <select
                             class="rules-select-picker rules-select-picker-<?= h($scope) ?>"
                             multiple
                             placeholder="<?= sprintf('%s name', h($scopeI18n)) ?>"
                         >
-                            <?php foreach($options as $option): ?>
-                                <?php if(is_array($option)): ?>
+                            <?php foreach($options as $optGroup => $option): ?>
+                                <?php if(!is_numeric($optGroup) && is_array($option)): ?>
+                                    <optgroup label="<?= h($optGroup) ?>">
+                                        <?php foreach($option as $subOption): ?>
+                                            <?php if(is_array($subOption)): ?>
+                                                <option value="<?= !empty($optionNoValue) ? h($subOption['name']) : h($subOption['id']) ?>"><?= h($subOption['name']) ?></option>
+                                            <?php else: ?>
+                                                <option value="<?= h($subOption) ?>"><?= h($subOption) ?></option>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </optgroup>
+                                <?php elseif(is_array($option)): ?>
                                     <option value="<?= !empty($optionNoValue) ? h($option['name']) : h($option['id']) ?>"><?= h($option['name']) ?></option>
                                 <?php else: ?>
                                     <option value="<?= h($option) ?>"><?= h($option) ?></option>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </select>
+                        <?php if (empty($disableBlock)): ?>
                         <button
                             class="btn"
                             type="button"
@@ -66,6 +81,7 @@ $pickerDisplayed = false;
                         >
                             <i class="<?= $this->FontAwesome->getClass('caret-right') ?>"></i>
                         </button>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
                 <?php if(!isset($disableFreeText) || !$disableFreeText): ?>
@@ -110,6 +126,7 @@ $pickerDisplayed = false;
                 <?php endif; ?>
             </div>
         </div>
+        <?php if (empty($disableBlock)): ?>
         <div style="flex-grow: 1;">
             <div class="bold red" style="display: flex; align-items: center;">
                 <?php echo __('Blocked %s (AND NOT)', Inflector::pluralize(h($scopeI18n)));?>
@@ -134,14 +151,17 @@ $pickerDisplayed = false;
                 <?php endforeach; ?>
             </select>
         </div>
+        <?php endif; ?>
     </div>
 </div>
 
 <script>
 function initRuleWidgetPicker<?= $seed ?>() {
     var $baseContainer = $('.container-seed-<?= $seed ?>');
-    $baseContainer.find('select.rules-select-picker').chosen({
-        placeholder_text_multiple: "<?= __('Select some %s', Inflector::humanize(Inflector::pluralize(h($scopeI18n)))); ?>"
+    var $select = $baseContainer.find('select.rules-select-picker')
+    $select.chosen({
+        placeholder_text_multiple: "<?= __('Select some %s', Inflector::humanize(Inflector::pluralize(h($scopeI18n)))); ?>",
+        width: $select.is(":visible") ? undefined : 220,
     })
     $baseContainer.find('select.rules-select-data').keydown(function(evt) {
         var $select = $(this)
@@ -194,7 +214,7 @@ function handleFreetextButtonClick(targetClass, clicked) {
 function handlePickerButtonClick(targetClass, clicked) {
     var $select = $(clicked).parent().find('select');
     var values = $select.val()
-    $select.children().each(function() {
+    $select.find('option').each(function() {
         if (values.includes($(this).val())) {
             var $target = $select.closest('.rules-widget-container').find('select.' + targetClass)
             moveItemToSelect($target, $(this))

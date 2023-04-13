@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class JobsController extends AppController
 {
-    public $components = array('Security', 'RequestHandler', 'Session');
+    public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
         'limit' => 20,
@@ -16,6 +16,15 @@ class JobsController extends AppController
         ),
     );
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+
+        if ($this->request->action === 'getGenerateCorrelationProgress') {
+            $this->Security->doNotGenerateToken = true;
+        }
+    }
+
     public function index($queue = false)
     {
         if (!Configure::read('MISP.background_jobs')) {
@@ -24,9 +33,9 @@ class JobsController extends AppController
         $this->loadModel('Server');
         $issueCount = 0;
         $workers = $this->Server->workerDiagnostics($issueCount);
-        $queues = array('email', 'default', 'cache', 'prio', 'update');
+        $queues = ['email', 'default', 'cache', 'prio', 'update'];
         if ($queue && in_array($queue, $queues, true)) {
-            $this->paginate['conditions'] = array('Job.worker' => $queue);
+            $this->paginate['conditions'] = ['Job.worker' => $queue];
         }
         $jobs = $this->paginate();
         foreach ($jobs as &$job) {
@@ -37,9 +46,9 @@ class JobsController extends AppController
                 $job['Job']['job_status'] = 'Unknown';
                 $job['Job']['failed'] = null;
             }
-            if(Configure::read('SimpleBackgroundJobs.enabled')){
+            if (Configure::read('SimpleBackgroundJobs.enabled')) {
                 $job['Job']['worker_status'] = true;
-            }else{
+            } else {
                 $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'];
             }
         }
@@ -78,20 +87,27 @@ class JobsController extends AppController
         }
     }
 
-    public function getGenerateCorrelationProgress($id)
+    public function getGenerateCorrelationProgress($ids)
     {
-        $job = $this->Job->find('first', [
-            'fields' => ['progress', 'process_id'],
-            'conditions' => ['id' => $id],
+        $this->_closeSession();
+
+        $ids = explode(",", $ids);
+        $jobs = $this->Job->find('all', [
+            'fields' => ['id', 'progress', 'process_id'],
+            'conditions' => ['id' => $ids],
             'recursive' => -1,
         ]);
-        if (!$job) {
-            throw new NotFoundException("Job with ID `$id` not found");
+        if (empty($jobs)) {
+            throw new NotFoundException('No jobs found');
         }
-        $output = [
-            'job_status' => $this->__getJobStatus($job['Job']['process_id']),
-            'progress' => (int)$job['Job']['progress'],
-        ];
+
+        $output = [];
+        foreach ($jobs as $job) {
+            $output[$job['Job']['id']] = [
+                'job_status' => $this->__getJobStatus($job['Job']['process_id']),
+                'progress' => (int)$job['Job']['progress'],
+            ];
+        }
         return $this->RestResponse->viewData($output, 'json');
     }
 
@@ -167,7 +183,7 @@ class JobsController extends AppController
         }
     }
 
-    private function __getJobStatus(?string $id): string
+    private function __getJobStatus($id): string
     {
         if (!Configure::read('SimpleBackgroundJobs.enabled')) {
             return $this->__jobStatusConverter(CakeResque::getJobStatus($id));

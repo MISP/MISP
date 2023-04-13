@@ -4,7 +4,10 @@ App::uses('AuditLog', 'Model');
 class AuditLogBehavior extends ModelBehavior
 {
     /** @var array|null */
-    private $old;
+    private $beforeSave;
+
+    /** @var array */
+    private $beforeDelete = [];
 
     /** @var AuditLog|null */
     private $AuditLog;
@@ -13,7 +16,7 @@ class AuditLogBehavior extends ModelBehavior
     private $enabled;
 
     // Hash is faster that in_array
-    private $skipFields = [
+    const SKIP_FIELDS = [
         'id' => true,
         'lastpushedid' => true,
         'timestamp' => true,
@@ -81,11 +84,15 @@ class AuditLogBehavior extends ModelBehavior
             return true;
         }
 
+        if (isset($options['skipAuditLog']) && $options['skipAuditLog']) {
+            return true;
+        }
+
         // Do not fetch old version when just few fields will be fetched
         $fieldToFetch = [];
         if (!empty($options['fieldList'])) {
             foreach ($options['fieldList'] as $field) {
-                if (!isset($this->skipFields[$field])) {
+                if (!isset(self::SKIP_FIELDS[$field])) {
                     $fieldToFetch[] = $field;
                 }
             }
@@ -96,20 +103,25 @@ class AuditLogBehavior extends ModelBehavior
                 $fieldToFetch[] = 'event_id';
             }
 
+            // Fetch fields that are necessary to fill object title
+            if (isset($this->modelInfo[$model->name]) && is_string($this->modelInfo[$model->name]) && !in_array($this->modelInfo[$model->name], $fieldToFetch, true)) {
+                $fieldToFetch[] = $this->modelInfo[$model->name];
+            }
+
             if (empty($fieldToFetch))  {
-                $this->old = null;
+                $this->beforeSave = null;
                 return true;
             }
         }
         if ($model->id) {
-            $this->old = $model->find('first', [
+            $this->beforeSave = $model->find('first', [
                 'conditions' => [$model->alias . '.' . $model->primaryKey => $model->id],
                 'recursive' => -1,
                 'callbacks' => false,
                 'fields' => $fieldToFetch,
             ]);
         } else {
-            $this->old = null;
+            $this->beforeSave = null;
         }
         return true;
     }
@@ -117,6 +129,10 @@ class AuditLogBehavior extends ModelBehavior
     public function afterSave(Model $model, $created, $options = [])
     {
         if (!$this->enabled) {
+            return;
+        }
+
+        if (isset($options['skipAuditLog']) && $options['skipAuditLog']) {
             return;
         }
 
@@ -130,13 +146,13 @@ class AuditLogBehavior extends ModelBehavior
             if (isset($data['deleted'])) {
                 if ($data['deleted']) {
                     $action = AuditLog::ACTION_SOFT_DELETE;
-                } else if (isset($this->old[$model->alias]['deleted']) && $this->old[$model->alias]['deleted']) {
+                } else if (isset($this->beforeSave[$model->alias]['deleted']) && $this->beforeSave[$model->alias]['deleted']) {
                     $action = AuditLog::ACTION_UNDELETE;
                 }
             }
         }
 
-        $changedFields = $this->changedFields($model, $options['fieldList']);
+        $changedFields = $this->changedFields($model, $this->beforeSave, $options['fieldList']);
         if (empty($changedFields)) {
             return;
         }
@@ -145,8 +161,8 @@ class AuditLogBehavior extends ModelBehavior
             $eventId = $id;
         } else if (isset($data['event_id'])) {
             $eventId = $data['event_id'];
-        } else if (isset($this->old[$model->alias]['event_id'])) {
-            $eventId = $this->old[$model->alias]['event_id'];
+        } else if (isset($this->beforeSave[$model->alias]['event_id'])) {
+            $eventId = $this->beforeSave[$model->alias]['event_id'];
         } else {
             $eventId = null;
         }
@@ -155,11 +171,11 @@ class AuditLogBehavior extends ModelBehavior
         if (isset($this->modelInfo[$model->name])) {
             $modelTitleField = $this->modelInfo[$model->name];
             if (is_callable($modelTitleField)) {
-                $modelTitle = $modelTitleField($data, isset($this->old[$model->alias]) ? $this->old[$model->alias] : []);
+                $modelTitle = $modelTitleField($data, isset($this->beforeSave[$model->alias]) ? $this->beforeSave[$model->alias] : []);
             } else if (isset($data[$modelTitleField])) {
                 $modelTitle = $data[$modelTitleField];
-            } else if ($this->old[$model->alias][$modelTitleField]) {
-                $modelTitle = $this->old[$model->alias][$modelTitleField];
+            } else if ($this->beforeSave[$model->alias][$modelTitleField]) {
+                $modelTitle = $this->beforeSave[$model->alias][$modelTitleField];
             }
         }
 
@@ -190,14 +206,16 @@ class AuditLogBehavior extends ModelBehavior
             $id = 0;
         }
 
-        $this->auditLog()->insert(['AuditLog' => [
+        $this->auditLog()->insert([
             'action' => $action,
             'model' => $modelName,
             'model_id' => $id,
             'model_title' => $modelTitle,
             'event_id' => $eventId,
             'change' => $changedFields,
-        ]]);
+        ]);
+
+        $this->beforeSave = null; // cleanup
     }
 
     public function beforeDelete(Model $model, $cascade = true)
@@ -206,7 +224,7 @@ class AuditLogBehavior extends ModelBehavior
             return true;
         }
 
-        $this->old = $model->find('first', [
+        $this->beforeDelete[$model->name] = $model->find('first', [
             'conditions' => array($model->alias . '.' . $model->primaryKey => $model->id),
             'recursive' => -1,
             'callbacks' => false,
@@ -219,8 +237,8 @@ class AuditLogBehavior extends ModelBehavior
         if (!$this->enabled) {
             return;
         }
-        $model->data = $this->old;
-        $this->old = null;
+        $model->data = $this->beforeDelete[$model->name];
+        unset($this->beforeDelete[$model->name]);
         if ($model->name === 'Event') {
             $eventId = $model->id;
         } else {
@@ -260,14 +278,14 @@ class AuditLogBehavior extends ModelBehavior
             $id = 0;
         }
 
-        $this->auditLog()->insert(['AuditLog' => [
+        $this->auditLog()->insert([
             'action' => $action,
             'model' => $modelName,
             'model_id' => $id,
             'model_title' => $modelTitle,
             'event_id' => $eventId,
-            'change' => $this->changedFields($model),
-        ]]);
+            'change' => $this->changedFields($model, null),
+        ]);
     }
 
     /**
@@ -311,16 +329,17 @@ class AuditLogBehavior extends ModelBehavior
 
     /**
      * @param Model $model
+     * @param array|null $oldData Array with alias
      * @param array|null $fieldsToSave
      * @return array
      */
-    private function changedFields(Model $model, $fieldsToSave = null)
+    private function changedFields(Model $model, $oldData, $fieldsToSave = null)
     {
         $dbFields = $model->schema();
         $changedFields = [];
         $hasPrimaryField = isset($model->data[$model->alias][$model->primaryKey]);
         foreach ($model->data[$model->alias] as $key => $value) {
-            if (isset($this->skipFields[$key])) {
+            if (isset(self::SKIP_FIELDS[$key])) {
                 continue;
             }
             if (!isset($dbFields[$key])) {
@@ -330,8 +349,8 @@ class AuditLogBehavior extends ModelBehavior
                 continue;
             }
 
-            if ($hasPrimaryField && isset($this->old[$model->alias][$key])) {
-                $old = $this->old[$model->alias][$key];
+            if ($hasPrimaryField && isset($oldData[$model->alias][$key])) {
+                $old = $oldData[$model->alias][$key];
             } else {
                 $old = null;
             }

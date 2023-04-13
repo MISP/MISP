@@ -7,7 +7,6 @@ App::uses('AppController', 'Controller');
 class FeedsController extends AppController
 {
     public $components = array(
-        'Security',
         'CRUD',
         'RequestHandler'
     );   // XXX ACL component
@@ -41,9 +40,6 @@ class FeedsController extends AppController
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'previewIndex';
         $this->Security->unlockedActions[] = 'feedCoverage';
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
-            throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
-        }
     }
 
     public function loadDefaultFeeds()
@@ -124,7 +120,9 @@ class FeedsController extends AppController
             'menuItem' => 'index'
         ]);
         $this->loadModel('Event');
-        $this->set('distributionLevels', $this->Event->distributionLevels);
+        $distributionLevels = $this->Event->distributionLevels;
+        $distributionLevels[5] = __('Inherit from feed');
+        $this->set('distributionLevels', $distributionLevels);
         $this->set('scope', $scope);
     }
 
@@ -203,8 +201,8 @@ class FeedsController extends AppController
                     if (empty($feed['Feed']['source_format'])) {
                         $feed['Feed']['source_format'] = 'freetext';
                     }
-                    if (empty($feed['Feed']['fixed_event'])) {
-                        $feed['Feed']['source_format'] = '1';
+                    if (!isset($feed['Feed']['fixed_event'])) {
+                        $feed['Feed']['fixed_event'] = '1';
                     }
                 }
 
@@ -286,6 +284,7 @@ class FeedsController extends AppController
         $this->loadModel('Event');
         $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $distributionLevels = $this->Event->distributionLevels;
+        $distributionLevels[5] = __('Inherit from feed');
         if (empty($sharingGroups)) {
             unset($distributionLevels[4]);
         }
@@ -295,6 +294,9 @@ class FeedsController extends AppController
         }
         $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
         $tags[0] = 'None';
+
+        $this->loadModel('Server');
+        $allTypes = $this->Server->getAllTypes();
 
         $dropdownData = [
             'orgs' => $this->Event->Orgc->find('list', array(
@@ -307,9 +309,12 @@ class FeedsController extends AppController
             'distributionLevels' => $distributionLevels,
             'inputSources' => $inputSources
         ];
+        $this->set('allAttributeTypes', $allTypes['attribute']);
+        $this->set('allObjectTypes', $allTypes['object']);
         $this->set(compact('dropdownData'));
         $this->set('defaultPullRules', json_encode(Feed::DEFAULT_FEED_PULL_RULES));
         $this->set('menuData', array('menuList' => 'feeds', 'menuItem' => 'add'));
+        $this->set('pull_scope', 'feed');
     }
 
     private function __checkRegex($pattern)
@@ -344,10 +349,14 @@ class FeedsController extends AppController
                 'delete_local_file',
                 'lookup_visible',
                 'headers',
-                'orgc_id'
+                'orgc_id',
+                'fixed_event'
             ],
             'afterFind' => function (array $feed) {
                 $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+                if ($feed['Feed']['source_format'] == 'misp' && empty($feed['Feed']['rules'])) {
+                    $feed['Feed']['rules'] = json_encode(Feed::DEFAULT_FEED_PULL_RULES);
+                }
 
                 return $feed;
             },
@@ -424,6 +433,7 @@ class FeedsController extends AppController
         $this->loadModel('Event');
         $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $distributionLevels = $this->Event->distributionLevels;
+        $distributionLevels[5] = __('Inherit from feed');
         if (empty($sharingGroups)) {
             unset($distributionLevels[4]);
         }
@@ -433,6 +443,12 @@ class FeedsController extends AppController
         }
         $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
         $tags[0] = 'None';
+
+        $this->loadModel('Server');
+        $allTypes = $this->Server->getAllTypes();
+        $this->set('allAttributeTypes', $allTypes['attribute']);
+        $this->set('allObjectTypes', $allTypes['object']);
+        $this->set('supportedUrlparams', Feed::SUPPORTED_URL_PARAM_FILTERS);
 
         $dropdownData = [
             'orgs' => $this->Event->Orgc->find('list', array(
@@ -455,6 +471,7 @@ class FeedsController extends AppController
         if(!empty($this->request->data['Feed']['rules'])){
             $this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
         }
+        $this->set('pull_scope', 'feed');
         $this->render('add');
     }
 

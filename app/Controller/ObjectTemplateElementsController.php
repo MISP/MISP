@@ -4,7 +4,7 @@ App::uses('AppController', 'Controller');
 
 class ObjectTemplateElementsController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler', 'Session');
+    public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
             'limit' => 60,
@@ -19,7 +19,7 @@ class ObjectTemplateElementsController extends AppController
         $this->paginate['conditions'] = array('ObjectTemplateElement.object_template_id' => $id);
         $elements = $this->paginate();
         $this->set('list', $elements);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/view_elements');
     }
 }

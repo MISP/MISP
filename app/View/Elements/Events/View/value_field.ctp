@@ -18,6 +18,12 @@ $truncateLongText = function ($text, $maxLength = 500, $maxLines = 10) {
     return null;
 };
 
+$humanReadableFilesize = function ($bytes, $dec = 2) {
+    $size = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    $factor = floor((strlen($bytes) - 1) / 3);
+    return sprintf("%.{$dec}f&nbsp;%s", ($bytes / (1024 ** $factor)), $size[$factor]);
+};
+
 if (!isset($linkClass)) {
     $linkClass = null;
 }
@@ -27,13 +33,20 @@ switch ($object['type']) {
     case 'malware-sample':
         if ($object['type'] === 'attachment' && isset($object['image'])) {
             if ($object['image'] === true) {
-                $img = '<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>';
-                $img .= '<img class="screenshot screenshot-collapsed useCursorPointer img-rounded hidden" src="' . $baseurl . sprintf('/%s/viewPicture/', $object['objectType'] == 'proposal' ? 'shadowAttributes' : 'attributes') . h($object['id']) . '/1' . '" title="' . h($object['value']) . '" onload="$(this).show(200); $(this).parent().find(\'.fa-spinner\').remove();"/>';
-                echo $img;
+                if ($object['objectType'] === 'proposal') {
+                    $src = $baseurl . '/shadowAttributes/viewPicture/' . (int)$object['id'] . '/1';
+                    echo '<img class="screenshot useCursorPointer img-rounded" src="' . $src . '" title="' . h($object['value']) . '" loading="lazy">';
+                } else { // attribute
+                    $src = $baseurl . '/attributes/viewPicture/' . (int)$object['id'] . '/';
+                    echo '<picture>';
+                    echo '<source srcset="' . $src . 'webp" type="image/webp">';
+                    echo '<img class="screenshot useCursorPointer img-rounded" src="' . $src . '1" title="' . h($object['value']) . '" loading="lazy">';
+                    echo '</picture>';
+                }
             } else {
                 $extension = pathinfo($object['value'], PATHINFO_EXTENSION);
                 $uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
-                echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '" />';
+                echo '<img class="screenshot useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '">';
             }
         } else {
             $filenameHash = explode('|', h($object['value']));
@@ -45,20 +58,22 @@ switch ($object['type']) {
                 $filename = $filenameHash[0];
             }
 
-            if (isset($object['objectType'])) {
+            if (isset($object['objectType']) && isset($object['id'])) {
                 if (array_key_exists('infected', $object) && $object['infected'] !== false) { // it is not possible to use isset
                     if ($object['infected'] === null) {
                         $confirm = __('This file was not checked by AV scan. Do you really want to download it?');
                     } else {
                         $confirm = __('According to AV scan, this file contains %s malware. Do you really want to download it?', $object['infected']);
                     }
+                } else if ($object['type'] === 'malware-sample') {
+                    $confirm = __('You are going to download file that is probably malware. For your safety, the file is compressed in encrypted ZIP file. To decrypt use password `infected`.');
                 } else {
                     $confirm = null;
                 }
 
                 $controller = $object['objectType'] === 'proposal' ? 'shadow_attributes' : 'attributes';
-                $url = array('controller' => $controller, 'action' => 'download', $object['id']);
-                echo $this->Html->link($filename, $url, array('class' => $linkClass), $confirm);
+                $url = ['controller' => $controller, 'action' => 'download', $object['id']];
+                echo $this->Html->link($filename, $url, ['class' => $linkClass], $confirm);
             } else {
                 echo $filename;
             }
@@ -70,6 +85,7 @@ switch ($object['type']) {
             }
         }
         break;
+
     case 'datetime':
         echo $this->Time->time($object['value']);
         break;
@@ -104,9 +120,9 @@ switch ($object['type']) {
         break;
 
     case 'text':
-        if (in_array($object['category'], array('External analysis', 'Internal reference')) && Validation::uuid($object['value'])) {
-            $url = array('controller' => 'events', 'action' => 'view', $object['value']);
-            echo $this->Html->link($object['value'], $url, array('class' => $linkClass));
+        if (in_array($object['category'], ['External analysis', 'Internal reference'], true) && Validation::uuid($object['value'])) {
+            $url = ['controller' => 'events', 'action' => 'view', $object['value']];
+            echo $this->Html->link($object['value'], $url, ['class' => $linkClass]);
         } else {
             $value = str_replace("\r", '', $object['value']);
             $truncated = $truncateLongText($value);
@@ -123,6 +139,14 @@ switch ($object['type']) {
     case 'hex':
         echo '<span class="hex-value" title="' . __('Hexadecimal representation') . '">' . h($object['value']) . '</span>&nbsp;';
         echo '<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="fas fa-redo hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
+        break;
+
+    case 'size-in-bytes':
+        $value = intval($object['value']);
+        echo $value;
+        if ($value > 1024) {
+            echo '<br>' . $humanReadableFilesize($value);
+        }
         break;
 
     case 'ip-dst|port':
@@ -155,11 +179,11 @@ switch ($object['type']) {
             $truncated = $truncateLongText($value);
             if ($truncated) {
                 $rawTypes = ['email-header', 'yara', 'pgp-private-key', 'pgp-public-key', 'url'];
-                $dataFullType = in_array($object['type'], $rawTypes) ? 'raw' : 'text';
-                echo '<span style="white-space: pre-wrap;" data-full="' . h($value) .'" data-full-type="' . $dataFullType .'">' . h($truncated) .
+                $dataFullType = in_array($object['type'], $rawTypes, true) ? 'raw' : 'text';
+                echo '<span style="white-space:pre-wrap" data-full="' . h($value) .'" data-full-type="' . $dataFullType .'">' . h($truncated) .
                     ' <b>&hellip;</b><br><a href="#">' . __('Show all') . '</a></span>';
             } else {
-                echo '<span style="white-space: pre-wrap;">' . h($value) . '</span>';
+                echo '<span style="white-space:pre-wrap">' . h($value) . '</span>';
             }
         }
 }

@@ -268,6 +268,7 @@
                     'label' => $attr['value'],
                     'event_id' => $attr['event_id'],
                     'node_type' => 'attribute',
+                    'comment' => $attr['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
                 $this->__extendedEventUUIDMapping[$toPush['event_id']] = '';
@@ -285,6 +286,7 @@
                     'meta-category' => $obj['meta-category'],
                     'template_uuid' => $obj['template_uuid'],
                     'event_id' => $obj['event_id'],
+                    'comment' => $obj['comment'],
                 );
                 if (isset($obj['Attribute'])) {
                     $toPush['Attribute'] = $obj['Attribute'];
@@ -360,6 +362,7 @@
                     'label' => $attr['value'],
                     'event_id' => $attr['event_id'],
                     'node_type' => 'attribute',
+                    'comment' => $attr['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
 
@@ -387,6 +390,7 @@
                     'meta-category' => $obj['meta-category'],
                     'template_uuid' => $obj['template_uuid'],
                     'event_id' => $obj['event_id'],
+                    'comment' => $obj['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
 
@@ -470,6 +474,7 @@
                     'label' => $attr['value'],
                     'event_id' => $attr['event_id'],
                     'node_type' => 'attribute',
+                    'comment' => $attr['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
 
@@ -497,6 +502,7 @@
                     'meta-category' => $obj['meta-category'],
                     'template_uuid' => $obj['template_uuid'],
                     'event_id' => $obj['event_id'],
+                    'comment' => $obj['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
 
@@ -521,6 +527,19 @@
                         array_push($this->__json['relations'], $toPush);
                         $i = $i + 1;
                     }
+                }
+
+                foreach ($obj['ObjectReference'] as $rel) {
+                    $toPush = array(
+                        'id' => $rel['id'],
+                        'uuid' => $rel['uuid'],
+                        'from' => sprintf('o-%s', $obj['id']),
+                        'to' => $rel['referenced_type'] == 1 ? sprintf('o-%s', $rel['referenced_id']) : $rel['referenced_id'],
+                        'type' => $rel['relationship_type'],
+                        'comment' => $rel['comment'],
+                        'event_id' => $rel['event_id'],
+                    );
+                    array_push($this->__json['relations'], $toPush);
                 }
             }
 

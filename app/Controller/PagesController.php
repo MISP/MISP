@@ -30,7 +30,12 @@ class PagesController extends AppController
     public function display()
     {
         $path = func_get_args();
-
+        foreach ($path as $k => $part) {
+            if (strpos($part, '..') !== false || strpos($part, '/') !== false) {
+                unset($path[$k]);
+            }
+        }
+        $path = array_values($path);
         $count = count($path);
         if (!$count) {
             $this->redirect('/');

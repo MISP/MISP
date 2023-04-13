@@ -75,13 +75,12 @@ echo $this->element('genericElements/Form/genericForm', array(
     )
 ));
 if (!$ajax) {
-    $event = ['Event' => ['id' => $event_id ]];
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttribute', 'event' => $event));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttribute'));
 }
 ?>
-    <script type="text/javascript">
-        var category_type_mapping = <?= json_encode(array_map(function($value) {
-            return array_combine($value['types'], $value['types']);
+    <script>
+        var category_type_mapping = <?= json_encode(array_map(function(array $value) {
+            return $value['types'];
         }, $categoryDefinitions)); ?>;
 
         $('#ShadowAttributeCategory').change(function() {
@@ -127,4 +126,3 @@ if (!$ajax) {
         });
     </script>
 <?php echo $this->element('form_seen_input'); ?>
-<?php echo $this->Js->writeBuffer(); // Write cached scripts

@@ -11,6 +11,7 @@ App::uses('ProcessTool', 'Tools');
  * @property-read array $serverSettings
  * @property-read array $command_line_functions
  * @property Organisation $Organisation
+ * @property User $User
  */
 class Server extends AppModel
 {
@@ -132,6 +133,59 @@ class Server extends AppModel
 
     public $syncTestErrorCodes = array();
 
+    const MYSQL_RECOMMENDED_SETTINGS = [
+        'innodb_buffer_pool_size' => [
+            'default' => '134217728',
+            'recommended' => '2147483648',
+            'explanation' => 'The InnoDB buffer pool is the memory area where caches table and index data reside. It is the most important MySQL setting, in a dedicated server it should be around 3/4 of all the available RAM. In a shared server it should be around 1/2 of the available RAM.',
+        ],
+        'innodb_dedicated_server' => [
+            'default' => '0',
+            'recommended' => '',
+            'explanation' => 'Set to `1` if the database is running in a dedicated server. The database engine will examine the available memory and dynamically set `innodb_buffer_pool_size`, `innodb_log_file_size`, `innodb_log_files_in_group` and `innodb_flush_method`. It is particularly useful in cloud enviroments that can be auto-scaled.',
+        ],
+        'innodb_log_file_size' => [
+            'default' => '100663296',
+            'recommended' => '629145600',
+            'explanation' => 'This parameter determines the fixed size for MySQLs redo logs. Tuning this value affects the crash recovery time and also overall system performance.',
+        ],
+        'innodb_log_files_in_group' => [
+            'default' => '2',
+            'recommended' => '2',
+            'explanation' => 'Defines the number of log files in the log group.',
+        ],
+        'innodb_change_buffering' => [
+            'default' => 'none',
+            'recommended' => 'none',
+            'explanation' => 'Whether InnoDB performs change buffering, an optimization that delays write operations to secondary indexes so that the I/O operations can be performed sequentially, enabling it causes extremely long shutdown times for upgrades.',
+        ],
+        'innodb_io_capacity' => [
+            'default' => '200',
+            'recommended' => '1000',
+            'explanation' => 'Defines the number of I/O operations per second (IOPS) available to InnoDB background tasks, such as flushing pages from the buffer pool and merging data from the change buffer.',
+        ],
+        'innodb_io_capacity_max' => [
+            'default' => '2000',
+            'recommended' => '2000',
+            'explanation' => 'If flushing activity falls behind, InnoDB can flush more aggressively, at a higher rate of I/O operations per second (IOPS) than defined by the `innodb_io_capacity variable`.',
+        ],
+        'innodb_stats_persistent' => [
+            'default' => 'ON',
+            'recommended' => 'ON',
+            'explanation' => 'Specifies whether InnoDB index statistics are persisted to disk. Otherwise, statistics may be recalculated frequently which can lead to variations in query execution plans.',
+        ],
+        'innodb_read_io_threads' => [
+            'default' => '4',
+            'recommended' => '16',
+            'explanation' => 'The number of I/O threads for read operations in InnoDB.',
+        ],
+        'innodb_write_io_threads' => [
+            'default' => '4',
+            'recommended' => '4',
+            'explanation' => 'The number of I/O threads for write operations in InnoDB.',
+        ],
+    ];
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -161,7 +215,12 @@ class Server extends AppModel
             'description' => 'If your your database is locked and is not updating, unlock it here.',
             'ignore_disabled' => true,
             'url' => '/servers/releaseUpdateLock/'
-        )
+        ),
+        'normalizeCustomTagsToTaxonomyFormat' => array(
+            'title' => 'Normalize custom tags to taxonomy format',
+            'description' => 'Transform all custom tags existing in a taxonomy into the taxonomy version',
+            'url' => '/taxonomies/normalizeCustomTagsToTaxonomyFormat/'
+        ),
     );
 
     public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
@@ -189,6 +248,19 @@ class Server extends AppModel
         if (!empty($server['authkey']) && strlen($server['authkey']) === 40) {
             $server['authkey'] = EncryptedValue::encryptIfEnabled($server['authkey']);
         }
+
+        try {
+            // Clean caches when remote server setting changed
+            $cacheKeys = [
+                "misp:event_index:{$this->id}",
+                "misp:fetched_sightings:{$this->id}",
+                "misp:empty_events:{$this->id}",
+            ];
+            RedisTool::unlink(RedisTool::init(), $cacheKeys);
+        } catch (Exception $e) {
+            // ignore
+        }
+
         return true;
     }
 
@@ -204,11 +276,11 @@ class Server extends AppModel
     {
         if ("full" === $technique) {
             // get a list of the event_ids on the server
-            $eventIds = $this->getEventIdsFromServer($serverSync, false, false, 'events', $force);
+            $eventIds = $this->getEventIdsFromServer($serverSync, false, false, $force);
             // reverse array of events, to first get the old ones, and then the new ones
             return array_reverse($eventIds);
         } elseif ("update" === $technique) {
-            $eventIds = $this->getEventIdsFromServer($serverSync, false, true, 'events', $force);
+            $eventIds = $this->getEventIdsFromServer($serverSync, false, true,  $force);
             $eventModel = ClassRegistry::init('Event');
             $localEventUuids = $eventModel->find('column', array(
                 'fields' => array('Event.uuid'),
@@ -222,26 +294,16 @@ class Server extends AppModel
         throw new InvalidArgumentException("Invalid pull technique `$technique`.");
     }
 
-    private function __checkIfEventIsBlockedBeforePull($event)
-    {
-        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-            if (!isset($this->EventBlocklist)) {
-                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            }
-            if ($this->EventBlocklist->isBlocked($event['Event']['uuid'])) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * @param array $event
      * @param array $server
      * @param array $user
+     * @param array $pullRules
+     * @return bool Return true if event was emptied by pull rules
      */
-    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user)
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules)
     {
+        $pullRulesEmptiedEvent = false;
         // we have an Event array
         // The event came from a pull, so it should be locked.
         $event['Event']['locked'] = true;
@@ -268,8 +330,17 @@ class Server extends AppModel
                     }
                 }
             }
+
+            $filterOnTypeEnabled = !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'));
+            $attributeTypeFilteringEnabled = $filterOnTypeEnabled && !empty($pullRules['type_attributes']['NOT']);
+
             if (isset($event['Event']['Attribute'])) {
+                $originalCount = count($event['Event']['Attribute']);
                 foreach ($event['Event']['Attribute'] as $key => $attribute) {
+                    if ($attributeTypeFilteringEnabled && in_array($attribute['type'], $pullRules['type_attributes']['NOT'], true)) {
+                        unset($event['Event']['Attribute'][$key]);
+                        continue;
+                    }
                     switch ($attribute['distribution']) {
                         case '1':
                             $event['Event']['Attribute'][$key]['distribution'] = '0';
@@ -287,9 +358,22 @@ class Server extends AppModel
                         }
                     }
                 }
+                if ($attributeTypeFilteringEnabled && $originalCount > 0 && empty($event['Event']['Attribute'])) {
+                    $pullRulesEmptiedEvent = true;
+                }
             }
+
             if (isset($event['Event']['Object'])) {
+                $originalObjectCount = count($event['Event']['Object']);
                 foreach ($event['Event']['Object'] as $i => $object) {
+                    if (
+                        $filterOnTypeEnabled &&
+                        !empty($pullRules['type_objects']['NOT']) &&
+                        in_array($object['template_uuid'], $pullRules['type_objects']['NOT'], true)
+                    ) {
+                        unset($event['Event']['Object'][$i]);
+                        continue;
+                    }
                     switch ($object['distribution']) {
                         case '1':
                             $event['Event']['Object'][$i]['distribution'] = '0';
@@ -299,7 +383,12 @@ class Server extends AppModel
                             break;
                     }
                     if (isset($object['Attribute'])) {
+                        $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
+                            if ($attributeTypeFilteringEnabled && in_array($a['type'], $pullRules['type_attributes']['NOT'], true)) {
+                                unset($event['Event']['Object'][$i]['Attribute'][$j]);
+                                continue;
+                            }
                             switch ($a['distribution']) {
                                 case '1':
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '0';
@@ -317,7 +406,13 @@ class Server extends AppModel
                                 }
                             }
                         }
+                        if ($attributeTypeFilteringEnabled && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
+                            unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
+                        }
                     }
+                }
+                if ($filterOnTypeEnabled && $originalObjectCount > 0 && empty($event['Event']['Object'])) {
+                    $pullRulesEmptiedEvent = true;
                 }
             }
             if (isset($event['Event']['EventReport'])) {
@@ -336,6 +431,8 @@ class Server extends AppModel
 
         // Distribution, set reporter of the event, being the admin that initiated the pull
         $event['Event']['user_id'] = $user['id'];
+
+        return $pullRulesEmptiedEvent;
     }
 
     /**
@@ -375,17 +472,24 @@ class Server extends AppModel
         return false;
     }
 
-    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false)
+    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false, $headers = false, $body = false)
     {
         // check if the event already exist (using the uuid)
         $existingEvent = $eventModel->find('first', [
             'conditions' => ['Event.uuid' => $event['Event']['uuid']],
             'recursive' => -1,
-            'fields' => ['id', 'locked'],
+            'fields' => ['id', 'locked', 'protected'],
+            'contain' => ['CryptographicKey']
         ]);
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
             // add data for newly imported events
+            if (isset($event['Event']['protected']) && $event['Event']['protected']) {
+                if (!$eventModel->CryptographicKey->validateProtectedEvent($body, $user, $headers['x-pgp-signature'], $event)) {
+                    $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
+                    return false;
+                }
+            }
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
             if ($result) {
                 $successes[] = $eventId;
@@ -400,6 +504,11 @@ class Server extends AppModel
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
                 $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
+                if ($existingEvent['Event']['protected']) {
+                    if (!$eventModel->CryptographicKey->validateProtectedEvent($body, $user, $headers['x-pgp-signature'], $existingEvent)) {
+                        $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
+                    }
+                }
                 $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong, $force);
                 if ($result === true) {
                     $successes[] = $eventId;
@@ -416,7 +525,18 @@ class Server extends AppModel
         }
     }
 
-    private function __pullEvent($eventId, &$successes, &$fails, Event $eventModel, ServerSyncTool $serverSync, $user, $jobId, $force = false)
+    /**
+     * @param int|string $eventId Event ID or UUID
+     * @param array $successes
+     * @param array $fails
+     * @param Event $eventModel
+     * @param ServerSyncTool $serverSync
+     * @param array $user
+     * @param int $jobId
+     * @param bool $force
+     * @return bool
+     */
+    private function __pullEvent($eventId, array &$successes, array &$fails, Event $eventModel, ServerSyncTool $serverSync, $user, $jobId, $force = false)
     {
         $params = [
             'deleted' => [0, 1],
@@ -428,29 +548,27 @@ class Server extends AppModel
         if (empty($serverSync->server()['Server']['internal'])) {
             $params['excludeLocalTags'] = 1;
         }
-
         try {
-            $event = $serverSync->fetchEvent($eventId, $params)->json();
+            $event = $serverSync->fetchEvent($eventId, $params);
+            $headers = $event->headers;
+            $body = $event->body;
+            $event = $event->json();
         } catch (Exception $e) {
             $this->logException("Failed downloading the event $eventId from remote server {$serverSync->serverId()}", $e);
             $fails[$eventId] = __('failed downloading the event');
             return false;
         }
 
-        if (!empty($event)) {
-            if ($this->__checkIfEventIsBlockedBeforePull($event)) {
-                return false;
-            }
-            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user);
-            if (!$this->__checkIfEventSaveAble($event)) {
+        $pullRulesEmptiedEvent = $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules());
+
+        if (!$this->__checkIfEventSaveAble($event)) {
+            if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
                 $fails[$eventId] = __('Empty event detected.');
-            } else {
-                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force);
+                $this->addEmptyEvent($serverSync->serverId(), $event);
             }
-        } else {
-            // error
-            $fails[$eventId] = __('failed downloading the event');
+            return false;
         }
+        $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $headers, $body);
         return true;
     }
 
@@ -496,7 +614,7 @@ class Server extends AppModel
             if ($jobId) {
                 $job->saveProgress($jobId, $technique === 'pull_relevant_clusters' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
             }
-            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
+            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $serverSync, $technique);
             if ($technique === 'pull_relevant_clusters') {
                 if ($jobId) {
                     $job->saveStatus($jobId, true, 'Pulling complete.');
@@ -524,8 +642,8 @@ class Server extends AppModel
 
         /** @var Event $eventModel */
         $eventModel = ClassRegistry::init('Event');
-        $successes = array();
-        $fails = array();
+        $successes = [];
+        $fails = [];
         // now process the $eventIds to pull each of the events sequentially
         if (!empty($eventIds)) {
             // download each event
@@ -559,7 +677,7 @@ class Server extends AppModel
         }
 
         $change = sprintf(
-            '%s events, %s proposals, %s sightings and %s galaxyClusters pulled or updated. %s events failed or didn\'t need an update.',
+            '%s events, %s proposals, %s sightings and %s galaxy clusters pulled or updated. %s events failed or didn\'t need an update.',
             count($successes),
             $pulledProposals,
             $pulledSightings,
@@ -567,7 +685,7 @@ class Server extends AppModel
             count($fails)
         );
         $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
-        return array($successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters);
+        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters];
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -607,30 +725,20 @@ class Server extends AppModel
     /**
      * fetchCustomClusterIdsFromServer Fetch custom-published remote clusters' UUIDs and versions
      *
-     * @param array $server
-     * @param HttpSocketExtended|null $HttpSocket
+     * @param ServerSyncTool $serverSync
      * @param array $conditions
      * @return array The list of clusters
      * @throws JsonException|HttpSocketHttpException|HttpSocketJsonException
      */
-    private function fetchCustomClusterIdsFromServer(array $server, HttpSocketExtended $HttpSocket=null, array $conditions=array())
+    private function fetchCustomClusterIdsFromServer(ServerSyncTool $serverSync, array $conditions = [])
     {
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $url . '/galaxy_clusters/restSearch';
         $filterRules = [
             'published' => 1,
             'minimal' => 1,
             'custom' => 1,
         ];
         $filterRules = array_merge($filterRules, $conditions);
-        $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
-        if (!$response->isOk()) {
-            throw new HttpSocketHttpException($response);
-        }
-
-        $clusterArray = $response->json();
+        $clusterArray = $serverSync->galaxyClusterSearch($filterRules)->json();
         if (isset($clusterArray['response'])) {
             $clusterArray = $clusterArray['response'];
         }
@@ -640,43 +748,42 @@ class Server extends AppModel
     /**
      * getElligibleClusterIdsFromServerForPull Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
      *
-     * @param array $server
-     * @param mixed $HttpSocket
+     * @param ServerSyncTool $serverSync
      * @param bool $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
-     * @param array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
+     * @param array $eligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
      * @param array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
      * @return array List of cluster IDs to be pulled
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPull(array $server, $HttpSocket=null, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
+    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
-        if (!empty($clusterArray)) {
-            foreach ($clusterArray as $cluster) {
-                if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
-                    $localVersion = $elligibleClusters[$cluster['GalaxyCluster']['uuid']];
-                    if ($localVersion >= $cluster['GalaxyCluster']['version']) {
-                        unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
-                    }
+        $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for pull: " . JsonTool::encode($conditions), LOG_INFO);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
+        if (empty($clusterArray)) {
+            return [];
+        }
+        foreach ($clusterArray as $cluster) {
+            if (isset($eligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
+                $localVersion = $eligibleClusters[$cluster['GalaxyCluster']['uuid']];
+                if ($localVersion >= $cluster['GalaxyCluster']['version']) {
+                    unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                }
+            } else {
+                if ($onlyUpdateLocalCluster) {
+                    unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
                 } else {
-                    if ($onlyUpdateLocalCluster) {
-                        unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
-                    } else {
-                        $elligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
-                    }
+                    $eligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
                 }
             }
-            return array_keys($elligibleClusters);
         }
-        return $clusterArray;
+        return array_keys($eligibleClusters);
     }
 
     /**
      * Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed.
-     * @param array $server
-     * @param HttpSocket|null $HttpSocket
+     * @param ServerSyncTool $serverSync
      * @param array $localClusters
      * @param array $conditions
      * @return array
@@ -684,9 +791,10 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPush(array $server, $HttpSocket=null, $localClusters=array(), $conditions=array())
+    private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
+        $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for push: " . JsonTool::encode($conditions), LOG_INFO);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
             foreach ($localClusters as $k => $localCluster) {
@@ -707,6 +815,8 @@ class Server extends AppModel
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
+     * @throws JsonException
+     * @throws RedisException
      */
     public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false)
     {
@@ -720,7 +830,99 @@ class Server extends AppModel
         }
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
-        return $serverSync->eventIndex($filterRules)->json();
+
+        // Fetch event index from cache if exists and is not modified
+        $redis = RedisTool::init();
+        $indexFromCache = $redis->get("misp:event_index:{$serverSync->serverId()}");
+        if ($indexFromCache) {
+            list($etag, $eventIndex) = RedisTool::deserialize(RedisTool::decompress($indexFromCache));
+        } else {
+            $etag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
+        }
+
+        $response = $serverSync->eventIndex($filterRules, $etag);
+
+        if ($response->isNotModified() && $indexFromCache) {
+            return $eventIndex;
+        }
+
+        $eventIndex = $response->json();
+
+        // correct $eventArray if just one event, probably this response returns old MISP
+        if (isset($eventIndex['id'])) {
+            $eventIndex = [$eventIndex];
+        }
+
+        // Save to cache for 24 hours if ETag provided
+        $etag = $response->getHeader('etag');
+        if ($etag) {
+            $data = RedisTool::compress(RedisTool::serialize([$etag, $eventIndex]));
+            $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
+        } elseif ($indexFromCache) {
+            RedisTool::unlink($redis, "misp:event_index:{$serverSync->serverId()}");
+        }
+
+        return $eventIndex;
+    }
+
+    /**
+     * @param array $events
+     * @return void
+     */
+    private function removeOlderEvents(array &$events)
+    {
+        $conditions = (count($events) > 10000) ? [] : ['Event.uuid' => array_column($events, 'uuid')];
+        $this->Event = ClassRegistry::init('Event');
+        $localEvents = $this->Event->find('all', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => ['Event.uuid', 'Event.timestamp', 'Event.locked'],
+        ]);
+        $localEvents = array_column(array_column($localEvents, 'Event'), null, 'uuid');
+        foreach ($events as $k => $event) {
+            $uuid = $event['uuid'];
+            if (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) {
+                unset($events[$k]);
+            }
+        }
+    }
+
+    /**
+     * @param int $serverId
+     * @param array $event
+     * @return void
+     * @throws RedisException
+     */
+    private function addEmptyEvent($serverId, array $event)
+    {
+        $emptyEventKey = "{$event['Event']['uuid']}:{$event['Event']['timestamp']}";
+        $redis = RedisTool::init();
+        $redis->sAdd("misp:empty_events:$serverId", $emptyEventKey);
+        $redis->expire("misp:empty_events:$serverId", 24 * 3600);
+    }
+
+    /**
+     * Remove from $events array events, that was already fetched before and was empty.
+     * @param int $serverId
+     * @param array $events
+     * @return void
+     */
+    private function removeEmptyEvents($serverId, array &$events)
+    {
+        try {
+            $emptyEvents = RedisTool::init()->sMembers("misp:empty_events:$serverId");
+        } catch (Exception $e) {
+            return;
+        }
+        if (empty($emptyEvents)) {
+            return;
+        }
+        $emptyEvents = array_flip($emptyEvents);
+        foreach ($events as $k => $event) {
+            if (isset($emptyEvents["{$event['uuid']}:{$event['timestamp']}"])) {
+                unset($events[$k]);
+            }
+        }
     }
 
     /**
@@ -728,66 +930,41 @@ class Server extends AppModel
      *
      * @param ServerSyncTool $serverSync
      * @param bool $all
-     * @param bool $ignoreFilterRules
-     * @param string $scope 'events' or 'sightings'
-     * @param bool $force
+     * @param bool $ignoreFilterRules Ignore defined server pull rules
+     * @param bool $force If true, returns all events regardless their update timestamp
      * @return array Array of event UUIDs.
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws InvalidArgumentException
      */
-    private function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $scope = 'events', $force = false)
+    private function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $force = false)
     {
-        if (!in_array($scope, ['events', 'sightings'], true)) {
-            throw new InvalidArgumentException("Scope must be 'events' or 'sightings', '$scope' given.");
-        }
-
         $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules);
-        // correct $eventArray if just one event
-        if (isset($eventArray['id'])) {
-            $eventArray = array($eventArray);
-        }
+
         if ($all) {
-            if ($scope === 'sightings') {
-                // Used when pushing: return just eventUuids that has sightings newer than remote server
-                $this->Event = ClassRegistry::init('Event');
-                $localEvents = $this->Event->find('list', array(
-                    'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
-                    'conditions' => array('Event.uuid' => array_column($eventArray, 'uuid'))
-                ));
-
-                $eventUuids = [];
-                foreach ($eventArray as $event) {
-                    if (isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
-                        $eventUuids[] = $event['uuid'];
-                    }
-                }
-            } else {
-                $eventUuids = array_column($eventArray, 'uuid');
-            }
-        } else {
-            if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-                $this->EventBlocklist->removeBlockedEvents($eventArray);
-            }
-
-            if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
-                $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-                $this->OrgBlocklist->removeBlockedEvents($eventArray);
-            }
-
-            foreach ($eventArray as $k => $event) {
-                if (1 != $event['published']) {
-                    unset($eventArray[$k]); // do not keep non-published events
-                }
-            }
-            if (!$force) {
-                $this->Event = ClassRegistry::init('Event');
-                $this->Event->removeOlder($eventArray, $scope);
-            }
-            $eventUuids = array_column($eventArray, 'uuid');
+            return array_column($eventArray, 'uuid');
         }
-        return $eventUuids;
+
+        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            $this->EventBlocklist->removeBlockedEvents($eventArray);
+        }
+
+        if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
+            $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
+            $this->OrgBlocklist->removeBlockedEvents($eventArray);
+        }
+
+        foreach ($eventArray as $k => $event) {
+            if (1 != $event['published']) {
+                unset($eventArray[$k]); // do not keep non-published events
+            }
+        }
+        if (!$force) {
+            $this->removeOlderEvents($eventArray);
+            $this->removeEmptyEvents($serverSync->serverId(), $eventArray);
+        }
+        return array_column($eventArray, 'uuid');
     }
 
     public function serverEventsOverlap()
@@ -858,9 +1035,11 @@ class Server extends AppModel
         if (!$server) {
             throw new NotFoundException('Server not found');
         }
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
         $this->Event = ClassRegistry::init('Event');
         $url = $server['Server']['url'];
-        $push = $this->checkVersionCompatibility($server, $user);
+        $push = $this->checkVersionCompatibility($server, $user, $serverSync);
         if (is_array($push) && !$push['canPush'] && !$push['canSight']) {
             $push = 'Remote instance is outdated or no permission to push.';
         }
@@ -869,14 +1048,14 @@ class Server extends AppModel
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => $user['email'],
-                    'action' => 'error',
-                    'user_id' => $user['id'],
-                    'title' => 'Failed: Push to ' . $url . ' initiated by ' . $user['email'],
-                    'change' => $message
+                'org' => $user['Organisation']['name'],
+                'model' => 'Server',
+                'model_id' => $id,
+                'email' => $user['email'],
+                'action' => 'error',
+                'user_id' => $user['id'],
+                'title' => 'Failed: Push to ' . $url . ' initiated by ' . $user['email'],
+                'change' => $message
             ));
             if ($jobId) {
                 $job->saveStatus($jobId, false, $message);
@@ -902,7 +1081,7 @@ class Server extends AppModel
 
             // sync custom galaxy clusters if user is capable
             if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" == $technique) {
-                $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $technique='full');
+                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique='full');
             } else {
                 $clustersSuccesses = array();
             }
@@ -951,7 +1130,7 @@ class Server extends AppModel
                     'fields' => array('Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
             );
             $eventIds = $this->Event->find('all', $findParams);
-            $eventUUIDsFiltered = $this->getEventIdsForPush($server, $HttpSocket, $eventIds);
+            $eventUUIDsFiltered = $this->getEventIdsForPush($server, $serverSync, $eventIds);
             if (!empty($eventUUIDsFiltered)) {
                 $eventCount = count($eventUUIDsFiltered);
                 // now process the $eventIds to push each of the events sequentially
@@ -972,19 +1151,24 @@ class Server extends AppModel
                         'excludeGalaxy' => 1
                     ));
                     if (empty($server['Server']['push_sightings'])) {
-                        $params = array_merge($params, array(
-                            'noSightings' => 1
-                        ));
+                        $params['noSightings'] = 1;
                     }
                     $event = $this->Event->fetchEvent($user, $params);
                     $event = $event[0];
                     $event['Event']['locked'] = 1;
-                    if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" != $technique) {
-                        $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
-                    } else {
-                        $clustersSuccesses = array();
+
+                    // Check if remote server supports galaxy cluster push, is set to push and if event will be pushed to
+                    // server
+                    $pushGalaxyClustersForEvent = $push['canEditGalaxyCluster'] &&
+                        $server['Server']['push_galaxy_clusters'] &&
+                        "full" !== $technique &&
+                        $this->Event->shouldBePushedToServer($event, $server);
+
+                    if ($pushGalaxyClustersForEvent) {
+                        $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
                     }
-                    $result = $this->Event->uploadEventToServer($event, $server, $HttpSocket);
+
+                    $result = $this->Event->uploadEventToServer($event, $server, $serverSync);
                     if ('Success' === $result) {
                         $successes[] = $event['Event']['id'];
                     } else {
@@ -1010,7 +1194,8 @@ class Server extends AppModel
         }
 
         if ($push['canPush'] || $push['canSight']) {
-            $sightingSuccesses = $this->syncSightings($HttpSocket, $server, $user, $this->Event);
+            $this->Sighting = ClassRegistry::init('Sighting');
+            $sightingSuccesses = $this->Sighting->pushSightings($user, $serverSync);
         } else {
             $sightingSuccesses = array();
         }
@@ -1027,14 +1212,14 @@ class Server extends AppModel
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
-                'org' => $user['Organisation']['name'],
-                'model' => 'Server',
-                'model_id' => $id,
-                'email' => $user['email'],
-                'action' => 'push',
-                'user_id' => $user['id'],
-                'title' => 'Push to ' . $url . ' initiated by ' . $user['email'],
-                'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+            'org' => $user['Organisation']['name'],
+            'model' => 'Server',
+            'model_id' => $id,
+            'email' => $user['email'],
+            'action' => 'push',
+            'user_id' => $user['id'],
+            'title' => 'Push to ' . $url . ' initiated by ' . $user['email'],
+            'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
         ));
         if ($jobId) {
             $job->saveStatus($jobId, true, __('Push to server %s complete.', $id));
@@ -1044,131 +1229,92 @@ class Server extends AppModel
         return true;
     }
 
-    public function getEventIdsForPush(array $server, HttpSocket $HttpSocket, array $eventIds)
+    /**
+     * @param array $server
+     * @param ServerSyncTool $serverSync
+     * @param array $events
+     * @return array|false
+     */
+    private function getEventIdsForPush(array $server, ServerSyncTool $serverSync, array $events)
     {
-        foreach ($eventIds as $k => $event) {
-            if (empty($this->eventFilterPushableServers($event, array($server)))) {
-                unset($eventIds[$k]);
+        $request = [];
+        foreach ($events as $event) {
+            if (empty($this->eventFilterPushableServers($event, [$server]))) {
                 continue;
             }
-            unset($eventIds[$k]['Event']['id']);
+            $request[] = ['Event' => [
+                'uuid' => $event['Event']['uuid'],
+                'timestamp' => $event['Event']['timestamp'],
+            ]];
         }
-        $request = $this->setupSyncRequest($server);
-        $data = json_encode($eventIds);
-        $uri = $server['Server']['url'] . '/events/filterEventIdsForPush';
-        $response = $HttpSocket->post($uri, $data, $request);
-        if ($response->code == '200') {
-            return $this->jsonDecode($response->body());
+
+        if (empty($request)) {
+            return [];
         }
-        return false;
+
+        try {
+            return $serverSync->filterEventIdsForPush($request)->json();
+        } catch (Exception $e) {
+            $this->logException("Could not filter events for push when pushing to server {$serverSync->serverId()}", $e);
+            return false;
+        }
     }
 
     /**
-     * syncGalaxyClusters Push elligible clusters depending on the provided technique
+     * syncGalaxyClusters Push eligible clusters depending on the provided technique
      *
-     * @param  mixed $HttpSocket
+     * @param  ServerSyncTool $serverSync
      * @param  array $server
      * @param  array $user
      * @param  string|int $technique Either the 'full' string or the event id
      * @param  array|bool  $event
      * @return array List of successfully pushed clusters
      */
-    public function syncGalaxyClusters($HttpSocket, array $server, array $user, $technique='full', $event=false)
+    public function syncGalaxyClusters(ServerSyncTool $serverSync, array $server, array $user, $technique='full', $event=false)
     {
-        $successes = array();
         if (!$server['Server']['push_galaxy_clusters']) {
-            return $successes;
+            return []; // pushing clusters is not enabled
         }
+
+        $this->log("Starting $technique clusters sync with server #{$serverSync->serverId()}", LOG_INFO);
+
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $this->Event = ClassRegistry::init('Event');
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $clusters = array();
-        if ($technique == 'full') {
+
+        if ($technique === 'full') {
             $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
         } else {
-            if ($event === false) { // The event from which the cluster should be taken must be provided
-                return $successes;
+            if ($event === false) {
+                throw new InvalidArgumentException('The event from which the cluster should be taken must be provided.');
             }
-            $tagNames = $this->Event->extractAllTagNames($event);
-            if (!empty($tagNames)) {
-                $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $tagNames), $full=true);
+            $tagNames = $this->User->Event->extractAllTagNames($event);
+            if (empty($tagNames)) {
+                return [];
             }
+            // Filter out tag names that are not in custom galaxy cluster format
+            $customGalaxyClusterTags = array_filter($tagNames, function ($tagName) {
+                return $this->User->Event->EventTag->Tag->isCustomGalaxyClusterTag($tagName);
+            });
+            if (empty($customGalaxyClusterTags)) {
+                return [];
+            }
+            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
+        }
+        if (empty($clusters)) {
+            return []; // no local clusters eligible for push
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
         try {
-            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($server, $HttpSocket = $HttpSocket, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
+            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($serverSync, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
         } catch (Exception $e) {
             $this->logException("Could not get eligible cluster IDs from server #{$server['Server']['id']} for push.", $e);
             return [];
         }
+        $successes = [];
         foreach ($clustersToPush as $cluster) {
-            $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $HttpSocket, $user);
+            $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $serverSync, $user);
             if ($result === 'Success') {
                 $successes[] = __('GalaxyCluster %s', $cluster['GalaxyCluster']['uuid']);
-            }
-        }
-        return $successes;
-    }
-
-    /**
-     * Push sightings to remote server.
-     * @param HttpSocket $HttpSocket
-     * @param array $server
-     * @param array $user
-     * @param Event $eventModel
-     * @return array
-     * @throws Exception
-     */
-    private function syncSightings($HttpSocket, array $server, array $user, Event $eventModel)
-    {
-        $successes = array();
-        if (!$server['Server']['push_sightings']) {
-            return $successes;
-        }
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-        $this->Sighting = ClassRegistry::init('Sighting');
-        try {
-            $eventUuids = $this->getEventIdsFromServer($serverSync, true, true, 'sightings');
-        } catch (Exception $e) {
-            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
-            return $successes;
-        }
-        // now process the $eventIds to push each of the events sequentially
-        // check each event and push sightings when needed
-        $fakeSyncUser = [
-            'org_id' => $server['Server']['remote_org_id'],
-            'Role' => [
-                'perm_site_admin' => 0,
-            ],
-        ];
-
-        foreach ($eventUuids as $eventUuid) {
-            $event = $eventModel->fetchEvent($user, ['event_uuid' => $eventUuid, 'metadata' => true]);
-            if (!empty($event)) {
-                $event = $event[0];
-
-                if (empty($this->eventFilterPushableServers($event, [$server]))) {
-                    continue;
-                }
-                if (!$eventModel->checkDistributionForPush($event, $server)) {
-                    continue;
-                }
-
-                // Process sightings in batch to keep memory requirements low
-                foreach ($this->Sighting->fetchUuidsForEventToPush($event, $fakeSyncUser) as $batch) {
-                    // Filter out sightings that already exists on remote server
-                    $existingSightings = $serverSync->filterSightingUuidsForPush($event, $batch);
-                    $newSightings = array_diff($batch, $existingSightings);
-                    if (empty($newSightings)) {
-                        continue;
-                    }
-
-                    $conditions = ['Sighting.uuid' => $newSightings];
-                    $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, $conditions, true);
-                    $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
-                }
-
-                $successes[] = 'Sightings for event ' .  $event['Event']['id'];
             }
         }
         return $successes;
@@ -1178,10 +1324,10 @@ class Server extends AppModel
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         if ($sa_id == null) {
             if ($event_id == null) {
                 // event_id is null when we are doing a push
+                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
                 try {
                     $ids = $this->getEventIdsFromServer($serverSync, true, true);
                 } catch (Exception $e) {
@@ -1251,9 +1397,8 @@ class Server extends AppModel
     public function getCurrentServerSettings()
     {
         $serverSettings = $this->serverSettings;
-        $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
-        $serverSettings = $this->readModuleSettings($serverSettings, $moduleTypes);
-        return $serverSettings;
+        $moduleTypes = array('Enrichment', 'Import', 'Export', 'Action', 'Cortex');
+        return $this->readModuleSettings($serverSettings, $moduleTypes);
     }
 
     /**
@@ -1274,6 +1419,15 @@ class Server extends AppModel
                             $setting['test'] = 'testBool';
                             $setting['type'] = 'boolean';
                             $setting['description'] = __('Enable or disable the %s module.', $module);
+                            if (!empty($result['description'])) {
+                                $setting['description'] = sprintf(
+                                    "[%s%s%s] %s",
+                                    '<span class="bold">',
+                                    $setting['description'],
+                                    '</span>',
+                                    $result['description']
+                                );
+                            }
                             $setting['value'] = false;
                         } elseif ($result['type'] === 'orgs') {
                             $setting['description'] = __('Restrict the %s module to the given organisation.', $module);
@@ -1284,13 +1438,27 @@ class Server extends AppModel
                                 return $this->loadLocalOrganisations();
                             };
                         } else {
-                            $setting['test'] = 'testForEmpty';
-                            $setting['type'] = 'string';
+                            $setting['test'] = isset($result['test']) ? $result['test'] : 'testForEmpty';
+                            $setting['type'] = isset($result['type']) ? $result['type'] : 'string';
                             $setting['description'] = isset($result['description']) ? $result['description'] : __('Set this required module specific setting.');
-                            $setting['value'] = '';
+                            $setting['value'] = isset($result['value']) ? $result['value'] : '';
                         }
                         $serverSettings['Plugin'][$moduleType . '_' . $module . '_' .  $result['name']] = $setting;
                     }
+                }
+            }
+            if (Configure::read('Plugin.Workflow_enable')) {
+                $this->Workflow = ClassRegistry::init('Workflow');
+                $triggerModules = $this->Workflow->getModulesByType('trigger');
+                foreach ($triggerModules as $triggerModule) {
+                    $setting = [
+                        'level' => 1,
+                        'description' => __('Enable/disable the `%s` trigger', $triggerModule['id']),
+                        'value' => false,
+                        'test' => 'testBool',
+                        'type' => 'boolean'
+                    ];
+                    $serverSettings['Plugin']['Workflow_triggers_' . $triggerModule['id']] = $setting;
                 }
             }
         }
@@ -1302,15 +1470,15 @@ class Server extends AppModel
         foreach ($serverSettings as $branchKey => &$branchValue) {
             if (isset($branchValue['branch'])) {
                 foreach ($branchValue as $leafKey => &$leafValue) {
-                    if ($leafKey !== 'branch' && $leafValue['level'] == 3 && !(isset($currentSettings[$branchKey][$leafKey]))) {
+                    if ($leafKey !== 'branch' && $leafValue['level'] == 3 && !isset($currentSettings[$branchKey][$leafKey])) {
                         continue;
                     }
                     $setting = null;
                     if (isset($currentSettings[$branchKey][$leafKey])) {
                         $setting = $currentSettings[$branchKey][$leafKey];
                     }
-                    $leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
-                    if ($leafKey != 'branch') {
+                    if ($leafKey !== 'branch') {
+                        $leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
                         if ($branchKey == 'Plugin') {
                             $pluginData = explode('_', $leafKey);
                             $leafValue['subGroup'] = $pluginData[0];
@@ -1358,6 +1526,7 @@ class Server extends AppModel
             'misc' => 'Security',
             'Security' => 'Security',
             'Session' => 'Security',
+            'LinOTPAuth' => 'Security',
             'SimpleBackgroundJobs' => 'SimpleBackgroundJobs'
         );
 
@@ -1377,18 +1546,19 @@ class Server extends AppModel
 
     public function serverSettingReadSingle($settingObject, $settingName, $leafKey)
     {
-        // invalidate config.php from php opcode cache
-        if (function_exists('opcache_reset')) {
-            opcache_reset();
-        }
-
         $setting = Configure::read($settingName);
         $result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
         $result['setting'] = $settingName;
         return $result;
     }
 
-    private function __evaluateLeaf($leafValue, $leafKey, $setting)
+    /**
+     * @param array $leafValue
+     * @param string $leafKey
+     * @param mixed $setting
+     * @return array
+     */
+    private function __evaluateLeaf(array $leafValue, $leafKey, $setting)
     {
         if (isset($setting)) {
             if ($setting instanceof EncryptedValue) {
@@ -1412,11 +1582,20 @@ class Server extends AppModel
                     }
                 }
             }
+            if (isset($leafValue['optionsSource'])) {
+                $leafValue['options'] = $leafValue['optionsSource']();
+            }
+            if (!isset($leafValue['error']) && isset($leafValue['options']) && !isset($leafValue['options'][$setting])) {
+                $leafValue['error'] = 1;
+                $validValues = implode(', ', array_keys($leafValue['options']));
+                $leafValue['errorMessage'] = __('Invalid setting `%s`, valid values are: %s', $setting, $validValues);
+            }
+
             if ($setting !== '') {
                 $leafValue['value'] = $setting;
             }
         } else {
-            if ($leafKey != 'branch' && (!isset($leafValue['null']) || !$leafValue['null'])) {
+            if ($leafKey !== 'branch' && (!isset($leafValue['null']) || !$leafValue['null'])) {
                 $leafValue['error'] = 1;
                 $leafValue['errorMessage'] = __('Value not set.');
             }
@@ -1529,6 +1708,17 @@ class Server extends AppModel
         }
     }
 
+    public function testForCorrelationEngine($value)
+    {
+        $defaults = $this->generateServerSettings();
+        $options = $defaults['MISP']['correlation_engine']['options'];
+        if (!empty($value) && !in_array($value, array_keys($options))) {
+            return __('Please select a valid option from the list of available engines: ', implode(', ', array_keys($options)));
+        } else {
+            return true;
+        }
+    }
+
     public function testLocalOrg($value)
     {
         if ($value == 0) {
@@ -1580,19 +1770,20 @@ class Server extends AppModel
         if (substr($value, 0, 7) === "phar://") {
             return 'Phar protocol not allowed.';
         }
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($value === '') {
             return true;
         }
         if (is_executable($value)) {
-            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-pie-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
-                finfo_close($finfo);
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $type = finfo_file($finfo, $value);
+            finfo_close($finfo);
+            if ($type === "application/x-executable" || $type === "application/x-pie-executable" || $type === "application/x-sharedlib") {
                 return true;
             } else {
-                return 'Binary file not executable. It is of type: ' . finfo_file($finfo, $value);
+                return 'Binary file not executable. It is of type: ' . $type;
             }
         } else {
-            return false;
+            return 'Binary file not executable.';
         }
     }
 
@@ -1833,6 +2024,7 @@ class Server extends AppModel
         if ($file->ext() !== 'pem') {
             return __('File has to be in .pem format.');
         }
+        return true;
     }
 
     public function testForStyleFile($value)
@@ -1932,18 +2124,6 @@ class Server extends AppModel
         return true;
     }
 
-    public function testForSightingVisibility($value)
-    {
-        $numeric = $this->testForNumeric($value);
-        if ($numeric !== true) {
-            return $numeric;
-        }
-        if ($value < 0 || $value > 2) {
-            return 'Invalid setting, valid range is 0-2 (0 = Event owner, 1 = Sighting reporters, 2 = Everyone.';
-        }
-        return true;
-    }
-
     public function sightingsBeforeHook($setting, $value)
     {
         if ($value == true) {
@@ -2005,7 +2185,7 @@ class Server extends AppModel
             App::uses('Folder', 'Utility');
             App::uses('File', 'Utility');
             // delete all cache files
-            foreach ($this->Event->export_types as $type => $settings) {
+            foreach ($this->Event->exportTypes() as $type => $settings) {
                 $dir = new Folder(APP . 'tmp/cached_exports/' . $type);
                 // No caches created for this type of export, move on
                 if ($dir == null) {
@@ -2027,12 +2207,12 @@ class Server extends AppModel
         if (!Configure::read('MISP.background_jobs')) {
             $this->Attribute = ClassRegistry::init('Attribute');
             if ($value) {
-                $k = $this->Attribute->purgeCorrelations();
+                $this->Attribute->purgeCorrelations();
             } else {
-                $k = $this->Attribute->generateCorrelation();
+                $this->Attribute->generateCorrelation();
             }
         } else {
-            if ($value == true) {
+            if ($value) {
                 $jobType = 'jobPurgeCorrelation';
                 $jobTypeText = 'purge correlations';
             } else {
@@ -2054,7 +2234,6 @@ class Server extends AppModel
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [
-                    'updateAfterPull',
                     $jobType,
                     $jobId
                 ],
@@ -2100,7 +2279,7 @@ class Server extends AppModel
         return true;
     }
 
-    private function __serverSettingNormaliseValue($data, $value, $setting)
+    private function __serverSettingNormaliseValue($data, $value)
     {
         if (!empty($data['type'])) {
             if ($data['type'] === 'boolean') {
@@ -2112,41 +2291,38 @@ class Server extends AppModel
         return $value;
     }
 
-    public function getSettingData($setting_name)
+    /**
+     * @param string $settingName
+     * @return array|false False if setting doesn't exists
+     */
+    public function getSettingData($settingName, $withOptions = true)
     {
-        // invalidate config.php from php opcode cache
-        if (function_exists('opcache_reset')) {
-            opcache_reset();
-        }
-        if (strpos($setting_name, 'Plugin.Enrichment') !== false || strpos($setting_name, 'Plugin.Import') !== false || strpos($setting_name, 'Plugin.Export') !== false || strpos($setting_name, 'Plugin.Cortex') !== false) {
+        // This is just hack to reset opcache, so for next request cache will be reloaded.
+        $this->opcacheResetConfig();
+
+        if (strpos($settingName, 'Plugin.Enrichment') !== false || strpos($settingName, 'Plugin.Import') !== false || strpos($settingName, 'Plugin.Export') !== false || strpos($settingName, 'Plugin.Cortex') !== false || strpos($settingName, 'Plugin.Action') !== false || strpos($settingName, 'Plugin.Workflow') !== false) {
             $serverSettings = $this->getCurrentServerSettings();
         } else {
             $serverSettings = $this->serverSettings;
         }
-        $setting = false;
-        foreach ($serverSettings as $k => $s) {
-            if (isset($s['branch'])) {
-                foreach ($s as $ek => $es) {
-                    if ($ek != 'branch') {
-                        if ($setting_name == $k . '.' . $ek) {
-                            $setting = $es;
-                            continue 2;
-                        }
-                    }
-                }
+
+        $setting = $serverSettings;
+        $parts = explode('.', $settingName);
+        foreach ($parts as $part) {
+            if (isset($setting[$part])) {
+                $setting = $setting[$part];
             } else {
-                if ($setting_name == $k) {
-                    $setting = $s;
-                    continue;
-                }
+                return false;
             }
         }
-        if (!empty($setting)) {
-            $setting['name'] = $setting_name;
+
+        if (isset($setting['level'])) {
+            $setting['name'] = $settingName;
+            if ($withOptions && isset($setting['optionsSource'])) {
+                $setting['options'] = $setting['optionsSource']();
+            }
         }
-        if (!empty($setting['optionsSource'])) {
-            $setting['options'] = $setting['optionsSource']();
-        }
+
         return $setting;
     }
 
@@ -2264,19 +2440,10 @@ class Server extends AppModel
                 throw new Exception("Could not create config backup `$backupFilePath`.");
             }
         }
-        $settingObject = $this->getCurrentServerSettings();
-        foreach ($settingObject as $branchName => $branch) {
-            if (!isset($branch['level'])) {
-                foreach ($branch as $settingName => $settingObject) {
-                    if ($setting === $branchName . '.' . $settingName) {
-                        $value = $this->__serverSettingNormaliseValue($settingObject, $value, $setting);
-                    }
-                }
-            } else {
-                if ($setting === $branchName) {
-                    $value = $this->__serverSettingNormaliseValue($branch, $value, $setting);
-                }
-            }
+
+        $settingObject = $this->getSettingData($setting, false);
+        if ($settingObject) {
+            $value = $this->__serverSettingNormaliseValue($settingObject, $value);
         }
 
         /** @var array $config */
@@ -2288,10 +2455,9 @@ class Server extends AppModel
 
         $settingsToSave = array(
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
-            'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
-            'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
-            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth',
-            'AadAuth', 'SimpleBackgroundJobs'
+            'Security', 'Session', 'site_admin_debug', 'Plugin', 'CertAuth',
+            'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth', 'AadAuth',
+            'SimpleBackgroundJobs', 'LinOTPAuth'
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
@@ -2315,9 +2481,7 @@ class Server extends AppModel
                 FileAccessTool::deleteFile($tmpFile);
                 throw new Exception("Could not rename `$tmpFile` to config file `$configFilePath`.");
             }
-            if (function_exists('opcache_reset')) {
-                opcache_reset();
-            }
+            $this->opcacheResetConfig();
             chmod($configFilePath, octdec($previous_file_perm));
             $config_saved = FileAccessTool::readFromFile($configFilePath);
             // if the saved config file is empty, restore the backup.
@@ -2330,56 +2494,58 @@ class Server extends AppModel
             }
         } else {
             FileAccessTool::writeToFile($configFilePath, $settingsString);
-            if (function_exists('opcache_reset')) {
-                opcache_reset();
-            }
+            $this->opcacheResetConfig();
         }
         return true;
     }
 
     public function getFileRules()
     {
-        $validItems = array(
-                'orgs' => array(
-                        'name' => __('Organisation logos'),
-                        'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
-                        'expected' => array(),
-                        'valid_format' => __('48x48 pixel .png files'),
-                        'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
-                        'regex' => '.*\.(png|PNG)$',
-                        'regex_error' => __('Filename must be in the following format: *.png'),
-                        'files' => array(),
+        return array(
+            'orgs' => array(
+                'name' => __('Organisation logos'),
+                'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
+                'expected' => array(),
+                'valid_format' => __('48x48 pixel .png files'),
+                'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
+                'regex' => '.*\.(png|PNG)$',
+                'regex_error' => __('Filename must be in the following format: *.png'),
+                'files' => array(),
+            ),
+            'img' => array(
+                'name' => __('Additional image files'),
+                'description' => __('Image files uploaded into this directory can be used for various purposes, such as for the login page logos'),
+                'expected' => array(
+                    'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
+                    'MISP.home_logo' => Configure::read('MISP.home_logo'),
+                    'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
+                    'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
                 ),
-                'img' => array(
-                        'name' => __('Additional image files'),
-                        'description' => __('Image files uploaded into this directory can be used for various purposes, such as for the login page logos'),
-                        'expected' => array(
-                                'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
-                                'MISP.home_logo' => Configure::read('MISP.home_logo'),
-                                'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
-                                'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
-                        ),
-                        'valid_format' => __('text/html if served inline, anything that conveys the terms of use if served as download'),
-                        'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
-                        'regex' => '.*\.(png|PNG)$',
-                        'regex_error' => __('Filename must be in the following format: *.png'),
-                        'files' => array(),
-                ),
+                'valid_format' => __('PNG or SVG file'),
+                'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
+                'regex' => '.*\.(png|svg)$',
+                'regex_error' => __('Filename must be in the following format: *.png or *.svg'),
+                'files' => array(),
+            ),
         );
-        return $validItems;
     }
 
     public function grabFiles()
     {
         $validItems = $this->getFileRules();
         App::uses('Folder', 'Utility');
-        App::uses('File', 'Utility');
         foreach ($validItems as $k => $item) {
             $dir = new Folder($item['path']);
             $files = $dir->find($item['regex'], true);
             foreach ($files as $file) {
-                $f = new File($item['path'] . DS . $file);
-                $validItems[$k]['files'][] = array('filename' => $file, 'filesize' => $f->size(), 'read' => $f->readable(), 'write' => $f->writable(), 'execute' => $f->executable());
+                $f = new SplFileInfo($item['path'] . DS . $file);
+                $validItems[$k]['files'][] = [
+                    'filename' => $file,
+                    'filesize' => $f->getSize(),
+                    'read' => $f->isReadable(),
+                    'write' => $f->isWritable(),
+                    'execute' => $f->isExecutable(),
+                ];
             }
         }
         return $validItems;
@@ -2415,6 +2581,14 @@ class Server extends AppModel
                 'info' => $info,
                 'client_certificate' => $clientCertificate,
             ];
+
+            $connectionMeta = $serverSync->connectionMetaData();
+            if (isset($connectionMeta['crypto']['protocol'])) {
+                $response['tls_version'] = $connectionMeta['crypto']['protocol'];
+            }
+            if (isset($connectionMeta['crypto']['cipher_name'])) {
+                $response['tls_cipher'] = $connectionMeta['crypto']['cipher_name'];
+            }
 
             if ($withPostTest) {
                 $response['post'] = $serverSync->isSupported(ServerSyncTool::FEATURE_POST_TEST) ? $this->runPOSTtest($serverSync) : null;
@@ -2534,8 +2708,8 @@ class Server extends AppModel
 
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
-        $supportEditOfGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']);
         $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
+        $remoteVersionString = $remoteVersion['version'];
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
             $message = __('Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.');
@@ -2543,6 +2717,7 @@ class Server extends AppModel
             return $message;
         }
         $localVersion = $this->checkMISPVersion();
+        $protectedMode = version_compare($remoteVersionString, '2.4.156') >= 0;
         $response = false;
         $success = false;
         $issueLevel = "warning";
@@ -2584,19 +2759,9 @@ class Server extends AppModel
             'canPush' => $canPush,
             'canSight' => $canSight,
             'canEditGalaxyCluster' => $canEditGalaxyCluster,
-            'supportEditOfGalaxyCluster' => $supportEditOfGalaxyCluster,
             'version' => $remoteVersion,
+            'protectedMode' => $protectedMode,
         ];
-    }
-
-    public function isJson($string)
-    {
-        try {
-            $this->jsonDecode($string);
-            return true;
-        } catch (Exception $e) {
-            return false;
-        }
     }
 
     public function captureServer($server, $user)
@@ -2626,8 +2791,7 @@ class Server extends AppModel
         };
 
         $result = [];
-        $dataSource = $this->getDataSource()->config['datasource'];
-        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $sql = sprintf(
                 'select TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE from information_schema.tables where table_schema = %s group by TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE;',
                 "'" . $this->getDataSource()->config['database'] . "'"
@@ -2645,8 +2809,7 @@ class Server extends AppModel
                 ];
             }
 
-        }
-        else if ($dataSource === 'Database/Postgres') {
+        } else {
             $sql = sprintf(
                 'select TABLE_NAME as table, pg_total_relation_size(%s||%s||TABLE_NAME) as used from information_schema.tables where table_schema = %s group by TABLE_NAME;',
                 "'" . $this->getDataSource()->config['database'] . "'",
@@ -2676,7 +2839,7 @@ class Server extends AppModel
         );
 
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
             $output['connection'] = true;
             $output = array_merge($output, $redis->info());
         } catch (Exception $e) {
@@ -2704,7 +2867,7 @@ class Server extends AppModel
             'update_fail_number_reached' => $this->UpdateFailNumberReached(),
             'indexes' => array()
         );
-        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $dbActualSchema = $this->getActualDBSchema();
             $dbExpectedSchema = $this->getExpectedDBSchema();
             if ($dbExpectedSchema !== false) {
@@ -2734,6 +2897,44 @@ class Server extends AppModel
             }
         }
         return $schemaDiagnostic;
+    }
+
+    /*
+     * Get RDBMS configuration values
+     */
+    public function dbConfiguration(): array
+    {
+        if ($this->isMysql()) {
+            $configuration = [];
+
+            $dbVariables = $this->query("SHOW VARIABLES;");
+            $settings = array_keys(self::MYSQL_RECOMMENDED_SETTINGS);
+
+            foreach ($dbVariables as $dbVariable) {
+                // different rdbms have different casing
+                if (isset($dbVariable['SESSION_VARIABLES'])) {
+                    $dbVariable = $dbVariable['SESSION_VARIABLES'];
+                } elseif (isset($dbVariable['session_variables'])) {
+                    $dbVariable = $dbVariable['session_variables'];
+                } else {
+                    continue;
+                }
+
+                if (in_array($dbVariable['Variable_name'], $settings)) {
+                    $configuration[] = [
+                        'name' => $dbVariable['Variable_name'],
+                        'value' => $dbVariable['Value'],
+                        'default' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['default'],
+                        'recommended' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['recommended'],
+                        'explanation' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['explanation'],
+                    ];
+                }
+            }
+
+            return $configuration;
+        } else {
+            return [];
+        }
     }
 
     /*
@@ -2828,8 +3029,7 @@ class Server extends AppModel
     public function getExpectedDBSchema()
     {
         try {
-            $content = FileAccessTool::readFromFile(ROOT . DS . 'db_schema.json');
-            return JsonTool::decode($content);
+            return FileAccessTool::readJsonFromFile(ROOT . DS . 'db_schema.json');
         } catch (Exception $e) {
             return false;
         }
@@ -2865,8 +3065,7 @@ class Server extends AppModel
     ){
         $dbActualSchema = array();
         $dbActualIndexes = array();
-        $dataSource = $this->getDataSource()->config['datasource'];
-        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $sqlGetTable = sprintf('SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = %s ORDER BY TABLE_NAME;', "'" . $this->getDataSource()->config['database'] . "'");
             $sqlResult = $this->query($sqlGetTable);
             $tables = Hash::extract($sqlResult, '{n}.tables.TABLE_NAME');
@@ -2883,7 +3082,7 @@ class Server extends AppModel
                 }
                 $dbActualIndexes[$table] = $this->getDatabaseIndexes($this->getDataSource()->config['database'], $table);
             }
-        } else if ($dataSource == 'Database/Postgres') {
+        } else {
             return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
         return ['schema' => $dbActualSchema, 'column' => $tableColumnNames, 'indexes' => $dbActualIndexes];
@@ -3050,18 +3249,11 @@ class Server extends AppModel
         $indexDiff = array();
         foreach ($expectedIndex as $tableName => $indexes) {
             if (!array_key_exists($tableName, $actualIndex)) {
-                continue; // If table does not exists, it is covered by the schema diagnostic
+                continue; // If table does not exist, it is covered by the schema diagnostic
             }
             $tableIndexDiff = array_diff(array_keys($indexes), array_keys($actualIndex[$tableName])); // check for missing indexes
             foreach ($tableIndexDiff as $columnDiff) {
                 $shouldBeUnique = $indexes[$columnDiff];
-                if ($shouldBeUnique && !$this->checkIfColumnContainsJustUniqueValues($tableName, $columnDiff)) {
-                    $indexDiff[$tableName][$columnDiff] = array(
-                        'message' => __('Column `%s` should be unique indexed, but contains duplicate values', $columnDiff),
-                        'sql' => '',
-                    );
-                    continue;
-                }
 
                 $message = __('Column `%s` should be indexed', $columnDiff);
                 $indexDiff[$tableName][$columnDiff] = array(
@@ -3089,15 +3281,6 @@ class Server extends AppModel
                             'sql' => $sql,
                         );
                     } else {
-                        if (!$this->checkIfColumnContainsJustUniqueValues($tableName, $column)) {
-                            $message = __('Column `%s` should be unique index, but contains duplicate values', $column);
-                            $indexDiff[$tableName][$column] = array(
-                                'message' => $message,
-                                'sql' => '',
-                            );
-                            continue;
-                        }
-
                         $sql = $this->generateSqlDropIndexQuery($tableName, $column);
                         $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, true);
 
@@ -3124,7 +3307,7 @@ class Server extends AppModel
     private function getDatabaseIndexes($database, $table)
     {
         $sqlTableIndex = sprintf(
-            "SELECT DISTINCT TABLE_NAME, COLUMN_NAME, NON_UNIQUE FROM information_schema.statistics WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s';",
+            "SELECT DISTINCT TABLE_NAME, COLUMN_NAME, NON_UNIQUE FROM information_schema.statistics WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' ORDER BY COLUMN_NAME;",
             $database,
             $table
         );
@@ -3155,6 +3338,17 @@ class Server extends AppModel
             APP . 'tmp' . DS . 'logs' => 0,
             APP . 'tmp' . DS . 'bro' => 0,
         );
+
+        $attachmentDir = Configure::read('MISP.attachments_dir');
+        if ($attachmentDir && !isset($writeableDirs[$attachmentDir])) {
+            $writeableDirs[$attachmentDir] = 0;
+        }
+
+        $tmpDir = Configure::read('MISP.tmpdir');
+        if ($tmpDir && !isset($writeableDirs[$tmpDir])) {
+            $writeableDirs[$tmpDir] = 0;
+        }
+
         foreach ($writeableDirs as $path => &$error) {
             if (!file_exists($path)) {
                 // Try to create directory if not exists
@@ -3208,9 +3402,18 @@ class Server extends AppModel
     public function yaraDiagnostics(&$diagnostic_errors)
     {
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'yaratest.py';
-        $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
-        $scriptResult = json_decode($scriptResult, true);
-        return array('operational' => $scriptResult['success'], 'plyara' => $scriptResult['plyara']);
+        try {
+            $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
+            $scriptResult = JsonTool::decode($scriptResult);
+        } catch (Exception $exception) {
+            $this->logException('Failed to run yara diagnostics.', $exception);
+            return array(
+                'operational' => 0,
+                'plyara' => 0,
+                'test_run' => false
+            );
+        }
+        return array('operational' => $scriptResult['success'], 'plyara' => $scriptResult['plyara'], 'test_run' => true);
     }
 
     public function stixDiagnostics(&$diagnostic_errors)
@@ -3218,9 +3421,19 @@ class Server extends AppModel
         $expected = array('stix' => '>1.2.0.11', 'cybox' => '>2.1.0.21', 'mixbox' => '>1.0.5', 'maec' => '>4.1.0.17', 'stix2' => '>3.0.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';
-        $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
         try {
-            $scriptResult = $this->jsonDecode($scriptResult);
+            $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
+        } catch (Exception $exception) {
+            $this->logException('Failed to run STIX diagnostics.', $exception);
+            return [
+                'operational' => 0,
+                'invalid_version' => false,
+                'test_run' => false
+            ];
+        }
+
+        try {
+            $scriptResult = JsonTool::decode($scriptResult);
         } catch (Exception $e) {
             $this->logException('Invalid JSON returned from stixtest', $e);
             return array(
@@ -3241,6 +3454,7 @@ class Server extends AppModel
         $result = [
             'operational' => $scriptResult['operational'],
             'invalid_version' => false,
+            'test_run' => true
         ];
         foreach ($expected as $package => $expectedVersion) {
             $result[$package]['version'] = $scriptResult[$package];
@@ -3309,7 +3523,15 @@ class Server extends AppModel
             return 1;
         }
         $pubSubTool = $this->getPubSubTool();
-        if (!$pubSubTool->checkIfPythonLibInstalled()) {
+        try {
+            $isInstalled = $pubSubTool->checkIfPythonLibInstalled();
+        } catch (Exception $e) {
+            $this->logException('ZMQ is not properly installed.', $e, LOG_NOTICE);
+            $diagnostic_errors++;
+            return 2;
+        }
+
+        if (!$isInstalled) {
             $diagnostic_errors++;
             return 2;
         }
@@ -3362,27 +3584,61 @@ class Server extends AppModel
         return $proxyStatus;
     }
 
-    public function sessionDiagnostics(&$diagnostic_errors = 0, &$sessionCount = '')
+    public function sessionDiagnostics(&$diagnostic_errors = 0)
     {
-        if (Configure::read('Session.defaults') !== 'database') {
-            $sessionCount = 'N/A';
-            return 2;
+        $sessionCount = null;
+        $sessionHandler = null;
+
+        switch (Configure::read('Session.defaults')) {
+            case 'php':
+                $sessionHandler = 'php_' .  ini_get('session.save_handler');
+                switch ($sessionHandler) {
+                    case 'php_files':
+                        $diagnostic_errors++;
+                        $errorCode = 2;
+                        break;
+                    case 'php_redis':
+                        $errorCode = 0;
+                        break;
+                    default:
+                        $diagnostic_errors++;
+                        $errorCode = 8;
+                        break;
+                }
+                break;
+            case 'database':
+                $sessionHandler = 'database';
+                $sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
+                $sqlResult = $this->query($sql);
+                if (isset($sqlResult[0][0])) {
+                    $sessionCount = $sqlResult[0][0]['session_count'];
+                    $errorCode = 0;
+                } else {
+                    $errorCode = 9;
+                }
+                if ($sessionCount > 1000) {
+                    $diagnostic_errors++;
+                    $errorCode = 1;
+                }
+                break;
+            default:
+                $diagnostic_errors++;
+                $errorCode =  8;
+                break;
         }
-        $sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
-        $sqlResult = $this->query($sql);
-        if (isset($sqlResult[0][0])) {
-            $sessionCount = $sqlResult[0][0]['session_count'];
-        } else {
-            $sessionCount = 'Error';
-            return 3;
-        }
-        if ($sessionCount > 1000) {
-            $diagnostic_errors++;
-            return 1;
-        }
-        return 0;
+
+        return [
+            'handler' => $sessionHandler,
+            'expired_count' => $sessionCount,
+            'error_code' => $errorCode
+        ];
     }
 
+    /**
+     * @param int $workerIssueCount
+     * @return array
+     * @throws ProcessException
+     */
     public function workerDiagnostics(&$workerIssueCount)
     {
         $worker_array = array(
@@ -3398,28 +3654,28 @@ class Server extends AppModel
             unset($worker_array['scheduler']);
         }
 
-        $workers = $this->getWorkers();
-
-        if (function_exists('posix_getpwuid')) {
-            $currentUser = posix_getpwuid(posix_geteuid());
-            $currentUser = $currentUser['name'];
-        } else {
-            $currentUser = trim(ProcessTool::execute(['whoami']));
+        try {
+            $workers = $this->getWorkers();
+        } catch (Exception $e) {
+            $this->logException('Could not get list of workers.', $e);
+            return $worker_array;
         }
+
+        $currentUser = ProcessTool::whoami();
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
-            $entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
-            $correct_user = ($currentUser === $worker['user']);
             if (!is_numeric($pid)) {
-                throw new MethodNotAllowedException('Non numeric PID found.');
+                throw new Exception('Non numeric PID found.');
             }
+            $entry = $worker['type'] === 'regular' ? $worker['queue'] : $worker['type'];
+            $correctUser = ($currentUser === $worker['user']);
             if ($procAccessible) {
-                $alive = $correct_user ? (file_exists('/proc/' . addslashes($pid))) : false;
+                $alive = $correctUser && file_exists("/proc/$pid");
             } else {
                 $alive = 'N/A';
             }
             $ok = true;
-            if (!$alive || !$correct_user) {
+            if (!$alive || !$correctUser) {
                 $ok = false;
                 $workerIssueCount++;
             }
@@ -3427,19 +3683,19 @@ class Server extends AppModel
                 'pid' => $pid,
                 'user' => $worker['user'],
                 'alive' => $alive,
-                'correct_user' => $correct_user,
+                'correct_user' => $correctUser,
                 'ok' => $ok
             );
         }
         foreach ($worker_array as $k => $queue) {
-            if (isset($worker_array[$k]['workers'])) {
-                foreach($worker_array[$k]['workers'] as $worker) {
+            if (isset($queue['workers'])) {
+                foreach ($queue['workers'] as $worker) {
                     if ($worker['ok']) {
                         $worker_array[$k]['ok'] = true; // If at least one worker is up, the queue can be considered working
                     }
                 }
             }
-            if ($k != 'scheduler') {
+            if ($k !== 'scheduler') {
                 $worker_array[$k]['jobCount'] = $this->getBackgroundJobsTool()->getQueueSize($k);
             }
             if (!isset($queue['workers'])) {
@@ -3452,6 +3708,16 @@ class Server extends AppModel
         if (Configure::check('MISP.manage_workers')) {
             $worker_array['controls'] = Configure::read('MISP.manage_workers');
         }
+
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            try {
+                $worker_array['supervisord_status'] = $this->getBackgroundJobsTool()->getSupervisorStatus();
+            } catch (Exception $exception) {
+                $this->logException('Error getting supervisor status.', $exception);
+                $worker_array['supervisord_status'] = false;
+            }
+        }
+
         return $worker_array;
     }
 
@@ -3728,17 +3994,23 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         try {
-            $file = new File(APP . DS . 'composer.json');
-            $composer = $this->jsonDecode($file->read());
+            $composer = FileAccessTool::readJsonFromFile(APP . DS . 'composer.json');
             $extensions = [];
+            $dependencies = [];
             foreach ($composer['require'] as $require => $foo) {
                 if (substr($require, 0, 4) === 'ext-') {
                     $extensions[substr($require, 4)] = true;
+                }
+                else if (mb_strpos($require, '/') !== false) {  // external dependencies have namespaces, so a /
+                    $dependencies[$require] = true;
                 }
             }
             foreach ($composer['suggest'] as $suggest => $reason) {
                 if (substr($suggest, 0, 4) === 'ext-') {
                     $extensions[substr($suggest, 4)] = $reason;
+                }
+                else if (mb_strpos($suggest, '/') !== false) {  // external dependencies have namespaces, so a /
+                    $dependencies[$suggest] = $reason;
                 }
             }
         } catch (Exception $e) {
@@ -3746,6 +4018,7 @@ class Server extends AppModel
             $extensions = ['redis' => '', 'gd' => '', 'ssdeep' => '', 'zip' => '', 'intl' => '']; // Default extensions
         }
 
+        // check PHP extensions
         $results = ['cli' => false];
         foreach ($extensions as $extension => $reason) {
             $results['extensions'][$extension] = [
@@ -3757,10 +4030,14 @@ class Server extends AppModel
                 'info' => $reason === true ? null : $reason,
             ];
         }
-        if (is_readable(APP . '/files/scripts/selftest.php')) {
-            $execResult = exec('php ' . APP . '/files/scripts/selftest.php ' . escapeshellarg(json_encode(array_keys($extensions))));
+        if (is_readable(APP . DS . 'files' . DS . 'scripts' . DS . 'selftest.php')) {
+            try {
+                $execResult = ProcessTool::execute(['php', APP . DS . 'files' . DS . 'scripts' . DS . 'selftest.php', json_encode(array_keys($extensions))]);
+            } catch (Exception $e) {
+                // pass
+            }
             if (!empty($execResult)) {
-                $execResult = $this->jsonDecode($execResult);
+                $execResult = JsonTool::decodeArray($execResult);
                 $results['cli']['phpversion'] = $execResult['phpversion'];
                 foreach ($execResult['extensions'] as $extension => $loaded) {
                     $results['extensions'][$extension]['cli_version'] = $loaded;
@@ -3768,6 +4045,7 @@ class Server extends AppModel
             }
         }
 
+        // version check
         $minimalVersions = [
             'redis' => '2.2.8', // because of sAddArray method
         ];
@@ -3783,6 +4061,24 @@ class Server extends AppModel
                 }
             }
         }
+
+        // check PHP dependencies, installed in the Vendor directory, just check presence of the folder
+        if (class_exists('\Composer\InstalledVersions')) {
+            foreach ($dependencies as $dependency => $reason) {
+                try {
+                    $version = \Composer\InstalledVersions::getVersion($dependency);
+                } catch (Exception $e) {
+                    $version = false;
+                }
+                $results['dependencies'][$dependency] = [
+                    'version' => $version,
+                    'version_outdated' => false,
+                    'required' => $reason === true,
+                    'info' => $reason === true ? null : $reason,
+                ];
+            }
+        }
+
         return $results;
     }
 
@@ -4420,7 +4716,6 @@ class Server extends AppModel
 
         $uri = $server['Server']['url'] . $relativeUri;
         $response = $HttpSocket->get($uri, array(), $request);
-
         if ($response->code == 404) { // intentional !=
             throw new NotFoundException(__("Fetching the '%s' failed with HTTP error 404: Not Found", $uri));
         } else if ($response->code == 405) { // intentional !=
@@ -4603,6 +4898,38 @@ class Server extends AppModel
     }
 
     /**
+     * Return all Attribute and Object types
+     */
+    public function getAllTypes(): array
+    {
+        $allTypes = [];
+        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+        $objects = $this->ObjectTemplate->find('all', [
+            'recursive' => -1,
+            'fields' => ['uuid', 'name'],
+            'group' => ['uuid', 'name'],
+        ]);
+        $allTypes = [
+            'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
+            'object' => Hash::map($objects, '{n}.ObjectTemplate', function ($item) {
+                return ['id' => $item['uuid'], 'name' => sprintf('%s (%s)', $item['name'], $item['uuid'])];
+            })
+        ];
+        return $allTypes;
+    }
+
+    /**
+     * Invalidate config.php from php opcode cache
+     */
+    private function opcacheResetConfig()
+    {
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate(APP . 'Config' . DS . 'config.php', true);
+        }
+    }
+
+    /**
      * Generate just when required
      * @return array[]
      */
@@ -4661,14 +4988,42 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
-                'enable_advanced_correlations' => array(
+                'disable_event_locks' => [
+                    'level' => 1,
+                    'description' => __('Disable the event locks that are executed periodically when a user browses an event view. It can be useful to leave event locks enabled to warn users that someone else is editing the same event, but generally it\'s extremely verbose and can cause issues in certain setups, so it\'s recommended to disable this.'),
+                    'value' => false,
+                    'test' => 'testBoolTrue',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
+                'correlation_engine' => [
+                    'level' => 0,
+                    'description' => __('Choose which correlation engine to use. MISP defaults to the default engine, maintaining all data in the database whilst enforcing ACL rules on any non site-admin user. This is recommended for any MISP instnace with multiple organisations. If you are an endpoint MISP, consider switching to the much leaner and faster No ACL engine.'),
+                    'value' => 'default',
+                    'test' => 'testForCorrelationEngine',
+                    'type' => 'string',
+                    'null' => true,
+                    'options' => [
+                        'Default' => __('Default Correlation Engine'),
+                        'NoAcl' => __('No ACL Engine')
+                    ],
+                ],
+                'correlation_limit' => [
+                    'level' => 0,
+                    'description' => __('Set a value for the maximum number of correlations a value should have before MISP will refuse to correlate it (extremely over-correlating values are rarely useful from a correlation perspective).'),
+                    'value' => 100,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
+                'enable_advanced_correlations' => [
                     'level' => 0,
                     'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
-                ),
+                ],
                 'server_settings_skip_backup_rotate' => array(
                     'level' => 1,
                     'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
@@ -5031,7 +5386,12 @@ class Server extends AppModel
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
-                    'options' => array('0' => __('Your organisation only'), '1' => __('This community only'), '2' => __('Connected communities'), '3' => __('All communities')),
+                    'options' => [
+                        '0' => __('Your organisation only'),
+                        '1' => __('This community only'),
+                        '2' => __('Connected communities'),
+                        '3' => __('All communities')
+                    ],
                 ),
                 'default_attribute_distribution' => array(
                     'level' => 0,
@@ -5087,6 +5447,14 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'options' => array(0 => 'Minimal tags', 1 => 'Full tags', 2 => 'Shortened tags'),
+                ),
+                'disable_taxonomy_consistency_checks' => array(
+                    'level' => 0,
+                    'description' => __('*WARNING* This will disable taxonomy tags conflict checks when browsing attributes and objects, does not impact checks when adding tags. It can dramatically increase the performance when loading events with lots of tagged attributes or objects.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
                 ),
                 'welcome_text_top' => array(
                     'level' => 2,
@@ -5198,11 +5566,18 @@ class Server extends AppModel
                 ),
                 'log_client_ip_header' => array(
                     'level' => 1,
-                    'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy infront of your MISP instance.'),
+                    'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy in front of your MISP instance. Prepend the variable with "HTTP_", for example "HTTP_X_FORWARDED_FOR".'),
                     'value' => 'REMOTE_ADDR',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true,
+                ),
+                'store_api_access_time' => array(
+                    'level' => 1,
+                    'description' => __('If enabled, MISP will capture the last API access time following a successful authentication using API keys, stored against a user under the last_api_access field.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
                 ),
                 'log_auth' => array(
                     'level' => 1,
@@ -5220,6 +5595,15 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'log_skip_access_logs_in_application_logs' => [
+                    'level' => 0,
+                    'description' => __('Skip adding the access log entries to the /logs/ application logs. This is **HIGHLY** recommended as your instance will be logging these entries twice otherwise, however, for compatibility reasons for auditing we maintain this behaviour until confirmed otherwise.'),
+                    'value' => false,
+                    'errorMessage' => __('Access logs are logged twice. This is generally not recommended, make sure you update your tooling.'),
+                    'test' => 'testBoolTrue',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'log_paranoid' => array(
                     'level' => 0,
                     'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
@@ -5228,9 +5612,17 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'log_paranoid_api' => array(
+                    'level' => 0,
+                    'description' => __('If this functionality is enabled all API requests will be logged.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'log_paranoid_skip_db' => array(
                     'level' => 0,
-                    'description' => __('You can decide to skip the logging of the paranoid logs to the database.'),
+                    'description' => __('You can decide to skip the logging of the paranoid logs to the database. Logs will be just published to ZMQ or Kafka.'),
                     'value' => false,
                     'test' => 'testParanoidSkipDb',
                     'type' => 'boolean',
@@ -5244,6 +5636,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'log_paranoid_include_sql_queries' => [
+                    'level' => 0,
+                    'description' => __('If paranoid logging is enabled, include the SQL queries in the entries.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'log_user_ips' => array(
                     'level' => 0,
                     'description' => __('Log user IPs on each request. 30 day retention for lookups by IP to get the last authenticated user ID for the given IP, whilst on the reverse, indefinitely stores all associated IPs for a user ID.'),
@@ -5284,6 +5684,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'discussion_disable' => [
+                    'level' => 1,
+                    'description' => __('Completely disable ability for user to add discussion to events.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'showCorrelationsOnIndex' => array(
                     'level' => 1,
                     'description' => __('When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.'),
@@ -5454,8 +5862,8 @@ class Server extends AppModel
                 ),
                 'tmpdir' => array(
                     'level' => 1,
-                    'description' => __('Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to /tmp and will be used among others to store certain temporary files extracted from imports during the import process.'),
-                    'value' => '/tmp',
+                    'description' => __('Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to %s and will be used among others to store certain temporary files extracted from imports during the import process.', APP . 'tmp'),
+                    'value' => APP . 'tmp',
                     'test' => 'testForPath',
                     'type' => 'string',
                     'null' => true,
@@ -5463,7 +5871,7 @@ class Server extends AppModel
                 ),
                 'custom_css' => array(
                     'level' => 2,
-                    'description' => __('If you would like to customise the css, simply drop a css file in the /var/www/MISP/app/webroot/css directory and enter the name here.'),
+                    'description' => __('If you would like to customise the CSS, simply drop a css file in the /var/www/MISP/app/webroot/css directory and enter the name here.'),
                     'value' => '',
                     'test' => 'testForStyleFile',
                     'type' => 'string',
@@ -5531,6 +5939,23 @@ class Server extends AppModel
                     'type' => 'string',
                     'redacted' => true
                 ),
+                'redis_serializer' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Redis serializer method. WARNING: Changing this setting will drop some cached data.'),
+                    'value' => 'JSON',
+                    'test' => null,
+                    'type' => 'string',
+                    'null' => true,
+                    'options' => [
+                        'JSON' => 'JSON',
+                        'igbinary' => 'igbinary',
+                    ],
+                    'afterHook' => function () {
+                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:wlc:*', 'misp:event_lock:*', 'misp:event_index:*', 'misp:dashboard:*'];
+                        RedisTool::deleteKeysByPattern(RedisTool::init(), $keysToDelete);
+                        return true;
+                    },
+                ],
                 'event_view_filter_fields' => array(
                     'level' => 2,
                     'description' => __('Specify which fields to filter on when you search on the event view. Default values are : "id, uuid, value, comment, type, category, Tag.name"'),
@@ -5623,6 +6048,39 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true,
                 ],
+                'enable_synchronisation_filtering_on_type' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Allows server synchronisation connections to be filtered on Attribute type or Object name. Warning: This feature can potentially cause your synchronisation partners to receive incomplete versions of the events you are propagating on behalf of others. This means that even if they would be receiving the unfiltered version through another instance, your filtered version might be the one they receive on a first-come-first-serve basis.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
+                'download_gpg_from_homedir' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Fetch GPG instance key from GPG homedir.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true,
+                ],
+                'enable_clusters_mirroring_from_attributes_to_event' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Add a checkbox when attaching a cluster to an Attribute which, when checked, will also create the same clusters on the attribute\'s event.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
+                'thumbnail_in_redis' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Store image thumbnails in Redis insteadof file system.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
             ),
             'GnuPG' => array(
                 'branch' => 1,
@@ -5683,7 +6141,14 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
-                )
+                ),
+                'key_fetching_disabled' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('When disabled, user could not fetch his PGP key from CIRCL key server. Key fetching requires internet connection.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
             ),
             'SMIME' => array(
                 'branch' => 1,
@@ -5760,6 +6225,7 @@ class Server extends AppModel
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'redacted' => true
                 ),
             ),
             'Security' => array(
@@ -5832,7 +6298,8 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
-                    'null' => true
+                    'null' => true,
+                    'cli_only' => 1
                 ),
                 'rest_client_baseurl' => array(
                     'level' => 1,
@@ -5973,7 +6440,7 @@ class Server extends AppModel
                 'require_password_confirmation' => array(
                     'level' => 1,
                     'description' => __('Enabling this setting will require users to submit their current password on any edits to their profile (including a triggered password change). For administrators, the confirmation will be required when changing the profile of any user. Could potentially mitigate an attacker trying to change a compromised user\'s password in order to establish persistance, however, enabling this feature will be highly annoying to users.'),
-                    'value' => true,
+                    'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -6062,7 +6529,7 @@ class Server extends AppModel
                 ],
                 'encryption_key' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Encryption key used to store sensitive data (like authkeys) in database encrypted. If empty, data are stored unecrypted. Required PHP 7.1 or newer.'),
+                    'description' => __('Encryption key used to store sensitive data (like authkeys) in database encrypted. If empty, data are stored unencrypted. Requires PHP 7.1 or newer.'),
                     'value' => '',
                     'test' => function ($value) {
                         if (strlen($value) < 32) {
@@ -6087,6 +6554,37 @@ class Server extends AppModel
                     'cli_only' => true,
                     'redacted' => true,
                 ],
+                'min_tls_version' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Minimal required TLS version when connecting to external resources.'),
+                    'value' => '',
+                    'type' => 'string',
+                    'null' => true,
+                    'options' => [
+                        '' => __('All versions'),
+                        'tlsv1_0' => 'TLSv1.0',
+                        'tlsv1_1' => 'TLSv1.1',
+                        'tlsv1_2' => 'TLSv1.2',
+                        'tlsv1_3' => 'TLSv1.3',
+                    ],
+                ],
+                'enable_svg_logos' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('When enabled, organisations logos in svg format are allowed.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
+                'disable_instance_file_uploads' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('When enabled, the "Manage files" menu is disabled on the server settings. You can still copy files via ssh to the appropriate location and link them using MISP.settings.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true
+                ]
             ),
             'SecureAuth' => array(
                 'branch' => 1,
@@ -6095,14 +6593,14 @@ class Server extends AppModel
                     'description' => __('The number of tries a user can try to login and fail before the bruteforce protection kicks in.'),
                     'value' => '',
                     'test' => 'testForNumeric',
-                    'type' => 'string',
+                    'type' => 'numeric',
                 ),
                 'expire' => array(
                     'level' => 0,
                     'description' => __('The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.'),
                     'value' => '',
                     'test' => 'testForNumeric',
-                    'type' => 'string',
+                    'type' => 'numeric',
                 ),
             ),
             'Session' => array(
@@ -6134,7 +6632,7 @@ class Server extends AppModel
                     'description' => __('The timeout duration of sessions (in MINUTES). 0 does not mean infinite for the PHP session handler, instead sessions will invalidate immediately.'),
                     'value' => '',
                     'test' => 'testForNumeric',
-                    'type' => 'string'
+                    'type' => 'numeric'
                 ),
                 'cookieTimeout' => array(
                     'level' => 0,
@@ -6445,6 +6943,7 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
+                    'redacted' => true
                 ),
                 'ZeroMQ_redis_host' => array(
                     'level' => 2,
@@ -6468,6 +6967,7 @@ class Server extends AppModel
                     'value' => '',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
+                    'redacted' => true
                 ),
                 'ZeroMQ_redis_database' => array(
                     'level' => 2,
@@ -6654,7 +7154,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner organisation alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and any organisation that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
                     'value' => 0,
-                    'test' => 'testForSightingVisibility',
                     'type' => 'numeric',
                     'options' => array(
                         0 => __('Event Owner Organisation'),
@@ -6828,6 +7327,34 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
                 ),
+                'Action_services_url' => array(
+                    'level' => 1,
+                    'description' => __('The url used to access the action services. By default, it is accessible at http://127.0.0.1:6666'),
+                    'value' => 'http://127.0.0.1',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Action_services_port' => array(
+                    'level' => 1,
+                    'description' => __('The port used to access the action services. By default, it is accessible at 127.0.0.1:6666'),
+                    'value' => '6666',
+                    'test' => 'testForPortNumber',
+                    'type' => 'numeric'
+                ),
+                'Action_services_enable' => array(
+                    'level' => 0,
+                    'description' => __('Enable/disable the action services'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Action_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Set a timeout for the action services'),
+                    'value' => 10,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
                 'Enrichment_hover_enable' => array(
                     'level' => 0,
                     'description' => __('Enable/disable the hover over information retrieved from the enrichment modules'),
@@ -6862,6 +7389,20 @@ class Server extends AppModel
                     'value' => 6666,
                     'test' => 'testForPortNumber',
                     'type' => 'numeric'
+                ),
+                'Workflow_enable' => array(
+                    'level' => 1,
+                    'description' => __('Enable/disable workflow feature. [experimental]'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Workflow_debug_url' => array(
+                    'level' => 1,
+                    'description' => __('Set the debug URL where info about workflow execution will be POSTed'),
+                    'value' => 'http://127.0.0.1:27051',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
                 ),
                 'Cortex_services_url' => array(
                     'level' => 1,
@@ -6967,35 +7508,35 @@ class Server extends AppModel
             'SimpleBackgroundJobs' => [
                 'branch' => 1,
                 'enabled' => [
-                    'level' => 2,
-                    'description' => __('Enables or disables background jobs with Supervisor backend.'),
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Enables or disables background jobs with Supervisor backend. <span class="red bold">Please read %s before setting this to `true`.</span>', '<a href="https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md" target="_blank">' . __('this guide') . '</a>'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ],
                 'redis_host' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The host running the redis server to be used for background jobs.'),
                     'value' => '127.0.0.1',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ],
                 'redis_port' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The port used by the redis server to be used for background jobs.'),
                     'value' => 6379,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'redis_database' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The database on the redis server to be used for background jobs. If you run more than one MISP instance, please make sure to use a different database or redis_namespace on each instance.'),
                     'value' => 1,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'redis_password' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The password on the redis server (if any) to be used for background jobs.'),
                     'value' => '',
                     'test' => null,
@@ -7003,42 +7544,58 @@ class Server extends AppModel
                     'redacted' => true
                 ],
                 'redis_namespace' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The namespace to be used for the background jobs related keys.'),
                     'value' => 'background_jobs',
                     'test' => null,
                     'type' => 'string'
                 ],
+                'redis_serializer' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Redis serializer method. WARNING: Changing this setting in production will break your jobs.'),
+                    'value' => 'JSON',
+                    'test' => null,
+                    'type' => 'string',
+                    'null' => true,
+                    'options' => [
+                        'JSON' => 'JSON',
+                        'igbinary' => 'igbinary',
+                    ],
+                    'afterHook' => function () {
+                        $this->getBackgroundJobsTool()->restartWorkers();
+                        return true;
+                    },
+                ],
                 'max_job_history_ttl' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The time in seconds the job statuses history will be kept.'),
                     'value' => 86400,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'supervisor_host' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The host where the Supervisor XML-RPC API is running.'),
                     'value' => 'localhost',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ],
                 'supervisor_port' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The port where the Supervisor XML-RPC API is running.'),
                     'value' => 9001,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'supervisor_user' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The user of the Supervisor XML-RPC API.'),
-                    'value' => '',
+                    'value' => 'supervisor',
                     'test' => null,
                     'type' => 'string'
                 ],
                 'supervisor_password' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The password of the Supervisor XML-RPC API.'),
                     'value' => '',
                     'test' => null,
@@ -7062,6 +7619,43 @@ class Server extends AppModel
                 'type' => 'boolean',
                 'null' => true
             ),
+            'LinOTPAuth' => array(
+                'branch' => 1,
+                'enabled' => array(
+                    'level' => 2,
+                    'description' => __('Enable / Disable LinOTP'),
+                    'value' => true,
+                    'type' => 'boolean',
+                ),
+                'baseUrl' => array(
+                    'level' => 2,
+                    'description' => __('The default LinOTP URL.'),
+                    'value' => 'https://<your-linotp-baseUrl>',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'realm' => array(
+                    'level' => 2,
+                    'description' => __('The LinOTP realm to authenticate against.'),
+                    'value' => 'lino',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'verifyssl' => array(
+                    'level' => 2,
+                    'description' => __('Set to false to skip SSL/TLS verify'),
+                    'value' => true,
+                    'test' => 'testBoolTrue',
+                    'type' => 'boolean',
+                ),
+                'mixedauth' => array(
+                    'level' => 2,
+                    'description' => __('Set to true to enforce OTP usage'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                ),
+            ),
         );
     }
 
@@ -7074,8 +7668,8 @@ class Server extends AppModel
                     'Set setting' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
                     'Get authkey' => 'MISP/app/Console/cake Admin getAuthkey [user_email]',
                     'Change authkey' => 'MISP/app/Console/cake Admin change_authkey [user_email] [authkey]',
-                    'Set baseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
-                    'Change password' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
+                    'Set baseurl' => 'MISP/app/Console/cake Admin setSetting MISP.baseurl [baseurl]',
+                    'Change password' => 'MISP/app/Console/cake User change_pw [email] [new_password] [--no_password_change]',
                     'Clear Bruteforce entries' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
                     'Clean caches' => 'MISP/app/Console/cake Admin cleanCaches',
                     'Set database version' => 'MISP/app/Console/cake Admin setDatabaseVersion [version]',
@@ -7091,6 +7685,7 @@ class Server extends AppModel
                     'Get IPs for user ID' => 'MISP/app/Console/cake Admin UserIP [user_id]',
                     'Get user ID for user IP' => 'MISP/app/Console/cake Admin IPUser [ip]',
                     'Generate correlation' => 'MISP/app/Console/cake Admin jobGenerateCorrelation [job_id]',
+                    'Truncate correlation table' => 'MISP/app/Console/cake Admin truncateTable [user_id] [correlation_engine_name] [job_id]',
                     'Purge correlation' => 'MISP/app/Console/cake Admin jobPurgeCorrelation [job_id]',
                     'Generate shadow attribute correlation' => 'MISP/app/Console/cake Admin jobGenerateShadowAttributeCorrelation [job_id]',
                     'Update MISP' => 'MISP/app/Console/cake Admin updateMISP',
@@ -7115,6 +7710,11 @@ class Server extends AppModel
                     'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
                     'Cache server' => 'MISP/app/Console/cake server cacheServer [user_id] [server_id]',
                     'Cache all servers' => 'MISP/app/Console/cake server cacheServerAll [user_id]',
+                    'List all feeds' => 'MISP/app/Console/cake Server listFeeds [json|table]',
+                    'View feed' => 'MISP/app/Console/cake Server viewFeed [feed_id] [json|table]',
+                    'Toggle feed fetching' => 'MISP/app/Console/cake Server toggleFeed [feed_id]',
+                    'Toggle feed caching' => 'MISP/app/Console/cake Server toggleFeedCaching [feed_id]',
+                    'Load default feed configurations' => 'MISP/app/Console/cake Server loadDefaultFeeds [feed_id]',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
@@ -7124,6 +7724,7 @@ class Server extends AppModel
                     'Enqueue push' => 'MISP/app/Console/cake Server enqueuePush [timestamp] [task_id] [user_id]',
                     'Enqueue feed fetch' => 'MISP/app/Console/cake Server enqueueFeedFetch [timestamp] [user_id] [task_id]',
                     'Enqueue feed cache' => 'MISP/app/Console/cake Server enqueueFeedCache [timestamp] [user_id] [task_id]',
+                    'Update sharing groups based on blueprints' => 'MISP/app/Console/cake Server executeSGBlueprint [blueprint_id|all|attached|detached]'
                 ),
                 'description' => __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.'),
                 'header' => __('Automating certain console tasks')

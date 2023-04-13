@@ -78,9 +78,15 @@ class CidrTool
             return false;
         }
 
-        $maximumNetmask = strlen($ipBytes) === 4 ? 32 : 128;
-        if (isset($parts[1]) && ($parts[1] > $maximumNetmask || $parts[1] < 0)) {
-            return false; // Netmask part of CIDR is invalid
+        if (isset($parts[1])) {
+            if (!ctype_digit($parts[1])) {
+                return false;
+            }
+
+            $maximumNetmask = strlen($ipBytes) === 4 ? 32 : 128;
+            if ($parts[1] > $maximumNetmask || $parts[1] < 0) {
+                return false; // Netmask part of CIDR is invalid
+            }
         }
 
         return true;

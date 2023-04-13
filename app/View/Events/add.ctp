@@ -57,7 +57,12 @@
                     'label' => __("Extends Event"),
                     'default' => isset($extends_uuid) ? $extends_uuid : ''
                 ),
-                '<div id="event_preview" style="width:446px;"></div>'
+                array(
+                    'type' => 'div',
+                    'style' => 'width:446px;',
+                    'id' => 'event_preview',
+                    'label' => false
+                )
             ),
             'submit' => array(
                 'action' => $action

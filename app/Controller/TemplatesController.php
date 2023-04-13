@@ -6,7 +6,7 @@ App::uses('File', 'Utility');
 
 class TemplatesController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler', 'CRUD');
+    public $components = array('RequestHandler', 'CRUD');
 
     public $paginate = array(
             'limit' => 50,

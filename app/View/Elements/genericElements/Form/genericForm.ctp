@@ -39,8 +39,12 @@ $fieldsArrayForPersistence = array();
 $formOptions = isset($formOptions) ? $formOptions : array();
 $formOptions = array_merge(['class' => 'genericForm'], $formOptions);
 $formCreate = $this->Form->create($modelForForm, $formOptions);
+$fieldsArray = [];
 if (!empty($data['fields'])) {
     foreach ($data['fields'] as $fieldData) {
+        if (!empty($fieldData['field'])) {
+            $fieldsArray[] = $modelForForm . Inflector::camelize($fieldData['field']);
+        }
         if (isset($fieldData['requirements']) && !$fieldData['requirements']) {
             continue;
         }
@@ -63,9 +67,7 @@ if (!empty($data['fields'])) {
 }
 $metaFieldString = '';
 if (!empty($data['metaFields'])) {
-    foreach ($data['metaFields'] as $metaField) {
-        $metaFieldString .= $metaField;
-    }
+    $metaFieldString = implode('', $data['metaFields']);
 }
 $submitButtonData = array('model' => $modelForForm);
 if (!empty($data['submit'])) {
@@ -103,7 +105,7 @@ if (!empty($ajax)) {
         ),
         sprintf(
             '<div class="modal-footer">%s</div>',
-            $this->element('genericElements/Form/submitButton', $submitButtonData)
+            !empty($data['submit']['no_submit']) ? '' : $this->element('genericElements/Form/submitButton', $submitButtonData)
         )
     );
 } else {
@@ -117,13 +119,14 @@ if (!empty($ajax)) {
         empty($data['description']) ? '' : $data['description'],
         $fieldsString,
         $metaFieldString,
-        $this->element('genericElements/Form/submitButton', $submitButtonData),
+        !empty($data['submit']['no_submit']) ? '' : $this->element('genericElements/Form/submitButton', $submitButtonData),
         $formEnd
     );
 }
 ?>
 
 <script type="text/javascript">
+    var fieldsArray = <?= json_encode($fieldsArray) ?>;
     $(function() {
         popoverStartup();
     });

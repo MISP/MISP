@@ -1,19 +1,20 @@
 <?php
+    $Paginator = $options['paginator'] ?? $this->Paginator;
     echo sprintf(
         '<div class="pagination"><ul>%s%s%s%s%s</ul></div>',
-        $this->Paginator->first(
+        $Paginator->first(
             '&laquo; ' . __('first'),
             ['tag' => 'li', 'escape' => false],
             null,
             ['tag' => 'li', 'class' => 'pagination_link first disabled', 'escape' => false, 'disabledTag' => 'span']
         ),
-        $this->Paginator->prev(
+        $Paginator->prev(
             '&laquo; ' . __('previous'),
             ['tag' => 'li', 'escape' => false],
             null,
             ['tag' => 'li', 'class' => 'pagination_link prev disabled', 'escape' => false, 'disabledTag' => 'span']
         ),
-        $this->Paginator->numbers(
+        $Paginator->numbers(
             [
                 'modulus' => 6,
                 'separator' => '',
@@ -23,13 +24,13 @@
                 'class' => 'pagination_link'
             ]
         ),
-        $this->Paginator->next(
+        $Paginator->next(
             __('next') . ' &raquo;',
             ['tag' => 'li', 'escape' => false],
             null,
             ['tag' => 'li', 'class' => 'pagination_link next disabled', 'escape' => false, 'disabledTag' => 'span']
         ),
-        $this->Paginator->last(
+        $Paginator->last(
             __('last') . ' &raquo;',
             ['tag' => 'li', 'escape' => false],
             null,

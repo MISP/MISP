@@ -38,4 +38,7 @@ echo $this->element(
     ]
 );
 
+echo $this->element('genericElements/assetLoader', [
+    'js' => ['jquery-ui.min'],
+]);
 echo $this->element('templateElements/templateElements', ['templateId' => $template['Template']['id']]);

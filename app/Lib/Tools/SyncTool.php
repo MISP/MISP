@@ -59,6 +59,28 @@ class SyncTool
             $params['ssl_cafile'] = $caPath;
         }
 
+        if ($minTlsVersion = Configure::read('Security.min_tls_version')) {
+            $version = 0;
+            switch ($minTlsVersion) {
+                case 'tlsv1_0':
+                    $version |= STREAM_CRYPTO_METHOD_TLSv1_0_CLIENT;
+                case 'tlsv1_1':
+                    $version |= STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT;
+                case 'tlsv1_2':
+                    $version |= STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+                case 'tlsv1_3':
+                    if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
+                        $version |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
+                    } else if ($minTlsVersion === 'tlsv1_3') {
+                        throw new Exception("TLSv1.3 is not supported by PHP.");
+                    }
+                    break;
+                default:
+                    throw new InvalidArgumentException("Invalid `Security.min_tls_version` option $minTlsVersion");
+            }
+            $params['ssl_crypto_method'] = $version;
+        }
+
         App::uses('HttpSocketExtended', 'Tools');
         $HttpSocket = new HttpSocketExtended($params);
         $proxy = Configure::read('Proxy');

@@ -1,10 +1,7 @@
 <?php
-
 $object = Hash::extract($row, $field['data']['object']['value_path']);
-$event = Hash::extract($row, 'Event');
-$mayModify = ($isSiteAdmin || ($isAclModify && $event['user_id'] == $me['id'] && $event['orgc_id'] == $me['org_id']) || ($isAclModifyOrg && $event['orgc_id'] == $me['org_id']));
 $objectId = h($object['id']);
-
+$mayModify = $this->Acl->canModifyEvent($row);
 ?>
 
 <div id="Attribute_<?= $objectId ?>_to_ids_placeholder" class="inline-field-placeholder"></div>

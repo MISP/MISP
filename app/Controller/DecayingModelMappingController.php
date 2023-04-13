@@ -4,7 +4,7 @@ App::uses('AppController', 'Controller');
 
 class DecayingModelMappingController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');
+    public $components = array('RequestHandler');
 
     public $paginate = array(
             'limit' => 50,

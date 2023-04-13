@@ -12,6 +12,6 @@ stix = "*"
 maec = "*"
 pymisp = {path = "./PyMISP", extras=["fileobjects"]}
 stix2 = {git = "https://github.com/MISP/cti-python-stix2", ref = "61e9fc0748691f6b768acf47c18ef01b5dc0a854"}
-pydeep = {git = "https://github.com/kbandla/pydeep.git"}
+pydeep2 = "*"
 python-dateutil = "*"
 urllib3 = ">=1.26.5"

@@ -60,4 +60,6 @@ index f9f69d4..2e8fd78 100644
 
 [CentOS Hardening](https://wiki.centos.org/HowTos/OS_Protection)
 
+[Apache Hardened Webserver](https://docs.rockylinux.org/sv/guides/web/apache_hardened_webserver/)
+
 [Some Linux hardening tips](https://www.cyberciti.biz/tips/linux-security.html)

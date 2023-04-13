@@ -4,12 +4,12 @@ App::uses('AppController', 'Controller');
 
 class DecayingModelController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');
+    public $components = array('RequestHandler');
 
     public $paginate = array(
             'limit' => 50,
             'order' => array(
-                    'DecayingModel.ID' => 'desc'
+                'DecayingModel.ID' => 'desc'
             )
     );
 
@@ -43,28 +43,12 @@ class DecayingModelController extends AppController
     {
         if ($this->request->is('post') || $this->request->is('put')) {
             $data = $this->request->data['DecayingModel'];
-            if ($data['submittedjson']['name'] != '' && $data['json'] != '') {
-                throw new MethodNotAllowedException(__('Only one import field can be used'));
-            }
-            if ($data['submittedjson']['size'] > 0) {
-                $filename = basename($data['submittedjson']['name']);
-                $file_content = file_get_contents($data['submittedjson']['tmp_name']);
-                if ((isset($data['submittedjson']['error']) && $data['submittedjson']['error'] == 0) ||
-                    (!empty($data['submittedjson']['tmp_name']) && $data['submittedjson']['tmp_name'] != '')
-                ) {
-                    if (!$file_content) {
-                        throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
-                    }
-                }
-                $text = $file_content;
-            } else {
-                $text = $data['json'];
-            }
+            $text = FileAccessTool::getTempUploadedFile($data['submittedjson'], $data['json']);
             $json = json_decode($text, true);
             if ($json === null) {
                 throw new MethodNotAllowedException(__('Error while decoding JSON'));
             }
-            
+
             unset($json['id']);
             unset($json['uuid']);
             $json['default'] = 0;
@@ -393,13 +377,15 @@ class DecayingModelController extends AppController
 
             $decaying_model['DecayingModel']['enabled'] = 1;
             if ($this->DecayingModel->save($decaying_model)) {
+                $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true, array(), true);
+                if (empty($model)) {
+                    throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+                }
+                $response = array('data' => $model, 'action' => 'enable');
                 if ($this->request->is('ajax')) {
-                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true, array(), true);
-                    if (empty($model)) {
-                        throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
-                    }
-                    $response = array('data' => $model, 'action' => 'enable');
                     return $this->RestResponse->viewData($response, $this->response->type());
+                } else if ($this->_isRest()) {
+                    return $this->RestResponse->successResponse($id, __('Decaying model enabled'), $model);
                 }
                 $this->Flash->success(__('Decaying Model enabled.'));
             } else {
@@ -416,7 +402,7 @@ class DecayingModelController extends AppController
                 }
                 $this->Flash->error(__('Error while enabling decaying model'));
             }
-            $this->redirect($this->referer());
+            $this->redirect(array('action' => 'index'));
         } else {
             $this->set('model', $decaying_model['DecayingModel']);
             $this->render('ajax/enable_form');
@@ -436,13 +422,15 @@ class DecayingModelController extends AppController
 
             $decaying_model['DecayingModel']['enabled'] = 0;
             if ($this->DecayingModel->save($decaying_model)) {
+                $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true, array(), true);
+                if (empty($model)) {
+                    throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
+                }
+                $response = array('data' => $model, 'action' => 'disable');
                 if ($this->request->is('ajax')) {
-                    $model = $this->DecayingModel->fetchModel($this->Auth->user(), $id, true, array(), true);
-                    if (empty($model)) {
-                        throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
-                    }
-                    $response = array('data' => $model, 'action' => 'disable');
                     return $this->RestResponse->viewData($response, $this->response->type());
+                } else if ($this->_isRest()) {
+                    return $this->RestResponse->successResponse($id, __('Decaying model disabled'), $model);
                 }
                 $this->Flash->success(__('Decaying Model disabled.'));
             } else {

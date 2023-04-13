@@ -84,7 +84,7 @@ class SharingGroupOrg extends AppModel
      * Returns sharing groups IDs that are accessible by given organisation ID.
      *
      * @param int $org_id
-     * @return array
+     * @return int[]
      */
     public function fetchAllAuthorised($org_id)
     {
@@ -92,7 +92,7 @@ class SharingGroupOrg extends AppModel
             'conditions' => array('org_id' => $org_id),
             'fields' => array('SharingGroupOrg.sharing_group_id'),
         ));
-        return $sgs;
+        return array_map('intval', $sgs);
     }
 
     /**

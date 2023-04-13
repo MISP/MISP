@@ -8,15 +8,15 @@ var distribution_chart;
 var distributionData;
 
 function clickHandlerGraph(evt) {
-    var firstPoint = distribution_chart.getElementAtEvent(evt)[0];
+    var firstPoint = distribution_chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false)[0];
     var distribution_id;
     if (firstPoint) {
-        var value = distribution_chart.data.datasets[firstPoint._datasetIndex].data[firstPoint._index];
+        var value = distribution_chart.data.datasets[firstPoint.datasetIndex].data[firstPoint.index];
         if (value == 0) {
             document.getElementById('attributesFilterField').value = "";
-            filterAttributes('all', scope_id);
+            filterAttributes('all');
         } else {
-            distribution_id = distribution_chart.data.distribution[firstPoint._index].value;
+            distribution_id = distribution_chart.data.distribution[firstPoint.index].value;
             var value_to_set = String(distribution_id);
             value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
             value_to_set = value_to_set.split('|');
@@ -323,6 +323,9 @@ function construct_piechart(data) {
         count += data.event[i];
     }
     if (count > 0) {
+        if (distribution_chart) {
+            distribution_chart.destroy()
+        }
         distribution_chart = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -331,13 +334,13 @@ function construct_piechart(data) {
                 datasets: doughnut_dataset,
             },
             options: {
-                title: {
-                    display: false
-                },
                 animation: {
                     duration: 500
                 },
-                tooltips: {
+                title: {
+                    display: false
+                },
+                tooltip: {
                     callbacks: {
                         label: function(item, data) {
                             return data.datasets[item.datasetIndex].label

@@ -1,8 +1,21 @@
 <?php
-App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
+App::uses('AbstractPasswordHasher', 'Controller/Component/Auth');
 
-class BlowfishConstantPasswordHasher extends BlowfishPasswordHasher
+class BlowfishConstantPasswordHasher extends AbstractPasswordHasher
 {
+    /**
+     * @param string $password
+     * @return string
+     */
+    public function hash($password)
+    {
+        $hash = password_hash($password, PASSWORD_BCRYPT);
+        if ($hash === false) {
+            throw new RuntimeException('Could not generate hashed password');
+        }
+        return $hash;
+    }
+
     /**
      * @param string $password
      * @param string $hashedPassword
@@ -10,6 +23,6 @@ class BlowfishConstantPasswordHasher extends BlowfishPasswordHasher
      */
     public function check($password, $hashedPassword)
     {
-        return hash_equals($hashedPassword, Security::hash($password, 'blowfish', $hashedPassword));
+        return password_verify($password, $hashedPassword);
     }
 }

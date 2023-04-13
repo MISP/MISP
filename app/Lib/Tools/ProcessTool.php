@@ -1,7 +1,7 @@
 <?php
 class ProcessException extends Exception
 {
-    /** @var string */
+    /** @var string|null */
     private $stderr;
 
     /** @var string */
@@ -10,13 +10,14 @@ class ProcessException extends Exception
     /**
      * @param string|array $command
      * @param int $returnCode
-     * @param string $stderr
+     * @param string|null $stderr
      * @param string $stdout
      */
     public function __construct($command, $returnCode, $stderr, $stdout)
     {
         $commandForException = is_array($command) ? implode(' ', $command) : $command;
-        $message = "Command '$commandForException' return error code $returnCode.\nSTDERR: '$stderr'\nSTDOUT: '$stdout'";
+        $stderrToMessage = $stderr === null ? 'Logged to tmp/logs/exec-errors.log' : "'$stderr'";
+        $message = "Command '$commandForException' finished with error code $returnCode.\nSTDERR: $stderrToMessage\nSTDOUT: '$stdout'";
         $this->stderr = $stderr;
         $this->stdout = $stdout;
         parent::__construct($message, $returnCode);
@@ -48,13 +49,13 @@ class ProcessTool
     public static function execute(array $command, $cwd = null, $stderrToFile = false)
     {
         $descriptorSpec = [
-            1 => ["pipe", "w"], // stdout
-            2 => ["pipe", "w"], // stderr
+            1 => ['pipe', 'w'], // stdout
+            2 => ['pipe', 'w'], // stderr
         ];
 
         if ($stderrToFile) {
             self::logMessage('Running command ' . implode(' ', $command));
-            $descriptorSpec[2] = ["file", self::LOG_FILE, 'a'];
+            $descriptorSpec[2] = ['file', self::LOG_FILE, 'a'];
         }
 
         // PHP older than 7.4 do not support proc_open with array, so we need to convert values to string manually
@@ -73,13 +74,11 @@ class ProcessTool
             $commandForException = self::commandFormat($command);
             throw new Exception("Could not get STDOUT of command '$commandForException'.");
         }
-        fclose($pipes[1]);
 
         if ($stderrToFile) {
             $stderr = null;
         } else {
             $stderr = stream_get_contents($pipes[2]);
-            fclose($pipes[2]);
         }
 
         $returnCode = proc_close($process);
@@ -93,6 +92,20 @@ class ProcessTool
         }
 
         return $stdout;
+    }
+
+    /**
+     * Get current process user name
+     * @return string
+     * @throws ProcessException
+     */
+    public static function whoami()
+    {
+        if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
+            return posix_getpwuid(posix_geteuid())['name'];
+        } else {
+            return rtrim(self::execute(['whoami']));
+        }
     }
 
     /**

@@ -23,13 +23,14 @@ if (!defined('DS')) {
 $dispatcher = 'Cake' . DS . 'Console' . DS . 'ShellDispatcher.php';
 
 if (function_exists('ini_set')) {
-    $root = dirname(dirname(dirname(__FILE__)));
-    $appDir = basename(dirname(dirname(__FILE__)));
-    $install = $root . DS . $appDir . DS . 'Lib' . DS . 'cakephp' . DS . 'lib';
+    $root = dirname(__DIR__, 2);
+    $appDir = basename(dirname(__DIR__));
     $composerInstall = $root . DS . $appDir . DS . 'Vendor' . DS . 'cakephp' . DS . 'cakephp' . DS . 'lib';
 
     if (file_exists($composerInstall . DS . $dispatcher)) {
         $install = $composerInstall; // prefer compose install
+    } else {
+        $install = $root . DS . $appDir . DS . 'Lib' . DS . 'cakephp' . DS . 'lib';
     }
 
     ini_set('include_path', $install . PATH_SEPARATOR . ini_get('include_path'));

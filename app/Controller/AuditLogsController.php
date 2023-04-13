@@ -8,7 +8,6 @@ App::uses('AuditLog', 'Model');
 class AuditLogsController extends AppController
 {
     public $components = [
-        'Security',
         'RequestHandler',
     ];
 
@@ -53,6 +52,8 @@ class AuditLogsController extends AppController
         'GalaxyClusterRelation',
         'News',
         'Warninglist',
+        'Workflow',
+        'WorkflowBlueprint',
     ];
 
     public $paginate = [
@@ -68,9 +69,9 @@ class AuditLogsController extends AppController
         ],
     ];
 
-    public function __construct($id = false, $table = null, $ds = null)
+    public function __construct($request = null, $response = null)
     {
-        parent::__construct($id, $table, $ds);
+        parent::__construct($request, $response);
         $this->actions = [
             AuditLog::ACTION_ADD => __('Add'),
             AuditLog::ACTION_EDIT => __('Edit'),
@@ -99,8 +100,25 @@ class AuditLogsController extends AppController
         if ($this->_isRest()) {
             $this->paginate['fields'][] = 'request_id';
         }
+        if (!Configure::read('MISP.log_new_audit')) {
+            $this->Flash->warning(__("Audit log is not enabled. See 'MISP.log_new_audit' in the Server Settings. (Administration -> Server Settings -> MISP tab)"));
+        }
+        $params = $this->IndexFilter->harvestParameters([
+            'ip',
+            'user',
+            'request_id',
+            'authkey_id',
+            'model',
+            'model_id',
+            'event_id',
+            'model_title',
+            'action',
+            'org',
+            'created',
+            'request_type',
+        ]);
 
-        $this->paginate['conditions'] = $this->__searchConditions();
+        $this->paginate['conditions'] = $this->__searchConditions($params);
         $list = $this->paginate();
 
         if ($this->_isRest()) {
@@ -134,32 +152,27 @@ class AuditLogsController extends AppController
 
     public function eventIndex($eventId, $org = null)
     {
-        $this->loadModel('Event');
-        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
+        $event = $this->AuditLog->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');
         }
 
         $this->paginate['conditions'] = $this->__createEventIndexConditions($event);
 
+        $params = $this->IndexFilter->harvestParameters(['created', 'org']);
         if ($org) {
-            $org = $this->AuditLog->Organisation->fetchOrg($org);
-            if ($org) {
-                $this->paginate['conditions']['AND']['org_id'] = $org['id'];
-            } else {
-                $this->paginate['conditions']['AND']['org_id'] = -1;
-            }
+            $params['org'] = $org;
         }
+        $this->paginate['conditions'][] = $this->__searchConditions($params);
 
         $list = $this->paginate();
 
         if (!$this->_isSiteAdmin()) {
             // Remove all user info about users from different org
-            $this->loadModel('User');
-            $orgUserIds = $this->User->find('column', array(
+            $orgUserIds = $this->User->find('column', [
                 'conditions' => ['User.org_id' => $this->Auth->user('org_id')],
                 'fields' => ['User.id'],
-            ));
+            ]);
             foreach ($list as $k => $item) {
                 if ($item['AuditLog']['user_id'] == 0) {
                     continue;
@@ -179,10 +192,13 @@ class AuditLogsController extends AppController
             $list[$k]['AuditLog']['action_human'] = $this->actions[$item['AuditLog']['action']];
         }
 
-        $this->set('list', $list);
+        $this->set('data', $list);
         $this->set('event', $event);
         $this->set('mayModify', $this->__canModifyEvent($event));
-        $this->set('title_for_layout', __('Audit logs for event #%s', $event['Event']['id']));
+        $this->set('menuData', [
+            'menuList' => 'event',
+            'menuItem' => 'eventLog'
+        ]);
     }
 
     public function fullChange($id)
@@ -200,14 +216,12 @@ class AuditLogsController extends AppController
 
     public function returnDates($org = 'all')
     {
-        if (!$this->Auth->user('Role')['perm_sharing_group'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
-            if ($org !== 'all' && $org !== $this->Auth->user('Organisation')['name']) {
+        $user = $this->_closeSession();
+        if (!$user['Role']['perm_sharing_group'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+            if ($org !== 'all' && $org !== $user['Organisation']['name']) {
                 throw new MethodNotAllowedException('Invalid organisation.');
             }
         }
-
-        // Fetching dates can be slow, so to allow concurrent requests, we can close sessions to release session lock
-        session_write_close();
 
         $data = $this->AuditLog->returnDates($org);
         return $this->RestResponse->viewData($data, $this->response->type());
@@ -216,23 +230,8 @@ class AuditLogsController extends AppController
     /**
      * @return array
      */
-    private function __searchConditions()
+    private function __searchConditions(array $params)
     {
-        $params = $this->IndexFilter->harvestParameters([
-            'ip',
-            'user',
-            'request_id',
-            'authkey_id',
-            'model',
-            'model_id',
-            'event_id',
-            'model_title',
-            'action',
-            'org',
-            'created',
-            'request_type',
-        ]);
-
         $qbRules = [];
         foreach ($params as $key => $value) {
             if ($key === 'model' && strpos($value, ':') !== false) {
@@ -352,7 +351,7 @@ class AuditLogsController extends AppController
             return ['event_id' => $event['Event']['id']];
         }
 
-        $event = $this->Event->fetchEvent($this->Auth->user(), [
+        $event = $this->AuditLog->Event->fetchEvent($this->Auth->user(), [
             'eventid' => $event['Event']['id'],
             'sgReferenceOnly' => 1,
             'deleted' => [0, 1],

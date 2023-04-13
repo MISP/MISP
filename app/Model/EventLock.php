@@ -1,12 +1,14 @@
 <?php
 App::uses('AppModel', 'Model');
 
-// Table `event_locks` is not used anymore
 class EventLock extends AppModel
 {
+    // Table `event_locks` is not used anymore
+    public $useTable = false;
+
     // In seconds
     const DEFAULT_TTL = 900,
-        PREFIX = 'misp:event_lock';
+        PREFIX = 'misp:event_lock:';
 
     /**
      * @param array $user
@@ -65,7 +67,7 @@ class EventLock extends AppModel
     public function deleteApiLock($eventId, $apiLockId, array $user)
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
@@ -82,7 +84,7 @@ class EventLock extends AppModel
     public function deleteBackgroundJobLock($eventId, $jobId)
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
@@ -100,7 +102,7 @@ class EventLock extends AppModel
     public function checkLock(array $user, $eventId)
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return [];
         }
@@ -113,7 +115,7 @@ class EventLock extends AppModel
         $output = [];
         $now = time();
         foreach ($keys as $value) {
-            $value = $this->jsonDecode($value);
+            $value = RedisTool::deserialize($value);
             if ($value['timestamp'] + self::DEFAULT_TTL > $now) {
                 $output[] = $value;
             }
@@ -126,17 +128,19 @@ class EventLock extends AppModel
      * @param string $lockId
      * @param array $data
      * @return bool
+     * @throws JsonException
+     * @throws RedisException
      */
     private function insertLockToRedis($eventId, $lockId, array $data)
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
 
         $pipeline = $redis->pipeline();
-        $pipeline->hSet(self::PREFIX . $eventId, $lockId, json_encode($data));
+        $pipeline->hSet(self::PREFIX . $eventId, $lockId, RedisTool::serialize($data));
         $pipeline->expire(self::PREFIX . $eventId, self::DEFAULT_TTL); // prolong TTL
         return $pipeline->exec()[0] !== false;
     }
