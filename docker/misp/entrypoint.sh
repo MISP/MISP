@@ -2,6 +2,10 @@
 
 set -e
 
+MISP_READY_STATUS_FLAG='/tmp/.MISP_READY_STATUS_FLAG'
+
+rm -f "${MISP_READY_STATUS_FLAG}"
+
 [ -z "$MYSQL_HOST" ] && MYSQL_HOST=db
 [ -z "$MYSQL_PORT" ] && MYSQL_PORT=3306
 [ -z "$MISP_DB_USER" ] && MISP_DB_USER=misp
@@ -87,5 +91,11 @@ for try in 1 2 3 4 5 6; do
 done
 
 init_user
+
+# Test php-fpm config
+php-fpm -t
+
+# Finished bootstrapping, create ready flag file
+touch "${MISP_READY_STATUS_FLAG}"
 
 exec php-fpm -F "$@"

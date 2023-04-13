@@ -35,7 +35,8 @@ RUN mkdir /var/www/html/tmp\
 
 # Copy entrypoint script and make it executable
 COPY docker/misp/entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY docker/misp/healthcheck.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/healthcheck.sh
 
 EXPOSE 9000
 

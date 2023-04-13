@@ -18,6 +18,11 @@ services:
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD}
       ADMIN_USER_API_KEY: ${ADMIN_USER_API_KEY}
       GPG_PASSPHRASE: ${GPG_PASSPHRASE}
+    healthcheck:
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      test: "/usr/local/bin/healthcheck.sh"
     volumes:
       - ./docker/misp/config/app_local.php:/var/www/html/config/app_local.php:delegated
       - ./docker/misp/logs:/var/www/html/logs:delegated
@@ -26,12 +31,10 @@ services:
       - backend-network
       - frontend-network
     depends_on:
-      - db
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   webserver:
     image: misp3/nginx
@@ -46,15 +49,15 @@ services:
       - ./docker/nginx/certs:/etc/nginx/certs:delegated
     entrypoint: /usr/local/bin/entrypoint.sh
     depends_on:
-      - misp
+      misp:
+        condition: service_healthy
     networks:
       - frontend-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost" ]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 5
-
 
   db:
     image: mariadb:10
@@ -65,13 +68,12 @@ services:
       MYSQL_USER: ${MYSQL_USER:-misp}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/mysql:delegated
       - ./docker/db/misp-2.4.169.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - backend-network
     healthcheck:
-      # test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
-      test: ["CMD", "mysql", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}", "-e", "SHOW DATABASES LIKE '${MYSQL_DATABASE}';"]
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
       interval: 10s
       timeout: 5s
       retries: 3
@@ -82,6 +84,11 @@ services:
       - "6379:6379"
     networks:
       - backend-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 networks:
   frontend-network:
@@ -91,4 +98,5 @@ networks:
 
 volumes:
   db_data:
-    
+
+
