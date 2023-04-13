@@ -2603,6 +2603,12 @@ class EventsController extends AppController
                         foreach ($this->request->data[$objectType] as $i => $obj) {
                             unset($this->request->data[$objectType][$i]['id']);
                             unset($this->request->data[$objectType][$i]['uuid']);
+                            if ($objectType === 'Object' && !empty($this->request->data[$objectType][$i]['Attribute'])) {
+                                foreach ($this->request->data[$objectType][$i]['Attribute'] as $j => $attr) {
+                                    unset($this->request->data[$objectType][$i]['Attribute'][$j]['id']);
+                                    unset($this->request->data[$objectType][$i]['Attribute'][$j]['uuid']);
+                                }
+                            }
                         }
                     }
                     $eventToSave['Event'][$objectType] = $this->request->data[$objectType];
