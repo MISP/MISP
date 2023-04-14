@@ -5,7 +5,7 @@
     <?= $this->Html->charset() ?>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>
-        <?= 'Cerebrate' ?>:
+        <?= 'MISP' ?>:
         <?= $this->fetch('title') ?>
     </title>
     <?= $this->Html->meta('icon') ?>
@@ -25,7 +25,7 @@
     <?= $this->fetch('meta') ?>
     <?= $this->fetch('css') ?>
     <?= $this->fetch('script') ?>
-    <?= $this->Html->meta('favicon.ico', '/img/favicon.ico', ['type' => 'icon']); ?>
+    <?= $this->Html->meta('favicon.png', '/img/favicon.png', ['type' => 'icon']); ?>
 </head>
 
 <body>

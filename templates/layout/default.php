@@ -15,7 +15,7 @@
  */
 use Cake\Core\Configure;
 
-$cakeDescription = 'Cerebrate';
+$cakeDescription = 'MISP';
 
 $sidebarOpen = $loggedUser->user_settings_by_name_with_fallback['ui.sidebar.expanded']['value'];
 ?>
@@ -71,7 +71,7 @@ $sidebarOpen = $loggedUser->user_settings_by_name_with_fallback['ui.sidebar.expa
     <?= $this->Html->script('Tags.tagging') ?>
     <?= $this->Html->css('Tags.tagging') ?>
 
-    <?= $this->Html->meta('favicon.ico', '/img/favicon.ico', ['type' => 'icon']); ?>
+    <?= $this->Html->meta('favicon-misp.png', '/img/favicon-misp.png', ['type' => 'icon']); ?>
 </head>
 <body>
     <div class="main-wrapper">
