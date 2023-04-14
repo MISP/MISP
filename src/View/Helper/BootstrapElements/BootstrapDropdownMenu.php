@@ -143,6 +143,7 @@ class BootstrapDropdownMenu extends BootstrapGeneric
                 'variant' => $options['variant'],
                 'outline' => $options['outline'],
                 'badge' => $options['badge'],
+                'size' => $options['size'],
                 'class' => ['dropdown-toggle dropdown-toggle-split'],
                 'attrs' => $options['attrs'],
             ];
