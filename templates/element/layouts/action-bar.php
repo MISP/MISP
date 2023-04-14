@@ -31,6 +31,7 @@ use Cake\Utility\Inflector;
                     'icon' => h($actionEntry['icon'] ?? false),
                     'variant' => $actionEntry['variant'] ?? 'primary',
                     'class' => ['text-nowrap'],
+                    'size' => 'sm',
                     'onclick' => $onclickFunction,
                     'badge' => $buttonBadge,
                 ];
@@ -49,6 +50,7 @@ use Cake\Utility\Inflector;
                         'text' => Inflector::humanize($menuID),
                         'variant' => 'primary',
                         'outline' => true,
+                        'size' => 'sm',
                     ];
                     $actionMenuRootConfig = $actionMenu[$menuID] ?? [];
                     if (empty($actionMenuRootConfig)) {
@@ -115,6 +117,7 @@ use Cake\Utility\Inflector;
                     'variant' => 'link',
                     'outline' => $active,
                     'class' => ['text-nowrap', 'text-decoration-none', 'btn-link-hover-shadow'],
+                    'size' => 'sm',
                     'attrs' => [
                         'href' => $url,
                     ],
@@ -130,6 +133,7 @@ use Cake\Utility\Inflector;
                     $defaultMenuConfig = [
                         'text' => Inflector::humanize($menuID),
                         'variant' => 'secondary',
+                        'size' => 'sm',
                         'outline' => true,
                     ];
                     $menuConfig = array_merge($defaultMenuConfig, $linkMenu[$menuID] ?? []);
