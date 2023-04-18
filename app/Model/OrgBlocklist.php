@@ -43,6 +43,24 @@ class OrgBlocklist extends AppModel
         return true;
     }
 
+    public function afterDelete()
+    {
+        parent::afterDelete();
+        if (!empty($this->data['OrgBlocklist']['org_uuid'])) {
+            $this->cleanupBlockedCount($this->data['OrgBlocklist']['org_uuid']);
+        }
+    }
+
+    public function afterFind($results, $primary = false)
+    {
+        foreach ($results as $k => $result) {
+            if (isset($result['OrgBlocklist']['org_uuid'])) {
+                $results[$k]['OrgBlocklist']['blocked_data'] = $this->getBlockedData($result['OrgBlocklist']['org_uuid']);
+            }
+        }
+        return $results;
+    }
+
     /**
      * @param array $eventArray
      */
@@ -74,16 +92,7 @@ class OrgBlocklist extends AppModel
         }
 
         if (is_numeric($orgIdOrUuid)) {
-            $this->Organisation = ClassRegistry::init('Organisation');
-            $orgUuid = $this->Organisation->find('first', [
-                'conditions' => ['Organisation.id' => $orgIdOrUuid],
-                'fields' => ['Organisation.uuid'],
-                'recursive' => -1,
-            ]);
-            if (empty($orgUuid)) {
-                return false; // org not found by ID, so it is not blocked
-            }
-            $orgUuid = $orgUuid['Organisation']['uuid'];
+            $orgUuid = $this->getUUIDFromID($orgIdOrUuid);
         } else {
             $orgUuid = $orgIdOrUuid;
         }
@@ -91,5 +100,68 @@ class OrgBlocklist extends AppModel
         $isBlocked = $this->hasAny(['OrgBlocklist.org_uuid' => $orgUuid]);
         $this->blockedCache[$orgIdOrUuid] = $isBlocked;
         return $isBlocked;
+    }
+
+    private function getUUIDFromID($orgID)
+    {
+        $this->Organisation = ClassRegistry::init('Organisation');
+        $orgUuid = $this->Organisation->find('first', [
+            'conditions' => ['Organisation.id' => $orgID],
+            'fields' => ['Organisation.uuid'],
+            'recursive' => -1,
+        ]);
+        if (empty($orgUuid)) {
+            return false; // org not found by ID, so it is not blocked
+        }
+        $orgUuid = $orgUuid['Organisation']['uuid'];
+        return $orgUuid;
+    }
+
+    public function saveEventBlocked($orgIdOrUUID)
+    {
+        if (is_numeric($orgIdOrUUID)) {
+            $orgcUUID = $this->getUUIDFromID($orgIdOrUUID);
+        } else {
+            $orgcUUID = $orgIdOrUUID;
+        }
+        $lastBlockTime = time();
+        $redisKeyBlockAmount = "misp:blocklist_blocked_amount:{$orgcUUID}";
+        $redisKeyBlockLastTime = "misp:blocklist_blocked_last_time:{$orgcUUID}";
+        $redis = RedisTool::init();
+        if ($redis !== false) {
+            $pipe = $redis->multi(Redis::PIPELINE)
+                ->incr($redisKeyBlockAmount)
+                ->set($redisKeyBlockLastTime, $lastBlockTime);
+            $pipe->exec();
+        }
+    }
+
+    private function cleanupBlockedCount($orgcUUID)
+    {
+        $redisKeyBlockAmount = "misp:blocklist_blocked_amount:{$orgcUUID}";
+        $redisKeyBlockLastTime = "misp:blocklist_blocked_last_time:{$orgcUUID}";
+        $redis = RedisTool::init();
+        if ($redis !== false) {
+            $pipe = $redis->multi(Redis::PIPELINE)
+                ->del($redisKeyBlockAmount)
+                ->del($redisKeyBlockLastTime);
+            $pipe->exec();
+        }
+    }
+
+    public function getBlockedData($orgcUUID)
+    {
+        $redisKeyBlockAmount = "misp:blocklist_blocked_amount:{$orgcUUID}";
+        $redisKeyBlockLastTime = "misp:blocklist_blocked_last_time:{$orgcUUID}";
+        $blockData = [
+            'blocked_amount' => false,
+            'blocked_last_time' => false,
+        ];
+        $redis = RedisTool::init();
+        if ($redis !== false) {
+            $blockData['blocked_amount'] = $redis->get($redisKeyBlockAmount);
+            $blockData['blocked_last_time'] = $redis->get($redisKeyBlockLastTime);
+        }
+        return $blockData;
     }
 }
