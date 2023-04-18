@@ -439,6 +439,9 @@ class Ls22Shell extends AppShell
             if ($org['Organisation']['name'] === 'YT') {
                 continue;
             }
+            if ($org['Organisation']['name'] === 'ORGNAME') {
+                continue;
+            }
             $org_mapping[$org['Organisation']['name']] = $org['Organisation']['id'];
         }
         if (!empty($this->param['from'])) {
