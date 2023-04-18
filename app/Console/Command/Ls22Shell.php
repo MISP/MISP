@@ -444,19 +444,23 @@ class Ls22Shell extends AppShell
             }
             $org_mapping[$org['Organisation']['name']] = $org['Organisation']['id'];
         }
-        if (!empty($this->param['from'])) {
-            $time_range[] = $this->param['from'];
+        $time_range = [];
+        if (!empty($this->param('from'))) {
+            $time_range[] = $this->param('from');
         }
-        if (!empty($this->param['to'])) {
+        if (!empty($this->param('to'))) {
             if (empty($time_range)) {
                 $time_range[] = '365d';
             }
-            $time_range[] = $this->param['to'];
+            $time_range[] = $this->param('to');
+        } else {
+            if (!empty($time_range)) {
+                $time_range[] = '0h';
+            }
         }
         $event_extended_uuids = [];
         $event_uuid_per_org = [];
         foreach ($org_mapping as $org_name => $org_id) {
-            $time_range = [];
             $params = [
                 'org' => $org_id
             ];
