@@ -428,7 +428,7 @@ class Ls22Shell extends AppShell
         }
         $HttpSocket = $this->Server->setupHttpSocket($server, null);
         $request = $this->Server->setupSyncRequest($server);
-        $response = $HttpSocket->get($server['Server']['url'] . '/organisations/index/scope:all', false, $request);
+        $response = $HttpSocket->get($server['Server']['url'] . '/organisations/index/scope:local', false, $request);
         $orgs = json_decode($response->body(), true);
         $this->out(__('Organisations fetched. %d found.', count($orgs)), 1, Shell::VERBOSE);
         $org_mapping = [];
