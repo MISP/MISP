@@ -23,7 +23,11 @@ import traceback
 from pathlib import Path
 
 _scripts_path = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(_scripts_path / 'misp-stix'))
+sys.path.insert(0, str(_scripts_path / 'cti-python-stix2'))
+sys.path.insert(1, str(_scripts_path / 'python-stix'))
+sys.path.insert(2, str(_scripts_path / 'python-cybox'))
+sys.path.insert(3, str(_scripts_path / 'mixbox'))
+sys.path.insert(4, str(_scripts_path / 'misp-stix'))
 from misp_stix_converter import (
     ExternalSTIX2toMISPParser, InternalSTIX2toMISPParser, _from_misp)
 from stix2.parsing import parse as stix2_parser
