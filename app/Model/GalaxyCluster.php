@@ -2071,4 +2071,31 @@ class GalaxyCluster extends AppModel
         }
         return $CyCatRelations;
     }
+
+    /**
+     * convertGalaxyClustersToTags
+     *
+     * @param array $user
+     * @param array $galaxies
+     * @return array The tag names extracted from galaxy clusters
+     */
+    public function convertGalaxyClustersToTags($user, $galaxies)
+    {
+        $galaxyClusters = [];
+        $tag_names = [];
+        foreach ($galaxies as $galaxy) {
+            if (empty($galaxy['GalaxyCluster'])) {
+                continue;
+            }
+            $clusters = $galaxy['GalaxyCluster'];
+            unset($galaxy['GalaxyCluster']);
+            foreach ($clusters as $cluster) {
+                $cluster['Galaxy'] = $galaxy;
+                $galaxyClusters[] = array('GalaxyCluster' => $cluster);
+                $tag_names[] = !empty($cluster['tag_name']) ? $cluster['tag_name'] : 'misp-galaxy:' . $cluster['type'] . '="' . $cluster['uuid'] . '"';
+            }
+        }
+        $this->Galaxy->importGalaxyAndClusters($user, $galaxyClusters);
+        return $tag_names;
+    }
 }

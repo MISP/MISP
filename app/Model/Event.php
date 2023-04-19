@@ -5837,7 +5837,7 @@ class Event extends AppModel
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $galaxies_as_tags, $debug = false)
+    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $galaxiesAsTags, $debug = false)
     {
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stix_version == '2' || $stix_version == '2.0' || $stix_version == '2.1') {
@@ -5848,7 +5848,7 @@ class Event extends AppModel
                 $scriptFile,
                 '-i', $file
             ];
-            if ($galaxies_as_tags) {
+            if ($galaxiesAsTags) {
                 $shell_command[] = '--galaxies_as_tags';
             }
             if ($debug) {
@@ -5883,6 +5883,26 @@ class Event extends AppModel
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
+            if (!$galaxiesAsTags) {
+                if (!isset($this->GalaxyCluster)) {
+                    $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+                }
+                $this->__handleGalaxiesAndClusters($user, $data['Event']);
+                if (!empty($data['Event']['Attribute'])) {
+                    foreach ($data['Event']['Attribute'] as &$attribute) {
+                        $this->__handleGalaxiesAndClusters($user, $attribute);
+                    }
+                }
+                if (!empty($data['Event']['Object'])) {
+                    foreach ($data['Event']['Object'] as &$misp_object) {
+                        if (!empty($misp_object['Attribute'])) {
+                            foreach ($misp_object['Attribute'] as &$attribute) {
+                                $this->__handleGalaxiesAndClusters($user, $attribute);
+                            }
+                        }
+                    }
+                }
+            }
             if (!empty($decoded['stix_version'])) {
                 $stix_version = 'STIX ' . $decoded['stix_version'];
             }
@@ -5912,6 +5932,19 @@ class Event extends AppModel
         }
         $response .= ' ' . __('check whether the dependencies for STIX are met via the diagnostic tool.');
         return $response;
+    }
+
+    private function __handleGalaxiesAndClusters($user, &$data)
+    {
+        if (!empty($data['Galaxy'])) {
+            $tag_names = $this->GalaxyCluster->convertGalaxyClustersToTags($user, $data['Galaxy']);
+            if (empty($data['Tag'])) {
+                $data['Tag'] = [];
+            }
+            foreach ($tag_names as $tag_name) {
+                $data['Tag'][] = array('name' => $tag_name);
+            }
+        }
     }
 
     /**
