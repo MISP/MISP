@@ -5,7 +5,7 @@ class Module_tag_if extends WorkflowBaseLogicModule
 {
     public $id = 'tag-if';
     public $name = 'IF :: Tag';
-    public $version = '0.3';
+    public $version = '0.4';
     public $description = 'Tag IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
     public $icon = 'code-branch';
     public $inputs = 1;
@@ -93,8 +93,8 @@ class Module_tag_if extends WorkflowBaseLogicModule
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
 
-        $selectedTags = $params['tags']['value'];
-        $selectedClusters = $params['clusters']['value'];
+        $selectedTags = !empty($params['tags']['value']) ? $params['tags']['value'] : [];
+        $selectedClusters = !empty($params['clusters']['value']) ? $params['clusters']['value'] : [];
         $selectedClusters = array_map(function($tagName) {
             return "misp-galaxy:{$tagName}"; // restored stripped part for display purposes
         }, $selectedClusters);
