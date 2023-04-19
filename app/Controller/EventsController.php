@@ -4451,12 +4451,12 @@ class EventsController extends AppController
                 ),
                 'STIX' => array(
                     'url' => $this->baseurl . '/events/upload_stix',
-                    'text' => __('STIX 1.1.1 format (lossy)'),
+                    'text' => __('STIX 1.x format (lossy)'),
                     'ajax' => false,
                 ),
                 'STIX2' => array(
                     'url' => $this->baseurl . '/events/upload_stix/2',
-                    'text' => __('STIX 2.0 format (lossy)'),
+                    'text' => __('STIX 2.x format (lossy)'),
                     'ajax' => false,
                 )
             );
