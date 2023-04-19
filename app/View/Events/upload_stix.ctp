@@ -1,6 +1,6 @@
 <div class="events form">
 <?php
-  echo $this->Form->create('Event', array('type' => 'file'));
+    echo $this->Form->create('Event', array('type' => 'file'));
 ?>
 <fieldset>
 <legend><?= __('Import STIX %s file', $stix_version); ?></legend>
@@ -23,14 +23,14 @@
         'checked' => true,
         'label' => __('Include the original imported file as attachment')
     ));
-?>
-<div class="input clear"></div>
-<?php
-    echo $this->Form->input('galaxies_parsing', array(
-        'checked' => false,
-        'label' => __('Use Galaxies 2.0')
-    ));
-    if ($me['Role']['perm_admin'] || $me['Role']['perm_site_admin']) {
+    if ($me['Role']['perm_site_admin'] || $me['Role']['perm_galaxy_editor']) {
+        echo '<div class="input clear"></div>';
+        echo $this->Form->input('galaxies_parsing', array(
+            'checked' => false,
+            'label' => __('Use Galaxies 2.0')
+        ));
+    }
+    if ($me['Role']['perm_site_admin']) {
         echo '<div class="input clear"></div>';
         echo $this->Form->input('debug', array(
             'checked' => true,
