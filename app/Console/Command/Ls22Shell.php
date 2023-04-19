@@ -553,12 +553,14 @@ class Ls22Shell extends AppShell
         }
 
         foreach ($event_extended_uuids as $orgc => $uuid) {
-            $org_name =  $event_uuid_per_org[$uuid];
-            if ($orgc != $org_name) {
-                // Add point for org extending another event
-                $results[$orgc]['extending_events'] += 1;
-                // Add point for org getting their event extended
-                $results[$org_name]['events_extended'] += 1;
+            if (!empty($event_uuid_per_org[$uuid])) {
+                $org_name =  $event_uuid_per_org[$uuid];
+                if ($orgc != $org_name) {
+                    // Add point for org extending another event
+                    $results[$orgc]['extending_events'] += 1;
+                    // Add point for org getting their event extended
+                    $results[$org_name]['events_extended'] += 1;
+                }
             }
         }
 
