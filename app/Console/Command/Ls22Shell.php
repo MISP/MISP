@@ -462,7 +462,8 @@ class Ls22Shell extends AppShell
         $event_uuid_per_org = [];
         foreach ($org_mapping as $org_name => $org_id) {
             $params = [
-                'org' => $org_id
+                'org' => $org_id,
+                'includeWarninglistHits' => true,
             ];
             if (!empty($time_range)) {
                 $params['publish_timestamp'] = $time_range;
