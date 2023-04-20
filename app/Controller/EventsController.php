@@ -2376,10 +2376,23 @@ class EventsController extends AppController
 
     public function upload_stix($stix_version = '1', $publish = false, $galaxies_as_tags = true, $debug = false)
     {
+        $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        $initialDistribution = 0;
+        if (Configure::read('MISP.default_event_distribution') != null) {
+            $initialDistribution = Configure::read('MISP.default_event_distribution');
+        }
+        $distributionLevels = $this->Event->distributionLevels;
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 if (isset($this->params['named']['publish'])) {
                     $publish = $this->params['named']['publish'];
+                }
+                if (isset($this->params['named']['distribution'])) {
+                    if (in_array($this->params['named']['distribution'], $distributionLevels)) {
+                        $initialDistribution = $this->params['named']['distribution'];
+                    } else {
+                        throw new MethodNotAllowedException(__('Wrong distribution level'));
+                    }
                 }
                 if (isset($this->params['named']['galaxies_as_tags'])) {
                     $galaxies_as_tags = $this->params['named']['galaxies_as_tags'];
@@ -2394,6 +2407,7 @@ class EventsController extends AppController
                     $stix_version,
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
                     $publish,
+                    $initialDistribution,
                     $galaxies_as_tags,
                     $debug
                 );
@@ -2423,6 +2437,7 @@ class EventsController extends AppController
                         $stix_version,
                         $original_file,
                         $this->data['Event']['publish'],
+                        $this->data['Event']['distribution'],
                         !boolval($this->data['Event']['galaxies_parsing']),
                         $debug
                     );
@@ -2442,6 +2457,20 @@ class EventsController extends AppController
             }
         }
         $this->set('stix_version', $stix_version == 2 ? '2.x JSON' : '1.x XML');
+        $this->set('initialDistribution', $initialDistribution);
+        $distributions = array_keys($this->Event->distributionDescriptions);
+        $distributions = $this->_arrayToValuesIndexArray($distributions);
+        $this->set('distributions', $distributions);
+        $fieldDesc = array();
+        if (empty($sgs)) {
+            unset($distributionLevels[4]);
+        }
+        $this->set('distributionLevels', $distributionLevels);
+        foreach ($distributionLevels as $key => $value) {
+            $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
+        }
+        $this->set('sharingGroups', $sgs);
+        $this->set('fieldDesc', $fieldDesc);
     }
 
     public function merge($target_id=null, $source_id=null)

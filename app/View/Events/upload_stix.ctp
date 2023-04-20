@@ -12,6 +12,34 @@
 ?>
 <div class="input clear"></div>
 <?php
+    $distributionFormInfo = $this->element(
+        'genericElements/Form/formInfo',
+        [
+            'field' => [
+                'field' => 'distribution'
+            ],
+            'modelForForm' => 'Event',
+            'fieldDesc' => $fieldDesc['distribution'],
+        ]
+    );
+    echo $this->Form->input('distribution', array(
+        'options' => $distributionLevels,
+        'label' => __('Distribution ') . $distributionFormInfo,
+        'selected' => $initialDistribution,
+    ));
+?>
+<div id="SGContainer" style="display:none;">
+<?php
+    if (!empty($sharingGroups)) {
+        echo $this->Form->input('sharing_group_id', array(
+            'options' => array($sharingGroups),
+            'label' => __('Sharing Group'),
+        ));
+    }
+?>
+</div>
+<div class="input clear"></div>
+<?php
     echo $this->Form->input('publish', array(
         'checked' => false,
         'label' => __('Publish imported events'),

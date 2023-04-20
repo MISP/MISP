@@ -41,7 +41,9 @@ def _process_stix_file(args: argparse.ArgumentParser):
             )
         stix_version = getattr(bundle, 'version', '2.1')
         to_call = 'Internal' if _from_misp(bundle.objects) else 'External'
-        parser = globals()[f'{to_call}STIX2toMISPParser'](args.galaxies_as_tags)
+        parser = globals()[f'{to_call}STIX2toMISPParser'](
+            args.distribution, args.galaxies_as_tags
+        )
         parser.load_stix_bundle(bundle)
         parser.parse_stix_bundle()
         with open(f'{args.input}.out', 'wt', encoding='utf-8') as f:
@@ -71,9 +73,22 @@ def _process_stix_file(args: argparse.ArgumentParser):
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser(description='Import STIX 2 content to MISP.')
-    argparser.add_argument('-i', '--input', required=True, type=Path, help='Input file containing STIX 2 content.')
-    argparser.add_argument('-d', '--debug', action='store_true', help='Display error and warning messages.')
-    argparser.add_argument('--galaxies_as_tags', action='store_true', help='Import MISP Galaxies as tag names.')
+    argparser.add_argument(
+        '-i', '--input', required=True, type=Path,
+        help='Input file containing STIX 2 content.'
+    )
+    argparser.add_argument(
+        '--distribution', type=int, default=0,
+        help='Distribution level for the resulting MISP Event.'
+    )
+    argparser.add_argument(
+        '--debug', action='store_true',
+        help='Display error and warning messages.'
+    )
+    argparser.add_argument(
+        '--galaxies_as_tags', action='store_true',
+        help='Import MISP Galaxies as tag names.'
+    )
     try:
         args = argparser.parse_args()
         _process_stix_file(args)
