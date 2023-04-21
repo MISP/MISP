@@ -41,10 +41,13 @@ def _process_stix_file(args: argparse.ArgumentParser):
             )
         stix_version = getattr(bundle, 'version', '2.1')
         to_call = 'Internal' if _from_misp(bundle.objects) else 'External'
-        arguments = [args.galaxies_as_tags, args.distribution]
+        arguments = {
+            'distribution': args.distribution,
+            'galaxies_as_tags': args.galaxies_as_tags
+        }
         if args.distribution == 4 and args.sharing_group_id is not None:
-            arguments.append(args.sharing_group_id)
-        parser = globals()[f'{to_call}STIX2toMISPParser'](*arguments)
+            arguments['sharing_group_id'] = args.sharing_group_id
+        parser = globals()[f'{to_call}STIX2toMISPParser'](**arguments)
         parser.load_stix_bundle(bundle)
         parser.parse_stix_bundle()
         with open(f'{args.input}.out', 'wt', encoding='utf-8') as f:
