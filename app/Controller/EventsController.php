@@ -2389,7 +2389,7 @@ class EventsController extends AppController
                 }
                 if (isset($this->params['named']['distribution'])) {
                     $distribution = intval($this->params['named']['distribution']);
-                    if (in_array($distribution, $distributionLevels)) {
+                    if (array_key_exists($distribution, $distributionLevels)) {
                         $initialDistribution = $distribution;
                     } else {
                         throw new MethodNotAllowedException(__('Wrong distribution level'));
@@ -2401,7 +2401,7 @@ class EventsController extends AppController
                         throw new MethodNotAllowedException(__('The sharing group id is needed when the distribution is set to 4 ("Sharing group").'));
                     }
                     $sharingGroupId = intval($this->params['named']['sharing_group_id']);
-                    if (!in_array($sharingGroupId, $sgs)) {
+                    if (!array_key_exists($sharingGroupId, $sgs)) {
                         throw new MethodNotAllowedException(__('Please select a valid sharing group id.'));
                     }
                 }
