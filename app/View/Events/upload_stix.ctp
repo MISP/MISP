@@ -75,3 +75,15 @@
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'import_from'));
 ?>
+
+<script>
+$(function(){
+    $('#EventDistribution').change(function() {
+        if ($(this).val() == 4) {
+            $('#SGContainer').show();
+        } else {
+            $('#SGContainer').hide();
+        }
+    }).change();
+});
+</script>
