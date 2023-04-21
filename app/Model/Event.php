@@ -5837,7 +5837,7 @@ class Event extends AppModel
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $galaxiesAsTags, $debug = false)
+    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $distribution, $galaxiesAsTags, $debug = false)
     {
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stix_version == '2' || $stix_version == '2.0' || $stix_version == '2.1') {
@@ -5846,15 +5846,16 @@ class Event extends AppModel
             $shell_command = [
                 ProcessTool::pythonBin(),
                 $scriptFile,
-                '-i', $file
+                '-i', $file,
+                '--distribution', $distribution
             ];
             if ($galaxiesAsTags) {
                 $shell_command[] = '--galaxies_as_tags';
             }
             if ($debug) {
-                $shell_command[] = '-d';
+                $shell_command[] = '--debug';
             }
-            $stix_version = "STIX 2.0";
+            $stix_version = "STIX 2.1";
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
             $scriptFile = $scriptDir . DS . 'stix2misp.py';
             $output_path = $file . '.json';
