@@ -2394,6 +2394,16 @@ class EventsController extends AppController
                         throw new MethodNotAllowedException(__('Wrong distribution level'));
                     }
                 }
+                $sharingGroupId = null;
+                if ($initialDistribution == 4) {
+                    if (!isset($this->params['named']['sharing_group_id'])) {
+                        throw new MethodNotAllowedException(__('The sharing group id is needed when the distribution is set to 4 ("Sharing group").'));
+                    }
+                    $sharingGroupId = $this->params['named']['sharing_group_id'];
+                    if (!in_array($sharingGroupId, $sgs)) {
+                        throw new MethodNotAllowedException(__('Please select a valid sharing group id.'));
+                    }
+                }
                 if (isset($this->params['named']['galaxies_as_tags'])) {
                     $galaxies_as_tags = $this->params['named']['galaxies_as_tags'];
                 }
@@ -2408,6 +2418,7 @@ class EventsController extends AppController
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
                     $publish,
                     $initialDistribution,
+                    $sharingGroupId,
                     $galaxies_as_tags,
                     $debug
                 );
@@ -2438,6 +2449,7 @@ class EventsController extends AppController
                         $original_file,
                         $this->data['Event']['publish'],
                         $this->data['Event']['distribution'],
+                        $this->data['Event']['sharing_group_id'],
                         !boolval($this->data['Event']['galaxies_parsing']),
                         $debug
                     );

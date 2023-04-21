@@ -5837,7 +5837,7 @@ class Event extends AppModel
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $distribution, $galaxiesAsTags, $debug = false)
+    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $distribution, $sharingGroupId, $galaxiesAsTags, $debug = false)
     {
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stix_version == '2' || $stix_version == '2.0' || $stix_version == '2.1') {
@@ -5849,6 +5849,9 @@ class Event extends AppModel
                 '-i', $file,
                 '--distribution', $distribution
             ];
+            if ($distribution == 4) {
+                array_push($shell_command, '--sharing_group_id', $sharingGroupId);
+            }
             if ($galaxiesAsTags) {
                 $shell_command[] = '--galaxies_as_tags';
             }

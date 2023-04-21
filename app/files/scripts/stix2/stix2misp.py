@@ -41,9 +41,10 @@ def _process_stix_file(args: argparse.ArgumentParser):
             )
         stix_version = getattr(bundle, 'version', '2.1')
         to_call = 'Internal' if _from_misp(bundle.objects) else 'External'
-        parser = globals()[f'{to_call}STIX2toMISPParser'](
-            args.distribution, args.galaxies_as_tags
-        )
+        arguments = [args.galaxies_as_tags, args.distribution]
+        if args.distribution == 4 and args.sharing_group_id is not None:
+            arguments.append(args.sharing_group_id)
+        parser = globals()[f'{to_call}STIX2toMISPParser'](*arguments)
         parser.load_stix_bundle(bundle)
         parser.parse_stix_bundle()
         with open(f'{args.input}.out', 'wt', encoding='utf-8') as f:
@@ -80,6 +81,10 @@ if __name__ == '__main__':
     argparser.add_argument(
         '--distribution', type=int, default=0,
         help='Distribution level for the resulting MISP Event.'
+    )
+    argparser.add_argument(
+        '--sharing_group_id', type=int,
+        help='Sharing group id when the distribution level is 4.'
     )
     argparser.add_argument(
         '--debug', action='store_true',
