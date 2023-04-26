@@ -5838,40 +5838,78 @@ class Event extends AppModel
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish)
+    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $distribution, $sharingGroupId, $galaxiesAsTags, $debug = false)
     {
         $scriptDir = APP . 'files' . DS . 'scripts';
-        if ($stix_version == '2') {
+        if ($stix_version == '2' || $stix_version == '2.0' || $stix_version == '2.1') {
             $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
-            $output_path = $file . '.stix2';
-            $stix_version = "STIX 2.0";
+            $output_path = $file . '.out';
+            $shell_command = [
+                ProcessTool::pythonBin(),
+                $scriptFile,
+                '-i', $file,
+                '--distribution', $distribution
+            ];
+            if ($distribution == 4) {
+                array_push($shell_command, '--sharing_group_id', $sharingGroupId);
+            }
+            if ($galaxiesAsTags) {
+                $shell_command[] = '--galaxies_as_tags';
+            }
+            if ($debug) {
+                $shell_command[] = '--debug';
+            }
+            $stix_version = "STIX 2.1";
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
             $scriptFile = $scriptDir . DS . 'stix2misp.py';
             $output_path = $file . '.json';
+            $shell_command = [
+                ProcessTool::pythonBin(),
+                $scriptFile,
+                $file,
+                Configure::read('MISP.default_event_distribution'),
+                Configure::read('MISP.default_attribute_distribution'),
+                $this->__getTagNamesFromSynonyms($scriptDir)
+            ];
             $stix_version = "STIX 1.1";
         } else {
             throw new InvalidArgumentException('Invalid STIX version');
         }
-
-        $shell_command = [
-            ProcessTool::pythonBin(),
-            $scriptFile,
-            $file,
-            Configure::read('MISP.default_event_distribution'),
-            Configure::read('MISP.default_attribute_distribution'),
-            $this->__getTagNamesFromSynonyms($scriptDir),
-        ];
 
         $result = ProcessTool::execute($shell_command, null, true);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
         $result = trim(end($result));
         $tempFile = file_get_contents($file);
         unlink($file);
-        if ($result === '1') {
+        $decoded = JsonTool::decode($result);
+        if (!empty($decoded['success'])) {
             $data = FileAccessTool::readAndDelete($output_path);
             $data = $this->jsonDecode($data);
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
+            }
+            if (!$galaxiesAsTags) {
+                if (!isset($this->GalaxyCluster)) {
+                    $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+                }
+                $this->__handleGalaxiesAndClusters($user, $data['Event']);
+                if (!empty($data['Event']['Attribute'])) {
+                    foreach ($data['Event']['Attribute'] as &$attribute) {
+                        $this->__handleGalaxiesAndClusters($user, $attribute);
+                    }
+                }
+                if (!empty($data['Event']['Object'])) {
+                    foreach ($data['Event']['Object'] as &$misp_object) {
+                        if (!empty($misp_object['Attribute'])) {
+                            foreach ($misp_object['Attribute'] as &$attribute) {
+                                $this->__handleGalaxiesAndClusters($user, $attribute);
+                            }
+                        }
+                    }
+                }
+            }
+            if (!empty($decoded['stix_version'])) {
+                $stix_version = 'STIX ' . $decoded['stix_version'];
             }
             $created_id = false;
             $validationIssues = false;
@@ -5890,13 +5928,8 @@ class Event extends AppModel
                 return $result;
             }
             return $validationIssues;
-        } else if ($result === '2') {
-            $response = __('Issues while loading the stix file.');
-        } elseif ($result === '3') {
-            $response = __('Issues with the maec library.');
-        } else {
-            $response = __('Issues executing the ingestion script or invalid input.');
         }
+        $response = __($decoded['error']);
         if (!$user['Role']['perm_site_admin']) {
             $response .= ' ' . __('Please ask your administrator to');
         } else {
@@ -5904,6 +5937,19 @@ class Event extends AppModel
         }
         $response .= ' ' . __('check whether the dependencies for STIX are met via the diagnostic tool.');
         return $response;
+    }
+
+    private function __handleGalaxiesAndClusters($user, &$data)
+    {
+        if (!empty($data['Galaxy'])) {
+            $tag_names = $this->GalaxyCluster->convertGalaxyClustersToTags($user, $data['Galaxy']);
+            if (empty($data['Tag'])) {
+                $data['Tag'] = [];
+            }
+            foreach ($tag_names as $tag_name) {
+                $data['Tag'][] = array('name' => $tag_name);
+            }
+        }
     }
 
     /**
