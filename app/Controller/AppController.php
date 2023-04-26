@@ -1491,7 +1491,7 @@ class AppController extends Controller
     protected function __setPagingParams(int $page, int $limit, int $current, string $type = 'named')
     {
         $this->request->params['paging'] = [
-            'Correlation' => [
+            $this->modelClass => [
                 'page' => $page,
                 'limit' => $limit,
                 'current' => $current,
