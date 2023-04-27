@@ -57,6 +57,14 @@ class ServersController extends AppController
         unset($fields['authkey']);
         $fields = array_keys($fields);
 
+        $filters = $this->IndexFilter->harvestParameters(['search']);
+        $conditions = [];
+        if (!empty($filters['search'])) {
+            $strSearch = '%' . trim(strtolower($filters['search'])) . '%';
+            $conditions['OR'][]['LOWER(Server.name) LIKE'] = $strSearch;
+            $conditions['OR'][]['LOWER(Server.url) LIKE'] = $strSearch;
+        }
+
         if ($this->_isRest()) {
             $params = array(
                 'fields' => $fields,
@@ -72,12 +80,14 @@ class ServersController extends AppController
                         'fields' => array('RemoteOrg.id', 'RemoteOrg.name', 'RemoteOrg.uuid', 'RemoteOrg.nationality', 'RemoteOrg.sector', 'RemoteOrg.type'),
                     ),
                 ),
+                'conditions' => $conditions,
             );
             $servers = $this->Server->find('all', $params);
             $servers = $this->Server->attachServerCacheTimestamps($servers);
             return $this->RestResponse->viewData($servers, $this->response->type());
         } else {
             $this->paginate['fields'] = $fields;
+            $this->paginate['conditions'] = $conditions;
             $servers = $this->paginate();
             $servers = $this->Server->attachServerCacheTimestamps($servers);
             $this->set('servers', $servers);

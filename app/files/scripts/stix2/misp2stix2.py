@@ -34,15 +34,19 @@ from stix2.base import STIXJSONEncoder
 from misp_stix_converter import MISPtoSTIX20Parser, MISPtoSTIX21Parser
 
 
-def _handle_errors(errors: dict):
-    for identifier, values in errors.items():
+def _handle_messages(field: str, feature: dict):
+    for identifier, values in feature.items():
         values = '\n - '.join(values)
         if identifier != 'attributes collection':
             identifier = f'MISP event {identifier}'
-        print(f'Errors encountered while parsing {identifier}:\n - {values}', file=sys.stderr)
+        print(
+            f'{field} encountered while parsing {identifier}:\n - {values}',
+            file=sys.stderr
+        )
 
 
-def _process_misp_files(version: str, input_names: Union[list, None], debug: bool):
+def _process_misp_files(
+        version: str, input_names: Union[list, None], debug: bool):
     if input_names is None:
         print(json.dumps({'error': 'No input file provided.'}))
         return
@@ -51,10 +55,13 @@ def _process_misp_files(version: str, input_names: Union[list, None], debug: boo
         for name in input_names:
             parser.parse_json_content(name)
             with open(f'{name}.out', 'wt', encoding='utf-8') as f:
-                f.write(f'{json.dumps(parser.stix_objects, cls=STIXJSONEncoder)}')
-        errors = parser.errors
-        if errors:
-            _handle_errors(errors)
+                f.write(
+                    f'{json.dumps(parser.stix_objects, cls=STIXJSONEncoder)}'
+                )
+        if parser.errors:
+            _handle_messages('Errors', parser.errors)
+        if debug and parser.warnings:
+            _handle_messages('Warnings', parser.warnings)
         print(json.dumps({'success': 1}))
     except Exception as e:
         print(json.dumps({'error': e.__str__()}))
@@ -63,11 +70,27 @@ def _process_misp_files(version: str, input_names: Union[list, None], debug: boo
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description='Export MISP into STIX2.')
-    argparser.add_argument('-v', '--version', default='2.0', choices=['2.0', '2.1'], help='STIX version (2.0 or 2.1).')
-    argparser.add_argument('-i', '--input', nargs='+', help='Input file(s) containing MISP standard format.')
-    argparser.add_argument('-d', '--debug', action='store_true', help='Allow debug mode with warnings.')
+    argparser.add_argument(
+        '-v', '--version', default='2.1', choices=['2.0', '2.1'],
+        help='STIX version (2.0 or 2.1).'
+    )
+    argparser.add_argument(
+        '-i', '--input', nargs='+', required=True,
+        help='Input file(s) containing MISP standard format.'
+    )
+    argparser.add_argument(
+        '-d', '--debug', action='store_true',
+        help='Allow debug mode with warnings.'
+    )
     try:
         args = argparser.parse_args()
         _process_misp_files(args.version, args.input, args.debug)
     except SystemExit:
-        print(json.dumps({'error': 'Arguments error, please check you entered a valid version and provided input file names.'}))
+        print(
+            json.dumps(
+                {
+                    'error': 'Arguments error, please check you entered a valid'
+                             ' version and provided input file names.'
+                }
+            )
+        )

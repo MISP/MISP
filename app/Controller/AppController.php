@@ -33,7 +33,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '148';
+    private $__queryVersion = '149';
     public $pyMispVersion = '2.4.170';
     public $phpmin = '7.2';
     public $phprec = '7.4';
@@ -1491,7 +1491,7 @@ class AppController extends Controller
     protected function __setPagingParams(int $page, int $limit, int $current, string $type = 'named')
     {
         $this->request->params['paging'] = [
-            'Correlation' => [
+            $this->modelClass => [
                 'page' => $page,
                 'limit' => $limit,
                 'current' => $current,
