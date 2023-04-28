@@ -347,24 +347,34 @@ function submitPasswordReset(id) {
     });
 }
 
-function submitMessageForm(url, form, target) {
+function submitMessageForm(url) {
     if (!$('#PostMessage').val()) {
         showMessage("fail", "Cannot submit empty message.");
     } else {
-        submitGenericForm(url, form, target);
+        var message = $('#PostMessage').val()
+        fetchFormDataAjax(url, function (formData) {
+            var $formData = $(formData);
+            $formData.find('#PostMessage').val(message);
+            $.ajax({
+                data: $formData.find('form').serialize(),
+                beforeSend: function () {
+                    $(".loading").show();
+                },
+                success: function (data) {
+                    showMessage("success", "Message added.");
+                    $('#top').html(data);
+                },
+                error: function () {
+                    showMessage('fail', 'Could not add message.');
+                },
+                complete: function () {
+                    $(".loading").hide();
+                },
+                type: "post",
+                url: $formData.find('form').attr('action')
+            });
+        });
     }
-}
-
-function submitGenericForm(url, form, target) {
-    xhr({
-        data: $('#' + form).serialize(),
-        success:function (data, textStatus) {
-            $('#top').html(data);
-            showMessage("success", "Message added.");
-        },
-        type: "post",
-        url: url,
-    });
 }
 
 function acceptObject(type, id) {

@@ -3641,6 +3641,7 @@ class Event extends AppModel
                 $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
             }
             if ($this->OrgBlocklist->isBlocked($orgc)) {
+                $this->OrgBlocklist->saveEventBlocked($orgc);
                 return 'blocked';
             }
         }

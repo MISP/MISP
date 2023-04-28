@@ -4,7 +4,7 @@ App::uses('StixExport', 'Export');
 class Stix2Export extends StixExport
 {
     protected $__attributes_limit = 15000;
-    protected $__default_version = '2.0';
+    protected $__default_version = '2.1';
     protected $__sane_versions = array('2.0', '2.1');
 
     protected function __initiate_framing_params()

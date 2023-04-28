@@ -1433,7 +1433,7 @@ class ExternalStixParser(StixParser):
                         if isinstance(attribute_value, list):
                             attributes.extend([{'type': attribute_type, 'value': value, 'to_ids': False} for value in attribute_value])
                         else:
-                            attribute.append({'type': attribute_type, 'value': attribute_value, 'to_ids': False})
+                            attributes.append({'type': attribute_type, 'value': attribute_value, 'to_ids': False})
         if ttp.exploit_targets and ttp.exploit_targets.exploit_target:
             for exploit_target in ttp.exploit_targets.exploit_target:
                 if exploit_target.item.vulnerabilities:
