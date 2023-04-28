@@ -5,13 +5,16 @@ push the content to a TAXII server.
 import argparse
 import logging
 import logging.config
-import misp_stix_converter
-import pathlib
 import sys
 import taxii2client
 import urllib.parse
 from base64 import b64decode
+from pathlib import Path
 from requests.auth import HTTPBasicAuth
+
+_script_path = Path(__file__).resolve.parents[1]
+sys.path.insert(0, str(_script_path / 'misp-stix'))
+import misp_stix_converter
 
 
 # Name of the logger to use for this application
@@ -95,7 +98,7 @@ def parse_args():
     parser.add_argument(
         "--dir",
         help="A directory with files containing JSON MISP events.",
-        type=pathlib.Path,
+        type=Path,
         required=True
     )
 
