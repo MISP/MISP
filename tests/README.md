@@ -1,8 +1,8 @@
 # Testing
-1. Add a `cerebrate_test` database to the database:
+1. Add a `misp3_test` database to the database:
 ```mysql
-CREATE DATABASE cerebrate_test;
-GRANT ALL PRIVILEGES ON cerebrate_test.* to cerebrate@localhost;
+CREATE DATABASE misp3_test;
+GRANT ALL PRIVILEGES ON misp3_test.* to misp@localhost;
 FLUSH PRIVILEGES;
 QUIT;
 ```
@@ -19,9 +19,9 @@ QUIT;
         */
     'test' => [
         'host' => 'localhost',
-        'username' => 'cerebrate',
-        'password' => 'cerebrate',
-        'database' => 'cerebrate_test',
+        'username' => 'misp',
+        'password' => 'misp',
+        'database' => 'misp3_test',
     ],
 ],
 ```
