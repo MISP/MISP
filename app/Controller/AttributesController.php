@@ -73,6 +73,9 @@ class AttributesController extends AppController
     {
         $user = $this->Auth->user();
         $this->paginate['conditions']['AND'][] = $this->Attribute->buildConditions($user);
+
+        $this->__setIndexFilterConditions();
+
         $attributes = $this->paginate();
 
         if ($this->_isRest()) {
@@ -3016,5 +3019,19 @@ class AttributesController extends AppController
     {
         $sg = $this->Attribute->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true, $sharingGroupId);
         return !empty($sg);
+    }
+
+    private function __setIndexFilterConditions()
+    {
+        // search by attribute value
+        if ($this->params['named']['searchvalue']) {
+            $v = $this->params['named']['searchvalue'];
+            $this->paginate['conditions']['AND'][] = [
+                'OR' => [
+                    ['Attribute.value1' => $v],
+                    ['Attribute.value2' => $v],
+                ]
+            ];
+        }
     }
 }

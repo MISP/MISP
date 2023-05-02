@@ -372,6 +372,7 @@
     <b>searchdistribution</b>: <?php echo __('Filters on the distribution level [0,1,2,3] - negatable');?><br />
     <b>searchanalysis</b>: <?php echo __('Filters on the given analysis phase of the event [0,1,2] - negatable');?><br />
     <b>searchattribute</b>: <?php echo __('Filters on a contained attribute value - negatable');?><br />
+    <b>searchvalue</b>: <?php echo __('Filter exact matches on the attribute value');?><br />
     <b>searchorg</b>: <?php echo __('Filters on the creator organisation - negatable');?><br />
     <b>searchemail</b>: <?php echo __('Filters on the creator user\'s email address (admin only) - negatable');?><br />
     <b>searchDatefrom</b>: <?php echo __('Filters on the date, anything newer than the given date in YYYY-MM-DD format is taken - non-negatable');?><br />
