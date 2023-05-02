@@ -670,6 +670,25 @@ class EventsController extends AppController
                         ]
                     ];
                     break;
+                case 'value':
+                    if ($v == "") {
+                        continue 2;
+                    }
+                    $conditions['OR'] = [
+                        ['Attribute.value1' => $v],
+                        ['Attribute.value2' => $v],
+                    ];
+
+                    $eventIds = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                        'conditions' => $conditions,
+                        'flatten' => true,
+                        'event_ids' => true,
+                        'list' => true,
+                    ));
+
+                    $this->paginate['conditions']['AND'][] = array('Event.id' => $eventIds);
+
+                    break;
                 default:
                     continue 2;
             }
@@ -682,7 +701,7 @@ class EventsController extends AppController
     {
         // list the events
         $urlparams = "";
-        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
+        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value');
         $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
         $passedArgs = $this->passedArgs;
         if (!empty($this->request->data)) {
