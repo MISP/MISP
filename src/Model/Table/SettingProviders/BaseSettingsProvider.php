@@ -12,6 +12,7 @@ class BaseSettingsProvider
             $error_warning = '',
             $error_info = '';
     protected $severities = ['info', 'warning', 'critical'];
+    protected $settingValidator;
 
     public function __construct()
     {
