@@ -67,6 +67,7 @@ class WorkflowsController extends AppController
             } else {
                 $successMessage = __('Workflow saved.');
                 $savedWorkflow = $result['saved'];
+                $savedWorkflow = $this->Workflow->attachLabelToConnections($savedWorkflow);
                 return $this->__getSuccessResponseBasedOnContext($successMessage, $savedWorkflow, 'edit', false, $redirectTarget);
             }
         } else {

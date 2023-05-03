@@ -9,7 +9,6 @@ class Module_generic_filter_reset extends WorkflowFilteringLogicModule
     public $icon = 'redo-alt';
     public $inputs = 1;
     public $outputs = 1;
-    // public $html_template = 'filter-remove';
     public $params = [];
 
     public function __construct()
@@ -20,6 +19,7 @@ class Module_generic_filter_reset extends WorkflowFilteringLogicModule
                 'id' => 'filtering-label',
                 'label' => __('Filtering Label to remove'),
                 'type' => 'select',
+                'default' => 'all',
                 'options' => ['all' => __('All filters')] + $this->_genFilteringLabels(),
             ],
         ];
@@ -28,8 +28,16 @@ class Module_generic_filter_reset extends WorkflowFilteringLogicModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         parent::exec($node, $roamingData, $errors);
+        $params = $this->getParamsWithValues($node);
+        $filteringLabel = $params['filtering-label']['value'];
         $rData = $roamingData->getData();
+
         $newRData = $rData['_unfilteredData'];
+        if (in_array($filteringLabel, array_keys($this->_genFilteringLabels()))) {
+            unset($newRData['enabledFilters'][$filteringLabel]);
+        } else if ($filteringLabel === 'all') {
+            $newRData['enabledFilters'] = [];
+        }
         $roamingData->setData($newRData);
         return true;
     }

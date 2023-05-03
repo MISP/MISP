@@ -675,7 +675,7 @@ function getEditorData(cleanNodes) {
                 node.data.params = deleteInvalidParams(node.data.params)
                 cleanedIndexedParams = {}
                 node.data.params.forEach(function(param) {
-                    cleanedIndexedParams[param.id] = param.value
+                    cleanedIndexedParams[param.id] = param.value !== undefined ? param.value : param.default
                 })
                 node.data.indexed_params = cleanedIndexedParams
             }

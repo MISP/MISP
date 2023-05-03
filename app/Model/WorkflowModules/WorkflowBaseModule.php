@@ -135,7 +135,7 @@ class WorkflowBaseModule
         return 'The Factory Must Grow';
     }
 
-    protected function extractData($data, $path)
+    public function extractData($data, $path)
     {
         $extracted = $data;
         if (!empty($path)) {
@@ -211,7 +211,7 @@ class WorkflowBaseModule
         return false;
     }
 
-    protected function getItemsMatchingCondition($items, $value, $operator, $path)
+    public function getItemsMatchingCondition($items, $value, $operator, $path)
     {
         foreach ($items as $i => $item) {
             $subItem = $this->extractData($item, $path, $operator);

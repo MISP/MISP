@@ -164,10 +164,10 @@ class GraphWalker
             return ['output_1' => []];
         } else if ($node['data']['id'] == 'generic-filter-data') {
             $this->_evaluateFilterAddLogic($node, $roamingData, $outputs['output_1']);
-            return ['output_1' => []];
+            return ['output_1' => $outputs['output_1']];
         } else if ($node['data']['id'] == 'generic-filter-reset') {
             $this->_evaluateFilterRemoveLogic($node, $roamingData, $outputs['output_1']);
-            return ['output_1' => []];
+            return ['output_1' => $outputs['output_1']];
         } else {
             $useFirstOutput = $this->_evaluateCustomLogicCondition($node, $roamingData);
             return $useFirstOutput ? ['output_1' => $outputs['output_1']] : ['output_2' => $outputs['output_2']];
@@ -272,6 +272,7 @@ class WorkflowRoamingData
     private $data;
     private $workflow;
     private $current_node;
+    private $workflowModel;
 
     public function __construct(array $workflow_user, array $data, array $workflow, int $current_node)
     {
@@ -288,7 +289,45 @@ class WorkflowRoamingData
 
     public function getData(): array
     {
+        if (!empty($this->getEnabledFilters())) {
+            return $this->filterDataIfNeeded();
+        }
         return $this->data;
+    }
+
+    public function filterDataIfNeeded(): array
+    {
+        $filteredData = $this->data;
+        $filters = $this->getEnabledFilters();
+        foreach ($filters as $filteringLabel => $filteringOptions) {
+            $filteredData = $this->applyFilter($filteredData, $filteringOptions);
+        }
+        return $filteredData;
+    }
+
+    private function applyFilter(array $data, array $filteringOptions): array
+    {
+        $baseModule = $this->getFilteringModule();
+        $extracted = $baseModule->extractData($data, $filteringOptions['selector']);
+        if ($extracted === false) {
+            $filteredData = false;
+        }
+        $filteredData = $baseModule->getItemsMatchingCondition($extracted, $filteringOptions['value'], $filteringOptions['operator'], $filteringOptions['path']);
+        $newData = Hash::remove($data, $filteringOptions['selector']);
+        $newData = Hash::insert($data, $filteringOptions['selector'], $filteredData);
+        return $newData;
+    }
+
+    private function getFilteringModule()
+    {
+        $this->workflowModel = ClassRegistry::init('Workflow');
+        $moduleClass = $this->workflowModel->getModuleClassByType('logic', 'generic-filter-data');
+        return $moduleClass;
+    }
+
+    public function getEnabledFilters(): array
+    {
+        return !empty($this->data['enabledFilters']) ? $this->data['enabledFilters'] : [];
     }
 
     public function getWorkflow(): array

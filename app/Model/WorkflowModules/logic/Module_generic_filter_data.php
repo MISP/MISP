@@ -9,7 +9,6 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
     public $icon = 'filter';
     public $inputs = 1;
     public $outputs = 1;
-    // public $html_template = 'filter-add';
     public $params = [];
 
     private $operators = [
@@ -65,16 +64,20 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
         $path = $params['hash_path']['value'];
         $operator = $params['operator']['value'];
         $value = $params['value']['value'];
+        $filteringLabel = $params['filtering-label']['value'];
         $rData = $roamingData->getData();
 
-        $applyFilterFunction = function ($element) use ($value, $operator, $path) {
-            $selectedData = Hash::extract($element, $path);
-            return $this->evaluateCondition($selectedData, $operator, $value);
-        };
-        $filteredData = Hash::apply($rData, $selector, $applyFilterFunction);
-        debug($filteredData);
-        $newRData = $filteredData;
-        $newRData['_unfilteredData'] = $rData;
+        $newRData = $rData;
+        if (empty($newRData['_unfilteredData'])) {
+            $newRData['_unfilteredData'] = $rData;
+        }
+        $newRData['enabledFilters'][$filteringLabel] = [
+            'selector' => $selector,
+            'path' => $path,
+            'operator' => $operator,
+            'value' => $value,
+        ];
+
         $roamingData->setData($newRData);
         return true;
     }
