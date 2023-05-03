@@ -3024,8 +3024,8 @@ class AttributesController extends AppController
     private function __setIndexFilterConditions()
     {
         // search by attribute value
-        if ($this->params['named']['searchvalue']) {
-            $v = $this->params['named']['searchvalue'];
+        if (isset($this->request->params['named']['searchvalue'])) {
+            $v = $this->request->params['named']['searchvalue'];
             $this->paginate['conditions']['AND'][] = [
                 'OR' => [
                     ['Attribute.value1' => $v],
