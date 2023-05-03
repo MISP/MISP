@@ -1,0 +1,28 @@
+name: Test
+
+on:
+  push:
+    branches:
+    - main
+    - 3.x-docker-env
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  docker:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Start test containers
+      run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" up -d --build
+
+    - name: Run tests
+      run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" exec misp vendor/bin/phpunit
+
+    - name: Stop containers
+      run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" down
