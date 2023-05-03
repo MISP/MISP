@@ -15,60 +15,62 @@ use Cake\Controller\ComponentRegistry;
 
 class ChangePasswordApiTest extends TestCase
 {
-    // use ApiTestTrait;
+    use ApiTestTrait;
 
-    // protected const ENDPOINT = '/users/edit';
+    protected const ENDPOINT = '/users/edit';
 
-    // /** @var \Cake\Auth\FormAuthenticate */
-    // protected $auth;
+    /** @var \Cake\Auth\FormAuthenticate */
+    protected $auth;
 
-    // /** @var \Cake\Controller\ComponentRegistry */
-    // protected $collection;
+    /** @var \Cake\Controller\ComponentRegistry */
+    protected $collection;
 
-    // protected $fixtures = [
-    //     'app.Organisations',
-    //     'app.Individuals',
-    //     'app.Roles',
-    //     'app.Users',
-    //     'app.AuthKeys'
-    // ];
+    protected $fixtures = [
+        'app.Organisations',
+        'app.Individuals',
+        'app.Roles',
+        'app.Users',
+        'app.AuthKeys'
+    ];
 
-    // public function setUp(): void
-    // {
-    //     parent::setUp();
-    //     $this->initializeOpenApiValidator();
+    public function setUp(): void
+    {
+        $this->markTestSkipped("This is not implemented yet.");
+        parent::setUp();
+        $this->initializeOpenApiValidator();
 
-    //     $this->collection = new ComponentRegistry();
-    //     $this->auth = new FormAuthenticate($this->collection, [
-    //         'userModel' => 'Users',
-    //     ]);
-    // }
+        $this->collection = new ComponentRegistry();
+        $this->auth = new FormAuthenticate($this->collection, [
+            'userModel' => 'Users',
+        ]);
+    }
 
-    // public function testChangePasswordOwnUser(): void
-    // {
-    //     $this->setAuthToken(AuthKeysFixture::REGULAR_USER_API_KEY);
-    //     $newPassword = 'Test12345678!';
+    public function testChangePasswordOwnUser(): void
+    {
+        $this->markTestSkipped("This is not implemented yet.");
+        $this->setAuthToken(AuthKeysFixture::REGULAR_USER_API_KEY);
+        $newPassword = 'Test12345678!';
 
-    //     $this->put(
-    //         self::ENDPOINT,
-    //         [
-    //             'password' => $newPassword,
-    //         ]
-    //     );
+        $this->put(
+            self::ENDPOINT,
+            [
+                'password' => $newPassword,
+            ]
+        );
 
-    //     $this->assertResponseOk();
+        $this->assertResponseOk();
 
-    //     // Test new password with form login
-    //     $request = new ServerRequest([
-    //         'url' => 'users/login',
-    //         'post' => [
-    //             'username' => UsersFixture::USER_REGULAR_USER_USERNAME,
-    //             'password' => $newPassword
-    //         ],
-    //     ]);
-    //     $result = $this->auth->authenticate($request, new Response());
+        // Test new password with form login
+        $request = new ServerRequest([
+            'url' => 'users/login',
+            'post' => [
+                'username' => UsersFixture::USER_REGULAR_USER_USERNAME,
+                'password' => $newPassword
+            ],
+        ]);
+        $result = $this->auth->authenticate($request, new Response());
 
-    //     $this->assertEquals(UsersFixture::USER_REGULAR_USER_ID, $result['id']);
-    //     $this->assertEquals(UsersFixture::USER_REGULAR_USER_USERNAME, $result['username']);
-    // }
+        $this->assertEquals(UsersFixture::USER_REGULAR_USER_ID, $result['id']);
+        $this->assertEquals(UsersFixture::USER_REGULAR_USER_USERNAME, $result['username']);
+    }
 }
