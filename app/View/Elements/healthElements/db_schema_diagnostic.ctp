@@ -19,32 +19,28 @@
         ),
         [...]
     );
-
-
     */
 
 
-    function highlightAndSanitize($dirty, $toHighlight, $colorType = 'success')
-    {
-        if (is_array($dirty)) {
-            $arraySane = array();
-            foreach ($dirty as $i => $item) {
-                if (in_array($item, $toHighlight)) {
-                    $arraySane[] = sprintf('<span class="label label-%s">', $colorType) . h($item) . '</span>';
-                } else {
-                    $arraySane[] = h($item);
-                }
+function highlightAndSanitize($dirty, $toHighlight, $colorType = 'success')
+{
+    if (is_array($dirty)) {
+        $arraySane = array();
+        foreach ($dirty as $i => $item) {
+            if (in_array($item, $toHighlight)) {
+                $arraySane[] = sprintf('<span class="label label-%s">', $colorType) . h($item) . '</span>';
+            } else {
+                $arraySane[] = h($item);
             }
-            return $arraySane;
-        } else {
-            $sane = h($dirty);
-            $sane = str_replace($toHighlight, sprintf('<span class="label label-%s">', $colorType)  . h($toHighlight) . '</span>', $sane);
-            return $sane;
         }
+        return $arraySane;
+    } else {
+        $sane = h($dirty);
+        $sane = str_replace($toHighlight, sprintf('<span class="label label-%s">', $colorType)  . h($toHighlight) . '</span>', $sane);
+        return $sane;
     }
-?>
+}
 
-<?php
     $hasAtLeastOneCriticalWarning = false;
     foreach ($dbSchemaDiagnostics as $tableName => $tableDiagnostic) {
         foreach ($tableDiagnostic as $i => $columnDiagnostic) {
@@ -171,12 +167,13 @@
                 __('Updates are locked due to to many update fails') : sprintf(__('Updates unlocked in %s'), h($humanReadableTime)))
             : __('Updates are not locked'),
         $updateLocked ? 'times' : 'check'
-        );
+    );
+    $validDataSource = in_array($dataSource, ['Database/Mysql', 'Database/MysqlExtended'], true);
     echo sprintf('<span class="label label-%s" title="%s" style="margin-left: 5px;">%s <i class="fas fa-%s"></i></span>',
-        $dataSource != 'Database/Mysql' ? 'important' : 'success',
+        $validDataSource ? 'success' : 'important',
         __('DataSource: ') . h($dataSource),
         __('DataSource: ') . h($dataSource),
-        $dataSource != 'Database/Mysql' ? 'times' : 'check'
+        $validDataSource ? 'check' : 'times'
     );
     if ($expectedDbVersion == $actualDbVersion) {
         echo $this->element('/healthElements/db_indexes_diagnostic', array(
@@ -198,7 +195,7 @@ function adjustRowSpan() {
     })
 }
 
-$(document).ready(function() {
+$(function() {
     // hide non-critical issues
     if ($('#dbSchemaDiagnosticCheckbox').prop('checked')) {
         $('#dbSchemaDiagnosticTable').find('tr.noncritical').show();

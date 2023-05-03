@@ -1,4 +1,9 @@
 function sparkline(elemId, data) {
+    if (typeof data === "undefined") {
+        data = document.querySelector(elemId).dataset.csv;
+        data = data.replaceAll("\\n", "\n");
+    }
+
     data = d3.csv.parse(data);
     var width = 100;
     var height = 25;

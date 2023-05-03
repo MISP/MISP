@@ -62,6 +62,12 @@ label.center-in-network-header {
 
 #eventdistri_graph {
 	position: relative;
+	height: 290px;
+	width: 400px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column-reverse;
 }
 
 #eventdistri_pb_container {
@@ -71,13 +77,11 @@ label.center-in-network-header {
 
 #eventdistri_pb_background {
 	width: 400px;
-    	display: flex;
+	display: flex;
 }
 
 .distribution_checkboxes_dataset {
-	position: absolute;
-	width: 100%;
-	display: inline-block;
+	margin-top: 0.5em;
 }
 .distribution_checkboxes_dataset label {
 	margin-bottom: 0px;

@@ -886,7 +886,7 @@ function markdownItToggleRenderingRule(rulename, event) {
         event.stopPropagation()
     }
     if (renderingRules[rulename] === undefined) {
-        console.log('Rule does not exists')
+        console.log('Rule does not exist')
         return
     }
     renderingRules[rulename] = !renderingRules[rulename]

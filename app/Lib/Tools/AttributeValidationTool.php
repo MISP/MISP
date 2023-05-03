@@ -202,7 +202,7 @@ class AttributeValidationTool
                     $value = substr($value, 2); // remove 'AS'
                 }
                 if (strpos($value, '.') !== false) { // maybe value is in asdot notation
-                    $parts = explode('.', $value);
+                    $parts = explode('.', $value, 2);
                     if (self::isPositiveInteger($parts[0]) && self::isPositiveInteger($parts[1])) {
                         return $parts[0] * 65536 + $parts[1];
                     }
@@ -412,12 +412,12 @@ class AttributeValidationTool
                 }
                 return __('Email address has an invalid format. Please double check the value or select type "other".');
             case 'vulnerability':
-                if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,}$#", $value)) {
+                if (preg_match("#^CVE-[0-9]{4}-[0-9]{4,}$#", $value)) {
                     return true;
                 }
                 return __('Invalid format. Expected: CVE-xxxx-xxxx...');
             case 'weakness':
-                if (preg_match("#^(CWE-)[0-9]{1,}$#", $value)) {
+                if (preg_match("#^CWE-[0-9]+$#", $value)) {
                     return true;
                 }
                 return __('Invalid format. Expected: CWE-x...');
@@ -526,6 +526,7 @@ class AttributeValidationTool
             case 'favicon-mmh3':
             case 'chrome-extension-id':
             case 'mobile-application-id':
+            case 'azure-application-id':
             case 'named pipe':
                 if (strpos($value, "\n") !== false) {
                     return __('Value must not contain new line character.');
@@ -580,6 +581,28 @@ class AttributeValidationTool
                 return __('AS number have to be integer between 1 and 4294967295');
         }
         throw new InvalidArgumentException("Unknown type $type.");
+    }
+
+    /**
+     * This method will generate all valid types for given value.
+     * @param array $types Typos to check
+     * @param array $compositeTypes Composite types
+     * @param string $value Values to check
+     * @return array
+     */
+    public static function validTypesForValue(array $types, array $compositeTypes, $value)
+    {
+        $possibleTypes = [];
+        foreach ($types as $type) {
+            if (in_array($type, $compositeTypes, true) && substr_count($value, '|') !== 1) {
+                continue; // value is not in composite format
+            }
+            $modifiedValue = AttributeValidationTool::modifyBeforeValidation($type, $value);
+            if (AttributeValidationTool::validate($type, $modifiedValue) === true) {
+                $possibleTypes[] = $type;
+            }
+        }
+        return $possibleTypes;
     }
 
     /**

@@ -1063,8 +1063,12 @@ class GalaxyCluster extends AppModel
         if (isset($options['group'])) {
             $params['group'] = $options['group'];
         }
-        if (isset($options['order'])) {
-            $params['order'] = $options['order'];
+        if (!empty($options['order'])) {
+            $options['order'] = $this->findOrder(
+                $options['order'],
+                'GalaxyCluster',
+                ['id', 'event_id', 'version', 'type', 'value', 'distribution', 'orgc_id', 'org_id', 'tag_name', 'galaxy_id']
+            );
         }
         if (isset($options['page'])) {
             $params['page'] = $options['page'];
@@ -1667,7 +1671,7 @@ class GalaxyCluster extends AppModel
         }
 
         try {
-            if (!$serverSync->isSupported(ServerSyncTool::PERM_SYNC) || $serverSync->isSupported(ServerSyncTool::PERM_GALAXY_EDITOR)) {
+            if (!$serverSync->isSupported(ServerSyncTool::PERM_SYNC) || !$serverSync->isSupported(ServerSyncTool::PERM_GALAXY_EDITOR)) {
                 return __('The remote user does not have the permission to manipulate galaxies - the upload of the galaxy clusters has been blocked.');
             }
             $serverSync->pushGalaxyCluster($cluster)->json();
@@ -2066,5 +2070,32 @@ class GalaxyCluster extends AppModel
             }
         }
         return $CyCatRelations;
+    }
+
+    /**
+     * convertGalaxyClustersToTags
+     *
+     * @param array $user
+     * @param array $galaxies
+     * @return array The tag names extracted from galaxy clusters
+     */
+    public function convertGalaxyClustersToTags($user, $galaxies)
+    {
+        $galaxyClusters = [];
+        $tag_names = [];
+        foreach ($galaxies as $galaxy) {
+            if (empty($galaxy['GalaxyCluster'])) {
+                continue;
+            }
+            $clusters = $galaxy['GalaxyCluster'];
+            unset($galaxy['GalaxyCluster']);
+            foreach ($clusters as $cluster) {
+                $cluster['Galaxy'] = $galaxy;
+                $galaxyClusters[] = array('GalaxyCluster' => $cluster);
+                $tag_names[] = !empty($cluster['tag_name']) ? $cluster['tag_name'] : 'misp-galaxy:' . $cluster['type'] . '="' . $cluster['uuid'] . '"';
+            }
+        }
+        $this->Galaxy->importGalaxyAndClusters($user, $galaxyClusters);
+        return $tag_names;
     }
 }

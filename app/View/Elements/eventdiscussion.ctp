@@ -149,7 +149,7 @@
             ));
         ?>
         </fieldset>
-        <button class="btn btn-primary" onclick="submitMessageForm('<?php echo $url;?>', 'PostViewForm', 'top'); return false;"><?php echo __('Send comment');?></button>
+        <button class="btn btn-primary" onclick="submitMessageForm('<?php echo $url;?>'); return false;"><?php echo __('Send comment');?></button>
     <?php
         echo $this->Form->end();
     ?>

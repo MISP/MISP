@@ -238,6 +238,40 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
         </tbody>
     </table>
 
+    <h4><?= __('PHP Dependencies') ?></h4>
+    <p><?= _("Dependencies located in the Vendor folder. You can use composer to install them: 'php composer.phar help' ") ?></p>
+    <table class="table table-condensed table-bordered" style="width: 40vw">
+        <thead>
+            <tr>
+                <th><?= __('Dependency') ?></th>
+                <th><?= __('Required') ?></th>
+                <th><?= __('Why to install') ?></th>
+                <th><?= __('Installed') ?></th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($extensions['dependencies'] as $dependency => $info): ?>
+        <tr>
+            <td class="bold"><?= h($dependency) ?></td>
+            <td><?= $info['required'] ? '<i class="black fa fa-check" role="img" aria-label="' .  __('Yes') . '"></i>' : '<i class="black fa fa-times" role="img" aria-label="' .  __('No') . '"></i>' ?></td>
+            <td><?= $info['info'] ?></td>
+            <td><?php
+                $version = $info["version"];
+                $outdated = $info["version_outdated"];
+                if ($version && !$outdated) {
+                    echo '<i class="green fa fa-check" role="img" aria-label="' .  __('Yes') . '"></i> (' . h($version) .')';
+                } else {
+                    echo '<i class="red fa fa-times" role="img" aria-label="' .  __('No') . '"></i>';
+                    if ($outdated) {
+                        echo '<br>' . __("Version %s installed, but required at least %s", h($version), h($info['required_version']));
+                    }
+                }
+            ?></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+
     <div style="width:400px;">
     <?= $this->element('/genericElements/IndexTable/index_table', array(
             'data' => array(

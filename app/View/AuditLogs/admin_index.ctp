@@ -14,7 +14,7 @@
         echo $this->Html->css('query-builder.default');
         echo $this->Html->script('query-builder');
     ?>
-    <script type="text/javascript">
+    <script>
         var qbOptions = {
             plugins: {
                 'unique-filter': null,
@@ -50,7 +50,7 @@
                     unique: true,
                     id: "action",
                     label: "Action",
-                    values: <?= json_encode($actions) ?>
+                    values: <?= JsonTool::encode($actions) ?>
                 },
                 {
                     input: "select",
@@ -61,7 +61,7 @@
                     unique: true,
                     id: "model",
                     label: "Model type",
-                    values: <?= json_encode($models) ?>
+                    values: <?= JsonTool::encode($models) ?>
                 },
                 {
                     input: "text",
@@ -161,7 +161,7 @@
             rules: {
                 condition: 'AND',
                 not: false,
-                rules: <?= json_encode($qbRules) ?>,
+                rules: <?= JsonTool::encode($qbRules) ?>,
                 flags: {
                     no_add_group: true,
                     condition_readonly: true,
@@ -278,7 +278,7 @@
             <td class="short" data-search="model" data-search-value="<?= h($item['AuditLog']['model']) . ':' . h($item['AuditLog']['model_id']) ?>">
                 <?php $title = isset($item['AuditLog']['event_info']) ? ' title="' . __('Event #%s: %s', $item['AuditLog']['event_id'], h($item['AuditLog']['event_info'])) . '"' : '' ?>
                 <?= isset($item['AuditLog']['model_link']) ? '<a href="' . h($item['AuditLog']['model_link']) . '"' . $title . '>' : '' ?>
-                <?= h($item['AuditLog']['model']) . ' #' . h($item['AuditLog']['model_id']) ?>
+                <?= h($item['AuditLog']['model']) . ($item['AuditLog']['model_id'] ? ' #' . h($item['AuditLog']['model_id']) : '') ?>
                 <?= isset($item['AuditLog']['model_link']) ? '</a>' : '' ?>
             </td>
             <td class="limitedWidth"><?= h($item['AuditLog']['title']) ?></td>
@@ -294,7 +294,7 @@
         </ul>
     </div>
 </div>
-<script type="text/javascript">
+<script>
     var passedArgs = <?= $passedArgs ?>;
 
     $('.fullChange').dblclick(function () {
@@ -306,32 +306,18 @@
                 $(this).html(syntaxHighlightJson($(this).text()));
             });
             openPopup($popoverFormLarge);
-        });
+        }).fail(xhrFailCallback);
         return false;
     });
 
-    $('td[data-search]').mouseenter(function() {
-        var $td = $(this);
-        if ($td.data('search-value').length === 0) {
-            return;
-        }
-
-        $td.find('#quickEditButton').remove(); // clean all similar if exist
-        var $div = $('<div id="quickEditButton"></div>');
-        $div.addClass('quick-edit-row-div');
-        var $span = $('<span></span>');
-        $span.addClass('fa-as-icon fa fa-search-plus');
-        $span.css('font-size', '12px');
-        $div.append($span);
-        $td.append($div);
-
-        $span.click(function() {
-            if ($td.data('search') === 'model') {
-                var val = $td.data('search-value').split(":");
+    $(function() {
+        filterSearch(function (e, searchKey, searchValue) {
+            if (searchKey === 'model') {
+                var val = searchValue.split(":");
                 passedArgs['model'] = encodeURIComponent(val[0]);
                 passedArgs['model_id'] = encodeURIComponent(val[1]);
             } else {
-                passedArgs[$td.data('search')] = encodeURIComponent($td.data('search-value'));
+                passedArgs[searchKey] = encodeURIComponent(searchValue);
             }
 
             var url = here;
@@ -343,10 +329,6 @@
                 }
             }
             window.location.href = url;
-        });
-
-        $td.off('mouseleave').on('mouseleave', function() {
-            $div.remove();
         });
     });
 </script>

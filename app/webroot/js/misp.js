@@ -58,7 +58,7 @@ function rgb2hex(rgb) {
 function xhrFailCallback(xhr) {
     if (xhr.status === 0) {
         showMessage('fail', 'Something went wrong – server is not responding.');
-    } if (xhr.status === 401) {
+    } else if (xhr.status === 401) {
         showMessage('fail', 'Unauthorized. Please reload page to log again.');
     } else if (xhr.status === 403 || xhr.status === 405) {
         showMessage('fail', 'Not allowed.');
@@ -347,24 +347,34 @@ function submitPasswordReset(id) {
     });
 }
 
-function submitMessageForm(url, form, target) {
+function submitMessageForm(url) {
     if (!$('#PostMessage').val()) {
         showMessage("fail", "Cannot submit empty message.");
     } else {
-        submitGenericForm(url, form, target);
+        var message = $('#PostMessage').val()
+        fetchFormDataAjax(url, function (formData) {
+            var $formData = $(formData);
+            $formData.find('#PostMessage').val(message);
+            $.ajax({
+                data: $formData.find('form').serialize(),
+                beforeSend: function () {
+                    $(".loading").show();
+                },
+                success: function (data) {
+                    showMessage("success", "Message added.");
+                    $('#top').html(data);
+                },
+                error: function () {
+                    showMessage('fail', 'Could not add message.');
+                },
+                complete: function () {
+                    $(".loading").hide();
+                },
+                type: "post",
+                url: $formData.find('form').attr('action')
+            });
+        });
     }
-}
-
-function submitGenericForm(url, form, target) {
-    xhr({
-        data: $('#' + form).serialize(),
-        success:function (data, textStatus) {
-            $('#top').html(data);
-            showMessage("success", "Message added.");
-        },
-        type: "post",
-        url: url,
-    });
 }
 
 function acceptObject(type, id) {
@@ -475,7 +485,7 @@ function updateFieldOnSuccess($td, type, id, field) {
                 $(".loading").show();
             }
         },
-        dataType:"html",
+        dataType: "html",
         cache: false,
         success: function (data) {
             if (field !== 'timestamp') {
@@ -667,8 +677,9 @@ function submitForm($td, type, id, field) {
         var field = $(this).data('edit-field');
         quickEditHover(this, type, objectId, field);
     });
-    // Show popover with advanced sigtings information about given or selected attributes
-    $(document.body).on('click', '.sightings_advanced_add', function() {
+    // Show popover with advanced sightings information about given or selected attributes
+    $(document.body).on('click', '.sightings_advanced_add', function(e) {
+        e.preventDefault();
         var object_context = $(this).data('object-context');
         var object_id = $(this).data('object-id');
         if (object_id === 'selected') {
@@ -913,10 +924,18 @@ function toggleAllTaxonomyCheckboxes() {
 function attributeListAnyAttributeCheckBoxesChecked() {
     if ($('.select_attribute:checked').length > 0) {
         $('.mass-select').removeClass('hidden');
-        $('#create-button').removeClass('last');
+        if ($("#object-button").length) {
+            $("#object-button").removeClass('last');
+        } else {
+            $('#create-button').removeClass('last');
+        }
     } else {
         $('.mass-select').addClass('hidden');
-        $('#create-button').addClass('last');
+        if ($("#object-button").length) {
+            $("#object-button").addClass('last');
+        } else {
+            $('#create-button').addClass('last');
+        }
     }
 }
 
@@ -1695,7 +1714,7 @@ function openPopup(id, adjust_layout, callback) {
             $id.addClass('vertical-scroll');
         } else {
             if (window_height > (300 + popup_height)) {
-                var top_offset = ((window_height - popup_height) / 2) - 150;
+                var top_offset = ((window_height - popup_height) / 2) - 125;
             } else {
                 var top_offset = (window_height - popup_height) / 2;
             }
@@ -2101,14 +2120,6 @@ function templateDeleteFileBubble(filename, tmp_name, element_id, context, batch
 
 function templateFileUploadTriggerBrowse(id) {
     $('#upload_' + id + '_file').click();
-}
-
-function freetextRemoveRow(id, event_id) {
-    $('#row_' + id).hide();
-    $('#Attribute' + id + 'Save').attr("value", "0");
-    if ($(".freetext_row:visible").length == 0) {
-        window.location = baseurl + "/events/" + event_id;
-    }
 }
 
 function indexEvaluateFiltering() {
@@ -2764,7 +2775,7 @@ function exportChoiceSelect(e) {
     document.location.href = url;
 }
 
-function importChoiceSelect(url, elementId, ajax) {
+function importChoiceSelect(url, ajax) {
     if (ajax == 'false') {
         document.location.href = url;
     } else {
@@ -2772,9 +2783,10 @@ function importChoiceSelect(url, elementId, ajax) {
     }
 }
 
-function freetextImportResultsSubmit(event_id, count) {
+function freetextSerializeAttributes() {
     var attributeArray = [];
-    for (var i = 0; i < count; i++) {
+    $('.freetext_row').each(function() {
+        var i = $(this).data('row');
         if ($('#Attribute' + i + 'Save').val() == 1) {
             attributeArray.push({
                 value:$('#Attribute' + i + 'Value').val(),
@@ -2790,7 +2802,12 @@ function freetextImportResultsSubmit(event_id, count) {
                 tags:$('#Attribute' + i + 'Tags').val()
             })
         }
-    }
+    });
+    return attributeArray;
+}
+
+function freetextImportResultsSubmit(event_id, count) {
+    var attributeArray = freetextSerializeAttributes();
     $("#AttributeJsonObject").val(JSON.stringify(attributeArray));
     var formData = $(".mainForm").serialize();
     xhr({
@@ -2803,15 +2820,79 @@ function freetextImportResultsSubmit(event_id, count) {
     });
 }
 
-function moduleResultsSubmit(id) {
-    var attributeValue = function ($attributeValue) {
-        if ($attributeValue.find("[data-full]").length) {
-            return $attributeValue.find("[data-full]").data('full');
-        } else {
-            return $attributeValue.text()
+function freetextRemoveRow(id, event_id) {
+    $('.freetext_row[data-row=' + id + ']').hide();
+    $('#Attribute' + id + 'Save').attr("value", "0");
+    if ($(".freetext_row:visible").length == 0) {
+        window.location = baseurl + "/events/" + event_id;
+    } else {
+        freetextPossibleObjectTemplates();
+    }
+}
+
+function freetextCreateObject(objectId) {
+    var attributeArray = freetextSerializeAttributes();
+    $('#ObjectSelectedTemplateId').val(objectId);
+    $('#ObjectAttributes').val(JSON.stringify(attributeArray));
+    $('#ObjectFreeTextImportForm').submit();
+}
+
+function freetextPossibleObjectTemplates() {
+    var allTypes = [];
+    $('.freetext_row').each(function () {
+        var rowId = $(this).data('row');
+        if ($('#Attribute' + rowId + 'Save').val() === "1") {
+            var type = $(this).find('.typeToggle').val();
+            if (type === 'ip-src/ip-dst') {
+                allTypes.push('ip-src', 'ip-dst');
+            } else if (type === 'ip-src|port/ip-dst|port') {
+                allTypes.push('ip-src|port', 'ip-dst|port');
+            } else {
+                allTypes.push(type);
+            }
         }
+    });
+
+    if (allTypes.length < 2) {
+        $('.createObject').hide();
+        return;
     }
 
+    $.ajax({
+        dataType: "json",
+        data: {"attributeTypes": allTypes},
+        success: function (data) {
+            if (data.length === 0) {
+                $('.createObject').hide();
+                return;
+            }
+
+            var $menu = $('.createObject ul');
+            $menu.find('li').remove();
+
+            $.each(data, function (i, template) {
+                var a = document.createElement('a');
+                a.href = '#';
+                a.onclick = function () {
+                    freetextCreateObject(template['id']);
+                };
+                a.textContent = template.name;
+                a.title = template.description;
+
+                var li = document.createElement('li');
+                li.appendChild(a);
+
+                $menu.append(li);
+            });
+
+            $('.createObject').show();
+        },
+        type: "post",
+        url: baseurl + "/objectTemplates/possibleObjectTemplates",
+    });
+}
+
+function moduleResultsSubmit(id) {
     var typesWithData = ['attachment', 'malware-sample'];
     var data_collected = {};
     var temp;
@@ -2882,7 +2963,7 @@ function moduleResultsSubmit(id) {
                         object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
                         type: attribute_type,
-                        value: attributeValue($(this).find('.AttributeValue')),
+                        value: $(this).find('.AttributeValue').data('value'),
                         uuid: $(this).find('.AttributeUuid').text(),
                         to_ids: $(this).find('.AttributeToIds')[0].checked,
                         disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
@@ -2942,7 +3023,7 @@ function moduleResultsSubmit(id) {
                 import_attribute: $(this).find('.ImportMISPAttribute')[0].checked,
                 category: category_value,
                 type: type_value,
-                value: attributeValue($(this).find('.AttributeValue')),
+                value: $(this).find('.AttributeValue').data('value'),
                 uuid: $(this).find('.AttributeUuid').text(),
                 to_ids: $(this).find('.AttributeToIds')[0].checked,
                 disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
@@ -3764,6 +3845,7 @@ function filterAttributes(filter) {
             data["searchFor"] = filter;
         }
     }
+    currentUri = resetPaginationParameters(currentUri)
     fetchAttributes(currentUri, data);
 }
 
@@ -3780,6 +3862,21 @@ function toggleBoolFilter(param) {
         res[param] = 1;
     }
     fetchAttributes(currentUri, res);
+}
+
+function resetPaginationParameters(currentUri) {
+    var newUri = []
+    currentUri.split('/').forEach(function(el) {
+        if (
+            el.startsWith('sort:') ||
+            el.startsWith('direction:') ||
+            el.startsWith('page:')
+        ) {
+            return
+        }
+        newUri.push(el)
+    })
+    return newUri.join('/')
 }
 
 function recursiveInject(result, rules) {
@@ -3902,11 +3999,6 @@ function mergeOrganisationTypeToggle() {
         $('#orgsLocal').hide();
         $('#orgsExternal').show();
     }
-}
-
-function feedDistributionChange() {
-    if ($('#FeedDistribution').val() == 4) $('#SGContainer').show();
-    else $('#SGContainer').hide();
 }
 
 function checkUserPasswordEnabled() {
@@ -4189,7 +4281,7 @@ function feedFormUpdate() {
         $('#DeleteLocalFileDiv').hide();
         $('#HeadersDiv').show();
     }
-    feedDistributionChange();
+    checkSharingGroup('Feed');
 }
 
 function setContextFields() {
@@ -5504,6 +5596,46 @@ function redirectIdSelection(scope, action) {
     }
 }
 
+$(document.body).on('click', '.populateActionTrigger', function() {
+    var populate_script = $(this).data('request-script');
+    populate_script = atob(populate_script);
+    populate_script = populate_script.replace(/\{\{[A-Za-z0-9#_]*\}\}/gi, function(fieldName) {
+        fieldName = fieldName.substring(2, fieldName.length -2);
+        if ($(fieldName).is('input')) {
+            return $(fieldName).val();
+        } else {
+            //fieldName = fieldName.substring(1, fieldName.length);
+            var toReturn = $(fieldName + " option:selected").val();
+            return toReturn;
+        }
+    });
+    populate_script = JSON.parse(populate_script);
+    var update_target = $(this).data('update-target');
+    $.ajax({
+        data: JSON.stringify(populate_script['body']),
+        headers: {
+            "Accept": "application/json",
+            "Content-type": "application/json"
+        },
+        success: function (data) {
+            if (typeof(data) != 'object') {
+                $('#' + update_target).val(data);
+            } else {
+                $('#' + update_target).empty();
+                $('#' + update_target).append($('<option selected disabled hidden>').text('Choose'));
+                $.each(data, function(key, value) {
+                    $('#' + update_target).append($('<option>').val(key).text(value));
+                });
+            }
+        },
+        error: function(data) {
+            showMessage('fail', data['responseJSON']['errors']);
+        },
+        type: populate_script['type'],
+        url: baseurl + populate_script['uri']
+    })
+});
+
 $(document.body).on('click', '.hex-value-convert', function() {
     var $hexValueSpan = $(this).parent().children(':first-child');
     var val = $hexValueSpan.text().trim();
@@ -5678,6 +5810,36 @@ function enableWorkflowDebugMode(workflow_id, currentEnabledState, callback) {
             },
             type: "post",
             url: $formData.find('form').attr('action')
+        });
+    });
+}
+
+// Used in audit and access logs
+function filterSearch(callback) {
+    $('td[data-search]').mouseenter(function() {
+        var $td = $(this);
+        var searchValue = $td.data('search-value');
+        if (searchValue.length === 0) {
+            return;
+        }
+
+        $td.find('#quickEditButton').remove(); // clean all similar if exist
+        var $div = $('<div id="quickEditButton"></div>');
+        $div.addClass('quick-edit-row-div');
+        var $span = $('<span></span>');
+        $span.addClass('fa-as-icon fa fa-search-plus');
+        $span.css('font-size', '12px');
+        $span.prop('title', 'Filter by this value');
+        $div.append($span);
+        $td.append($div);
+
+        $span.click(function (e) {
+            var searchKey = $td.data('search');
+            callback(e, searchKey, searchValue);
+        });
+
+        $td.off('mouseleave').on('mouseleave', function() {
+            $div.remove();
         });
     });
 }

@@ -33,6 +33,7 @@
 	Router::connect('/roles/admin_index/*', array('controller' => 'roles', 'action' => 'index', 'admin' => true));
 	Router::connect('/logs/admin_search/*', array('controller' => 'logs', 'action' => 'search', 'admin' => true));
 	Router::connect('/audit_logs/admin_index/*', array('controller' => 'audit_logs', 'action' => 'index', 'admin' => true));
+	Router::connect('/access_logs/admin_index/*', array('controller' => 'access_logs', 'action' => 'index', 'admin' => true));
 	Router::connect('/logs/admin_index/*', array('controller' => 'logs', 'action' => 'index', 'admin' => true));
 	Router::connect('/regexp/admin_index/*', array('controller' => 'regexp', 'action' => 'index', 'admin' => true));
 

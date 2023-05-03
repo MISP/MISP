@@ -22,8 +22,16 @@ class GalaxiesController extends AppController
     public function index()
     {
         $aclConditions = array();
-        $filters = $this->IndexFilter->harvestParameters(array('value', 'enabled'));
-        $searchConditions = array();
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => ['value', 'enabled'],
+            'ordered_url_params' => [],
+            'additional_delimiters' => PHP_EOL
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        $searchConditions = [];
         if (empty($filters['value'])) {
             $filters['value'] = '';
         } else {
@@ -525,7 +533,7 @@ class GalaxiesController extends AppController
             }
         }
 
-        $result = $this->Galaxy->attachCluster($user, $target_type, $target_id, $cluster_id, $local);
+        $result = $this->Galaxy->attachCluster($user, $target_type, $target, $cluster_id, $local);
         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
     }
 

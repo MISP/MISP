@@ -109,6 +109,8 @@ class Log extends AppModel
 
     public $actsAs = ['LightPaginator'];
 
+    private $elasticSearchClient;
+
     /**
      * Null when not defined, false when not enabled
      * @var Syslog|null|false
@@ -121,10 +123,7 @@ class Log extends AppModel
             return false;
         }
         if (Configure::read('MISP.log_client_ip')) {
-            $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-            if (isset($_SERVER[$ipHeader])) {
-                $this->data['Log']['ip'] = $_SERVER[$ipHeader];
-            }
+            $this->data['Log']['ip'] = $this->_remoteIp();
         }
         $setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '', 'ip' => '');
         foreach ($setEmpty as $field => $empty) {
@@ -147,6 +146,22 @@ class Log extends AppModel
         $this->logData($this->data);
         if ($this->data['Log']['action'] === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {
             return false;
+        }
+        return true;
+    }
+
+    public function afterSave($created, $options = array())
+    {
+        // run workflow if needed, but skip workflow for certain types, to prevent loops
+        if (!in_array($this->data['Log']['model'], ['Log', 'Workflow'])) {
+            $trigger_id = 'log-after-save';
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'Log',
+                'action' => 'execute_workflow',
+                'id' => $this->data['Log']['user_id']
+            ];
+            $this->executeTrigger($trigger_id, $this->data, $workflowErrors);
         }
         return true;
     }
@@ -349,9 +364,8 @@ class Log extends AppModel
 
     public function logData($data)
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_audit_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
-            $pubSubTool->publish($data, 'audit', 'log');
+        if ($this->pubToZmq('audit')) {
+            $this->getPubSubTool()->publish($data, 'audit', 'log');
         }
 
         $this->publishKafkaNotification('audit', $data, 'log');
@@ -1146,5 +1160,16 @@ class Log extends AppModel
                 }
                 break;
         }
+    }
+
+    private function getElasticSearchTool()
+    {
+        if (!$this->elasticSearchClient) {
+            App::uses('ElasticSearchClient', 'Tools');
+            $client = new ElasticSearchClient();
+            $client->initTool();
+            $this->elasticSearchClient = $client;
+        }
+        return $this->elasticSearchClient;
     }
 }

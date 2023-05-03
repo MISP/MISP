@@ -6,7 +6,7 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ 2.4, develop, misp-stix ]
+    branches: [ 2.4, develop, misp-stix, taxii ]
   pull_request:
     branches: [ 2.4, develop, misp-stix ]
 
@@ -20,13 +20,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         php: ['7.2', '7.3', '7.4']
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: 'recursive'
 
@@ -75,7 +75,8 @@ jobs:
         run: |
               sudo chown $USER:www-data $HOME/.composer
               pushd app
-              sudo -H -u $USER php composer.phar install --no-progress
+              sudo -H -u $USER composer config --no-plugins allow-plugins.composer/installers true
+              sudo -H -u $USER composer install --no-progress
               popd
               cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
               # Set perms
@@ -137,6 +138,13 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.server_settings_skip_backup_rotate" 1'
               sudo chown -R $USER:www-data `pwd`/app/Config
               sudo chmod -R 777 `pwd`/app/Config
+
+              # fix perms (?)
+              namei -m  /home/runner/work
+              sudo chmod +x /home/runner/work
+              sudo chmod +x /home/runner
+              sudo chmod +x /home
+              sudo chmod +x /
 
       - name: DB Update
         run: |
@@ -240,17 +248,15 @@ jobs:
               popd
 
               sudo chmod -R g+ws `pwd`/app/tmp/logs
-          
+
               . ./venv/bin/activate
               pushd PyMISP
               python tests/testlive_comprehensive.py
+              python tests/test_mispevent.py
               popd
               python tests/testlive_security.py -v
               python tests/testlive_sync.py
               python tests/testlive_comprehensive_local.py -v
-              pushd PyMISP
-              python tests/test_mispevent.py
-              popd
               cp PyMISP/tests/keys.py PyMISP/examples/events/
               pushd PyMISP/examples/events/
               python ./create_massive_dummy_events.py -l 5 -a 30
@@ -264,3 +270,5 @@ jobs:
               tail -n +1 `pwd`/app/tmp/logs/*
               tail -n +1 /var/log/apache2/*.log
 
+              sudo -u $USER app/Console/cake Log export /tmp/logs.json.gz --without-changes
+              zcat /tmp/logs.json.gz

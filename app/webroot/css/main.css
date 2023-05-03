@@ -1035,7 +1035,6 @@ a.black-white:hover {
     left:calc(50% - 350px);
     position: fixed;
     background-color:#f4f4f4;
-    border-radius: 11px 11px 10px 10px;
     box-shadow: 4px 4px 4px #333;
     z-index:5;
 }
@@ -2614,6 +2613,10 @@ ul.correlations li span, ul.correlations li a {
     margin-right:3px;
 }
 
+ul.correlations li .popover span {
+    margin-right: 0;
+}
+
 .break-word {
     word-wrap: break-word;
 }
@@ -2649,7 +2652,7 @@ ul.correlations li span, ul.correlations li a {
 }
 
 #notice_message {
-   margin: 10px;
+   margin-bottom: 10px;
 }
 
 .alert form {
@@ -2853,7 +2856,7 @@ Query builder
 }
 
 /* Fix text input for query builder */
-.query-builder .rule-value-container input[type="text"] {
+.query-builder .rule-value-container input[type="text"], .query-builder .rule-value-container input[type="number"] {
     padding: 4px !important;
     height: 30px;
 }
@@ -2919,4 +2922,16 @@ Query builder
 
 .warninglist-comment {
     color: gray;
+}
+
+/* Resolved attributes template */
+.freetext_row select, .freetext_row input[type=text] {
+    padding: 0;
+    margin-bottom: 0;
+    height: 20px;
+}
+
+.freetext_row input[type=text] {
+    padding-left: 3px;
+    padding-right: 3px;
 }

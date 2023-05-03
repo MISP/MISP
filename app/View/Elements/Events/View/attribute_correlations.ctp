@@ -30,13 +30,14 @@
             );
             $popover = '';
             foreach ($relatedData as $k => $v) {
-                $popover .= '<span class="bold black">' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br>';
+                $popover .= '<b class="black">' . h($k) . '</b>: <span class="blue">' . h($v) . '</span><br>';
             }
+            $relevantId = !isset($relatedAttribute['attribute_id']) ? $relatedAttribute['Event']['id'] : $relatedAttribute['id'];
             $link = $this->Html->link(
-                $relatedAttribute['id'],
+                $relevantId,
                     $withPivot ?
-                            ['controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']] :
-                            ['controller' => 'events', 'action' => 'view', $relatedAttribute['id']],
+                            ['controller' => 'events', 'action' => 'view', $relevantId, true, $event['Event']['id']] :
+                            ['controller' => 'events', 'action' => 'view', $relevantId],
                 ['class' => ($relatedAttribute['org_id'] == $me['org_id']) ? $linkColour : 'blue']
             );
             echo sprintf(
@@ -51,7 +52,7 @@
         }
         if ($i > 5) {
             echo sprintf(
-                '<li class="no-side-padding correlation-collapse-button useCursorPointer linkButton %s" style="display:none;">%s</li>',
+                '<li class="no-side-padding correlation-collapse-button useCursorPointer linkButton %s" style="display:none;">%s</li> ',
                 $linkColour,
                 __('Collapse…')
             );

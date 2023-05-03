@@ -27,6 +27,8 @@ class CustomPaginationTool
                 $params['options'][$v] = $options[$v];
             }
         }
+        $params['page'] = is_numeric($params['page']) ? $params['page'] : 1;
+        $params['limit'] = is_numeric($params['limit']) ? $params['limit'] : 60;
         $maxPage = floor($params['count'] / $params['limit']);
         if ($params['count'] % $params['limit'] != 0) {
             $maxPage += 1;

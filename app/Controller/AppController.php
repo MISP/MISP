@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '146';
-    public $pyMispVersion = '2.4.162';
+    private $__queryVersion = '149';
+    public $pyMispVersion = '2.4.170';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -43,7 +43,6 @@ class AppController extends Controller
     private $isApiAuthed = false;
 
     public $baseurl = '';
-    public $sql_dump = false;
 
     public $restResponsePayload = null;
 
@@ -102,7 +101,9 @@ class AppController extends Controller
     {
         $controller = $this->request->params['controller'];
         $action = $this->request->params['action'];
-
+        if (empty($this->Session->read('creation_timestamp'))) {
+            $this->Session->write('creation_timestamp', time());
+        }
         if (Configure::read('MISP.system_setting_db')) {
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
@@ -136,23 +137,38 @@ class AppController extends Controller
             $this->response->header('X-XSS-Protection', '1; mode=block');
         }
 
-        if (!empty($this->request->params['named']['sql'])) {
-            $this->sql_dump = intval($this->request->params['named']['sql']);
-        }
-
         $this->_setupDatabaseConnection();
 
         $this->set('debugMode', Configure::read('debug') >= 1 ? 'debugOn' : 'debugOff');
         $isAjax = $this->request->is('ajax');
         $this->set('ajax', $isAjax);
         $this->set('queryVersion', $this->__queryVersion);
-        $this->User = ClassRegistry::init('User');
 
         $language = Configure::read('MISP.language');
         if (!empty($language) && $language !== 'eng') {
             Configure::write('Config.language', $language);
         } else {
             Configure::write('Config.language', 'eng');
+        }
+
+        $this->User = ClassRegistry::init('User');
+
+        if (!empty($this->request->params['named']['disable_background_processing'])) {
+            Configure::write('MISP.background_jobs', 0);
+        }
+
+        Configure::write('CurrentController', $controller);
+        Configure::write('CurrentAction', $action);
+        $versionArray = $this->User->checkMISPVersion();
+        $this->mispVersion = implode('.', $versionArray);
+        $this->Security->blackHoleCallback = 'blackHole';
+
+        // send users away that are using ancient versions of IE
+        // Make sure to update this if IE 20 comes out :)
+        if (isset($_SERVER['HTTP_USER_AGENT'])) {
+            if (preg_match('/(?i)msie [2-8]/', $_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) {
+                throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
+            }
         }
 
         // For fresh installation (salt empty) generate a new salt
@@ -164,6 +180,10 @@ class AppController extends Controller
         if (!Configure::read('MISP.uuid')) {
             $this->User->Server->serverSettingsSaveValue('MISP.uuid', CakeText::uuid());
         }
+
+        /**
+         * Authentication related activities
+         */
 
         // Check if Apache provides kerberos authentication data
         $authUserFields = $this->User->describeAuthFields();
@@ -180,22 +200,7 @@ class AppController extends Controller
         } else {
             $this->Auth->authenticate[AuthComponent::ALL]['userFields'] = $authUserFields;
         }
-        if (!empty($this->request->params['named']['disable_background_processing'])) {
-            Configure::write('MISP.background_jobs', 0);
-        }
-        Configure::write('CurrentController', $controller);
-        Configure::write('CurrentAction', $action);
-        $versionArray = $this->User->checkMISPVersion();
-        $this->mispVersion = implode('.', $versionArray);
-        $this->Security->blackHoleCallback = 'blackHole';
 
-        // send users away that are using ancient versions of IE
-        // Make sure to update this if IE 20 comes out :)
-        if (isset($_SERVER['HTTP_USER_AGENT'])) {
-            if (preg_match('/(?i)msie [2-8]/', $_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) {
-                throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
-            }
-        }
         $userLoggedIn = false;
         if (Configure::read('Plugin.CustomAuth_enable')) {
             $userLoggedIn = $this->__customAuthentication($_SERVER);
@@ -225,8 +230,9 @@ class AppController extends Controller
             if ($this->_isRest() || $this->_isAutomation()) {
                 // disable CSRF for REST access
                 $this->Security->csrfCheck = false;
-                if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
-                    if ($this->__loginByAuthKey() === null) {
+                $loginByAuthKeyResult = $this->__loginByAuthKey();
+                if ($loginByAuthKeyResult === false || $this->Auth->user() === null) {
+                    if ($loginByAuthKeyResult === null) {
                         $this->loadModel('Log');
                         $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.");
                     }
@@ -304,7 +310,7 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
-            $preAuthActions = array('login', 'register', 'getGpgPublicKey');
+            $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
                 $preAuthActions[] = 'email_otp';
             }
@@ -447,6 +453,9 @@ class AppController extends Controller
                     }
                     $this->Session->destroy();
                 }
+            } else {
+                    $this->loadModel('Log');
+                    $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using an API key of incorrect length.");
             }
             return false;
         }
@@ -513,10 +522,22 @@ class AppController extends Controller
                 }
                 $this->Flash->info($message);
                 $this->Auth->logout();
-                throw new MethodNotAllowedException($message);//todo this should pb be removed?
+                $this->_redirectToLogin();
+                return false;
             } else {
                 $this->Flash->error(__('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ') , array('params' => array('url' => $this->baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
             }
+        }
+
+        // kill existing sessions for a user if the admin/instance decides so
+        // exclude API authentication as it doesn't make sense
+        if (!$this->isApiAuthed && $this->User->checkForSessionDestruction($user['id'])) {
+            $this->Auth->logout();
+            $this->Session->destroy();
+            $message = __('User deauthenticated on administrator request. Please reauthenticate.');
+            $this->Flash->warning($message);
+            $this->_redirectToLogin();
+            return false;
         }
 
         // Force logout doesn't make sense for API key authentication
@@ -665,11 +686,28 @@ class AppController extends Controller
     {
         $userMonitoringEnabled = Configure::read('Security.user_monitoring_enabled');
         if ($userMonitoringEnabled) {
-            $redis = $this->User->setupRedis();
-            $userMonitoringEnabled = $redis && $redis->sismember('misp:monitored_users', $user['id']);
+            try {
+                $userMonitoringEnabled = RedisTool::init()->sismember('misp:monitored_users', $user['id']);
+            } catch (Exception $e) {
+                $userMonitoringEnabled = false;
+            }
         }
 
-        if (Configure::read('MISP.log_paranoid') || $userMonitoringEnabled) {
+        $shouldBeLogged = $userMonitoringEnabled ||
+            Configure::read('MISP.log_paranoid') ||
+            (Configure::read('MISP.log_paranoid_api') && isset($user['logged_by_authkey']) && $user['logged_by_authkey']);
+
+        if ($shouldBeLogged) {
+            $includeRequestBody = !empty(Configure::read('MISP.log_paranoid_include_post_body')) || $userMonitoringEnabled;
+            /** @var AccessLog $accessLog */
+            $accessLog = ClassRegistry::init('AccessLog');
+            $accessLog->logRequest($user, $this->_remoteIp(), $this->request, $includeRequestBody);
+        }
+
+        if (
+            empty(Configure::read('MISP.log_skip_access_logs_in_application_logs')) &&
+            $shouldBeLogged
+        ) {
             $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here;
             if (
                 (
@@ -684,7 +722,7 @@ class AppController extends Controller
                 $payload = $this->request->input();
                 $change .= PHP_EOL . 'Request body: ' . $payload;
             }
-            $this->Log = ClassRegistry::init('Log');
+            $this->loadModel('Log');
             $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
         }
     }
@@ -1041,7 +1079,7 @@ class AppController extends Controller
                 $headerNamespace = '';
             }
             if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
-                if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $server['REMOTE_ADDR']) {
+                if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $this->_remoteIp()) {
                     $this->Log = ClassRegistry::init('Log');
                     $this->Log->create();
                     $log = array(
@@ -1050,7 +1088,7 @@ class AppController extends Controller
                             'model_id' => 0,
                             'email' => 'SYSTEM',
                             'action' => 'auth_fail',
-                            'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $server['REMOTE_ADDR'],
+                            'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->_remoteIp(),
                             'change' => null,
                     );
                     $this->Log->save($log);
@@ -1356,8 +1394,9 @@ class AppController extends Controller
     protected function _remoteIp()
     {
         $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : null;
+        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
     }
+
 
     /**
      * @param string $key
@@ -1452,7 +1491,7 @@ class AppController extends Controller
     protected function __setPagingParams(int $page, int $limit, int $current, string $type = 'named')
     {
         $this->request->params['paging'] = [
-            'Correlation' => [
+            $this->modelClass => [
                 'page' => $page,
                 'limit' => $limit,
                 'current' => $current,

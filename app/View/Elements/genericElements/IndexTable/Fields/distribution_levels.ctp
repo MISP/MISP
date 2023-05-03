@@ -2,14 +2,13 @@
 $quickedit = isset($field['quickedit']) && $field['quickedit'];
 if ($quickedit) {
     $object = Hash::extract($row, $field['data']['object']['value_path']);
-    $event = Hash::extract($row, 'Event');
     $objectId = h($object['id']);
     $scope = $field['data']['scope'];
 }
 
-$distributionLevel = (Hash::extract($row, $field['data_path'])[0]);
+$distributionLevel = Hash::extract($row, $field['data_path'])[0];
 
-echo sprintf('<div %s>', $quickedit ? sprintf(
+echo sprintf('<div%s>', $quickedit ? sprintf(
     " onmouseenter=\"quickEditHover(this, '%s', %s, 'distribution');\"",
     $scope,
     $objectId
@@ -20,8 +19,8 @@ if ($quickedit) {
 }
 
 echo sprintf(
-    '<span class="%s bold">%s</span>',
-    $distributionLevel == 0 ? 'red' : '',
+    '<span class="%s">%s</span>',
+    $distributionLevel == 0 ? 'red bold' : '',
     $distributionLevel != 4 ? $distributionLevels[$distributionLevel] :
         sprintf(
             '<a href="%s/sharing_groups/view/%s">%s</a>',

@@ -57,6 +57,14 @@ class ServersController extends AppController
         unset($fields['authkey']);
         $fields = array_keys($fields);
 
+        $filters = $this->IndexFilter->harvestParameters(['search']);
+        $conditions = [];
+        if (!empty($filters['search'])) {
+            $strSearch = '%' . trim(strtolower($filters['search'])) . '%';
+            $conditions['OR'][]['LOWER(Server.name) LIKE'] = $strSearch;
+            $conditions['OR'][]['LOWER(Server.url) LIKE'] = $strSearch;
+        }
+
         if ($this->_isRest()) {
             $params = array(
                 'fields' => $fields,
@@ -72,12 +80,14 @@ class ServersController extends AppController
                         'fields' => array('RemoteOrg.id', 'RemoteOrg.name', 'RemoteOrg.uuid', 'RemoteOrg.nationality', 'RemoteOrg.sector', 'RemoteOrg.type'),
                     ),
                 ),
+                'conditions' => $conditions,
             );
             $servers = $this->Server->find('all', $params);
             $servers = $this->Server->attachServerCacheTimestamps($servers);
             return $this->RestResponse->viewData($servers, $this->response->type());
         } else {
             $this->paginate['fields'] = $fields;
+            $this->paginate['conditions'] = $conditions;
             $servers = $this->paginate();
             $servers = $this->Server->attachServerCacheTimestamps($servers);
             $this->set('servers', $servers);
@@ -1075,6 +1085,9 @@ class ServersController extends AppController
             $this->set('correlation_metrics', $correlation_metrics);
         }
         if ($tab === 'files') {
+            if (!empty(Configure::read('Security.disable_instance_file_uploads'))) {
+                throw new MethodNotAllowedException(__('This functionality is disabled.'));
+            }
             $files = $this->Server->grabFiles();
             $this->set('files', $files);
         }
@@ -1624,6 +1637,9 @@ class ServersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
+        if (!empty(Configure::read('Security.disable_instance_file_uploads'))) {
+            throw new MethodNotAllowedException(__('Feature disabled.'));
+        }
         $validItems = $this->Server->getFileRules();
 
         // Check if there were problems with the file upload
@@ -1685,8 +1701,9 @@ class ServersController extends AppController
         if (!function_exists('getallheaders')) {
             $headers = [];
             foreach ($_SERVER as $name => $value) {
-                if (substr($name, 0, 5) === 'HTTP_') {
-                    $headers[strtolower(str_replace('_', '-', substr($name, 5)))] = $value;
+                $name = strtolower($name);
+                if (substr($name, 0, 5) === 'http_') {
+                    $headers[str_replace('_', '-', substr($name, 5))] = $value;
                 }
             }
         } else {
@@ -1719,6 +1736,7 @@ class ServersController extends AppController
         if (!$server) {
             throw new NotFoundException(__('Invalid server'));
         }
+        @session_write_close(); // close session to allow concurrent requests
         $result = $this->Server->runConnectionTest($server);
         if ($result['status'] == 1) {
             if (isset($result['info']['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $result['info']['version'])) {

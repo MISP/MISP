@@ -78,8 +78,7 @@ function setupChosen(id, redrawChosen) {
                 fn = window[fn];
                 submitFunction(this, fn);
             } else {
-                select = this;
-                $select = $(select);
+                var $select = $(this);
                 var endpoint;
                 if (selected !== undefined) {
                     endpoint = selected.selected;
@@ -87,7 +86,7 @@ function setupChosen(id, redrawChosen) {
                     endpoint = $(event.target).val();
                 }
                 if (endpoint === '') {
-                    $wrapper = $select.closest('div').find('div.generic-picker-wrapper');
+                    var $wrapper = $select.closest('div').find('div.generic-picker-wrapper');
                     $wrapper.hide(0);
                 } else {
                     $select.data('endpoint', endpoint);
@@ -112,6 +111,13 @@ function setupChosen(id, redrawChosen) {
     } else {
         $elem.filter('[autofocus]').trigger('chosen:activate');
     }
+
+    // Hide popover when pressing ESC on closed chosen
+    $chosenContainer.on('keydown', function (e) {
+        if (e.keyCode === 27 && !$chosenContainer.hasClass('chosen-with-drop')) {
+            execAndClose($elem);
+        }
+    });
 }
 
 var debounceTimer;

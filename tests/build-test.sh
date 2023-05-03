@@ -13,12 +13,12 @@ python3 ./../app/files/scripts/generate_file_objects.py -p /bin/ls | python3 -c 
 
 # Test converting stix1 to MISP format
 curl https://stixproject.github.io/documentation/idioms/c2-indicator/indicator-for-c2-ip-address.xml > ./../app/files/scripts/tmp/test-stix1.xml
-python3 ./../app/files/scripts/stix2misp.py test-stix1.xml 1 1 ./../app/files/scripts/synonymsToTagNames.json | python3 -c 'import sys; data = sys.stdin.read().strip(); print(data); sys.exit(0 if data == "1" else 1)'
+python3 ./../app/files/scripts/stix2misp.py test-stix1.xml 1 1 ./../app/files/scripts/synonymsToTagNames.json | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data); sys.exit(0 if data["success"] == 1 else 1)'
 rm -f ./../app/files/scripts/tmp/{test-stix1.xml,test-stix1.xml.json}
 
 # Test converting stix2 to MISP format
 curl https://raw.githubusercontent.com/oasis-open/cti-stix2-json-schemas/master/examples/indicator-for-c2-ip-address.json > ./../app/files/scripts/tmp/test-stix2.json
-python3 ./../app/files/scripts/stix2/stix2misp.py ./../tmp/test-stix2.json 1 1 ./../app/files/scripts/synonymsToTagNames.json | python3 -c 'import sys; data = sys.stdin.read().strip(); print(data); sys.exit(0 if data == "1" else 1)'
+python3 ./../app/files/scripts/stix2/stix2misp.py -i ./../app/files/scripts/tmp/test-stix2.json --distribution 1 | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data); sys.exit(0 if data["success"] == 1 else 1)'
 rm -f ./../app/files/scripts/tmp/{test-stix2.json,test-stix2.json.stix2}
 
 # Test converting MISP to STIX2

@@ -845,7 +845,7 @@ class AdminShell extends AppShell
         ]);
 
         foreach ($tables as $table) {
-            $dataSource->query('OPTIMISE TABLE ' . $dataSource->name($table));
+            $dataSource->query('OPTIMIZE TABLE ' . $dataSource->name($table));
             $progress->increment();
             $progress->draw();
         }

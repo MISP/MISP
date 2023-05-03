@@ -13,7 +13,7 @@ info:
 
     To get an API key there are several options:
     * **[UI]** Go to [My Profile -> Auth Keys](/auth_keys/index) section and click on `+ Add authentication key`
-    
+
     * **[UI]** As an admin go to the the [Administration -> List Users -> View](/admin/users/view/[id]) page of the user you want to create an auth key for and on the `Auth keys` section click on `+ Add authentication key`
 
     * **[CLI]** Use the following command: `./app/Console/cake user change_authkey [e-mail/user_id]`
@@ -1896,6 +1896,24 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /objects/restsearch:
+    post:
+      summary: "[restSearch] Get a filtered and paginated list of objects"
+      description: |
+        **This is the recommended endpoint for searching objects.**
+      operationId: restSearchObjects
+      tags:
+        - Objects
+      requestBody:
+        $ref: "#/components/requestBodies/RestSearchObjectsRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/ObjectsRestSearchResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /objects/add/{eventId}/{objectTemplateId}:
     post:
       summary: "Add an object to an event"
@@ -2854,9 +2872,7 @@ components:
         eventid:
           $ref: "#/components/schemas/EventId"
         withAttachments:
-          description: "Extends the response with the base64 representation of the attachment, if there is one"
-          type: boolean
-          default: false
+          $ref: "#/components/schemas/WithAttachmentsRestSearchFilter"
         uuid:
           $ref: "#/components/schemas/UUID"
         publish_timestamp:
@@ -2870,7 +2886,7 @@ components:
         enforceWarninglist:
           $ref: "#/components/schemas/EnforceWarninglistRestSearchFilter"
         to_ids:
-          $ref: "#/components/schemas/ToIDS"
+          $ref: "#/components/schemas/ToIDSRestSearchFlag"
         deleted:
           $ref: "#/components/schemas/SoftDeletedFlag"
         event_timestamp:
@@ -2883,11 +2899,9 @@ components:
         sharinggroup:
           $ref: "#/components/schemas/SharingGroupIDRestSearchFilter"
         decayingModel:
-          description: "Specify the decaying model from which the decaying score should be calculated"
-          type: string
+          $ref: "#/components/schemas/DecayingModelRestSearchFilter"
         score:
-          description: "An alias to override on-the-fly the threshold of the decaying model"
-          type: string
+          $ref: "#/components/schemas/DecayingModelScoreRestSearchFilter"
         first_seen:
           description: "Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
           type: string
@@ -2919,17 +2933,11 @@ components:
         modelOverrides:
           $ref: "#/components/schemas/ModelOverridesRestSearchFilter"
         includeDecayScore:
-          description: "Include all enabled decaying score"
-          type: boolean
-          default: false
+          $ref: "#/components/schemas/IncludeDecayScoreRestSearchFlag"
         includeFullModel:
-          description: "Include all model information of matching events in the response"
-          type: boolean
-          default: false
+          $ref: "#/components/schemas/IncludeFullModelRestSearchFlag"
         excludeDecayed:
-          description: "Should the decayed elements by excluded"
-          type: boolean
-          default: false
+          $ref: "#/components/schemas/ExcludeDecayedRestSearchFlag"
         returnFormat:
           $ref: "#/components/schemas/AttributesRestSearchReturnFormat"
 
@@ -3390,6 +3398,126 @@ components:
       pattern: '^\d+$'
       maxLength: 10
       example: "12345"
+
+    ObjectRestSearchList:
+      type: object
+      properties:
+        Object:
+          $ref: "#/components/schemas/Object"
+
+    ObjectRestSearchFilter:
+      type: object
+      properties:
+        page:
+          $ref: "#/components/schemas/PageSearchFilter"
+        limit:
+          $ref: "#/components/schemas/LimitSearchFilter"
+        quickFilter:
+          $ref: "#/components/schemas/SearchAllRestSearchFilter"
+        searchall:
+          $ref: "#/components/schemas/SearchAllRestSearchFilter"
+        timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        object_name:
+          $ref: "#/components/schemas/ObjectName"
+        object_template_uuid:
+          $ref: "#/components/schemas/UUID"
+        object_template_version:
+          $ref: "#/components/schemas/ObjectTemplateVersion"
+        eventid:
+          $ref: "#/components/schemas/EventId"
+        eventinfo:
+          $ref: "#/components/schemas/EventInfo"
+        ignore:
+          description: "If true matches both true and false values for `to_ids` and `published`"
+          type: boolean
+          default: false
+        from:
+          $ref: "#/components/schemas/DateRestSearchFilter"
+        to:
+          $ref: "#/components/schemas/DateRestSearchFilter"
+        date:
+          $ref: "#/components/schemas/DateRestSearchFilter"
+        tags:
+          $ref: "#/components/schemas/TagsRestSearchFilter"
+        last:
+          $ref: "#/components/schemas/LastRestSearchFilter"
+        event_timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        publish_timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        org:
+          oneOf:
+            - $ref: "#/components/schemas/OrganisationId"
+            - $ref: "#/components/schemas/OrganisationName"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        value:
+          $ref: "#/components/schemas/AttributeValue"
+        type:
+          $ref: "#/components/schemas/AttributeType"
+        category:
+          $ref: "#/components/schemas/AttributeCategory"
+        object_relation:
+          $ref: "#/components/schemas/ObjectRelationRestSearchFilter"
+        attribute_timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        first_seen:
+          $ref: "#/components/schemas/NullableMicroTimestamp"
+        last_seen:
+          $ref: "#/components/schemas/NullableMicroTimestamp"
+        comment:
+          $ref: "#/components/schemas/AttributeComment"
+        to_ids:
+          $ref: "#/components/schemas/ToIDSRestSearchFlag"
+        published:
+          $ref: "#/components/schemas/PublishedFlag"
+        deleted:
+          $ref: "#/components/schemas/SoftDeletedFlag"
+        withAttachments:
+          $ref: "#/components/schemas/WithAttachmentsRestSearchFilter"
+        enforceWarninglist:
+          $ref: "#/components/schemas/EnforceWarninglistRestSearchFilter"
+        includeAllTags:
+          $ref: "#/components/schemas/IncludeAllTagsRestSearchFilter"
+        includeEventUuid:
+          $ref: "#/components/schemas/IncludeEventUUIDRestSearchFlag"
+        include_event_uuid:
+          $ref: "#/components/schemas/IncludeEventUUIDRestSearchFlag"
+        includeEventTags:
+          $ref: "#/components/schemas/IncludeEventTagsRestSearchFlag"
+        includeProposals:
+          $ref: "#/components/schemas/IncludeProposalsRestSearchFlag"
+        includeWarninglistHits:
+          $ref: "#/components/schemas/IncludeWarninglistHitsRestSearchFlag"
+        includeContext:
+          $ref: "#/components/schemas/IncludeContextRestSearchFlag"
+        includeSightings:
+          $ref: "#/components/schemas/IncludeContextRestSearchFlag"
+        includeSightingdb:
+          $ref: "#/components/schemas/IncludeSightingDbRestSearchFlag"
+        includeCorrelations:
+          $ref: "#/components/schemas/IncludeCorrelationsRestSearchFlag"
+        includeDecayScore:
+          $ref: "#/components/schemas/IncludeDecayScoreRestSearchFlag"
+        includeFullModel:
+          $ref: "#/components/schemas/IncludeFullModelRestSearchFlag"
+        allow_proposal_blocking:
+          $ref: "#/components/schemas/AllowProposalBlockingRestSearchFlag"
+        metadata:
+          $ref: "#/components/schemas/MetadataRestSearchFilter"
+        attackGalaxy:
+          $ref: "#/components/schemas/AttackGalaxyRestSearchFilter"
+        excludeDecayed:
+          $ref: "#/components/schemas/ExcludeDecayedRestSearchFlag"
+        decayingModel:
+          $ref: "#/components/schemas/DecayingModelRestSearchFilter"
+        modelOverrides:
+          $ref: "#/components/schemas/ModelOverridesRestSearchFilter"
+        score:
+          $ref: "#/components/schemas/DecayingModelScoreRestSearchFilter"
+        returnFormat:
+          $ref: "#/components/schemas/ObjectsRestSearchReturnFormat"
 
     # Sightings
     SightingId:
@@ -5391,12 +5519,29 @@ components:
         type: string
         example: "tlp:amber"
 
+    SearchAllRestSearchFilter:
+      description: "Search events by matching any tag names, event descriptions, attribute values or attribute comments"
+      type: string
+      example: malware
+
+    ToIDSRestSearchFlag:
+      nullable: true
+      type: boolean
+
     SharingGroupIDRestSearchFilter:
       description: "Sharing group ID(s), either as single string or list of IDs"
       nullable: true
       items:
         type: string
         example: "1"
+
+    DecayingModelRestSearchFilter:
+      description: "Specify the decaying model from which the decaying score should be calculated"
+      type: string
+
+    DecayingModelScoreRestSearchFilter:
+      description: "An alias to override on-the-fly the threshold of the decaying model"
+      type: string
 
     MetadataRestSearchFilter:
       description: "Will only return the metadata of the given query scope, contained data is omitted."
@@ -5405,6 +5550,11 @@ components:
 
     IncludeEventUUIDRestSearchFlag:
       description: "Include matching eventUuids in the response"
+      type: boolean
+      default: false
+
+    IncludeAllTagsRestSearchFilter:
+      description: "Include also exportable tags"
       type: boolean
       default: false
 
@@ -5422,6 +5572,11 @@ components:
       description: "Should the warning list be enforced. Adds blocked field for matching attributes"
       nullable: true
       type: boolean
+
+    WithAttachmentsRestSearchFilter:
+      description: "Extends the response with the base64 representation of the attachment, if there is one"
+      type: boolean
+      default: false
 
     RequestedAttributesRestSearchFilter:
       description: "List of properties that will be selected in the CSV export"
@@ -5462,6 +5617,26 @@ components:
     IncludeCorrelationsRestSearchFlag:
       nullable: true
       type: boolean
+
+    IncludeDecayScoreRestSearchFlag:
+      description: "Include all enabled decaying score"
+      type: boolean
+      default: false
+
+    IncludeFullModelRestSearchFlag:
+      description: "Include all model information of matching events in the response"
+      type: boolean
+      default: false
+
+    AllowProposalBlockingRestSearchFlag:
+      description: "Allow blocking attributes from to_ids sensitive exports if a proposal has been made to it to remove the IDS flag"
+      type: boolean
+      default: false
+
+    ExcludeDecayedRestSearchFlag:
+      description: "Should the decayed elements by excluded"
+      type: boolean
+      default: false
 
     ModelOverridesRestSearchFilter:
       $ref: "#/components/schemas/DecayingModelParameters"
@@ -5600,6 +5775,12 @@ components:
         - yara
         - yara-json
 
+    ObjectsRestSearchReturnFormat:
+      description: "Format of the response payload"
+      type: string
+      enum:
+        - json
+
     ObjectRelationRestSearchFilter:
       description: "Filter by the attribute object relation value"
       nullable: true
@@ -5731,7 +5912,6 @@ components:
       name: local
       in: path
       description: "Whether the object should be attached locally or not to the target"
-      required: false
       schema:
         $ref: "#/components/schemas/Local"
 
@@ -6211,9 +6391,7 @@ components:
               event_tags:
                 $ref: "#/components/schemas/TagsRestSearchFilter"
               searchall:
-                description: "Search events by matching any tag names, event descriptions, attribute values or attribute comments"
-                type: string
-                example: malware
+                $ref: "#/components/schemas/SearchAllRestSearchFilter"
               from:
                 $ref: "#/components/schemas/DateRestSearchFilter"
               to:
@@ -6223,9 +6401,7 @@ components:
               eventid:
                 $ref: "#/components/schemas/EventId"
               withAttachments:
-                description: "Extends the response with the base64 representation of the attachment, if there is one"
-                type: boolean
-                default: false
+                $ref: "#/components/schemas/WithAttachmentsRestSearchFilter"
               sharinggroup:
                 $ref: "#/components/schemas/SharingGroupIDRestSearchFilter"
               metadata:
@@ -6625,6 +6801,13 @@ components:
                     description: "Id of the noticelist to enable/disable."
                     type: integer
                     example: 1
+
+    RestSearchObjectsRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ObjectRestSearchFilter"
 
     AddObjectRequest:
       content:
@@ -8513,6 +8696,25 @@ components:
               url:
                 type: string
                 example: "/objects/delete/1"
+
+    ObjectsRestSearchResponse:
+      description: "Rest search objects response"
+      headers:
+        X-Result-Count:
+          $ref: "#/components/headers/X-Result-Count"
+        X-Export-Module-Used:
+          $ref: "#/components/headers/X-Export-Module-Used"
+        X-Response-Format:
+          $ref: "#/components/headers/X-Response-Format"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              response:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ObjectRestSearchList"
 
     SightingListResponse:
       description: "Get sightings response"

@@ -459,7 +459,7 @@ class Tag extends AppModel
         $tags_temp = $this->find('all', $tag_params);
         $tags = array();
         foreach ($tags_temp as $temp) {
-            $tags[strtoupper($temp['Tag']['name'])] = $temp;
+            $tags[mb_strtolower($temp['Tag']['name'])] = $temp;
         }
         return $tags;
     }

@@ -12,7 +12,7 @@
                 <pre class="quickSelect"><?= h($entity['AuthKey']['authkey_raw']) ?></pre>
             </div>
             <div class="modal-footer">
-                <a href="<?= $referer ?>" class="btn btn-primary"><?= __('I have noted down my key, take me back now') ?></a>
+                <a href="<?= h($referer) ?>" class="btn btn-primary"><?= __('I have noted down my key, take me back now') ?></a>
             </div>
         </div>
 <?php
@@ -22,7 +22,7 @@
         <p><?= __('Please make sure that you note down the auth key below, this is the only time the auth key is shown in plain text, so make sure you save it. If you lose the key, simply remove the entry and generate a new one.'); ?></p>
         <p><?=__('MISP will use the first and the last 4 characters for identification purposes.')?></p>
         <pre class="quickSelect"><?= h($entity['AuthKey']['authkey_raw']) ?></pre>
-        <a href="<?= $referer ?>" class="btn btn-primary"><?= __('I have noted down my key, take me back now') ?></a>
+        <a href="<?= h($referer) ?>" class="btn btn-primary"><?= __('I have noted down my key, take me back now') ?></a>
 <?php
     }
 ?>

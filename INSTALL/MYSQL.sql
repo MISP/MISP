@@ -88,6 +88,12 @@ CREATE TABLE IF NOT EXISTS `attribute_tags` (
   INDEX `tag_id` (`tag_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+-- -------------------------------------------------------
+
+--
+-- Table structure for table `auth_keys`
+--
+
 CREATE TABLE IF NOT EXISTS `auth_keys` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `uuid` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -98,6 +104,8 @@ CREATE TABLE IF NOT EXISTS `auth_keys` (
     `expiration` int(10) unsigned NOT NULL,
     `user_id` int(10) unsigned NOT NULL,
     `comment` text COLLATE utf8mb4_unicode_ci,
+    `allowed_ips` text COLLATE utf8mb4_unicode_ci,
+    `unique_ips` text COLLATE utf8mb4_unicode_ci,
     PRIMARY KEY (`id`),
     KEY `authkey_start` (`authkey_start`),
     KEY `authkey_end` (`authkey_end`),
@@ -1523,16 +1531,16 @@ INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `pe
 VALUES (2, 'Org Admin', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0);
 
 INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
-VALUES (3, 'User', NOW(), NOW(), 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1);
+VALUES (3, 'User', NOW(), NOW(), 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1);
 
 INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
-VALUES (4, 'Publisher', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0);
+VALUES (4, 'Publisher', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0);
 
 INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
-VALUES (5, 'Sync user', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0);
+VALUES (5, 'Sync user', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0);
 
 INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_publish_zmq`, `perm_publish_kafka`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `perm_decaying`, `default_role`)
-VALUES (6, 'Read Only', NOW(), NOW(), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+VALUES (6, 'Read Only', NOW(), NOW(), 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -1661,4 +1669,6 @@ INSERT IGNORE INTO `org_blocklists` (`org_uuid`, `created`, `org_name`, `comment
 ('58d38339-7b24-4386-b4b4-4c0f950d210f', NOW(), 'Setec Astrononomy', 'default example'),
 ('58d38326-eda8-443a-9fa8-4e12950d210f', NOW(), 'Acme Finance', 'default example');
 
-INSERT IGNORE INTO `admin_settings` (`setting`, `value`) VALUES ('fix_login', NOW());
+INSERT IGNORE INTO `admin_settings` (`setting`, `value`) VALUES 
+('fix_login', NOW()),
+('default_role', 3);

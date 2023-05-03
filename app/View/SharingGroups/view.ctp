@@ -50,7 +50,8 @@ echo $this->element(
             [
                 'key' => __('Organisations'),
                 'type' => 'custom',
-                'function' => function ($sharingGroup) {
+                'requirement' => isset($sg['SharingGroupOrg']),
+                'function' => function (array $sharingGroup) {
                     echo sprintf(
                         '<div class="span6">
                          <table class="table table-striped table-hover table-condensed">
@@ -77,7 +78,8 @@ echo $this->element(
             [
                 'key' => __('Instances'),
                 'type' => 'custom',
-                'function' => function ($sharingGroup) {
+                'requirement' => isset($sg['SharingGroupServer']),
+                'function' => function (array $sharingGroup) {
                     echo sprintf(
                         '<div class="span6">
                          <table class="table table-striped table-hover table-condensed">

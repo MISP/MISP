@@ -36,7 +36,6 @@ class WorkflowBaseModule
     {
         $fullIndexedParams = [];
         foreach ($this->params as $param) {
-            $param['value'] = $nodeParamByID[$param['id']]['value'] ?? null;
             $param['value'] = $node['data']['indexed_params'][$param['id']] ?? null;
             $fullIndexedParams[$param['id']] = $param;
         }

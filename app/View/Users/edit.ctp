@@ -34,17 +34,18 @@
             echo $this->Form->input('certif_public', array('label' => __('S/MIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge'));
         }
         echo '<div class="user-edit-checkboxes">';
-        echo $this->Form->input('autoalert', array('label' => __('Receive email alerts when events are published'), 'type' => 'checkbox'));
         echo $this->Form->input('contactalert', array('label' => __('Receive email alerts from "Contact reporter" requests'), 'type' => 'checkbox'));
         echo '</div>';
     ?>
-    <h5><?= __('Subscribe to the following notification periods:') ?></h5>
-    <?php
+    <h5><?= __('Subscribe to the following notification:') ?></h5>
+    <div class="user-edit-checkboxes">
+        <?php
+        echo $this->Form->input('autoalert', array('label' => __('Event published notification'), 'type' => 'checkbox'));
         echo $this->Form->input('notification_daily', array('label' => __('Daily notifications'), 'type' => 'checkbox'));
         echo $this->Form->input('notification_weekly', array('label' => __('Weekly notifications'), 'type' => 'checkbox'));
         echo $this->Form->input('notification_monthly', array('label' => __('Monthly notifications'), 'type' => 'checkbox'));
-    ?>
-    </fieldset>
+        ?>
+    </div>
     <div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>
     <div class="clear" style="margin-top:10px;">
 <?php
