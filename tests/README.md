@@ -1,33 +1,5 @@
 # Testing
-1. Add a `misp3_test` database to the database:
-```mysql
-CREATE DATABASE misp3_test;
-GRANT ALL PRIVILEGES ON misp3_test.* to misp@localhost;
-FLUSH PRIVILEGES;
-QUIT;
-```
-
-2. Add a the test database to your `config/app_local.php` config file and set `debug` mode to `true`.
-```php
-'debug' => true,
-'Datasources' => [
-    'default' => [
-        ...
-    ],
-    /*
-        * The test connection is used during the test suite.
-        */
-    'test' => [
-        'host' => 'localhost',
-        'username' => 'misp',
-        'password' => 'misp',
-        'database' => 'misp3_test',
-    ],
-],
-```
-
 ## Runing the tests
-
 ### Start MISP in test mode
 ```
 $ docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" up --build
@@ -39,6 +11,15 @@ $ docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./d
 ```
 
 
+If running locally:
+
+Add a `misp3_test` database to the database:
+```mysql
+CREATE DATABASE misp3_test;
+GRANT ALL PRIVILEGES ON misp3_test.* to misp@localhost;
+FLUSH PRIVILEGES;
+QUIT;
+```
 
 ```
 $ composer install
