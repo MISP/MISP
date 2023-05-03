@@ -21,7 +21,7 @@
         "cakephp/cakephp-codesniffer": "^4.0",
         "cakephp/debug_kit": "^4.0",
         "cebe/php-openapi": "^1.6",
-        "fzaninotto/faker": "^1.9",
+        "fakerphp/faker": "^1.21",
         "josegonzalez/dotenv": "^3.2",
         "league/openapi-psr7-validator": "^0.17",
         "phpunit/phpunit": "^8.5",

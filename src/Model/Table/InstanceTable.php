@@ -38,16 +38,16 @@ class InstanceTable extends AppTable
                 'conditions' => false,
                 'afterFind' => function($result, $user) {
                     foreach ($result as $i => $row) {
-                        if (empty($user['role']['perm_admin'])) {
+                        if (empty($user->Role->perm_admin)) {
                             $orgFound = false;
                             if (!empty($row['sharing_group_orgs'])) {
                                 foreach ($row['sharing_group_orgs'] as $org) {
-                                    if ($org['id'] === $user['organisation_id']) {
+                                    if ($org['id'] === $user->org_id) {
                                         $orgFound = true;
                                     }
                                 }
                             }
-                            if ($row['organisation_id'] !== $user['organisation_id'] && !$orgFound) {
+                            if ($row->org_id !== $user->org_id && !$orgFound) {
                                 unset($result[$i]);
                             }
                         }
@@ -58,8 +58,8 @@ class InstanceTable extends AppTable
             'Users' => [
                 'conditions' => function($user) {
                     $conditions = [];
-                    if (empty($user['role']['perm_admin'])) {
-                        $conditions['Users.organisation_id'] = $user['organisation_id'];
+                    if (empty($user->Role->perm_admin)) {
+                        $conditions['Users.org_id'] = $user->org_id;
                     }
                     return $conditions;
                 },

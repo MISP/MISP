@@ -19,7 +19,7 @@ class UsersController extends AppController
     {
         $currentUser = $this->ACL->getUser();
         $conditions = [];
-        if (empty($currentUser['Role']['perm_admin'])) {
+        if (empty($currentUser->Role->perm_admin)) {
             $conditions['org_id'] = $currentUser['org_id'];
         }
         $keycloakUsersParsed = null;
@@ -57,7 +57,7 @@ class UsersController extends AppController
         $currentUser = $this->ACL->getUser();
         $validRoles = [];
         $individual_ids = [];
-        if (!$currentUser['role']['perm_admin']) {
+        if (!$currentUser->Role->perm_admin) {
             $validRoles = $this->Users->Roles->find('list')->select(['id', 'name'])->order(['name' => 'asc'])->where(['perm_admin' => 0, 'perm_org_admin' => 0])->all()->toArray();
         } else {
             $validRoles = $this->Users->Roles->find('list')->order(['name' => 'asc'])->all()->toArray();
@@ -74,8 +74,8 @@ class UsersController extends AppController
                 if (!isset($data['role_id']) && !empty($defaultRole)) {
                     $data['role_id'] = $defaultRole['id'];
                 }
-                if (!$currentUser['role']['perm_admin']) {
-                    $data['organisation_id'] = $currentUser['organisation_id'];
+                if (!$currentUser->Role->perm_admin) {
+                    $data->org_id = $currentUser->org_id;
                     if (!in_array($data['role_id'], array_keys($validRoles))) {
                         throw new MethodNotAllowedException(__('You do not have permission to assign that role.'));
                     }
@@ -99,8 +99,8 @@ class UsersController extends AppController
             return $responsePayload;
         }
         $org_conditions = [];
-        if (empty($currentUser['role']['perm_admin'])) {
-            $org_conditions = ['id' => $currentUser['organisation_id']];
+        if (empty($currentUser->Role->perm_admin)) {
+            $org_conditions = ['id' => $currentUser->org_id];
         }
         $dropdownData = [
             'role' => $validRoles,
@@ -117,13 +117,13 @@ class UsersController extends AppController
     public function view($id = false)
     {
         $currentUser = $this->ACL->getUser();
-        if (empty($id) || (empty($currentUser['role']['perm_org_admin']) && empty($currentUser['role']['perm_admin']))) {
+        if (empty($id) || (empty($currentUser->Role->perm_org_admin) && empty($currentUser->Role->perm_admin))) {
             $id = $this->ACL->getUser()['id'];
         }
         $this->CRUD->view($id, [
             'contain' => ['Roles', 'Organisations'],
             'afterFind' => function($data) use ($currentUser) {
-                if (empty($currentUser['role']['perm_admin']) && $currentUser['organisation_id'] != $data['organisation_id']) {
+                if (empty($currentUser->Role->perm_admin) && $currentUser->org_id != $data->org_id) {
                     throw new NotFoundException(__('Invalid User.'));
                 }
                 return $data;
@@ -144,7 +144,7 @@ class UsersController extends AppController
             'sort' => ['email' => 'asc']
         ];
         $individual_ids = [];
-        if (!$currentUser['role']['perm_admin']) {
+        if (!$currentUser->Role->perm_admin) {
             $validRoles = $this->Users->Roles->find('list')->select(['id', 'name'])->order(['name' => 'asc'])->where(['perm_admin' => 0, 'perm_org_admin' => 0])->all()->toArray();
         } else {
             $validRoles = $this->Users->Roles->find('list')->order(['name' => 'asc'])->all()->toArray();
@@ -166,10 +166,10 @@ class UsersController extends AppController
         ];
         if ($this->request->is(['get'])) {
             $params['fields'] = array_merge($params['fields'], ['role_id', 'disabled']);
-            if (!empty($this->ACL->getUser()['role']['perm_admin'])) {
-                $params['fields'][] = 'organisation_id';
+            if (!empty($this->ACL->getUser()->Role->perm_admin)) {
+                $params['fields'][] = 'org_id';
             }
-            if (!$currentUser['role']['perm_admin']) {
+            if (!$currentUser->Role->perm_admin) {
                 $params['afterFind'] = function ($user, &$params) use ($currentUser) {
                     if (!empty($user)) { // We don't have a 404
                         if (!$this->ACL->canEditUser($currentUser, $user)) {
@@ -180,14 +180,14 @@ class UsersController extends AppController
                 };
             }
         }
-        if ($this->request->is(['post', 'put']) && !empty($this->ACL->getUser()['role']['perm_admin'])) {
+        if ($this->request->is(['post', 'put']) && !empty($this->ACL->getUser()->Role->perm_admin)) {
             $params['fields'][] = 'role_id';
-            $params['fields'][] = 'organisation_id';
+            $params['fields'][] = 'org_id';
             $params['fields'][] = 'disabled';
-        } else if ($this->request->is(['post', 'put']) && !empty($this->ACL->getUser()['role']['perm_org_admin'])) {
+        } else if ($this->request->is(['post', 'put']) && !empty($this->ACL->getUser()->Role->perm_org_admin)) {
             $params['fields'][] = 'role_id';
             $params['fields'][] = 'disabled';
-            if (!$currentUser['role']['perm_admin']) {
+            if (!$currentUser->Role->perm_admin) {
                 $params['afterFind'] = function ($data, &$params) use ($currentUser, $validRoles) {
                     if (!in_array($data['role_id'], array_keys($validRoles))) {
                         throw new MethodNotAllowedException(__('You cannot edit the given privileged user.'));
@@ -211,8 +211,8 @@ class UsersController extends AppController
             return $responsePayload;
         }
         $org_conditions = [];
-        if (empty($currentUser['role']['perm_admin'])) {
-            $org_conditions = ['id' => $currentUser['organisation_id']];
+        if (empty($currentUser->Role->perm_admin)) {
+            $org_conditions = ['id' => $currentUser->org_id];
         }
         $dropdownData = [
             'role' => $validRoles,
@@ -232,7 +232,7 @@ class UsersController extends AppController
             'contain' => 'Roles'
         ];
         $currentUser = $this->ACL->getUser();
-        if (!$currentUser['role']['perm_admin']) {
+        if (!$currentUser->Role->perm_admin) {
             $params['afterFind'] = function ($user, &$params) use ($currentUser) {
                 if (!$this->ACL->canEditUser($currentUser, $user)) {
                     throw new MethodNotAllowedException(__('You cannot edit the given user.'));
@@ -251,13 +251,13 @@ class UsersController extends AppController
     {
         $currentUser = $this->ACL->getUser();
         $validRoles = [];
-        if (!$currentUser['role']['perm_admin']) {
+        if (!$currentUser->Role->perm_admin) {
             $validRoles = $this->Users->Roles->find('list')->order(['name' => 'asc'])->all()->toArray();
         }
         $params = [
             'beforeSave' => function($data) use ($currentUser, $validRoles) {
-                if (!$currentUser['role']['perm_admin']) {
-                    if ($data['organisation_id'] !== $currentUser['organisation_id']) {
+                if (!$currentUser->Role->perm_admin) {
+                    if ($data->org_id !== $currentUser->org_id) {
                         throw new MethodNotAllowedException(__('You do not have permission to delete the given user.'));
                     }
                     if (!in_array($data['role_id'], array_keys($validRoles))) {
@@ -358,7 +358,7 @@ class UsersController extends AppController
     {
         $editingAnotherUser = false;
         $currentUser = $this->ACL->getUser();
-        if (empty($currentUser['role']['perm_admin']) || $user_id == $currentUser->id) {
+        if (empty($currentUser->Role->perm_admin) || $user_id == $currentUser->id) {
             $user = $currentUser;
         } else {
             $user = $this->Users->get($user_id, [

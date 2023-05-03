@@ -20,9 +20,6 @@ use Cake\Core\Configure;
 use Cake\Datasource\ConnectionManager;
 use Migrations\TestSuite\Migrator;
 use \League\OpenAPIValidation\PSR7\ValidatorBuilder;
-use \League\OpenAPIValidation\PSR7\RequestValidator;
-use \League\OpenAPIValidation\PSR7\ResponseValidator;
-use \League\OpenAPIValidation\PSR7\OperationAddress;
 
 /**
  * Test runner bootstrap.
@@ -70,5 +67,6 @@ if (!$_ENV['SKIP_DB_MIGRATIONS']) {
 }
 
 $specFile = $_ENV['OPENAPI_SPEC'] ?? APP . '../webroot/docs/openapi.yaml';
+
 // Initialize OpenAPI spec validator
 Configure::write('App.OpenAPIValidator', (new ValidatorBuilder)->fromYamlFile($specFile));

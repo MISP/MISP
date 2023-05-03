@@ -27,6 +27,19 @@ QUIT;
 ```
 
 ## Runing the tests
+
+### Start MISP in test mode
+```
+$ docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" up --build
+```
+
+### Run tests
+```
+$ docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" exec misp vendor/bin/phpunit
+```
+
+
+
 ```
 $ composer install
 $ composer test
@@ -118,6 +131,6 @@ The default OpenAPI spec path is set in `phpunit.xml` as a environment variablea
 
 ### Debugging tests
 ```
-$ export XDEBUG_CONFIG="idekey=IDEKEY"
+$ export XDEBUG_CONFIG="idekey=VSCODE"
 $ phpunit
 ```
