@@ -44,12 +44,16 @@ class WorkflowFormatConverterTool
     {
         $converted = [];
         $converted = JSONConverterTool::convert($event, false, true);
-        $eventTags = $converted['Event']['Tag'];
-        foreach ($converted['Event']['Attribute'] as $i => $attribute) {
-            $converted['Event']['Attribute'][$i] = self::__propagateTagToAttributes($attribute, $eventTags);
+        $eventTags = !empty($converted['Event']['Tag']) ? $converted['Event']['Tag'] : [];
+        if (!empty($converted['Event']['Attribute'])) {
+            foreach ($converted['Event']['Attribute'] as $i => $attribute) {
+                $converted['Event']['Attribute'][$i] = self::__propagateTagToAttributes($attribute, $eventTags);
+            }
         }
-        foreach ($converted['Event']['Object'] as $i => $object) {
-            $converted['Event']['Object'][$i] = self::__propagateTagToObjectAttributes($object, $eventTags);
+        if (!empty($converted['Event']['Object'])) {
+            foreach ($converted['Event']['Object'] as $i => $object) {
+                $converted['Event']['Object'][$i] = self::__propagateTagToObjectAttributes($object, $eventTags);
+            }
         }
         return $converted;
     }
