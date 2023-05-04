@@ -27,10 +27,11 @@ WORKDIR /var/www/html
 
 # Set permissions for log file
 RUN touch /var/run/php-fpm.pid /var/log/php-fpm.error.log /var/log/php-fpm.slow.log \
-    && chown www-data:www-data /var/run/php-fpm.pid /var/log/php-fpm.error.log /var/log/php-fpm.slow.log
+    && chown www-data:www-data /var/run/php-fpm.pid /var/log/php-fpm.error.log /var/log/php-fpm.slow.log \
+    && chown -R www-data:www-data /var/www/html/logs
 
 # Create tmp directory
-RUN mkdir /var/www/html/tmp\
+RUN mkdir /var/www/html/tmp \
     && chown -R www-data:www-data /var/www/html/tmp
 
 # Copy entrypoint script and make it executable
