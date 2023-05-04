@@ -162,7 +162,7 @@ class AppController extends Controller
             $this->response = $this->response->withHeader('X-Frame-Options', 'DENY');
         }
         if (mt_rand(1, 50) === 1) {
-            $this->FloodProtection->cleanup();
+            // $this->FloodProtection->cleanup(); // TODO: enable after flood protection table exists
         }
     }
 
