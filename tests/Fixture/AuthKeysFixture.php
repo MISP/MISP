@@ -12,7 +12,7 @@ class AuthKeysFixture extends TestFixture
     public $connection = 'test';
 
     public const ADMIN_API_ID = 1;
-    public const ADMIN_API_KEY = 'd033e22ae348aeb5660fc2140aec35850c4da997';
+    public const ADMIN_API_KEY = 'sL9hrjIyY405RyGQHLx5DoCAM92BNmmGa8P4ck1E';
 
 
     public const SYNC_API_ID = 2;
