@@ -25,7 +25,7 @@ jobs:
         volumes:
           - ./docker/db/misp-2.4.169.sql:/docker-entrypoint-initdb.d/init.sql
         options: >-
-          --health-cmd mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
