@@ -126,9 +126,11 @@ $data_passed_to_if_module = [
                 <h4><?= __('MISP Core Format Sample') ?></h4>
                 <ul>
                     <li><?= __('Attributes are always encapsulated in the Event or Object') ?></li>
-                    <li><?= __('Additional key') ?> <code>Event._AttributeFlattened.{n}</code></li>
-                    <li><?= __('Additional key') ?> <code>Event._AttributeFlattened.{n}</code></li>
-                    <li><?= __('Additional key %s for Tags', '<code>inherited</code>') ?></li>
+                    <li><?= __('Additional key') ?> <code>_AttributeFlattened</code> containing all Attributes</li>
+                    <li><?= __('Additional key') ?> <code>_allTags</code> containing all tags</li>
+                        <ul>
+                            <li><?= __('Additional key %s for Tags', '<code>inherited</code>') ?></li>
+                        </ul>
                 </ul>
                 <p><strong><?= __('Sample:') ?></strong></p>
                 <pre>
@@ -144,7 +146,7 @@ $data_passed_to_if_module = [
         "uuid": "b9557473-bb46-4c65-b69e-974b3c93c1f4",
         "attribute_count": "2",
         "analysis": "0",
-        "timestamp": "1683116527",
+        "timestamp": "1683117902",
         "distribution": "1",
         "proposal_email_lock": false,
         "locked": false,
@@ -175,7 +177,7 @@ $data_passed_to_if_module = [
                 "uuid": "9ac36927-d874-4094-bf4c-f922c1e9cc35",
                 "event_id": "64",
                 "distribution": "5",
-                "timestamp": "1683116527",
+                "timestamp": "1683117902",
                 "comment": "",
                 "sharing_group_id": "0",
                 "deleted": false,
@@ -185,15 +187,6 @@ $data_passed_to_if_module = [
                 "first_seen": null,
                 "last_seen": null,
                 "value": "8.8.8.8",
-                "warnings": [
-                    {
-                        "value": "8.8.8.8",
-                        "match": "8.8.8.8/32",
-                        "warninglist_id": 49,
-                        "warninglist_name": "List of known IPv4 public DNS resolvers",
-                        "warninglist_category": "false_positive"
-                    }
-                ],
                 "Galaxy": [],
                 "ShadowAttribute": [],
                 "Tag": [
@@ -210,6 +203,53 @@ $data_passed_to_if_module = [
                         "local_only": false,
                         "local": 0,
                         "relationship_type": null
+                    }
+                ],
+                "_allTags": [
+                    {
+                        "id": "299",
+                        "name": "misp-galaxy:country=\"belgium\"",
+                        "colour": "#0088cc",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": true,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    },
+                    {
+                        "id": "79",
+                        "name": "tlp:green",
+                        "colour": "#339900",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    },
+                    {
+                        "id": "137",
+                        "name": "PAP:AMBER",
+                        "colour": "#ffa800",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": false
                     }
                 ]
             }
@@ -359,7 +399,7 @@ $data_passed_to_if_module = [
                 "template_version": "9",
                 "event_id": "64",
                 "uuid": "384ebae1-c97d-48a4-9efb-94a945c4860f",
-                "timestamp": "1683108031",
+                "timestamp": "1683117902",
                 "distribution": "5",
                 "sharing_group_id": "0",
                 "comment": "",
@@ -376,7 +416,7 @@ $data_passed_to_if_module = [
                         "uuid": "a915bbbe-2639-4d9b-83a2-abd58b8e5498",
                         "event_id": "64",
                         "distribution": "5",
-                        "timestamp": "1683108031",
+                        "timestamp": "1683117902",
                         "comment": "",
                         "sharing_group_id": "0",
                         "deleted": false,
@@ -387,7 +427,39 @@ $data_passed_to_if_module = [
                         "last_seen": null,
                         "value": "https://www.misp-project.org/",
                         "Galaxy": [],
-                        "ShadowAttribute": []
+                        "ShadowAttribute": [],
+                        "_allTags": [
+                            {
+                                "id": "299",
+                                "name": "misp-galaxy:country=\"belgium\"",
+                                "colour": "#0088cc",
+                                "exportable": true,
+                                "user_id": "0",
+                                "hide_tag": false,
+                                "numerical_value": null,
+                                "is_galaxy": true,
+                                "is_custom_galaxy": false,
+                                "local_only": false,
+                                "local": 0,
+                                "relationship_type": null,
+                                "inherited": true
+                            },
+                            {
+                                "id": "79",
+                                "name": "tlp:green",
+                                "colour": "#339900",
+                                "exportable": true,
+                                "user_id": "0",
+                                "hide_tag": false,
+                                "numerical_value": null,
+                                "is_galaxy": false,
+                                "is_custom_galaxy": false,
+                                "local_only": false,
+                                "local": 0,
+                                "relationship_type": null,
+                                "inherited": true
+                            }
+                        ]
                     }
                 ]
             }
@@ -433,7 +505,7 @@ $data_passed_to_if_module = [
                 "uuid": "9ac36927-d874-4094-bf4c-f922c1e9cc35",
                 "event_id": "64",
                 "distribution": "5",
-                "timestamp": "1683116527",
+                "timestamp": "1683117902",
                 "comment": "",
                 "sharing_group_id": "0",
                 "deleted": false,
@@ -443,15 +515,6 @@ $data_passed_to_if_module = [
                 "first_seen": null,
                 "last_seen": null,
                 "value": "8.8.8.8",
-                "warnings": [
-                    {
-                        "value": "8.8.8.8",
-                        "match": "8.8.8.8/32",
-                        "warninglist_id": 49,
-                        "warninglist_name": "List of known IPv4 public DNS resolvers",
-                        "warninglist_category": "false_positive"
-                    }
-                ],
                 "Galaxy": [],
                 "ShadowAttribute": [],
                 "Tag": [
@@ -469,6 +532,53 @@ $data_passed_to_if_module = [
                         "local": 0,
                         "relationship_type": null
                     }
+                ],
+                "_allTags": [
+                    {
+                        "id": "299",
+                        "name": "misp-galaxy:country=\"belgium\"",
+                        "colour": "#0088cc",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": true,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    },
+                    {
+                        "id": "79",
+                        "name": "tlp:green",
+                        "colour": "#339900",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    },
+                    {
+                        "id": "137",
+                        "name": "PAP:AMBER",
+                        "colour": "#ffa800",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": false
+                    }
                 ]
             },
             {
@@ -479,7 +589,7 @@ $data_passed_to_if_module = [
                 "uuid": "a915bbbe-2639-4d9b-83a2-abd58b8e5498",
                 "event_id": "64",
                 "distribution": "5",
-                "timestamp": "1683108031",
+                "timestamp": "1683117902",
                 "comment": "",
                 "sharing_group_id": "0",
                 "deleted": false,
@@ -490,7 +600,39 @@ $data_passed_to_if_module = [
                 "last_seen": null,
                 "value": "https://www.misp-project.org/",
                 "Galaxy": [],
-                "ShadowAttribute": []
+                "ShadowAttribute": [],
+                "_allTags": [
+                    {
+                        "id": "299",
+                        "name": "misp-galaxy:country=\"belgium\"",
+                        "colour": "#0088cc",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": true,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    },
+                    {
+                        "id": "79",
+                        "name": "tlp:green",
+                        "colour": "#339900",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    }
+                ]
             }
         ]
     }
