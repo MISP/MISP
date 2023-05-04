@@ -1301,6 +1301,67 @@ class Workflow extends AppModel
         return $data;
     }
 
+    public function getLabelsForConnections($workflow, $trigger_id): array
+    {
+        $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
+        $startNodeID = $this->workflowGraphTool->getNodeIdForTrigger($graphData, $trigger_id);
+        if ($startNodeID  == -1) {
+            return [];
+        }
+
+        $connections = [];
+
+        $filterNodes = $this->workflowGraphTool->extractFilterNodesFromWorkflow($graphData, true);
+        $filterNodeIDToLabel = Hash::combine($filterNodes, '{n}.id', '{n}.data.indexed_params.filtering-label');
+        $resetFilterNodes = $this->workflowGraphTool->extractResetFilterFromWorkflow($graphData, true);
+        $resetFilterNodeIDToLabel = Hash::combine($resetFilterNodes, '{n}.id', '{n}.data.indexed_params.filtering-label');
+        $roamingData = $this->workflowGraphTool->getRoamingData();
+        $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $this, $startNodeID, GraphWalker::PATH_TYPE_INCLUDE_LOGIC, $roamingData);
+        foreach ($graphWalker as $graphNode) {
+            $node = $graphNode['node'];
+            $nodeID = $node['id'];
+            $parsedPathList = GraphWalker::parsePathList($graphNode['path_list']);
+            foreach ($parsedPathList as $pathEntry) {
+                if (!empty($filterNodeIDToLabel[$pathEntry['source_id']])) {
+                    $connections[$nodeID][] = $filterNodeIDToLabel[$pathEntry['source_id']];
+                }
+                if (!empty($resetFilterNodeIDToLabel[$pathEntry['source_id']])) {
+                    if ($resetFilterNodeIDToLabel[$pathEntry['source_id']] == 'all') {
+                        $connections[$nodeID] = [];
+                    } else {
+                        $connections[$nodeID] = array_values(array_diff($connections[$nodeID], [$resetFilterNodeIDToLabel[$pathEntry['source_id']]]));
+                    }
+                }
+            }
+        }
+        return $connections;
+    }
+
+    public function attachLabelToConnections($workflow, $trigger_id=null): array
+    {
+        $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
+        if (is_null($trigger_id)) {
+            $startNode = $this->workflowGraphTool->extractTriggerFromWorkflow($graphData, true);
+            $trigger_id = $startNode['data']['id'];
+        }
+        $labelsByNodes = $this->getLabelsForConnections($workflow, $trigger_id);
+        foreach ($graphData as $i => $node) {
+            if (!empty($labelsByNodes[$node['id']])) {
+                foreach ($node['inputs'] as $inputName => $inputs) {
+                    foreach ($inputs['connections'] as $j => $connection) {
+                        $workflow['Workflow']['data'][$i]['inputs'][$inputName]['connections'][$j]['labels'] = array_map(function($label) {
+                            return [
+                                'id' => Inflector::variable($label),
+                                'name' => $label,
+                                'variant' => 'info',
+                            ];
+                        }, $labelsByNodes[$node['id']]);
+                    }
+                }
+            }
+        }
+        return $workflow;
+    }
     /**
      * moduleSattelesExecution Executes a module using the provided configuration and returns back the result
      *
