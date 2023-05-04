@@ -22,8 +22,6 @@ jobs:
           MYSQL_DATABASE: misp3_test
           MYSQL_USER: misp
           MYSQL_PASSWORD: misp
-        volumes:
-          - ./docker/db/misp-2.4.169.sql:/docker-entrypoint-initdb.d/init.sql
         options: >-
           --health-cmd "mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD"
           --health-interval 10s
