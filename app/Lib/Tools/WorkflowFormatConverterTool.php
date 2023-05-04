@@ -150,12 +150,11 @@ class WorkflowFormatConverterTool
         if (empty($event)) {
             return [];
         }
-        $event = self::__convertEvent($event);
-        $event = $event['Event'];
         reset($data);
         $entityType = key($data);
-        $event[$entityType][] = $data[$entityType];
-        return ['Event' => $event];
+        $event['Event'][$entityType][] = $data[$entityType];
+        $event = self::__convertEvent($event);
+        return $event;
     }
 
     private static function __includeFlattenedAttributes(array $event): array
