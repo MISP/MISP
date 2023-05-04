@@ -1504,14 +1504,14 @@ class BoostrapProgress extends BootstrapGeneric
             ],
             'role' => "progressbar",
             'aria-valuemin' => "0", 'aria-valuemax' => "100", 'aria-valuenow' => $percentage,
-            'style' => "${widthStyle}",
+            'style' => "$widthStyle",
             'title' => $this->options['title']
         ], $label);
         $container = $this->genNode('div', [
             'class' => [
                 'progress',
             ],
-            'style' => "${heightStyle}",
+            'style' => "$heightStyle",
             'title' => h($this->options['title']),
         ], $pb);
         return $container;
