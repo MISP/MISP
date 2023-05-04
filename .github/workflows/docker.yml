@@ -1,0 +1,41 @@
+name: Test
+
+on:
+  push:
+    branches:
+    - 3.x
+    - 3.x-eventblocklists
+  pull_request:
+    branches:
+    - 3.x
+
+jobs:
+  test:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Start test containers
+      run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" up -d --build
+
+    - name: Setup PHP with PECL extension
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: php-mysql, php-xml, php-mbstring
+        tools: composer:v2
+
+    - name: Install composer packages
+      run: composer install --no-interaction --no-progress --no-suggest --ignore-platform-reqs
+
+    - name: Run tests
+      run: vendor/bin/phpunit
+    
+    # - name: Run tests
+    #   run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" exec --no-TTY misp vendor/bin/phpunit
+
+    - name: Stop containers
+      run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" down
