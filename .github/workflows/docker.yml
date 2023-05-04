@@ -31,6 +31,9 @@ jobs:
     - name: Install composer packages
       run: composer install --no-interaction --no-progress --no-suggest --ignore-platform-reqs
 
+    - name: Copy config file
+      run: cp -Rf docker/misp/config/app_local.php config/app_local.php
+
     - name: Run tests
       run: vendor/bin/phpunit
     
