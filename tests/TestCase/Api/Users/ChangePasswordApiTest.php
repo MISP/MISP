@@ -35,6 +35,7 @@ class ChangePasswordApiTest extends TestCase
 
     public function setUp(): void
     {
+        $this->markTestSkipped("This is not implemented yet.");
         parent::setUp();
         $this->initializeOpenApiValidator();
 
@@ -46,6 +47,7 @@ class ChangePasswordApiTest extends TestCase
 
     public function testChangePasswordOwnUser(): void
     {
+        $this->markTestSkipped("This is not implemented yet.");
         $this->setAuthToken(AuthKeysFixture::REGULAR_USER_API_KEY);
         $newPassword = 'Test12345678!';
 

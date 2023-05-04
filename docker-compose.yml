@@ -1,0 +1,102 @@
+version: "3.9"
+
+services:
+  misp:
+    image: misp3/php:8.2-fpm
+    build:
+      context: .
+      dockerfile: docker/misp/Dockerfile
+      target: prod
+    tty: true
+    restart: unless-stopped
+    environment:
+      MISP_DB: ${MYSQL_DATABASE:-misp}
+      MISP_DB_USER: ${MYSQL_USER:-misp}
+      MISP_DB_PASSWORD: ${MYSQL_PASSWORD}
+      ADMIN_ORG: ${ADMIN_ORG}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD}
+      ADMIN_USER_API_KEY: ${ADMIN_USER_API_KEY}
+      GPG_PASSPHRASE: ${GPG_PASSPHRASE}
+    healthcheck:
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      test: "/usr/local/bin/healthcheck.sh"
+    volumes:
+      - ./docker/misp/config/app_local.php:/var/www/html/config/app_local.php:delegated
+      - ./docker/misp/logs:/var/www/html/logs:delegated
+    entrypoint: /usr/local/bin/entrypoint.sh
+    networks:
+      - backend-network
+      - frontend-network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  webserver:
+    image: misp3/nginx
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/certs:/etc/nginx/certs:delegated
+    entrypoint: /usr/local/bin/entrypoint.sh
+    depends_on:
+      misp:
+        condition: service_healthy
+    networks:
+      - frontend-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: mariadb:10
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-misp}
+      MYSQL_USER: ${MYSQL_USER:-misp}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql:delegated
+      - ./docker/db/misp-2.4.169.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - backend-network
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    networks:
+      - backend-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  frontend-network:
+    driver: bridge
+  backend-network:
+    driver: bridge
+
+volumes:
+  db_data:
+
+

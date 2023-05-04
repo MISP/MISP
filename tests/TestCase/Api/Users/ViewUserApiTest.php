@@ -17,7 +17,6 @@ class ViewUserApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
-        'app.Individuals',
         'app.Roles',
         'app.Users',
         'app.AuthKeys'
@@ -29,7 +28,7 @@ class ViewUserApiTest extends TestCase
         $this->get(self::ENDPOINT);
 
         $this->assertResponseOk();
-        $this->assertResponseContains(sprintf('"username": "%s"', UsersFixture::USER_ADMIN_USERNAME));
+        $this->assertResponseContains(sprintf('"email": "%s"', UsersFixture::USER_ADMIN_EMAIL));
     }
 
     public function testViewUserById(): void
@@ -39,6 +38,6 @@ class ViewUserApiTest extends TestCase
         $this->get($url);
 
         $this->assertResponseOk();
-        $this->assertResponseContains(sprintf('"username": "%s"', UsersFixture::USER_REGULAR_USER_USERNAME));
+        $this->assertResponseContains(sprintf('"email": "%s"', UsersFixture::USER_REGULAR_USER_EMAIL));
     }
 }

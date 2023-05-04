@@ -156,7 +156,7 @@ class AuthKeycloakBehavior extends Behavior
             'role' => $this->_table->Roles->find()->where($roleConditions)->first(),
             'organisation' => $this->_table->Organisations->find()->where(
                 [
-                    'id' => $data['organisation_id']
+                    'id' => $data->org_id
                 ]
             )->first()
         ];
@@ -222,7 +222,7 @@ class AuthKeycloakBehavior extends Behavior
              'id' => $user['role_id']
         ])->first();
         $user['organisation'] = $this->_table->Organisations->find()->where([
-            'id' => $user['organisation_id']
+            'id' => $user->org_id
         ])->first();
 
         $users = [$user->toArray()];

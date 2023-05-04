@@ -30,8 +30,9 @@ class OrganisationsFixture extends TestFixture
                 'sector' => 'IT',
                 'type' => '',
                 'contacts' => '',
-                'created' => $faker->dateTime()->getTimestamp(),
-                'modified' => $faker->dateTime()->getTimestamp()
+                'description' => 'ORGANISATION A',
+                'date_created' => $faker->dateTime()->getTimestamp(),
+                'date_modified' => $faker->dateTime()->getTimestamp()
             ],
             [
                 'id' => self::ORGANISATION_B_ID,
@@ -42,8 +43,8 @@ class OrganisationsFixture extends TestFixture
                 'sector' => 'IT',
                 'type' => '',
                 'contacts' => '',
-                'created' => $faker->dateTime()->getTimestamp(),
-                'modified' => $faker->dateTime()->getTimestamp()
+                'date_created' => $faker->dateTime()->getTimestamp(),
+                'date_modified' => $faker->dateTime()->getTimestamp()
             ]
         ];
         parent::init();

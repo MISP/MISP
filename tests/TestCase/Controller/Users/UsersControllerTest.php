@@ -13,7 +13,6 @@ class UsersControllerTest extends TestCase
     use IntegrationTestTrait;
 
     protected $fixtures = [
-        'app.Individuals',
         'app.Roles',
         'app.Users'
     ];
@@ -23,10 +22,10 @@ class UsersControllerTest extends TestCase
         $this->enableSecurityToken();
 
         $this->post('/users/login', [
-            'username' => UsersFixture::USER_ADMIN_USERNAME,
+            'email' => UsersFixture::USER_ADMIN_EMAIL,
             'password' => UsersFixture::USER_ADMIN_PASSWORD,
         ]);
 
-        $this->assertSessionHasKey('authUser.uuid');
+        $this->assertSessionHasKey('authUser.id');
     }
 }

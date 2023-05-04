@@ -11,3 +11,4 @@ docker/run/
 .phpunit.result.cache
 config.json
 phpunit.xml
+docker-compose.override.yml

@@ -17,7 +17,6 @@ class IndexUsersApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
-        'app.Individuals',
         'app.Roles',
         'app.Users',
         'app.AuthKeys'
@@ -29,6 +28,6 @@ class IndexUsersApiTest extends TestCase
         $this->get(self::ENDPOINT);
 
         $this->assertResponseOk();
-        $this->assertResponseContains(sprintf('"username": "%s"', UsersFixture::USER_ADMIN_USERNAME));
+        $this->assertResponseContains(sprintf('"email": "%s"', UsersFixture::USER_ADMIN_EMAIL));
     }
 }

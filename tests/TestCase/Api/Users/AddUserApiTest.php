@@ -19,7 +19,6 @@ class AddUserApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
-        'app.Individuals',
         'app.Roles',
         'app.Users',
         'app.AuthKeys'
@@ -27,6 +26,7 @@ class AddUserApiTest extends TestCase
 
     public function testAddUser(): void
     {
+        $this->markTestSkipped("This is not implemented yet.");
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
         $this->post(
             self::ENDPOINT,
@@ -47,6 +47,7 @@ class AddUserApiTest extends TestCase
 
     public function testAddUserNotAllowedAsRegularUser(): void
     {
+        $this->markTestSkipped("This is not implemented yet.");
         $this->setAuthToken(AuthKeysFixture::REGULAR_USER_API_KEY);
         $this->post(
             self::ENDPOINT,

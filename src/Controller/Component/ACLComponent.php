@@ -320,7 +320,7 @@ class ACLComponent extends Component
             if (!$currentUser['Role']['perm_org_admin']) {
                 return false;
             } else {
-                if ($currentUser['organisation_id'] !== $user['organisation_id']) {
+                if ($currentUser->org_id !== $user->org_id) {
                     return false;
                 }
             }

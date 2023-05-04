@@ -108,7 +108,7 @@ class TagHelper extends Helper
             $deleteButton = $this->Bootstrap->button([
                 'size' => 'sm',
                 'icon' => 'times',
-                'class' => ['ms-1', 'border-0', "text-${textColour}"],
+                'class' => ['ms-1', 'border-0', "text-$textColour"],
                 'variant' => 'text',
                 'title' => __('Delete tag'),
                 'params' => [

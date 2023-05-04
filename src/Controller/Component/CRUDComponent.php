@@ -506,7 +506,7 @@ class CRUDComponent extends Component
                 $params['contain'] = [$params['contain'], 'MetaFields'];
             }
         }
-        $query = $this->Table->find()->where(['id' => $id]);
+        $query = $this->Table->find()->where(["{$this->Table->getAlias()}.id" => $id]);
         if (!empty($params['contain'])) {
             $query->contain($params['contain']);
         }
@@ -1365,7 +1365,7 @@ class CRUDComponent extends Component
     {
         $prefixedConditions = [];
         foreach ($conditions as $condField => $condValue) {
-            $prefixedConditions["${prefix}.${condField}"] = $condValue;
+            $prefixedConditions["$prefix.$condField"] = $condValue;
         }
         return $prefixedConditions;
     }
@@ -1489,13 +1489,13 @@ class CRUDComponent extends Component
                     [sprintf('%s.id = %s.%s', $this->Table->getAlias(), $associatedTable->getAlias(), $association->getForeignKey())]
                 )
                     ->where([
-                        ["${field} IS NOT" => NULL]
+                        ["$field IS NOT" => NULL]
                     ]);
             } else if ($associationType == 'manyToOne') {
                 $fieldToExtract = sprintf('%s.%s', Inflector::singularize(strtolower($model)), $subField);
                 $query = $this->Table->find()->contain($model);
             } else {
-                throw new Exception("Association ${associationType} not supported in CRUD Component");
+                throw new Exception("Association $associationType not supported in CRUD Component");
             }
         } else {
             $fieldToExtract = $field;
