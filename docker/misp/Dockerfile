@@ -27,7 +27,10 @@ WORKDIR /var/www/html
 
 # Set permissions for log file
 RUN touch /var/run/php-fpm.pid /var/log/php-fpm.error.log /var/log/php-fpm.slow.log \
-    && chown www-data:www-data /var/run/php-fpm.pid /var/log/php-fpm.error.log /var/log/php-fpm.slow.log \
+    && chown www-data:www-data /var/run/php-fpm.pid /var/log/php-fpm.error.log /var/log/php-fpm.slow.log
+
+# Create tmp directory
+RUN mkdir /var/www/html/logs \
     && chown -R www-data:www-data /var/www/html/logs
 
 # Create tmp directory
