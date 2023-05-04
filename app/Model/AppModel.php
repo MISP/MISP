@@ -3590,6 +3590,11 @@ class AppModel extends Model
      */
     protected function logException($message, Exception $exception, $type = LOG_ERR)
     {
+        // If Sentry is installed, send exception to Sentry
+        if (function_exists('\Sentry\captureException') && $type === LOG_ERR) {
+            \Sentry\captureException($exception);
+        }
+
         $message .= "\n";
 
         do {
