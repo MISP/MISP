@@ -44,6 +44,12 @@ jobs:
         extensions: php-mysql, php-xml, php-mbstring
         tools: composer:v2
 
+    - name: Install mysql client
+      run: sudo apt-get install -y mysql-client
+
+    - name: Populate database
+      run: mysql -h db -u misp -pmisp misp3_test < docker/db/misp-2.4.169.sql
+
     - name: Install composer packages
       run: composer install --no-interaction --no-progress --no-suggest --ignore-platform-reqs
 
