@@ -16,6 +16,6 @@ body {
     /* background: linear-gradient(180deg, #2fa1dbaa 20%, #5f6062ff); */
     /* background: radial-gradient(#2fa1dbaa 50%, #5f6062ff); */
     /* Less opacity */
-    background: radial-gradient(#2fa1db55 30%, #5f606233);
-    /* background: linear-gradient(180deg, #2fa1db44 20%, #5f606244); */
+    /* background: radial-gradient(#2fa1db55 30%, #5f606233); */
+    background: linear-gradient(180deg, #2fa1db44 20%, #5f606244);
 }
