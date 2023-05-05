@@ -3,14 +3,12 @@
 namespace App\Model\Table;
 
 use App\Model\Table\AppTable;
-use Cake\ORM\Table;
 use Cake\Validation\Validator;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\Event;
 use Cake\Event\EventInterface;
 use Cake\Auth\DefaultPasswordHasher;
 use Cake\Utility\Security;
-use Cake\Http\Exception\MethodNotAllowedException;
 use ArrayObject;
 
 class AuthKeysTable extends AppTable

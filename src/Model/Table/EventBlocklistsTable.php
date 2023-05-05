@@ -40,10 +40,10 @@ class EventBlocklistsTable extends AppTable
 
     public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options)
     {
-        if (empty($data['id'])) {
+        if (empty($entity->id)) {
             $entity->created = date('Y-m-d H:i:s');
         }
-        if (empty($data['comment'])) {
+        if (empty($entity->comment)) {
             $entity->comment = '';
         }
         return true;

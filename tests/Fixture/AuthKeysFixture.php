@@ -14,10 +14,8 @@ class AuthKeysFixture extends TestFixture
     public const ADMIN_API_ID = 1;
     public const ADMIN_API_KEY = 'sL9hrjIyY405RyGQHLx5DoCAM92BNmmGa8P4ck1E';
 
-
     public const SYNC_API_ID = 2;
     public const SYNC_API_KEY = '6b387ced110858dcbcda36edb044dc18f91a0894';
-
 
     public const ORG_ADMIN_API_ID = 3;
     public const ORG_ADMIN_API_KEY = '1c4685d281d478dbcebd494158024bc3539004d0';

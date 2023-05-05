@@ -3,6 +3,7 @@
 namespace App\Controller\Component;
 
 use Cake\Controller\Component;
+use Cake\Validation\Validation;
 
 class BlocklistComponent extends Component
 {
@@ -35,7 +36,7 @@ class BlocklistComponent extends Component
     {
         if ($this->controller->getRequest()->is('post')) {
             if ($rest) {
-                if ($this->controller->getResponse()->type() === 'application/json') {
+                if ($this->controller->getResponse()->getType() === 'application/json') {
                     $isJson = true;
                     $data = $this->controller->getRequest()->input('json_decode', true);
                 } else {
@@ -100,13 +101,13 @@ class BlocklistComponent extends Component
     public function edit($id, $rest = false)
     {
         if (Validation::uuid($id)) {
-            $blockEntry = $this->controller->{$this->defaultModel}->find('first', [
+            $blockEntry = $this->controller->{$this->defaultModel}->find('all', [
                 'conditions' => array(
                     $this->controller->{$this->defaultModel}->blocklistTarget . '_uuid' => $id
                 )
-            ]);
+            ])->first();
         } else {
-            $blockEntry = $this->controller->{$this->defaultModel}->find('first', array('conditions' => array('id' => $id)));
+            $blockEntry = $this->controller->{$this->defaultModel}->find('all', array('conditions' => array('id' => $id)))->first();
         }
         if (empty($blockEntry)) {
             throw new NotFoundException(__('Blocklist item not found.'));
@@ -114,7 +115,7 @@ class BlocklistComponent extends Component
         $this->controller->set('blockEntry', $blockEntry);
         if ($this->controller->getRequest()->is('post')) {
             if ($rest) {
-                if ($this->controller->getResponse()->type() === 'application/json') {
+                if ($this->controller->getResponse()->getType() === 'application/json') {
                     $data = $this->controller->getRequest()->input('json_decode', true);
                 } else {
                     $data = $this->controller->getRequest()->getData();
@@ -134,18 +135,14 @@ class BlocklistComponent extends Component
                     continue;
                 }
                 if (isset($data[$this->defaultModel][$f])) {
-                    $blockEntry[$this->defaultModel][$f] = $data[$this->defaultModel][$f];
+                    $blockEntry[$f] = $data[$this->defaultModel][$f];
                 }
             }
             if ($this->controller->{$this->defaultModel}->save($blockEntry)) {
                 if ($rest) {
                     return $this->RestResponse->viewData(
-                        $this->controller->{$this->defaultModel}->find('first', [
-                            'recursive' => -1,
-                            'conditions' => [
-                                'id' => $this->controller->{$this->defaultModel}->id
-                            ]
-                        ])
+                        $this->controller->{$this->defaultModel}->get($blockEntry->id)
+
                     );
                 } else {
                     $this->controller->Flash->success(__('Blocklist item added.'));
@@ -165,19 +162,19 @@ class BlocklistComponent extends Component
     public function delete($id, $rest = false)
     {
         if (Validation::uuid($id)) {
-            $blockEntry = $this->controller->{$this->defaultModel}->find('first', [
+            $blockEntry = $this->controller->{$this->defaultModel}->find('all', [
                 'conditions' => array(
                     $this->controller->{$this->defaultModel}->blocklistTarget . '_uuid' => $id
                 )
-            ]);
+            ])->first();
         } else {
-            $blockEntry = $this->controller->{$this->defaultModel}->find('first', array('conditions' => array('id' => $id)));
+            $blockEntry = $this->controller->{$this->defaultModel}->find('all', array('conditions' => array('id' => $id)))->first();
         }
         if (empty($blockEntry)) {
             throw new NotFoundException(__('Invalid blocklist entry'));
         }
 
-        if ($this->controller->{$this->defaultModel}->delete($blockEntry[$this->defaultModel]['id'])) {
+        if ($this->controller->{$this->defaultModel}->delete($blockEntry)) {
             $message = __('Blocklist entry removed');
             if ($rest) {
                 return $this->RestResponse->saveSuccessResponse($this->defaultModel, 'delete', $id, false, $message);

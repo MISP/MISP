@@ -50,18 +50,17 @@ class EventBlocklistsController extends AppController
     public function massDelete()
     {
         if ($this->request->is('post') || $this->request->is('put')) {
-            if (!isset($this->request->data['EventBlocklist'])) {
-                $this->request->data = array('EventBlocklist' => $this->request->data);
+            $ids = $this->request->getData();
+            if (empty($ids)) {
+                throw new NotFoundException(__('Invalid EventBlocklists IDs.'));
             }
-            $ids = $this->request->data['EventBlocklist']['ids'];
-            $event_ids = json_decode($ids, true);
-            if (empty($event_ids)) {
-                throw new NotFoundException(__('Invalid event IDs.'));
-            }
-            $result = $this->EventBlocklist->deleteAll(array('EventBlocklist.id' => $event_ids));
+            $eventBlocklists = $this->EventBlocklists->find('all', [
+                'conditions' => ['id IN' => $ids]
+            ]);
+            $result = $this->EventBlocklists->deleteMany($eventBlocklists);
             if ($result) {
                 if ($this->ParamHandler->isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('EventBlocklist', 'Deleted', $ids, $this->response->type());
+                    return $this->RestResponse->saveSuccessResponse('EventBlocklist', 'Deleted', implode(',', $ids), $this->response->getType());
                 } else {
                     $this->Flash->success('Blocklist entry removed');
                     $this->redirect(array('controller' => 'eventBlocklists', 'action' => 'index'));
@@ -69,7 +68,7 @@ class EventBlocklistsController extends AppController
             } else {
                 $error = __('Failed to delete Event from EventBlocklist. Error: ') . PHP_EOL . h($result);
                 if ($this->ParamHandler->isRest()) {
-                    return $this->RestResponse->saveFailResponse('EventBlocklist', 'Deleted', false, $error, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('EventBlocklist', 'Deleted', false, $error, $this->response->getType());
                 } else {
                     $this->Flash->error($error);
                     $this->redirect(array('controller' => 'eventBlocklists', 'action' => 'index'));
