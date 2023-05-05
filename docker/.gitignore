@@ -2,3 +2,4 @@
 *.crt
 .env
 .env.dev
+misp/logs/*.log
