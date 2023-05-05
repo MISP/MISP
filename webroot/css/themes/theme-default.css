@@ -12686,11 +12686,11 @@ textarea.form-control-lg {
 }
 
 .fs-7 {
-  font-size: 0.875rem !important;
+  font-size: 0.775rem !important;
 }
 
 .fs-8 {
-  font-size: 0.7rem !important;
+  font-size: 0.75rem !important;
 }
 
 .btn-xs, .btn-group-xs > .btn {
@@ -12879,8 +12879,8 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link:hover {
-  color: #0c63e4;
-  background-color: #e9ecef;
+  color: #0c63e4 !important;
+  background-color: #e9ecef !important;
 }
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child,
@@ -12890,13 +12890,13 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child:hover,
 .sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child:hover {
-  color: #0c63e4;
-  background-color: #e9ecef;
+  color: #0c63e4 !important;
+  background-color: #e9ecef !important;
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.active:hover {
-  color: #094db1;
-  background-color: #dee2e6;
+  color: #094db1 !important;
+  background-color: #dee2e6 !important;
 }
 
 ul.sidebar-elements li > a.sidebar-link.active::after {

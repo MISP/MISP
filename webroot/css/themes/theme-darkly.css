@@ -2,6 +2,7 @@
 /* Colors */
 /* Sizes */
 /* Effect and transition */
+@import url("https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;1,400&display=swap");
 :root {
   --bs-blue: #375a7f;
   --bs-indigo: #6610f2;
@@ -45,7 +46,7 @@
   --bs-white-rgb: 255, 255, 255;
   --bs-black-rgb: 0, 0, 0;
   --bs-body-color-rgb: 255, 255, 255;
-  --bs-body-bg-rgb: 249, 250, 251;
+  --bs-body-bg-rgb: 34, 34, 34;
   --bs-font-sans-serif: Lato, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   --bs-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --bs-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
@@ -54,7 +55,7 @@
   --bs-body-font-weight: 400;
   --bs-body-line-height: 1.25;
   --bs-body-color: #fff;
-  --bs-body-bg: #f9fafb;
+  --bs-body-bg: #222;
   --bs-border-width: 1px;
   --bs-border-style: solid;
   --bs-border-color: #dee2e6;
@@ -157,7 +158,7 @@
   --bs-white-rgb: 255, 255, 255;
   --bs-black-rgb: 0, 0, 0;
   --bs-body-color-rgb: 255, 255, 255;
-  --bs-body-bg-rgb: 249, 250, 251;
+  --bs-body-bg-rgb: 34, 34, 34;
   --bs-font-sans-serif: Lato, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   --bs-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --bs-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
@@ -166,7 +167,7 @@
   --bs-body-font-weight: 400;
   --bs-body-line-height: 1.25;
   --bs-body-color: #fff;
-  --bs-body-bg: #f9fafb;
+  --bs-body-bg: #222;
   --bs-border-width: 1px;
   --bs-border-style: solid;
   --bs-border-color: #dee2e6;
@@ -707,7 +708,7 @@ progress {
 
 .img-thumbnail {
   padding: 0.25rem;
-  background-color: #f9fafb;
+  background-color: #222;
   border: 1px solid var(--bs-border-color);
   border-radius: 0.375rem;
   max-width: 100%;
@@ -2645,10 +2646,10 @@ textarea.form-control-lg {
   outline: 0;
 }
 .form-range:focus::-webkit-slider-thumb {
-  box-shadow: 0 0 0 1px #f9fafb, 0 0 0 0.25rem rgba(55, 90, 127, 0.25);
+  box-shadow: 0 0 0 1px #222, 0 0 0 0.25rem rgba(55, 90, 127, 0.25);
 }
 .form-range:focus::-moz-range-thumb {
-  box-shadow: 0 0 0 1px #f9fafb, 0 0 0 0.25rem rgba(55, 90, 127, 0.25);
+  box-shadow: 0 0 0 1px #222, 0 0 0 0.25rem rgba(55, 90, 127, 0.25);
 }
 .form-range::-moz-focus-outer {
   border: 0;
@@ -3940,7 +3941,7 @@ textarea.form-control-lg {
   --bs-nav-tabs-border-radius: 0.375rem;
   --bs-nav-tabs-link-hover-border-color: #444 #444 transparent;
   --bs-nav-tabs-link-active-color: #fff;
-  --bs-nav-tabs-link-active-bg: #f9fafb;
+  --bs-nav-tabs-link-active-bg: #222;
   --bs-nav-tabs-link-active-border-color: #444 #444 transparent;
   border-bottom: var(--bs-nav-tabs-border-width) solid var(--bs-nav-tabs-border-color);
 }
@@ -4625,7 +4626,7 @@ textarea.form-control-lg {
 
 .accordion {
   --bs-accordion-color: #fff;
-  --bs-accordion-bg: #f9fafb;
+  --bs-accordion-bg: #222;
   --bs-accordion-transition: color 0.15s ease-out, background-color 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out, border-radius 0.15s ease;
   --bs-accordion-border-color: var(--bs-border-color);
   --bs-accordion-border-width: 1px;
@@ -12687,11 +12688,11 @@ textarea.form-control-lg {
 }
 
 .fs-7 {
-  font-size: 0.875rem !important;
+  font-size: 0.775rem !important;
 }
 
 .fs-8 {
-  font-size: 0.7rem !important;
+  font-size: 0.75rem !important;
 }
 
 .btn-xs, .btn-group-xs > .btn {
@@ -12766,7 +12767,7 @@ textarea.form-control-lg {
 
 /* Body */
 body {
-  background-color: #f9fafb;
+  background-color: #222;
 }
 
 .panel {
@@ -12842,11 +12843,11 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 
 .sidebar-scroll::-webkit-scrollbar-thumb {
   border-radius: 5px;
-  background: rgba(149, 150, 151, 0.6);
+  background: rgba(20, 20, 20, 0.6);
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(125, 125, 126, 0.6);
+  background: rgba(17, 17, 17, 0.6);
 }
 
 .sidebar ~ main.content:after {
@@ -12880,8 +12881,8 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link:hover {
-  color: #60676c;
-  background-color: #ebebeb;
+  color: #60676c !important;
+  background-color: #ebebeb !important;
 }
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child,
@@ -12891,13 +12892,13 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child:hover,
 .sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child:hover {
-  color: #60676c;
-  background-color: #ebebeb;
+  color: #60676c !important;
+  background-color: #ebebeb !important;
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.active:hover {
-  color: #008462;
-  background-color: #dee2e6;
+  color: #008462 !important;
+  background-color: #dee2e6 !important;
 }
 
 ul.sidebar-elements li > a.sidebar-link.active::after {
@@ -12914,11 +12915,90 @@ ul.sidebar-elements li > a.sidebar-link.active::after {
 }
 
 .sidebar ul.sidebar-elements li ul.sub-menu li > a.sidebar-link {
-  color: #3e4346;
+  color: #fff;
 }
 
 /* Action bar */
 .action-bar {
   box-shadow: 0 0.15rem 0.3rem #00000032;
   background-color: #363636;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+.blockquote-footer {
+  color: #888;
+}
+
+.form-control {
+  color-scheme: light;
+}
+
+.input-group-addon {
+  color: #fff;
+}
+
+.form-floating > label {
+  color: #444;
+}
+
+.nav-tabs .nav-link,
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-link.active:focus,
+.nav-tabs .nav-link.active:hover,
+.nav-tabs .nav-item.open .nav-link,
+.nav-tabs .nav-item.open .nav-link:focus,
+.nav-tabs .nav-item.open .nav-link:hover,
+.nav-pills .nav-link,
+.nav-pills .nav-link.active,
+.nav-pills .nav-link.active:focus,
+.nav-pills .nav-link.active:hover,
+.nav-pills .nav-item.open .nav-link,
+.nav-pills .nav-item.open .nav-link:focus,
+.nav-pills .nav-item.open .nav-link:hover {
+  color: #fff;
+}
+
+.breadcrumb a {
+  color: #fff;
+}
+
+.pagination a:hover {
+  text-decoration: none;
+}
+
+.alert {
+  color: #fff;
+  border: none;
+}
+.alert a,
+.alert .alert-link {
+  color: #fff;
+  text-decoration: underline;
+}
+.alert-primary {
+  background-color: #375a7f;
+}
+.alert-secondary {
+  background-color: #444;
+}
+.alert-success {
+  background-color: #00bc8c;
+}
+.alert-info {
+  background-color: #3498db;
+}
+.alert-warning {
+  background-color: #f39c12;
+}
+.alert-danger {
+  background-color: #e74c3c;
+}
+.alert-light {
+  background-color: #adb5bd;
+}
+.alert-dark {
+  background-color: #303030;
 }

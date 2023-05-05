@@ -3,7 +3,7 @@ $theme: "app-default";
 @import "../node_modules/bootstrap/scss/functions";
 
 /* Colors */
-$body-bg: #f9fafb;
+$body-bg: #f9fafb !default;
 
 /* Sizes */
 $font-size-base: .875rem;
@@ -216,8 +216,8 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 .sidebar ul.sidebar-elements li > a.sidebar-link:hover {
     // background-color: $sidebarHoverColor;
     // color: $sidebarActiveColor;
-    color: $sidebarHoverColor;
-    background-color: $sidebarHoverBgColor;
+    color: $sidebarHoverColor !important;
+    background-color: $sidebarHoverBgColor !important;
 }
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child,
@@ -228,15 +228,15 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child:hover,
 .sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child:hover {
     // background-color: $sidebarHoverColor;
-    color: $sidebarHoverColor;
-    background-color: $sidebarHoverBgColor;
+    color: $sidebarHoverColor !important;
+    background-color: $sidebarHoverBgColor !important;
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.active:hover {
     // background-color: $sidebarHoverActiveColor;
     // color: $sidebarActiveColor;
-    color: $sidebarHoverActiveColor;
-    background-color: $sidebarHoverActiveBgColor;
+    color: $sidebarHoverActiveColor !important;
+    background-color: $sidebarHoverActiveBgColor !important;
 }
 
 ul.sidebar-elements li > a.sidebar-link.active::after {

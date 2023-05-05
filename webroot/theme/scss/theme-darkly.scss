@@ -25,7 +25,8 @@ $sidebarTextColor: $white;
 $sidebarActiveColor: $nav-tabs-link-active-color;
 $sidebarActiveBgColor: #595f64;
 $sidebarHoverColor: #60676c;
-$sidebarSubmenuColor: shade-color($sidebarActiveBgColor, 30%);
+// $sidebarSubmenuColor: shade-color($sidebarActiveBgColor, 30%);
+$sidebarSubmenuColor: $sidebarTextColor;
 $sidebarBorder: none;
 $sidebarShadows: none;
 $sidebarLockButton: unset;
@@ -34,3 +35,4 @@ $activeSidebarLinkColor: var(--application-color);
 $calloutBorderColor: 1px solid none;
 
 @import "theme-default";
+@import "darkly/bootswatch";

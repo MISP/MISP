@@ -2,6 +2,7 @@
 /* Colors */
 /* Sizes */
 /* Effect and transition */
+@import url("https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;1,400&display=swap");
 :root {
   --bs-blue: #2c3e50;
   --bs-indigo: #6610f2;
@@ -12686,11 +12687,11 @@ textarea.form-control-lg {
 }
 
 .fs-7 {
-  font-size: 0.875rem !important;
+  font-size: 0.775rem !important;
 }
 
 .fs-8 {
-  font-size: 0.7rem !important;
+  font-size: 0.75rem !important;
 }
 
 .btn-xs, .btn-group-xs > .btn {
@@ -12879,8 +12880,8 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link:hover {
-  color: #16a98c;
-  background-color: #ecf0f1;
+  color: #16a98c !important;
+  background-color: #ecf0f1 !important;
 }
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child,
@@ -12890,13 +12891,13 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child:hover,
 .sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child:hover {
-  color: #16a98c;
-  background-color: #ecf0f1;
+  color: #16a98c !important;
+  background-color: #ecf0f1 !important;
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.active:hover {
-  color: #11846d;
-  background-color: #dee2e6;
+  color: #11846d !important;
+  background-color: #dee2e6 !important;
 }
 
 ul.sidebar-elements li > a.sidebar-link.active::after {
@@ -12920,4 +12921,77 @@ ul.sidebar-elements li > a.sidebar-link.active::after {
 .action-bar {
   box-shadow: 0 0.15rem 0.3rem #00000032;
   background-color: #fff;
+}
+
+:root {
+  color-scheme: light;
+}
+
+.bg-primary .navbar-nav .show > .nav-link,
+.bg-primary .navbar-nav .nav-link.active,
+.bg-primary .navbar-nav .nav-link:hover,
+.bg-primary .navbar-nav .nav-link:focus {
+  color: #18bc9c !important;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-link.active:focus,
+.nav-tabs .nav-link.active:hover,
+.nav-tabs .nav-item.open .nav-link,
+.nav-tabs .nav-item.open .nav-link:focus,
+.nav-tabs .nav-item.open .nav-link:hover {
+  color: #2c3e50;
+}
+
+.pagination a:hover {
+  text-decoration: none;
+}
+
+.badge.bg-light {
+  color: #7b8a8b;
+}
+
+.alert {
+  color: #fff;
+  border: none;
+}
+.alert a,
+.alert .alert-link {
+  color: #fff;
+  text-decoration: underline;
+}
+.alert-primary {
+  background-color: #2c3e50;
+}
+.alert-secondary {
+  background-color: #95a5a6;
+}
+.alert-success {
+  background-color: #18bc9c;
+}
+.alert-info {
+  background-color: #3498db;
+}
+.alert-warning {
+  background-color: #f39c12;
+}
+.alert-danger {
+  background-color: #e74c3c;
+}
+.alert-light {
+  background-color: #ecf0f1;
+}
+.alert-dark {
+  background-color: #7b8a8b;
+}
+.alert-light,
+.alert-light a,
+.alert-light .alert-link {
+  color: #212529;
+}
+
+.modal .btn-close,
+.toast .btn-close,
+.offcanvas .btn-close {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e");
 }

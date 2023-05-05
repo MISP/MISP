@@ -1,8 +1,8 @@
 // Your variable overrides can go here, e.g.:
 // $h1-font-size: 3rem;
-$theme: "app-flatly";
+$theme: "app-lumen";
 
-@import "flatly/variables";
+@import "lumen/variables";
 @import "../node_modules/bootstrap/scss/functions";
 
 $topNavbarColor: $primary;
@@ -21,4 +21,4 @@ $sidebarLockButton: unset;
 $activeSidebarLinkColor: $success;
 
 @import "theme-default";
-@import "flatly/bootswatch";
+@import "lumen/bootswatch"
