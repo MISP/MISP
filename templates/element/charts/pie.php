@@ -1,8 +1,16 @@
 <?php
-
 $chartOptions = $chartOptions ?? [];
 $seed = mt_rand();
 $chartId = "chart-{$seed}";
+
+$firstElement = reset($data);
+if (!is_array($firstElement)) { // convert the K-V into list of tuple
+    $tupleList = [];
+    foreach ($data as $k => $v) {
+        $tupleList[] = [$k, $v];
+    }
+    $data = $tupleList;
+}
 
 $data = $data ?? [];
 $series = [];
@@ -10,7 +18,7 @@ $labels = [];
 $totalValue = 0;
 foreach ($data as $combined) {
     $combinedValues = array_values($combined);
-    $label = $combinedValues[0];
+    $label = strval($combinedValues[0]);
     $value = $combinedValues[1];
     $labels[] = $label;
     $series[] = $value;
@@ -33,10 +41,11 @@ foreach ($data as $combined) {
                     top: 1,
                     left: 1,
                     blur: 2,
-                    opacity: 0.2,
+                    opacity: 0.15,
                 },
                 animations: {
-                    enabled: false
+                    enabled: true,
+                    speed: 200,
                 },
             },
             series: <?= json_encode($series) ?>,
@@ -59,15 +68,23 @@ foreach ($data as $combined) {
                 style: {
                     fontFamily: 'var(--bs-body-font-family)'
                 }
+            },
+            stroke: {
+                width: 1
             }
         }
         const chartOptions = mergeDeep({}, defaultOptions, passedOptions)
+
+        if (chartOptions?.plotOptions?.pie?.donut?.labels?.total?.formatter) {
+            chartOptions.plotOptions.pie.donut.labels.total.formatter = window[chartOptions.plotOptions.pie.donut.labels.total.formatter]
+        }
+
         new ApexCharts(document.querySelector('#<?= $chartId ?>'), chartOptions).render();
     })
 </script>
 
 <style>
     #<?= $chartId ?>.apexcharts-tooltip-y-group {
-        padding: 1px;
+        /* padding: 1px; */
     }
 </style>
