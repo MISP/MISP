@@ -16,7 +16,7 @@ If running locally:
 Add a `misp3_test` database to the database:
 ```mysql
 CREATE DATABASE misp3_test;
-GRANT ALL PRIVILEGES ON misp3_test.* to misp@localhost;
+GRANT ALL PRIVILEGES ON misp3_test.* to misp@'%';
 FLUSH PRIVILEGES;
 QUIT;
 ```

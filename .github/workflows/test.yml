@@ -33,6 +33,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+        with:
+          submodules: recursive
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -52,6 +54,9 @@ jobs:
 
       - name: Populate database with initial schema
         run: mysql --defaults-file=misp.cnf -h 127.0.0.1 misp3_test < docker/db/misp-2.4.169.sql
+
+      - name: Debug DB
+        run: mysql --defaults-file=misp.cnf -h 127.0.0.1 misp3_test -e "SHOW TABLES;"
 
       - name: Install composer packages
         run: composer install --no-interaction --no-progress --no-suggest --ignore-platform-reqs
