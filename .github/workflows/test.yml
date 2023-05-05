@@ -52,14 +52,11 @@ jobs:
           echo "user=misp" >> misp.cnf
           echo "password=misp" >> misp.cnf
 
-      - name: Populate database with initial schema
-        run: mysql --defaults-file=misp.cnf -h 127.0.0.1 misp3_test < docker/db/misp-2.4.169.sql
-
-      - name: Debug DB
+      - name: Debug DB (pre migration/tests)
         run: mysql --defaults-file=misp.cnf -h 127.0.0.1 misp3_test -e "SHOW TABLES;"
 
       - name: Install composer packages
-        run: composer install --no-interaction --no-progress --no-suggest --ignore-platform-reqs
+        run: composer install --no-interaction --no-progress --no-suggest
 
       - name: Copy config file
         run: cp -Rf docker/misp/config/app_local.gh_action.php config/app_local.php
@@ -67,6 +64,6 @@ jobs:
       - name: Run tests
         run: vendor/bin/phpunit
 
-      - name: Debug DB (after tests)
+      - name: Debug DB (after migration/tests)
         if: always()
         run: mysql --defaults-file=misp.cnf -h 127.0.0.1 misp3_test -e "SHOW TABLES;"
