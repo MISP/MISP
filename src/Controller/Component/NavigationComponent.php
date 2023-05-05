@@ -207,6 +207,7 @@ class NavigationComponent extends Component
             'Users',
             'Tags',
             'UserSettings',
+            'Events',
         ];
         foreach ($CRUDControllers as $controller) {
             $bcf->setDefaultCRUDForModel($controller);
