@@ -52,9 +52,6 @@ jobs:
           echo "user=misp" >> misp.cnf
           echo "password=misp" >> misp.cnf
 
-      - name: Debug DB (pre migration/tests)
-        run: mysql --defaults-file=misp.cnf -h 127.0.0.1 misp3_test -e "SHOW TABLES;"
-
       - name: Install composer packages
         run: composer install --no-interaction --no-progress --no-suggest
 
@@ -62,8 +59,4 @@ jobs:
         run: cp -Rf docker/misp/config/app_local.gh_action.php config/app_local.php
 
       - name: Run tests
-        run: vendor/bin/phpunit
-
-      - name: Debug DB (after migration/tests)
-        if: always()
-        run: mysql --defaults-file=misp.cnf -h 127.0.0.1 misp3_test -e "SHOW TABLES;"
+        run: vendor/bin/phpunit --configuration phpunit.xml.dist --testdox
