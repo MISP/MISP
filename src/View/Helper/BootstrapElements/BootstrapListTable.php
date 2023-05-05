@@ -16,6 +16,8 @@ use App\View\Helper\BootstrapHelper;
  *  - variant: Variant to apply on the entire table
  *  - tableClass: A list of class to add on the table container
  *  - bodyClass: A list of class to add on the tbody container
+ *  - keyClass: A list of class to be added to all keys
+ *  - valueClass: A list of class to be added to all valkue cell
  *  - id: The ID to use for the table
  *  - caption: Optional table caption
  *  - elementsRootPath: Root path to use when item are relying on cakephp's element. See options for fields
@@ -34,6 +36,9 @@ use App\View\Helper\BootstrapHelper;
  *  - cellVariant: The bootstrap variant to be applied on the cell
  *  - rowVariant: The bootstrap variant to be applied on the row
  *  - notice_$variant: A text with the passed variant to be append at the end
+ *  - rowClass: A list of class to be added to the row
+ *  - keyClass: A list of class to be added to the key cell
+ *  - valueClass: A list of class to be added to the value cell
  * 
  * # Usage:
  *      $this->Bootstrap->listTable(
@@ -86,9 +91,11 @@ class BootstrapListTable extends BootstrapGeneric
         'borderless' => false,
         'hover' => true,
         'small' => false,
+        'fluid' => false,
         'variant' => '',
         'tableClass' => [],
         'bodyClass' => [],
+        'rowClass' => [],
         'id' => '',
         'caption' => '',
         'elementsRootPath' => '/genericElements/SingleViews/Fields/',
@@ -111,6 +118,7 @@ class BootstrapListTable extends BootstrapGeneric
         $this->options = array_merge($this->defaultOptions, $options);
         $this->options['tableClass'] = $this->convertToArrayIfNeeded($this->options['tableClass']);
         $this->options['bodyClass'] = $this->convertToArrayIfNeeded($this->options['bodyClass']);
+        $this->options['rowClass'] = $this->convertToArrayIfNeeded($this->options['rowClass']);
         $this->checkOptionValidity();
     }
 
@@ -157,18 +165,25 @@ class BootstrapListTable extends BootstrapGeneric
 
     private function genRow(array $field): string
     {
+        $allKeyClass = $this->convertToArrayIfNeeded($this->options['keyClass'] ?? []);
+        $keyClass = $this->convertToArrayIfNeeded($field['keyClass'] ?? []);
         $rowValue = $this->genCell($field);
         $rowKey = $this->node('th', [
-            'class' => [
-                'col-4 col-sm-2'
-            ],
+            'class' => array_merge(
+                $allKeyClass,
+                $keyClass,
+                !empty($this->options['fluid']) ? ['col flex-shrink-1'] : ['col-4 col-sm-3'],
+            ),
             'scope' => 'row'
         ], $field['keyHtml'] ?? h($field['key']));
         $row = $this->node('tr', [
-            'class' => [
-                'd-flex',
-                !empty($field['rowVariant']) ? "table-{$field['rowVariant']}" : ''
-            ]
+            'class' => array_merge(
+                $this->options['rowClass'],
+                [
+                    'd-flex',
+                    !empty($field['rowVariant']) ? "table-{$field['rowVariant']}" : ''
+                ]
+            ),
         ], [$rowKey, $rowValue]);
         return $row;
     }
@@ -192,11 +207,17 @@ class BootstrapListTable extends BootstrapGeneric
                 $cellContent .= sprintf(' <span class="text-%s">%s</span>', $variant, $field["notice_$variant"]);
             }
         }
+        $allValueClass = $this->convertToArrayIfNeeded($this->options['valueClass'] ?? []);
+        $valueClass = $this->convertToArrayIfNeeded($field['valueClass'] ?? []);
         return $this->node('td', [
-            'class' => [
-                'col-8 col-sm-10',
-                !empty($field['cellVariant']) ? "bg-{$field['cellVariant']}" : ''
-            ]
+            'class' => array_merge(
+                $allValueClass,
+                $valueClass,
+                [
+                    (!empty($this->options['fluid']) ? 'col flex-grow-1' : 'col-8 col-sm-9'),
+                    !empty($field['cellVariant']) ? "bg-{$field['cellVariant']}" : ''
+                ]
+            ),
         ], $cellContent);
     }
 
