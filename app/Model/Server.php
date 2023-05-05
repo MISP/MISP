@@ -6584,7 +6584,15 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                     'cli_only' => true
-                ]
+                ],
+                'disclose_user_emails' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting to allow for the user e-mail addresses to be shown to non site-admin users. Keep in mind that in broad communities this can be abused.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
             ),
             'SecureAuth' => array(
                 'branch' => 1,
