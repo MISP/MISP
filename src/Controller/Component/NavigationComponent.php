@@ -467,6 +467,20 @@ class BreadcrumbFactory
         }
     }
 
+    public function removeAction(string $sourceController, string $sourceAction, string $targetController, string $targetAction)
+    {
+        $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
+        if (!empty($routeSourceConfig['actions'])) {
+            foreach ($routeSourceConfig['actions'] as $i => $routeConfig) {
+                if ($routeConfig['controller'] == $targetController && $routeConfig['action'] == $targetAction) {
+                    unset($routeSourceConfig['actions'][$i]);
+                    $this->endpoints[$sourceController][$sourceAction]['actions'] = $routeSourceConfig['actions'];
+                    break;
+                }
+            }
+        }
+    }
+
     public function registerGoToMenuConfig(string $sourceController, string $sourceAction, string $goToID, array $config = []): void
     {
         $this->endpoints[$sourceController][$sourceAction]['goToMenu'][$goToID] = $config;
