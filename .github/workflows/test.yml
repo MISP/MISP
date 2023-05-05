@@ -66,3 +66,7 @@ jobs:
 
       - name: Run tests
         run: vendor/bin/phpunit
+
+      - name: Debug DB (after tests)
+        if: always()
+        run: mysql --defaults-file=misp.cnf -h 127.0.0.1 misp3_test -e "SHOW TABLES;"
