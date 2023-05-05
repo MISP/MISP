@@ -18,12 +18,22 @@
                     $element['value'] = h($element['value']);
                 }
             }
+            $change = '';
+            if (!empty($element['change'])) {
+                $change = (int)$element['change'];
+                if ($change > 0) {
+                    $change = '<span class="green bold"> (+' . $change . ')</span>';
+                } else {
+                    $change = '<span class="red bold"> (-' . $change . ')</span>';
+                }
+            }
             echo sprintf(
-                '<div><span class="bold">%s</span>: <span class="%s">%s</span>%s</div>',
+                '<div><span class="bold">%s</span>: <span class="%s">%s</span>%s%s</div>',
                 h($element['title']),
                 empty($element['class']) ? 'blue' : h($element['class']),
                 !isset($element['value']) ? '' : $element['value'],
-                empty($element['html']) ? '' : $element['html']
+                empty($element['html']) ? '' : $element['html'],
+                $change
             );
         }
     }
