@@ -134,7 +134,7 @@ class WorkflowBaseModule
         return 'The Factory Must Grow';
     }
 
-    protected function extractData($data, $path)
+    public function extractData($data, $path)
     {
         $extracted = $data;
         if (!empty($path)) {
@@ -210,7 +210,7 @@ class WorkflowBaseModule
         return false;
     }
 
-    protected function getItemsMatchingCondition($items, $value, $operator, $path)
+    public function getItemsMatchingCondition($items, $value, $operator, $path)
     {
         foreach ($items as $i => $item) {
             $subItem = $this->extractData($item, $path, $operator);
@@ -296,4 +296,21 @@ class WorkflowBaseLogicModule extends WorkflowBaseModule
 
 class WorkflowBaseActionModule extends WorkflowBaseModule
 {
+}
+
+class WorkflowFilteringLogicModule extends WorkflowBaseLogicModule
+{
+    public $blocking = false;
+    public $inputs = 1;
+    public $outputs = 2;
+
+    protected function _genFilteringLabels(): array
+    {
+        $names = ['A', 'B', 'C', 'D', 'E', 'F'];
+        $labels = [];
+        foreach ($names as $name) {
+            $labels[$name] = __('Label %s', $name);
+        }
+        return $labels;
+    }
 }

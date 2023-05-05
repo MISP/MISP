@@ -670,6 +670,25 @@ class EventsController extends AppController
                         ]
                     ];
                     break;
+                case 'value':
+                    if ($v == "") {
+                        continue 2;
+                    }
+                    $conditions['OR'] = [
+                        ['Attribute.value1' => $v],
+                        ['Attribute.value2' => $v],
+                    ];
+
+                    $eventIds = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                        'conditions' => $conditions,
+                        'flatten' => true,
+                        'event_ids' => true,
+                        'list' => true,
+                    ));
+
+                    $this->paginate['conditions']['AND'][] = array('Event.id' => $eventIds);
+
+                    break;
                 default:
                     continue 2;
             }
@@ -682,7 +701,7 @@ class EventsController extends AppController
     {
         // list the events
         $urlparams = "";
-        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
+        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value');
         $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
         $passedArgs = $this->passedArgs;
         if (!empty($this->request->data)) {
@@ -2374,12 +2393,42 @@ class EventsController extends AppController
         $this->set('title_for_layout', __('Import from MISP Export File'));
     }
 
-    public function upload_stix($stix_version = '1', $publish = false)
+    public function upload_stix($stix_version = '1', $publish = false, $galaxies_as_tags = true, $debug = false)
     {
+        $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        $initialDistribution = 0;
+        if (Configure::read('MISP.default_event_distribution') != null) {
+            $initialDistribution = Configure::read('MISP.default_event_distribution');
+        }
+        $distributionLevels = $this->Event->distributionLevels;
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 if (isset($this->params['named']['publish'])) {
                     $publish = $this->params['named']['publish'];
+                }
+                if (isset($this->params['named']['distribution'])) {
+                    $distribution = intval($this->params['named']['distribution']);
+                    if (array_key_exists($distribution, $distributionLevels)) {
+                        $initialDistribution = $distribution;
+                    } else {
+                        throw new MethodNotAllowedException(__('Wrong distribution level'));
+                    }
+                }
+                $sharingGroupId = null;
+                if ($initialDistribution == 4) {
+                    if (!isset($this->params['named']['sharing_group_id'])) {
+                        throw new MethodNotAllowedException(__('The sharing group id is needed when the distribution is set to 4 ("Sharing group").'));
+                    }
+                    $sharingGroupId = intval($this->params['named']['sharing_group_id']);
+                    if (!array_key_exists($sharingGroupId, $sgs)) {
+                        throw new MethodNotAllowedException(__('Please select a valid sharing group id.'));
+                    }
+                }
+                if (isset($this->params['named']['galaxies_as_tags'])) {
+                    $galaxies_as_tags = $this->params['named']['galaxies_as_tags'];
+                }
+                if (isset($this->params['named']['debugging'])) {
+                    $debug = $this->params['named']['debugging'];
                 }
                 $filePath = FileAccessTool::writeToTempFile($this->request->input());
                 $result = $this->Event->upload_stix(
@@ -2387,7 +2436,11 @@ class EventsController extends AppController
                     $filePath,
                     $stix_version,
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
-                    $publish
+                    $publish,
+                    $initialDistribution,
+                    $sharingGroupId,
+                    $galaxies_as_tags,
+                    $debug
                 );
                 if (is_numeric($result)) {
                     $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $result));
@@ -2406,12 +2459,19 @@ class EventsController extends AppController
                     if (!move_uploaded_file($this->data['Event']['stix']['tmp_name'], $filePath)) {
                         throw new Exception("Could not move uploaded STIX file.");
                     }
+                    if (isset($this->data['Event']['debug'])) {
+                        $debug = $this->data['Event']['debug'];
+                    }
                     $result = $this->Event->upload_stix(
                         $this->Auth->user(),
                         $filePath,
                         $stix_version,
                         $original_file,
-                        $this->data['Event']['publish']
+                        $this->data['Event']['publish'],
+                        $this->data['Event']['distribution'],
+                        $this->data['Event']['sharing_group_id'],
+                        !boolval($this->data['Event']['galaxies_parsing']),
+                        $debug
                     );
                     if (is_numeric($result)) {
                         $this->Flash->success(__('STIX document imported.'));
@@ -2429,6 +2489,20 @@ class EventsController extends AppController
             }
         }
         $this->set('stix_version', $stix_version == 2 ? '2.x JSON' : '1.x XML');
+        $this->set('initialDistribution', $initialDistribution);
+        $distributions = array_keys($this->Event->distributionDescriptions);
+        $distributions = $this->_arrayToValuesIndexArray($distributions);
+        $this->set('distributions', $distributions);
+        $fieldDesc = array();
+        if (empty($sgs)) {
+            unset($distributionLevels[4]);
+        }
+        $this->set('distributionLevels', $distributionLevels);
+        foreach ($distributionLevels as $key => $value) {
+            $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
+        }
+        $this->set('sharingGroups', $sgs);
+        $this->set('fieldDesc', $fieldDesc);
     }
 
     public function merge($target_id=null, $source_id=null)
@@ -4438,12 +4512,12 @@ class EventsController extends AppController
                 ),
                 'STIX' => array(
                     'url' => $this->baseurl . '/events/upload_stix',
-                    'text' => __('STIX 1.1.1 format (lossy)'),
+                    'text' => __('STIX 1.x format (lossy)'),
                     'ajax' => false,
                 ),
                 'STIX2' => array(
                     'url' => $this->baseurl . '/events/upload_stix/2',
-                    'text' => __('STIX 2.0 format (lossy)'),
+                    'text' => __('STIX 2.x format (lossy)'),
                     'ajax' => false,
                 )
             );
