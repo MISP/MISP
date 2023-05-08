@@ -26,7 +26,7 @@ class News extends AppModel
     public function latestNewsTimestamp()
     {
         $data = $this->find('first', [
-            'order' => 'date_created DESC',
+            'order' => 'News.date_created DESC',
             'fields' => ['date_created'],
         ]);
         if (!$data) {
