@@ -4,7 +4,7 @@
     <?= $this->element('Events/event-critical-notices') ?>
 </div>
 
-<div class="d-flex flex-row gap-2 mb-2">
+<div class="d-flex flex-row gap-2 mb-3">
     <div style="flex-basis: 33%;">
         <?= $this->element('Events/event-metadata') ?>
     </div>
@@ -13,7 +13,7 @@
     </div>
 </div>
 
-<div class="mb-2">
+<div class="mb-3">
     <?= $this->element('Events/event-stats') ?>
 </div>
 

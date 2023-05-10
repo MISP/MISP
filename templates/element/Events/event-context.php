@@ -300,4 +300,5 @@ $content = $listTable;
 echo $this->Bootstrap->card([
     'bodyHTML' => $content,
     'bodyClass' => 'p-0',
+    'class' => ['shadow-md'],
 ]);

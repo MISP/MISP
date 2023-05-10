@@ -12708,6 +12708,10 @@ textarea.form-control-lg {
   box-shadow: 0 0.1rem 0.15rem #00000038;
 }
 
+.shadow-md {
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 0.25em 6px -1px, rgba(0, 0, 0, 0.06) 0px 2px 4px 0px;
+}
+
 .multi-metafields-container {
   position: relative;
 }
