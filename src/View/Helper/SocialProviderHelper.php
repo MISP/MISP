@@ -18,22 +18,22 @@ class SocialProviderHelper extends Helper
         return !empty($identity['social_profile']);
     }
 
-    public function getIcon($identity)
+    public function getIcon($identity, array $classes=[])
     {
         if (!empty($identity['social_profile'])) {
             $provider = $identity['social_profile']['provider'];
             if (!empty($this->providerImageMapping[$provider])) {
-                return $this->genImage($this->providerImageMapping[$provider], h($provider));
+                return $this->genImage($this->providerImageMapping[$provider], h($provider), $classes);
             }
         }
         return '';
     }
 
-    private function genImage($url, $alt)
+    private function genImage($url, $alt, array $classes=[])
     {
-        return $this->Bootstrap->genNode('img', [
+        return $this->Bootstrap->node('img', [
             'src' => $url,
-            'class' => ['img-fluid'],
+            'class' => array_merge(['img-fluid'], $classes),
             'width' => '16',
             'height' => '16',
             'alt' => $alt,

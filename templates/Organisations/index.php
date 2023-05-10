@@ -10,14 +10,15 @@ echo $this->element('genericElements/IndexTable/index_table', [
                         'data' => [
                             'type' => 'simple',
                             'text' => __('Add organisation'),
-                            'class' => 'btn btn-primary',
-                            'popover_url' => '/organisations/add'
+                            'popover_url' => '/organisations/add',
+                            'button' => [
+                                'icon' => 'plus',
+                            ]
                         ]
                     ]
                 ],
                 [
                     'type' => 'context_filters',
-                    'context_filters' => $filteringContexts
                 ],
                 [
                     'type' => 'search',
@@ -87,13 +88,14 @@ echo $this->element('genericElements/IndexTable/index_table', [
             ],
             */
         ],
+        'primary_id_path' => 'id',
         'title' => __('Organisation Index'),
         'description' => __('A list of organisations known to your MISP instance. This list can get populated either directly, by adding new organisations or by fetching them from trusted remote sources.'),
         'actions' => [
             [
                 'url' => '/organisations/view',
                 'url_params_data_paths' => ['id'],
-                'icon' => 'eye'
+                'icon' => 'eye',
             ],
             [
                 'open_modal' => '/organisations/edit/[onclick_params_data_path]',

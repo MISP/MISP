@@ -428,7 +428,7 @@ class ACLComponent extends Component
         if ($urlParts[1] === 'open') {
             return in_array($urlParts[2], Configure::read('Cerebrate.open'));
         } else {
-            return $this->checkAccessInternal(Inflector::camelize($urlParts[1]), $urlParts[2], $soft);
+            return $this->checkAccessInternal(Inflector::camelize($urlParts[1]), $urlParts[2] ?? 'index', $soft);
         }
     }
 

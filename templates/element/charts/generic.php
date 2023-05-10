@@ -4,7 +4,6 @@ $chartOptions = $chartOptions ?? [];
 $seed = mt_rand();
 $chartId = "chart-{$seed}";
 
-$chartData = $chartData ?? [];
 $chartSeries = [];
 if (!empty($series)) {
     $chartSeries = $series;
@@ -26,18 +25,24 @@ if (!empty($series)) {
                     opacity: 0.2,
                 },
                 animations: {
-                    enabled: false
+                    enabled: true,
+                    speed: 200,
                 },
-            }
+            },
             series: <?= json_encode($chartSeries) ?>,
         }
         const chartOptions = mergeDeep({}, defaultOptions, passedOptions)
+
+        if (chartOptions?.plotOptions?.radialBar?.dataLabels?.total?.formatter) {
+            chartOptions.plotOptions.radialBar.dataLabels.total.formatter = window[chartOptions.plotOptions.radialBar.dataLabels.total.formatter]
+        }
+
         new ApexCharts(document.querySelector('#<?= $chartId ?>'), chartOptions).render();
     })
 </script>
 
 <style>
-    #<?= $chartId ?> .apexcharts-tooltip-y-group {
+    #<?= $chartId ?>.apexcharts-tooltip-y-group {
         padding: 1px;
     }
 </style>

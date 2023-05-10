@@ -1,0 +1,376 @@
+// Slate 5.2.2
+// Bootswatch
+
+
+// Variables
+
+:root {
+    color-scheme: dark;
+}
+
+// Mixins
+
+@mixin btn-shadow($color) {
+    @include gradient-y-three-colors(tint-color($color, 12%), $color, 60%, shade-color($color, 8%));
+    filter: none;
+}
+
+@mixin btn-shadow-inverse($color) {
+    @include gradient-y-three-colors(shade-color($color, 36%), shade-color($color, 30%), 40%, shade-color($color, 26%));
+    filter: none;
+}
+
+// Navbar
+
+.navbar {
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, .3);
+    border: 1px solid rgba(0, 0, 0, .6);
+
+    .container {
+        padding: 0;
+    }
+
+    .navbar-toggler {
+        border-color: rgba(0, 0, 0, .6);
+    }
+
+    &-fixed-top {
+        border-width: 0 0 1px;
+    }
+
+    &-fixed-bottom {
+        border-width: 1px 0 0;
+    }
+
+    .nav-link {
+        padding: 1rem;
+        border-right: 1px solid rgba(0, 0, 0, .2);
+        border-left: 1px solid rgba(255, 255, 255, .1);
+
+        &:hover,
+        &:focus {
+            @include btn-shadow-inverse($gray-800);
+            border-left: 1px solid rgba(0, 0, 0, .2);
+        }
+    }
+
+    &-brand {
+        padding: .75rem 1rem subtract(24px, .75rem);
+        margin-right: 0;
+        border-right: 1px solid rgba(0, 0, 0, .2);
+    }
+
+    .nav-item.active .nav-link {
+        background-color: rgba(0, 0, 0, .3);
+        border-left: 1px solid rgba(0, 0, 0, .2);
+    }
+
+    &-nav .nav-item+.nav-item {
+        margin-left: 0;
+    }
+
+    &.bg-light {
+        text-shadow: 1px 1px 1px rgba(0, 0, 0, .1);
+
+        .nav-link {
+
+            &:hover,
+            &:focus {
+                @include btn-shadow-inverse($gray-600);
+                border-left: 1px solid rgba(0, 0, 0, .2);
+            }
+        }
+    }
+}
+
+@media (max-width: 576px) {
+    .navbar-expand-sm {
+
+        .navbar-brand,
+        .nav-link {
+            border: none !important;
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar-expand-md {
+
+        .navbar-brand,
+        .nav-link {
+            border: none !important;
+        }
+    }
+}
+
+@media (max-width: 992px) {
+    .navbar-expand-lg {
+
+        .navbar-brand,
+        .nav-link {
+            border: none !important;
+        }
+    }
+}
+
+// Buttons
+
+.btn {
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, .3);
+    border-color: rgba(0, 0, 0, .6);
+
+    &:not([disabled]):not(.disabled).active,
+    &.disabled {
+        border-color: rgba(0, 0, 0, .6);
+        box-shadow: none;
+    }
+
+    &:hover,
+    &:focus,
+    &:not([disabled]):not(.disabled):active,
+    &:not([disabled]):not(.disabled):active:hover,
+    &:not([disabled]):not(.disabled).active:hover {
+        border-color: rgba(0, 0, 0, .6);
+    }
+}
+
+.btn-primary {
+    @include btn-shadow($primary);
+
+    &:not([disabled]):not(.disabled):hover,
+    &:not([disabled]):not(.disabled):focus,
+    &:not([disabled]):not(.disabled):active:hover,
+    &:not([disabled]):not(.disabled).active:hover {
+        @include btn-shadow-inverse($primary);
+    }
+}
+
+.btn-secondary {
+    @include btn-shadow($secondary);
+
+    &:not([disabled]):not(.disabled):hover,
+    &:not([disabled]):not(.disabled):focus,
+    &:not([disabled]):not(.disabled):active,
+    &:not([disabled]):not(.disabled).active {
+        @include btn-shadow-inverse($secondary);
+    }
+}
+
+.btn-success {
+    @include btn-shadow($success);
+    color: $white;
+
+    &:not([disabled]):not(.disabled):hover,
+    &:not([disabled]):not(.disabled):focus,
+    &:not([disabled]):not(.disabled):active,
+    &:not([disabled]):not(.disabled).active {
+        @include btn-shadow-inverse($success);
+    }
+}
+
+.btn-info {
+    @include btn-shadow($info);
+    color: $white;
+
+    &:not([disabled]):not(.disabled):hover,
+    &:not([disabled]):not(.disabled):focus,
+    &:not([disabled]):not(.disabled):active,
+    &:not([disabled]):not(.disabled).active {
+        @include btn-shadow-inverse($info);
+    }
+}
+
+.btn-warning {
+    @include btn-shadow($warning);
+    color: $white;
+
+    &:not([disabled]):not(.disabled):hover,
+    &:not([disabled]):not(.disabled):focus,
+    &:not([disabled]):not(.disabled):active,
+    &:not([disabled]):not(.disabled).active {
+        @include btn-shadow-inverse($warning);
+    }
+}
+
+.btn-danger {
+    @include btn-shadow($danger);
+
+    &:not([disabled]):not(.disabled):hover,
+    &:not([disabled]):not(.disabled):focus,
+    &:not([disabled]):not(.disabled):active,
+    &:not([disabled]):not(.disabled).active {
+        @include btn-shadow-inverse($danger);
+    }
+}
+
+.btn-outline {
+    &-primary {
+        color: $white;
+    }
+}
+
+.btn-link,
+.btn-link:hover {
+    border-color: transparent;
+}
+
+.btn-group,
+.btn-group-vertical {
+    .btn.active {
+        border-color: rgba(0, 0, 0, .6);
+    }
+}
+
+// Typography
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    text-shadow: -1px -1px 0 rgba(0, 0, 0, .3);
+}
+
+// Forms
+
+legend {
+    color: $white;
+}
+
+.form-control {
+    color-scheme: light;
+}
+
+.input-group-addon {
+    @include btn-shadow($secondary);
+    color: $white;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, .3);
+}
+
+// Navs
+
+.nav-tabs {
+    .nav-link {
+        @include btn-shadow-inverse($gray-800);
+        border: 1px solid rgba(0, 0, 0, .6);
+
+        &:not([disabled]):not(.disabled):hover,
+        &:not([disabled]):not(.disabled):focus,
+        &:not([disabled]):not(.disabled):active,
+        &:not([disabled]):not(.disabled).active {
+            @include btn-shadow($gray-800);
+        }
+
+        &.disabled {
+            border: 1px solid rgba(0, 0, 0, .6);
+        }
+    }
+
+    .nav-link,
+    .nav-link:hover {
+        color: $white;
+    }
+}
+
+.nav-pills {
+    .nav-link {
+        @include btn-shadow($gray-800);
+        color: $white;
+        text-shadow: 1px 1px 1px rgba(0, 0, 0, .3);
+        border: 1px solid rgba(0, 0, 0, .6);
+
+        &:hover {
+            @include btn-shadow-inverse($gray-800);
+            border: 1px solid rgba(0, 0, 0, .6);
+        }
+    }
+
+    .nav-link.active,
+    .nav-link:hover {
+        background-color: transparent;
+        @include btn-shadow-inverse($gray-800);
+        border: 1px solid rgba(0, 0, 0, .6);
+    }
+
+    .nav-link.disabled,
+    .nav-link.disabled:hover {
+        @include btn-shadow($gray-800);
+        color: $nav-link-disabled-color;
+    }
+}
+
+.pagination {
+    .page-link {
+        text-shadow: 1px 1px 1px rgba(0, 0, 0, .3);
+        @include btn-shadow($gray-800);
+
+        &:hover {
+            @include btn-shadow-inverse($gray-800);
+            text-decoration: none;
+        }
+    }
+
+    .page-item.active .page-link {
+        @include btn-shadow-inverse($gray-800);
+    }
+
+    .page-item.disabled .page-link {
+        @include btn-shadow($gray-800);
+    }
+}
+
+.breadcrumb {
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, .3);
+    background-color: transparent;
+    border: 1px solid rgba(0, 0, 0, .6);
+    @include btn-shadow($gray-800);
+
+    a,
+    a:hover {
+        color: $white;
+    }
+}
+
+// Indicators
+
+.alert {
+    color: $white;
+    border: none;
+
+    a,
+    .alert-link {
+        color: $white;
+        text-decoration: underline;
+    }
+
+    @each $color,
+    $value in $theme-colors {
+        &-#{$color} {
+            background-color: $value;
+        }
+    }
+
+    &-light {
+
+        &,
+        a:not(.btn),
+        .alert-link {
+            color: $body-bg;
+        }
+    }
+}
+
+.badge {
+    &.bg-light {
+        color: $dark;
+    }
+}
+
+// Containers
+
+.list-group {
+    &-item-action:hover {
+        background-color: shade-color($gray-900, 10%);
+    }
+}

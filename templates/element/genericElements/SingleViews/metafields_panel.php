@@ -1,10 +1,12 @@
 <?php
 use \Cake\Routing\Router;
+use \Cake\Utility\Hash;
 
 $tabData = [
     'navs' => [],
     'content' => []
 ];
+$viewElementCandidatePath = '/genericElements/SingleViews/Fields/';
 foreach($data['MetaTemplates'] as $metaTemplate) {
     if (!empty($metaTemplate->meta_template_fields)) {
         $tabData['navs'][] = [
@@ -15,12 +17,20 @@ foreach($data['MetaTemplates'] as $metaTemplate) {
             $labelPrintedOnce = false;
             if (!empty($metaTemplateField->metaFields)) {
                 foreach ($metaTemplateField->metaFields as $metaField) {
+                    $viewElementCandidate = $metaTemplateField->index_type == 'text' ? 'generic' : $metaTemplateField->index_type; // Currently, single-view generic fields are not using index-view fields
                     $fields[] = [
                         'key' => !$labelPrintedOnce ? $metaField->field : '',
-                        'raw' => $metaField->value,
-                        'warning' => $metaField->warning ?? null,
-                        'info' => $metaField->info ?? null,
-                        'danger' => $metaField->danger ?? null
+                        // Not relying on the `type` option as this table is a special case where not all values have a label
+                        'raw' => $this->element(sprintf('%s%sField', $viewElementCandidatePath, $viewElementCandidate), [
+                            'data' => $metaField,
+                            'field' => [
+                                'path' => 'value',
+                            ]
+                        ]),
+                        'rawNoEscaping' => true,
+                        'notice_warning' => $metaTemplateField->warning ?? null,
+                        'notice_info' => $metaTemplateField->info ?? null,
+                        'notice_danger' => $metaTemplateField->danger ?? null
                     ];
                     $labelPrintedOnce = true;
                 }
@@ -48,7 +58,7 @@ foreach($data['MetaTemplates'] as $metaTemplate) {
                         'text' => __('Migrate to version {0}', $metaTemplate['hasNewerVersion']->version),
                         'variant' => 'success',
                         'nodeType' => 'a',
-                        'params' => [
+                        'attrs' => [
                             'href' => Router::url([
                                 'controller' => 'metaTemplates',
                                 'action' => 'migrateOldMetaTemplateToNewestVersionForEntity',

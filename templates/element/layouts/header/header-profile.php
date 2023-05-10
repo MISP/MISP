@@ -12,10 +12,13 @@ use Cake\Routing\Router;
             <div class="fw-light"><?= __('Logged in as') ?></div>
             <div>
                 <?= $this->SocialProvider->getIcon($this->request->getAttribute('identity')) ?>
-                <span class="ms-1 me-3">
-                    [<?= h($loggedUser['Organisation']['name']) ?>]
+                <div class="ms-1 me-3">
                     <strong><?= h($this->request->getAttribute('identity')['email']) ?></strong>
-                </span>
+                </div>
+                <div class="ms-1 me-3 d-flex">
+                    [<?= h($loggedUser['Organisation']['name']) ?>]
+                    <span class="ms-auto"><?= h($loggedUser['Role']['name']) ?></span>
+                </div>
             </div>
         </h6>
         <div class="dropdown-divider"></div>

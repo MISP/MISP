@@ -5,19 +5,17 @@ $table = $this->Bootstrap->table([
     'hover' => false,
 ], [
     'fields' => [
-        ['key' => 'label', 'label' => __('Label')],
-        ['key' => 'name', 'label' => __('Name')],
-        ['key' => 'url', 'label' => __('URL'), 'formatter' => function ($value, $row) {
+        ['path' => 'label', 'label' => __('Label')],
+        ['path' => 'name', 'label' => __('Name')],
+        ['path' => 'url', 'label' => __('URL'), 'formatter' => function ($value, $row) {
             return sprintf('<span class="font-monospace">%s</span>', h($value));
         }],
-        ['key' => 'action', 'label' => __('Action'), 'formatter' => function ($value, $row, $index) {
+        ['path' => 'action', 'label' => __('Action'), 'formatter' => function ($value, $row, $index) {
             return $this->Bootstrap->button([
                 'icon' => 'trash',
                 'variant' => 'danger',
                 'size' => 'sm',
-                'params' => [
-                    'onclick' => sprintf('deleteBookmark(window.bookmarks[%s])', $index),
-                ]
+                'onclick' => sprintf('deleteBookmark(window.bookmarks[%s])', $index),
             ]);
         }],
     ],

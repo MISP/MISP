@@ -34,7 +34,7 @@ if (isLeaf($panelSettings)) {
         h($panelName)
     );
     if (!empty($panelSettings['_description'])) {
-        $panelHTML .= $this->Bootstrap->genNode('div', [
+        $panelHTML .= $this->Bootstrap->node('div', [
             'class' => ['mb-1',],
         ], h($panelSettings['_description']));
     }
@@ -59,7 +59,7 @@ if (isLeaf($panelSettings)) {
             }
         }
     }
-    $panelHTML = $this->Bootstrap->genNode('div', [
+    $panelHTML = $this->Bootstrap->node('div', [
         'class' => [
             'shadow',
             'p-2',

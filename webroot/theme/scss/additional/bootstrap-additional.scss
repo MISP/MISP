@@ -1,7 +1,9 @@
 @import "../../node_modules/bootstrap/scss/functions";
 @import "../../node_modules/bootstrap/scss/variables";
+@import "../../node_modules/bootstrap/scss/maps";
 @import "../../node_modules/bootstrap/scss/mixins";
 @import "../../node_modules/bootstrap/scss/utilities";
+@import "../../node_modules/bootstrap/scss/buttons";
 
 @import "../mixins/callout";
 @import "../mixins/toast";
@@ -91,6 +93,15 @@ $toast-color-level:                 70% !default;
         opacity: 0.5;
     }
 }
+
+/* Buttons */
+.btn-group > .dropdown > .btn.dropdown-toggle {
+    border-top-left-radius: 0;
+}
+.btn-group > .dropdown:not(:last-child) > .btn.dropdown-toggle {
+    border-top-right-radius: 0;
+}
+
 
 /* Forms severity */
 .form-control.is-invalid {
@@ -188,10 +199,12 @@ $toast-color-level:                 70% !default;
 }
 
 .fs-7 {
-    font-size: .875rem !important;
+    // font-size: .875rem !important;
+    font-size: .775rem !important;
 }
 .fs-8 {
-    font-size: .7rem !important;
+    // font-size: .7rem !important;
+    font-size: .75rem !important;
 }
 
 .btn-xs, .btn-group-xs > .btn {
@@ -203,6 +216,14 @@ $toast-color-level:                 70% !default;
 
 .btn-check:focus + .btn.btn-xs, .btn.btn-xs:focus {
     box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.btn.btn-link.btn-link-hover-shadow:hover {
+    box-shadow: 0 0.1rem 0.15rem #00000038;
+}
+
+.shadow-md {
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 0.25em 6px -1px, rgba(0, 0, 0, 0.06) 0px 2px 4px 0px;
 }
 
 @import '../../../scss/custom.scss';

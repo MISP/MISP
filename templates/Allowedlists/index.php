@@ -15,7 +15,10 @@
                                 'type' => 'simple',
                                 'text' => __('Add entry'),
                                 'class' => 'btn btn-primary',
-                                'popover_url' => '/admin/allowedlists/add'
+                                'popover_url' => '/admin/allowedlists/add',
+                                'button' => [
+                                    'icon' => 'plus',
+                                ]
                             ]
                         ]
                     ],

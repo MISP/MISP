@@ -11,7 +11,7 @@ use Cake\Http\Exception\NotFoundException;
 
 class UsersController extends AppController
 {
-    public $filterFields = ['email', 'Organisations.name', 'Organisations.id'];
+    public $filterFields = ['email', 'autoalert', 'contactalert', 'termsaccepted', 'disabled', 'role_id' ,'Organisations.name', 'Roles.name', ];
     public $quickFilterFields = [['email' => true]];
     public $containFields = ['Roles', /*'UserSettings',*/ 'Organisations'];
 
@@ -26,10 +26,36 @@ class UsersController extends AppController
         if (!empty(Configure::read('keycloak.enabled'))) {
             // $keycloakUsersParsed = $this->Users->getParsedKeycloakUser();
         }
+        $roles = $this->Users->Roles->find('list')->all()->toArray();
+        $roleFilters = [];
+        foreach ($roles as $roleID => $roleName) {
+            $roleFilters[] = [
+                'label' => __('{0}', h($roleName)),
+                'filterCondition' => ['role_id' => h($roleID)],
+            ];
+        }
+        $rolesForContext = [[
+            'is_group' => true,
+            'icon' => $this->Navigation->iconToTableMapping['Roles'],
+            'label' => __('Roles'),
+            'filters' => $roleFilters,
+        ]];
         $this->CRUD->index([
             'contain' => $this->containFields,
             'filters' => $this->filterFields,
             'quickFilters' => $this->quickFilterFields,
+            'contextFilters' => [
+                'custom' => array_merge([
+                    [
+                        'label' => __('Active'),
+                        'filterCondition' => ['disabled' => 0],
+                    ],
+                    [
+                        'label' => __('Disabled'),
+                        'filterCondition' => ['disabled' => 1],
+                    ]
+                ], $rolesForContext),
+            ],
             'conditions' => $conditions,
             'afterFind' => function($data) use ($keycloakUsersParsed) {
                 // TODO: We might want to uncomment this at some point Still need to evaluate the impact
@@ -50,6 +76,19 @@ class UsersController extends AppController
             $this->Users->Roles->find('list')->select(['id', 'name'])->order(['name' => 'asc'])->where(['perm_admin' => 0])->all()->toArray()
         );
         $this->set('metaGroup', $this->isAdmin ? 'Administration' : 'Cerebrate');
+    }
+
+    public function filtering()
+    {
+        $this->CRUD->filtering([
+            'afterFind' => function ($filtersConfig, $typeMap) {
+                $newFilterConfig = $this->CRUD->transformBooleanFieldsIntoRadio($filtersConfig, $typeMap);
+                return [
+                    'typeMap' => $typeMap,
+                    'filtersConfig' => $newFilterConfig,
+                ];
+            }
+        ]);
     }
 
     public function add()

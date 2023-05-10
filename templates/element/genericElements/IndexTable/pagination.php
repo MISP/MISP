@@ -8,7 +8,7 @@
     }
     $onClick = sprintf(
         'onClick="executePagination(%s, %s);"',
-        "'" . h($tableRandomValue) . "'",
+        "'" . h($options['update']) . "'",
         "'{{url}}'"
 
     );

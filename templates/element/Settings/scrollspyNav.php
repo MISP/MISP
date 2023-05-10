@@ -56,7 +56,7 @@ if (!function_exists('getResolvableID')) {
 
     #navbar-scrollspy-setting nav.nav-pills .nav-link.main-group:before {
         margin-right: 0.25em;
-        font-family: 'Font Awesome 5 Free';
+        font-family: 'Font Awesome 6 Free';
         font-weight: 900;
         -webkit-font-smoothing: antialiased;
         display: inline-block;

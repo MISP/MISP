@@ -4,7 +4,7 @@ use Cake\Utility\Inflector;
 
 $default_template = [
     'inputContainer' => '<div class="row mb-3 metafield-container">{{content}}</div>',
-    'inputContainerError' => '<div class="row mb-3 metafield-container has-error">{{content}}</div>',
+    'inputContainerError' => '<div class="row mb-3 metafield-container has-error">{{content}}{{error}}</div>',
     'formGroup' => '<label class="col-sm-2 col-form-label form-label" {{attrs}}>{{label}}</label><div class="col-sm-10">{{input}}{{error}}</div>',
     'error' => '<div class="error-message invalid-feedback d-block">{{content}}</div>',
     'errorList' => '<ul>{{content}}</ul>',
@@ -82,7 +82,7 @@ foreach ($metaTemplate->meta_template_fields as $metaTemplateField) {
         }
     }
 }
-$fieldContainer = $this->Bootstrap->genNode('div', [
+$fieldContainer = $this->Bootstrap->node('div', [
     'class' => [],
 ], $fieldsHtml);
 echo $fieldContainer;

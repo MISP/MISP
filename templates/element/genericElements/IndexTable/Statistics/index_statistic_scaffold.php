@@ -11,6 +11,6 @@ if (!empty($statistics['usage'])) {
         'statistics' => $statistics,
     ]);
 }
-$statisticsHtml = sprintf('<div class="container-fluid"><div class="row gx-2">%s</div></div>', $statisticsHtml);
+$statisticsHtml = sprintf('<div class="container-fluid px-0"><div class="row gx-2">%s</div></div>', $statisticsHtml);
 echo sprintf('<div class="index-statistic-container">%s</div>', $statisticsHtml);
 ?>

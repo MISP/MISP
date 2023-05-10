@@ -1,14 +1,45 @@
 $theme: "app-default";
 
 @import "../node_modules/bootstrap/scss/functions";
+
+/* Colors */
+$body-bg: #f9fafb !default;
+
+/* Sizes */
+$font-size-base: .875rem;
+$line-height-base: 1.25;
+$line-height-sm: 1.15;
+$line-height-lg: 1.5;
+$navbar-brand-padding-y: 0.3125rem;
+$table-cell-padding-y: .25rem;
+$table-cell-padding-x: .25rem;
+$table-cell-padding-y-sm: .0rem;
+$table-cell-padding-x-sm: .0rem;
+$table-cell-vertical-align: middle;
+
+/* Effect and transition */
+$transition-collapse: height .35s cubic-bezier(0, 0.71, 0.58, 1);
+$btnTransitionSec: .15s;
+$btn-transition: color $btnTransitionSec ease-out, background-color $btnTransitionSec ease-out, border-color $btnTransitionSec ease-out, box-shadow $btnTransitionSec ease-out !default;
+
 @import "../node_modules/bootstrap/scss/variables";
+@import "../node_modules/bootstrap/scss/maps";
 @import "../node_modules/bootstrap/scss/mixins";
+@import "../node_modules/bootstrap/scss/root";
+@import "../node_modules/bootstrap/scss/transitions";
+@import "../node_modules/bootstrap/scss/bootstrap";
 
 @import "./mixins/background";
 
-$cerebrateColor: #924da6;
-$bodyBackgroundImageStopColor: tint-color($cerebrateColor, 62) !default;
-$enabledBackgroundSVG: true !default;
+$applicationColor: #2fa1db;
+
+$bodyBg: $body-bg;
+$scrollbarWidth: 3px !default;
+$scrollbarBgContainer: #ffffff00 !default;
+$scrollbarBg: rgba(shade-color($bodyBg, 40%), 0.6) !default;
+$scrollbarBgHover: rgba(shade-color($bodyBg, 50%), 0.6) !default;
+$bodyBackgroundImageStopColor: tint-color($applicationColor, 62) !default;
+$enabledBackgroundSVG: false !default;
 $bodyBackgroundBlendmode: normal !default;
 
 $panelBgColor: $white !default;
@@ -24,20 +55,32 @@ $headerBreadcrumbLinksBoxshadow: 0 2px 2px 0 rgba(0, 0, 0, 0.16), 0 2px 6px 0 rg
 $headerBreadcrumbLinksBGColor: $light !default;
 
 $sidebarBgColor: $light !default;
-$sidebarTextColor: $black !default;
-$sidebarActiveColor: $black !default;
-$sidebarActiveBgColor: #dbdbdb !default;
-$sidebarHoverColor: #ebebeb !default;
+$sidebarTextColor: $gray-800 !default;
+$sidebarActiveColor: $link-color !default;
+$sidebarHoverColor: shift-color($link-color, 10%) !default;
+$sidebarHoverActiveColor: shift-color($link-color, 30%) !default;
+
+$sidebarActiveBgColor: $gray-200 !default;
+$sidebarHoverBgColor: $gray-200 !default;
+$sidebarHoverActiveBgColor: $gray-300 !default;
+
+$sidebarSubmenuColor: $gray-700 !default;
+// $sidebarSubmenuBgColor: tint-color($sidebarActiveBgColor, 50%) !default;
+$sidebarSubmenuBgColor: #{$sidebarBgColor} !default;
 $sidebarBorder: #ddd !default;
 $sidebarShadows: 0 2px 2px 0 rgba(0, 0, 0, 0.16), 0 2px 6px 0 rgba(0, 0, 0, 0.12) !default;
 $sidebarLockButton: $light !default;
-$activeSidebarLinkColor: var(--cerebrate-color) !default;
+$activeSidebarLinkColor: var(--application-color) !default;
 
 // $calloutBorderColor: $gray-200 !default;
 $calloutBgColor: $panelBgColor !default;
 $calloutShadow: $panelShadow !default;
 
 @import "additional/bootstrap-additional";
+
+:root {
+    --application-color: #{$applicationColor};
+}
 
 /* Body */
 body {
@@ -47,6 +90,8 @@ body {
         background-attachment: fixed;
         background-size: cover;
         background-blend-mode: $bodyBackgroundBlendmode;
+    } @else {
+        background-color: $bodyBg;
     }
 }
 
@@ -107,6 +152,34 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
     background-color: $sidebarBgColor;
 }
 
+/* Scroolbar */
+.sidebar-scroll {
+    // scrollbar-gutter: stable;
+    overflow-x: hidden;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+    width: $scrollbarWidth;
+    background: $scrollbarBgContainer;
+}
+
+.sidebar-scroll::-webkit-scrollbar * {
+    background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+    border-radius: 5px;
+    background: $scrollbarBg;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: $scrollbarBgHover;
+}
+
+.sidebar-content {
+    // width: calc(100% + $scrollbarWidth);
+}
+
 .sidebar ~ main.content:after {
     background: $black;
 }
@@ -124,33 +197,47 @@ header.top-navbar .header-breadcrumb .header-breadcrumb-item > a:hover {
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.active {
+    // background-color: $sidebarActiveBgColor;
+    // color: $sidebarActiveColor
+    color: $sidebarActiveColor;
     background-color: $sidebarActiveBgColor;
-    color: $sidebarActiveColor
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link.have-active-child {
-    background-color: $sidebarActiveBgColor;
+    // background-color: $sidebarActiveBgColor;
+    // color: $sidebarActiveColor;
     color: $sidebarActiveColor;
+    background-color: $sidebarActiveBgColor;
 }
 .sidebar ul.sidebar-elements li > a.sidebar-link.have-active-child::after {
     background-color: $activeSidebarLinkColor;
 }
 
 .sidebar ul.sidebar-elements li > a.sidebar-link:hover {
-    background-color: $sidebarHoverColor;
-    color: $sidebarActiveColor;
+    // background-color: $sidebarHoverColor;
+    // color: $sidebarActiveColor;
+    color: $sidebarHoverColor !important;
+    background-color: $sidebarHoverBgColor !important;
 }
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child,
 .sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child {
-    background-color: unset;
+    color: unset;
 }
 
 .sidebar.expanded ul.sidebar-elements li > a.sidebar-link.have-active-child:hover,
 .sidebar:hover ul.sidebar-elements li > a.sidebar-link.have-active-child:hover {
-    background-color: $sidebarHoverColor;
+    // background-color: $sidebarHoverColor;
+    color: $sidebarHoverColor !important;
+    background-color: $sidebarHoverBgColor !important;
 }
 
+.sidebar ul.sidebar-elements li > a.sidebar-link.active:hover {
+    // background-color: $sidebarHoverActiveColor;
+    // color: $sidebarActiveColor;
+    color: $sidebarHoverActiveColor !important;
+    background-color: $sidebarHoverActiveBgColor !important;
+}
 
 ul.sidebar-elements li > a.sidebar-link.active::after {
     background-color: $activeSidebarLinkColor;
@@ -158,4 +245,19 @@ ul.sidebar-elements li > a.sidebar-link.active::after {
 
 .lock-sidebar > a.btn {
     background-color: $sidebarLockButton;
+}
+
+.sidebar ul.sidebar-elements li ul.sub-menu {
+    background-color: $sidebarSubmenuBgColor;
+    box-shadow: inset #11111a1a 0px 0px 0px 1px;
+}
+
+.sidebar ul.sidebar-elements li ul.sub-menu li > a.sidebar-link {
+    color: $sidebarSubmenuColor;
+}
+
+/* Action bar */
+.action-bar {
+    box-shadow: 0 0.15rem 0.3rem #00000032;
+    background-color: $panelBgColor;
 }

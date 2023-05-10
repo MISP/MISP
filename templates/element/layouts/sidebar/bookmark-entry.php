@@ -28,7 +28,7 @@
         'size' => 'sm',
         'icon' => h($icon),
         'class' => ['mb-1', !$validURI ? 'disabled' : ''],
-        'params' => [
+        'attrs' => [
             'href' => $validURI ? h($url) : '#',
         ]
     ]);

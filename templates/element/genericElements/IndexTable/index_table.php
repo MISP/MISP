@@ -2,23 +2,24 @@
 
 use Cake\Utility\Text;
 /*
-     *  echo $this->element('/genericElements/IndexTable/index_table', [
-     *      'top_bar' => (
-     *          // search/filter bar information compliant with ListTopBar
-     *      ),
-     *      'data' => [
-                // the actual data to be used
-     *      ),
-     *      'fields' => [
-     *          // field list with information for the paginator, the elements used for the individual cells, etc
-     *      ),
-     *      'title' => optional title,
-     *      'description' => optional description,
-     *      'index_statistics' => optional statistics to be displayed for the index,
-     *      'primary_id_path' => path to each primary ID (extracted and passed as $primary to fields)
-     *  ));
-     *
-     */
+*  echo $this->element('/genericElements/IndexTable/index_table', [
+*      'top_bar' => (
+*          // search/filter bar information compliant with ListTopBar
+*      ),
+*      'data' => [
+        // the actual data to be used
+*      ),
+*      'fields' => [
+*          // field list with information for the paginator, the elements used for the individual cells, etc
+*      ),
+*      'title' => optional title,
+*      'description' => optional description,
+*      'notice' => optional alert to be placed at the top,
+*      'index_statistics' => optional statistics to be displayed for the index,
+*      'primary_id_path' => path to each primary ID (extracted and passed as $primary to fields)
+*  ));
+*
+*/
 
 $newMetaFields = [];
 if (!empty($requestedMetaFields)) { // Create mapping for new index table fields on the fly
@@ -39,49 +40,56 @@ if (!empty($requestedMetaFields)) { // Create mapping for new index table fields
 $data['fields'] = array_merge($data['fields'], $newMetaFields);
 
 $tableRandomValue = Cake\Utility\Security::randomString(8);
-echo '<div id="table-container-' . h($tableRandomValue) . '">';
+$html = '<div id="table-container-' . h($tableRandomValue) . '">';
 if (!empty($data['title'])) {
-    echo Text::insert(
-        '<h2 class="fw-light">:title :help</h2>',
-        [
-            'title' => $this->ValueGetter->get($data['title']),
-            'help' => $this->Bootstrap->icon('info', [
-                'class' => ['fs-6', 'align-text-top',],
-                'title' => empty($data['description']) ? '' : h($data['description']),
-                'params' => [
-                    'data-bs-toggle' => 'tooltip',
-                ]
-            ]),
-        ]
-    );
+    if (empty($embedInModal)) {
+        $html .= Text::insert(
+            '<h2 class="fw-light">:title :help</h2>',
+            [
+                'title' => h($this->ValueGetter->get($data['title'])),
+                'help' => $this->Bootstrap->icon('info', [
+                    'class' => ['fs-6', 'align-text-top',],
+                    'title' => empty($data['description']) ? '' : h($data['description']),
+                    'attrs' => [
+                        'data-bs-toggle' => 'tooltip',
+                    ]
+                ]),
+            ]
+        );
+    } else {
+        $pageTitle = $this->Bootstrap->node('h5', [], h($this->ValueGetter->get($data['title'])));
+    }
 }
 
 if(!empty($notice)) {
-    echo $this->Bootstrap->alert($notice);
+    $html .=  $this->Bootstrap->alert($notice);
 }
 
 if (!empty($modelStatistics)) {
-    echo $this->element('genericElements/IndexTable/Statistics/index_statistic_scaffold', [
+    $html .=  $this->element('genericElements/IndexTable/Statistics/index_statistic_scaffold', [
         'statistics' => $modelStatistics,
     ]);
 }
 
 
-echo '<div class="panel">';
+$html .= '<div class="panel">';
 if (!empty($data['html'])) {
-    echo sprintf('<div>%s</div>', $data['html']);
+    $html .= sprintf('<div>%s</div>', $data['html']);
 }
 $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
 if (!$skipPagination) {
     $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : [];
-    echo $this->element(
+    if (!empty($embedInModal)) {
+        $paginationData['update'] = ".modal-main-{$tableRandomValue}";
+    }
+    $html .= $this->element(
         '/genericElements/IndexTable/pagination',
         [
             'paginationOptions' => $paginationData,
             'tableRandomValue' => $tableRandomValue
         ]
     );
-    echo $this->element(
+    $html .= $this->element(
         '/genericElements/IndexTable/pagination_links'
     );
 }
@@ -94,8 +102,8 @@ if (!empty($multiSelectData)) {
     ];
     array_unshift($data['fields'], $multiSelectField);
 }
-if (!empty($data['top_bar'])) {
-    echo $this->element(
+if (!empty($data['top_bar']) && empty($skipTableToolbar)) {
+    $html .= $this->element(
         '/genericElements/ListTopBar/scaffold',
         [
             'data' => $data['top_bar'],
@@ -143,7 +151,7 @@ foreach ($data['data'] as $k => $data_row) {
     );
 }
 $tbody = '<tbody>' . $rows . '</tbody>';
-echo sprintf(
+$html .= sprintf(
     '<table class="table table-hover" id="index-table-%s" data-table-random-value="%s" data-reload-url="%s">%s%s</table>',
     $tableRandomValue,
     $tableRandomValue,
@@ -160,11 +168,23 @@ echo sprintf(
     $tbody
 );
 if (!$skipPagination) {
-    echo $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
-    echo $this->element('/genericElements/IndexTable/pagination_links');
+    $html .= $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
+    $html .= $this->element('/genericElements/IndexTable/pagination_links');
 }
-echo '</div>';
-echo '</div>';
+$html .= '</div>';
+$html .= '</div>';
+
+if (!empty($embedInModal)) {
+    echo $this->Bootstrap->modal([
+        'titleHtml' => $pageTitle ?? '',
+        'bodyHtml' =>  $html,
+        'size' => 'xl',
+        'type' => 'ok-only',
+        'modalClass' => "modal-main-{$tableRandomValue}"
+    ]);
+} else {
+    echo $html;
+}
 ?>
 <script type="text/javascript">
     $(document).ready(function() {

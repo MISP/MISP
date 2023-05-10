@@ -50,14 +50,14 @@ foreach (array_keys($mainNoticeHeading) as $level) {
             'bordered' => false,
         ], [
             'fields' => [
-                ['key' => 'name', 'label' => __('Name'), 'formatter' => function($name, $row) {
+                ['path' => 'name', 'label' => __('Name'), 'formatter' => function($name, $row) {
                     $settingID = preg_replace('/(\.|\W)/', '_', h($row['true-name']));
                     return sprintf('<a style="max-width: 200px; white-space: pre-wrap;" href="#lb-%s" onclick="redirectToSetting(\'#lb-%s\')">%s</a>', $settingID, $settingID, h($name));
                 }],
-                ['key' => 'setting-path', 'label' => __('Category'), 'formatter' => function($path, $row) {
+                ['path' => 'setting-path', 'label' => __('Category'), 'formatter' => function($path, $row) {
                     return '<span class="text-nowrap">' . h(str_replace('.', ' ▸ ', $path)) . '</span>';
                 }],
-                ['key' => 'value', 'label' => __('Value'), 'formatter' => function($value, $row) {
+                ['path' => 'value', 'label' => __('Value'), 'formatter' => function($value, $row) {
                     $formatedValue = '<span class="p-1 rounded mb-0" style="background: #eeeeee55; font-family: monospace;">';
                     if (is_null($value)) {
                         $formatedValue .= '<i class="text-nowrap">' . __('No value') . '</i>';
@@ -71,7 +71,7 @@ foreach (array_keys($mainNoticeHeading) as $level) {
                     $formatedValue .= '</span>';
                     return $formatedValue;
                 }],
-                ['key' => 'description', 'label' => __('Description')]
+                ['path' => 'description', 'label' => __('Description')]
             ],
             'items' => $notices[$level],
         ]);
@@ -87,14 +87,14 @@ $alertBody = $this->Bootstrap->table([
     'tableClass' => 'mb-0'
 ], [
     'fields' => [
-        ['key' => 'severity', 'label' => __('Severity')],
-        ['key' => 'issues', 'label' => __('Issues'), 'formatter' => function($count, $row) {
+        ['path' => 'severity', 'label' => __('Severity')],
+        ['path' => 'issues', 'label' => __('Issues'), 'formatter' => function($count, $row) {
             return $this->Bootstrap->badge([
                 'variant' => $row['badge-variant'],
                 'text' => $count
             ]);
         }],
-        ['key' => 'description', 'label' => __('Description')]
+        ['path' => 'description', 'label' => __('Description')]
     ],
     'items' => $tableItems,
 ]);

@@ -9,6 +9,8 @@ use Cake\Utility\Inflector;
 use Cake\Utility\Text;
 use Cake\View\ViewBuilder;
 use Cake\ORM\TableRegistry;
+use Cake\ORM\Query;
+use Cake\Database\Expression\QueryExpression;
 use Cake\Routing\Router;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Http\Exception\NotFoundException;
@@ -32,6 +34,10 @@ class CRUDComponent extends Component
 
     public function index(array $options): void
     {
+        $embedInModal = !empty($this->request->getQuery('embedInModal', false));
+        $excludeStats = !empty($this->request->getQuery('excludeStats', false));
+        $skipTableToolbar = !empty($this->request->getQuery('skipTableToolbar', false));
+
         if (!empty($options['quickFilters'])) {
             if (empty($options['filters'])) {
                 $options['filters'] = [];
@@ -45,9 +51,12 @@ class CRUDComponent extends Component
             $options['filters'][] = 'filteringTags';
         }
 
-        $optionFilters = empty($options['filters']) ? [] : $options['filters'];
+        $optionFilters = [];
+        $optionFilters += empty($options['filters']) ? [] : $options['filters'];
         foreach ($optionFilters as $i => $filter) {
             $optionFilters[] = "{$filter} !=";
+            $optionFilters[] = "{$filter} >=";
+            $optionFilters[] = "{$filter} <=";
         }
         $params = $this->Controller->ParamHandler->harvestParams($optionFilters);
         $params = $this->fakeContextFilter($options, $params);
@@ -70,13 +79,22 @@ class CRUDComponent extends Component
             $query->select($options['fields']);
         }
         if (!empty($options['order'])) {
-            $query->order($options['order']);
-        }
-        if ($this->Controller->ParamHandler->isRest()) {
-            if ($this->metaFieldsSupported()) {
-                $query = $this->includeRequestedMetaFields($query);
+            $orderFields = array_keys($options['order']);
+            if ($this->_validOrderFields($orderFields)) {
+                $query->order($options['order']);
+                $this->Controller->paginate['order'] = $options['order'];
             }
-            $data = $query->all();
+        }
+        if ($this->metaFieldsSupported() && !$this->Controller->ParamHandler->isRest()) {
+            $query = $this->includeRequestedMetaFields($query);
+        }
+        if (!$this->Controller->ParamHandler->isRest()) {
+            $this->setRequestedEntryAmount();
+        }
+        $data = $this->Controller->paginate($query, $this->Controller->paginate ?? []);
+        $totalCount = $this->Controller->getRequest()->getAttribute('paging')[$this->TableAlias]['count'];
+        if ($this->Controller->ParamHandler->isRest()) {
+            $data = $this->Controller->paginate($query, $this->Controller->paginate ?? []);
             if (isset($options['hidden'])) {
                 $data->each(function($value, $key) use ($options) {
                     $hidden = is_array($options['hidden']) ? $options['hidden'] : [$options['hidden']];
@@ -107,12 +125,11 @@ class CRUDComponent extends Component
                     return $this->attachMetaTemplatesIfNeeded($value, $metaTemplates);
                 });
             }
-            $this->Controller->restResponsePayload = $this->RestResponse->viewData($data, 'json');
+            $this->Controller->restResponsePayload = $this->RestResponse->viewData($data, 'json', false, false, false, [
+                'X-Total-Count' => $totalCount,
+            ]);
         } else {
-            if ($this->metaFieldsSupported()) {
-                $query = $this->includeRequestedMetaFields($query);
-            }
-            $data = $this->Controller->paginate($query, $this->Controller->paginate ?? []);
+            $this->Controller->setResponse($this->Controller->getResponse()->withHeader('X-Total-Count', $totalCount));
             if (isset($options['afterFind'])) {
                 $function = $options['afterFind'];
                 if (is_callable($function)) {
@@ -138,8 +155,11 @@ class CRUDComponent extends Component
                     $data[$i] = $this->attachMetaTemplatesIfNeeded($row, $metaTemplates);
                 }
                 $this->Controller->set('meta_templates', $metaTemplates);
+                $this->Controller->set('meta_templates_enabled', array_filter($metaTemplates, function($template) {
+                    return $template['enabled'];
+                }));
             }
-            if (true) { // check if stats are requested
+            if (empty($excludeStats)) { // check if stats are requested
                 $modelStatistics = [];
                 if ($this->Table->hasBehavior('Timestamp')) {
                     $modelStatistics = $this->Table->getActivityStatisticsForModel(
@@ -180,10 +200,12 @@ class CRUDComponent extends Component
             }
             $this->Controller->set('model', $this->Table);
             $this->Controller->set('data', $data);
+            $this->Controller->set('embedInModal', $embedInModal);
+            $this->Controller->set('skipTableToolbar', $skipTableToolbar);
         }
     }
 
-    public function filtering(): void
+    public function filtering(array $options = []): void
     {
         if ($this->taggingSupported()) {
             $this->Controller->set('taggingEnabled', true);
@@ -195,19 +217,80 @@ class CRUDComponent extends Component
             $metaTemplates = $this->getMetaTemplates()->toArray();
             $this->Controller->set('metaFieldsEnabled', true);
             $this->Controller->set('metaTemplates', $metaTemplates);
+            $typeHandlers = $this->Table->getBehavior('MetaFields')->getTypeHandlers();
+            $typeHandlersOperators = [];
+            foreach ($typeHandlers as $type => $handler) {
+                $typeHandlersOperators[$type] = $handler::OPERATORS;
+            }
+            $this->Controller->set('typeHandlersOperators', $typeHandlersOperators);
         } else {
             $this->Controller->set('metaFieldsEnabled', false);
         }
-        $filters = !empty($this->Controller->filterFields) ? $this->Controller->filterFields : [];
-        $typeHandlers = $this->Table->getBehavior('MetaFields')->getTypeHandlers();
-        $typeHandlersOperators = [];
-        foreach ($typeHandlers as $type => $handler) {
-            $typeHandlersOperators[$type] = $handler::OPERATORS;
+        $filtersConfigRaw= !empty($this->Controller->filterFields) ? $this->Controller->filterFields : [];
+        $filtersConfig = [];
+        foreach ($filtersConfigRaw as $fieldConfig) {
+            if (is_array($fieldConfig)) {
+                $filtersConfig[$fieldConfig['name']] = $fieldConfig;
+            } else {
+                $filtersConfig[$fieldConfig] = ['name' => $fieldConfig];
+            }
         }
-        $this->Controller->set('typeHandlersOperators', $typeHandlersOperators);
-        $this->Controller->set('filters', $filters);
+        $filtersName = $this->getFilterFieldsName();
+        $typeMap = $this->Table->getSchema()->typeMap();
+        $associatedtypeMap = !empty($filtersName) ? $this->_getAssociatedTypeMap() : [];
+        $typeMap = array_merge(
+            $this->Table->getSchema()->typeMap(),
+            $associatedtypeMap
+        );
+        $typeMap = array_filter($typeMap, function ($field) use ($filtersName) {
+            return in_array($field, $filtersName);
+        }, ARRAY_FILTER_USE_KEY);
+        if (!empty($options['afterFind'])) {
+            $overrides = $options['afterFind']($filtersConfig, $typeMap);
+            $filtersConfig = $overrides['filtersConfig'];
+            $typeMap = $overrides['typeMap'];
+        }
+        $this->Controller->set('typeMap', $typeMap);
+        $this->Controller->set('filters', $filtersName);
+        $this->Controller->set('filtersConfig', $filtersConfig);
         $this->Controller->viewBuilder()->setLayout('ajax');
         $this->Controller->render('/genericTemplates/filters');
+    }
+
+    public function getFilterFieldsName(): array
+    {
+        $filters = !empty($this->Controller->filterFields) ? $this->Controller->filterFields : [];
+        $filters = array_map(function($item) {
+            return is_array($item) ? $item['name'] : $item;
+        }, $filters);
+        return $filters;
+    }
+
+    /**
+     * From the provided fields and type mapping, convert any boolean field from the type `checkhox` to the type `radio`.
+     *
+     * @param array $fieldsConfig The array of fields to transform
+     * @param array $typeMap The mapping from the DB to the field type
+     * @param boolean $includeAny Should an `Any` option be included
+     * @param boolean $includeBoth Shoud a `Both` option be included
+     * @return array
+     */
+    public function transformBooleanFieldsIntoRadio(array $fieldsConfig, array $typeMap, bool $includeAny = true, bool $isInline = true): array
+    {
+        foreach ($typeMap as $fieldname => $type) {
+            if ($type == 'boolean') {
+                $fieldsConfig[$fieldname]['type'] = 'radio';
+                $fieldsConfig[$fieldname]['inline'] = $isInline;
+                $fieldsConfig[$fieldname]['default'] = 'any';
+                $fieldsConfig[$fieldname]['options'] = [];
+                if ($includeAny) {
+                    $fieldsConfig[$fieldname]['options'][] = ['value' => 'any', 'text' => __('Any'),];
+                }
+                $fieldsConfig[$fieldname]['options'][] = ['value' => 1, 'text' => __('Enabled'),];
+                $fieldsConfig[$fieldname]['options'][] = ['value' => 0, 'text' => __('Disabled'),];
+            }
+        }
+        return $fieldsConfig;
     }
 
     /**
@@ -258,6 +341,9 @@ class CRUDComponent extends Component
         if ($this->metaFieldsSupported()) {
             $metaTemplates = $this->getMetaTemplates();
             $data = $this->attachMetaTemplatesIfNeeded($data, $metaTemplates->toArray());
+            if (isset($params['afterFind'])) {
+                $data = $params['afterFind']($data, $params);
+            }
         }
         if ($this->request->is('post')) {
             $patchEntityParams = [
@@ -418,6 +504,7 @@ class CRUDComponent extends Component
                                     'field' => $rawMetaTemplateField->field,
                                     'meta_template_id' => $rawMetaTemplateField->meta_template_id,
                                     'meta_template_field_id' => $rawMetaTemplateField->id,
+                                    'meta_template_directory_id' => $allMetaTemplates[$template_id]->meta_template_directory_id,
                                     'parent_id' => $entity->id,
                                     'uuid' => Text::uuid(),
                                 ]);
@@ -448,6 +535,7 @@ class CRUDComponent extends Component
                                     'field' => $rawMetaTemplateField->field,
                                     'meta_template_id' => $rawMetaTemplateField->meta_template_id,
                                     'meta_template_field_id' => $rawMetaTemplateField->id,
+                                    'meta_template_directory_id' => $template->meta_template_directory_id,
                                     'parent_id' => $entity->id,
                                     'uuid' => Text::uuid(),
                                 ]);
@@ -466,6 +554,7 @@ class CRUDComponent extends Component
         }
 
         $entity->setDirty('meta_fields', true);
+        $entity->_metafields_to_delete = $metaFieldsToDelete;
         return ['entity' => $entity, 'metafields_to_delete' => $metaFieldsToDelete];
     }
 
@@ -514,15 +603,15 @@ class CRUDComponent extends Component
              $query->where($params['conditions']);
         }
         $data = $query->first();
+        if ($this->metaFieldsSupported()) {
+            $metaTemplates = $this->getMetaTemplates();
+            $data = $this->attachMetaTemplatesIfNeeded($data, $metaTemplates->toArray());
+        }
         if (isset($params['afterFind'])) {
             $data = $params['afterFind']($data, $params);
         }
         if (empty($data)) {
             throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
-        }
-        if ($this->metaFieldsSupported()) {
-            $metaTemplates = $this->getMetaTemplates();
-            $data = $this->attachMetaTemplatesIfNeeded($data, $metaTemplates->toArray());
         }
         if ($this->request->is(['post', 'put'])) {
             $patchEntityParams = [
@@ -713,6 +802,15 @@ class CRUDComponent extends Component
         ]);
     }
 
+    protected function setRequestedEntryAmount()
+    {
+        $user = $this->Controller->ACL->getUser();
+        $tableSettings = IndexSetting::getTableSetting($user, $this->Table);
+        if (!empty($tableSettings['number_of_element'])) {
+            $this->Controller->paginate['limit'] = intval($tableSettings['number_of_element']);
+        }
+    }
+
     public function view(int $id, array $params = []): void
     {
         if (empty($id)) {
@@ -785,6 +883,9 @@ class CRUDComponent extends Component
                     $query->contain($params['contain']);
                 }
                 $data = $query->first();
+                if (isset($params['afterFind'])) {
+                    $data = $params['afterFind']($data, $params);
+                }
                 if (empty($data)) {
                     throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
                 }
@@ -807,6 +908,9 @@ class CRUDComponent extends Component
                     $query->contain($params['contain']);
                 }
                 $data = $query->first();
+                if (isset($params['afterFind'])) {
+                    $data = $params['afterFind']($data, $params);
+                }
                 if (isset($params['beforeSave'])) {
                     try {
                         $data = $params['beforeSave']($data);
@@ -1095,17 +1199,9 @@ class CRUDComponent extends Component
 
     public function setQuickFilters(array $params, \Cake\ORM\Query $query, array $options): \Cake\ORM\Query
     {
+        $this->setQuickFilterForView($params, $options);
         $quickFilterFields = $options['quickFilters'];
-        $queryConditions = [];
-        $this->Controller->set('quickFilter', empty($quickFilterFields) ? [] : $quickFilterFields);
-        if ($this->metaFieldsSupported() && !empty($options['quickFilterForMetaField']['enabled'])) {
-            $this->Controller->set('quickFilterForMetaField', [
-                'enabled' => $options['quickFilterForMetaField']['enabled'] ?? false,
-                'wildcard_search' => $options['quickFilterForMetaField']['enabled'] ?? false,
-            ]);
-        }
         if (!empty($params['quickFilter']) && !empty($quickFilterFields)) {
-            $this->Controller->set('quickFilterValue', $params['quickFilter']);
             $queryConditions = $this->genQuickFilterConditions($params, $quickFilterFields);
 
             if ($this->metaFieldsSupported() && !empty($options['quickFilterForMetaField']['enabled'])) {
@@ -1115,10 +1211,25 @@ class CRUDComponent extends Component
             }
 
             $query->where(['OR' => $queryConditions]);
+        }
+        return $query;
+    }
+
+    public function setQuickFilterForView(array $params, array $options): void
+    {
+        $quickFilterFields = $options['quickFilters'];
+        $this->Controller->set('quickFilter', empty($quickFilterFields) ? [] : $quickFilterFields);
+        if ($this->metaFieldsSupported() && !empty($options['quickFilterForMetaField']['enabled'])) {
+            $this->Controller->set('quickFilterForMetaField', [
+                'enabled' => $options['quickFilterForMetaField']['enabled'] ?? false,
+                'wildcard_search' => $options['quickFilterForMetaField']['enabled'] ?? false,
+            ]);
+        }
+        if (!empty($params['quickFilter']) && !empty($quickFilterFields)) {
+            $this->Controller->set('quickFilterValue', $params['quickFilter']);
         } else {
             $this->Controller->set('quickFilterValue', '');
         }
-        return $query;
     }
 
     public function genQuickFilterConditions(array $params, array $quickFilterFields): array
@@ -1174,8 +1285,9 @@ class CRUDComponent extends Component
                         continue;
                     }
                     $activeFilters[$filter] = $filterValue;
+                    $filterValue = $this->convertBooleanAnyAndBothIfNeeded($filter, $filterValue);
                     if (is_array($filterValue)) {
-                        $query->where([($filter . ' IN') => $filterValue]);
+                        $query = $this->setInCondition($query, $filter, $filterValue);
                     } else {
                         $query = $this->setValueCondition($query, $filter, $filterValue);
                     }
@@ -1261,6 +1373,27 @@ class CRUDComponent extends Component
         }
     }
 
+    protected function setInCondition($query, $fieldName, $values)
+    {
+        $split = explode(' ', $fieldName);
+        if (count($split) == 1) {
+            $field = $fieldName;
+            $operator = '=';
+        } else {
+            $field = $split[0];
+            $operator = $split[1];
+        }
+        if ($operator == '=') {
+            return $query->where(function (QueryExpression $exp, Query $q) use ($field, $values) {
+                return $exp->in($field, $values);
+            });
+        } else if ($operator == '!=') {
+            return $query->where(function (QueryExpression $exp, Query $q) use ($field, $values) {
+                return $exp->notIn($field, $values);
+            });
+        }
+    }
+
     protected function setFilteringContext($contextFilters, $params)
     {
         $filteringContexts = [];
@@ -1309,7 +1442,7 @@ class CRUDComponent extends Component
     {
         if (empty($params['filteringLabel']) && !empty($options['contextFilters']['custom'])) {
             foreach ($options['contextFilters']['custom'] as $contextFilter) {
-                if (!empty($contextFilter['default'])) {
+                if (!empty($contextFilter['default']) && empty($params)) {
                     $params['filteringLabel'] = $contextFilter['label'];
                     $this->Controller->set('fakeFilteringLabel', $contextFilter['label']);
                     break;
@@ -1368,6 +1501,17 @@ class CRUDComponent extends Component
             $prefixedConditions["$prefix.$condField"] = $condValue;
         }
         return $prefixedConditions;
+    }
+
+    protected function convertBooleanAnyAndBothIfNeeded(string $filterName, $filterValue)
+    {
+        $typeMap = $this->Table->getSchema()->typeMap();
+        if (!empty($typeMap[$filterName]) && $typeMap[$filterName] === 'boolean') {
+            if ($filterValue === 'any') {
+                return [true, false];
+            }
+        }
+        return $filterValue;
     }
 
     public function taggingSupported()
@@ -1434,7 +1578,7 @@ class CRUDComponent extends Component
                 );
                 if ($this->Controller->ParamHandler->isRest()) {
                 } else if ($this->Controller->ParamHandler->isAjax()) {
-                    $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxFailResponse($this->ObjectAlias, 'toggle', $message, $validationErrors);
+                    $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxFailResponse($this->ObjectAlias, 'toggle', [], $message, $validationErrors);
                 } else {
                     $this->Controller->Flash->error($message);
                     if (empty($params['redirect'])) {
@@ -1530,8 +1674,61 @@ class CRUDComponent extends Component
     private function renderViewInVariable($templateRelativeName, $data)
     {
         $builder = new ViewBuilder();
-        $builder->disableAutoLayout()->setTemplate("{$this->TableAlias}/{$templateRelativeName}");
-        $view = $builder->build($data);
+        $builder->disableAutoLayout()
+            ->setClassName('Monad')
+            ->setTemplate("{$this->TableAlias}/{$templateRelativeName}")
+            ->setVars($data);
+        $view = $builder->build();
         return $view->render();
+    }
+
+    protected function _getAssociatedTypeMap(): array
+    {
+        $typeMap = [];
+        foreach ($this->getFilterFieldsName() as $filter) {
+            $exploded = explode('.', $filter);
+            if (count($exploded) > 1) {
+                $model = $exploded[0];
+                $subField = $exploded[1];
+                if ($model == $this->Table->getAlias()) {
+                    $typeMap[$filter] = $this->Table->getSchema()->typeMap()[$subField] ?? 'text';
+                } else {
+                    $association = $this->Table->associations()->get($model);
+                    $associatedTable = $association->getTarget();
+                    $typeMap[$filter] = $associatedTable->getSchema()->typeMap()[$subField] ?? 'text';
+                }
+            }
+        }
+        return $typeMap;
+    }
+
+    protected function _validOrderFields($fields): bool
+    {
+        if (!is_array($fields)) {
+            $fields = [$fields];
+        }
+        foreach ($fields as $field) {
+            $exploded = explode('.', $field);
+            if (count($exploded) > 1) {
+                $model = $exploded[0];
+                $subField = $exploded[1];
+                if ($model == $this->Table->getAlias()) {
+                    if (empty($this->Table->getSchema()->typeMap()[$subField])) {
+                        return false;
+                    }
+                } else {
+                    $association = $this->Table->associations()->get($model);
+                    $associatedTable = $association->getTarget();
+                    if (empty($associatedTable->getSchema()->typeMap()[$subField])) {
+                        return false;
+                    }
+                }
+            } else {
+                if (empty($this->Table->getSchema()->typeMap()[$field])) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }
