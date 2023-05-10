@@ -2,6 +2,7 @@
 // $h1-font-size: 3rem;
 $theme: "app-slate";
 
+@import "../node_modules/bootstrap/scss/functions";
 @import "quartz/variables";
 
 $enabledBackgroundSVG: false;
@@ -20,7 +21,11 @@ $sidebarBgColor: $secondary;
 $sidebarTextColor: $white;
 $sidebarActiveColor: $nav-tabs-link-active-color;
 $sidebarActiveBgColor: $nav-tabs-link-active-bg;
-$sidebarHoverColor: $nav-tabs-link-active-bg;
+
+$sidebarSubmenuColor: shade-color($secondary, 5%);
+$sidebarHoverColor: tint-color($secondary, 10%);
+$sidebarHoverActiveColor: tint-color($secondary, 30%);
+
 $sidebarBorder: none;
 $sidebarShadows: none;
 $sidebarLockButton: $secondary;
@@ -28,3 +33,4 @@ $activeSidebarLinkColor: $primary;
 
 @import "theme-default";
 @import "../node_modules/bootstrap/scss/buttons";
+@import "quartz/bootswatch";

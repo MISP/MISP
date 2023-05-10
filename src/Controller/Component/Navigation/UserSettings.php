@@ -5,6 +5,16 @@ require_once(APP . 'Controller' . DS . 'Component' . DS . 'Navigation' . DS . 'b
 
 class UserSettingsNavigation extends BaseNavigation
 {
+
+    public function addRoutes()
+    {
+        $this->bcf->addRoute('UserSettings', 'index', [
+            'label' => __('User settings'),
+            'url' => '/user-settings/index/',
+            'icon' => 'user-cog'
+        ]);
+    }
+
     public function addLinks()
     {
         $bcf = $this->bcf;

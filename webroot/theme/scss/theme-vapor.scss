@@ -2,6 +2,7 @@
 // $h1-font-size: 3rem;
 $theme: "app-vapor";
 
+@import "../node_modules/bootstrap/scss/functions";
 @import "vapor/variables";
 
 $enabledBackgroundSVG: false;
@@ -20,9 +21,14 @@ $sidebarTextColor: $white;
 $sidebarActiveColor: $success;
 $sidebarActiveBgColor: $gray-800;
 $sidebarHoverColor: $gray-700;
+
+$sidebarSubmenuColor: tint-color($dark, 5%);
+$sidebarHoverActiveColor: tint-color($sidebarActiveBgColor, 20%);
+
 $sidebarBorder: none;
 $sidebarShadows: none;
 $sidebarLockButton: unset;
 $activeSidebarLinkColor: $primary;
 
 @import "theme-default";
+@import "vapor/bootswatch";

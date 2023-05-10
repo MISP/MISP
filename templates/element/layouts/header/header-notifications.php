@@ -25,6 +25,7 @@ $variant = array_flip($severity)[$maxSeverity];
             if ($hasNotification) {
                 echo $this->Bootstrap->notificationBubble([
                     'variant' => $variant,
+                    'borderVariant' => 'light',
                 ]);
             }
             ?>

@@ -172,6 +172,7 @@ class AppController extends Controller
             if (!$this->ParamHandler->isRest()) {
                 $this->set('breadcrumb', $this->Navigation->getBreadcrumb());
                 $this->set('notifications', $this->Notification->getNotifications());
+                $this->set('iconToTableMapping', $this->Navigation->getIconToTableMapping());
             }
         }
     }

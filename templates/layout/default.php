@@ -15,7 +15,7 @@
  */
 use Cake\Core\Configure;
 
-$cakeDescription = 'Cerebrate';
+$cakeDescription = 'MISP';
 
 $sidebarOpen = $loggedUser->user_settings_by_name_with_fallback['ui.sidebar.expanded']['value'];
 ?>
@@ -30,11 +30,12 @@ $sidebarOpen = $loggedUser->user_settings_by_name_with_fallback['ui.sidebar.expa
     </title>
     <?= $this->Html->meta('icon') ?>
     <?php
-        echo $this->Html->css('themes/bootstrap-' . $bsTheme);
         echo $this->Html->css('themes/theme-' . $bsTheme);
     ?>
     <?= $this->Html->css('main.css') ?>
     <?= $this->Html->css('font-awesome') ?>
+    <?= $this->Html->css('fa-brand') ?>
+    <?= $this->Html->css('fa-solid') ?>
     <?= $this->Html->css('layout.css') ?>
     <?= $this->Html->script('jquery-3.5.1.min.js') ?>
     <?= $this->Html->script('bootstrap.bundle.js') ?>
@@ -58,7 +59,7 @@ $sidebarOpen = $loggedUser->user_settings_by_name_with_fallback['ui.sidebar.expa
     <?= $this->Html->css('CodeMirror/addon/hint/show-hint') ?>
     <?= $this->Html->css('CodeMirror/addon/lint/lint') ?>
     <?= $this->Html->css('select2.min') ?>
-    <?= $this->Html->css('select2-bootstrap5') ?>
+    <?= $this->Html->css('select2-bootstrap5-vars') ?>
     <?= $this->Html->script('apexcharts.min') ?>
     <?= $this->Html->script('moment-with-locales.min') ?>
     <?= $this->Html->css('apexcharts') ?>
@@ -70,7 +71,7 @@ $sidebarOpen = $loggedUser->user_settings_by_name_with_fallback['ui.sidebar.expa
     <?= $this->Html->script('Tags.tagging') ?>
     <?= $this->Html->css('Tags.tagging') ?>
 
-    <?= $this->Html->meta('favicon.ico', '/img/favicon.ico', ['type' => 'icon']); ?>
+    <?= $this->Html->meta('favicon-misp.png', '/img/favicon-misp.png', ['type' => 'icon']); ?>
 </head>
 <body>
     <div class="main-wrapper">
@@ -83,6 +84,7 @@ $sidebarOpen = $loggedUser->user_settings_by_name_with_fallback['ui.sidebar.expa
         <main role="main" class="content">
             <div class="container-fluid mt-1">
                 <?= $this->Flash->render() ?>
+                <?= $this->fetch('actionBar') ?>
                 <?= $this->fetch('content') ?>
             </div>
         </main>

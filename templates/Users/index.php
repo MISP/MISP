@@ -8,77 +8,63 @@ echo $this->element('genericElements/IndexTable/index_table', [
         'top_bar' => [
             'children' => [
                 [
+                    'type' => 'multi_select_actions',
+                    'force-dropdown' => true,
                     'children' => [
+                        ['is-header' => true, 'text' => __('Toggle selected users'), 'icon' => 'user-times',],
                         [
-                            'class' => 'd-none mass-select',
-                            'text' => __('Disable selected users'),
-                            'onClick' => "multiSelectToggleField",
-                            'onClickParams' => ['admin/users', 'massToggleField', 'disabled', '1', '#UserUserIds']
+                            'text' => __('Disable users'),
+                            'variant' => 'warning',
+                            'outline' => true,
+                            'onclick' => 'disableUsers',
                         ],
                         [
-                            'class' => 'd-none mass-select',
-                            'text' => __('Enable selected users'),
-                            'onClick' => "multiSelectToggleField",
-                            'onClickParams' => ['admin/users', 'massToggleField', 'disabled', '0', '#UserUserIds']
+                            'text' => __('Enable users'),
+                            'variant' => 'success',
+                            'outline' => true,
+                            'onclick' => 'enableUsers',
+                        ],
+                        ['is-header' => true, 'text' => __('Publishing alert'), 'icon' => 'bell',],
+                        [
+                            'text' => __('Disable publishing emailing'),
+                            'onclick' => 'disablePublishingEmailing',
                         ],
                         [
-                            'class' => 'd-none mass-select',
-                            'text' => __('Disable publish emailing'),
-                            'onClick' => "multiSelectToggleField",
-                            'onClickParams' => ['admin/users', 'massToggleField', 'autoalert', '0', '#UserUserIds']
+                            'text' => __('Enable publishing emailing'),
+                            'onclick' => 'enablePublishingEmailing',
                         ],
-                        [
-                            'class' => 'd-none mass-select',
-                            'text' => __('Enable publish emailing'),
-                            'onClick' => "multiSelectToggleField",
-                            'onClickParams' => ['admin/users', 'massToggleField', 'autoalert', '1', '#UserUserIds']
-                        ],
+                    ],
+                    'data' => [
+                        'id' => [
+                            'value_path' => 'id'
+                        ]
                     ]
                 ],
                 [
                     'type' => 'simple',
                     'children' => [
                         'data' => [
-                            'id' => 'create-button',
-                            'title' => __('Modify filters'),
-                            'fa-icon' => 'search',
-                            'onClick' => 'getPopup',
-                            'onClickParams' => [$urlparams, 'users', 'filterUserIndex']
-                            /*
                             'type' => 'simple',
+                            'icon' => 'plus',
                             'text' => __('Add User'),
                             'class' => 'btn btn-primary',
-                            'popover_url' => '/users/add'
-                            */
+                            'popover_url' => '/users/add',
+                            'button' => [
+                                'icon' => 'plus',
+                            ]
                         ]
                     ]
                 ],
                 [
-                    'type' => 'simple',
-                    'children' => [
-                        [
-                            'url' => $baseurl . '/admin/users/index',
-                            'text' => __('All'),
-                            'active' => !isset($passedArgsArray['disabled']),
-                        ],
-                        [
-                            'url' => $baseurl . '/admin/users/index/searchdisabled:0',
-                            'text' => __('Active'),
-                            'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "0",
-                        ],
-                        [
-                            'url' => $baseurl . '/admin/users/index/searchdisabled:1',
-                            'text' => __('Disabled'),
-                            'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "1",
-                        ]
-                    ]
+                    'type' => 'context_filters',
                 ],
                 [
                     'type' => 'search',
                     'button' => __('Search'),
                     'placeholder' => __('Enter value to search'),
                     'data' => '',
-                    'searchKey' => 'value'
+                    'searchKey' => 'value',
+                    'allowFilering' => true
                 ],
                 [
                     'type' => 'table_action',
@@ -86,15 +72,6 @@ echo $this->element('genericElements/IndexTable/index_table', [
             ]
         ],
         'fields' => [
-            [
-                'element' => 'selector',
-                'class' => 'short',
-                'data' => [
-                    'id' => [
-                        'value_path' => 'id'
-                    ]
-                ]
-            ],
             [
                 'name' => __('ID'),
                 'sort' => 'id',
@@ -268,7 +245,7 @@ echo $this->element('genericElements/IndexTable/index_table', [
                 'url_params_vars' => ['id'],
                 'toggle_data' => [
                     'editRequirement' => [
-                        'function' => function($row, $options) {
+                        'function' => function ($row, $options) {
                             return true;
                         },
                     ],
@@ -334,5 +311,41 @@ echo $this->element('genericElements/IndexTable/index_table', [
         ]
     ]
 ]);
-echo '</div>';
 ?>
+
+<script>
+    function enableUsers(idList, selectedData, $table) {
+        return massToggle('disabled', false, idList, selectedData, $table)
+    }
+
+    function disableUsers(idList, selectedData, $table) {
+        return massToggle('disabled', true, idList, selectedData, $table)
+    }
+
+    function enablePublishingEmailing(idList, selectedData, $table) {
+        return massToggle('autoalert', true, idList, selectedData, $table)
+    }
+
+    function disablePublishingEmailing(idList, selectedData, $table) {
+        return massToggle('autoalert', false, idList, selectedData, $table)
+    }
+
+    function reloadOnSuccess([data, modalObject]) {
+        UI.reload('<?= $baseurl ?>/users/index', UI.getContainerForTable($table), $table)
+    }
+
+    function callbackOnFailure([data, modalObject]) {
+        console.error(data)
+    }
+
+    function massToggle(field, enabled, idList, selectedData, $table) {
+        const successCallback = reloadOnSuccess
+        const failCallback = callbackOnFailure
+        const url = `<?= $baseurl ?>/users/massToggleField/${field}:${enabled ? 1 : 0}/`
+        UI.submissionModal(url, successCallback, failCallback)
+            .then(([modalObject, ajaxApi]) => {
+                const $idsInput = modalObject.$modal.find('form').find('input#ids-field')
+                $idsInput.val(JSON.stringify(idList))
+            })
+    }
+</script>

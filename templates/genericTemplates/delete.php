@@ -28,8 +28,11 @@ $bodyHTML = sprintf('%s%s', $formHTML, $bodyMessage);
 echo $this->Bootstrap->modal([
     'size' => 'lg',
     'title' => !empty($deletionTitle) ? $deletionTitle : __('Delete {0}', h(Cake\Utility\Inflector::singularize(Cake\Utility\Inflector::humanize($this->request->getParam('controller'))))),
-    'type' => 'confirm-danger',
-    'confirmText' => !empty($deletionConfirm) ? $deletionConfirm : __('Delete'),
+    'type' => 'confirm',
+    'confirmButton' => [
+        'text' => !empty($deletionConfirm) ? $deletionConfirm : __('Delete'),
+        'variant' => 'danger',
+    ],
     'bodyHtml' => $bodyHTML,
 ]);
 ?>

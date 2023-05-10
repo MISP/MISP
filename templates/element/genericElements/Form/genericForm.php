@@ -19,7 +19,7 @@
     $entity = isset($entity) ? $entity : null;
     $fieldsString = '';
     $simpleFieldWhitelist = [
-        'default', 'type', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'templates', 'options', 'value', 'checked'
+        'default', 'type', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'templates', 'options', 'value', 'checked',
     ];
     if (empty($data['url'])) {
         $data['url'] = ["controller" => $this->request->getParam('controller'), "action" => $this->request->getParam('url')];
@@ -155,14 +155,5 @@
         $('.formDropdown').on('change', function() {
             executeStateDependencyChecks('#' + this.id);
         })
-        <?php if (!empty($initSelect2)): ?>
-            <?php
-                $dropdownParent = !empty($seedModal) ? sprintf("$('.modal-dialog.%s .modal-body')", $seedModal) : "$(document.body)";
-            ?>
-            $('select.select2-input').select2({
-                dropdownParent: <?= $dropdownParent ?>,
-                width: '100%',
-            })
-        <?php endif; ?>
     });
 </script>

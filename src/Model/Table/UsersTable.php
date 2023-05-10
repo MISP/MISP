@@ -67,7 +67,7 @@ class UsersTable extends AppTable
                 'propertyName' => 'UserSetting'
             ]
         );
-        $this->setDisplayField('username');
+        $this->setDisplayField('email');
     }
 
     public function beforeMarshal(EventInterface $event, ArrayObject $data, ArrayObject $options)

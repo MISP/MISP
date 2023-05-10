@@ -21,22 +21,63 @@ class NavigationComponent extends Component
     public $breadcrumb = null;
     public $fullBreadcrumb = null;
     public $iconToTableMapping = [
-        //'Individuals' => 'address-book',
+        'Events' => 'envelope-open-text',
+        'Attributes' => 'cube',
+        'Objects' => 'cubes',
+        'EventReports' => 'file-lines',
+        'PeriodicReport' => 'newspaper',
+        'Dashboard' => 'chart-line',
+        'Proposals' => 'pen-square',
+        'Taxonomies' => 'book',
+        'Galaxies' => 'atlas',
+        'ObjectTemplates' => 'ruler-combined',
+        'Tags' => 'tag',
+        'TagCollections' => 'tags',
+        'Templates' => 'pencil-ruler',
+        'Warninglists' => ['stacked' => [
+            ['icon' => 'file'],
+            ['icon' => 'exclamation-triangle', 'class' => 'fa-inverse', 'style' => 'top: 0.2em;'],
+        ]],
+        'Workflows' => 'sitemap',
+        'CorrelationsExclusions' => ['stacked' => [
+            ['icon' => 'ban'],
+            ['icon' => 'project-diagram', 'class' => '', 'style' => ''],
+        ]],
+        'DecayingModels' => 'hourglass-end',
+        'ImportRegexp' => 'file-import',
+        'SignatureAllowedlists' => 'fingerprint',
+        'NoticeLists' => 'list',
+        'Correlations' => 'project-diagram',
+        'Servers' => 'network-wired',
+        'Communities' => 'handshake-simple',
+        'Cerebrate' => ['image' => '/img/cerebrate-icon-purple.png',],
+        'TaxiiServers' => ['image' => '/img/taxii-icon.png',],
+        'ServerSettings' => 'cogs',
+        'Jobs' => 'robot',
+        'BlockRules' => 'ban',
+        'Logs' => 'history',
+        'AccessLogs' => 'door-open',
+        'ApplicationLogs' => 'list-ul',
+        'OrganisationsRules' => ['stacked' => [
+            ['icon' => 'ban', 'class' => 'text-muted',],
+            ['icon' => 'building', 'class' => 'text-body',]
+        ]],
+        'EventsBlockRules' => ['stacked' => [
+            ['icon' => 'ban', 'class' => 'text-muted',],
+            ['icon' => 'envelope-open-text', 'class' => 'text-body',],
+        ]],
+        'SharingGroups' => 'users-rectangle',
         'Organisations' => 'building',
-        'EncryptionKeys' => 'key',
-        'SharingGroups' => 'user-friends',
-        'Connectivity' => 'network-wired',
-        'Roles' => 'id-badge',
         'Users' => 'users',
+        'Feeds' => 'rss',
+        'Roles' => 'id-badge',
+        'API' => 'code',
         'UserSettings' => 'user-cog',
         'Inbox' => 'inbox',
-        'Instance' => 'server',
-        'Tags' => 'tags',
-        'API' => 'code',
-        'Feeds' => 'rss',
-        'Events' => 'project-diagram',
-        'Context' => 'book-reader',
-        'Insights' => 'lightbulb'
+        'RestClient' =>  ['stacked' => [
+            ['icon' => 'cloud'],
+            ['icon' => 'cog', 'class' => 'fa-inverse']
+        ]],
     ];
 
     public function initialize(array $config): void
@@ -46,8 +87,8 @@ class NavigationComponent extends Component
 
     public function beforeRender($event)
     {
-        $this->fullBreadcrumb = null;
-        //$this->fullBreadcrumb = $this->genBreadcrumb();
+        // $this->fullBreadcrumb = null;
+        $this->fullBreadcrumb = $this->genBreadcrumb();
     }
 
     public function getSideMenu(): array
@@ -83,6 +124,11 @@ class NavigationComponent extends Component
             ];
         }, $bookmarks);
         return $links;
+    }
+
+    public function getIconToTableMapping(): array
+    {
+        return $this->iconToTableMapping;
     }
 
     public function getBreadcrumb(): array
@@ -156,12 +202,12 @@ class NavigationComponent extends Component
         $CRUDControllers = [
             //'Individuals',
             'Organisations',
-            'EncryptionKeys',
             'SharingGroups',
             'Roles',
             'Users',
             'Tags',
             'UserSettings',
+            'Events',
         ];
         foreach ($CRUDControllers as $controller) {
             $bcf->setDefaultCRUDForModel($controller);
@@ -186,7 +232,7 @@ class NavigationComponent extends Component
 class BreadcrumbFactory
 {
     private $endpoints = [];
-    private $iconToTableMapping = [];
+    public $iconToTableMapping = [];
 
     public function __construct($iconToTableMapping)
     {
@@ -213,7 +259,7 @@ class BreadcrumbFactory
             ]);
         } else if ($action === 'add') {
             $item = $this->genRouteConfig($controller, $action, [
-                'label' => __('[new {0}]', $controller),
+                'label' => __('Create {0}', $controller),
                 'icon' => 'plus',
                 'url' => "/{$controller}/add",
             ]);
@@ -232,6 +278,7 @@ class BreadcrumbFactory
                 'url' => "/{$controller}/delete/{{id}}",
                 'url_vars' => ['id' => 'id'],
                 'textGetter' => !empty($table->getDisplayField()) ? $table->getDisplayField() : 'id',
+                'variant' => 'danger',
             ]);
         }
         $item['route_path'] = "{$controller}:{$action}";
@@ -252,6 +299,8 @@ class BreadcrumbFactory
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'label');
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'textGetter');
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'badge');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'variant');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'is-go-to');
         return $routeConfig;
     }
 
@@ -267,7 +316,7 @@ class BreadcrumbFactory
         return $arr;
     }
 
-    public function addRoute($controller, $action, $config = []) {
+    public function addRoute(string $controller, string $action, array $config = []) {
         $this->endpoints[$controller][$action] = $this->genRouteConfig($controller, $action, $config);
     }
 
@@ -289,7 +338,8 @@ class BreadcrumbFactory
         $this->addLink($controller, 'edit', $controller, 'view');
         $this->addSelfLink($controller, 'edit');
 
-        $this->addAction($controller, 'view', $controller, 'add');
+        // $this->addAction($controller, 'index', $controller, 'add');
+        // $this->addAction($controller, 'view', $controller, 'add');
         $this->addAction($controller, 'view', $controller, 'delete');
         $this->addAction($controller, 'edit', $controller, 'add');
         $this->addAction($controller, 'edit', $controller, 'delete');
@@ -312,7 +362,7 @@ class BreadcrumbFactory
     {
         $routeSourceConfig = $this->get($sourceController, $sourceAction);
         $routeTargetConfig = $this->get($targetController, $targetAction);
-        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeTargetConfig);
         if (!is_array($overrides)) {
             throw new \Exception(sprintf("Override closure for %s:%s -> %s:%s must return an array", $sourceController, $sourceAction, $targetController, $targetAction), 1);
         }
@@ -332,7 +382,7 @@ class BreadcrumbFactory
     {
         $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
         $routeTargetConfig = $this->getRouteConfig($targetController, $targetAction);
-        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeTargetConfig);
         if (is_null($overrides)) {
             // Overrides is null, the link should not be added
             return;
@@ -348,25 +398,59 @@ class BreadcrumbFactory
     public function addCustomLink(string $sourceController, string $sourceAction, string $targetUrl, string $label, $overrides = [])
     {
         $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
-        $links = array_merge($routeSourceConfig['links'] ?? [], [[
+        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        if (!is_array($overrides)) {
+            throw new \Exception(sprintf("Override closure for custom action %s:%s must return an array", $sourceController, $sourceAction), 1);
+        }
+        $linkConfig = [
             'url' => $targetUrl,
             'icon' => 'link',
             'label' => $label,
             'route_path' => 'foo:bar'
-        ]]);
+        ];
+        $linkConfig = array_merge($linkConfig, $overrides);
+        $links = array_merge($routeSourceConfig['links'] ?? [], [$linkConfig]);
         $this->endpoints[$sourceController][$sourceAction]['links'] = $links;
+
     }
 
     public function addAction(string $sourceController, string $sourceAction, string $targetController, string $targetAction, $overrides = [])
     {
         $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
         $routeTargetConfig = $this->getRouteConfig($targetController, $targetAction);
-        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeTargetConfig);
         if (!is_array($overrides)) {
             throw new \Exception(sprintf("Override closure for %s:%s -> %s:%s must return an array", $sourceController, $sourceAction, $targetController, $targetAction), 1);
         }
         $routeTargetConfig = array_merge($routeTargetConfig, $overrides);
         $links = array_merge($routeSourceConfig['actions'] ?? [], [$routeTargetConfig]);
+        $this->endpoints[$sourceController][$sourceAction]['actions'] = $links;
+    }
+
+    /**
+     * Add a custom action to the action bar
+     *
+     * @param string $sourceController The source controller name
+     * @param string $sourceAction The source action name
+     * @param string $targetUrl The target URL for that action
+     * @param string $label The text to be displayed in the button
+     * @param array $overrides Optional overrides to apply on this action
+     * @return void
+     */
+    public function addCustomAction(string $sourceController, string $sourceAction, string $targetUrl, string $label, $overrides = [])
+    {
+        $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        if (!is_array($overrides)) {
+            throw new \Exception(sprintf("Override closure for custom action %s:%s must return an array", $sourceController, $sourceAction), 1);
+        }
+        $actionConfig = [
+            'url' => $targetUrl,
+            'label' => $label,
+            'route_path' => 'foo:bar'
+        ];
+        $actionConfig = array_merge($actionConfig, $overrides);
+        $links = array_merge($routeSourceConfig['actions'] ?? [], [$actionConfig]);
         $this->endpoints[$sourceController][$sourceAction]['actions'] = $links;
     }
 
@@ -382,6 +466,35 @@ class BreadcrumbFactory
                 }
             }
         }
+    }
+
+    public function removeAction(string $sourceController, string $sourceAction, string $targetController, string $targetAction)
+    {
+        $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
+        if (!empty($routeSourceConfig['actions'])) {
+            foreach ($routeSourceConfig['actions'] as $i => $routeConfig) {
+                if ($routeConfig['controller'] == $targetController && $routeConfig['action'] == $targetAction) {
+                    unset($routeSourceConfig['actions'][$i]);
+                    $this->endpoints[$sourceController][$sourceAction]['actions'] = $routeSourceConfig['actions'];
+                    break;
+                }
+            }
+        }
+    }
+
+    public function registerGoToMenuConfig(string $sourceController, string $sourceAction, string $goToID, array $config = []): void
+    {
+        $this->endpoints[$sourceController][$sourceAction]['goToMenu'][$goToID] = $config;
+    }
+
+    public function registerLinkMenuConfig(string $sourceController, string $sourceAction, string $menuID, array $config = []): void
+    {
+        $this->endpoints[$sourceController][$sourceAction]['linkMenu'][$menuID] = $config;
+    }
+
+    public function registerActionMenuConfig(string $sourceController, string $sourceAction, string $menuID, array $config = []): void
+    {
+        $this->endpoints[$sourceController][$sourceAction]['actionMenu'][$menuID] = $config;
     }
 
     public function getRouteConfig($controller, $action, $fullRoute = false)

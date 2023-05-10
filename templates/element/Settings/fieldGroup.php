@@ -3,7 +3,7 @@
 
     $dependsOnHtml = '';
     if (!empty($setting['dependsOn'])) {
-        $dependsOnHtml = $this->Bootstrap->genNode('span', [
+        $dependsOnHtml = $this->Bootstrap->node('span', [
             'class' => [
                 'ms-1',
                 'd-inline-block',
@@ -11,18 +11,18 @@
             ],
             'style' => 'min-width: 0.75em;',
             'title' => __('This setting depends on the validity of: {0}', h($setting['dependsOn'])),
-        ], $this->Bootstrap->genNode('sup', [
+        ], $this->Bootstrap->node('sup', [
             'class' => $this->FontAwesome->getClass('info'),
         ]));
     }
-    $label = $this->Bootstrap->genNode('label', [
+    $label = $this->Bootstrap->node('label', [
         'class' => ['form-label', 'fw-bolder', 'mb-0'],
         'for' => $settingId
     ], sprintf('<a id="lb-%s" href="#lb-%s" class="text-reset text-decoration-none">%s</a>', h($settingId), h($settingId), h($setting['name'])) . $dependsOnHtml);
 
     $description = '';
     if (!empty($setting['description']) && (empty($setting['type']) || $setting['type'] != 'boolean')) {
-        $description = $this->Bootstrap->genNode('small', [
+        $description = $this->Bootstrap->node('small', [
             'class' => ['form-text', 'text-muted', 'mt-0'],
             'id' => "{$settingId}Help"
         ], h($setting['description']));
@@ -31,7 +31,7 @@
     if (!empty($setting['severity'])) {
         $textColor = "text-{$this->get('variantFromSeverity')[$setting['severity']]}";
     }
-    $validationError = $this->Bootstrap->genNode('div', [
+    $validationError = $this->Bootstrap->node('div', [
         'class' => ['d-block', 'invalid-feedback', $textColor],
     ], (!empty($setting['error']) ? h($setting['errorMessage']) : ''));
 
@@ -50,11 +50,11 @@
         'variant' => 'success',
         'class' => ['btn-setting-action', 'btn-save-setting', 'd-none'],
     ]);
-    $inputGroup = $this->Bootstrap->genNode('div', [
+    $inputGroup = $this->Bootstrap->node('div', [
         'class' => ['input-group'],
     ], implode('', [$input, $inputGroupSave]));
 
-    $container = $this->Bootstrap->genNode('div', [
+    $container = $this->Bootstrap->node('div', [
         'class' => ['setting-group', 'row', 'mb-2']
     ], implode('', [$label, $inputGroup, $description, $validationError]));
     

@@ -60,9 +60,7 @@ class TagHelper extends Helper
                 'icon' => 'plus',
                 'variant' => 'secondary',
                 'class' => ['badge'],
-                'params' => [
-                    'onclick' => 'createTagPicker(this)',
-                ]
+                'onclick' => 'createTagPicker(this)',
             ]);
         } else {
             $html .= '<script>$(document).ready(function() { initSelect2Pickers() })</script>';
@@ -111,22 +109,20 @@ class TagHelper extends Helper
                 'class' => ['ms-1', 'border-0', "text-$textColour"],
                 'variant' => 'text',
                 'title' => __('Delete tag'),
-                'params' => [
-                    'onclick' => sprintf('deleteTag(\'%s\', \'%s\', this)',
-                        $this->Url->build([
-                            'controller' => $this->getView()->getName(),
-                            'action' => 'untag',
-                            $this->getView()->get('entity')['id']
-                        ]),
-                        h($tag['name'])
-                    ),
-                ],
+                'onclick' => sprintf('deleteTag(\'%s\', \'%s\', this)',
+                    $this->Url->build([
+                        'controller' => $this->getView()->getName(),
+                        'action' => 'untag',
+                        $this->getView()->get('entity')['id']
+                    ]),
+                    h($tag['name'])
+                ),
             ]);
         } else {
             $deleteButton = '';
         }
 
-        $html = $this->Bootstrap->genNode('span', [
+        $html = $this->Bootstrap->node('span', [
             'class' => [
                 'tag',
                 'badge',

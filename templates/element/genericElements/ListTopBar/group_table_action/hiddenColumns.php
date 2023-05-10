@@ -28,7 +28,7 @@ foreach ($table_data['fields'] as $field) {
     );
 }
 
-$availableColumnsHtml = $this->Bootstrap->genNode('form', [
+$availableColumnsHtml = $this->Bootstrap->node('form', [
     'class' => ['visible-column-form', 'px-2 py-1'],
 ], $availableColumnsHtml);
 echo $availableColumnsHtml;

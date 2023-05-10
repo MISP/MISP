@@ -1,5 +1,5 @@
-function executePagination(randomValue, url) {
-    UI.reload(url, $(`#table-container-${randomValue}`), $(`#table-container-${randomValue} table.table`))
+function executePagination(selector, url) {
+    UI.reload(url, $(selector), $(selector).find('table.table'))
 }
 
 function executeStateDependencyChecks(dependenceSourceSelector) {
@@ -55,11 +55,8 @@ function attachTestConnectionResultHtml(result, $container) {
         $testResultDiv.append(getKVHtml('Internal error', result, ['text-danger fw-bold']))
     } else {
         if (result['error']) {
-            if (result['ping']) {
-                $testResultDiv.append('Status', 'OK', ['text-danger'], `${result['ping']} ms`);
-            }
             $testResultDiv.append(
-                getKVHtml('Status', `Error: ${result['error']}`, ['text-danger']),
+                getKVHtml('Status', `Error: ${result['error']}`, ['text-danger'], (result['ping'] ? `${result['ping']} ms` : '')),
                 getKVHtml('Reason', result['reason'], ['text-danger'])
             )
         } else {
@@ -207,6 +204,24 @@ function deleteBookmark(bookmark, forSidebar=false) {
             ),
         })
     }).catch((e) => { })
+}
+
+function downloadIndexTable(downloadButton, filename) {
+    const $dropdownMenu = $(downloadButton).closest('.dropdown')
+    const tableRandomValue = $dropdownMenu.attr('data-table-random-value')
+    const $container = $dropdownMenu.closest('div[id^="table-container-"]')
+    const $table = $container.find(`table[data-table-random-value="${tableRandomValue}"]`)
+    const $filterButton = $(`#toggleFilterButton-${tableRandomValue}`)
+    const activeFilters = $filterButton.data('activeFilters')
+    const additionalUrlParams = $filterButton.data('additionalUrlParams') ? $filterButton.data('additionalUrlParams') : ''
+    const searchParam = jQuery.param(activeFilters);
+    const url = $table.data('reload-url') + additionalUrlParams + '?' + searchParam
+    let options = {}
+    const downloadPromise = AJAXApi.quickFetchJSON(url, options)
+    UI.overlayUntilResolve($dropdownMenu, downloadPromise)
+    downloadPromise.then((data) => {
+        download(filename, JSON.stringify(data, undefined, 4))
+    })
 }
 
 function overloadBSDropdown() {

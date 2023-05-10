@@ -58,19 +58,36 @@
     $childNotificationVariant = array_flip($severity)[$childMaxSeverity];
 ?>
 
-<li class="<?= !empty($children) ? 'parent collapsed' : '' ?>">
+<li class="sidebar-link-container <?= !empty($children) ? 'parent collapsed' : '' ?>">
     <?php if (!empty($children) || !empty($url)): ?>
         <a
-            class="d-flex align-items-center sidebar-link <?= !empty($children) ? 'collapsed' : '' ?> <?= $active ? 'active' : '' ?> <?= $hasActiveChild ? 'have-active-child' : '' ?>"
+            class="d-flex align-items-center sidebar-link <?= (!empty($children) && !$hasActiveChild) ? 'collapsed' : '' ?> <?= $active ? 'active' : '' ?> <?= $hasActiveChild ? 'have-active-child' : '' ?>"
             href="<?= h($url) ?>"
             <?= !empty($children) ? 'data-bs-toggle="collapse"' : '' ?>
             <?= $hasActiveChild ? 'aria-expanded="true"' : '' ?>
         >
-            <i class="position-relative sidebar-icon <?= $this->FontAwesome->getClass($icon) ?>">
+                <?php
+                    if (!empty($icon['stacked'])) {
+                        $icon = ['icons' => $icon['stacked']];
+                        $icon['class'] = 'stacked-sidebar-icon';
+                        $stackedIcons = $this->Icon->icon($icon);
+                        echo $this->Bootstrap->node('span', [
+                            'class' => 'position-relative sidebar-icon',
+                        ], $stackedIcons);
+                    } else if (!empty($icon['image'])) {
+                        $icon['class'] = sprintf('%s %s', $icon['class'] ?? '', 'sidebar-icon image-sidebar-icon');
+                        echo $this->Icon->icon($icon);
+                    } else {
+                        $icon = ['icon' => $icon];
+                        $icon['class'] = 'position-relative sidebar-icon';
+                        echo $this->Icon->icon($icon);
+                    }
+                ?>
                 <?php
                 if ($childHasNotification || ($hasNotification && !empty($children))) {
                     echo $this->Bootstrap->notificationBubble([
                         'variant' => $childHasNotification ? $childNotificationVariant : $notificationVariant,
+                        'borderVariant' => 'light',
                     ]);
                 }
                 ?>
@@ -88,6 +105,7 @@
         </a>
         <?php if (!empty($children)): ?>
             <?= $this->element('layouts/sidebar/sub-menu', [
+                    'submenuName' => $label,
                     'seed' => $seed,
                     'children' => $children,
                     'open' => $hasActiveChild,

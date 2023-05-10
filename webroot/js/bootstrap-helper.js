@@ -25,6 +25,18 @@ class UIFactory {
     }
 
     /**
+     * Create a popover
+     * @param  {Object} element - The target element on which to attach the popover
+     * @param  {Object} options - The options to be passed to the PopoverFactory class
+     * @return {Object} The PopoverFactory object
+     */
+    popover(element, options) {
+        const thePopover = new PopoverFactory(element, options);
+        thePopover.makePopover()
+        return thePopover
+    }
+
+    /**
      * Create and display a modal where the modal's content is fetched from the provided URL. Link an AJAXApi to the submission button
      * @param  {string} url - The URL from which the modal's content should be fetched
      * @param  {ModalFactory~POSTSuccessCallback} POSTSuccessCallback - The callback that handles successful form submission
@@ -48,7 +60,33 @@ class UIFactory {
         }).catch((error) => {
             UI.toast({
                 variant: 'danger',
-                title: 'Error while loading the processor',
+                title: 'Error while loading the modal',
+                body: error.message
+            })
+        })
+    }
+
+    /**
+     * Create and display a modal where the modal's content is fetched from the provided URL
+     * @param  {string} url - The URL from which the modal's content should be fetched
+     * @param  {Object=[]} modalOptions - Additional options to be passed to the modal constructor
+     * @return {Promise<Object>} Promise object resolving to the ModalFactory object
+     */
+    async modalFromUrl(url, modalOptions={}) {
+        return AJAXApi.quickFetchURL(url).then((modalHTML) => {
+            const defaultOptions = {
+                rawHtml: modalHTML,
+            }
+            const options = Object.assign({}, defaultOptions, modalOptions)
+            const theModal = new ModalFactory(options);
+            theModal.makeModal()
+            theModal.show()
+            theModal.$modal.data('modalObject', theModal)
+            return [theModal, theModal.ajaxApi]
+        }).catch((error) => {
+            UI.toast({
+                variant: 'danger',
+                title: 'Error while loading the modal',
                 body: error.message
             })
         })
@@ -171,7 +209,6 @@ class UIFactory {
         }
         return UI.submissionModal(url, successCallback)
     }
-    
 
     /**
      * Creates and displays a modal where the modal's content is fetched from the provided URL. Reloads the provided element after a successful operation.
@@ -247,6 +284,67 @@ class UIFactory {
         })
         return promise
     }
+
+    /**
+     * Place an overlay onto a node and remove it whenever the promise resolves
+     * @param {(jQuery|string)} node       - The node on which the confirm popover should be palced
+     * @param {Object} options             - The options to be passed to the overlay class
+     * @return {Promise} Result of the passed promised
+     */
+    quickConfirm(node, options={}) {
+        const $node = $(node)
+        const defaultOptions = {
+            title: 'Confirm action',
+            description: '',
+            descriptionHtml: false,
+            container: 'body',
+            variant: 'success',
+            confirmText: 'Confirm',
+            confirm: function() {}
+        }
+        options = Object.assign({}, defaultOptions, options)
+        options.description = options.descriptionHtml ? options.descriptionHtml : sanitize(options.description)
+        const popoverOptions = {
+            title: options.title,
+            titleHtml: options.titleHtml,
+            container: options.container,
+            html: true,
+        }
+
+        var promiseResolve, promiseReject;
+        const confirmPromise = new Promise(function (resolve, reject) {
+            promiseResolve = resolve;
+            promiseReject = reject;
+        })
+        popoverOptions.content = function() {
+            const $node = $(this)
+            const $container = $('<div>')
+            const $buttonCancel = $('<a class="btn btn-secondary btn-sm me-2">Cancel</a>')
+                .click(function() {
+                    const popover = bootstrap.Popover.getInstance($node[0])
+                    popover.dispose()
+                })
+            const $buttonSubmit = $(`<a class="submit-button btn btn-${options.variant} btn-sm">${options.confirmText}</a>`)
+                .click(function() {
+                    options.confirm()
+                        .then(function(result) {
+                            promiseResolve(result)
+                        })
+                        .catch(function(error) {
+                            promiseReject(error)
+                        })
+                    const popover = bootstrap.Popover.getInstance($node[0])
+                    popover.dispose()
+                })
+            $container.append(`<p>${options.description}</p>`)
+            $container.append($(`<div>`).append($buttonCancel, $buttonSubmit))
+            return $container
+        }
+
+        const thePopover = this.popover($node, popoverOptions)
+        thePopover.show()
+        return confirmPromise // have to return a promise to avoid closing the modal
+    }
 }
 
 /** Class representing a Toast */
@@ -257,6 +355,9 @@ class Toaster {
      */
     constructor(options) {
         this.options = Object.assign({}, Toaster.defaultOptions, options)
+        if (this.options.delay == 'auto') {
+            this.options.delay = this.computeDelay()
+        }
         this.bsToastOptions = {
             autohide: this.options.autohide,
             delay: this.options.delay,
@@ -271,7 +372,7 @@ class Toaster {
      * @property {string}  body         - The body's content of the toast
      * @property {string=('primary'|'secondary'|'success'|'danger'|'warning'|'info'|'light'|'dark'|'white'|'transparent')} variant - The variant of the toast
      * @property {boolean} autohide    - If the toast show be hidden after some time defined by the delay
-     * @property {number}  delay        - The number of milliseconds the toast should stay visible before being hidden
+     * @property {(number|string)}  delay        - The number of milliseconds the toast should stay visible before being hidden or 'auto' to deduce the delay based on the content
      * @property {(jQuery|string)}  titleHtml    - The raw HTML title's content of the toast
      * @property {(jQuery|string)}  mutedHtml    - The raw HTML muted's content of the toast
      * @property {(jQuery|string)}  bodyHtml     - The raw HTML body's content of the toast
@@ -284,7 +385,7 @@ class Toaster {
         body: false,
         variant: 'default',
         autohide: true,
-        delay: 5000,
+        delay: 'auto',
         titleHtml: false,
         mutedHtml: false,
         bodyHtml: false,
@@ -350,18 +451,16 @@ class Toaster {
             $toast.attr('id', options.id)
         }
         $toast.addClass('toast-' + options.variant)
-        if (options.title !== false || options.titleHtml !== false || options.muted !== false || options.mutedHtml !== false) {
+        if (options.title !== false || options.titleHtml !== false || options.muted !== false || options.mutedHtml !== false || options.closeButton) {
             var $toastHeader = $('<div class="toast-header"/>')
             $toastHeader.addClass('toast-' + options.variant)
-            if (options.title !== false || options.titleHtml !== false) {
-                var $toastHeaderText
-                if (options.titleHtml !== false) {
-                    $toastHeaderText = $('<div class="me-auto"/>').html(options.titleHtml);
-                } else {
-                    $toastHeaderText = $('<strong class="me-auto"/>').text(options.title)
-                }
-                $toastHeader.append($toastHeaderText)
+            let $toastHeaderText = $('<span class="me-auto"/>')
+            if (options.titleHtml !== false) {
+                $toastHeaderText = $('<div class="me-auto"/>').html(options.titleHtml);
+            } else if (options.title !== false) {
+                $toastHeaderText = $('<strong class="me-auto"/>').text(options.title)
             }
+            $toastHeader.append($toastHeaderText)
             if (options.muted !== false || options.mutedHtml !== false) {
                 var $toastHeaderMuted
                 if (options.mutedHtml !== false) {
@@ -391,6 +490,12 @@ class Toaster {
         }
         return $toast
     }
+
+    computeDelay() {
+        return 3000
+            + 40*((this.options.title?.length ?? 0) + (this.options.body?.length ?? 0))
+            + (['danger', 'warning'].includes(this.options.variant) ? 5000 : 0)
+    }
 }
 
 /** Class representing a Modal */
@@ -402,14 +507,15 @@ class ModalFactory {
     constructor(options) {
         this.options = Object.assign({}, ModalFactory.defaultOptions, options)
         if (options.POSTSuccessCallback !== undefined) {
-            if (this.options.rawHtml) {
-                this.attachSubmitButtonListener = true
-            } else {
+            if (!this.options.rawHtml) {
                 UI.toast({
                     variant: 'danger',
                     bodyHtml: '<b>POSTSuccessCallback</b> can only be used in conjuction with the <i>rawHtml</i> option. Instead, use the promise instead returned by the API call in <b>APIConfirm</b>.'
                 })
             }
+        }
+        if (this.options.rawHtml) {
+            this.attachSubmitButtonListener = true
         }
         if (options.type === undefined && options.cancel !== undefined) {
             this.options.type = 'confirm'
@@ -428,13 +534,13 @@ class ModalFactory {
      */
     /**
      * @callback ModalFactory~confirm
-     * @param {ModalFactory~closeModalFunction} closeFunction - A function that will close the modal if called
+     * @param {ModalFactory~confirm} closeFunction - A function that will close the modal if called
      * @param {Object} modalFactory - The instance of the ModalFactory
      * @param {Object} evt - The event that triggered the confirm operation
      */
     /**
      * @callback ModalFactory~cancel
-     * @param {ModalFactory~closeModalFunction} closeFunction - A function that will close the modal if called
+     * @param {ModalFactory~cancel} closeFunction - A function that will close the modal if called
      * @param {Object} modalFactory - The instance of the ModalFactory
      * @param {Object} evt - The event that triggered the confirm operation
      */
@@ -621,6 +727,9 @@ class ModalFactory {
             }
         } else {
             $modalDialog = $('<div class="modal-dialog"/>')
+            if (this.options.size !== false) {
+                $modalDialog.addClass(`modal-${this.options.size}`)
+            }
             const $modalContent = $('<div class="modal-content"/>')
             if (this.options.title !== false || this.options.titleHtml !== false) {
                 const $modalHeader = $('<div class="modal-header"/>')
@@ -796,17 +905,25 @@ class ModalFactory {
                     $form = this.$modal.find('form')
                 }
                 if ($submitButton.data('confirmfunction') !== undefined && $submitButton.data('confirmfunction') !== '') {
+                    $submitButton[0].removeAttribute('onclick')
                     const clickHandler = window[$submitButton.data('confirmfunction')]
+                    if (clickHandler === undefined) {
+                        console.error(`Function \`${$submitButton.data('confirmfunction')}\` is not defined`)
+                    }
                     this.options.APIConfirm = (tmpApi) => {
                         let clickResult = clickHandler(this, tmpApi)
                         if (clickResult !== undefined) {
                             return clickResult
                                 .then((data) => {
-                                    if (data.success) {
+                                    if (!data) {
                                         this.options.POSTSuccessCallback([data, this])
-                                    } else { // Validation error
-                                        this.injectFormValidationFeedback(form, data.errors)
-                                        return Promise.reject('Validation error');
+                                    } else {
+                                        if (data.success == undefined || data.success) {
+                                            this.options.POSTSuccessCallback([data, this])
+                                        } else { // Validation error
+                                            this.injectFormValidationFeedback(form, data.errors)
+                                            return Promise.reject('Validation error');
+                                        }
                                     }
                                 })
                                 .catch((errorMessage) => {
@@ -816,23 +933,28 @@ class ModalFactory {
                         }
                     }
                 } else {
-                    $submitButton[0].removeAttribute('onclick')
-                    this.options.APIConfirm = (tmpApi) => {
-                        return tmpApi.postForm($form[0])
-                            .then((data) => {
-                                if (data.success) {
-                                    // this.options.POSTSuccessCallback(data)
-                                    this.options.POSTSuccessCallback([data, this])
-                                } else { // Validation error
-                                    this.injectFormValidationFeedback(form, data.errors)
-                                    return Promise.reject('Validation error');
-                                }
-                            })
-                            .catch((errorMessage) => {
-                                this.options.POSTFailCallback([errorMessage, this])
-                                // this.options.POSTFailCallback(errorMessage)
-                                return Promise.reject(errorMessage);
-                            })
+                    if ($form[0]) {
+                        // Submit the form via the AJAXApi
+                        $submitButton[0].removeAttribute('onclick')
+                        this.options.APIConfirm = (tmpApi) => {
+                            return tmpApi.postForm($form[0])
+                                .then((data) => {
+                                    if (!data) {
+                                        this.options.POSTSuccessCallback([data, this])
+                                    } else {
+                                        if (data.success == undefined || data.success) {
+                                            this.options.POSTSuccessCallback([data, this])
+                                        } else { // Validation error
+                                            this.injectFormValidationFeedback(form, data.errors)
+                                            return Promise.reject('Validation error');
+                                        }
+                                    }
+                                })
+                                .catch((errorMessage) => {
+                                    this.options.POSTFailCallback([errorMessage, this])
+                                    return Promise.reject(errorMessage);
+                                })
+                        }
                     }
                 }
                 $submitButton.click(this.getConfirmationHandlerFunction($submitButton))
@@ -879,7 +1001,7 @@ class OverlayFactory {
         spinnerVariant: '',
         spinnerSmall: false,
         spinnerType: 'border',
-        fallbackBoostrapVariant: '',
+        fallbackBootstrapVariant: '',
         wrapperCSSDisplay: '',
     }
 
@@ -978,7 +1100,7 @@ class OverlayFactory {
         let classes = this.$node.attr('class')
         if (classes !== undefined) {
             classes = classes.split(' ')
-            const detectedVariant = OverlayFactory.detectedBootstrapVariant(classes, this.options.fallbackBoostrapVariant)
+            const detectedVariant = OverlayFactory.detectedBootstrapVariant(classes, this.options.fallbackBootstrapVariant)
             this.options.spinnerVariant = detectedVariant
         }
     }
@@ -987,7 +1109,7 @@ class OverlayFactory {
      * Detect the bootstrap variant from a list of classes
      * @param {Array} classes - A list of classes containg a bootstrap variant 
      */
-    static detectedBootstrapVariant(classes, fallback=OverlayFactory.defaultOptions.fallbackBoostrapVariant) {
+    static detectedBootstrapVariant(classes, fallback = OverlayFactory.defaultOptions.fallbackBootstrapVariant) {
         const re = /^[a-zA-Z]+-(?<variant>primary|success|danger|warning|info|light|dark|white|transparent)$/;
         let result
         for (let i=0; i<classes.length; i++) {
@@ -1075,6 +1197,90 @@ class FormValidationHelper {
 
 }
 
+/** Class representing a Popover */
+class PopoverFactory {
+    /**
+     * Create a Popover.
+     * @param  {Object} element - The target element on which to attach the popover
+     * @param  {Object} options - The options supported by PopoverFactory#defaultOptions
+     */
+    constructor(element, options) {
+        this.element = $(element)[0]
+        this.options = Object.assign({}, PopoverFactory.defaultOptions, options)
+    }
+
+    /**
+     * @namespace
+     * @property {string} title                            - The title's content of the popover
+     * @property {string} titleHtml                        - The raw HTML title's content of the popover
+     * @property {string} body                             - The body's content of the popover
+     * @property {string} bodyHtml                         - The raw HTML body's content of the popover
+     * @property {string} content                          - Forward the popover's content to the bootstrap popover constructor
+     * @property {string} html                             - Manually allow HTML in both the title and body
+     * @property {string=('primary'|'secondary'|'success'|'danger'|'warning'|'info'|'light'|'dark'|'white'|'transparent')} variant - The variant of the popover
+     * @property {string} popoverClass                       - Classes to be added to the popover's container
+     * @property {string} container                        - Appends the popover to a specific element
+     * @property {string=('auto'|'top'|'bottom'|'left'|'right')} placement                        - How to position the popover
+     */
+    static defaultOptions = {
+        title: '',
+        titleHtml: false,
+        body: false,
+        bodyHtml: false,
+        content: null,
+        html: false,
+        popoverClass: '',
+        container: false,
+        placement: 'right',
+    }
+
+    /** Create the HTML of the modal and inject it into the DOM */
+    makePopover() {
+        if (this.isValid()) {
+            if (this.options.titleHtml || this.options.bodyHtml) {
+                this.options.html = true
+            }
+            this.options.title = this.options.titleHtml ? this.options.titleHtml : sanitize(this.options.title)
+            if (this.options.content === null) {
+                this.options.content = this.options.bodyHtml ? this.options.bodyHtml : sanitize(this.options.body)
+            }
+            this.popoverInstance = new bootstrap.Popover(this.element, this.options)
+        } else {
+            console.error('Popover not valid')
+        }
+    }
+
+    /** Display the popover */
+    show() {
+        this.popoverInstance.show()
+    }
+
+    /** Hide the popover */
+    hide() {
+        this.popoverInstance.hide()
+    }
+
+    /** Updates the position of an element’s popover. */
+    updatePosition() {
+        this.popoverInstance.update()
+    }
+
+    /** Hides and destroys an element’s popover */
+    dispose() {
+        this.popoverInstance.dispose();
+    }
+
+    /**
+     * Check wheter a popover is valid
+     * @return {boolean} Return true if the popover contains at least data to be rendered
+     */
+    isValid() {
+        return this.options.title !== false || this.options.titleHtml !== false ||
+            this.options.body !== false || this.options.bodyHtml !== false ||
+            this.options.rawHtml !== false
+    }
+}
+
 class HtmlHelper {
     static table(head=[], body=[], options={}) {
         const $table = $('<table/>')
@@ -1100,12 +1306,16 @@ class HtmlHelper {
         if (options.variant) {
             $table.addClass(`table-${options.variant}`)
         }
+        if (options.fixed_layout) {
+            $table.css('table-layout', 'fixed')
+        }
         if (options.tableClass) {
             $table.addClass(options.tableClass)
         }
 
-        const $caption = $('<caption/>')
+        let $caption = null
         if (options.caption) {
+            $caption = $('<caption/>')
             if (options.caption instanceof jQuery) {
                 $caption = options.caption
             } else {
@@ -1113,21 +1323,28 @@ class HtmlHelper {
             }
         }
 
-        const $theadRow = $('<tr/>')
-        head.forEach(head => {
-            if (head instanceof jQuery) {
-                $theadRow.append($('<td/>').append(head))
-            } else {
-                $theadRow.append($('<th/>').text(head))
-            }
-        })
-        $thead.append($theadRow)
+        let $theadRow = null
+        if (head) {
+            $theadRow = $('<tr/>')
+            head.forEach(head => {
+                if (head instanceof jQuery) {
+                    $theadRow.append($('<td/>').append(head))
+                } else {
+                    $theadRow.append($('<th/>').text(head))
+                }
+            })
+            $thead.append($theadRow)
+        }
 
         body.forEach(row => {
             const $bodyRow = $('<tr/>')
             row.forEach(item => {
                 if (item instanceof jQuery) {
-                    $bodyRow.append($('<td/>').append(item))
+                    if (item.is('td')) {
+                        $bodyRow.append(item)
+                    } else {
+                        $bodyRow.append($('<td/>').append(item))
+                    }
                 } else {
                     $bodyRow.append($('<td/>').text(item))
                 }

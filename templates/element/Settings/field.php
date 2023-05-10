@@ -2,7 +2,7 @@
     if ($setting['type'] == 'string' || $setting['type'] == 'textarea' || empty($setting['type'])) {
         $input = (function ($settingName, $setting, $appView) {
             $settingId = str_replace('.', '_', $settingName);
-            return $appView->Bootstrap->genNode(
+            return $appView->Bootstrap->node(
                 $setting['type'] == 'textarea' ? 'textarea' : 'input',
                 [
                     'class' => [
@@ -43,7 +43,7 @@
     } elseif ($setting['type'] == 'integer') {
         $input = (function ($settingName, $setting, $appView) {
             $settingId = str_replace('.', '_', $settingName);
-            return $appView->Bootstrap->genNode('input', [
+            return $appView->Bootstrap->node('input', [
                 'class' => [
                     'form-control',
                     (!empty($setting['error']) ? 'is-invalid' : ''),
@@ -73,7 +73,7 @@
                 }
             }
             $options = [];
-            $options[] = $appView->Bootstrap->genNode('option', ['value' => '-1', 'data-is-empty-option' => '1'], __('Select an option'));
+            $options[] = $appView->Bootstrap->node('option', ['value' => '-1', 'data-is-empty-option' => '1'], __('Select an option'));
             foreach ($setting['options'] as $key => $value) {
                 $optionParam = [
                     'class' => [],
@@ -88,10 +88,10 @@
                         $optionParam['selected'] = 'selected';
                     }
                 }
-                $options[] = $appView->Bootstrap->genNode('option', $optionParam, h($value));
+                $options[] = $appView->Bootstrap->node('option', $optionParam, h($value));
             }
             $options = implode('', $options);
-            return $appView->Bootstrap->genNode('select', [
+            return $appView->Bootstrap->node('select', [
                 'class' => [
                     'form-select',
                     'pe-4',
