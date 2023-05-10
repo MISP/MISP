@@ -53,3 +53,7 @@ jobs:
 
       - name: Run tests
         run: vendor/bin/phpunit --configuration phpunit.xml.dist
+
+      - name: debug cli error log
+        if: always()
+        run: tail -n 1000 logs/cli-error.log
