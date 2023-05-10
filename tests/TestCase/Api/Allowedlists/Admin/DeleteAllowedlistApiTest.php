@@ -9,7 +9,7 @@ use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Helper\ApiTestTrait;
 use App\Test\Fixture\AllowedlistsFixture;
 
-class DeleteEventBlocklistApiTest extends TestCase
+class DeleteAllowedlistApiTest extends TestCase
 {
     use ApiTestTrait;
 
