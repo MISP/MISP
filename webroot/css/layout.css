@@ -43,6 +43,36 @@ body {
         width: 100% !important;
         position: relative !important;
         margin-top: 0 !important;
+
+        overflow: hidden;
+        position: fixed;
+        bottom: 0;
+        min-height: unset;
+    }
+
+    .sidebar-wrapper {
+        min-height: unset;
+        width: 100vw !important;
+    }
+
+    .sidebar-scroll {
+        overflow-y: hidden !important;
+    }
+
+    .sidebar .sidebar-link-container {
+        overflow: unset !important;
+        position: unset !important;
+    }
+    .sidebar .sidebar-link-container .submenu-container .sub-menu > li:first-child {
+        display: none;
+    }
+    .sidebar .sidebar-link-container .submenu-container .sub-menu {
+        padding-left: 1em;
+    }
+
+    ul.sidebar-elements li.parent > a.sidebar-link::before {
+        transition: transform 0.3s ease-out;
+        transform: unset;
     }
 
     ul.sidebar-elements > li > a.sidebar-link > span.text {
@@ -68,6 +98,19 @@ body {
         position: relative;
         height: auto;
         width: auto;
+    }
+
+    ul.sidebar-elements > li ul li > a.sidebar-link {
+        font-size: 0.95em;
+        padding-left: 35px;
+    }
+
+    .sidebar ul.sidebar-elements > li > a.sidebar-link > span.text {
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    .sidebar ul.sidebar-elements li.parent > a.sidebar-link::before {
+        visibility: visible !important;
     }
 }
 
@@ -121,16 +164,21 @@ main.content {
     overflow: visible;
     position: relative;
 }
-.sidebar .sidebar-link-container .submenu-container {
-    display: none;
-    position: absolute;
-    left: 100%;
-}
-.sidebar .sidebar-link-container:hover .submenu-container {
-    display: block;
-}
-.sidebar .sidebar-link-container .submenu-container:hover {
-    display: block;
+
+@media (min-width: 576px) {
+    .sidebar .sidebar-link-container .submenu-container {
+        display: none;
+        position: absolute;
+        left: 100%;
+        transform: translateY(-50%);
+        top: 50%;
+    }
+    .sidebar .sidebar-link-container:hover .submenu-container {
+        display: block;
+    }
+    .sidebar .sidebar-link-container .submenu-container:hover {
+        display: block;
+    }
 }
 
 .sidebar.expanded, .sidebar:hover {
@@ -423,7 +471,7 @@ ul.sidebar-elements li.parent > a.sidebar-link::before {
 }
 
 ul.sidebar-elements li.parent > a.sidebar-link:not(.collapsed)::before {
-    transform: rotate(-90deg);
+    transform: rotate(270deg);
 }
 
 .sidebar.expanded ul.sidebar-elements li.parent > a.sidebar-link::before,

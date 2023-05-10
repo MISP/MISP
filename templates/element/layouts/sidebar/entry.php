@@ -58,11 +58,12 @@
     $childNotificationVariant = array_flip($severity)[$childMaxSeverity];
 ?>
 
-<li class="sidebar-link-container <?= !empty($children) ? 'parent' : '' ?>">
+<li class="sidebar-link-container <?= !empty($children) ? 'parent collapsed' : '' ?>">
     <?php if (!empty($children) || !empty($url)): ?>
         <a
             class="d-flex align-items-center sidebar-link <?= (!empty($children) && !$hasActiveChild) ? 'collapsed' : '' ?> <?= $active ? 'active' : '' ?> <?= $hasActiveChild ? 'have-active-child' : '' ?>"
             href="<?= h($url) ?>"
+            <?= !empty($children) ? 'data-bs-toggle="collapse"' : '' ?>
             <?= $hasActiveChild ? 'aria-expanded="true"' : '' ?>
         >
                 <?php
