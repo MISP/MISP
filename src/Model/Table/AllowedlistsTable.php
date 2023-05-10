@@ -14,7 +14,6 @@ class AllowedlistsTable extends AppTable
     public function initialize(array $config): void
     {
         parent::initialize($config);
-        $this->setTable('allowedlist');
         $this->addBehavior('AuditLog');
         $this->setDisplayField('name');
     }
@@ -43,7 +42,7 @@ class AllowedlistsTable extends AppTable
     // regexp validation
     public function isValidRegex($value, array $context)
     {
-        return preg_match($value, 'test') !== false;
+        return @preg_match($value, 'test') !== false;
     }
 
     public function getBlockedValues()
