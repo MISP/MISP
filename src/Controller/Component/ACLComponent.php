@@ -218,6 +218,38 @@ class ACLComponent extends Component
             'saveMyBookmark' => ['*'],
             'deleteMyBookmark' => ['*']
         ],
+        'EventBlocklists' => [
+            'add' => [
+                'AND' => [
+                    'host_org_user',
+                    'perm_add'
+                ]
+            ],
+            'delete' => [
+                'AND' => [
+                    'host_org_user',
+                    'perm_add'
+                ]
+            ],
+            'edit' => [
+                'AND' => [
+                    'host_org_user',
+                    'perm_add'
+                ]
+            ],
+            'index' => [
+                'AND' => [
+                    'host_org_user',
+                    'perm_add'
+                ]
+            ],
+            'massDelete' => [
+                'AND' => [
+                    'host_org_user',
+                    'perm_add'
+                ]
+            ]
+        ],
         'Api' => [
             'index' => ['*']
         ]
@@ -281,13 +313,13 @@ class ACLComponent extends Component
                         $this->Log = TableRegistry::get('Log');
                         $this->Log->create();
                         $this->Log->save(array(
-                                'org' => 'SYSTEM',
-                                'model' => 'User',
-                                'model_id' => $user['id'],
-                                'email' => $user['email'],
-                                'action' => 'security',
-                                'user_id' => $user['id'],
-                                'title' => __('User triggered security alert by attempting to access /%s/%s. Reason why this endpoint is of interest: %s', $controller, $action, $message),
+                            'org' => 'SYSTEM',
+                            'model' => 'User',
+                            'model_id' => $user['id'],
+                            'email' => $user['email'],
+                            'action' => 'security',
+                            'user_id' => $user['id'],
+                            'title' => __('User triggered security alert by attempting to access /%s/%s. Reason why this endpoint is of interest: %s', $controller, $action, $message),
                         ));
                     }
                 }
@@ -477,8 +509,10 @@ class ACLComponent extends Component
                 if (in_array($function, ['beforeFilter', 'beforeRender', 'initialize', 'afterFilter'])) {
                     continue;
                 }
-                if (!isset($this->aclList[$controller])
-                || !in_array($function, array_keys($this->aclList[$controller]))) {
+                if (
+                    !isset($this->aclList[$controller])
+                    || !in_array($function, array_keys($this->aclList[$controller]))
+                ) {
                     $missing[$controller][] = $function;
                 }
             }

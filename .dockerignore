@@ -1,2 +1,3 @@
 docker/misp/logs/
 vendor/
+composer.lock
