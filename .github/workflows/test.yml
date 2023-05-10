@@ -54,6 +54,6 @@ jobs:
       - name: Run tests
         run: vendor/bin/phpunit --configuration phpunit.xml.dist
 
-      - name: debug cli error log
-        if: always()
-        run: tail -n 1000 logs/cli-error.log
+      - name: Debug cli-error.log
+        if: failure()
+        run: tail -n 2000 logs/cli-error.log
