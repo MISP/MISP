@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Test\TestCase\Api\Allowedlists;
+namespace App\Test\TestCase\Api\Allowedlists\Admin;
 
 use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
@@ -13,7 +13,7 @@ class IndexAllowedlistsApiTest extends TestCase
 {
     use ApiTestTrait;
 
-    protected const ENDPOINT = '/allowedlists/index';
+    protected const ENDPOINT = '/admin/allowedlists/index';
 
     protected $fixtures = [
         'app.Organisations',
@@ -22,7 +22,7 @@ class IndexAllowedlistsApiTest extends TestCase
         'app.Allowedlists',
     ];
 
-    public function testIndexAllowedlist(): void
+    public function testIndexAllowed(): void
     {
         $this->skipOpenApiValidations();
 
