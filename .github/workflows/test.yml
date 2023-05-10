@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - 3.x
-      - 3.x-eventblocklists
   pull_request:
     branches:
       - 3.x

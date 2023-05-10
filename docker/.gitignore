@@ -3,3 +3,4 @@
 .env
 .env.dev
 misp/logs/*.log
+misp/logs/*.log.*
