@@ -250,6 +250,13 @@ class ACLComponent extends Component
                 ]
             ]
         ],
+        'Allowedlists' => [
+            'admin_add' => ['perm_regexp_access'],
+            'admin_delete' => ['perm_regexp_access'],
+            'admin_edit' => ['perm_regexp_access'],
+            'admin_index' => ['perm_regexp_access'],
+            'index' => ['*'],
+        ],
         'Api' => [
             'index' => ['*']
         ]
