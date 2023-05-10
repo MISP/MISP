@@ -12,25 +12,32 @@ class UsersFixture extends TestFixture
     public $connection = 'test';
 
     // Admin user
-    public const USER_ADMIN_ID = 1;
+    public const USER_ADMIN_ID = 1000;
     public const USER_ADMIN_EMAIL = 'admin@test.test';
     public const USER_ADMIN_PASSWORD = 'AdminPassword';
 
     // Sync user
-    public const USER_SYNC_ID = 2;
+    public const USER_SYNC_ID = 2000;
     public const USER_SYNC_EMAIL = 'sync@test.test';
     public const USER_SYNC_PASSWORD = 'SyncPassword';
 
     // Org Admin user
-    public const USER_ORG_ADMIN_ID = 3;
+    public const USER_ORG_ADMIN_ID = 3000;
     public const USER_ORG_ADMIN_EMAIL = 'org_admin@test.test';
     public const USER_ORG_ADMIN_PASSWORD = 'OrgAdminPassword';
 
     // Regular User user
-    public const USER_REGULAR_USER_ID = 4;
+    public const USER_REGULAR_USER_ID = 4000;
     public const USER_REGULAR_USER_EMAIL = 'user@test.test';
     public const USER_REGULAR_USER_PASSWORD = 'UserPassword';
 
+    // Default Roles IDs
+    public const ROLE_ADMIN_ID = 1;
+    public const ROLE_ORG_ADMIN_ID = 2;
+    public const ROLE_REGULAR_USER_ID = 3;
+    public const ROLE_PUBLISHER_ID = 4;
+    public const ROLE_SYNC_ID = 5;
+    public const ROLE_READ_ONLY_ID = 6;
 
     public function init(): void
     {
@@ -43,7 +50,7 @@ class UsersFixture extends TestFixture
                 'uuid' => $faker->uuid(),
                 'email' => self::USER_ADMIN_EMAIL,
                 'password' => $hasher->hash(self::USER_ADMIN_PASSWORD),
-                'role_id' => RolesFixture::ROLE_ADMIN_ID,
+                'role_id' => self::ROLE_ADMIN_ID,
                 'disabled' => 0,
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'date_created' => $faker->dateTime()->getTimestamp(),
@@ -54,7 +61,7 @@ class UsersFixture extends TestFixture
                 'uuid' => $faker->uuid(),
                 'email' => self::USER_SYNC_EMAIL,
                 'password' => $hasher->hash(self::USER_SYNC_PASSWORD),
-                'role_id' => RolesFixture::ROLE_SYNC_ID,
+                'role_id' => self::ROLE_SYNC_ID,
                 'disabled' => 0,
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'date_created' => $faker->dateTime()->getTimestamp(),
@@ -65,7 +72,7 @@ class UsersFixture extends TestFixture
                 'uuid' => $faker->uuid(),
                 'email' => self::USER_ORG_ADMIN_EMAIL,
                 'password' => $hasher->hash(self::USER_ORG_ADMIN_PASSWORD),
-                'role_id' => RolesFixture::ROLE_ORG_ADMIN_ID,
+                'role_id' => self::ROLE_ORG_ADMIN_ID,
                 'disabled' => 0,
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'date_created' => $faker->dateTime()->getTimestamp(),
@@ -76,7 +83,7 @@ class UsersFixture extends TestFixture
                 'uuid' => $faker->uuid(),
                 'email' => self::USER_REGULAR_USER_EMAIL,
                 'password' => $hasher->hash(self::USER_REGULAR_USER_PASSWORD),
-                'role_id' => RolesFixture::ROLE_REGULAR_USER_ID,
+                'role_id' => self::ROLE_REGULAR_USER_ID,
                 'disabled' => 0,
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'date_created' => $faker->dateTime()->getTimestamp(),

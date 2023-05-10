@@ -11,16 +11,16 @@ class AuthKeysFixture extends TestFixture
 {
     public $connection = 'test';
 
-    public const ADMIN_API_ID = 1;
+    public const ADMIN_API_ID = 1000;
     public const ADMIN_API_KEY = 'sL9hrjIyY405RyGQHLx5DoCAM92BNmmGa8P4ck1E';
 
-    public const SYNC_API_ID = 2;
+    public const SYNC_API_ID = 2000;
     public const SYNC_API_KEY = '6b387ced110858dcbcda36edb044dc18f91a0894';
 
-    public const ORG_ADMIN_API_ID = 3;
+    public const ORG_ADMIN_API_ID = 3000;
     public const ORG_ADMIN_API_KEY = '1c4685d281d478dbcebd494158024bc3539004d0';
 
-    public const REGULAR_USER_API_ID = 4;
+    public const REGULAR_USER_API_ID = 4000;
     public const REGULAR_USER_API_KEY = '12dea96fec20593566ab75692c9949596833adc9';
 
     public function init(): void

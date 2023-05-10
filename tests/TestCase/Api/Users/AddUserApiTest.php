@@ -19,7 +19,6 @@ class AddUserApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
-        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];
@@ -33,7 +32,7 @@ class AddUserApiTest extends TestCase
             [
                 'individual_id' => UsersFixture::USER_REGULAR_USER_ID,
                 'organisation_id' => OrganisationsFixture::ORGANISATION_A_ID,
-                'role_id' => RolesFixture::ROLE_REGULAR_USER_ID,
+                'role_id' => UsersFixture::ROLE_REGULAR_USER_ID,
                 'disabled' => false,
                 'username' => 'test',
                 'password' => 'Password123456!',
@@ -54,7 +53,7 @@ class AddUserApiTest extends TestCase
             [
                 'individual_id' => UsersFixture::USER_REGULAR_USER_ID,
                 'organisation_id' => OrganisationsFixture::ORGANISATION_A_ID,
-                'role_id' => RolesFixture::ROLE_REGULAR_USER_ID,
+                'role_id' => UsersFixture::ROLE_REGULAR_USER_ID,
                 'disabled' => false,
                 'username' => 'test',
                 'password' => 'Password123456!'

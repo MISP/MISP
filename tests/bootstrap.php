@@ -57,11 +57,14 @@ session_id('cli');
 if (!$_ENV['SKIP_DB_MIGRATIONS']) {
     echo "[ * ] Running DB migrations, it may take some time ...\n";
     $migrator = new Migrator();
-    $migrator->runMany([
-        ['connection' => 'test'],
-        ['plugin' => 'Tags', 'connection' => 'test'],
-        ['plugin' => 'ADmad/SocialAuth', 'connection' => 'test']
-    ]);
+    $migrator->runMany(
+        [
+            ['connection' => 'test'],
+            ['plugin' => 'Tags', 'connection' => 'test'],
+            ['plugin' => 'ADmad/SocialAuth', 'connection' => 'test']
+        ],
+        false // Do not truncate tables
+    );
 } else {
     echo "[ * ] Skipping DB migrations ...\n";
 }

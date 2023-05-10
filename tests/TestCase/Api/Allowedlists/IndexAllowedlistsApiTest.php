@@ -6,27 +6,31 @@ namespace App\Test\TestCase\Api\Users;
 
 use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Fixture\UsersFixture;
+use App\Test\Fixture\EventBlocklistsFixture;
 use App\Test\Helper\ApiTestTrait;
 
-class IndexUsersApiTest extends TestCase
+class IndexAllowedlistsApiTest extends TestCase
 {
     use ApiTestTrait;
 
-    protected const ENDPOINT = '/users/index';
+    protected const ENDPOINT = '/event-blocklists/index';
 
     protected $fixtures = [
         'app.Organisations',
         'app.Users',
-        'app.AuthKeys'
+        'app.AuthKeys',
+        'app.EventBlocklists'
     ];
 
-    public function testIndexUsers(): void
+    public function testIndexEventBlocklists(): void
     {
+        $this->skipOpenApiValidations();
+
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
+
         $this->get(self::ENDPOINT);
 
         $this->assertResponseOk();
-        $this->assertResponseContains(sprintf('"email": "%s"', UsersFixture::USER_ADMIN_EMAIL));
+        $this->assertResponseContains(sprintf('"event_uuid": "%s"', EventBlocklistsFixture::EVENT_BLOCK_LIST_1_EVENT_UUID));
     }
 }
