@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Controller\AppController;
+use Cake\Http\Exception\NotFoundException;
 
 class EventBlocklistsController extends AppController
 {
@@ -14,7 +15,7 @@ class EventBlocklistsController extends AppController
         parent::initialize();
         $this->loadComponent('BlockList', [
             'controller' => $this,
-            'table' => $this->modelClass,
+            'table' => 'EventBlocklists',
         ]);
     }
 
