@@ -306,7 +306,7 @@ class BootstrapModal extends BootstrapGeneric
             ],
             $this->options['cancelButton'],
         );
-        $buttonCancel = (new BootstrapButton($buttonCancelConfig, ), $this->bsHelper)->button();
+        $buttonCancel = (new BootstrapButton($buttonCancelConfig, $this->bsHelper))->button();
 
         $defaultConfig = [
             'variant' => 'primary',

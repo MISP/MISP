@@ -2,6 +2,7 @@ composer.lock
 config/app_local.php
 config/Migrations/schema-dump-default.lock
 logs/*.log
+logs/*.log.*
 tmp
 vendor
 webroot/theme/node_modules

@@ -28,7 +28,6 @@ class ChangePasswordApiTest extends TestCase
     protected $fixtures = [
         'app.Organisations',
         'app.Individuals',
-        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];
@@ -64,13 +63,13 @@ class ChangePasswordApiTest extends TestCase
         $request = new ServerRequest([
             'url' => 'users/login',
             'post' => [
-                'username' => UsersFixture::USER_REGULAR_USER_USERNAME,
+                'username' => UsersFixture::USER_REGULAR_USER_EMAIL,
                 'password' => $newPassword
             ],
         ]);
         $result = $this->auth->authenticate($request, new Response());
 
         $this->assertEquals(UsersFixture::USER_REGULAR_USER_ID, $result['id']);
-        $this->assertEquals(UsersFixture::USER_REGULAR_USER_USERNAME, $result['username']);
+        $this->assertEquals(UsersFixture::USER_REGULAR_USER_EMAIL, $result['username']);
     }
 }

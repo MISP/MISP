@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace App\Test\TestCase\Api\EventBlocklists;
+namespace App\Test\TestCase\Api\Allowedlists;
 
 use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Fixture\EventBlocklistsFixture;
+use App\Test\Fixture\AllowedlistsFixture;
 use App\Test\Helper\ApiTestTrait;
 
-class IndexEventBlocklistsApiTest extends TestCase
+class IndexAllowedlistsApiTest extends TestCase
 {
     use ApiTestTrait;
 
-    protected const ENDPOINT = '/event-blocklists/index';
+    protected const ENDPOINT = '/allowedlists/index';
 
     protected $fixtures = [
         'app.Organisations',
         'app.Users',
         'app.AuthKeys',
-        'app.EventBlocklists'
+        'app.Allowedlists',
     ];
 
-    public function testIndexEventBlocklists(): void
+    public function testIndexAllowedlist(): void
     {
         $this->skipOpenApiValidations();
 
@@ -31,6 +31,6 @@ class IndexEventBlocklistsApiTest extends TestCase
         $this->get(self::ENDPOINT);
 
         $this->assertResponseOk();
-        $this->assertResponseContains(sprintf('"event_uuid": "%s"', EventBlocklistsFixture::EVENT_BLOCK_LIST_1_EVENT_UUID));
+        $this->assertResponseContains(sprintf('"id": %d', AllowedlistsFixture::ALLOWED_LIST_1_ID));
     }
 }

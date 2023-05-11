@@ -45,12 +45,6 @@ jobs:
       - name: Install mysql client
         run: sudo apt-get install -y mysql-client
 
-      - name: Write database conf file
-        run: |
-          echo "[client]" >> misp.cnf
-          echo "user=misp" >> misp.cnf
-          echo "password=misp" >> misp.cnf
-
       - name: Install composer packages
         run: composer install --no-interaction --no-progress --no-suggest
 
@@ -58,4 +52,8 @@ jobs:
         run: cp -Rf docker/misp/config/app_local.gh_action.php config/app_local.php
 
       - name: Run tests
-        run: vendor/bin/phpunit --configuration phpunit.xml.dist --testdox
+        run: vendor/bin/phpunit --configuration phpunit.xml.dist
+
+      - name: Debug cli-error.log
+        if: failure()
+        run: tail -n 2000 logs/cli-error.log

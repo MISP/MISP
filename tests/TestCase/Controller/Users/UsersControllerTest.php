@@ -13,7 +13,6 @@ class UsersControllerTest extends TestCase
     use IntegrationTestTrait;
 
     protected $fixtures = [
-        'app.Roles',
         'app.Users'
     ];
     public function testLogin(): void

@@ -18,7 +18,6 @@ class EditUserApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
-        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];
@@ -33,14 +32,14 @@ class EditUserApiTest extends TestCase
             $url,
             [
                 'id' => UsersFixture::USER_REGULAR_USER_ID,
-                'role_id' => RolesFixture::ROLE_ORG_ADMIN_ID,
+                'role_id' => UsersFixture::ROLE_ORG_ADMIN_ID,
             ]
         );
 
         $this->assertResponseOk();
         $this->assertDbRecordExists('Users', [
             'id' => UsersFixture::USER_REGULAR_USER_ID,
-            'role_id' => RolesFixture::ROLE_ORG_ADMIN_ID
+            'role_id' => UsersFixture::ROLE_ORG_ADMIN_ID
         ]);
     }
 
@@ -51,14 +50,14 @@ class EditUserApiTest extends TestCase
         $this->put(
             self::ENDPOINT,
             [
-                'role_id' => RolesFixture::ROLE_ADMIN_ID,
+                'role_id' => UsersFixture::ROLE_ADMIN_ID,
             ]
         );
 
         $this->assertResponseOk();
         $this->assertDbRecordNotExists('Users', [
             'id' => UsersFixture::USER_REGULAR_USER_ID,
-            'role_id' => RolesFixture::ROLE_ADMIN_ID
+            'role_id' => UsersFixture::ROLE_ADMIN_ID
         ]);
     }
 }

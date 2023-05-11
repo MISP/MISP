@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Test\TestCase\Api\Users;
+namespace App\Test\TestCase\Api\EventBlocklists;
 
 use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
@@ -16,7 +16,6 @@ class AddEventBlocklistApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
-        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.EventBlocklists'

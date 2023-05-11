@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use Migrations\AbstractMigration;
@@ -142,7 +143,7 @@ class Initial extends AbstractMigration
             )
             ->create();
 
-        $this->table('allowedlist')
+        $this->table('allowedlists')
             ->addColumn('id', 'integer', [
                 'autoIncrement' => true,
                 'default' => null,
