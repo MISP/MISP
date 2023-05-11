@@ -800,13 +800,19 @@ class ServerShell extends AppShell
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $serverId = $this->args[1];
+        $technique = empty($this->args[2]) ? 'full' : $this->args[2]; 
         if (!empty($this->args[3])) {
             $jobId = $this->args[3];
         } else {
             $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'push_taxii', 'Server: ' . $serverId, 'Pushing.');
         }
         $this->Job->read(null, $jobId);
-
+       
+        App::uses('SyncTool', 'Tools');
+        $syncTool = new SyncTool(); 
+        $server = $this->getServer($serverId);
+        $HttpSocket = $syncTool->setupHttpSocket($server); 
+        
         $result = $this->TaxiiServer->push($serverId, $technique, $jobId, $HttpSocket, $user);
 
         if ($result !== true && !is_array($result)) {
