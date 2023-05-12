@@ -13,3 +13,4 @@ docker/run/
 config.json
 phpunit.xml
 docker-compose.override.yml
+.gnupg

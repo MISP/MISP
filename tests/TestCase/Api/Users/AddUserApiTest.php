@@ -8,7 +8,6 @@ use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\UsersFixture;
 use App\Test\Fixture\OrganisationsFixture;
-use App\Test\Fixture\RolesFixture;
 use App\Test\Helper\ApiTestTrait;
 
 class AddUserApiTest extends TestCase

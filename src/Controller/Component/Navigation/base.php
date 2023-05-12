@@ -7,6 +7,7 @@ class BaseNavigation
     protected $request;
     protected $viewVars;
     public $currentUser;
+    public $currentUserId;
 
     public function __construct($bcf, $request, $viewVars)
     {

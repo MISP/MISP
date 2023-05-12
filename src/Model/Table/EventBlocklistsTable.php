@@ -63,7 +63,7 @@ class EventBlocklistsTable extends AppTable
         if (empty($blocklistHits)) {
             return;
         }
-        $blocklistHits = array_flip($blocklistHits);
+        $blocklistHits = array_flip($blocklistHits->toArray());
         foreach ($eventArray as $k => $event) {
             if (isset($blocklistHits[$event['uuid']])) {
                 unset($eventArray[$k]);

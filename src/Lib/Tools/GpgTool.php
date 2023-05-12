@@ -2,7 +2,10 @@
 
 namespace App\Lib\Tools;
 
-use Cake\Core\Exception\Exception;
+use Cake\Http\Client as HttpClient;
+use Cake\Core\Exception\CakeException;
+use Cake\Http\Exception\NotFoundException;
+use Cake\Http\Exception\HttpException;
 use Cake\Core\Configure;
 
 class GpgTool
@@ -19,7 +22,7 @@ class GpgTool
         if (!class_exists('Crypt_GPG')) {
             // 'Crypt_GPG' class cannot be autoloaded, try to require from include_path.
             if (!stream_resolve_include_path('Crypt/GPG.php')) {
-                throw new Exception("Crypt_GPG is not installed.");
+                throw new CakeException("Crypt_GPG is not installed.");
             }
             require_once 'Crypt/GPG.php';
         }
@@ -27,7 +30,7 @@ class GpgTool
 
         $homedir = Configure::read('GnuPG.homedir') ?? ROOT . '/.gnupg';
         if ($homedir === null) {
-            throw new Exception("Configuration option 'GnuPG.homedir' is not set, Crypt_GPG cannot be initialized.");
+            throw new CakeException("Configuration option 'GnuPG.homedir' is not set, Crypt_GPG cannot be initialized.");
         }
 
         $options = [
@@ -53,7 +56,7 @@ class GpgTool
         $uri = 'https://openpgp.circl.lu/pks/lookup?search=' . urlencode($search) . '&op=index&fingerprint=on&options=mr';
         try {
             $response = $this->keyServerLookup($uri);
-        } catch (HttpSocketHttpException $e) {
+        } catch (HttpException $e) {
             if ($e->getCode() === 404) {
                 return [];
             }
@@ -72,7 +75,7 @@ class GpgTool
         $uri = 'https://openpgp.circl.lu/pks/lookup?search=0x' . urlencode($fingerprint) . '&op=get&options=mr';
         try {
             $response = $this->keyServerLookup($uri);
-        } catch (HttpSocketHttpException $e) {
+        } catch (HttpException $e) {
             if ($e->getCode() === 404) {
                 return null;
             }
@@ -84,7 +87,7 @@ class GpgTool
         if ($this->gpg) {
             $fetchedFingerprint = $this->validateGpgKey($key);
             if (strtolower($fingerprint) !== strtolower($fetchedFingerprint)) {
-                throw new Exception("Requested fingerprint do not match with fetched key fingerprint ($fingerprint != $fetchedFingerprint)");
+                throw new CakeException("Requested fingerprint do not match with fetched key fingerprint ($fingerprint != $fetchedFingerprint)");
             }
         }
 
@@ -100,15 +103,15 @@ class GpgTool
     public function validateGpgKey($keyData)
     {
         if (!$this->gpg instanceof CryptGpgExtended) {
-            throw new InvalidArgumentException("Valid CryptGpgExtended instance required.");
+            throw new \InvalidArgumentException("Valid CryptGpgExtended instance required.");
         }
         $fetchedKeyInfo = $this->gpg->keyInfo($keyData);
         if (count($fetchedKeyInfo) !== 1) {
-            throw new Exception("Multiple keys found");
+            throw new CakeException("Multiple keys found");
         }
         $primaryKey = $fetchedKeyInfo[0]->getPrimaryKey();
         if (empty($primaryKey)) {
-            throw new Exception("No primary key found");
+            throw new CakeException("No primary key found");
         }
         $this->gpg->importKey($keyData);
         return $primaryKey->getFingerprint();
@@ -140,7 +143,6 @@ class GpgTool
                     'key_id' => substr($parts[1], -8),
                     'date' => date('Y-m-d', $parts[4]),
                 );
-
             } else if ($parts[0] === 'uid' && !empty($temp)) {
                 $temp['address'] = urldecode($parts[1]);
             }
@@ -162,12 +164,12 @@ class GpgTool
     public function wkd($email)
     {
         if (!$this->gpg instanceof CryptGpgExtended) {
-            throw new InvalidArgumentException("Valid CryptGpgExtended instance required.");
+            throw new \InvalidArgumentException("Valid CryptGpgExtended instance required.");
         }
 
         $parts = explode('@', $email);
         if (count($parts) !== 2) {
-            throw new InvalidArgumentException("Invalid e-mail address provided.");
+            throw new \InvalidArgumentException("Invalid e-mail address provided.");
         }
 
         list($localPart, $domain) = $parts;
@@ -178,14 +180,14 @@ class GpgTool
         try {
             $response = $this->keyServerLookup($advancedUrl);
             return $this->gpg->enarmor($response->body());
-        } catch (Exception $e) {
+        } catch (CakeException $e) {
             // pass, continue to direct method
         }
 
         $directUrl = "https://$domain/.well-known/openpgpkey/hu/$localPartHash";
         try {
             $response = $this->keyServerLookup($directUrl);
-        } catch (HttpSocketHttpException $e) {
+        } catch (HttpException $e) {
             if ($e->getCode() === 404) {
                 throw new NotFoundException("Key not found");
             }
@@ -236,12 +238,10 @@ class GpgTool
      */
     private function keyServerLookup($uri)
     {
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->createHttpSocket(['compress' => true]);
+        $HttpSocket = new HttpClient();
         $response = $HttpSocket->get($uri);
         if (!$response->isOk()) {
-            throw new HttpSocketHttpException($response, $uri);
+            throw new HttpException($response, $uri);
         }
         return $response;
     }

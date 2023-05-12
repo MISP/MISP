@@ -12,12 +12,19 @@ COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 # Install additional PHP extensions
 RUN apt-get -y update \
-    && apt-get install -y libicu-dev libpq-dev zip libzip-dev default-mysql-client \
+    && apt-get install -y libicu-dev libpq-dev zip libzip-dev default-mysql-client gnupg \
     && docker-php-ext-configure intl \
     && docker-php-ext-install intl pdo pdo_mysql mysqli zip \
     && apt-get remove -y --purge libicu-dev libzip-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Install pecl extensions
+RUN pecl install -f brotli zstd igbinary redis \
+    && docker-php-ext-enable zstd igbinary redis
+
+# Install PEAR packages
+RUN pear install Crypt_GPG
 
 # Copy custom php-fpm config file
 COPY docker/misp/config/php-fpm.conf /usr/local/etc/php-fpm.conf
@@ -59,7 +66,7 @@ COPY . /var/www/html/
 
 # Install development dependencies
 RUN pecl install -f xdebug \
-    && docker-php-ext-enable xdebug
+    && docker-php-ext-enable xdebug 
 
 # Install additional packages
 RUN apt-get update \
