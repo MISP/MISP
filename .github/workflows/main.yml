@@ -216,6 +216,7 @@ jobs:
               . ./venv/bin/activate
               export PYTHONPATH=$PYTHONPATH:./app/files/scripts
               pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 pyzmq redis plyara
+              bash tests/build-test.sh
               deactivate
 
       - name: Test if apache is working
@@ -229,12 +230,7 @@ jobs:
               echo 'key = "'${AUTH}'"' >> tests/keys.py
               cat tests/keys.py
               popd
-
-      - name: Build test
-        run: |
-              . ./venv/bin/activate
-              pushd tests
-              ./build-test.sh
+              deactivate
 
       - name: Run PHP tests
         run: |
