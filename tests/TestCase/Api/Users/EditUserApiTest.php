@@ -7,7 +7,6 @@ namespace App\Test\TestCase\Api\Users;
 use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\UsersFixture;
-use App\Test\Fixture\RolesFixture;
 use App\Test\Helper\ApiTestTrait;
 
 class EditUserApiTest extends TestCase
@@ -21,7 +20,6 @@ class EditUserApiTest extends TestCase
         'app.Users',
         'app.AuthKeys'
     ];
-
 
     public function testEditUser(): void
     {
