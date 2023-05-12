@@ -9,6 +9,7 @@ python ./../app/files/scripts/mispzmq/mispzmqtest.py
 python ./../app/files/scripts/generate_file_objects.py -c | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data); sys.exit(0 if len([i for i in data.values() if i == True]) == 0 else 1)'
 
 # Try to extract data from file
+python ./../app/files/scripts/generate_file_objects.py -p /bin/ls
 python ./../app/files/scripts/generate_file_objects.py -p /bin/ls | python3 -c 'import sys, json; data = json.load(sys.stdin); sys.exit(0 if "objects" in data else 1)'
 
 # Test converting stix1 to MISP format
