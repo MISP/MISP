@@ -13,7 +13,6 @@ use Cake\Validation\Validator;
 use Cake\Utility\Text;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
-use Cake\Datasource\EntityInterface;
 use Cake\Log\Log;
 use ArrayObject;
 use Exception;
@@ -276,18 +275,12 @@ class CryptographicKeysTable extends AppTable
 
     public function uniqueKeyForElement($value, $context)
     {
-
-        $result = $this->find('all', [
-            'conditions' => [
-                'parent_type' => $context['data']['parent_type'],
-                'parent_id' => $context['data']['parent_id'],
-                'key_data' => $value,
-                'type' => $context['data']['type'],
-            ],
-            'recursive' => -1,
-        ]);
-
-        return $result->isEmpty();
+        return $this->find()->where([
+            'parent_type' => $context['data']['parent_type'],
+            'parent_id' => $context['data']['parent_id'],
+            'key_data' => $value,
+            'type' => $context['data']['type'],
+        ])->all()->isEmpty();
     }
 
     public function validateProtectedEvent($raw_data, array $user, $pgp_signature, array $event)
