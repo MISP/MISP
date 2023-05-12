@@ -216,7 +216,9 @@ jobs:
               . ./venv/bin/activate
               export PYTHONPATH=$PYTHONPATH:./app/files/scripts
               pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 pyzmq redis plyara
-              bash tests/build-test.sh
+              pushd tests
+              bash ./build-test.sh
+              popd
               deactivate
 
       - name: Test if apache is working
