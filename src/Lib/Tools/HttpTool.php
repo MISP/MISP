@@ -1,21 +1,22 @@
 <?php
+
 namespace App\Lib\Tools;
 
-use Cake\Core\Exception\Exception;
+use Cake\Core\Exception\CakeException;
 use Cake\Core\Configure;
 use Cake\Http\Client;
 use Cake\I18n\FrozenTime;
 
 class HttpTool
 {
-    
+
     public function createRequest(array $params = []): Client
     {
         // Use own CA PEM file
         $caPath = Configure::read('MISP.ca_path');
         if (!isset($params['ssl_cafile']) && $caPath) {
             if (!file_exists($caPath)) {
-                throw new Exception("CA file '$caPath' doesn't exists.");
+                throw new CakeException("CA file '$caPath' doesn't exists.");
             }
             $params['ssl_cafile'] = $caPath;
         }
@@ -33,11 +34,11 @@ class HttpTool
                     if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
                         $version |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
                     } else if ($minTlsVersion === 'tlsv1_3') {
-                        throw new Exception("TLSv1.3 is not supported by PHP.");
+                        throw new CakeException("TLSv1.3 is not supported by PHP.");
                     }
                     break;
                 default:
-                    throw new Exception("Invalid `Security.min_tls_version` option $minTlsVersion");
+                    throw new CakeException("Invalid `Security.min_tls_version` option $minTlsVersion");
             }
             $params['ssl_crypto_method'] = $version;
         }
@@ -88,7 +89,7 @@ class HttpTool
         $caCertificate = $fileAccessTool->readFromFile($path); //readFromFile throws an exception if the file is not found or could not be read, along with the reason.
         $certificate = openssl_x509_read($caCertificate);
         if (!$certificate) {
-            throw new Exception("Couldn't read certificate: " . openssl_error_string());
+            throw new CakeException("Couldn't read certificate: " . openssl_error_string());
         }
 
         return self::parseCertificate($certificate);
@@ -103,15 +104,15 @@ class HttpTool
     {
         $certificate = openssl_x509_read($certificateContent);
         if (!$certificate) {
-            throw new Exception("Couldn't read certificate: " . openssl_error_string());
+            throw new CakeException("Couldn't read certificate: " . openssl_error_string());
         }
         $privateKey = openssl_pkey_get_private($certificateContent);
         if (!$privateKey) {
-            throw new Exception("Couldn't get private key from certificate: " . openssl_error_string());
+            throw new CakeException("Couldn't get private key from certificate: " . openssl_error_string());
         }
         $verify = openssl_x509_check_private_key($certificate, $privateKey);
         if (!$verify) {
-            throw new Exception('Public and private key do not match.');
+            throw new CakeException('Public and private key do not match.');
         }
         return self::parseCertificate($certificate);
     }
@@ -125,7 +126,7 @@ class HttpTool
     {
         $parsed = openssl_x509_parse($certificate);
         if (!$parsed) {
-            throw new Exception("Couldn't get parse X.509 certificate: " . openssl_error_string());
+            throw new CakeException("Couldn't get parse X.509 certificate: " . openssl_error_string());
         }
         $currentTime = FrozenTime::now();
         $output = [
