@@ -27,9 +27,14 @@
                     $change = '<span class="red bold"> (-' . $change . ')</span>';
                 }
             }
+            if (!empty($element['html_title'])) {
+                $title = $element['html_title'];
+            } else {
+                $title = h($element['title']);
+            }
             echo sprintf(
                 '<div><span class="bold">%s</span>: <span class="%s">%s</span>%s%s</div>',
-                h($element['title']),
+                $title,
                 empty($element['class']) ? 'blue' : h($element['class']),
                 !isset($element['value']) ? '' : $element['value'],
                 empty($element['html']) ? '' : $element['html'],
