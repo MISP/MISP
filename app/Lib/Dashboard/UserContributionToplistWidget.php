@@ -111,5 +111,13 @@ class UserContributionToplistWidget
         }
         return ['data' => $results];
     }
+
+    public function checkPermissions($user)
+    {
+        if (empty(Configure::read('Security.disclose_user_emails')) && empty($user['Role']['perm_site_admin'])) {
+            return false;
+        }
+        return true;
+    }
 }
 ?>
