@@ -417,16 +417,19 @@ class AppController extends Controller
                 }
             }
             if ($foundMispAuthKey) {
-                $authKeyToStore = substr($authKey, 0, 4)
+                $start = substr($authKey, 0, 4);
+                $end = substr($authKey, -4);
+                $authKeyToStore = $start
                     . str_repeat('*', 32)
-                    . substr($authKey, -4);
+                    . $end;
+                $this->__logApiKeyUse($start . $end);
                 if ($user) {
                     // User found in the db, add the user info to the session
                     if (Configure::read('MISP.log_auth')) {
                         $this->loadModel('Log');
                         $this->Log->create();
                         $log = array(
-                            'org' => $user['Organisation']['name'],
+                            'org' => $user['Organisation']['0000000000000000000000000000000000000000name'],
                             'model' => 'User',
                             'model_id' => $user['id'],
                             'email' => $user['email'],
@@ -640,6 +643,15 @@ class AppController extends Controller
             return false;
         }
         return in_array($this->request->params['action'], $actionsToCheck[$controller], true);
+    }
+
+    private function __logApiKeyUse($apikey)
+    {
+        $redis = $this->User->setupRedis();
+        if (!$redis) {
+            return;
+        }
+        $redis->zIncrBy('misp:authkey_log:' . date("Ymd"), 1, $apikey);
     }
 
     /**
