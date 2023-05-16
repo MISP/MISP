@@ -7,7 +7,7 @@ class UsageDataWidget
     public $height = 5;
     public $description = 'Shows usage data / statistics.';
     public $cacheLifetime = false;
-    public $autoRefreshDelay = 3;
+    public $autoRefreshDelay = false;
     public $params = [
         'filter' => 'A list of filters by organisation meta information (nationality, sector, type, name, uuid) to include. (dictionary, prepending values with ! uses them as a negation)',
     ];
