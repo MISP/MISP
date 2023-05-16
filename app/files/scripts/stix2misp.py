@@ -22,6 +22,7 @@ import time
 import uuid
 import base64
 import pymisp
+import traceback
 import stix2misp_mapping
 from operator import attrgetter
 from collections import defaultdict
@@ -1432,7 +1433,7 @@ class ExternalStixParser(StixParser):
                         if isinstance(attribute_value, list):
                             attributes.extend([{'type': attribute_type, 'value': value, 'to_ids': False} for value in attribute_value])
                         else:
-                            attribute.append({'type': attribute_type, 'value': attribute_value, 'to_ids': False})
+                            attributes.append({'type': attribute_type, 'value': attribute_value, 'to_ids': False})
         if ttp.exploit_targets and ttp.exploit_targets.exploit_target:
             for exploit_target in ttp.exploit_targets.exploit_target:
                 if exploit_target.item.vulnerabilities:
@@ -1544,19 +1545,18 @@ def generate_event(filename, tries=0):
         return STIXPackage.from_xml(filename)
     except NamespaceNotFoundError:
         if tries == 1:
-            print(4)
+            print(json.dump({'error': 'Cannot handle STIX namespace'}))
             sys.exit()
         _update_namespaces()
         return generate_event(filename, 1)
     except NotImplementedError:
-        print('ERROR - Missing python library: stix_edh', file=sys.stderr)
-    except Exception:
+        print(json.dumps({'error': 'Missing python library: stix_edh'}))
+    except Exception as e:
         try:
             import maec
-            print(2)
+            print(json.dumps({'error': f'Error while loading the STIX file: {e.__str__()}'}))
         except ImportError:
-            print('ERROR - Missing python library: maec', file=sys.stderr)
-            print(3)
+            print(json.dumps({'error': 'Missing python library: maec'}))
     sys.exit(0)
 
 
@@ -1572,11 +1572,15 @@ def main(args):
     filename = args[1] if args[1][0] == '/' else '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
     event = generate_event(filename)
     from_misp = is_from_misp(event)
-    stix_parser = StixFromMISPParser() if from_misp else ExternalStixParser()
-    stix_parser.load_event(args[2:], filename, from_misp, event.version)
-    stix_parser.build_misp_event(event)
-    stix_parser.saveFile()
-    print(1)
+    try:
+        stix_parser = StixFromMISPParser() if from_misp else ExternalStixParser()
+        stix_parser.load_event(args[2:], filename, from_misp, event.version)
+        stix_parser.build_misp_event(event)
+        stix_parser.saveFile()
+        print(json.dumps({'success': 1}))
+    except Exception as e:
+        print(json.dumps({'error': e.__str__()}))
+        traceback.print_tb(e.__traceback__)
 
 if __name__ == "__main__":
     main(sys.argv)

@@ -1,5 +1,5 @@
 <?php
-include_once APP . 'Model/WorkflowModules/Module_attribute_edition_operation.php';
+include_once APP . 'Model/WorkflowModules/action/Module_attribute_edition_operation.php';
 
 class Module_attribute_ids_flag_operation extends Module_attribute_edition_operation
 {

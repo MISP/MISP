@@ -666,3 +666,14 @@
 .drawflow .drawflow-node.block-type-concurrent > .outputs > .output_1::after {
     content: "\f074";
 }
+
+.drawflow svg.connection .connection-label-container {
+    display: flex;
+    flex-direction: column;
+    row-gap: 3px;
+    width: fit-content;
+    transform: translate(-50%, -50%);
+    background-color: #ffffffaa;
+    padding: 3px;
+    border-radius: 5px;
+}

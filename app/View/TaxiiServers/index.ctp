@@ -11,7 +11,7 @@
                             'children' => [
                                 'data' => [
                                     'type' => 'simple',
-                                    'text' => __('Add TaxiiServer'),
+                                    'text' => __('Add TAXII Server'),
                                     'class' => 'btn btn-primary',
                                     'onClick' => 'openGenericModal',
                                     'onClickParams' => [
@@ -70,8 +70,8 @@
                         'data_path' => 'TaxiiServer.description'
                     ]
                 ],
-                'title' => empty($ajax) ? __('Linked Taxii Servers') : false,
-                'description' => empty($ajax) ? __('You can connect your MISP to one or several Taxii servers to push data to using a set of filters.') : false,
+                'title' => empty($ajax) ? __('Linked TAXII Servers') : false,
+                'description' => empty($ajax) ? __('You can connect your MISP to one or several TAXII servers to push data to using a set of filters.') : false,
                 'actions' => [
                     [
                         'onclick' => sprintf(

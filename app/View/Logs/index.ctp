@@ -22,6 +22,9 @@
             }
         }
         echo ":</h4>";
+        $this->LightPaginator->options([
+            'url' => ['search']
+        ]);
     }
     ?>
     <div class="pagination">

@@ -229,12 +229,11 @@ jobs:
               echo 'key = "'${AUTH}'"' >> tests/keys.py
               cat tests/keys.py
               popd
-
-      - name: Build test
-        run: |
               . ./venv/bin/activate
               pushd tests
-              ./build-test.sh
+              bash ./build-test.sh
+              popd
+              deactivate
 
       - name: Run PHP tests
         run: |

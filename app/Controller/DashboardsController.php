@@ -316,6 +316,8 @@ class DashboardsController extends AppController
     public function listTemplates()
     {
         $conditions = array();
+        // load all widgets for internal use, won't be displayed to the user. Thus we circumvent the ACL on it.
+        $accessible_widgets = array_keys($this->Dashboard->loadAllWidgets($this->Auth->user()));
         if (!$this->_isSiteAdmin()) {
             $permission_flags = array();
             foreach ($this->Auth->user('Role') as $perm => $value) {
@@ -394,6 +396,15 @@ class DashboardsController extends AppController
                 }
                 $element['Dashboard']['widgets'] = array_keys($widgets);
                 sort($element['Dashboard']['widgets']);
+                $temp = [];
+                foreach ($element['Dashboard']['widgets'] as $widget) {
+                    if (in_array($widget, $accessible_widgets)) {
+                        $temp['allow'][] = $widget;
+                    } else {
+                        $temp['deny'][] = $widget;
+                    }
+                }
+                $element['Dashboard']['widgets'] = $temp;
                 if ($element['Dashboard']['user_id'] != $this->Auth->user('id')) {
                     $element['User']['email'] = '';
                 }

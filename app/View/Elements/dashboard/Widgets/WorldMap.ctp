@@ -20,7 +20,6 @@
         ), true);
     }
 ?>
-
 <div id="world-map-<?= $randomNumber ?>" style="width: 600px; height: 400px"></div>
 <script>
     (function() { // variables and functions have their own scope (no override)
