@@ -429,7 +429,7 @@ class AppController extends Controller
                         $this->loadModel('Log');
                         $this->Log->create();
                         $log = array(
-                            'org' => $user['Organisation']['0000000000000000000000000000000000000000name'],
+                            'org' => $user['Organisation']['name'],
                             'model' => 'User',
                             'model_id' => $user['id'],
                             'email' => $user['email'],
