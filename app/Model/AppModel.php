@@ -239,7 +239,8 @@ class AppModel extends Model
                 $this->Workflow = Classregistry::init('Workflow');
                 $this->Workflow->enableDefaultModules();
                 break;
-            case 91:
+			case 91:
+				if (! $this->isMysql()) { break; }
                 $existing_index = $this->query(
                     "SHOW INDEX FROM default_correlations WHERE Key_name = 'unique_correlation';"
                 );
@@ -1486,152 +1487,290 @@ class AppModel extends Model
                     KEY `user_id` (`user_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
-            case 62:
-                $sqlArray[] = "ALTER TABLE `auth_keys` MODIFY COLUMN `authkey` varchar(72) CHARACTER SET ascii NOT NULL";
-                $sqlArray[] = "ALTER TABLE `auth_keys` MODIFY COLUMN `authkey_start` varchar(4) CHARACTER SET ascii NOT NULL";
-                $sqlArray[] = "ALTER TABLE `auth_keys` MODIFY COLUMN `authkey_end` varchar(4) CHARACTER SET ascii NOT NULL";
-                $sqlArray[] = "ALTER TABLE `auth_keys` MODIFY COLUMN `comment` text COLLATE utf8mb4_unicode_ci";
-                $sqlArray[] = "ALTER TABLE `attachment_scans` MODIFY COLUMN `malware_name` varchar(191) NULL";
+			case 62:
+				if ($this->isMysql()){
+	                $sqlArray[] = "ALTER TABLE `auth_keys` MODIFY COLUMN `authkey` varchar(72) CHARACTER SET ascii NOT NULL";
+    	            $sqlArray[] = "ALTER TABLE `auth_keys` MODIFY COLUMN `authkey_start` varchar(4) CHARACTER SET ascii NOT NULL";
+	                $sqlArray[] = "ALTER TABLE `auth_keys` MODIFY COLUMN `authkey_end` varchar(4) CHARACTER SET ascii NOT NULL";
+    	            $sqlArray[] = "ALTER TABLE `auth_keys` MODIFY COLUMN `comment` text COLLATE utf8mb4_unicode_ci";
+        	        $sqlArray[] = "ALTER TABLE `attachment_scans` MODIFY COLUMN `malware_name` varchar(191) NULL";
+				} else {
+	                $sqlArray[] = "ALTER TABLE auth_keys ALTER COLUMN authkey TYPE varchar(72)";
+    	            $sqlArray[] = "ALTER TABLE auth_keys ALTER COLUMN authkey_start TYPE varchar(4)";
+	                $sqlArray[] = "ALTER TABLE auth_keys ALTER COLUMN authkey_end TYPE varchar(4)";
+    	            $sqlArray[] = "ALTER TABLE auth_keys ALTER COLUMN comment TYPE text";
+        	        $sqlArray[] = "ALTER TABLE attachment_scans ALTER COLUMN malware_name TYPE varchar(191)";
+				}
                 break;
-            case 63:
-                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `sharing_group_id` int(11);";
-                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `org_id` int(11) NOT NULL;";
-                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `orgc_id` int(11) NOT NULL;";
-                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `locked` tinyint(1) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `extends_uuid` varchar(40) COLLATE utf8_bin DEFAULT '';";
-                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `extends_version` int(11) DEFAULT 0;";
-                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `published` tinyint(1) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `deleted` TINYINT(1) NOT NULL DEFAULT 0";
-                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_galaxy_editor` tinyint(1) NOT NULL DEFAULT 0;";
-
-                $sqlArray[] = "UPDATE `roles` SET `perm_galaxy_editor`=1 WHERE `perm_tag_editor`=1;";
-                $sqlArray[] = "UPDATE `galaxy_clusters` SET `distribution`=3, `default`=1 WHERE `org_id`=0;";
-
-                $sqlArray[] = "ALTER TABLE `galaxy_reference` RENAME `galaxy_cluster_relations`;";
-                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `galaxy_cluster_uuid` varchar(40) COLLATE utf8_bin NOT NULL;";
-                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `sharing_group_id` int(11);";
-                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` DROP COLUMN `referenced_galaxy_cluster_value`;";
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_relation_tags` (
-                    `id` int(11) NOT NULL AUTO_INCREMENT,
-                    `galaxy_cluster_relation_id` int(11) NOT NULL,
-                    `tag_id` int(11) NOT NULL,
-                    PRIMARY KEY (`id`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
-
-                $sqlArray[] = "ALTER TABLE `tags` ADD `is_galaxy` tinyint(1) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "ALTER TABLE `tags` ADD `is_custom_galaxy` tinyint(1) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "UPDATE `tags` SET `is_galaxy`=1 WHERE `name` LIKE 'misp-galaxy:%';";
-                $sqlArray[] = "UPDATE `tags` SET `is_custom_galaxy`=1 WHERE `name` REGEXP '^misp-galaxy:[^:=\"]+=\"[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\"$';";
-
-                $sqlArray[] = "ALTER TABLE `servers` ADD `push_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_sightings`;";
-                $sqlArray[] = "ALTER TABLE `servers` ADD `pull_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_galaxy_clusters`;";
-
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_blocklists` (
-                    `id` int(11) NOT NULL AUTO_INCREMENT,
-                    `cluster_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
-                    `created` datetime NOT NULL,
-                    `cluster_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-                    `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-                    `cluster_orgc` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-                    PRIMARY KEY (`id`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+			case 63:
+				if ($this->isMysql()){
+                    $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
+                    $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `sharing_group_id` int(11);";
+                    $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `org_id` int(11) NOT NULL;";
+                    $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `orgc_id` int(11) NOT NULL;";
+                    $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
+                    $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `locked` tinyint(1) NOT NULL DEFAULT 0;";
+                    $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `extends_uuid` varchar(40) COLLATE utf8_bin DEFAULT '';";
+                    $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `extends_version` int(11) DEFAULT 0;";
+                    $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `published` tinyint(1) NOT NULL DEFAULT 0;";
+                    $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `deleted` TINYINT(1) NOT NULL DEFAULT 0";
+                    $sqlArray[] = "ALTER TABLE `roles` ADD `perm_galaxy_editor` tinyint(1) NOT NULL DEFAULT 0;";
+    
+                    $sqlArray[] = "UPDATE `roles` SET `perm_galaxy_editor`=1 WHERE `perm_tag_editor`=1;";
+                    $sqlArray[] = "UPDATE `galaxy_clusters` SET `distribution`=3, `default`=1 WHERE `org_id`=0;";
+    
+                    $sqlArray[] = "ALTER TABLE `galaxy_reference` RENAME `galaxy_cluster_relations`;";
+                    $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `galaxy_cluster_uuid` varchar(40) COLLATE utf8_bin NOT NULL;";
+                    $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
+                    $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `sharing_group_id` int(11);";
+                    $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
+                    $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` DROP COLUMN `referenced_galaxy_cluster_value`;";
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_relation_tags` (
+                        `id` int(11) NOT NULL AUTO_INCREMENT,
+                        `galaxy_cluster_relation_id` int(11) NOT NULL,
+                        `tag_id` int(11) NOT NULL,
+                        PRIMARY KEY (`id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+    
+                    $sqlArray[] = "ALTER TABLE `tags` ADD `is_galaxy` tinyint(1) NOT NULL DEFAULT 0;";
+                    $sqlArray[] = "ALTER TABLE `tags` ADD `is_custom_galaxy` tinyint(1) NOT NULL DEFAULT 0;";
+                    $sqlArray[] = "UPDATE `tags` SET `is_galaxy`=1 WHERE `name` LIKE 'misp-galaxy:%';";
+                    $sqlArray[] = "UPDATE `tags` SET `is_custom_galaxy`=1 WHERE `name` REGEXP '^misp-galaxy:[^:=\"]+=\"[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\"$';";
+    
+                    $sqlArray[] = "ALTER TABLE `servers` ADD `push_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_sightings`;";
+                    $sqlArray[] = "ALTER TABLE `servers` ADD `pull_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_galaxy_clusters`;";
+    
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_blocklists` (
+                        `id` int(11) NOT NULL AUTO_INCREMENT,
+                        `cluster_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                        `created` datetime NOT NULL,
+                        `cluster_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+                        `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                        `cluster_orgc` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+                        PRIMARY KEY (`id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+                	$indexArray[] = array('galaxy_clusters', 'default');
+				} else {
+                    $sqlArray[] = "ALTER TABLE galaxy_clusters ADD COLUMN distribution smallint NOT NULL DEFAULT 0;";
+                    $sqlArray[] = "ALTER TABLE galaxy_clusters ADD COLUMN sharing_group_id integer;";
+                    $sqlArray[] = "ALTER TABLE galaxy_clusters ADD COLUMN org_id integer NOT NULL;";
+                    $sqlArray[] = "ALTER TABLE galaxy_clusters ADD COLUMN orgc_id integer NOT NULL;";
+                    $sqlArray[] = 'ALTER TABLE galaxy_clusters ADD COLUMN "default" boolean NOT NULL DEFAULT false;';
+                    $sqlArray[] = "ALTER TABLE galaxy_clusters ADD COLUMN locked boolean NOT NULL DEFAULT false;";
+                    $sqlArray[] = "ALTER TABLE galaxy_clusters ADD COLUMN extends_uuid varchar(40) DEFAULT '';";
+                    $sqlArray[] = "ALTER TABLE galaxy_clusters ADD COLUMN extends_version integer DEFAULT 0;";
+                    $sqlArray[] = "ALTER TABLE galaxy_clusters ADD COLUMN published boolean NOT NULL DEFAULT false;";
+                    $sqlArray[] = "ALTER TABLE galaxy_clusters ADD COLUMN deleted boolean NOT NULL DEFAULT false";
+                    $sqlArray[] = "ALTER TABLE roles ADD COLUMN perm_galaxy_editor boolean NOT NULL DEFAULT false;";
+    
+                    $sqlArray[] = "UPDATE roles SET perm_galaxy_editor=True WHERE perm_tag_editor=true;";
+                    $sqlArray[] = 'UPDATE galaxy_clusters SET distribution=3, "default"=true WHERE org_id=0;';
+    
+                    $sqlArray[] = "ALTER TABLE galaxy_reference RENAME TO galaxy_cluster_relations;";
+                    $sqlArray[] = "ALTER TABLE galaxy_cluster_relations ADD COLUMN galaxy_cluster_uuid varchar(40) NOT NULL;";
+                    $sqlArray[] = "ALTER TABLE galaxy_cluster_relations ADD COLUMN distribution smallint NOT NULL DEFAULT 0;";
+                    $sqlArray[] = "ALTER TABLE galaxy_cluster_relations ADD COLUMN sharing_group_id integer;";
+                    $sqlArray[] = 'ALTER TABLE galaxy_cluster_relations ADD COLUMN "default" boolean NOT NULL DEFAULT false;';
+                    $sqlArray[] = "ALTER TABLE galaxy_cluster_relations DROP COLUMN referenced_galaxy_cluster_value;";
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS galaxy_cluster_relation_tags (
+                        id SERIAL PRIMARY KEY,
+                        galaxy_cluster_relation_id integer NOT NULL,
+                        tag_id integer NOT NULL);";
+    
+                    $sqlArray[] = "ALTER TABLE tags ADD COLUMN is_galaxy boolean NOT NULL DEFAULT false;";
+                    $sqlArray[] = "ALTER TABLE tags ADD COLUMN is_custom_galaxy boolean NOT NULL DEFAULT false;";
+                    $sqlArray[] = "UPDATE tags SET is_galaxy=true WHERE name LIKE 'misp-galaxy:%';";
+                    $sqlArray[] = "UPDATE tags SET is_custom_galaxy=True WHERE name ~ '^misp-galaxy:[^:=\"]+=\"[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\"$';";
+    
+                    $sqlArray[] = "ALTER TABLE servers ADD COLUMN push_galaxy_clusters boolean NOT NULL DEFAULT false";
+                    $sqlArray[] = "ALTER TABLE servers ADD COLUMN pull_galaxy_clusters boolean NOT NULL DEFAULT false";
+    
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS galaxy_cluster_blocklists (
+                        id SERIAL PRIMARY KEY,
+                        cluster_uuid varchar(40) NOT NULL,
+                        created timestamp NOT NULL,
+                        cluster_info TEXT NOT NULL,
+                        comment TEXT,
+                        cluster_orgc VARCHAR(255) NOT NULL);";
+					$sqlArray[] = 'CREATE INDEX ON galaxy_cluster_relations ("default");';
+				}
 
                 $indexArray[] = array('galaxy_clusters', 'org_id');
                 $indexArray[] = array('galaxy_clusters', 'orgc_id');
                 $indexArray[] = array('galaxy_clusters', 'sharing_group_id');
                 $indexArray[] = array('galaxy_clusters', 'extends_uuid');
                 $indexArray[] = array('galaxy_clusters', 'extends_version');
-                $indexArray[] = array('galaxy_clusters', 'default');
                 $indexArray[] = array('galaxy_cluster_relations', 'galaxy_cluster_uuid');
                 $indexArray[] = array('galaxy_cluster_relations', 'sharing_group_id');
-                $indexArray[] = array('galaxy_cluster_relations', 'default');
                 $indexArray[] = array('galaxy_cluster_relation_tags', 'galaxy_cluster_relation_id');
                 $indexArray[] = array('galaxy_cluster_relation_tags', 'tag_id');
                 $indexArray[] = array('galaxy_cluster_blocklists', 'cluster_uuid');
                 $indexArray[] = array('galaxy_cluster_blocklists', 'cluster_orgc');
                 break;
-            case 64:
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `cerebrates` (
-                    `id` int(11) NOT NULL AUTO_INCREMENT,
-                    `name` varchar(191) NOT NULL,
-                    `url` varchar(255) NOT NULL,
-                    `authkey` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
-                    `open` tinyint(1) DEFAULT 0,
-                    `org_id` int(11) NOT NULL,
-                    `pull_orgs` tinyint(1) DEFAULT 0,
-                    `pull_sharing_groups` tinyint(1) DEFAULT 0,
-                    `self_signed` tinyint(1) DEFAULT 0,
-                    `cert_file` varchar(255) DEFAULT NULL,
-                    `client_cert_file` varchar(255) DEFAULT NULL,
-                    `internal` tinyint(1) NOT NULL DEFAULT 0,
-                    `skip_proxy` tinyint(1) NOT NULL DEFAULT 0,
-                    `description` text,
-                    PRIMARY KEY (`id`),
-                    KEY `url` (`url`),
-                    KEY `org_id` (`org_id`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+			case 64:
+				if ($this->isMysql()){
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `cerebrates` (
+	                    `id` int(11) NOT NULL AUTO_INCREMENT,
+	                    `name` varchar(191) NOT NULL,
+	                    `url` varchar(255) NOT NULL,
+	                    `authkey` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+	                    `open` tinyint(1) DEFAULT 0,
+	                    `org_id` int(11) NOT NULL,
+	                    `pull_orgs` tinyint(1) DEFAULT 0,
+	                    `pull_sharing_groups` tinyint(1) DEFAULT 0,
+	                    `self_signed` tinyint(1) DEFAULT 0,
+	                    `cert_file` varchar(255) DEFAULT NULL,
+	                    `client_cert_file` varchar(255) DEFAULT NULL,
+	                    `internal` tinyint(1) NOT NULL DEFAULT 0,
+	                    `skip_proxy` tinyint(1) NOT NULL DEFAULT 0,
+	                    `description` text,
+	                    PRIMARY KEY (`id`),
+	                    KEY `url` (`url`),
+	                    KEY `org_id` (`org_id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				} else {
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS cerebrates (
+	                    id SERIAL PRIMARY KEY,
+	                    name varchar(191) NOT NULL,
+	                    url varchar(255) NOT NULL,
+	                    authkey varchar(40) NULL,
+	                    open boolean DEFAULT false,
+	                    org_id integer NOT NULL,
+	                    pull_orgs boolean DEFAULT false,
+	                    pull_sharing_groups boolean DEFAULT false,
+	                    self_signed boolean DEFAULT false,
+	                    cert_file varchar(255) DEFAULT NULL,
+	                    client_cert_file varchar(255) DEFAULT NULL,
+	                    internal boolean NOT NULL DEFAULT false,
+	                    skip_proxy boolean NOT NULL DEFAULT false,
+						description text);";
+					$sqlArray[] = "CREATE INDEX ON cerebrates (url);";
+					$sqlArray[] = "CREATE INDEX ON cerebrates (org_id);";
+				}
+	            break;
+			case 65:
+				if ($this->isMysql()){
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS `correlation_exclusions` (
+                        `id` int(11) NOT NULL AUTO_INCREMENT,
+                        `value` text NOT NULL,
+                        `from_json` tinyint(1) default 0,
+                        PRIMARY KEY (`id`),
+                        UNIQUE INDEX `value` (`value`(191))
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				} else {
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS correlation_exclusions (
+                        id SERIAL PRIMARY KEY,
+                        value text NOT NULL UNIQUE,
+                        from_json boolean default false);";
+					$sqlArray[] = "CREATE INDEX ON correlation_exclusions (value);";
+				}
                 break;
-            case 65:
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `correlation_exclusions` (
-                    `id` int(11) NOT NULL AUTO_INCREMENT,
-                    `value` text NOT NULL,
-                    `from_json` tinyint(1) default 0,
-                    PRIMARY KEY (`id`),
-                    UNIQUE INDEX `value` (`value`(191))
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-                break;
-            case 66:
-                $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY COLUMN `tag_name` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT '';";
+			case 66:
+				if ($this->isMysql()){
+	                $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY COLUMN `tag_name` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT '';";
+				} else {
+	                $sqlArray[] = "ALTER TABLE galaxy_clusters ALTER COLUMN tag_name TYPE varchar(255) DEFAULT '';";
+	                $sqlArray[] = "ALTER TABLE galaxy_clusters ALTER COLUMN tag_name SET DEFAULT '';";
+				}
                 $indexArray[] = ['event_reports', 'event_id'];
                 break;
             case 67:
-                $sqlArray[] = "ALTER TABLE `auth_keys` ADD `allowed_ips` text DEFAULT NULL;";
+				if ($this->isMysql()){
+                	$sqlArray[] = "ALTER TABLE `auth_keys` ADD `allowed_ips` text DEFAULT NULL;";
+				} else {
+                	$sqlArray[] = "ALTER TABLE auth_keys ADD COLUMN allowed_ips text DEFAULT NULL;";
+				}
                 break;
             case 68:
-                $sqlArray[] = "ALTER TABLE `correlation_exclusions` ADD `comment` text DEFAULT NULL;";
+				if ($this->isMysql()){
+                	$sqlArray[] = "ALTER TABLE `correlation_exclusions` ADD `comment` text DEFAULT NULL;";
+				} else {
+					$sqlArray[] = "ALTER TABLE correlation_exclusions ADD COLUMN comment text DEFAULT NULL;";
+				}
                 break;
             case 69:
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `audit_logs` (
-                      `id` int(11) NOT NULL AUTO_INCREMENT,
-                      `created` datetime NOT NULL,
-                      `user_id` int(11) NOT NULL,
-                      `org_id` int(11) NOT NULL,
-                      `authkey_id` int(11) DEFAULT NULL,
-                      `ip` varbinary(16) DEFAULT NULL,
-                      `request_type` tinyint NOT NULL,
-                      `request_id` varchar(255) DEFAULT NULL,
-                      `action` varchar(20) NOT NULL,
-                      `model` varchar(80) NOT NULL,
-                      `model_id` int(11) NOT NULL,
-                      `model_title` text DEFAULT NULL,
-                      `event_id` int(11) NULL,
-                      `change` blob,
-                      PRIMARY KEY (`id`),
-                      INDEX `event_id` (`event_id`),
-                      INDEX `model_id` (`model_id`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				if ($this->isMysql()){
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS `audit_logs` (
+                          `id` int(11) NOT NULL AUTO_INCREMENT,
+                          `created` datetime NOT NULL,
+                          `user_id` int(11) NOT NULL,
+                          `org_id` int(11) NOT NULL,
+                          `authkey_id` int(11) DEFAULT NULL,
+                          `ip` varbinary(16) DEFAULT NULL,
+                          `request_type` tinyint NOT NULL,
+                          `request_id` varchar(255) DEFAULT NULL,
+                          `action` varchar(20) NOT NULL,
+                          `model` varchar(80) NOT NULL,
+                          `model_id` int(11) NOT NULL,
+                          `model_title` text DEFAULT NULL,
+                          `event_id` int(11) NULL,
+                          `change` blob,
+                          PRIMARY KEY (`id`),
+                          INDEX `event_id` (`event_id`),
+                          INDEX `model_id` (`model_id`)
+						) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				} else {
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS audit_logs (
+                          id SERIAL PRIMARY KEY,
+                          created timestamp NOT NULL,
+                          user_id integer NOT NULL,
+                          org_id integer NOT NULL,
+                          authkey_id integer DEFAULT NULL,
+                          ip inet DEFAULT NULL,
+                          request_type smallint NOT NULL,
+                          request_id varchar(255) DEFAULT NULL,
+                          action varchar(20) NOT NULL,
+                          model varchar(80) NOT NULL,
+                          model_id integer NOT NULL,
+                          model_title text DEFAULT NULL,
+                          event_id integer NULL,
+                          change bytea);";
+					$sqlArray[] = "CREATE INDEX ON audit_logs (event_id);";
+					$sqlArray[] = "CREATE INDEX ON audit_logs (model_id);";
+				}
                 break;
-            case 70:
-                $sqlArray[] = "ALTER TABLE `galaxies` ADD `enabled` tinyint(1) NOT NULL DEFAULT 1 AFTER `namespace`;";
+			case 70:
+				if ($this->isMysql()){
+	                $sqlArray[] = "ALTER TABLE `galaxies` ADD `enabled` tinyint(1) NOT NULL DEFAULT 1 AFTER `namespace`;";
+				} else {
+	                $sqlArray[] = "ALTER TABLE galaxies ADD COLUMN enabled boolean NOT NULL DEFAULT true;";
+				}
                 break;
             case 71:
-                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_warninglist` tinyint(1) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "ALTER TABLE `warninglist_entries` ADD `comment` text DEFAULT NULL;";
-                $sqlArray[] = "ALTER TABLE `warninglists` ADD `default` tinyint(1) NOT NULL DEFAULT 1, ADD `category` varchar(20) NOT NULL DEFAULT 'false_positive', DROP COLUMN `warninglist_entry_count`";
+				if ($this->isMysql()){
+	                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_warninglist` tinyint(1) NOT NULL DEFAULT 0;";
+    	            $sqlArray[] = "ALTER TABLE `warninglist_entries` ADD `comment` text DEFAULT NULL;";
+        	        $sqlArray[] = "ALTER TABLE `warninglists` ADD `default` tinyint(1) NOT NULL DEFAULT 1, ADD `category` varchar(20) NOT NULL DEFAULT 'false_positive', DROP COLUMN `warninglist_entry_count`";
+				} else {
+	                $sqlArray[] = "ALTER TABLE roles ADD COLUMN perm_warninglist boolean NOT NULL DEFAULT false;";
+    	            $sqlArray[] = "ALTER TABLE warninglist_entries ADD COLUMN comment text DEFAULT NULL;";
+        	        $sqlArray[] = 'ALTER TABLE warninglists ADD "default" boolean NOT NULL DEFAULT true, ADD COLUMN category varchar(20) NOT NULL DEFAULT \'false_positive\', DROP COLUMN "warninglist_entry_count"';
+				}
                 break;
             case 72:
-                $sqlArray[] = "ALTER TABLE `auth_keys` ADD `read_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `expiration`;";
+				if ($this->isMysql()){
+                	$sqlArray[] = "ALTER TABLE `auth_keys` ADD `read_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `expiration`;";
+				} else {
+                	$sqlArray[] = "ALTER TABLE auth_keys ADD COLUMN read_only boolean NOT NULL DEFAULT false;";
+				}
                 break;
             case 73:
-                $this->__dropIndex('user_settings', 'timestamp'); // index is not used
-                $sqlArray[] = "ALTER TABLE `user_settings` ADD UNIQUE INDEX `unique_setting` (`user_id`, `setting`)";
+				$this->__dropIndex('user_settings', 'timestamp'); // index is not used
+				if ($this->isMysql()){
+	                $sqlArray[] = "ALTER TABLE `user_settings` ADD UNIQUE INDEX `unique_setting` (`user_id`, `setting`)";
+				} else {
+	                $sqlArray[] = "ALTER TABLE user_settings ADD CONSTRAINT unique_setting UNIQUE (user_id, setting)";
+				}
                 break;
             case 74:
-                $sqlArray[] = "ALTER TABLE `users` MODIFY COLUMN `change_pw` tinyint(1) NOT NULL DEFAULT 0;";
+				if ($this->isMysql()){
+					$sqlArray[] = "ALTER TABLE `users` MODIFY COLUMN `change_pw` tinyint(1) NOT NULL DEFAULT 0;";
+				} else {
+					$sqlArray[] = "ALTER TABLE users ALTER COLUMN change_pw DROP DEFAULT;";
+					$sqlArray[] = "ALTER TABLE users ALTER COLUMN change_pw TYPE boolean;";
+					$sqlArray[] = "ALTER TABLE users ALTER COLUMN change_pw SET DEFAULT false;";
+					$sqlArray[] = "ALTER TABLE users ALTER COLUMN change_pw SET NOT NULL;";
+				}
                 break;
             case 75:
                 $this->__addIndex('object_references', 'event_id');
@@ -1641,86 +1780,170 @@ class AppModel extends Model
                 $this->__dropIndex('object_references', 'referenced_uuid');
                 break;
             case 76:
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `system_settings` (
-                      `setting` varchar(255) NOT NULL,
-                      `value` blob NOT NULL,
-                      PRIMARY KEY (`setting`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-                $sqlArray[] = "ALTER TABLE `servers` MODIFY COLUMN `authkey` VARBINARY(255) NOT NULL;";
-                $sqlArray[] = "ALTER TABLE `cerebrates` MODIFY COLUMN `authkey` VARBINARY(255) NOT NULL;";
+				if ($this->isMysql()){
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `system_settings` (
+	                      `setting` varchar(255) NOT NULL,
+	                      `value` blob NOT NULL,
+	                      PRIMARY KEY (`setting`)
+	                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+	                $sqlArray[] = "ALTER TABLE `servers` MODIFY COLUMN `authkey` VARBINARY(255) NOT NULL;";
+					$sqlArray[] = "ALTER TABLE `cerebrates` MODIFY COLUMN `authkey` VARBINARY(255) NOT NULL;";
+				} else {
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS system_settings (
+	                      setting varchar(255) PRIMARY KEY,
+	                      value bytea NOT NULL);";
+	                $sqlArray[] = "ALTER TABLE servers ALTER COLUMN authkey TYPE bit(255) USING authkey::bit(255);";
+					$sqlArray[] = "ALTER TABLE cerebrates ALTER COLUMN authkey TYPE bit(255) USING authkey::bit(255);";
+				}
                 break;
             case 77:
-                $sqlArray[] = "ALTER TABLE `tags` ADD `local_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `is_custom_galaxy`;";
-                $sqlArray[] = "ALTER TABLE `galaxies` ADD `local_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `enabled`;";
+				if ($this->isMysql()){
+	                $sqlArray[] = "ALTER TABLE `tags` ADD `local_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `is_custom_galaxy`;";
+    	            $sqlArray[] = "ALTER TABLE `galaxies` ADD `local_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `enabled`;";
+				} else {		
+					$sqlArray[] = "ALTER TABLE tags ADD COLUMN local_only boolean NOT NULL DEFAULT false;";
+    	            $sqlArray[] = "ALTER TABLE galaxies ADD COLUMN local_only boolean NOT NULL DEFAULT false;";
+				}
                 break;
-            case 78:
-                $sqlArray[] = "ALTER TABLE `jobs` MODIFY COLUMN `process_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
+			case 78:
+				if ($this->isMysql()){
+                	$sqlArray[] = "ALTER TABLE `jobs` MODIFY COLUMN `process_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
+				} else {
+                	$sqlArray[] = "ALTER TABLE jobs ALTER COLUMN process_id TYPE varchar(36) DEFAULT NULL;";
+                	$sqlArray[] = "ALTER TABLE jobs ALTER COLUMN process_id SET DEFAULT NULL;";
+				}
                 break;
             case 79:
-                $sqlArray[] = "ALTER TABLE `users` ADD `sub` varchar(255) NULL DEFAULT NULL;";
-                $sqlArray[] = "ALTER TABLE `users` ADD UNIQUE INDEX `sub` (`sub`);";
+				if ($this->isMysql()){
+	                $sqlArray[] = "ALTER TABLE `users` ADD `sub` varchar(255) NULL DEFAULT NULL;";
+    	            $sqlArray[] = "ALTER TABLE `users` ADD UNIQUE INDEX `sub` (`sub`);";
+				} else {
+					$sqlArray[] = "ALTER TABLE users ADD COLUMN sub varchar(255) NULL DEFAULT NULL UNIQUE;";
+    	            $sqlArray[] = "CREATE INDEX ON users (sub);";
+				}
                 break;
             case 80:
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `sharing_group_blueprints` (
-                      `id` int(11) NOT NULL AUTO_INCREMENT,
-                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
-                      `name` varchar(191) NOT NULL,
-                      `timestamp` int(11) NOT NULL DEFAULT 0,
-                      `user_id` int(11) NOT NULL,
-                      `org_id` int(11) NOT NULL,
-                      `sharing_group_id` int(11),
-                      `rules` text,
-                      PRIMARY KEY (`id`),
-                      INDEX `uuid` (`uuid`),
-                      INDEX `name` (`name`),
-                      INDEX `org_id` (`org_id`),
-                      INDEX `sharing_group_id` (`sharing_group_id`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				if ($this->isMysql()){
+                	$sqlArray[] = "CREATE TABLE IF NOT EXISTS `sharing_group_blueprints` (
+                	      `id` int(11) NOT NULL AUTO_INCREMENT,
+                	      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                	      `name` varchar(191) NOT NULL,
+                	      `timestamp` int(11) NOT NULL DEFAULT 0,
+                	      `user_id` int(11) NOT NULL,
+                	      `org_id` int(11) NOT NULL,
+                	      `sharing_group_id` int(11),
+                	      `rules` text,
+                	      PRIMARY KEY (`id`),
+                	      INDEX `uuid` (`uuid`),
+                	      INDEX `name` (`name`),
+                	      INDEX `org_id` (`org_id`),
+                	      INDEX `sharing_group_id` (`sharing_group_id`)
+						) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				} else {
+                	$sqlArray[] = "CREATE TABLE IF NOT EXISTS sharing_group_blueprints (
+                	      id SERIAL PRIMARY KEY,
+                	      uuid varchar(40) NOT NULL ,
+                	      name varchar(191) NOT NULL,
+                	      timestamp integer NOT NULL DEFAULT 0,
+                	      user_id integer NOT NULL,
+                	      org_id integer NOT NULL,
+                	      sharing_group_id integer,
+                	      rules text);";
+    	            $sqlArray[] = "CREATE INDEX ON sharing_group_blueprints (uuid);";
+    	            $sqlArray[] = "CREATE INDEX ON sharing_group_blueprints (name);";
+    	            $sqlArray[] = "CREATE INDEX ON sharing_group_blueprints (org_id);";
+    	            $sqlArray[] = "CREATE INDEX ON sharing_group_blueprints (sharing_group_id);";
+				}
                 break;
             case 81:
-                $fields = ['nationality', 'sector', 'type', 'name'];
-                foreach ($fields as $field) {
-                    $sqlArray[] = sprintf("UPDATE organisations SET %s = '' WHERE %s IS NULL;", $field, $field);
-                    $sqlArray[] = sprintf("ALTER table organisations MODIFY %s varchar(255) NOT NULL DEFAULT '';", $field);
-                }
+				$fields = ['nationality', 'sector', 'type', 'name'];
+				if ($this->isMysql()){
+                	foreach ($fields as $field) {
+                    	$sqlArray[] = sprintf("UPDATE organisations SET %s = '' WHERE %s IS NULL;", $field, $field);
+	                    $sqlArray[] = sprintf("ALTER table organisations MODIFY %s varchar(255) NOT NULL DEFAULT '';", $field);
+    	            }
+				} else {
+                	foreach ($fields as $field) {
+                    	$sqlArray[] = sprintf("UPDATE organisations SET %s = '' WHERE %s IS NULL;", $field, $field);
+	                    $sqlArray[] = sprintf("ALTER table organisations ALTER COLUMN %s SET NOT NULL;", $field);
+	                    $sqlArray[] = sprintf("ALTER table organisations ALTER COLUMN %s SET DEFAULT '';", $field);
+    	            }
+				}
                 break;
             case 82:
-                $sqlArray[] = sprintf("ALTER table organisations MODIFY description text;");
+				if ($this->isMysql()){
+                	$sqlArray[] = sprintf("ALTER table organisations MODIFY description text;");
+				} else {
+                	$sqlArray[] = sprintf("ALTER table organisations ALTER COLUMN description TYPE text;");
+				}
                 break;
             case 83:
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `sharing_group_blueprints` (
-                      `id` int(11) NOT NULL AUTO_INCREMENT,
-                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
-                      `name` varchar(191) NOT NULL,
-                      `timestamp` int(11) NOT NULL DEFAULT 0,
-                      `user_id` int(11) NOT NULL,
-                      `org_id` int(11) NOT NULL,
-                      `sharing_group_id` int(11),
-                      `rules` text,
-                      PRIMARY KEY (`id`),
-                      INDEX `uuid` (`uuid`),
-                      INDEX `name` (`name`),
-                      INDEX `org_id` (`org_id`),
-                      INDEX `sharing_group_id` (`sharing_group_id`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				if ($this->isMysql()){
+   		             $sqlArray[] = "CREATE TABLE IF NOT EXISTS `sharing_group_blueprints` (
+   		                   `id` int(11) NOT NULL AUTO_INCREMENT,
+   		                   `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+   		                   `name` varchar(191) NOT NULL,
+   		                   `timestamp` int(11) NOT NULL DEFAULT 0,
+   		                   `user_id` int(11) NOT NULL,
+   		                   `org_id` int(11) NOT NULL,
+   		                   `sharing_group_id` int(11),
+   		                   `rules` text,
+   		                   PRIMARY KEY (`id`),
+   		                   INDEX `uuid` (`uuid`),
+   		                   INDEX `name` (`name`),
+   		                   INDEX `org_id` (`org_id`),
+   		                   INDEX `sharing_group_id` (`sharing_group_id`)
+						 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				} else {
+   		             $sqlArray[] = "CREATE TABLE IF NOT EXISTS sharing_group_blueprints (
+   		                   id SERIAL PRIMARY KEY,
+   		                   uuid varchar(40) NOT NULL ,
+   		                   name varchar(191) NOT NULL,
+   		                   timestamp integer NOT NULL DEFAULT 0,
+   		                   user_id integer NOT NULL,
+   		                   org_id integer NOT NULL,
+   		                   sharing_group_id integer,
+   		                   rules text);";
+    	            $sqlArray[] = "CREATE INDEX ON sharing_group_blueprints (uuid);";
+    	            $sqlArray[] = "CREATE INDEX ON sharing_group_blueprints (name);";
+    	            $sqlArray[] = "CREATE INDEX ON sharing_group_blueprints (org_id);";
+    	            $sqlArray[] = "CREATE INDEX ON sharing_group_blueprints (sharing_group_id);";
+				}
                 break;
-            case 84:
-                $sqlArray[] = sprintf("ALTER table events add `protected` tinyint(1);");
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `cryptographic_keys` (
-                      `id` int(11) NOT NULL AUTO_INCREMENT,
-                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
-                      `type` varchar(40) COLLATE utf8_bin NOT NULL,
-                      `timestamp` int(11) NOT NULL DEFAULT 0,
-                      `parent_id` int(11) NOT NULL,
-                      `parent_type` varchar(40) COLLATE utf8_bin NOT NULL,
-                      `key_data` text,
-                      `revoked` tinyint(1) NOT NULL DEFAULT 0,
-                      `fingerprint` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
-                      PRIMARY KEY (`id`),
-                      INDEX `uuid` (`uuid`),
-                      INDEX `type` (`type`),
-                      INDEX `parent_id` (`parent_id`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+			case 84:
+				if ($this->isMysql()) {
+	                $sqlArray[] = "ALTER table events add `protected` tinyint(1);";
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `cryptographic_keys` (
+	                      `id` int(11) NOT NULL AUTO_INCREMENT,
+	                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+	                      `type` varchar(40) COLLATE utf8_bin NOT NULL,
+	                      `timestamp` int(11) NOT NULL DEFAULT 0,
+	                      `parent_id` int(11) NOT NULL,
+	                      `parent_type` varchar(40) COLLATE utf8_bin NOT NULL,
+	                      `key_data` text,
+	                      `revoked` tinyint(1) NOT NULL DEFAULT 0,
+	                      `fingerprint` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+	                      PRIMARY KEY (`id`),
+	                      INDEX `uuid` (`uuid`),
+	                      INDEX `type` (`type`),
+	                      INDEX `parent_id` (`parent_id`)
+						) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				} else {
+	                $sqlArray[] = "ALTER table events add column protected boolean;";
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS cryptographic_keys (
+	                      id SERIAL PRIMARY KEY,
+	                      uuid varchar(40) NOT NULL,
+	                      type varchar(40) NOT NULL,
+	                      timestamp integer NOT NULL DEFAULT 0,
+	                      parent_id integer NOT NULL,
+	                      parent_type varchar(40) NOT NULL,
+	                      key_data text,
+	                      revoked boolean NOT NULL DEFAULT false,
+	                      fingerprint varchar(255) NOT NULL DEFAULT '')";
+    	            $sqlArray[] = "CREATE INDEX ON cryptographic_keys (uuid);";
+    	            $sqlArray[] = "CREATE INDEX ON cryptographic_keys (type);";
+    	            $sqlArray[] = "CREATE INDEX ON cryptographic_keys (parent_id);";
+				}
                 break;
             case 85:
                 $this->__addIndex('cryptographic_keys', 'parent_type');
@@ -1729,120 +1952,227 @@ class AppModel extends Model
             case 86:
                 $this->__addIndex('attributes', 'timestamp');
                 break;
-            case 87:
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `no_acl_correlations` (
+			case 87:
+				if ($this->isMysql()) {
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `no_acl_correlations` (
+                        `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                        `attribute_id` int(10) UNSIGNED NOT NULL,
+                        `1_attribute_id` int(10) UNSIGNED NOT NULL,
+                        `event_id` int(10) UNSIGNED NOT NULL,
+                        `1_event_id` int(10) UNSIGNED NOT NULL,
+                        `value_id` int(10) UNSIGNED NOT NULL,
+                        PRIMARY KEY (`id`),
+                        INDEX `event_id` (`event_id`),
+                        INDEX `1_event_id` (`1_event_id`),
+                        INDEX `attribute_id` (`attribute_id`),
+                        INDEX `1_attribute_id` (`1_attribute_id`),
+                        INDEX `value_id` (`value_id`)
+                      ) ENGINE=InnoDB;";
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS `default_correlations` (
+                        `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                        `attribute_id` int(10) UNSIGNED NOT NULL,
+                        `object_id` int(10) UNSIGNED NOT NULL,
+                        `event_id` int(10) UNSIGNED NOT NULL,
+                        `org_id` int(10) UNSIGNED NOT NULL,
+                        `distribution` tinyint(4) NOT NULL,
+                        `object_distribution` tinyint(4) NOT NULL,
+                        `event_distribution` tinyint(4) NOT NULL,
+                        `sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                        `object_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                        `event_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                        `1_attribute_id` int(10) UNSIGNED NOT NULL,
+                        `1_object_id` int(10) UNSIGNED NOT NULL,
+                        `1_event_id` int(10) UNSIGNED NOT NULL,
+                        `1_org_id` int(10) UNSIGNED NOT NULL,
+                        `1_distribution` tinyint(4) NOT NULL,
+                        `1_object_distribution` tinyint(4) NOT NULL,
+                        `1_event_distribution` tinyint(4) NOT NULL,
+                        `1_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                        `1_object_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                        `1_event_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
+                        `value_id` int(10) UNSIGNED NOT NULL,
+                        PRIMARY KEY (`id`),
+                        INDEX `event_id` (`event_id`),
+                        INDEX `attribute_id` (`attribute_id`),
+                        INDEX `object_id` (`object_id`),
+                        INDEX `org_id` (`org_id`),
+                        INDEX `distribution` (`distribution`),
+                        INDEX `object_distribution` (`object_distribution`),
+                        INDEX `event_distribution` (`event_distribution`),
+                        INDEX `sharing_group_id` (`sharing_group_id`),
+                        INDEX `object_sharing_group_id` (`object_sharing_group_id`),
+                        INDEX `event_sharing_group_id` (`event_sharing_group_id`),
+                        INDEX `1_event_id` (`1_event_id`),
+                        INDEX `1_attribute_id` (`1_attribute_id`),
+                        INDEX `1_object_id` (`1_object_id`),
+                        INDEX `1_org_id` (`1_org_id`),
+                        INDEX `1_distribution` (`1_distribution`),
+                        INDEX `1_object_distribution` (`1_object_distribution`),
+                        INDEX `1_event_distribution` (`1_event_distribution`),
+                        INDEX `1_sharing_group_id` (`1_sharing_group_id`),
+                        INDEX `1_object_sharing_group_id` (`1_object_sharing_group_id`),
+                        INDEX `1_event_sharing_group_id` (`1_event_sharing_group_id`),
+                        INDEX `value_id` (`value_id`)
+                      ) ENGINE=InnoDB;";
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS `correlation_values` (
+                        `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                        `value` varchar(191) NOT NULL,
+                        PRIMARY KEY (`id`),
+                        UNIQUE KEY `value` (`value`(191))
+                      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS `over_correlating_values` (
                     `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-                    `attribute_id` int(10) UNSIGNED NOT NULL,
-                    `1_attribute_id` int(10) UNSIGNED NOT NULL,
-                    `event_id` int(10) UNSIGNED NOT NULL,
-                    `1_event_id` int(10) UNSIGNED NOT NULL,
-                    `value_id` int(10) UNSIGNED NOT NULL,
+                    `value` text,
+                    `occurrence` int(10) UNSIGNED NULL,
                     PRIMARY KEY (`id`),
-                    INDEX `event_id` (`event_id`),
-                    INDEX `1_event_id` (`1_event_id`),
-                    INDEX `attribute_id` (`attribute_id`),
-                    INDEX `1_attribute_id` (`1_attribute_id`),
-                    INDEX `value_id` (`value_id`)
-                  ) ENGINE=InnoDB;";
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `default_correlations` (
-                    `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-                    `attribute_id` int(10) UNSIGNED NOT NULL,
-                    `object_id` int(10) UNSIGNED NOT NULL,
-                    `event_id` int(10) UNSIGNED NOT NULL,
-                    `org_id` int(10) UNSIGNED NOT NULL,
-                    `distribution` tinyint(4) NOT NULL,
-                    `object_distribution` tinyint(4) NOT NULL,
-                    `event_distribution` tinyint(4) NOT NULL,
-                    `sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
-                    `object_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
-                    `event_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
-                    `1_attribute_id` int(10) UNSIGNED NOT NULL,
-                    `1_object_id` int(10) UNSIGNED NOT NULL,
-                    `1_event_id` int(10) UNSIGNED NOT NULL,
-                    `1_org_id` int(10) UNSIGNED NOT NULL,
-                    `1_distribution` tinyint(4) NOT NULL,
-                    `1_object_distribution` tinyint(4) NOT NULL,
-                    `1_event_distribution` tinyint(4) NOT NULL,
-                    `1_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
-                    `1_object_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
-                    `1_event_sharing_group_id` int(10) UNSIGNED NOT NULL DEFAULT 0,
-                    `value_id` int(10) UNSIGNED NOT NULL,
-                    PRIMARY KEY (`id`),
-                    INDEX `event_id` (`event_id`),
-                    INDEX `attribute_id` (`attribute_id`),
-                    INDEX `object_id` (`object_id`),
-                    INDEX `org_id` (`org_id`),
-                    INDEX `distribution` (`distribution`),
-                    INDEX `object_distribution` (`object_distribution`),
-                    INDEX `event_distribution` (`event_distribution`),
-                    INDEX `sharing_group_id` (`sharing_group_id`),
-                    INDEX `object_sharing_group_id` (`object_sharing_group_id`),
-                    INDEX `event_sharing_group_id` (`event_sharing_group_id`),
-                    INDEX `1_event_id` (`1_event_id`),
-                    INDEX `1_attribute_id` (`1_attribute_id`),
-                    INDEX `1_object_id` (`1_object_id`),
-                    INDEX `1_org_id` (`1_org_id`),
-                    INDEX `1_distribution` (`1_distribution`),
-                    INDEX `1_object_distribution` (`1_object_distribution`),
-                    INDEX `1_event_distribution` (`1_event_distribution`),
-                    INDEX `1_sharing_group_id` (`1_sharing_group_id`),
-                    INDEX `1_object_sharing_group_id` (`1_object_sharing_group_id`),
-                    INDEX `1_event_sharing_group_id` (`1_event_sharing_group_id`),
-                    INDEX `value_id` (`value_id`)
-                  ) ENGINE=InnoDB;";
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `correlation_values` (
-                    `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-                    `value` varchar(191) NOT NULL,
-                    PRIMARY KEY (`id`),
-                    UNIQUE KEY `value` (`value`(191))
-                  ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `over_correlating_values` (
-                `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-                `value` text,
-                `occurrence` int(10) UNSIGNED NULL,
-                PRIMARY KEY (`id`),
-                UNIQUE KEY `value` (`value`(191)),
-                INDEX `occurrence` (`occurrence`)
-                ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                    UNIQUE KEY `value` (`value`(191)),
+                    INDEX `occurrence` (`occurrence`)
+					) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				} else {
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS no_acl_correlations (
+                        id SERIAL PRIMARY KEY,
+                        attribute_id integer NOT NULL,
+                        1_attribute_id integer NOT NULL,
+                        event_id integer NOT NULL,
+                        1_event_id integer NOT NULL,
+						value_id integer NOT NULL)";
+					$sqlArray[] = "CREATE INDEX ON no_acl_correlations (event_id);";
+					$sqlArray[] = "CREATE INDEX ON no_acl_correlations (1_event_id);";
+					$sqlArray[] = "CREATE INDEX ON no_acl_correlations (attribute_id);";
+					$sqlArray[] = "CREATE INDEX ON no_acl_correlations (1_attribute_id);";
+					$sqlArray[] = "CREATE INDEX ON no_acl_correlations (value_id);";
+
+                    $sqlArray[] = 'CREATE TABLE IF NOT EXISTS default_correlations (
+                        id SERIAL PRIMARY KEY,
+                        attribute_id integer NOT NULL,
+                        object_id integer NOT NULL,
+                        event_id integer NOT NULL,
+                        org_id integer NOT NULL,
+                        distribution smallint NOT NULL,
+                        object_distribution smallint NOT NULL,
+                        event_distribution smallint NOT NULL,
+                        sharing_group_id integer NOT NULL DEFAULT 0,
+                        object_sharing_group_id integer NOT NULL DEFAULT 0,
+                        event_sharing_group_id integer NOT NULL DEFAULT 0,
+                        "1_attribute_id" integer NOT NULL,
+                        "1_object_id" integer NOT NULL,
+                        "1_event_id" integer NOT NULL,
+                        "1_org_id" integer NOT NULL,
+                        "1_distribution" smallint NOT NULL,
+                        "1_object_distribution" smallint NOT NULL,
+                        "1_event_distribution" smallint NOT NULL,
+                        "1_sharing_group_id" integer NOT NULL DEFAULT 0,
+                        "1_object_sharing_group_id" integer NOT NULL DEFAULT 0,
+                        "1_event_sharing_group_id" integer NOT NULL DEFAULT 0,
+                        value_id integer NOT NULL);';
+					$sqlArray[] = "CREATE INDEX ON default_correlations (event_id);";
+					$sqlArray[] = "CREATE INDEX ON default_correlations (attribute_id);";
+					$sqlArray[] = "CREATE INDEX ON default_correlations (object_id);";
+					$sqlArray[] = "CREATE INDEX ON default_correlations (org_id);";
+					$sqlArray[] = "CREATE INDEX ON default_correlations (distribution);";
+					$sqlArray[] = "CREATE INDEX ON default_correlations (object_distribution);";
+					$sqlArray[] = "CREATE INDEX ON default_correlations (event_distribution);";
+					$sqlArray[] = "CREATE INDEX ON default_correlations (sharing_group_id;";
+					$sqlArray[] = "CREATE INDEX ON default_correlations (object_sharing_group_id);";
+					$sqlArray[] = "CREATE INDEX ON default_correlations (event_sharing_group_id);";
+					$sqlArray[] = 'CREATE INDEX ON default_correlations ("1_event_id");';
+					$sqlArray[] = 'CREATE INDEX ON default_correlations ("1_attribute_id");';
+					$sqlArray[] = 'CREATE INDEX ON default_correlations ("1_object_id");';
+					$sqlArray[] = 'CREATE INDEX ON default_correlations ("1_org_id");';
+					$sqlArray[] = 'CREATE INDEX ON default_correlations ("1_distribution");';
+					$sqlArray[] = 'CREATE INDEX ON default_correlations ("1_object_distribution");';
+					$sqlArray[] = 'CREATE INDEX ON default_correlations ("1_event_distribution");';
+					$sqlArray[] = 'CREATE INDEX ON default_correlations ("1_sharing_group_id");';
+					$sqlArray[] = 'CREATE INDEX ON default_correlations ("1_object_sharing_group_id");';
+					$sqlArray[] = 'CREATE INDEX ON default_correlations ("1_event_sharing_group_id");';
+					$sqlArray[] = 'CREATE INDEX ON default_correlations (value_id);';
+					
+					$sqlArray[] = "CREATE TABLE IF NOT EXISTS correlation_values (
+                        id SERIAL PRIMARY KEY,
+                        value varchar(191) NOT NULL UNIQUE);";
+                    $sqlArray[] = "CREATE TABLE IF NOT EXISTS over_correlating_values (
+                    id SERIAL PRIMARY KEY,
+                    value text UNIQUE,
+					occurrence int(10) UNSIGNED NULL);";
+					$sqlArray[] = "CREATE INDEX ON over_correlation_values (occurrence);";
+				}
                 break;
             case 88:
-                $sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_required` tinyint(1) NOT NULL DEFAULT 0;';
-                $sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_key` text COLLATE utf8_bin;';
+				if ($this->isMysql()){
+                	$sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_required` tinyint(1) NOT NULL DEFAULT 0;';
+	                $sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_key` text COLLATE utf8_bin;';
+				} else {
+                	$sqlArray[] = 'ALTER TABLE users ADD COLUMN external_auth_required boolean NOT NULL DEFAULT false;';
+	                $sqlArray[] = 'ALTER TABLE users ADD COLUMN external_auth_key text;';
+				}
                 break;
-            case 90:
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflows` (
-                      `id` int(11) NOT NULL AUTO_INCREMENT,
-                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
-                      `name` varchar(191) NOT NULL,
-                      `description` varchar(191) NOT NULL,
-                      `timestamp` int(11) NOT NULL DEFAULT 0,
-                      `enabled` tinyint(1) NOT NULL DEFAULT 0,
-                      `counter` int(11) NOT NULL DEFAULT 0,
-                      `trigger_id` varchar(191) COLLATE utf8_bin NOT NULL,
-                      `debug_enabled` tinyint(1) NOT NULL DEFAULT 0,
-                      `data` text,
-                      PRIMARY KEY (`id`),
-                      INDEX `uuid` (`uuid`),
-                      INDEX `name` (`name`),
-                      INDEX `timestamp` (`timestamp`),
-                      INDEX `trigger_id` (`trigger_id`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflow_blueprints` (
-                      `id` int(11) NOT NULL AUTO_INCREMENT,
-                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
-                      `name` varchar(191) NOT NULL,
-                      `description` varchar(191) NOT NULL,
-                      `timestamp` int(11) NOT NULL DEFAULT 0,
-                      `default` tinyint(1) NOT NULL DEFAULT 0,
-                      `data` text,
-                      PRIMARY KEY (`id`),
-                      INDEX `uuid` (`uuid`),
-                      INDEX `name` (`name`),
-                      INDEX `timestamp` (`timestamp`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-                    break;
-            case 92:
-                $sqlArray[] = "ALTER TABLE users ADD `last_api_access` INT(11) DEFAULT 0;";
+			case 90:
+				if ($this->isMysql()){
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflows` (
+	                      `id` int(11) NOT NULL AUTO_INCREMENT,
+	                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+	                      `name` varchar(191) NOT NULL,
+	                      `description` varchar(191) NOT NULL,
+	                      `timestamp` int(11) NOT NULL DEFAULT 0,
+	                      `enabled` tinyint(1) NOT NULL DEFAULT 0,
+	                      `counter` int(11) NOT NULL DEFAULT 0,
+	                      `trigger_id` varchar(191) COLLATE utf8_bin NOT NULL,
+	                      `debug_enabled` tinyint(1) NOT NULL DEFAULT 0,
+	                      `data` text,
+	                      PRIMARY KEY (`id`),
+	                      INDEX `uuid` (`uuid`),
+	                      INDEX `name` (`name`),
+	                      INDEX `timestamp` (`timestamp`),
+	                      INDEX `trigger_id` (`trigger_id`)
+	                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflow_blueprints` (
+	                      `id` int(11) NOT NULL AUTO_INCREMENT,
+	                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+	                      `name` varchar(191) NOT NULL,
+	                      `description` varchar(191) NOT NULL,
+	                      `timestamp` int(11) NOT NULL DEFAULT 0,
+	                      `default` tinyint(1) NOT NULL DEFAULT 0,
+	                      `data` text,
+	                      PRIMARY KEY (`id`),
+	                      INDEX `uuid` (`uuid`),
+	                      INDEX `name` (`name`),
+	                      INDEX `timestamp` (`timestamp`)
+						) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				} else {
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS workflows (
+	                      id SERIAL PRIMARY KEY,
+	                      uuid varchar(40) NOT NULL ,
+	                      name varchar(191) NOT NULL,
+	                      description varchar(191) NOT NULL,
+	                      timestamp integer NOT NULL DEFAULT 0,
+	                      enabled boolean NOT NULL DEFAULT false,
+	                      counter integer NOT NULL DEFAULT 0,
+	                      trigger_id varchar(191) NOT NULL,
+	                      debug_enabled boolean NOT NULL DEFAULT false,
+						  data text)";
+					$sqlArray[] = "CREATE INDEX ON workflows (uuid);";
+					$sqlArray[] = "CREATE INDEX ON workflows (name);";
+					$sqlArray[] = "CREATE INDEX ON workflows (timestamp);";
+					$sqlArray[] = "CREATE INDEX ON workflows (trigger_id);";
+	                $sqlArray[] = 'CREATE TABLE IF NOT EXISTS workflow_blueprints (
+	                      id SERIAL PRIMARY KEY,
+	                      uuid varchar(40) NOT NULL ,
+	                      name varchar(191) NOT NULL,
+	                      description varchar(191) NOT NULL,
+	                      timestamp integer NOT NULL DEFAULT 0,
+	                      "default" boolean NOT NULL DEFAULT false,
+						  data text);';
+					$sqlArray[] = "CREATE INDEX ON workflow_blueprints (uuid);";
+					$sqlArray[] = "CREATE INDEX ON workflow_blueprints (name);";
+					$sqlArray[] = "CREATE INDEX ON workflow_blueprints (timestamp);";
+				}	
+                break;
+			case 92:
+				if ($this->isMysql()){
+	                $sqlArray[] = "ALTER TABLE users ADD `last_api_access` INT(11) DEFAULT 0;";
+				} else {
+					$sqlArray[] = "ALTER TABLE users ADD last_api_access integer DEFAULT 0;";
+				}
                 break;
             case 93:
                 $this->__dropIndex('default_correlations', 'distribution');
@@ -1860,75 +2190,142 @@ class AppModel extends Model
                 $this->__dropIndex('default_correlations', '1_event_sharing_group_id');
                 $this->__dropIndex('default_correlations', '1_org_id');
                 break;
-            case 94:
-                $sqlArray[] = "UPDATE `over_correlating_values` SET `value` = SUBSTR(`value`, 1, 191);"; // truncate then migrate
-                $sqlArray[] = "ALTER TABLE `over_correlating_values` MODIFY `value` varchar(191) NOT NULL;";
+			case 94:
+				if ($this->isMysql()) {
+	                $sqlArray[] = "UPDATE `over_correlating_values` SET `value` = SUBSTR(`value`, 1, 191);"; // truncate then migrate
+    	            $sqlArray[] = "ALTER TABLE `over_correlating_values` MODIFY `value` varchar(191) NOT NULL;";
+				} else {
+	                $sqlArray[] = "UPDATE over_correlating_values SET value = SUBSTR(value, 1, 191);"; // truncate then migrate
+    	            $sqlArray[] = "ALTER TABLE over_correlating_values ALTER COLUMN value varchar(191) NOT NULL;";
+				}
                 break;
-            case 95:
-                $sqlArray[] = "ALTER TABLE `servers` ADD `remove_missing_tags` tinyint(1) NOT NULL DEFAULT 0 AFTER `skip_proxy`;";
+			case 95:
+				if ($this->isMysql()) {
+	                $sqlArray[] = "ALTER TABLE `servers` ADD `remove_missing_tags` tinyint(1) NOT NULL DEFAULT 0 AFTER `skip_proxy`;";
+				} else {
+	                $sqlArray[] = "ALTER TABLE servers ADD COLUMN remove_missing_tags boolean NOT NULL DEFAULT False;";
+				}
                 break;
             case 97:
-                $sqlArray[] = "ALTER TABLE `users`
-                    ADD COLUMN `notification_daily`     tinyint(1) NOT NULL DEFAULT 0,
-                    ADD COLUMN `notification_weekly`    tinyint(1) NOT NULL DEFAULT 0,
-                    ADD COLUMN `notification_monthly`   tinyint(1) NOT NULL DEFAULT 0
-                ;";
+				if ($this->isMysql()) {
+                	$sqlArray[] = "ALTER TABLE `users`
+                    	ADD COLUMN `notification_daily`     tinyint(1) NOT NULL DEFAULT 0,
+                    	ADD COLUMN `notification_weekly`    tinyint(1) NOT NULL DEFAULT 0,
+						ADD COLUMN `notification_monthly`   tinyint(1) NOT NULL DEFAULT 0 ;";
+				} else {
+                	$sqlArray[] = "ALTER TABLE users
+                    	ADD COLUMN notification_daily     boolean NOT NULL DEFAULT false,
+                    	ADD COLUMN notification_weekly    boolean NOT NULL DEFAULT false,
+						ADD COLUMN notification_monthly   boolean NOT NULL DEFAULT false ;";
+				}
                 break;
             case 98:
                 $this->__addIndex('object_template_elements', 'object_template_id');
                 break;
-            case 99: 
-                $sqlArray[] = "ALTER TABLE `event_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
-                $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
+            case 99:
+				if ($this->isMysql()) {
+                	$sqlArray[] = "ALTER TABLE `event_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
+	                $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
+				} else {
+                	$sqlArray[] = "ALTER TABLE event_tags ADD COLUMN relationship_type varchar(191) NULL DEFAULT '';";
+	                $sqlArray[] = "ALTER TABLE attribute_tags ADD COLUMN relationship_type varchar(191) NULL DEFAULT '';";
+				}
                 break;
             case 100:
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `access_logs` (
-                  `id` int(11) NOT NULL AUTO_INCREMENT,
-                  `created` datetime(4) NOT NULL,
-                  `user_id` int(11) NOT NULL,
-                  `org_id` int(11) NOT NULL,
-                  `authkey_id` int(11) DEFAULT NULL,
-                  `ip` varbinary(16) DEFAULT NULL,
-                  `request_method` tinyint NOT NULL,
-                  `user_agent` varchar(255) DEFAULT NULL,
-                  `request_id` varchar(255) DEFAULT NULL,
-                  `controller` varchar(20) NOT NULL,
-                  `action` varchar(20) NOT NULL,
-                  `url` varchar(255) NOT NULL,
-                  `request` blob,
-                  `response_code` smallint NOT NULL,  
-                  `memory_usage` int(11) NOT NULL,
-                  `duration` int(11) NOT NULL,
-                  `query_count` int(11) NOT NULL,
-                  PRIMARY KEY (`id`),
-                  INDEX `user_id` (`user_id`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				if ($this->isMysql()) {
+   	        		$sqlArray[] = "CREATE TABLE IF NOT EXISTS `access_logs` (
+	                  `id` int(11) NOT NULL AUTO_INCREMENT,
+	                  `created` datetime(4) NOT NULL,
+	                  `user_id` int(11) NOT NULL,
+	                  `org_id` int(11) NOT NULL,
+	                  `authkey_id` int(11) DEFAULT NULL,
+	                  `ip` varbinary(16) DEFAULT NULL,
+	                  `request_method` tinyint NOT NULL,
+	                  `user_agent` varchar(255) DEFAULT NULL,
+	                  `request_id` varchar(255) DEFAULT NULL,
+	                  `controller` varchar(20) NOT NULL,
+	                  `action` varchar(20) NOT NULL,
+	                  `url` varchar(255) NOT NULL,
+	                  `request` blob,
+	                  `response_code` smallint NOT NULL,  
+	                  `memory_usage` int(11) NOT NULL,
+	                  `duration` int(11) NOT NULL,
+	                  `query_count` int(11) NOT NULL,
+	                  PRIMARY KEY (`id`),
+	                  INDEX `user_id` (`user_id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				} else {
+   	        		$sqlArray[] = "CREATE TABLE IF NOT EXISTS access_logs (
+	                  id SERIAL PRIMARY KEY,
+	                  created timestamp NOT NULL,
+	                  user_id integer NOT NULL,
+	                  org_id integer NOT NULL,
+	                  authkey_id integer DEFAULT NULL,
+	                  ip inet DEFAULT NULL,
+	                  request_method smallint NOT NULL,
+	                  user_agent varchar(255) DEFAULT NULL,
+	                  request_id varchar(255) DEFAULT NULL,
+	                  controller varchar(20) NOT NULL,
+	                  action varchar(20) NOT NULL,
+	                  url varchar(255) NOT NULL,
+	                  request bytea,
+	                  response_code smallint NOT NULL,  
+	                  memory_usage integer NOT NULL,
+	                  duration integer NOT NULL,
+	                  query_count integer NOT NULL
+					);";
+   	        		$sqlArray[] = "CREATE INDEX ON access_logs (user_id);"; 
+				}
                 break;
-            case 101:
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxii_servers` (
-                    `id` int(11) NOT NULL AUTO_INCREMENT,
-                    `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
-                    `name` varchar(191) NOT NULL,
-                    `owner` varchar(191) NOT NULL,
-                    `baseurl` varchar(191) NOT NULL,
-                    `api_root` varchar(191) NOT NULL DEFAULT 0,
-                    `description` text,
-                    `filters` text,
-                    `api_key` varchar(255)COLLATE utf8_bin NOT NULL,
-                    PRIMARY KEY (`id`),
-                    INDEX `uuid` (`uuid`),
-                    INDEX `name` (`name`),
-                    INDEX `baseurl` (`baseurl`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+			case 101:
+				if ($this->isMysql()){
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxii_servers` (
+   		                 `id` int(11) NOT NULL AUTO_INCREMENT,
+   		                 `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+   		                 `name` varchar(191) NOT NULL,
+   		                 `owner` varchar(191) NOT NULL,
+   		                 `baseurl` varchar(191) NOT NULL,
+   		                 `api_root` varchar(191) NOT NULL DEFAULT 0,
+   		                 `description` text,
+   		                 `filters` text,
+   		                 `api_key` varchar(255)COLLATE utf8_bin NOT NULL,
+   		                 PRIMARY KEY (`id`),
+   		                 INDEX `uuid` (`uuid`),
+   		                 INDEX `name` (`name`),
+   		                 INDEX `baseurl` (`baseurl`)
+						 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+				} else {
+	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS taxii_servers (
+   		                 id SERIAL PRIMARY KEY,
+   		                 uuid varchar(40) NOT NULL ,
+   		                 name varchar(191) NOT NULL,
+   		                 owner varchar(191) NOT NULL,
+   		                 baseurl varchar(191) NOT NULL,
+   		                 api_root varchar(191) NOT NULL DEFAULT 0,
+   		                 description text,
+   		                 filters text,
+   		                 api_key varchar(255) NOT NULL);";
+	                $sqlArray[] = "CREATE INDEX ON taxii_servers (uuid);";
+	                $sqlArray[] = "CREATE INDEX ON taxii_servers (name);";
+	                $sqlArray[] = "CREATE INDEX ON taxii_servers (baseurl);";
+				}
                 break;
             case 102:
-                $sqlArray[] = "UPDATE roles SET perm_audit = 1;";
+                $sqlArray[] = "UPDATE roles SET perm_audit = True;";
                 break;
-            case 103:
-                $sqlArray[] = "ALTER TABLE `taxonomies` ADD `highlighted` tinyint(1) DEFAULT 0;";
+			case 103:
+				if ($this->isMysql()){
+	                $sqlArray[] = "ALTER TABLE `taxonomies` ADD `highlighted` tinyint(1) DEFAULT 0;";
+				} else {
+	                $sqlArray[] = "ALTER TABLE taxonomies ADD COLUMN highlighted boolean DEFAULT false;";
+				}
                 break;
             case 104:
-                $sqlArray[] = "ALTER TABLE `access_logs` ADD `query_log` blob DEFAULT NULL";
+				if ($this->isMysql()){
+                	$sqlArray[] = "ALTER TABLE `access_logs` ADD `query_log` blob DEFAULT NULL";
+				} else {
+                	$sqlArray[] = "ALTER TABLE access_logs ADD COLUMN query_log bytea DEFAULT NULL";
+				}
                 break;
             case 105:
                 // set a default role if there is none
@@ -1942,13 +2339,25 @@ class AppModel extends Model
                 }
                 break;
             case 106:
-                $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `baseurl` varchar(191) NOT NULL;";
+				if ($this->isMysql()){
+                	$sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `baseurl` varchar(191) NOT NULL;";
+				} else {
+                	$sqlArray[] = "ALTER TABLE taxii_servers ALTER COLUMN baseurl TYPE varchar(191), ALTER COLUMN baseurl SET NOT NULL;";
+				}
                 break;
             case 107:
-                $sqlArray[] = "ALTER TABLE `auth_keys` ADD `unique_ips` text COLLATE utf8mb4_unicode_ci";
+				if ($this->isMysql()){
+                	$sqlArray[] = "ALTER TABLE `auth_keys` ADD `unique_ips` text COLLATE utf8mb4_unicode_ci";
+				} else {
+                	$sqlArray[] = "ALTER TABLE auth_keys ADD COLUMN unique_ips text";
+				}
                 break;
-            case 108:
-                $sqlArray[] = "ALTER TABLE `workflows` MODIFY `data` LONGTEXT;";
+			case 108:
+				if ($this->isMysql()){
+	                $sqlArray[] = "ALTER TABLE `workflows` MODIFY `data` LONGTEXT;";
+				} else {
+	                $sqlArray[] = "ALTER TABLE workflows ALTER COLUMN data TYPE TEXT;";
+				}
                 break;
             case 109:
                 $sqlArray[] = "UPDATE `over_correlating_values` SET `value` = LOWER(`value`) COLLATE utf8mb4_unicode_ci;";
@@ -2281,15 +2690,84 @@ class AppModel extends Model
     }
 
     private function __checkIndexExists($table, $column_name, $is_unique = false): bool
-    {
-        $query = sprintf(
-            'SHOW INDEX FROM %s WHERE Column_name = \'%s\' and Non_unique = %s;',
-            $table,
-            $column_name,
-            !empty($is_unique) ? '0' : '1'
-        );
-        $existing_index = $this->query($query);
-        return !empty($existing_index);
+	{
+		if ($this->isMysql())
+		{
+			if (! is_null($is_unique)) {    
+				$query = sprintf(
+					'SHOW INDEX FROM %s WHERE Column_name = \'%s\' and Non_unique = %s;',
+					$table,
+					$column_name,
+					!empty($is_unique) ? '0' : '1'
+				);
+			} else {
+				$query = sprintf(
+					'SHOW INDEX FROM %s WHERE Column_name = \'%s\'',
+					$table,
+					$column_name
+				);
+			}
+			$existing_index = $this->query($query);
+			return !empty($existing_index);
+		} else {
+		   if (! is_null($is_unique)) {            
+				$query = sprintf(
+					"select
+						t.relname as table_name,
+						i.relname as index_name,
+						a.attname as column_name, 
+						ix.indisunique as uniqueness
+					from
+						pg_class t,
+						pg_class i,
+						pg_index ix,
+						pg_attribute a
+					where
+						t.oid = ix.indrelid
+						and i.oid = ix.indexrelid
+						and a.attrelid = t.oid
+						and a.attnum = ANY(ix.indkey)
+						and t.relkind = 'r'
+						and t.relname = '%s'
+						and a.attname = '%s'
+						and ix.indisunique = '%s'
+					order by
+						t.relname,
+						i.relname;",
+					$table,
+					$column_name,
+					!empty($is_unique) ? '1' : '0'
+				);
+			} else {
+				$query = sprintf(
+					'select
+						t.relname as table_name,
+						i.relname as index_name,
+						a.attname as column_name, 
+						ix.indisunique as uniqueness
+					from
+						pg_class t,
+						pg_class i,
+						pg_index ix,
+						pg_attribute a
+					where
+						t.oid = ix.indrelid
+						and i.oid = ix.indexrelid
+						and a.attrelid = t.oid
+						and a.attnum = ANY(ix.indkey)
+						and t.relkind = "r"
+						and t.relname = "%s"
+						and a.attname = "%s"    
+					order by
+						t.relname,
+						i.relname;',
+					$table,
+					$column_name
+				);
+			}               
+			$existing_index = $this->query($query);
+			return !empty($existing_index);
+		}
     }
 
     public function cleanCacheFiles()
@@ -2838,7 +3316,7 @@ class AppModel extends Model
         $duplicates = $model->find('all', array(
             'fields' => array('uuid', 'count(uuid) as occurrence'),
             'recursive' => -1,
-            'group' => array('uuid HAVING occurrence > 1'),
+            'group' => array('uuid HAVING count(uuid) > 1'),
         ));
         $counter = 0;
         foreach ($duplicates as $duplicate) {
@@ -2867,7 +3345,7 @@ class AppModel extends Model
         $duplicates = $this->Attribute->find('all', array(
             'fields' => array('Attribute.uuid', 'count(Attribute.uuid) as occurrence'),
             'recursive' => -1,
-            'group' => array('Attribute.uuid HAVING occurrence > 1'),
+            'group' => array('Attribute.uuid HAVING count(Attribute.uuid) > 1'),
             'order' => false,
         ));
         $counter = 0;
@@ -2921,7 +3399,7 @@ class AppModel extends Model
         $duplicates = $this->Event->find('all', array(
                 'fields' => array('Event.uuid', 'count(Event.uuid) as occurrence'),
                 'recursive' => -1,
-                'group' => array('Event.uuid HAVING occurrence > 1'),
+                'group' => array('Event.uuid HAVING count(Event.uuid) > 1'),
         ));
         $counter = 0;
 

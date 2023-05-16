@@ -3694,7 +3694,7 @@ class EventsController extends AppController
         $result = $this->ShadowAttribute->find('column', [
             'fields' => ['event_id'],
             'conditions' => $conditions,
-            'unique' => true,
+//            'unique' => true,
         ]);
         $this->Event->recursive = -1;
 
