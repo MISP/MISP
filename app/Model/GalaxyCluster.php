@@ -720,14 +720,14 @@ class GalaxyCluster extends AppModel
     /**
      * Gets a cluster then save it.
      *
-     * @param $user
+     * @param array $user
      * @param array $cluster Cluster to be saved
      * @param bool  $fromPull If the current capture is performed from a PULL sync
      * @param int   $orgId The organisation id that should own the cluster
      * @param array $server The server for which to capture is ongoing
      * @return array Result of the capture including successes, fails and errors
      */
-    public function captureCluster($user, $cluster, $fromPull=false, $orgId=0, $server=false)
+    public function captureCluster(array $user, $cluster, $fromPull=false, $orgId=0, $server=false)
     {
         $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
 
