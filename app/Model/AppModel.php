@@ -1669,7 +1669,7 @@ class AppModel extends Model
 				if ($this->isMysql()){
 	                $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY COLUMN `tag_name` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT '';";
 				} else {
-	                $sqlArray[] = "ALTER TABLE galaxy_clusters ALTER COLUMN tag_name TYPE varchar(255) DEFAULT '';";
+	                $sqlArray[] = "ALTER TABLE galaxy_clusters ALTER COLUMN tag_name TYPE varchar(255);";
 	                $sqlArray[] = "ALTER TABLE galaxy_clusters ALTER COLUMN tag_name SET DEFAULT '';";
 				}
                 $indexArray[] = ['event_reports', 'event_id'];
@@ -1678,7 +1678,8 @@ class AppModel extends Model
 				if ($this->isMysql()){
                 	$sqlArray[] = "ALTER TABLE `auth_keys` ADD `allowed_ips` text DEFAULT NULL;";
 				} else {
-                	$sqlArray[] = "ALTER TABLE auth_keys ADD COLUMN allowed_ips text DEFAULT NULL;";
+					// allowed_ips already existing
+                	// $sqlArray[] = "ALTER TABLE auth_keys ADD COLUMN allowed_ips text DEFAULT NULL;";
 				}
                 break;
             case 68:
@@ -1767,7 +1768,7 @@ class AppModel extends Model
 					$sqlArray[] = "ALTER TABLE `users` MODIFY COLUMN `change_pw` tinyint(1) NOT NULL DEFAULT 0;";
 				} else {
 					$sqlArray[] = "ALTER TABLE users ALTER COLUMN change_pw DROP DEFAULT;";
-					$sqlArray[] = "ALTER TABLE users ALTER COLUMN change_pw TYPE boolean;";
+					$sqlArray[] = "ALTER TABLE users ALTER COLUMN change_pw TYPE boolean USING change_pw::int::boolean;";
 					$sqlArray[] = "ALTER TABLE users ALTER COLUMN change_pw SET DEFAULT false;";
 					$sqlArray[] = "ALTER TABLE users ALTER COLUMN change_pw SET NOT NULL;";
 				}
@@ -1792,8 +1793,8 @@ class AppModel extends Model
 	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS system_settings (
 	                      setting varchar(255) PRIMARY KEY,
 	                      value bytea NOT NULL);";
-	                $sqlArray[] = "ALTER TABLE servers ALTER COLUMN authkey TYPE bit(255) USING authkey::bit(255);";
-					$sqlArray[] = "ALTER TABLE cerebrates ALTER COLUMN authkey TYPE bit(255) USING authkey::bit(255);";
+	                $sqlArray[] = "ALTER TABLE servers ALTER COLUMN authkey TYPE bytea USING authkey::bytea;";
+					$sqlArray[] = "ALTER TABLE cerebrates ALTER COLUMN authkey TYPE bytea USING authkey::bytea;";
 				}
                 break;
             case 77:
@@ -1809,7 +1810,7 @@ class AppModel extends Model
 				if ($this->isMysql()){
                 	$sqlArray[] = "ALTER TABLE `jobs` MODIFY COLUMN `process_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
 				} else {
-                	$sqlArray[] = "ALTER TABLE jobs ALTER COLUMN process_id TYPE varchar(36) DEFAULT NULL;";
+                	$sqlArray[] = "ALTER TABLE jobs ALTER COLUMN process_id TYPE varchar(36);";
                 	$sqlArray[] = "ALTER TABLE jobs ALTER COLUMN process_id SET DEFAULT NULL;";
 				}
                 break;
@@ -2029,17 +2030,17 @@ class AppModel extends Model
                     INDEX `occurrence` (`occurrence`)
 					) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 				} else {
-	                $sqlArray[] = "CREATE TABLE IF NOT EXISTS no_acl_correlations (
+	                $sqlArray[] = 'CREATE TABLE IF NOT EXISTS no_acl_correlations (
                         id SERIAL PRIMARY KEY,
                         attribute_id integer NOT NULL,
-                        1_attribute_id integer NOT NULL,
+                        "1_attribute_id" integer NOT NULL,
                         event_id integer NOT NULL,
-                        1_event_id integer NOT NULL,
-						value_id integer NOT NULL)";
+                        "1_event_id" integer NOT NULL,
+						value_id integer NOT NULL)';
 					$sqlArray[] = "CREATE INDEX ON no_acl_correlations (event_id);";
-					$sqlArray[] = "CREATE INDEX ON no_acl_correlations (1_event_id);";
+					$sqlArray[] = 'CREATE INDEX ON no_acl_correlations ("1_event_id");';
 					$sqlArray[] = "CREATE INDEX ON no_acl_correlations (attribute_id);";
-					$sqlArray[] = "CREATE INDEX ON no_acl_correlations (1_attribute_id);";
+					$sqlArray[] = 'CREATE INDEX ON no_acl_correlations ("1_attribute_id");';
 					$sqlArray[] = "CREATE INDEX ON no_acl_correlations (value_id);";
 
                     $sqlArray[] = 'CREATE TABLE IF NOT EXISTS default_correlations (
@@ -2072,7 +2073,7 @@ class AppModel extends Model
 					$sqlArray[] = "CREATE INDEX ON default_correlations (distribution);";
 					$sqlArray[] = "CREATE INDEX ON default_correlations (object_distribution);";
 					$sqlArray[] = "CREATE INDEX ON default_correlations (event_distribution);";
-					$sqlArray[] = "CREATE INDEX ON default_correlations (sharing_group_id;";
+					$sqlArray[] = "CREATE INDEX ON default_correlations (sharing_group_id);";
 					$sqlArray[] = "CREATE INDEX ON default_correlations (object_sharing_group_id);";
 					$sqlArray[] = "CREATE INDEX ON default_correlations (event_sharing_group_id);";
 					$sqlArray[] = 'CREATE INDEX ON default_correlations ("1_event_id");';
@@ -2093,8 +2094,8 @@ class AppModel extends Model
                     $sqlArray[] = "CREATE TABLE IF NOT EXISTS over_correlating_values (
                     id SERIAL PRIMARY KEY,
                     value text UNIQUE,
-					occurrence int(10) UNSIGNED NULL);";
-					$sqlArray[] = "CREATE INDEX ON over_correlation_values (occurrence);";
+					occurrence integer NULL);";
+					$sqlArray[] = "CREATE INDEX ON over_correlating_values (occurrence);";
 				}
                 break;
             case 88:
@@ -2196,7 +2197,7 @@ class AppModel extends Model
     	            $sqlArray[] = "ALTER TABLE `over_correlating_values` MODIFY `value` varchar(191) NOT NULL;";
 				} else {
 	                $sqlArray[] = "UPDATE over_correlating_values SET value = SUBSTR(value, 1, 191);"; // truncate then migrate
-    	            $sqlArray[] = "ALTER TABLE over_correlating_values ALTER COLUMN value varchar(191) NOT NULL;";
+    	            $sqlArray[] = "ALTER TABLE over_correlating_values ALTER COLUMN value TYPE varchar(191);";
 				}
                 break;
 			case 95:
@@ -2349,7 +2350,8 @@ class AppModel extends Model
 				if ($this->isMysql()){
                 	$sqlArray[] = "ALTER TABLE `auth_keys` ADD `unique_ips` text COLLATE utf8mb4_unicode_ci";
 				} else {
-                	$sqlArray[] = "ALTER TABLE auth_keys ADD COLUMN unique_ips text";
+					// already exists
+                	// $sqlArray[] = "ALTER TABLE auth_keys ADD COLUMN unique_ips text";
 				}
                 break;
 			case 108:

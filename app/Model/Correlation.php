@@ -1097,7 +1097,7 @@ class Correlation extends AppModel
 					$size_metrics = $this->query(sprintf('show table status like \'%s\';', $table_name));
 					$row_count = (empty($size_metrics)) ? 0 : $size_metrics[0]['TABLES']['Rows'];
 				} else {
-					$size_metrics = $this->query(sprintf("select estimate from pg_class where relname='%s';", $table_name));
+					$size_metrics = $this->query(sprintf("select reltuples as estimate from pg_class where relname='%s';", $table_name));
 					$row_count = (empty($size_metrics)) ? 0 : $size_metrics[0]['estimate'];
 				}
                 if ($row_count > 0) {
