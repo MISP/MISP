@@ -23,7 +23,9 @@ $boolean = sprintf(
 '<span class="%s">%s</span>',
     $isTotp ? 'label label-success label-padding' : 'label label-important label-padding',
 $isTotp ? __('Yes') : __('No'));
-$totpHtml = $boolean . ''. __('Generate TOTP'); // FIXME chri - create link to generate a new TOTP, only save in DB after validation
+$totpHtml = $boolean;
+$totpHtml .= ($isTotp ? '' : $this->Html->link(__('Generate'), array('action' => 'totp_new', $user['User']['id'])));
+$totpHtml .= ($admin_view && $isTotp ? ' ' . __('Delete') : ''); // FIXME chri - only allow delete for (org)admin
 
 
     $table_data = [

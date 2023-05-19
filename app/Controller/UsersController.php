@@ -1207,6 +1207,10 @@ class UsersController extends AppController
                         return $this->redirect('totp');
                     }
                 }
+                // FIXME chri - implement a way for the user to login the first time when TOTP is required for all users,
+                // - redirect to TOTP generation page just after login (or any page requested)
+                // - for new account creations
+                // - for when the org admin wants to allow the user to generate a new TOTP
             }
         }
         // if instance requires email OTP 
@@ -1782,7 +1786,51 @@ class UsersController extends AppController
         } else {
             // GET Request, just show the form
         }
+    }
 
+    public function totp_new($id = null)
+    {
+        // FIXME chri - reuse $id to load user if (org)site admin
+        $user = $this->Auth->user();
+        // do not allow this page to be accessed if the current already has a TOTP. Just redirect to the users details page with a Flash->error()
+        if ($user['totp']) { 
+            $this->Flash->error(__("Your account already has an TOTP. Please contact your organisational administrator to change or delete it."));
+            $this->redirect($this->referer());
+        }
+
+        $secret = $this->Session->read('totp_secret');  // Reload secret from session.
+        if ($secret) {
+            $otp = \OTPHP\TOTP::create($secret);
+        } else {
+            $otp = \OTPHP\TOTP::create();
+            $secret = $otp->getSecret();
+            $this->Session->write('totp_secret', $secret);  // Store in session, this is to keep the same QR code even if the page refreshes.
+        }
+        if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
+            $otp_now = $otp->now();
+            if (trim($this->request->data['User']['otp']) == $otp_now) {
+                // we know the user can generate TOTP tokens, save the new TOTP to the database
+                $this->User->id = $user['id'];
+                $this->User->saveField('totp', $secret);
+                $this->Flash->info(__('The OTP is correct and now active for your account.'));
+                $this->redirect(array('controller' => 'events', 'action'=> 'index'));
+            } else {
+                $this->Flash->error(__("The OTP is incorrect or has expired."));
+            }
+        } else {
+            // GET Request, just show the form
+        }
+        // generate QR code with the secret
+        $renderer = new \BaconQrCode\Renderer\ImageRenderer(
+            new \BaconQrCode\Renderer\RendererStyle\RendererStyle(200),
+            new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+        );
+        $writer = new \BaconQrCode\Writer($renderer);
+        $qrcode = $writer->writeString('otpauth://totp/' . Configure::read('MISP.org') . ' MISP (' . $user['email'] . ')?secret=' . $secret);
+        $writer = preg_replace('/^.+\n/', '', $qrcode); // ignore first <?xml version line 
+
+        $this->set('qrcode', $qrcode);
+        $this->set('secret', $secret);
     }
 
     public function email_otp()

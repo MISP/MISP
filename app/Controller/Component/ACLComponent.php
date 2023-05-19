@@ -746,6 +746,7 @@ class ACLComponent extends Component
                 'edit' => array('self_management_enabled'),
                 'email_otp' => array('*'),
                 'totp' => array('*'),
+                'totp_new' => array('*'),
                 'searchGpgKey' => array('*'),
                 'fetchGpgKey' => array('*'),
                 'histogram' => array('*'),
