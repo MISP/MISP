@@ -1,5 +1,5 @@
 <?php
-App::uses('AppController', 'Controller');
+App::uses('AppController', 'Controller', 'OTPHP\TOTP');
 
 /**
  * @property User $User
@@ -29,7 +29,7 @@ class UsersController extends AppController
         parent::beforeFilter();
 
         // what pages are allowed for non-logged-in users
-        $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401');
+        $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401', 'totp');
         if(!empty(Configure::read('Security.email_otp_enabled'))) {
           $allowedActions[] = 'email_otp';
         }
@@ -1186,18 +1186,30 @@ class UsersController extends AppController
                     throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
                 }
             }
-            // Check the length of the user's authkey match old format. This can be removed in future.
-            $userPass = $this->User->find('first', [
+            $unauth_user = $this->User->find('first', [
                 'conditions' => ['User.email' => $this->request->data['User']['email']],
-                'fields' => ['User.password'],
+                'fields' => ['User.password', 'User.totp'],
                 'recursive' => -1,
             ]);
-            if (!empty($userPass) && strlen($userPass['User']['password']) === 40) {
-                $oldHash = true;
-                unset($this->Auth->authenticate['Form']['passwordHasher']); // use default password hasher
-                $this->Auth->constructAuthenticate();
+            if ($unauth_user) {
+                // Check the length of the user's authkey match old format. This can be removed in future.
+                $userPass = $unauth_user['User']['password'];
+                if (!empty($userPass) && strlen($userPass) === 40) {
+                    $oldHash = true;
+                    unset($this->Auth->authenticate['Form']['passwordHasher']); // use default password hasher
+                    $this->Auth->constructAuthenticate();
+                }
+                // user has TOTP token, check creds and redirect to TOTP validation
+                if ($unauth_user['User']['totp'] && !$unauth_user['User']['disabled'] && class_exists('\OTPHP\TOTP')) {
+                    $user = $this->Auth->identify($this->request, $this->response);
+                    if ($user && !$user['disabled']) {
+                        $this->Session->write('totp_user', $user);
+                        return $this->redirect('totp');
+                    }
+                }
             }
         }
+        // if instance requires email OTP 
         if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
             $user = $this->Auth->identify($this->request, $this->response);
             if ($user && !$user['disabled']) {
@@ -1748,6 +1760,31 @@ class UsersController extends AppController
         }
     }
 
+    public function totp()
+    {
+        $user = $this->Session->read('totp_user');
+        if (empty($user)) {
+            $this->redirect('login');
+        }
+        if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
+            $secret = $user['totp'];
+            $otp = \OTPHP\TOTP::create($secret);
+            $otp_now = $otp->now();
+            if (trim($this->request->data['User']['otp']) == $otp_now) {
+                // we invalidate the previously generated OTP
+                // We login the user with CakePHP
+                $this->Auth->login($user);
+                $this->_postlogin();
+            } else {
+                $this->Flash->error(__("The OTP is incorrect or has expired"));
+                // FIXME chri - log error that OTP was wrong
+            }
+        } else {
+            // GET Request, just show the form
+        }
+
+    }
+
     public function email_otp()
     {
         $user = $this->Session->read('email_otp_user');
@@ -1767,6 +1804,7 @@ class UsersController extends AppController
                 $this->_postlogin();
             } else {
                 $this->Flash->error(__("The OTP is incorrect or has expired"));
+                // FIXME chri - log error that OTP was wrong.
             }
         } else {
             // GET Request

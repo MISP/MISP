@@ -310,7 +310,7 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
-            $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401');
+            $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401', 'totp');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
                 $preAuthActions[] = 'email_otp';
             }
