@@ -76,16 +76,16 @@ class TrendingAttributesWidget
         if (is_string($time_window) && substr($time_window, -1) === 'd') {
             $time_window = ((int)substr($time_window, 0, -1)) * 24 * 60 * 60;
         }
-        $conditions = $time_window === -1 ? [] : ['timestamp >=' => time() - $time_window];
-        $conditions['deleted'] = 0;
+        $conditions = $time_window === -1 ? [] : ['Attribute.timestamp >=' => time() - $time_window];
+        $conditions['Attribute.deleted'] = 0;
         $conditionsToParse = ['type', 'category', 'to_ids'];
         foreach ($conditionsToParse as $parsedCondition) {
             if (!empty($options[$parsedCondition])) {
-                $conditions[$parsedCondition] = $options[$parsedCondition];
+                $conditions['Attribute.' . $parsedCondition] = $options[$parsedCondition];
             }
         }
         if (!empty($options['exclude'])) {
-            $conditions['value1 NOT IN'] = $options['exclude'];
+            $conditions['Attribute.value1 NOT IN'] = $options['exclude'];
         }
         if (!empty($options['org_filter'])) {
             $conditions['Event.orgc_id IN'] = $this->getOrgList($options);
@@ -97,8 +97,8 @@ class TrendingAttributesWidget
         if (!empty($user['Role']['perm_site_admin'])) {
             $values = $attributeModel->find('all', [
                 'recursive' => -1,
-                'fields' => ['value1', 'count(Attribute.value1) as Attribute__frequency'],
-                'group' => ['value1'],
+                'fields' => ['Attribute.value1', 'count(Attribute.value1) as Attribute__frequency'],
+                'group' => ['Attributevalue1'],
                 'conditions' => $conditions,
                 'contain' => ['Event.orgc_id'],
                 'order' => 'count(Attribute.value1) desc',
@@ -113,8 +113,8 @@ class TrendingAttributesWidget
             ];
             $values = $attributeModel->find('all', [
                 'recursive' => -1,
-                'fields' => ['value1', 'count(Attribute.value1) as Attribute__frequency', 'distribution', 'sharing_group_id'],
-                'group' => 'value1',
+                'fields' => ['Attribute.value1', 'count(Attribute.value1) as Attribute__frequency', 'Attribute.distribution', 'Attribute.sharing_group_id'],
+                'group' => 'Attribute.value1',
                 'contain' => [
                     'Event.org_id',
                     'Event.distribution',
