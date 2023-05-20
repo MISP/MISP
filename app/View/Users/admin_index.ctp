@@ -140,6 +140,16 @@
                     ),
                     array(
                         'name' => '',
+                        'header_title' => __('TOTP'),
+                        'icon' => 'mobile',
+                        'element' => 'boolean',
+                        'sort' => 'User.totp',
+                        'class' => 'short',
+                        'data_path' => 'User.totp',
+                        'colors' => true,
+                    ),
+                    array(
+                        'name' => '',
                         'header_title' => __('Contact alert'),
                         'icon' => 'handshake',
                         'element' => 'boolean',

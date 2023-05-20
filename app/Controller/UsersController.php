@@ -67,6 +67,7 @@ class UsersController extends AppController
             $user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
             $user['User']['fingerprint'] = !empty($pgpDetails[4]) ? $pgpDetails[4] : 'N/A';
         }
+        // FIXME chri - show warning for TOTP if LinOTP is enabled
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
         } else {
@@ -88,6 +89,7 @@ class UsersController extends AppController
             unset($user['User']['authkey']);
         }
         $user['User']['password'] = '*****';
+        $user['User']['totp'] = '*****';
         $temp = [];
         $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
         foreach ($objectsToInclude as $objectToInclude) {
@@ -588,17 +590,7 @@ class UsersController extends AppController
             unset($user['User']['authkey']);
         }
         if ($this->_isRest()) {
-            $user['User']['password'] = '*****';
-            $temp = array();
-            foreach ($user['UserSetting'] as $v) {
-                $temp[$v['setting']] = $v['value'];
-            }
-            $user['UserSetting'] = $temp;
-            return $this->RestResponse->viewData(array(
-                'User' => $user['User'],
-                'Role' => $user['Role'],
-                'UserSetting' => $user['UserSetting']
-            ), $this->response->type());
+            return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
         }
         $this->set('user', $user);
 
@@ -1788,12 +1780,22 @@ class UsersController extends AppController
         }
     }
 
-    public function totp_new($id = null)
+    public function totp_new()
     {
-        // FIXME chri - reuse $id to load user if (org)site admin
-        $user = $this->Auth->user();
+        // only allow the users themselves to generate a TOTP secret.
+        // If TOTP is enforced they will be invited to generate it at first login
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $this->Auth->user('id')),
+            'fields' => array(
+                'totp', 'email', 'id'
+            )
+        ));
+        if (empty($user)) {
+            throw new NotFoundException(__('Invalid user'));
+        }
         // do not allow this page to be accessed if the current already has a TOTP. Just redirect to the users details page with a Flash->error()
-        if ($user['totp']) { 
+        if ($user['User']['totp']) { 
             $this->Flash->error(__("Your account already has an TOTP. Please contact your organisational administrator to change or delete it."));
             $this->redirect($this->referer());
         }
@@ -1810,7 +1812,7 @@ class UsersController extends AppController
             $otp_now = $otp->now();
             if (trim($this->request->data['User']['otp']) == $otp_now) {
                 // we know the user can generate TOTP tokens, save the new TOTP to the database
-                $this->User->id = $user['id'];
+                $this->User->id = $user['User']['id'];
                 $this->User->saveField('totp', $secret);
                 $this->Flash->info(__('The OTP is correct and now active for your account.'));
                 $this->redirect(array('controller' => 'events', 'action'=> 'index'));
@@ -1826,11 +1828,44 @@ class UsersController extends AppController
             new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
         );
         $writer = new \BaconQrCode\Writer($renderer);
-        $qrcode = $writer->writeString('otpauth://totp/' . Configure::read('MISP.org') . ' MISP (' . $user['email'] . ')?secret=' . $secret);
+        $qrcode = $writer->writeString('otpauth://totp/' . Configure::read('MISP.org') . ' MISP (' . $user['User']['email'] . ')?secret=' . $secret);
         $writer = preg_replace('/^.+\n/', '', $qrcode); // ignore first <?xml version line 
 
         $this->set('qrcode', $qrcode);
         $this->set('secret', $secret);
+    }
+
+    public function totp_delete($id) {
+        if ($this->request->is('post') || $this->request->is('delete')) {
+            $user = $this->User->find('first', array(
+                'conditions' => $this->__adminFetchConditions($id),
+                'recursive' => -1
+            ));
+            if (empty($user)) {
+                throw new NotFoundException(__('Invalid user'));
+            }
+            $this->User->id = $id;
+            if ($this->User->saveField('totp', null)) {
+                $fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'] . 'TOTP deleted';
+                $this->User->extralog($this->Auth->user(), "update", $fieldsDescrStr, '');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('User', 'admin_totp_delete', $id, $this->response->type(), 'User TOTP deleted.');
+                } else {
+                    $this->Flash->success(__('User TOTP deleted'));
+                    $this->redirect('/admin/users/index');
+                }
+            }
+            $this->Flash->error(__('User TOTP was not deleted'));
+            $this->redirect('/admin/users/index');
+        } else {
+            $this->set(
+                'question',
+                __('Are you sure you want to delete the TOTP of the user?.')
+            );
+            $this->set('title', __('Delete user TOTP'));
+            $this->set('actionName', 'Delete');
+            $this->render('/genericTemplates/confirm');
+        }
     }
 
     public function email_otp()

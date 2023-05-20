@@ -747,6 +747,7 @@ class ACLComponent extends Component
                 'email_otp' => array('*'),
                 'totp' => array('*'),
                 'totp_new' => array('*'),
+                'totp_delete' => array('perm_admin'),
                 'searchGpgKey' => array('*'),
                 'fetchGpgKey' => array('*'),
                 'histogram' => array('*'),
