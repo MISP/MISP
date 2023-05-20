@@ -67,7 +67,6 @@ class UsersController extends AppController
             $user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
             $user['User']['fingerprint'] = !empty($pgpDetails[4]) ? $pgpDetails[4] : 'N/A';
         }
-        // FIXME chri - show warning for TOTP if LinOTP is enabled
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
         } else {
@@ -1778,6 +1777,10 @@ class UsersController extends AppController
 
     public function totp_new()
     {
+        if (Configure::read('LinOTPAuth.enabled')) {
+            $this->Flash->error(__("LinOTP is enabled for this instance. Build-in TOTP should not be used."));
+            $this->redirect($this->referer());
+        }
         // only allow the users themselves to generate a TOTP secret.
         // If TOTP is enforced they will be invited to generate it at first login
         $user = $this->User->find('first', array(
