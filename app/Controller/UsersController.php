@@ -1199,10 +1199,6 @@ class UsersController extends AppController
                         return $this->redirect('totp');
                     }
                 }
-                // FIXME chri - implement a way for the user to login the first time when TOTP is required for all users,
-                // - redirect to TOTP generation page just after login (or any page requested)
-                // - for new account creations
-                // - for when the org admin wants to allow the user to generate a new TOTP
             }
         }
         // if instance requires email OTP 
@@ -1814,6 +1810,7 @@ class UsersController extends AppController
                 // we know the user can generate TOTP tokens, save the new TOTP to the database
                 $this->User->id = $user['User']['id'];
                 $this->User->saveField('totp', $secret);
+                $this->_refreshAuth();
                 $this->Flash->info(__('The OTP is correct and now active for your account.'));
                 $this->redirect(array('controller' => 'events', 'action'=> 'index'));
             } else {

@@ -2140,6 +2140,17 @@ class Server extends AppModel
         return true;
     }
 
+    public function totpBeforeHook($setting, $value)
+    {
+        if ($value && (!class_exists('\OTPHP\TOTP') || !class_exists('\BaconQrCode\Writer'))) {
+            return __('The TOTP and QR code generation libraries are not installed. Enabling OTP without those libraries installed would lock all users out.');
+        }
+        if ($value && Configure::read('LinOTPAuth.enabled')) {
+            return __('The TOTP and LinOTPAuth should not be used at the same time.');
+        }
+        return true;
+    }
+
     public function testForRPZSerial($value)
     {
         if ($this->testForEmpty($value) !== true) {
@@ -6364,6 +6375,15 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                 ],
+                'totp_required' => array(
+                    'level' => 2,
+                    'description' => __('Require authentication with TOTP. Users that do not have TOTP configured will be forced to create a token at first login. You cannot use it in combination with external authentication plugins.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'beforeHook' => 'totpBeforeHook',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'email_otp_enabled' => array(
                     'level' => 2,
                     'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),

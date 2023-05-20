@@ -605,6 +605,12 @@ class AppController extends Controller
             return true;
         }
 
+        // Check if user must create TOTP secret, force them to be on that page as long as needed.
+        if (!$user['totp'] && Configure::read('Security.totp_required') && !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login', 'totp_new']])) {  // TOTP is mandatory for users, prevent login until the user has configured their TOTP
+            $this->redirect(array('controller' => 'users', 'action' => 'totp_new', 'admin' => false));
+            return false;
+        }
+
         // Check if user accepted terms and conditions
         if (!$user['termsaccepted'] && !empty(Configure::read('MISP.terms_file')) && !$this->_isControllerAction(['users' => ['terms', 'logout', 'login', 'downloadTerms']])) {
             //if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
