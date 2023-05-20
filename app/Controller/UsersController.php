@@ -1768,7 +1768,8 @@ class UsersController extends AppController
                 $this->_postlogin();
             } else {
                 $this->Flash->error(__("The OTP is incorrect or has expired"));
-                // FIXME chri - log error that OTP was wrong
+                $fieldsDescrStr = 'User (' . $user['id'] . '): ' . $user['email']. ' wrong TOTP token';
+                $this->User->extralog($user, "login_fail", $fieldsDescrStr, '');
             }
         } else {
             // GET Request, just show the form
@@ -1815,6 +1816,8 @@ class UsersController extends AppController
                 $this->User->saveField('totp', $secret);
                 $this->_refreshAuth();
                 $this->Flash->info(__('The OTP is correct and now active for your account.'));
+                $fieldsDescrStr = 'User (' . $user['User']['id'] . '): ' . $user['User']['email']. ' TOTP token created';
+                $this->User->extralog($this->Auth->user(), "update", $fieldsDescrStr, '');
                 $this->redirect(array('controller' => 'events', 'action'=> 'index'));
             } else {
                 $this->Flash->error(__("The OTP is incorrect or has expired."));
@@ -1846,7 +1849,7 @@ class UsersController extends AppController
             }
             $this->User->id = $id;
             if ($this->User->saveField('totp', null)) {
-                $fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'] . 'TOTP deleted';
+                $fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'] . ' TOTP deleted';
                 $this->User->extralog($this->Auth->user(), "update", $fieldsDescrStr, '');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('User', 'admin_totp_delete', $id, $this->response->type(), 'User TOTP deleted.');
@@ -1887,7 +1890,8 @@ class UsersController extends AppController
                 $this->_postlogin();
             } else {
                 $this->Flash->error(__("The OTP is incorrect or has expired"));
-                // FIXME chri - log error that OTP was wrong.
+                $fieldsDescrStr = 'User (' . $user['id'] . '): ' . $user['email']. ' wrong email OTP token';
+                $this->User->extralog($user, "login_fail", $fieldsDescrStr, '');
             }
         } else {
             // GET Request
