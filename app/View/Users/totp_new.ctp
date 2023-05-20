@@ -1,19 +1,7 @@
 <?php echo $this->Flash->render(); ?>
-
-<div class="actions sideMenu">
-  <div style="padding: 10px;">
-    <p><?php echo __("Generate a new TOTP token to login. (Time-Based One-Time Password)");?></p>
-    <p><?php echo __("Please scan the following QR code with your TOTP application.");?></p>
-  </div>
-</div>
-
-<div>
 <?php
-// FIXME chri - make it visually attractive
-echo $qrcode;
-?>
-<p>Alternatively you can enter the following secret in your TOTP application: <pre><?php echo $secret; ?></pre>
-<?php
+$detailsHtml = __("To enable TOTP for your account, scan the following QR code with your TOTP application and validate the token.");;
+$secretHtml = __("Alternatively you can enter the following secret in your TOTP application: ") . "<pre>" . $secret . "</pre>";
 
 echo $this->element('/genericElements/Form/genericForm', array(
   "form" => $this->Form,
@@ -21,8 +9,23 @@ echo $this->element('/genericElements/Form/genericForm', array(
     "title" => __("Validate your One Time Password"),
     "fields" => array(
       array(
+        "type" => 'html',
+        "field" => "html",
+        "html" => $detailsHtml
+      ),
+      array(
+        "type" => 'html',
+        "field" => 'qrcode',
+        "html" => $qrcode
+      ),
+      array(
+        "type" => 'html',
+        "field" => "secret",
+        "html" => $secretHtml
+      ),
+      array(
         "field" => "otp",
-        "label" => __("One Time Password"),
+        "label" => __("One Time Password verification"),
         "type" => "text",
         "placeholder" => __("Enter your OTP code here"),
       )
