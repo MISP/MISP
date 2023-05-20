@@ -1782,6 +1782,10 @@ class UsersController extends AppController
             $this->Flash->error(__("LinOTP is enabled for this instance. Build-in TOTP should not be used."));
             $this->redirect($this->referer());
         }
+        if (!class_exists('\OTPHP\TOTP') || !class_exists('\BaconQrCode\Writer')) {
+            $this->Flash->error(__("The required PHP libraries to support TOTP are not installed. Please contact your administrator to address this."));
+            $this->redirect($this->referer());
+        }
         // only allow the users themselves to generate a TOTP secret.
         // If TOTP is enforced they will be invited to generate it at first login
         $user = $this->User->find('first', array(
