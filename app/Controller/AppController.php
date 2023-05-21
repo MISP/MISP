@@ -439,10 +439,7 @@ class AppController extends Controller
                         );
                         $this->Log->save($log);
                     }
-                    $storeAPITime = Configure::read('MISP.store_api_access_time');
-                    if (!empty($storeAPITime) && $storeAPITime) {
-                        $this->User->updateAPIAccessTime($user);
-                    }
+                    $this->User->updateAPIAccessTime($user);
                     $this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user);
                     $this->isApiAuthed = true;
