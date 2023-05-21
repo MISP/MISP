@@ -10,7 +10,7 @@
 # Copyright (C) 2023 Christophe Vandeplas
 
 import json
-
+import requests
 
 default_feed = '../../app/files/feed-metadata/defaults.json'
 
@@ -18,10 +18,20 @@ with open(default_feed) as feed_file:
     feedlist = json.load(feed_file)
 
 
+print("Checking feed availability.")
 items = []
 for feed in feedlist:
     output = "- [{}]({}) - {} - feed format: {}".format(feed['Feed']['name'], feed['Feed']['url'],feed['Feed']['provider'],feed['Feed']['source_format'])
     items.append(output)
+    # try to download the feed
+    headers = {"Range": "bytes=0-0"}
+    res = requests.get(feed['Feed']['url'], headers=headers)
+    if (res.status_code >= 200 and res.status_code < 300)\
+            or res.status_code == 403:
+        continue
+    else:
+        print(f'- Feed {feed["Feed"]["name"]} - returns {res.status_code}')
+
 
 items = sorted(items, key=lambda s: s.casefold())
 
