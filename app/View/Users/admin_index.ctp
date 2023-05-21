@@ -63,17 +63,22 @@
                         array(
                             'url' => $baseurl . '/admin/users/index',
                             'text' => __('All'),
-                            'active' => !isset($passedArgsArray['disabled']),
+                            'active' => !isset($passedArgsArray['disabled']) && !isset($passedArgsArray['inactive']),
                         ),
                         array(
                             'url' => $baseurl . '/admin/users/index/searchdisabled:0',
-                            'text' => __('Active'),
+                            'text' => __('Enabled'),
                             'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "0",
                         ),
                         array(
                             'url' => $baseurl . '/admin/users/index/searchdisabled:1',
                             'text' => __('Disabled'),
                             'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "1",
+                        ),
+                        array(
+                            'url' => $baseurl . '/admin/users/index/searchinactive:1',
+                            'text' => __('Inactive'),
+                            'active' => isset($passedArgsArray['inactive']) && $passedArgsArray['inactive'] === "1",
                         )
                     )
                 ),
