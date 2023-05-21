@@ -495,7 +495,6 @@ class AppController extends Controller
         if (!$userFromDb) {
             $message = __('Something went wrong. Your user account that you are authenticated with doesn\'t exist anymore.');
             if ($this->_isRest()) {
-                // TODO: Why not exception?
                 $response = $this->RestResponse->throwException(401, $message);
                 $response->send();
                 $this->_stop();

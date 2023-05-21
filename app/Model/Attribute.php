@@ -25,7 +25,7 @@ class Attribute extends AppModel
 {
     public $combinedKeys = array('event_id', 'category', 'type');
 
-    public $name = 'Attribute';             // TODO general
+    public $name = 'Attribute';
 
     public $actsAs = array(
         'AuditLog',
@@ -42,7 +42,7 @@ class Attribute extends AppModel
 
     public $virtualFields = array(
             'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
-    ); // TODO hardcoded
+    );
 
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
