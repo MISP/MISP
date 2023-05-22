@@ -55,7 +55,7 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
             hideYAxis: false,
         },
         max_datapoints: null,
-        margin: {top: 10, right: 20, bottom: 35, left: 40},
+        margin: {top: 10, right: 20, bottom: 35, left: 50},
         animation_short_duration: 100,
         redraw_timeout: 300, // used after resize
         enable_total: false

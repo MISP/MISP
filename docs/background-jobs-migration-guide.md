@@ -21,7 +21,8 @@ Run on your MISP instance the following commands.
     cd /var/www/MISP/app
     sudo -u www-data php composer.phar require --with-all-dependencies supervisorphp/supervisor:^4.0 \
         guzzlehttp/guzzle \
-        php-http/message  \
+        php-http/message \
+        php-http/message-factory \
         lstrojny/fxmlrpc
     ```
 
