@@ -416,6 +416,12 @@ class UsersController extends AppController
                             $this->paginate['conditions']['AND'][] = $test;
                         }
                     }
+                } elseif ("inactive" == $searchTerm) {
+                    if ($v == "1") {
+                        $this->paginate['conditions']['AND'][] = array('User.last_login <' =>  time() - 60*60*24*30);  // older than a month 
+                        $this->paginate['conditions']['AND'][] = array('User.current_login <' =>  time() - 60*60*24*30);  // older than a month 
+                        $this->paginate['conditions']['AND'][] = array('User.last_api_access <' =>  time() - 60*60*24*30);  // older than a month 
+                    }
                 }
                 $passedArgsArray[$searchTerm] = $v;
             }
@@ -493,7 +499,7 @@ class UsersController extends AppController
     public function admin_filterUserIndex()
     {
         $passedArgsArray = array();
-        $booleanFields = array('autoalert', 'contactalert', 'termsaccepted', 'disabled');
+        $booleanFields = array('autoalert', 'contactalert', 'termsaccepted', 'disabled', 'inactive');
         $textFields = array('role', 'email');
         if (empty(Configure::read('Security.advanced_authkeys'))) {
             $textFields[] = 'authkey';
