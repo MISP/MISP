@@ -21,6 +21,20 @@ FLUSH PRIVILEGES;
 QUIT;
 ```
 
+Update the `app_local.php` file found in /path/to/MISP/config/app_local.php
+
+```
+return [
+    ...
+    'Datasources' => [
+        ...
+        'test' => [
+            'username' => 'misp',
+            'password' => 'YOUR_MYSQL_MISP_USER_PASSWORD',
+            'database' => 'misp3_test'
+        ]
+```
+
 ```
 $ composer install
 $ composer test
