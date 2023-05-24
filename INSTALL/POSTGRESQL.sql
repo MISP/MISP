@@ -246,7 +246,6 @@ ALTER SEQUENCE public.auth_keys_id_seq OWNED BY public.auth_keys.id;
 --
 
 CREATE TABLE public.bruteforces (
-    id SERIAL PRIMARY KEY,
     ip character varying(255) NOT NULL,
     username character varying(255) NOT NULL,
     expire timestamp with time zone NOT NULL
