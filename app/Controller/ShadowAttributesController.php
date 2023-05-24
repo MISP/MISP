@@ -599,8 +599,8 @@ class ShadowAttributesController extends AppController
     // if any of these fields is set, it will create a proposal
     public function edit($id = null)
     {
-        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-            'contain' => array('Event' => array('fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'))),
+        $existingAttribute = $this->ShadowAttribute->Attribute->fetchAttributes($this->Auth->user(), array(
+            'contain' => ['Event' => ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid', 'Event.user_id']]],
             'conditions' => $this->__attributeIdToConditions($id),
             'flatten' => 1
         ));
@@ -675,9 +675,9 @@ class ShadowAttributesController extends AppController
                     $sa = $this->ShadowAttribute->find(
                             'first',
                             array(
-                                    'conditions' => array('ShadowAttribute.id' => $this->ShadowAttribute->id),
-                                    'recursive' => -1,
-                                    'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp', 'first_seen', 'last_seen')
+                                'conditions' => array('ShadowAttribute.id' => $this->ShadowAttribute->id),
+                                'recursive' => -1,
+                                'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp', 'first_seen', 'last_seen')
                             )
                     );
                     $this->set('ShadowAttribute', $sa['ShadowAttribute']);
