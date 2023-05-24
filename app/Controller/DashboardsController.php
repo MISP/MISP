@@ -88,22 +88,24 @@ class DashboardsController extends AppController
 
     public function getForm($action = 'edit')
     {
-        if ($this->request->is('post') || $this->request->is('put')) {
+        if ($this->request->is(['post', 'put'])) {
             $data = $this->request->data;
-            if ($action === 'edit' && !isset($data['widget'])) {
-                throw new InvalidArgumentException(__('No widget name passed.'));
-            }
             if (empty($data['config'])) {
                 $data['config'] = '';
             }
             if ($action === 'add') {
                 $data['widget_options'] = $this->Dashboard->loadAllWidgets($this->Auth->user());
-            } else {
+            } else if ($action === 'edit') {
+                if (!isset($data['widget'])) {
+                    throw new BadRequestException(__('No widget name passed.'));
+                }
                 $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $data['widget']);
                 $data['description'] = empty($dashboardWidget->description) ? '' : $dashboardWidget->description;
                 $data['params'] = empty($dashboardWidget->params) ? array() : $dashboardWidget->params;
                 $data['params'] = array_merge($data['params'], array('widget_config' => __('Configuration of the widget that will be passed to the render. Check the view for more information')));
                 $data['params'] = array_merge(array('alias' => __('Alias to use as the title of the widget')), $data['params']);
+            } else {
+                throw new BadRequestException(__('Invalid action provided, just add or edit is supported.'));
             }
             $this->set('data', $data);
             $this->layout = false;
