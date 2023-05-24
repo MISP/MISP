@@ -554,8 +554,21 @@ class AdminShell extends AppShell
     public function redisReady()
     {
         try {
-            RedisTool::init()->ping();
-            $this->out('Successfully connected to Redis.');
+            $redis = RedisTool::init();
+            for ($i = 0; $i < 10; $i++) {
+                $persistence = $redis->info('persistence');
+                if (isset($persistence['loading']) && $persistence['loading']) {
+                    $this->out('Redis is still loading...');
+                    sleep(1);
+                } else {
+                    break;
+                }
+            }
+            if ($i === 9) {
+                $this->out('Redis is still loading, but we will continue.');
+            } else {
+                $this->out('Successfully connected to Redis.');
+            }
         } catch (Exception $e) {
             $this->error('Redis connection is not available', $e->getMessage());
         }
