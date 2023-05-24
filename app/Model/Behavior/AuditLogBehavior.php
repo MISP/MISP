@@ -26,9 +26,10 @@ class AuditLogBehavior extends ModelBehavior
         'current_login' => true, // User
         'last_login' => true, // User
         'newsread' => true, // User
+        'unique_ips' => true, // User
         'proposal_email_lock' => true, // Event
         'enable_password' => true,
-        'confirm_password' => true
+        'confirm_password' => true,
     ];
 
     private $modelInfo = [
@@ -62,18 +63,18 @@ class AuditLogBehavior extends ModelBehavior
     {
         // Generate model info for attribute and proposals
         $attributeInfo = function (array $new, array $old) {
-            $category = isset($new['category']) ? $new['category'] : $old['category'];
-            $type = isset($new['type']) ? $new['type'] : $old['type'];
-            $value1 = trim(isset($new['value1']) ? $new['value1'] : $old['value1']);
-            $value2 = trim(isset($new['value2']) ? $new['value2'] : $old['value2']);
+            $category = $new['category'] ?? $old['category'];
+            $type = $new['type'] ?? $old['type'];
+            $value1 = trim($new['value1'] ?? $old['value1']);
+            $value2 = trim($new['value2'] ?? $old['value2']);
             $value = $value1 . (empty($value2) ? '' : '|' . $value2);
             return "$category/$type $value";
         };
         $this->modelInfo['Attribute'] = $attributeInfo;
         $this->modelInfo['ShadowAttribute'] = $attributeInfo;
         $this->modelInfo['AuthKey'] = function (array $new, array $old) {
-            $start = isset($new['authkey_start']) ? $new['authkey_start'] : $old['authkey_start'];
-            $end = isset($new['authkey_end']) ? $new['authkey_end'] : $old['authkey_end'];
+            $start = $new['authkey_start'] ?? $old['authkey_start'];
+            $end = $new['authkey_end'] ?? $old['authkey_end'];
             return "$start********************************$end";
         };
     }
@@ -171,7 +172,7 @@ class AuditLogBehavior extends ModelBehavior
         if (isset($this->modelInfo[$model->name])) {
             $modelTitleField = $this->modelInfo[$model->name];
             if (is_callable($modelTitleField)) {
-                $modelTitle = $modelTitleField($data, isset($this->beforeSave[$model->alias]) ? $this->beforeSave[$model->alias] : []);
+                $modelTitle = $modelTitleField($data, $this->beforeSave[$model->alias] ?? []);
             } else if (isset($data[$modelTitleField])) {
                 $modelTitle = $data[$modelTitleField];
             } else if ($this->beforeSave[$model->alias][$modelTitleField]) {
@@ -182,7 +183,7 @@ class AuditLogBehavior extends ModelBehavior
         $modelName = $model->name === 'MispObject' ? 'Object' : $model->name;
 
         if ($modelName === 'AttributeTag' || $modelName === 'EventTag') {
-            $isLocal = isset($data['local']) ? $data['local'] : false;
+            $isLocal = $data['local'] ?? false;
             $action = $isLocal ? AuditLog::ACTION_TAG_LOCAL : AuditLog::ACTION_TAG;
             $tagInfo = $this->getTagInfo($model, $data['tag_id']);
             if ($tagInfo) {
@@ -242,7 +243,7 @@ class AuditLogBehavior extends ModelBehavior
         if ($model->name === 'Event') {
             $eventId = $model->id;
         } else {
-            $eventId = isset($model->data[$model->alias]['event_id']) ? $model->data[$model->alias]['event_id'] : null;
+            $eventId = $model->data[$model->alias]['event_id'] ?? null;
         }
 
         $modelTitle = null;
@@ -260,7 +261,7 @@ class AuditLogBehavior extends ModelBehavior
         $id = $model->id;
 
         if ($modelName === 'AttributeTag' || $modelName === 'EventTag') {
-            $isLocal = isset($model->data[$model->alias]['local']) ? $model->data[$model->alias]['local'] : false;
+            $isLocal = $model->data[$model->alias]['local'] ?? false;
             $action = $isLocal ? AuditLog::ACTION_REMOVE_TAG_LOCAL : AuditLog::ACTION_REMOVE_TAG;
             $tagInfo = $this->getTagInfo($model, $model->data[$model->alias]['tag_id']);
             if ($tagInfo) {
