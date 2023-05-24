@@ -13,7 +13,7 @@ class AccessLogsController extends AppController
     public $paginate = [
         'recursive' => -1,
         'limit' => 60,
-        'fields' => ['id', 'created', 'user_id', 'org_id', 'authkey_id', 'ip', 'request_method', 'request_id', 'controller', 'action', 'url', 'response_code', 'memory_usage', 'duration', 'query_count'],
+        'fields' => ['id', 'created', 'user_id', 'org_id', 'authkey_id', 'ip', 'request_method', 'user_agent', 'request_id', 'controller', 'action', 'url', 'response_code', 'memory_usage', 'duration', 'query_count'],
         'contain' => [
             'User' => ['fields' => ['id', 'email', 'org_id']],
             'Organisation' => ['fields' => ['id', 'name', 'uuid']],
