@@ -24,7 +24,8 @@ $boolean = sprintf(
     $isTotp ? 'label label-success label-padding' : 'label label-important label-padding',
 $isTotp ? __('Yes') : __('No'));
 $totpHtml = $boolean;
-$totpHtml .= ($isTotp ? '' : $this->Html->link(__('Generate'), array('action' => 'totp_new', $user['User']['id'])));
+$totpHtml .= (!$isTotp && !$admin_view ? $this->Html->link(__('Generate'), array('action' => 'totp_new')) : '');
+$totpHtml .= ($isTotp && !$admin_view ? $this->Html->link(__('View paper tokens'), array('action' => 'hotp', $user['User']['id'])): '');
 $totpHtml .= ($admin_view && $isTotp ? ' ' . $this->Form->postLink(__('Delete'), array('action' => 'totp_delete', $user['User']['id'])) : '');
 
 

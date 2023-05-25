@@ -2,11 +2,13 @@
 
 <div class="actions sideMenu">
   <div style="padding: 10px;">
-    <p><?php echo __("Your account requires an TOTP token to login. (Time-Based One-Time Password)");?></p>
+    <p><?php echo __("Your account requires an OTP token to login. (One-Time Password)");?></p>
   </div>
 </div>
 
 <?php
+$label = __("Enter either your TOTP or paper based Single Use Token number ") . $hotp_counter;
+
 echo $this->element('/genericElements/Form/genericForm', array(
   "form" => $this->Form,
   "data" => array(
@@ -14,13 +16,13 @@ echo $this->element('/genericElements/Form/genericForm', array(
     "fields" => array(
       array(
         "field" => "otp",
-        "label" => __("One Time Password"),
+        "label" => $label,
         "type" => "text",
         "placeholder" => __("Enter your OTP here"),
-      ),
+      )
     ),
     "submit" => array (
-      "action" => "totp",
+      "action" => "otp",
     ),
 )));
 ?>

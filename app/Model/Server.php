@@ -2154,7 +2154,7 @@ class Server extends AppModel
         return true;
     }
 
-    public function otpBeforeHook($setting, $value)
+    public function email_otpBeforeHook($setting, $value)
     {
         if ($value && !empty(Configure::read('MISP.disable_emailing'))) {
             return __('Emailing is currently disabled. Enabling OTP without e-mailing being configured would lock all users out.');
@@ -2162,7 +2162,7 @@ class Server extends AppModel
         return true;
     }
 
-    public function totpBeforeHook($setting, $value)
+    public function otpBeforeHook($setting, $value)
     {
         if ($value && (!class_exists('\OTPHP\TOTP') || !class_exists('\BaconQrCode\Writer'))) {
             return __('The TOTP and QR code generation libraries are not installed. Enabling OTP without those libraries installed would lock all users out.');
@@ -6397,12 +6397,12 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                 ],
-                'totp_required' => array(
+                'otp_required' => array(
                     'level' => 2,
-                    'description' => __('Require authentication with TOTP. Users that do not have TOTP configured will be forced to create a token at first login. You cannot use it in combination with external authentication plugins.'),
+                    'description' => __('Require authentication with OTP. Users that do not have (T/H)OTP configured will be forced to create a token at first login. You cannot use it in combination with external authentication plugins.'),
                     'value' => false,
                     'test' => 'testBool',
-                    'beforeHook' => 'totpBeforeHook',
+                    'beforeHook' => 'otpBeforeHook',
                     'type' => 'boolean',
                     'null' => true
                 ),
@@ -6411,7 +6411,7 @@ class Server extends AppModel
                     'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),
                     'value' => false,
                     'test' => 'testBool',
-                    'beforeHook' => 'otpBeforeHook',
+                    'beforeHook' => 'email_otpBeforeHook',
                     'type' => 'boolean',
                     'null' => true
                 ),
