@@ -283,12 +283,12 @@
             <th><?= $this->LightPaginator->sort('user_id', __('User')) ?></th>
             <th><?= $this->LightPaginator->sort('ip', __('IP')) ?></th>
             <th><?= $this->LightPaginator->sort('org_id', __('Org')) ?></th>
-            <th><?= $this->LightPaginator->sort('request_method', __('Method')) ?></th>
+            <th><?= $this->LightPaginator->sort('request_method', __('Request')) ?></th>
             <th><?= $this->LightPaginator->sort('url', __('URL')) ?></th>
-            <th><?= $this->LightPaginator->sort('response_code', __('Code')) ?></th>
-            <th><?= $this->LightPaginator->sort('memory_usage', __('Memory')) ?></th>
-            <th><?= $this->LightPaginator->sort('duration', __('Duration')) ?></th>
-            <th><?= $this->LightPaginator->sort('query_count', __('Queries')) ?></th>
+            <th title="<?= __('HTTP response code') ?>"><?= $this->LightPaginator->sort('response_code', __('Code')) ?></th>
+            <th title="<?= __('Memory used during responding to request') ?>"><?= $this->LightPaginator->sort('memory_usage', __('Memory')) ?></th>
+            <th title="<?= __('Time used during responding to request') ?>"><?= $this->LightPaginator->sort('duration', __('Duration')) ?></th>
+            <th title="<?= __('SQL database query count') ?>"><?= $this->LightPaginator->sort('query_count', __('Queries')) ?></th>
         </tr>
         <?php foreach ($list as $item): ?>
             <tr>
@@ -314,7 +314,7 @@
                     ?>
                 </td>
                 <td class="short" data-search="request_method" data-search-value="<?= h($item['AccessLog']['request_method']) ?>">
-                    <?= h($item['AccessLog']['request_method']) ?>
+                    <span title="<?= __("User agent: %s\nRequest ID: %s", h($item['AccessLog']['user_agent']), h($item['AccessLog']['request_id'])) ?>"><?= h($item['AccessLog']['request_method']) ?></span>
                     <?= in_array($item['AccessLog']['request_method'], ['POST', 'PUT']) ? ' <a href="#" class="far fa-file request" title="' . __('Show HTTP request') . '" data-log-id="' . h($item['AccessLog']['id']) . '"></i>' : '' ?>
                 </td>
                 <td class="short" data-search="controller:action" data-search-value="<?= h($item['AccessLog']['controller']) . ':' . h($item['AccessLog']['action']) ?>" title="<?= __('Controller: %s, action: %s', h($item['AccessLog']['controller']), h($item['AccessLog']['action'])) ?>"><?= h($item['AccessLog']['url']) ?></td>
@@ -326,8 +326,6 @@
             </tr>
         <?php endforeach; ?>
     </table>
-    <p>
-    </p>
     <div class="pagination">
         <ul>
             <?= $paginator ?>

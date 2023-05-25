@@ -1,7 +1,6 @@
 <?php
     if (!empty($me)) {
         // New approach how to define menu requirements. It takes ACLs from ACLComponent.
-        // TODO: Use for every menu item
         $menu = array(
             array(
                 'type' => 'root',

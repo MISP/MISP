@@ -439,10 +439,7 @@ class AppController extends Controller
                         );
                         $this->Log->save($log);
                     }
-                    $storeAPITime = Configure::read('MISP.store_api_access_time');
-                    if (!empty($storeAPITime) && $storeAPITime) {
-                        $this->User->updateAPIAccessTime($user);
-                    }
+                    $this->User->updateAPIAccessTime($user);
                     $this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user);
                     $this->isApiAuthed = true;
@@ -495,7 +492,6 @@ class AppController extends Controller
         if (!$userFromDb) {
             $message = __('Something went wrong. Your user account that you are authenticated with doesn\'t exist anymore.');
             if ($this->_isRest()) {
-                // TODO: Why not exception?
                 $response = $this->RestResponse->throwException(401, $message);
                 $response->send();
                 $this->_stop();
