@@ -1764,6 +1764,11 @@ class UsersController extends AppController
             $this->redirect('login');
         }
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
+            $this->Bruteforce = ClassRegistry::init('Bruteforce');
+            if ($this->Bruteforce->isBlocklisted($user['email'])) {
+                $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
+                throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
+            }
             $secret = $user['totp'];
             $otp = \OTPHP\TOTP::create($secret);
             $otp_now = $otp->now();
@@ -1776,6 +1781,7 @@ class UsersController extends AppController
                 $this->Flash->error(__("The OTP is incorrect or has expired"));
                 $fieldsDescrStr = 'User (' . $user['id'] . '): ' . $user['email']. ' wrong TOTP token';
                 $this->User->extralog($user, "login_fail", $fieldsDescrStr, '');
+                $this->Bruteforce->insert($user['email']);
             }
         } else {
             // GET Request, just show the form
