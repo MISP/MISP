@@ -239,7 +239,7 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     </table>
 
     <h4><?= __('PHP Dependencies') ?></h4>
-    <p><?= _("Dependencies located in the Vendor folder. You can use composer to install them: 'php composer.phar help' ") ?></p>
+    <p><?= __("Dependencies located in the Vendor folder. You can use composer to install them: 'php composer.phar help' ") ?></p>
     <table class="table table-condensed table-bordered" style="width: 40vw">
         <thead>
             <tr>
