@@ -36,6 +36,7 @@ class Attribute extends AppModel
         'Trim',
         'Containable',
         'Regexp' => array('fields' => array('value')),
+        'LightPaginator'
     );
 
     public $displayField = 'value';
