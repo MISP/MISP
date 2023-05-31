@@ -1197,7 +1197,7 @@ class UsersController extends AppController
                     $this->Auth->constructAuthenticate();
                 }
                 // user has TOTP token, check creds and redirect to TOTP validation
-                if ($unauth_user['User']['totp'] && !$unauth_user['User']['disabled'] && class_exists('\OTPHP\TOTP')) {
+                if (!empty($unauth_user['User']['totp']) && !$unauth_user['User']['disabled'] && class_exists('\OTPHP\TOTP')) {
                     $user = $this->Auth->identify($this->request, $this->response);
                     if ($user && !$user['disabled']) {
                         $this->Session->write('otp_user', $user);
