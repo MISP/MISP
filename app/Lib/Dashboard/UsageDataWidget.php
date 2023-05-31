@@ -16,6 +16,7 @@ class UsageDataWidget
     private $Correlation = null;
     private $Thread = null;
     private $AuthKey = null;
+    private $redis = null;
     
     private $validFilterKeys = [
         'nationality',
@@ -41,8 +42,12 @@ class UsageDataWidget
         'Discussion posts'
     ];
 
-    public function handler($user, $options = array()){
+    public function handler($user, $options = array()) {
         $this->User = ClassRegistry::init('User');
+        $this->redis = $this->User->setupRedis();
+        if (!$this->redis) {
+            throw new NotFoundException(__('No redis connection found.'));
+        }
         $this->Event = ClassRegistry::init('Event');
         $this->Thread = ClassRegistry::init('Thread');
         $this->Correlation = ClassRegistry::init('Correlation');
@@ -203,11 +208,17 @@ class UsageDataWidget
         if (!empty($orgIdList)) {
             $conditions['AND'][] = ['Event.orgc_id IN' => $orgIdList];
         }
-        return $this->Event->Attribute->find('count', [
-            'conditions' => $conditions,
-            'contain' => ['Event'],
-            'recursive' => -1
-        ]);
+        $hash = hash('sha256', json_encode($orgIdList));
+        $count = $this->redis->get('misp:dashboard:attribute_count:' . $hash);
+        if (empty($count)) {
+            $count = $this->Event->Attribute->find('count', [
+                'conditions' => $conditions,
+                'contain' => ['Event'],
+                'recursive' => -1
+            ]);
+            $this->redis->setEx('misp:dashboard:attribute_count:' . $hash, 3600, $count);
+        }
+        return $count;
     }
 
     private function getAttributesCountMonth($orgConditions, $orgIdList, $thisMonth)
