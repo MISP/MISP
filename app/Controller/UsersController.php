@@ -1,5 +1,5 @@
 <?php
-App::uses('AppController', 'Controller');
+App::uses('AppController', 'Controller', 'OTPHP\TOTP');
 
 /**
  * @property User $User
@@ -29,7 +29,7 @@ class UsersController extends AppController
         parent::beforeFilter();
 
         // what pages are allowed for non-logged-in users
-        $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401');
+        $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401', 'otp');
         if(!empty(Configure::read('Security.email_otp_enabled'))) {
           $allowedActions[] = 'email_otp';
         }
@@ -88,6 +88,7 @@ class UsersController extends AppController
             unset($user['User']['authkey']);
         }
         $user['User']['password'] = '*****';
+        $user['User']['totp'] = '*****';
         $temp = [];
         $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
         foreach ($objectsToInclude as $objectToInclude) {
@@ -594,17 +595,7 @@ class UsersController extends AppController
             unset($user['User']['authkey']);
         }
         if ($this->_isRest()) {
-            $user['User']['password'] = '*****';
-            $temp = array();
-            foreach ($user['UserSetting'] as $v) {
-                $temp[$v['setting']] = $v['value'];
-            }
-            $user['UserSetting'] = $temp;
-            return $this->RestResponse->viewData(array(
-                'User' => $user['User'],
-                'Role' => $user['Role'],
-                'UserSetting' => $user['UserSetting']
-            ), $this->response->type());
+            return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
         }
         $this->set('user', $user);
 
@@ -1192,18 +1183,30 @@ class UsersController extends AppController
                     throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
                 }
             }
-            // Check the length of the user's authkey match old format. This can be removed in future.
-            $userPass = $this->User->find('first', [
+            $unauth_user = $this->User->find('first', [
                 'conditions' => ['User.email' => $this->request->data['User']['email']],
-                'fields' => ['User.password'],
+                'fields' => ['User.password', 'User.totp', 'User.hotp_counter'],
                 'recursive' => -1,
             ]);
-            if (!empty($userPass) && strlen($userPass['User']['password']) === 40) {
-                $oldHash = true;
-                unset($this->Auth->authenticate['Form']['passwordHasher']); // use default password hasher
-                $this->Auth->constructAuthenticate();
+            if ($unauth_user) {
+                // Check the length of the user's authkey match old format. This can be removed in future.
+                $userPass = $unauth_user['User']['password'];
+                if (!empty($userPass) && strlen($userPass) === 40) {
+                    $oldHash = true;
+                    unset($this->Auth->authenticate['Form']['passwordHasher']); // use default password hasher
+                    $this->Auth->constructAuthenticate();
+                }
+                // user has TOTP token, check creds and redirect to TOTP validation
+                if (!empty($unauth_user['User']['totp']) && !$unauth_user['User']['disabled'] && class_exists('\OTPHP\TOTP')) {
+                    $user = $this->Auth->identify($this->request, $this->response);
+                    if ($user && !$user['disabled']) {
+                        $this->Session->write('otp_user', $user);
+                        return $this->redirect('otp');
+                    }
+                }
             }
         }
+        // if instance requires email OTP 
         if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
             $user = $this->Auth->identify($this->request, $this->response);
             if ($user && !$user['disabled']) {
@@ -1754,6 +1757,167 @@ class UsersController extends AppController
         }
     }
 
+    public function otp()
+    {
+        $user = $this->Session->read('otp_user');
+        if (empty($user)) {
+            $this->redirect('login');
+        }
+        if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
+            $this->Bruteforce = ClassRegistry::init('Bruteforce');
+            if ($this->Bruteforce->isBlocklisted($user['email'])) {
+                $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
+                throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
+            }
+            $secret = $user['totp'];
+            $totp = \OTPHP\TOTP::create($secret);
+            $hotp = \OTPHP\HOTP::create($secret);
+            if ($totp->verify(trim($this->request->data['User']['otp']))) {
+                // OTP is correct, we login the user with CakePHP
+                $this->Auth->login($user);
+                $this->_postlogin();
+            } elseif (isset($user['hotp_counter']) && $hotp->verify(trim($this->request->data['User']['otp']), $user['hotp_counter'])) {
+                // HOTP is correct, update the counter and login
+                $this->User->id = $user['id'];
+                $this->User->saveField('hotp_counter', $user['hotp_counter']+1);
+                $this->Auth->login($user);
+                $this->_postlogin();
+            } else {
+                $this->Flash->error(__("The OTP is incorrect or has expired"));
+                $fieldsDescrStr = 'User (' . $user['id'] . '): ' . $user['email']. ' wrong OTP token';
+                $this->User->extralog($user, "login_fail", $fieldsDescrStr, '');
+                $this->Bruteforce->insert($user['email']);
+            }
+        }
+        // GET Request or wrong OTP, just show the form
+        $this->set('totp', $user['totp']? true : false);
+        $this->set('hotp_counter', $user['hotp_counter']);
+    }
+
+    public function hotp()
+    {
+        if (!class_exists('\OTPHP\HOTP')) {
+            $this->Flash->error(__("The required PHP libraries to support OTP are not installed. Please contact your administrator to address this."));
+            $this->redirect($this->referer());
+        }
+
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $this->Auth->user('id')),
+            'fields' => array(
+                'totp', 'email', 'id', 'hotp_counter'
+            )
+        ));
+        $hotp = \OTPHP\HOTP::create($user['User']['totp'], $user['User']['hotp_counter']);
+        $hotp_codes = [];
+        for ($i=$user['User']['hotp_counter']; $i < $user['User']['hotp_counter']+50 ; $i++) {
+            $hotp_codes[$i] = $hotp->at($i);
+        }
+        $this->set('hotp_codes', $hotp_codes);
+    }
+
+    public function totp_new()
+    {
+        if (Configure::read('LinOTPAuth.enabled')) {
+            $this->Flash->error(__("LinOTP is enabled for this instance. Build-in TOTP should not be used."));
+            $this->redirect($this->referer());
+        }
+        if (!class_exists('\OTPHP\TOTP') || !class_exists('\BaconQrCode\Writer')) {
+            $this->Flash->error(__("The required PHP libraries to support TOTP are not installed. Please contact your administrator to address this."));
+            $this->redirect($this->referer());
+        }
+        // only allow the users themselves to generate a TOTP secret.
+        // If TOTP is enforced they will be invited to generate it at first login
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $this->Auth->user('id')),
+            'fields' => array(
+                'totp', 'email', 'id'
+            )
+        ));
+        if (empty($user)) {
+            throw new NotFoundException(__('Invalid user'));
+        }
+        // do not allow this page to be accessed if the current already has a TOTP. Just redirect to the users details page with a Flash->error()
+        if ($user['User']['totp']) { 
+            $this->Flash->error(__("Your account already has an TOTP. Please contact your organisational administrator to change or delete it."));
+            $this->redirect($this->referer());
+        }
+
+        $secret = $this->Session->read('otp_secret');  // Reload secret from session.
+        if ($secret) {
+            $totp = \OTPHP\TOTP::create($secret);
+        } else {
+            $totp = \OTPHP\TOTP::create();
+            $secret = $totp->getSecret();
+            $this->Session->write('otp_secret', $secret);  // Store in session, this is to keep the same QR code even if the page refreshes.
+        }
+        if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
+            if ($totp->verify(trim($this->request->data['User']['otp']))) {
+                // we know the user can generate TOTP tokens, save the new TOTP to the database
+                $this->User->id = $user['User']['id'];
+                $this->User->saveField('totp', $secret);
+                $this->User->saveField('hotp_counter', 0);
+                $this->_refreshAuth();    
+                $this->Flash->info(__('The OTP is correct and now active for your account.'));
+                $fieldsDescrStr = 'User (' . $user['User']['id'] . '): ' . $user['User']['email']. ' TOTP token created';
+                $this->User->extralog($this->Auth->user(), "update", $fieldsDescrStr, '');
+                // redirect to a page that gives the next 50 HOTP
+                $this->redirect(array('controller' => 'users', 'action'=> 'hotp'));
+            } else {
+                $this->Flash->error(__("The OTP is incorrect or has expired."));
+            }
+        } else {
+            // GET Request, just show the form
+        }
+        // generate QR code with the secret
+        $renderer = new \BaconQrCode\Renderer\ImageRenderer(
+            new \BaconQrCode\Renderer\RendererStyle\RendererStyle(200),
+            new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+        );
+        $writer = new \BaconQrCode\Writer($renderer);
+        $totp->setLabel($user['User']['email']);
+        $totp->setIssuer(Configure::read('MISP.org') . ' MISP');
+        $qrcode = $writer->writeString($totp->getProvisioningUri());
+        $qrcode = preg_replace('/^.+\n/', '', $qrcode); // ignore first <?xml version line 
+
+        $this->set('qrcode', $qrcode);
+        $this->set('secret', $secret);
+    }
+
+    public function totp_delete($id) {
+        if ($this->request->is('post') || $this->request->is('delete')) {
+            $user = $this->User->find('first', array(
+                'conditions' => $this->__adminFetchConditions($id),
+                'recursive' => -1
+            ));
+            if (empty($user)) {
+                throw new NotFoundException(__('Invalid user'));
+            }
+            $this->User->id = $id;
+            if ($this->User->saveField('totp', null)) {
+                $fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'] . ' TOTP deleted';
+                $this->User->extralog($this->Auth->user(), "update", $fieldsDescrStr, '');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('User', 'admin_totp_delete', $id, $this->response->type(), 'User TOTP deleted.');
+                } else {
+                    $this->Flash->success(__('User TOTP deleted'));
+                    $this->redirect('/admin/users/index');
+                }
+            }
+            $this->Flash->error(__('User TOTP was not deleted'));
+            $this->redirect('/admin/users/index');
+        } else {
+            $this->set(
+                'question',
+                __('Are you sure you want to delete the TOTP of the user?.')
+            );
+            $this->set('title', __('Delete user TOTP'));
+            $this->set('actionName', 'Delete');
+            $this->render('/genericTemplates/confirm');
+        }
+    }
+
     public function email_otp()
     {
         $user = $this->Session->read('email_otp_user');
@@ -1773,6 +1937,8 @@ class UsersController extends AppController
                 $this->_postlogin();
             } else {
                 $this->Flash->error(__("The OTP is incorrect or has expired"));
+                $fieldsDescrStr = 'User (' . $user['id'] . '): ' . $user['email']. ' wrong email OTP token';
+                $this->User->extralog($user, "login_fail", $fieldsDescrStr, '');
             }
         } else {
             // GET Request
