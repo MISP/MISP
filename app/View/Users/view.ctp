@@ -26,9 +26,15 @@ $isTotp ? __('Yes') : __('No'));
 $totpHtml = $boolean;
 $totpHtml .= (!$isTotp && !$admin_view ? $this->Html->link(__('Generate'), array('action' => 'totp_new')) : '');
 $totpHtml .= ($isTotp && !$admin_view ? $this->Html->link(__('View paper tokens'), array('action' => 'hotp', $user['User']['id'])): '');
-$totpHtml .= ($admin_view && $isTotp ? ' ' . $this->Form->postLink(__('Delete'), array('action' => 'totp_delete', $user['User']['id'])) : '');
 
-
+if ($admin_view && $isSiteAdmin && $isTotp) {
+    $totpHtml .= sprintf(
+        '<a href="#" onClick="openGenericModal(\'%s/users/totp_delete/%s\')">%s</a>',
+        h($baseurl),
+        h($user['User']['id']),
+        __('Delete')
+    );
+}
     $table_data = [
         array('key' => __('ID'), 'value' => $user['User']['id']),
         array(
