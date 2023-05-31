@@ -3660,10 +3660,8 @@ class AppModel extends Model
             \Sentry\captureException(new Exception($message, $type, $exception));
         }
 
-        $message .= "\n";
-
         do {
-            $message .= sprintf("[%s] %s", get_class($exception), $exception->getMessage());
+            $message .= sprintf("\n[%s] %s", get_class($exception), $exception->getMessage());
             $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
             $exception = $exception->getPrevious();
         } while ($exception !== null);
