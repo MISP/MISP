@@ -19,8 +19,10 @@ class OrganisationMapWidget
     ];
     public $placeholder =
 '{
-    "type": "Member",
-    "local": [0,1]
+    "filter": {
+        "type": "Member",
+        "local": [0,1]
+    }
 }';
     private $Organisation = null;
 
@@ -63,6 +65,7 @@ class OrganisationMapWidget
         'Cuba' => 'CU',
         'Cyprus' => 'CY',
         'Czech Rep.' => 'CZ',
+        'Czech Republic' => 'CZ',
         'Côte d\'Ivoire' => 'CI',
         'Dem. Rep. Congo' => 'CD',
         'Dem. Rep. Korea' => 'KP',
@@ -101,6 +104,7 @@ class OrganisationMapWidget
         'Iran' => 'IR',
         'Iraq' => 'IQ',
         'Ireland' => 'IE',
+        'Ireland {Republic}' => 'IE',
         'Israel' => 'IL',
         'Italy' => 'IT',
         'Jamaica' => 'JM',
@@ -125,6 +129,7 @@ class OrganisationMapWidget
         'Malawi' => 'MW',
         'Malaysia' => 'MY',
         'Mali' => 'ML',
+        'Malta' => 'MT',
         'Mauritania' => 'MR',
         'Mexico' => 'MX',
         'Moldova' => 'MD',
