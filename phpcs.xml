@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="PHP_CodeSniffer"
+    xsi:noNamespaceSchemaLocation="phpcs.xsd">
+    <description>The coding standard for PHP_CodeSniffer itself.</description>
+
+    <file>index.php</file>
+    <file>src</file>
+    <file>templates</file>
+    <file>tests</file>
+    <file>libraries</file>
+
+    <arg name="basepath" value="." />
+    <arg name="colors" />
+    <arg name="parallel" value="75" />
+    <arg value="np" />
+
+    <!-- Don't hide tokenizer exceptions -->
+    <rule ref="Internal.Tokenizer.Exception">
+        <type>error</type>
+    </rule>
+
+    <!-- Include some sniffs from other standards that don't conflict with PEAR -->
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax" />
+    <rule ref="Generic.PHP.DeprecatedFunctions" />
+    <rule ref="Generic.Strings.UnnecessaryStringConcat" />
+    <rule ref="Generic.WhiteSpace.IncrementDecrementSpacing" />
+    <rule ref="PSR2.Classes.PropertyDeclaration" />
+    <rule ref="PSR2.Methods.MethodDeclaration" />
+    <rule ref="PSR2.Files.EndFileNewline" />
+    <rule ref="PSR12.Files.OpenTag" />
+    <rule ref="Zend.Files.ClosingTag" />
+
+    <!-- Only one argument per line in multi-line function calls -->
+    <rule ref="PEAR.Functions.FunctionCallSignature">
+        <properties>
+            <property name="allowMultipleArguments" value="false" />
+        </properties>
+    </rule>
+
+    <rule ref="Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps">
+        <severity>0</severity>
+    </rule>
+
+    <!-- Ban some functions -->
+    <rule ref="Generic.PHP.ForbiddenFunctions">
+        <properties>
+            <property name="forbiddenFunctions" type="array">
+                <element key="sizeof" value="count" />
+                <element key="delete" value="unset" />
+                <element key="print" value="echo" />
+                <element key="is_null" value="null" />
+                <element key="create_function" value="null" />
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Private methods MUST not be prefixed with an underscore -->
+    <rule ref="PSR2.Methods.MethodDeclaration.Underscore">
+        <type>error</type>
+    </rule>
+
+    <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes">
+        <severity>0</severity>
+    </rule>
+</ruleset>
