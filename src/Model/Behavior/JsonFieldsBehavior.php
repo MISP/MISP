@@ -30,13 +30,18 @@ class JsonFieldsBehavior extends Behavior
     {
         $config = $this->getConfig();
 
-        $query->formatResults(function (CollectionInterface $results) use ($config) {
-            return $results->map(function ($row) use ($config) {
-                foreach ($config['fields'] as $field) {
-                    $row[$field] = JsonTool::decode($row[$field]);
-                }
-                return $row;
-            });
-        }, $query::APPEND);
+        $query->formatResults(
+            function (CollectionInterface $results) use ($config) {
+                return $results->map(
+                    function ($row) use ($config) {
+                        foreach ($config['fields'] as $field) {
+                            $row[$field] = JsonTool::decode($row[$field]);
+                        }
+                        return $row;
+                    }
+                );
+            },
+            $query::APPEND
+        );
     }
 }
