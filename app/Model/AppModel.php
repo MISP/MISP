@@ -2365,7 +2365,7 @@ class AppModel extends Model
 				if ($this->isMysql()){
 	                $sqlArray[] = "UPDATE `over_correlating_values` SET `value` = LOWER(`value`) COLLATE utf8mb4_unicode_ci;";
 				} else {
-					$sqlArray[] = "DELETE FROM over_correlating_values o1 WHERE exists (select * from over_correlating_values o2 where (o1.value) = lower(o2.value) and o1.id != o2.id);"
+					$sqlArray[] = "DELETE FROM over_correlating_values o1 WHERE exists (select * from over_correlating_values o2 where (o1.value) = lower(o2.value) and o1.id != o2.id);";
 	                $sqlArray[] = "UPDATE over_correlating_values SET value = LOWER(value);";
 				}
                 break;
