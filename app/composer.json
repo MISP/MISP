@@ -11,7 +11,7 @@
         "ext-pcre": "*",
         "kamisama/cake-resque": "4.1.2",
         "pear/crypt_gpg": "1.6.7",
-        "monolog/monolog": "1.24.0"
+        "monolog/monolog": "2.9.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^8",
