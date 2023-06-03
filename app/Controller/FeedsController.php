@@ -311,6 +311,7 @@ class FeedsController extends AppController
         ];
         $this->set('allAttributeTypes', $allTypes['attribute']);
         $this->set('allObjectTypes', $allTypes['object']);
+        $this->set('supportedUrlparams', Feed::SUPPORTED_URL_PARAM_FILTERS);
         $this->set(compact('dropdownData'));
         $this->set('defaultPullRules', json_encode(Feed::DEFAULT_FEED_PULL_RULES));
         $this->set('menuData', array('menuList' => 'feeds', 'menuItem' => 'add'));

@@ -14,7 +14,7 @@ class Role extends AppModel
         'name' => array(
             'unique' => array(
                 'rule' => 'isUnique',
-                'message' => 'A role with this name already exists.' // TODO i18n?
+                'message' => 'A role with this name already exists.'
             ),
             'valueNotEmpty' => array(
                 'rule' => array('valueNotEmpty'),

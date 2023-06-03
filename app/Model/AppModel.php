@@ -84,7 +84,7 @@ class AppModel extends Model
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
-        105 => false, 106 => false, 107 => false, 108 => false,
+        105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1950,6 +1950,12 @@ class AppModel extends Model
             case 108:
                 $sqlArray[] = "ALTER TABLE `workflows` MODIFY `data` LONGTEXT;";
                 break;
+            case 109:
+                $sqlArray[] = "UPDATE `over_correlating_values` SET `value` = LOWER(`value`) COLLATE utf8mb4_unicode_ci;";
+            case 110:
+                $sqlArray[] = "ALTER TABLE `users` ADD `totp` varchar(255) DEFAULT NULL;";
+                $sqlArray[] = "ALTER TABLE `users` ADD `hotp_counter` int(11) DEFAULT NULL;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -3590,6 +3596,11 @@ class AppModel extends Model
      */
     protected function logException($message, Exception $exception, $type = LOG_ERR)
     {
+        // If Sentry is installed, send exception to Sentry
+        if (function_exists('\Sentry\captureException') && $type === LOG_ERR) {
+            \Sentry\captureException($exception);
+        }
+
         $message .= "\n";
 
         do {

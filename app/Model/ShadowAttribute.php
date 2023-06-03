@@ -17,7 +17,7 @@ class ShadowAttribute extends AppModel
 {
     public $combinedKeys = array('event_id', 'category', 'type');
 
-    public $name = 'ShadowAttribute';               // TODO general
+    public $name = 'ShadowAttribute';
 
     public $recursive = -1;
 
