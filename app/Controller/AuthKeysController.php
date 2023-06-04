@@ -130,20 +130,16 @@ class AuthKeysController extends AppController
             $user_id = $this->Auth->user('id');
         }
         $selectConditions = [];
-        if (!$this->_isSiteAdmin()) {
-            if ($this->_isAdmin()) {
-                if(!$this->__canCreateAuthKeyForUser($user_id)) {
-                    throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
-                }
+        if ($user_id) {
+            if ($this->__canCreateAuthKeyForUser($user_id)) {
                 $selectConditions['AND'][] = ['User.id' => $user_id];
                 $params['override']['user_id'] = $user_id;
             } else {
-                $selectConditions['AND'][] = ['User.id' => $this->Auth->user('id')];
-                $params['override']['user_id'] = $this->Auth->user('id');
+                throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
             }
-        } else if ($user_id) {
-            $selectConditions['AND'][] = ['User.id' => $user_id];
-            $params['override']['user_id'] = $user_id;
+        } else {
+            $selectConditions['AND'][] = ['User.id' => $this->Auth->user('id')];
+            $params['override']['user_id'] = $this->Auth->user('id');        
         }
         $this->CRUD->add($params);
         if ($this->IndexFilter->isRest()) {
