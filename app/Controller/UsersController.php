@@ -1083,7 +1083,8 @@ class UsersController extends AppController
         if ($this->request->is('post') || $this->request->is('delete')) {
             $user = $this->User->find('first', array(
                 'conditions' => $this->__adminFetchConditions($id),
-                'recursive' => -1
+                'recursive' => -1,
+                'contain' => array('Role')
             ));
             if (empty($user)) {
                 throw new NotFoundException(__('Invalid user'));
@@ -1123,6 +1124,7 @@ class UsersController extends AppController
                 'conditions' => $this->__adminFetchConditions($ids),
                 'recursive' => -1,
                 'fields' => ['id', $fieldName],
+                'contain' => array('Role')
             ]);
             if (empty($users)) {
                 throw new NotFoundException(__('Invalid users'));
@@ -1560,7 +1562,8 @@ class UsersController extends AppController
     {
         $user = $this->User->find('first', array(
             'conditions' => $this->__adminFetchConditions($user_id, $edit=False),
-            'recursive' => -1
+            'recursive' => -1,
+            'contain' => array('Role')
         ));
         $error = false;
         if (empty($user)) {
@@ -1724,7 +1727,8 @@ class UsersController extends AppController
     {
         $user = $this->User->find('first', array(
             'conditions' => $this->__adminFetchConditions($id),
-            'recursive' => -1
+            'recursive' => -1,
+            'contain' => array('Role')
         ));
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
@@ -1886,7 +1890,8 @@ class UsersController extends AppController
         if ($this->request->is('post') || $this->request->is('delete')) {
             $user = $this->User->find('first', array(
                 'conditions' => $this->__adminFetchConditions($id),
-                'recursive' => -1
+                'recursive' => -1,
+                'contain' => array('Role')
             ));
             if (empty($user)) {
                 throw new NotFoundException(__('Invalid user'));
