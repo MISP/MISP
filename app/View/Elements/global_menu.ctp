@@ -409,9 +409,8 @@
                     ),
                     array(
                         'html' => sprintf(
-                            '<span style="display: flex;"><span>%s</span><span class="label label-info" style="margin-left: auto;">%s</span></span>',
-                            __('Workflows'),
-                            __('new')
+                            '<span style="display: flex;"><span>%s</span></span>',
+                            __('Workflows')
                         ),
                         'url' => $baseurl . '/workflows/triggers',
                         'requirement' => $isSiteAdmin
@@ -446,9 +445,8 @@
                     ],
                     [
                         'html' => sprintf(
-                            '<span style="display: flex;"><span>%s</span><span class="label label-info" style="margin-left: auto;">%s</span></span>',
-                            __('Over-correlating values'),
-                            __('new')
+                            '<span style="display: flex;"><span>%s</span></span>',
+                            __('Over-correlating values')
                         ),
                         'url' => $baseurl . '/correlations/overCorrelations',
                         'requirement' => $isSiteAdmin
