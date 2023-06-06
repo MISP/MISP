@@ -24,6 +24,7 @@
         "fakerphp/faker": "^1.21",
         "josegonzalez/dotenv": "^3.2",
         "league/openapi-psr7-validator": "^0.17",
+        "phpstan/phpstan": "^1.10",
         "phpunit/phpunit": "^8.5",
         "psy/psysh": "@stable",
         "wiremock-php/wiremock-php": "^2.33"
