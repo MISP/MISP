@@ -17,6 +17,10 @@ class TaxiiServer extends AppModel
         'Containable'
     ];
 
+    private $Job = null;
+    private $Event = null;
+    private $Allowedlist = null;
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -53,12 +57,13 @@ class TaxiiServer extends AppModel
     public function push($id, $user, $jobId = null)
     {
         $this->Event = ClassRegistry::init('Event');
+        $this->Job = ClassRegistry::init('Job');
         $taxii_server = $this->find('first', [
             'recursive' => -1,
             'conditions' => ['TaxiiServer.id' => $id]
         ]);
         $filters = $this->__setPushFilters($taxii_server);
-
+        $elementCounter = 0;
         $eventid = $this->Event->filterEventIds($user, $filters, $elementCounter);
         $eventCount = count($eventid);
 
@@ -93,6 +98,7 @@ class TaxiiServer extends AppModel
         $result = $this->Allowedlist->removeAllowedlistedFromArray($result, false);
         $temporaryFolder = $this->temporaryFolder();
         $temporaryFolderPath = $temporaryFolder['dir']->path;
+        $this->Job->id = $jobId;
         foreach ($result as $event) {
             $temporaryFile = $this->temporaryFile($temporaryFolderPath);
             $temporaryFile->write(json_encode($event));
@@ -153,6 +159,7 @@ class TaxiiServer extends AppModel
         if (!empty($options['TaxiiServer']['api_key'])) {
             $request['header']['Authorization'] = 'basic ' . $options['TaxiiServer']['api_key'];
         }
+        file_put_contents('/var/www/MISP2/app/tmp/fuck.txt', $request['header']['Authorization']);
         try {
             if (!empty($options['type']) && $options['type'] === 'post') {
                 $response = $HttpSocket->post($url, json_encode($options['body']), $request);
