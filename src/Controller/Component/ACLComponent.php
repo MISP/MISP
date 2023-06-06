@@ -7,6 +7,7 @@ use App\Model\Entity\User;
 use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Http\Exception\ForbiddenException;
+use Cake\Http\Exception\InternalErrorException;
 use Cake\ORM\TableRegistry;
 use Cake\Core\Configure;
 use Cake\Core\Configure\Engine\PhpConfig;
@@ -33,7 +34,7 @@ class ACLComponent extends Component
     // $action == array('OR' => [])  -  any role in the array has access
     // $action == array('AND' => []) -  roles with all permissions in the array have access
     // If we add any new functionality to MISP and we don't add it to this list, it will only be visible to site admins.
-    private $aclList = array(
+    private $aclList = [
         '*' => [
             'checkPermission' => ['*'],
             'generateUUID' => ['*'],
@@ -261,7 +262,7 @@ class ACLComponent extends Component
             'delete' => [],
             'enableNoticelist' => [],
             'getToggleField' => [],
-            'index' => array('*'),
+            'index' => ['*'],
             'toggleEnable' => [],
             'update' => [],
             'view' => ['*'],
@@ -270,22 +271,22 @@ class ACLComponent extends Component
         'Api' => [
             'index' => ['*']
         ]
-    );
+    ];
 
     private function __checkLoggedActions($user, $controller, $action)
     {
-        $loggedActions = array(
-            'servers' => array(
-                'index' => array(
-                    'Role' => array(
-                        'NOT' => array(
+        $loggedActions = [
+            'servers' => [
+                'index' => [
+                    'Role' => [
+                        'NOT' => [
                             'perm_site_admin'
-                        )
-                    ),
+                        ]
+                    ],
                     'message' => __('This could be an indication of an attempted privilege escalation on older vulnerable versions of MISP (<2.4.115)')
-                )
-            )
-        );
+                ]
+            ]
+        ];
         foreach ($loggedActions as $k => $v) {
             $loggedActions[$k] = array_change_key_case($v);
         }
@@ -299,7 +300,7 @@ class ACLComponent extends Component
                 } else {
                     $role_req = $loggedActions[$controller][$action]['Role'];
                     if (empty($role_req['OR']) && empty($role_req['AND']) && empty($role_req['NOT'])) {
-                        $role_req = array('OR' => $role_req);
+                        $role_req = ['OR' => $role_req];
                     }
                     if (!empty($role_req['NOT'])) {
                         foreach ($role_req['NOT'] as $k => $v) {
@@ -329,7 +330,8 @@ class ACLComponent extends Component
                     if ($hit) {
                         $this->Log = TableRegistry::get('Log');
                         $this->Log->create();
-                        $this->Log->save(array(
+                        $this->Log->save(
+                            [
                             'org' => 'SYSTEM',
                             'model' => 'User',
                             'model_id' => $user['id'],
@@ -337,7 +339,8 @@ class ACLComponent extends Component
                             'action' => 'security',
                             'user_id' => $user['id'],
                             'title' => __('User triggered security alert by attempting to access /%s/%s. Reason why this endpoint is of interest: %s', $controller, $action, $message),
-                        ));
+                            ]
+                        );
                     }
                 }
             }
@@ -548,18 +551,21 @@ class ACLComponent extends Component
         $this->Role = TableRegistry::get('Roles');
         $conditions = [];
         if (is_numeric($content)) {
-            $conditions = array('id' => $content);
+            $conditions = ['id' => $content];
         }
-        $roles = $this->Role->find('all', array(
+        $roles = $this->Role->find(
+            'all',
+            [
             'recursive' => -1,
             'conditions' => $conditions
-        ));
+            ]
+        );
         if (empty($roles)) {
             throw new NotFoundException('Role not found.');
         }
         foreach ($roles as $role) {
             $urls = $this->__checkRoleAccess($role['Role']);
-            $results[$role['Role']['id']] = array('name' => $role['Role']['name'], 'urls' => $urls);
+            $results[$role['Role']['id']] = ['name' => $role['Role']['name'], 'urls' => $urls];
         }
         return $results;
     }
