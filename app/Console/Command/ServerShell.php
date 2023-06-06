@@ -807,7 +807,7 @@ class ServerShell extends AppShell
         }
         $this->Job->read(null, $jobId);
 
-        $result = $this->TaxiiServer->push($serverId, $technique, $jobId, $HttpSocket, $user);
+        $result = $this->TaxiiServer->push($serverId, $user, $jobId);
 
         if ($result !== true && !is_array($result)) {
             $message = 'Job failed. Reason: ' . $result;
