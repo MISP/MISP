@@ -14,7 +14,7 @@
         "cakephp/plugin-installer": "^1.2",
         "erusev/parsedown": "^1.7",
         "mobiledetect/mobiledetectlib": "^2.8",
-	"pear/crypt_gpg": "^1.6"
+        "pear/crypt_gpg": "^1.6"
     },
     "require-dev": {
         "cakephp/bake": "^2.0.3",
@@ -24,6 +24,7 @@
         "fakerphp/faker": "^1.21",
         "josegonzalez/dotenv": "^3.2",
         "league/openapi-psr7-validator": "^0.17",
+        "phpstan/phpstan": "^1.10",
         "phpunit/phpunit": "^8.5",
         "psy/psysh": "@stable",
         "wiremock-php/wiremock-php": "^2.33"
@@ -47,7 +48,10 @@
         }
     },
     "scripts": {
-        "post-install-cmd": "App\\Console\\Installer::postInstall",
+        "post-install-cmd": [
+            "App\\Console\\Installer::postInstall",
+            "bash scripts/pre-commit/install-pre-commit.sh"
+        ],
         "post-create-project-cmd": "App\\Console\\Installer::postInstall",
         "check": [
             "@test",

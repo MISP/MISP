@@ -52,7 +52,7 @@ class DataFromPathHelper extends Helper
                 $extractedVars[$i] = $varValue;
             }
             foreach ($extractedVars as $i => $value) {
-                $value = $options['highlight'] ? "<span class=\"fw-light\">${value}</span>" : $value;
+                $value = $options['highlight'] ? "<span class=\"fw-light\">$value</span>" : $value;
                 $str = str_replace(
                     "{{{$i}}}",
                     $value,
@@ -78,8 +78,9 @@ class DataFromPathHelper extends Helper
      * @param  array $options Allows to configure the behavior of the function
      * @return array The array containing the strings with their arguments replaced by their value
      */
-    public function buildStringsInArray(array $stringArray, $data=[], array $stringArrayArgs, array $options=[])
+    public function buildStringsInArray(array $stringArray, $data, array $stringArrayArgs, array $options=[])
     {
+        $data = is_array($data) ? $data : [];
         foreach ($stringArrayArgs as $stringName => $argsPath) {
             $theString = Hash::get($stringArray, $stringName);
             if (!is_null($theString)) {
