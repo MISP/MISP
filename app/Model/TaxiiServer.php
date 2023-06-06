@@ -159,7 +159,6 @@ class TaxiiServer extends AppModel
         if (!empty($options['TaxiiServer']['api_key'])) {
             $request['header']['Authorization'] = 'basic ' . $options['TaxiiServer']['api_key'];
         }
-        file_put_contents('/var/www/MISP2/app/tmp/fuck.txt', $request['header']['Authorization']);
         try {
             if (!empty($options['type']) && $options['type'] === 'post') {
                 $response = $HttpSocket->post($url, json_encode($options['body']), $request);
