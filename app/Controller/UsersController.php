@@ -572,7 +572,7 @@ class UsersController extends AppController
     {
         $user = $this->User->find('first', array(
             'recursive' => -1,
-            'conditions' => $this->__adminFetchConditions($id),
+            'conditions' => $this->__adminFetchConditions($id, $edit=False),
             'contain' => [
                 'UserSetting',
                 'Role',
@@ -851,9 +851,6 @@ class UsersController extends AppController
             // MISP automatically chooses the first available option for the user as the selected setting (usually user)
             // Org admin is downgraded to a user
             // Now we make an exception for the already assigned role, both in the form and the actual edit.
-            if (!empty($userToEdit['Role']['perm_site_admin'])) {
-                throw new NotFoundException(__('Invalid user'));
-            }
             $allowedRole = $userToEdit['User']['role_id'];
             $params = array('conditions' => array(
                     'OR' => array(
@@ -1086,7 +1083,8 @@ class UsersController extends AppController
         if ($this->request->is('post') || $this->request->is('delete')) {
             $user = $this->User->find('first', array(
                 'conditions' => $this->__adminFetchConditions($id),
-                'recursive' => -1
+                'recursive' => -1,
+                'contain' => array('Role')
             ));
             if (empty($user)) {
                 throw new NotFoundException(__('Invalid user'));
@@ -1126,6 +1124,7 @@ class UsersController extends AppController
                 'conditions' => $this->__adminFetchConditions($ids),
                 'recursive' => -1,
                 'fields' => ['id', $fieldName],
+                'contain' => array('Role')
             ]);
             if (empty($users)) {
                 throw new NotFoundException(__('Invalid users'));
@@ -1562,8 +1561,9 @@ class UsersController extends AppController
     public function admin_quickEmail($user_id)
     {
         $user = $this->User->find('first', array(
-            'conditions' => $this->__adminFetchConditions($user_id),
-            'recursive' => -1
+            'conditions' => $this->__adminFetchConditions($user_id, $edit=False),
+            'recursive' => -1,
+            'contain' => array('Role')
         ));
         $error = false;
         if (empty($user)) {
@@ -1727,7 +1727,8 @@ class UsersController extends AppController
     {
         $user = $this->User->find('first', array(
             'conditions' => $this->__adminFetchConditions($id),
-            'recursive' => -1
+            'recursive' => -1,
+            'contain' => array('Role')
         ));
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
@@ -1889,7 +1890,8 @@ class UsersController extends AppController
         if ($this->request->is('post') || $this->request->is('delete')) {
             $user = $this->User->find('first', array(
                 'conditions' => $this->__adminFetchConditions($id),
-                'recursive' => -1
+                'recursive' => -1,
+                'contain' => array('Role')
             ));
             if (empty($user)) {
                 throw new NotFoundException(__('Invalid user'));
@@ -3004,7 +3006,7 @@ class UsersController extends AppController
      * @return array
      * @throws NotFoundException
      */
-    private function __adminFetchConditions($id)
+    private function __adminFetchConditions($id, $edit = True)
     {
         if (empty($id)) {
             throw new NotFoundException(__('Invalid user'));
@@ -3014,6 +3016,9 @@ class UsersController extends AppController
         $user = $this->Auth->user();
         if (!$user['Role']['perm_site_admin']) {
             $conditions['User.org_id'] = $user['org_id']; // org admin
+            if ($edit) {
+                $conditions['Role.perm_site_admin'] = False;
+            }
         }
         return $conditions;
     }

@@ -99,6 +99,7 @@
                     ),
                     'icon' => 'edit',
                     'title' => 'Edit auth key',
+                    'requirement' => $canCreateAuthkey
                 ],
                 [
                     'class' => 'modal-open',
@@ -106,6 +107,7 @@
                     'url_params_data_paths' => ['AuthKey.id'],
                     'icon' => 'trash',
                     'title' => __('Delete auth key'),
+                    'requirement' => $canCreateAuthkey
                 ]
             ]
         ]
