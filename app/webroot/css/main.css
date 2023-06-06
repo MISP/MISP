@@ -2935,3 +2935,24 @@ Query builder
     padding-left: 3px;
     padding-right: 3px;
 }
+
+.special-tag {
+    animation: special-tag-color 4s infinite linear;
+}
+@keyframes special-tag-color {
+    0%, 100% {
+        background-color: #FFFFFF;
+    }
+    20% {
+        background-color: #339900;
+    }
+    40% {
+        background-color: #FFC000;
+    }
+    60% {
+        background-color: #CC0033;
+    }
+    80% {
+        background-color: #d208f4;
+    }
+}
