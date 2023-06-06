@@ -12,10 +12,10 @@ class CryptographicKeysController extends AppController
 {
     use LocatorAwareTrait;
 
-    public $paginate = array(
+    public $paginate = [
         'limit' => 60,
         'maxLimit' => 9999
-    );
+    ];
 
     public function add($type, $parent_id)
     {
@@ -24,7 +24,7 @@ class CryptographicKeysController extends AppController
         }
 
         if ($type === 'Event') {
-            $existingEvent = $this->CryptographicKey->Event->fetchSimpleEvent(
+            $existingEvent = $this->CryptographicKeys->Event->fetchSimpleEvent(
                 $this->Auth->user(),
                 $parent_id,
                 [
@@ -61,22 +61,27 @@ class CryptographicKeysController extends AppController
         $instanceKey = file_exists(APP . 'webroot/gpg.asc') ? FileAccessTool::readFromFile(APP . 'webroot/gpg.asc') : '';
 
         $this->set('instanceKey', $instanceKey);
-        $this->set('menuData', array('menuList' => 'cryptographic_keys', 'menuItem' => 'add_cryptographic_key'));
+        $this->set('menuData', ['menuList' => 'cryptographic_keys', 'menuItem' => 'add_cryptographic_key']);
     }
 
     public function delete($id)
     {
         $user = $this->ACL->getUser();
-        $this->CRUD->delete($id, [
+        $this->CRUD->delete(
+            $id,
+            [
             'beforeDelete' => function ($data) use ($user) {
                 $parent_type = $data['CryptographicKey']['parent_type'];
                 $tempModel = $this->fetchTable($parent_type);
-                $existingData = $tempModel->find('all', [
+                $existingData = $tempModel->find(
+                    'all',
+                    [
                     'conditions' => [
                         $parent_type . '.id' => $data['CryptographicKey']['parent_id']
                     ],
                     'recursive' => -1
-                ])->first();
+                    ]
+                )->first();
                 if ($parent_type === 'Event') {
                     if (!$user['Role']['perm_site_admin'] && $existingData['Event']['orgc_id'] !== $user['org_id']) {
                         return false;
@@ -84,7 +89,8 @@ class CryptographicKeysController extends AppController
                 }
                 return $data;
             }
-        ]);
+            ]
+        );
 
         if ($this->ParamHandler->isRest()) {
             return $this->restResponsePayload;
@@ -93,12 +99,14 @@ class CryptographicKeysController extends AppController
 
     public function view($id)
     {
-        $this->CryptographicKey = $this->fetchTable('CryptographicKeys');
-        $key = $this->CryptographicKey->find('all', [
+        $key = $this->CryptographicKeys->find(
+            'all',
+            [
             'recursive' => -1,
             'fields' => ['id', 'type', 'key_data', 'fingerprint'],
             'conditions' => ['id' => $id]
-        ])->first();
+            ]
+        )->first();
 
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($key);

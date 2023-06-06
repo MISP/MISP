@@ -257,6 +257,16 @@ class ACLComponent extends Component
             'admin_index' => ['perm_regexp_access'],
             'index' => ['*'],
         ],
+        'Noticelists' => [
+            'delete' => [],
+            'enableNoticelist' => [],
+            'getToggleField' => [],
+            'index' => array('*'),
+            'toggleEnable' => [],
+            'update' => [],
+            'view' => ['*'],
+            'preview_entries' => ['*']
+        ],
         'Api' => [
             'index' => ['*']
         ]
