@@ -3,25 +3,26 @@
 namespace App\Model\Table;
 
 use App\Model\Table\AppTable;
-use Cake\ORM\Table;
-use Cake\Validation\Validator;
-use Cake\ORM\RulesChecker;
-use Cake\ORM\TableRegistry;
-use Cake\Event\EventInterface;
-use Cake\Datasource\EntityInterface;
-use Cake\Http\Session;
-use Cake\Http\Client;
-use Cake\Utility\Security;
-use Cake\Core\Configure;
-use Cake\Utility\Text;
 use ArrayObject;
+use Cake\Core\Configure;
+use Cake\Datasource\EntityInterface;
+use Cake\Event\EventInterface;
+use Cake\Http\Exception\BadRequestException;
+use Cake\Http\Exception\NotFoundException;
+use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\ORM\RulesChecker;
+use Cake\Validation\Validator;
+use InvalidArgumentException;
 
 class UsersTable extends AppTable
 {
+    use LocatorAwareTrait;
 
     private const PERIODIC_USER_SETTING_KEY = 'periodic_notification_filters';
     public const PERIODIC_NOTIFICATIONS = ['notification_daily', 'notification_weekly', 'notification_monthly'];
-    
+
+    private $PermissionLimitations;
+
     public function initialize(array $config): void
     {
         parent::initialize($config);
@@ -96,7 +97,7 @@ class UsersTable extends AppTable
     private function checkPermissionRestrictions(EntityInterface $entity)
     {
         if (!isset($this->PermissionLimitations)) {
-            $this->PermissionLimitations = TableRegistry::get('PermissionLimitations');
+            $this->PermissionLimitations = $this->fetchTable('PermissionLimitations');
         }
         $permissions = $this->PermissionLimitations->getListOfLimitations($entity);
         foreach ($permissions as $permission_name => $permission) {
@@ -127,7 +128,7 @@ class UsersTable extends AppTable
 
                 if ($valueToCompareTo > $permission_data['limit']) {
                     return [
-                        $permission_name => 
+                        $permission_name =>
                         __(
                             '{0} limit exceeded.',
                             $scope
@@ -151,9 +152,11 @@ class UsersTable extends AppTable
         $validator
             ->setStopOnFailure()
             ->requirePresence(['password'], 'create')
-            ->add('password', [
+            ->add(
+                'password',
+                [
                 'password_complexity' => [
-                    'rule' => function($value, $context) {
+                    'rule' => function ($value, $context) {
                         if (!preg_match('/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/s', $value) || strlen($value) < 12) {
                             return false;
                         }
@@ -162,7 +165,7 @@ class UsersTable extends AppTable
                     'message' => __('Invalid password. Passwords have to be either 16 character long or 12 character long with 3/4 special groups.')
                 ],
                 'password_confirmation' => [
-                    'rule' => function($value, $context) {
+                    'rule' => function ($value, $context) {
                         if (isset($context['data']['confirm_password'])) {
                             if ($context['data']['confirm_password'] !== $value) {
                                 return false;
@@ -172,24 +175,32 @@ class UsersTable extends AppTable
                     },
                     'message' => __('Password confirmation missing or not matching the password.')
                 ]
-            ])
-            ->add('username', [
+                ]
+            )
+            ->add(
+                'username',
+                [
                 'username_policy' => [
-                    'rule' => function($value, $context) {
+                    'rule' => function ($value, $context) {
                         if (mb_strlen(trim($value)) < 5 || mb_strlen(trim($value)) > 50) {
                             return __('Invalid username length. Make sure that you provide a username of at least 5 and up to 50 characters in length.');
                         }
                         return true;
                     }
                 ]
-            ])
+                ]
+            )
             ->requirePresence(['username'], 'create')
             ->notEmptyString('username', __('Please fill this field'), 'create');
         if (Configure::read('user.username-must-be-email')) {
-            $validator->add('username', 'valid_email', [
+            $validator->add(
+                'username',
+                'valid_email',
+                [
                 'rule' => 'email',
                 'message' => 'Username has to be a valid e-mail address.'
-            ]);
+                ]
+            );
         }
         return $validator;
     }
@@ -243,5 +254,20 @@ class UsersTable extends AppTable
             // return $success;
         }
         return true;
+    }
+
+    /**
+     * Get the current user and rearrange it to be in the same format as in the auth component.
+     * @param int $id
+     * @param bool $full
+     * @return array|null
+     */
+    public function getAuthUser($id, $full = false)
+    {
+        if (empty($id)) {
+            throw new InvalidArgumentException('Invalid user ID.');
+        }
+        $conditions = ['User.id' => $id];
+        return $this->getAuthUserByConditions($conditions, $full);
     }
 }
