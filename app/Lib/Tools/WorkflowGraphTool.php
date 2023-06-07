@@ -307,8 +307,8 @@ class WorkflowRoamingData
 
     private function applyFilter(array $data, array $filteringOptions): array
     {
-        if (substr($filteringOptions['selector'], -3) === '.{n}') {
-            $filteringOptions['selector'] = substr($filteringOptions['selector'], 0, -3);
+        if (substr($filteringOptions['selector'], -4) === '.{n}') {
+            $filteringOptions['selector'] = substr($filteringOptions['selector'], 0, -4);
         }
         $baseModule = $this->getFilteringModule();
         $extracted = $baseModule->extractData($data, $filteringOptions['selector']);

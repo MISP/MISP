@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width">
     <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
-    <title><?= $title_for_layout, ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
+    <title><?= h($title_for_layout), ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
         $css = [
             ['bootstrap', ['preload' => true]],
