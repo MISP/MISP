@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -14,17 +15,14 @@ declare(strict_types=1);
  * @since     0.2.9
  * @license   https://opensource.org/licenses/mit-license.php MIT License
  */
+
 namespace App\Controller;
 
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
-use Cake\Core\Configure\Engine\PhpConfig;
 use Cake\Event\EventInterface;
-use Cake\Utility\Text;
-use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Exception\MethodNotAllowedException;
-use Cake\Http\Exception\ForbiddenException;
-use Cake\Error\Debugger;
+use Cake\Utility\Text;
 
 /**
  * Application Controller
@@ -59,29 +57,44 @@ class AppController extends Controller
         $this->loadComponent('Flash');
         $this->loadComponent('RestResponse');
         $this->loadComponent('Security');
-        $this->loadComponent('ParamHandler', [
+        $this->loadComponent(
+            'ParamHandler',
+            [
             'request' => $this->request
-        ]);
+            ]
+        );
         $this->loadModel('MetaFields');
         $this->loadModel('MetaTemplates');
         $table = $this->getTableLocator()->get($this->modelClass);
-        $this->loadComponent('CRUD', [
+        $this->loadComponent(
+            'CRUD',
+            [
             'request' => $this->request,
             'table' => $table,
             'MetaFields' => $this->MetaFields,
             'MetaTemplates' => $this->MetaTemplates
-        ]);
+            ]
+        );
         $this->loadComponent('Authentication.Authentication');
-        $this->loadComponent('ACL', [
+        $this->loadComponent(
+            'ACL',
+            [
             'request' => $this->request,
             'Authentication' => $this->Authentication
-        ]);
-        $this->loadComponent('Navigation', [
+            ]
+        );
+        $this->loadComponent(
+            'Navigation',
+            [
             'request' => $this->request,
-        ]);
-        $this->loadComponent('Notification', [
+            ]
+        );
+        $this->loadComponent(
+            'Notification',
+            [
             'request' => $this->request,
-        ]);
+            ]
+        );
         if (Configure::read('debug')) {
             Configure::write('DebugKit.panels', ['DebugKit.Packages' => true]);
             Configure::write('DebugKit.forceEnable', true);
@@ -105,9 +118,12 @@ class AppController extends Controller
         }
         $this->ACL->setPublicInterfaces();
         if (!empty($this->request->getAttribute('identity'))) {
-            $user = $this->Users->get($this->request->getAttribute('identity')->getIdentifier(), [
+            $user = $this->Users->get(
+                $this->request->getAttribute('identity')->getIdentifier(),
+                [
                 'contain' => ['Roles', /*'UserSettings',*/ 'Organisations']
-            ]);
+                ]
+            );
             if (!empty($user['disabled'])) {
                 $this->Authentication->logout();
                 $this->Flash->error(__('The user account is disabled.'));
@@ -140,7 +156,7 @@ class AppController extends Controller
         $this->ACL->checkAccess();
         $this->set('default_memory_limit', ini_get('memory_limit'));
         if (isset($user['Role']['memory_limit']) && $user['Role']['memory_limit'] !== '') {
-             ini_set('memory_limit', $user['Role']['memory_limit']);
+            ini_set('memory_limit', $user['Role']['memory_limit']);
         }
         $this->set('default_max_execution_time', ini_get('max_execution_time'));
         if (isset($user['Role']['max_execution_time']) && $user['Role']['max_execution_time'] !== '') {
@@ -186,25 +202,29 @@ class AppController extends Controller
             if (!empty($authKey)) {
                 $this->loadModel('Users');
                 $user = $this->Users->get($authKey['user_id']);
-                $logModel->insert([
+                $logModel->insert(
+                    [
                     'request_action' => 'login',
                     'model' => 'Users',
                     'model_id' => $user['id'],
                     'model_title' => $user['username'],
                     'changed' => []
-                ]);
+                    ]
+                );
                 if (!empty($user)) {
                     $this->Authentication->setIdentity($user);
                 }
             } else {
                 $user = $logModel->userInfo();
-                $logModel->insert([
+                $logModel->insert(
+                    [
                     'request_action' => 'login',
                     'model' => 'Users',
                     'model_id' => $user['id'],
                     'model_title' => $user['name'],
                     'changed' => []
-                ]);
+                    ]
+                );
             }
         }
     }
@@ -228,12 +248,18 @@ class AppController extends Controller
     /**
      * Convert an array to the same array but with the values also as index instead of an interface_exists
      */
-    protected function _arrayToValuesIndexArray(array $oldArray): array
+    protected function arrayToValuesIndexArray(array $oldArray): array
     {
-        $newArray = array();
+        $newArray = [];
         foreach ($oldArray as $value) {
             $newArray[$value] = $value;
         }
         return $newArray;
+    }
+
+    // checks if the currently logged user is a site administrator (an admin that can manage any user or event on the instance and create / edit the roles).
+    protected function isSiteAdmin()
+    {
+        return $this->ACLComponent->getUser()->Role->perm_site_admin;
     }
 }
