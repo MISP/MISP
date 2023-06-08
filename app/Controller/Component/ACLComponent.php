@@ -692,6 +692,8 @@ class ACLComponent extends Component
                 'edit' => ['perm_site_admin'],
                 'collectionsIndex' => ['perm_site_admin'],
                 'index' => ['perm_site_admin'],
+                'objectsIndex' => ['perm_site_admin'],
+                'objectView' => ['perm_site_admin'],
                 'delete' => ['perm_site_admin'],
                 'view' => ['perm_site_admin'],
                 'push' => ['perm_site_admin'],
