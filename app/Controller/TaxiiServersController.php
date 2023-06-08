@@ -204,7 +204,7 @@ class TaxiiServersController extends AppController
 
     }
 
-    public function ObjectsIndex($id, $collection_id, $next = null)
+    public function objectsIndex($id, $collection_id, $next = null)
     {
         $result = $this->TaxiiServer->getObjects($id, $collection_id, $next);
         if ($this->_isRest()) {
@@ -219,7 +219,7 @@ class TaxiiServersController extends AppController
         }
     }
 
-    public function ObjectView($server_id, $collection_id, $id)
+    public function objectView($server_id, $collection_id, $id)
     {
         $result = $this->TaxiiServer->getObject($id, $server_id, $collection_id);
         $result = json_encode($result, JSON_PRETTY_PRINT);
