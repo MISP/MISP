@@ -688,14 +688,15 @@ class ACLComponent extends Component
                 'normalizeCustomTagsToTaxonomyFormat' => [],
             ),
             'taxiiServers' => [
-                'add' => ['perm_admin'],
-                'edit' => ['perm_admin'],
-                'index' => ['perm_admin'],
-                'delete' => ['perm_admin'],
-                'view' => ['perm_admin'],
-                'push' => ['perm_admin'],
-                'getRoot' => ['perm_admin'],
-                'getCollections' => ['perm_admin']
+                'add' => ['perm_site_admin'],
+                'edit' => ['perm_site_admin'],
+                'collectionsIndex' => ['perm_site_admin'],
+                'index' => ['perm_site_admin'],
+                'delete' => ['perm_site_admin'],
+                'view' => ['perm_site_admin'],
+                'push' => ['perm_site_admin'],
+                'getRoot' => ['perm_site_admin'],
+                'getCollections' => ['perm_site_admin']
             ],
             'templateElements' => array(
                 'add' => array('perm_template'),
