@@ -1414,6 +1414,8 @@ class User extends AppModel
 
     /**
      * Updates `last_api_access` time in database.
+     * Always update when MISP.store_api_access_time is set.
+     * Only update every hour when it isn't set
      *
      * @param array $user
      * @return array|bool
@@ -1424,8 +1426,11 @@ class User extends AppModel
         if (!isset($user['id'])) {
             throw new InvalidArgumentException("Invalid user object provided.");
         }
-        $user['last_api_access'] = time();
-        return $this->save($user, true, array('id', 'last_api_access'));
+        $storeAPITime = Configure::read('MISP.store_api_access_time');
+        if ((!empty($storeAPITime) && $storeAPITime) || $user['last_api_access'] < time() - 60*60) {
+            $user['last_api_access'] = time();
+            return $this->save($user, true, array('id', 'last_api_access'));
+        }
     }
 
     /**

@@ -278,10 +278,9 @@ class Galaxy extends AppModel
     /**
      * Capture the Galaxy
      *
-     * @param $user
      * @param array $user
      * @param array $galaxy The galaxy to be captured
-     * @return array the captured galaxy
+     * @return array|false the captured galaxy or false on error
      */
     public function captureGalaxy(array $user, array $galaxy)
     {
@@ -312,21 +311,20 @@ class Galaxy extends AppModel
      * Import all clusters into the Galaxy they are shipped with, creating the galaxy if not existant.
      *
      * This function is meant to be used with manual import or push from remote instance
-     * @param $user
+     * @param array $user
      * @param array $clusters clusters to import
      * @return array The import result with errors if any
      */
-    public function importGalaxyAndClusters($user, array $clusters)
+    public function importGalaxyAndClusters(array $user, array $clusters)
     {
         $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
-        foreach ($clusters as $k => $cluster) {
-            $conditions = array();
+        foreach ($clusters as $cluster) {
             if (!empty($cluster['GalaxyCluster']['Galaxy'])) {
                 $existingGalaxy = $this->captureGalaxy($user, $cluster['GalaxyCluster']['Galaxy']);
             } elseif (!empty($cluster['GalaxyCluster']['type'])) {
                 $existingGalaxy = $this->find('first', array(
                     'recursive' => -1,
-                    'fields' => array('id', 'version'),
+                    'fields' => array('id'),
                     'conditions' => array('Galaxy.type' => $cluster['GalaxyCluster']['type']),
                 ));
                 if (empty($existingGalaxy)) { // We don't have enough info to create the galaxy

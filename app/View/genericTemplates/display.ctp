@@ -6,7 +6,7 @@
         <h3 id="genericModalLabel"><?= h($title) ?></h3>
     </div>
     <div class="modal-body modal-body-long">
-        <p><?= empty($html) ? '' : $html ?><?= empty($text) ? '' : h($text) ?></p>
+        <p><?= empty($html) ? '' : $html ?><?= empty($text) ? '' : h($text) ?><?= empty($json) ? '' : $this->element('genericElements/json', ['json' => $json]) ?></p>
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-secondary cancel-button" data-dismiss="modal"><?= __('Cancel') ?></button>

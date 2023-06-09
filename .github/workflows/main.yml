@@ -200,6 +200,9 @@ jobs:
       - name: Turn MISP live
         run: sudo -E su $USER -c 'app/Console/cake Live 1'
 
+      - name: Check if Redis is ready
+        run: sudo -E su $USER -c 'app/Console/cake Admin redisReady'
+
       - name: Start workers
         run: |
               sudo chmod +x app/Console/worker/start.sh

@@ -2,66 +2,70 @@
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
-        'title' => 'Cerebrate view',
+        'title' => 'Taxii Server view',
         'data' => $data,
         'fields' => [
             [
                 'key' => __('Id'),
-                'path' => 'Cerebrate.id'
+                'path' => 'TaxiiServer.id'
             ],
             [
                 'key' => __('Name'),
-                'path' => 'Cerebrate.name'
+                'path' => 'TaxiiServer.name'
             ],
             [
-                'key' => __('URL'),
-                'path' => 'Cerebrate.url',
-                'url' => '{{0}}',
-                'url_vars' => ['Cerebrate.url']
+                'key' => __('Owner'),
+                'path' => 'TaxiiServer.owner'
+            ],
+            [
+                'key' => __('Base URL'),
+                'path' => 'TaxiiServer.baseurl'
+            ],
+            [
+                'key' => __('API Root'),
+                'path' => 'TaxiiServer.api_root'
+            ],
+            [
+                'key' => __('Selected Collection'),
+                'path' => 'TaxiiServer.collection'
+            ],
+            [
+                'key' => __('Description'),
+                'path' => 'TaxiiServer.description'
+            ],
+            [
+                'key' => __('Filters'),
+                'path' => 'TaxiiServer.filters',
+                'type' => 'json'
             ],
             [
                 'key' => __('Owner Organisation'),
-                'path' => 'Cerebrate.org_id',
+                'path' => 'TaxiiServer.Cerebrate.org_id',
                 'pathName' => 'Organisation.name',
                 'type' => 'model',
                 'model' => 'organisations'
             ],
             [
-                'key' => __('Description'),
-                'path' => 'Cerebrate.description'
+                'key' => __('API key'),
+                'path' => 'TaxiiServer.api_key'
             ],
-        ],
-        'side_panels' => [
             [
-                'type' => 'logo',
-                'source' => '/img/cerebrate.png',
-                'url' => 'https://github.com/cerebrate-project/cerebrate',
-                'title' => __('The Cerebrate Project'),
-                'img' => [
-                    'css' => [
-                        'width' => '150px',
-                        'height' => '150px'
-                    ],
-                ],
-                'div' => [
-                    'css' => [
-                        'text-align' => 'right'
-                    ]
-                ]
-            ]
+                'key' => __('Description'),
+                'path' => 'TaxiiServer.Cerebrate.description'
+            ],
         ],
         'children' => [
             [
-                'url' => '/cerebrates/preview_orgs/{{0}}/',
-                'url_params' => ['Cerebrate.id'],
-                'title' => __('Organisations'),
-                'elementId' => 'preview_orgs_container'
+                'url' => '/taxii_servers/collectionsIndex/{{0}}/',
+                'url_params' => ['TaxiiServer.id'],
+                'title' => __('Collections'),
+                'elementId' => 'taxii_collections'
             ],
             [
-                'url' => '/cerebrates/preview_sharing_groups/{{0}}/',
-                'url_params' => ['Cerebrate.id'],
-                'title' => __('Sharing Groups'),
-                'elementId' => 'preview_sgs_container'
+                'url' => '/taxii_servers/objectsIndex/{{0}}/{{1}}/',
+                'url_params' => ['TaxiiServer.id', 'TaxiiServer.collection'],
+                'title' => __('Objects in selected Collection'),
+                'elementId' => 'taxii_objects'
             ],
         ]
     ]

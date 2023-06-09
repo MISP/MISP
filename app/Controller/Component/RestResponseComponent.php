@@ -626,8 +626,21 @@ class RestResponseComponent extends Component
                     }
                 }
 
-                $prettyPrint = !$this->isAutomaticTool(); // Do not pretty print response for automatic tools
-                $response = JsonTool::encode($response, $prettyPrint);
+                // If response is big array, encode items separately to save memory
+                if (is_array($response) && count($response) > 10000) {
+                    $output = new TmpFileTool();
+                    $output->write('[');
+
+                    foreach ($response as $item) {
+                        $output->writeWithSeparator(JsonTool::encode($item), ',');
+                    }
+
+                    $output->write(']');
+                    $response = $output;
+                } else {
+                    $prettyPrint = !$this->isAutomaticTool(); // Do not pretty print response for automatic tools
+                    $response = JsonTool::encode($response, $prettyPrint);
+                }
             } else {
                 if ($dumpSql) {
                     if ($dumpSql === 2) {

@@ -26,7 +26,7 @@ class ServersController extends AppController
                 'fields' => array('RemoteOrg.name', 'RemoteOrg.id'),
             ),
         ),
-        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
+        'maxLimit' => 9999,
         'order' => array(
             'Server.priority' => 'ASC'
         ),

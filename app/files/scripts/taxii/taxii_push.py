@@ -12,7 +12,7 @@ from base64 import b64decode
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
 
-_script_path = Path(__file__).resolve.parents[1]
+_script_path = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_script_path / 'misp-stix'))
 import misp_stix_converter
 

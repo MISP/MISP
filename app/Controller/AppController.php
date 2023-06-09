@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '150';
-    public $pyMispVersion = '2.4.171';
+    public $pyMispVersion = '2.4.172';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -310,7 +310,7 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
-            $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401');
+            $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401', 'otp');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
                 $preAuthActions[] = 'email_otp';
             }
@@ -439,10 +439,7 @@ class AppController extends Controller
                         );
                         $this->Log->save($log);
                     }
-                    $storeAPITime = Configure::read('MISP.store_api_access_time');
-                    if (!empty($storeAPITime) && $storeAPITime) {
-                        $this->User->updateAPIAccessTime($user);
-                    }
+                    $this->User->updateAPIAccessTime($user);
                     $this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user);
                     $this->isApiAuthed = true;
@@ -495,7 +492,6 @@ class AppController extends Controller
         if (!$userFromDb) {
             $message = __('Something went wrong. Your user account that you are authenticated with doesn\'t exist anymore.');
             if ($this->_isRest()) {
-                // TODO: Why not exception?
                 $response = $this->RestResponse->throwException(401, $message);
                 $response->send();
                 $this->_stop();
@@ -603,6 +599,12 @@ class AppController extends Controller
         // Next checks makes sense just for user direct HTTP request, so skip REST and AJAX calls
         if (!$isUserRequest) {
             return true;
+        }
+
+        // Check if user must create TOTP secret, force them to be on that page as long as needed.
+        if (empty($user['totp']) && Configure::read('Security.otp_required') && !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login', 'totp_new']])) {  // TOTP is mandatory for users, prevent login until the user has configured their TOTP
+            $this->redirect(array('controller' => 'users', 'action' => 'totp_new', 'admin' => false));
+            return false;
         }
 
         // Check if user accepted terms and conditions
