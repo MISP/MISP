@@ -524,6 +524,7 @@ class AdminShell extends AppShell
             $this->out('Executing all updates to bring the database up to date with the current version.');
             $processId = empty($this->args[0]) ? false : $this->args[0];
             $this->Server->runUpdates(true, false, $processId);
+            $this->Server->cleanCacheFiles();
             $this->out('All updates completed.');
         } else {
             $this->error('This OS user is not allowed to run this command.', 'Run it under `www-data` or `httpd` or `apache` or `wwwrun` or set MISP.osuser in the configuration.' . PHP_EOL . 'You tried to run this command as: ' . $whoami);
