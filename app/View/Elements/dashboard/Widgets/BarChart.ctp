@@ -15,10 +15,15 @@
             if (!empty($data['logarithmic'])) {
                 $value = $data['logarithmic'][$entry];
             }
+            $shortlabel = $entry;
+            if (mb_strlen($shortlabel) > 30) {
+                $shortlabel = mb_substr($shortlabel, 0, 30) . '...';
+            }
             echo sprintf(
-                '<tr><td style="%s">%s</td><td style="%s">%s</td></tr>',
-                'text-align:right;width:33%;white-space:nowrap;',
+                '<tr><td style="%s" title="%s">%s</td><td style="%s">%s</td></tr>',
+                'text-align:right;width:35em;white-space:nowrap;',
                 h($entry),
+                h($shortlabel),
                 'width:100%',
                 sprintf(
                     '<div title="%s" style="%s">%s%s</div>',

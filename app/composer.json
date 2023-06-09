@@ -11,7 +11,9 @@
         "ext-pcre": "*",
         "kamisama/cake-resque": "4.1.2",
         "pear/crypt_gpg": "1.6.7",
-        "monolog/monolog": "1.24.0"
+        "monolog/monolog": "1.24.0",
+        "spomky-labs/otphp": "^10.0",
+        "bacon/bacon-qr-code": "^2.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^8",
@@ -38,7 +40,9 @@
         "supervisorphp/supervisor": "For managing background jobs",
         "lstrojny/fxmlrpc": "Required for supervisorphp/supervisor XML-RPC requests",
         "guzzlehttp/guzzle": "Required for supervisorphp/supervisor XML-RPC requests",
-        "php-http/message": "Required for supervisorphp/supervisor XML-RPC requests"
+        "php-http/message": "Required for supervisorphp/supervisor XML-RPC requests",
+        "spomky-labs/otphp": "Required for strong authentication with TOTP",
+        "bacon/bacon-qr-code": "Required for strong authentication with TOTP"
     },
     "config": {
         "vendor-dir": "Vendor",

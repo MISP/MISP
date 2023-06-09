@@ -18,6 +18,23 @@ foreach ($notificationTypes as $notificationType => $description) {
 }
 $notificationsHtml .= '</table>';
 
+$isTotp = isset($user['User']['totp']) ? true : false;
+$boolean = sprintf(
+'<span class="%s">%s</span>',
+    $isTotp ? 'label label-success label-padding' : 'label label-important label-padding',
+$isTotp ? __('Yes') : __('No'));
+$totpHtml = $boolean;
+$totpHtml .= (!$isTotp && !$admin_view ? $this->Html->link(__('Generate'), array('action' => 'totp_new')) : '');
+$totpHtml .= ($isTotp && !$admin_view ? $this->Html->link(__('View paper tokens'), array('action' => 'hotp', $user['User']['id'])): '');
+
+if ($admin_view && $isSiteAdmin && $isTotp) {
+    $totpHtml .= sprintf(
+        '<a href="#" onClick="openGenericModal(\'%s/users/totp_delete/%s\')">%s</a>',
+        h($baseurl),
+        h($user['User']['id']),
+        __('Delete')
+    );
+}
     $table_data = [
         array('key' => __('ID'), 'value' => $user['User']['id']),
         array(
@@ -36,6 +53,11 @@ $notificationsHtml .= '</table>';
         array(
             'key' => __('Role'),
             'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])),
+        ),
+        // array('key' => __('TOTP'), 'boolean' => isset($user['User']['totp']) ? true : false),
+        array(
+            'key' => __('TOTP'),
+            'html' => $totpHtml
         ),
         array(
             'key' => __('Email notifications'),

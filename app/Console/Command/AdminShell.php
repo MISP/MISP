@@ -524,6 +524,7 @@ class AdminShell extends AppShell
             $this->out('Executing all updates to bring the database up to date with the current version.');
             $processId = empty($this->args[0]) ? false : $this->args[0];
             $this->Server->runUpdates(true, false, $processId);
+            $this->Server->cleanCacheFiles();
             $this->out('All updates completed.');
         } else {
             $this->error('This OS user is not allowed to run this command.', 'Run it under `www-data` or `httpd` or `apache` or `wwwrun` or set MISP.osuser in the configuration.' . PHP_EOL . 'You tried to run this command as: ' . $whoami);
@@ -554,8 +555,21 @@ class AdminShell extends AppShell
     public function redisReady()
     {
         try {
-            RedisTool::init()->ping();
-            $this->out('Successfully connected to Redis.');
+            $redis = RedisTool::init();
+            for ($i = 0; $i < 10; $i++) {
+                $persistence = $redis->info('persistence');
+                if (isset($persistence['loading']) && $persistence['loading']) {
+                    $this->out('Redis is still loading...');
+                    sleep(1);
+                } else {
+                    break;
+                }
+            }
+            if ($i === 9) {
+                $this->out('Redis is still loading, but we will continue.');
+            } else {
+                $this->out('Successfully connected to Redis.');
+            }
         } catch (Exception $e) {
             $this->error('Redis connection is not available', $e->getMessage());
         }

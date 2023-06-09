@@ -46,7 +46,7 @@
                 array(
                     'name' => __('Widgets Used'),
                     'data_path' => 'Dashboard.widgets',
-                    'element' => 'list'
+                    'element' => 'allow_deny_list'
                 ),
                 array(
                     'name' => __('Selectable'),

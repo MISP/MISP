@@ -746,13 +746,13 @@ class Server extends AppModel
     }
 
     /**
-     * getElligibleClusterIdsFromServerForPull Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
+     * Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
      *
      * @param ServerSyncTool $serverSync
      * @param bool $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
      * @param array $eligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
      * @param array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
-     * @return array List of cluster IDs to be pulled
+     * @return array List of cluster UUIDs to be pulled
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
@@ -760,25 +760,47 @@ class Server extends AppModel
     public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
     {
         $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for pull: " . JsonTool::encode($conditions), LOG_INFO);
+
+        if ($onlyUpdateLocalCluster && empty($eligibleClusters)) {
+            return []; // no clusters for update
+        }
+
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
         if (empty($clusterArray)) {
-            return [];
+            return []; // empty remote clusters
         }
+
+        /** @var GalaxyClusterBlocklist $GalaxyClusterBlocklist */
+        $GalaxyClusterBlocklist = ClassRegistry::init('GalaxyClusterBlocklist');
+
+        if (!$onlyUpdateLocalCluster) {
+            /** @var GalaxyCluster $GalaxyCluster */
+            $GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            // Do not fetch clusters with the same or newer version that already exists on local instance
+            $eligibleClusters = $GalaxyCluster->find('list', [
+                'conditions' => ['GalaxyCluster.uuid' => array_column(array_column($clusterArray, 'GalaxyCluster'), 'uuid')],
+                'fields' => ['GalaxyCluster.uuid', 'GalaxyCluster.version'],
+            ]);
+        }
+
+        $clustersForPull = [];
         foreach ($clusterArray as $cluster) {
-            if (isset($eligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
-                $localVersion = $eligibleClusters[$cluster['GalaxyCluster']['uuid']];
-                if ($localVersion >= $cluster['GalaxyCluster']['version']) {
-                    unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+            $clusterUuid = $cluster['GalaxyCluster']['uuid'];
+
+            if ($GalaxyClusterBlocklist->checkIfBlocked($clusterUuid)) {
+                continue; // skip blocked clusters
+            }
+
+            if (isset($eligibleClusters[$clusterUuid])) {
+                $localVersion = $eligibleClusters[$clusterUuid];
+                if ($localVersion < $cluster['GalaxyCluster']['version']) {
+                    $clustersForPull[] = $clusterUuid;
                 }
-            } else {
-                if ($onlyUpdateLocalCluster) {
-                    unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
-                } else {
-                    $eligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
-                }
+            } elseif (!$onlyUpdateLocalCluster) {
+                $clustersForPull[] = $clusterUuid;
             }
         }
-        return array_keys($eligibleClusters);
+        return $clustersForPull;
     }
 
     /**
@@ -2132,10 +2154,21 @@ class Server extends AppModel
         return true;
     }
 
-    public function otpBeforeHook($setting, $value)
+    public function email_otpBeforeHook($setting, $value)
     {
         if ($value && !empty(Configure::read('MISP.disable_emailing'))) {
             return __('Emailing is currently disabled. Enabling OTP without e-mailing being configured would lock all users out.');
+        }
+        return true;
+    }
+
+    public function otpBeforeHook($setting, $value)
+    {
+        if ($value && (!class_exists('\OTPHP\TOTP') || !class_exists('\BaconQrCode\Writer'))) {
+            return __('The TOTP and QR code generation libraries are not installed. Enabling OTP without those libraries installed would lock all users out.');
+        }
+        if ($value && Configure::read('LinOTPAuth.enabled')) {
+            return __('The TOTP and LinOTPAuth should not be used at the same time.');
         }
         return true;
     }
@@ -6364,12 +6397,21 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                 ],
+                'otp_required' => array(
+                    'level' => 2,
+                    'description' => __('Require authentication with OTP. Users that do not have (T/H)OTP configured will be forced to create a token at first login. You cannot use it in combination with external authentication plugins.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'beforeHook' => 'otpBeforeHook',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'email_otp_enabled' => array(
                     'level' => 2,
                     'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),
                     'value' => false,
                     'test' => 'testBool',
-                    'beforeHook' => 'otpBeforeHook',
+                    'beforeHook' => 'email_otpBeforeHook',
                     'type' => 'boolean',
                     'null' => true
                 ),
@@ -6584,7 +6626,15 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                     'cli_only' => true
-                ]
+                ],
+                'disclose_user_emails' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting to allow for the user e-mail addresses to be shown to non site-admin users. Keep in mind that in broad communities this can be abused.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
             ),
             'SecureAuth' => array(
                 'branch' => 1,

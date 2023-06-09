@@ -63,17 +63,22 @@
                         array(
                             'url' => $baseurl . '/admin/users/index',
                             'text' => __('All'),
-                            'active' => !isset($passedArgsArray['disabled']),
+                            'active' => !isset($passedArgsArray['disabled']) && !isset($passedArgsArray['inactive']),
                         ),
                         array(
                             'url' => $baseurl . '/admin/users/index/searchdisabled:0',
-                            'text' => __('Active'),
+                            'text' => __('Enabled'),
                             'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "0",
                         ),
                         array(
                             'url' => $baseurl . '/admin/users/index/searchdisabled:1',
                             'text' => __('Disabled'),
                             'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "1",
+                        ),
+                        array(
+                            'url' => $baseurl . '/admin/users/index/searchinactive:1',
+                            'text' => __('Inactive'),
+                            'active' => isset($passedArgsArray['inactive']) && $passedArgsArray['inactive'] === "1",
                         )
                     )
                 ),
@@ -137,6 +142,16 @@
                         'data_path' => 'User.authkey',
                         'privacy' => 1,
                         'requirement' => empty(Configure::read('Security.advanced_authkeys'))
+                    ),
+                    array(
+                        'name' => '',
+                        'header_title' => __('TOTP'),
+                        'icon' => 'mobile',
+                        'element' => 'boolean',
+                        'sort' => 'User.totp',
+                        'class' => 'short',
+                        'data_path' => 'User.totp',
+                        'colors' => true,
                     ),
                     array(
                         'name' => '',
@@ -224,7 +239,6 @@
                         'element' => 'datetime',
                         'class' => 'short',
                         'data_path' => 'User.last_api_access',
-                        'requirement' => !empty(Configure::read('MISP.store_api_access_time')),
                     ),
                     array(
                         'name' => (Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : __('External Auth')),

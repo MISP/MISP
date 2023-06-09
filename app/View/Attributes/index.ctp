@@ -8,6 +8,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
         'title' => __('Attributes'),
         'primary_id_path' => 'Attribute.id',
         'data' => $attributes,
+        'light_paginator' => true,
         'fields' => [
             [
                 'name' => __('Date'),

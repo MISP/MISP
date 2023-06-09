@@ -5031,6 +5031,13 @@ $(document.body).on('click', '[data-popover-popup]', function (e) {
     popoverPopupNew(this, url);
 });
 
+$(document).ready(function () {
+    var d = new Date()
+    if (d.getDate() == 1 && d.getMonth() == 3) {
+        $("a:contains('tlp:unclear')").css('background-color', '#ffffff').addClass('special-tag')
+    }
+});
+
 function destroyPopovers($element) {
     $element.find('[data-dismissid]').each(function() {
         $(this).popover('destroy');
