@@ -1,88 +1,90 @@
 <div class="sharing_groups<?php if (!$ajax) echo ' index' ?>">
-<?= $this->element('/genericElements/IndexTable/index_table', array(
-    'data' => array(
+<?= $this->element(
+    '/genericElements/IndexTable/index_table',
+    [
+    'data' => [
         'title' => __('Sharing Groups'),
         'data' => $sharingGroups,
-        'top_bar' => $ajax ? [] : array(
-            'children' => array(
-                array(
+        'top_bar' => $ajax ? [] : [
+            'children' => [
+                [
                     'type' => 'simple',
-                    'children' => array(
-                        array(
+                    'children' => [
+                        [
                             'text' => __('Add'),
                             'fa-icon' => 'plus',
                             'url' => $baseurl . '/sharing_groups/add',
                             'requirement' => $this->Acl->checkAccess('sharing_groups', 'add'),
-                        )
-                    )
-                ),
-                array(
+                        ]
+                    ]
+                ],
+                [
                     'type' => 'simple',
-                    'children' => array(
-                        array(
+                    'children' => [
+                        [
                             'url' => $baseurl . '/sharing_groups/index',
                             'text' => __('Active Sharing Groups'),
                             'active' => !$passive,
-                        ),
-                        array(
+                        ],
+                        [
                             'url' => $baseurl . '/sharing_groups/index/true',
                             'text' => __('Passive Sharing Groups'),
                             'active' => $passive,
-                        )
-                    )
-                ),
-                array(
+                        ]
+                    ]
+                ],
+                [
                     'type' => 'search',
                     'button' => __('Filter'),
                     'placeholder' => __('Enter value to search'),
                     'searchKey' => 'value',
-                    'cancel' => array(
+                    'cancel' => [
                         'fa-icon' => 'times',
                         'title' => __('Remove filters'),
                         'onClick' => 'cancelSearch',
-                    )
-                )
-            )
-        ),
-        'fields' => array(
-            array(
+                    ]
+                ]
+            ]
+        ],
+        'fields' => [
+            [
                 'name' => __('ID'),
                 'sort' => 'id',
                 'class' => 'short',
                 'data_path' => 'id',
                 'url' => '/sharing_groups/view/{{id}}',
                 'url_vars' => ['id' => 'id']
-            ),
-            array(
+            ],
+            [
                 'name' => __('UUID'),
                 'data_path' => 'uuid',
                 'sort' => 'uuid',
                 'class' => 'short quickSelect',
-            ),
-            array(
+            ],
+            [
                 'name' => __('Name'),
                 'data_path' => 'name',
                 'sort' => 'name',
                 'class' => 'short',
-            ),
-            array(
+            ],
+            [
                 'name' => __('Creator'),
                 'sort' => 'Organisation.name',
                 'element' => 'org',
                 'data_path' => 'Organisation',
                 'class' => 'short',
-            ),
-            array(
+            ],
+            [
                 'name' => __('Description'),
                 'data_path' => 'description',
-            ),
-            array(
+            ],
+            [
                 'name' => __('Org count'),
                 'class' => 'short',
                 'sort' => 'org_count',
                 'data_path' => 'org_count',
-            ),
-            array(
+            ],
+            [
                 'name' => __('Releasable to'),
                 'element' => 'custom',
                 'function' => function (array $sharingGroup) use ($baseurl) {
@@ -124,16 +126,16 @@
                     </span>
                     <?php
                 },
-            )
-        ),
-        'actions' => array(
-            array(
+            ]
+        ],
+        'actions' => [
+            [
                 'url' => $baseurl . '/sharing_groups/view',
                 'url_params_data_paths' => ['id'],
                 'icon' => 'eye',
                 'title' => __('View Sharing Group'),
-            ),
-            array(
+            ],
+            [
                 'url' => '/sharing_groups/edit',
                 'url_params_data_paths' => ['id'],
                 'icon' => 'edit',
@@ -143,8 +145,8 @@
                     }
                 ],
                 'title' => __('Edit Sharing Group'),
-            ),
-            array(
+            ],
+            [
                 'url' => '/sharing_groups/delete',
                 'url_params_data_paths' => ['id'],
                 'postLinkConfirm' => __('Are you sure you want to delete the sharing group?'),
@@ -155,10 +157,11 @@
                     }
                 ],
                 'title' => __('Delete Sharing Group'),
-            ),
-        )
-    )
-));
+            ],
+        ]
+    ]
+    ]
+);
 ?>
 </div>
 <script type="text/javascript">
