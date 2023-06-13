@@ -153,7 +153,7 @@ class SharingGroupsController extends AppController
 
         // check if the user is eligible to edit the SG (original creator or extend)
         $sharingGroup = $this->SharingGroups->find(
-            'first',
+            'all',
             [
                 'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
                 'recursive' => -1,
@@ -171,12 +171,12 @@ class SharingGroupsController extends AppController
                     ],
                 ],
             ]
-        );
+        )->disableHydration()->first();
         if (empty($sharingGroup)) {
             throw new NotFoundException('Invalid sharing group.');
         }
 
-        if (!$this->SharingGroups->checkIfAuthorisedExtend($this->ACL->getUser(), $sharingGroup['SharingGroup']['id'])) {
+        if (!$this->SharingGroups->checkIfAuthorisedExtend($this->ACL->getUser(), $sharingGroup['id'])) {
             throw new MethodNotAllowedException('Action not allowed.');
         }
         if ($this->request->is('post')) {
@@ -184,7 +184,7 @@ class SharingGroupsController extends AppController
                 if (!empty($this->request->getData('SharingGroup'))) {
                     $data = $this->request->getData('SharingGroup');
                 }
-                $data['uuid'] = $sharingGroup['SharingGroup']['uuid'];
+                $data['uuid'] = $sharingGroup['uuid'];
                 $id = $this->SharingGroups->captureSG($data, $this->ACL->getUser());
                 if ($id) {
                     $sg = $this->SharingGroups->fetchAllAuthorised($this->ACL->getUser(), 'simplified', false, $id);
@@ -195,17 +195,17 @@ class SharingGroupsController extends AppController
             } else {
                 $json = json_decode($this->request->getData('json'), true);
                 $sg = $json['sharingGroup'];
-                $sg['id'] = $sharingGroup['SharingGroup']['id'];
+                $sg['id'] = $sharingGroup['id'];
                 $fields = ['name', 'releasability', 'description', 'active', 'roaming'];
-                $existingSG = $this->SharingGroups->find('first', ['recursive' => -1, 'conditions' => ['SharingGroup.id' => $sharingGroup['SharingGroup']['id']]]);
+                $existingSG = $this->SharingGroups->find('all', ['recursive' => -1, 'conditions' => ['SharingGroup.id' => $sharingGroup['id']]])->disableHydration()->first();
                 foreach ($fields as $field) {
-                    $existingSG['SharingGroup'][$field] = $sg[$field];
+                    $existingSG[$field] = $sg[$field];
                 }
-                unset($existingSG['SharingGroup']['modified']);
+                unset($existingSG['modified']);
                 if ($this->SharingGroups->save($existingSG)) {
-                    $this->SharingGroups->SharingGroupOrgs->updateOrgsForSG($sharingGroup['SharingGroup']['id'], $json['organisations'], $sharingGroup['SharingGroupOrg'], $this->ACL->getUser());
-                    $this->SharingGroups->SharingGroupServers->updateServersForSG($sharingGroup['SharingGroup']['id'], $json['servers'], $sharingGroup['SharingGroupServer'], $json['sharingGroup']['roaming'], $this->ACL->getUser());
-                    $this->redirect('/SharingGroups/view/' . $sharingGroup['SharingGroup']['id']);
+                    $this->SharingGroups->SharingGroupOrgs->updateOrgsForSG($sharingGroup['id'], $json['organisations'], $sharingGroup['SharingGroupOrg'], $this->ACL->getUser());
+                    $this->SharingGroups->SharingGroupServers->updateServersForSG($sharingGroup['id'], $json['servers'], $sharingGroup['SharingGroupServer'], $json['sharingGroup']['roaming'], $this->ACL->getUser());
+                    $this->redirect('/SharingGroups/view/' . $sharingGroup['id']);
                 } else {
                     $validationReplacements = [
                         'notempty' => 'This field cannot be left empty.',
@@ -233,7 +233,7 @@ class SharingGroupsController extends AppController
             ]
         );
         $this->set('sharingGroup', $sharingGroup);
-        $this->set('id', $sharingGroup['SharingGroup']['id']);
+        $this->set('id', $sharingGroup['id']);
         $this->set('orgs', $orgs);
         $this->set('localInstance', empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'));
         // We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
@@ -245,17 +245,17 @@ class SharingGroupsController extends AppController
         $this->request->allowMethod(['post', 'delete']);
 
         $deletedSg = $this->SharingGroups->find(
-            'first',
+            'all',
             [
                 'conditions' => Validation::uuid($id) ? ['uuid' => $id] : ['id' => $id],
                 'recursive' => -1,
                 'fields' => ['id', 'active'],
             ]
-        );
-        if (empty($deletedSg) || !$this->SharingGroups->checkIfOwner($this->ACL->getUser(), $deletedSg['SharingGroup']['id'])) {
+        )->disableHydration()->first();
+        if (empty($deletedSg) || !$this->SharingGroups->checkIfOwner($this->ACL->getUser(), $deletedSg['id'])) {
             throw new MethodNotAllowedException('Action not allowed.');
         }
-        if ($this->SharingGroups->delete($deletedSg['SharingGroup']['id'])) {
+        if ($this->SharingGroups->delete($deletedSg['id'])) {
             if ($this->ParamHandler->isRest()) {
                 return $this->RestResponse->saveSuccessResponse('SharingGroups', 'delete', $id, $this->response->getType());
             }
@@ -267,7 +267,7 @@ class SharingGroupsController extends AppController
             $this->Flash->error(__('Sharing Group could not be deleted. Make sure that there are no events, attributes or threads belonging to this sharing group.'));
         }
 
-        if ($deletedSg['SharingGroup']['active']) {
+        if ($deletedSg['active']) {
             $this->redirect('/SharingGroups/index');
         } else {
             $this->redirect('/SharingGroups/index/true');
@@ -399,31 +399,31 @@ class SharingGroupsController extends AppController
         }
 
         $contain = [
-            'Organisation',
-            'SharingGroupOrg' => [
-                'Organisation' => [
+            'Organisations',
+            'SharingGroupOrgs' => [
+                'Organisations' => [
                     'fields' => ['id', 'name', 'uuid', 'local']
                 ]
             ],
-            'SharingGroupServer' => [
-                'Server' => [
+            'SharingGroupServers' => [
+                'Servers' => [
                     'fields' => ['id', 'name', 'url']
                 ]
             ]
         ];
 
         if (!$this->__showOrgs()) {
-            unset($contain['SharingGroupOrg']);
-            unset($contain['SharingGroupServer']);
+            unset($contain['SharingGroupOrgs']);
+            unset($contain['SharingGroupServers']);
         }
 
         $sg = $this->SharingGroups->find(
-            'first',
+            'all',
             [
-                'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
+                'conditions' => Validation::uuid($id) ? ['SharingGroups.uuid' => $id] : ['SharingGroups.id' => $id],
                 'contain' => $contain,
             ]
-        );
+        )->disableHydration()->first();
         if (isset($sg['SharingGroupServer'])) {
             foreach ($sg['SharingGroupServer'] as $key => $sgs) {
                 if ($sgs['server_id'] == 0) {
@@ -435,24 +435,24 @@ class SharingGroupsController extends AppController
                 }
             }
         }
-        if ($sg['SharingGroup']['sync_user_id']) {
+        if ($sg['sync_user_id']) {
             $UserTable = $this->fetchTable('Users');
             $syncUser = $UserTable->find(
                 'all',
                 [
-                    'conditions' => ['User.id' => $sg['SharingGroup']['sync_user_id']],
+                    'conditions' => ['Users.id' => $sg['sync_user_id']],
                     'recursive' => -1,
-                    'fields' => ['User.id'],
-                    'contain' => ['Organisation' => [
-                        'fields' => ['Organisations.id', 'Organisation.name', 'Organisation.uuid'],
+                    'fields' => ['Users.id'],
+                    'contain' => ['Organisations' => [
+                        'fields' => ['Organisations.id', 'Organisations.name', 'Organisations.uuid'],
                     ]]
                 ]
-            )->first();
+            )->disableHydration()->first();
             if (empty($syncUser)) {
-                $sg['SharingGroup']['sync_org_name'] = 'N/A';
+                $sg['sync_org_name'] = 'N/A';
             } else {
-                $sg['SharingGroup']['sync_org_name'] = $syncUser['Organisation']['name'];
-                $sg['SharingGroup']['sync_org'] = $syncUser['Organisation'];
+                $sg['sync_org_name'] = $syncUser['Organisation']['name'];
+                $sg['sync_org'] = $syncUser['Organisation'];
             }
         }
         if ($this->ParamHandler->isRest()) {
@@ -460,20 +460,20 @@ class SharingGroupsController extends AppController
         }
 
         $EventsTable = $this->fetchTable('Events');
-        $conditions = $EventsTable->createEventConditions($this->ACL->getUser());
-        $conditions['AND']['sharing_group_id'] = $sg['SharingGroup']['id'];
-        $sg['SharingGroup']['event_count'] = $EventsTable->find(
-            'count',
+        $conditions = $EventsTable->createEventConditions($this->ACL->getUser()->toArray());
+        $conditions['AND']['sharing_group_id'] = $sg['id'];
+        $sg['event_count'] = $EventsTable->find(
+            'all',
             [
                 'conditions' => $conditions,
                 'recursive' => -1,
                 'callbacks' => false,
             ]
-        );
+        )->count();
 
-        $this->set('mayModify', $this->SharingGroups->checkIfAuthorisedExtend($this->ACL->getUser(), $sg['SharingGroup']['id']));
-        $this->set('id', $sg['SharingGroup']['id']);
-        $this->set('sg', $sg);
+        $this->set('mayModify', $this->SharingGroups->checkIfAuthorisedExtend($this->ACL->getUser()->toArray(), $sg['id']));
+        $this->set('id', $sg['id']);
+        $this->set('entity', $sg);
         $this->set('menuData', ['menuList' => 'globalActions', 'menuItem' => 'viewSG']);
     }
 
@@ -558,7 +558,7 @@ class SharingGroupsController extends AppController
         $sgo = [
             'SharingGroupOrg' => [
                 'org_id' => $org['id'],
-                'sharing_group_id' => $sg['SharingGroup']['id'],
+                'sharing_group_id' => $sg['id'],
                 'extend' => $extend ? 1 : 0
             ]
         ];
@@ -617,7 +617,7 @@ class SharingGroupsController extends AppController
         $sgs = [
             'SharingGroupServer' => [
                 'server_id' => $server['Server']['id'],
-                'sharing_group_id' => $sg['SharingGroup']['id'],
+                'sharing_group_id' => $sg['id'],
                 'all_orgs' => $all ? 1 : 0
             ]
         ];

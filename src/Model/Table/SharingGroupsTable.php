@@ -2,6 +2,7 @@
 
 namespace App\Model\Table;
 
+use App\Model\Entity\Log;
 use App\Model\Entity\SharingGroup;
 use App\Model\Table\AppTable;
 use ArrayObject;
@@ -15,7 +16,6 @@ use Cake\Utility\Text;
 use Cake\Validation\Validation;
 use Cake\Validation\Validator;
 use InvalidArgumentException;
-use App\Model\Entity\Log;
 
 class SharingGroupsTable extends AppTable
 {
@@ -38,14 +38,14 @@ class SharingGroupsTable extends AppTable
             'SharingGroupOrgs',
             [
                 'dependent' => true,
-                'propertyName' => 'SharingGroupOrgs'
+                'propertyName' => 'SharingGroupOrg'
             ],
         );
         $this->hasMany(
             'SharingGroupServers',
             [
                 'dependent' => true,
-                'propertyName' => 'SharingGroupServers'
+                'propertyName' => 'SharingGroupServer'
             ],
         );
         // $this->hasMany('Event');
@@ -221,7 +221,7 @@ class SharingGroupsTable extends AppTable
                 return $this->appendOrgsAndServers($sgs, ['id', 'name'], []);
             }
             foreach ($sgs as &$sg) {
-                $sg['SharingGroupOrgs'] = [];
+                $sg['SharingGroupOrg'] = [];
             }
             return $sgs;
         } elseif ($scope === 'name') {
@@ -263,8 +263,8 @@ class SharingGroupsTable extends AppTable
             if (isset($sg['SharingGroup']['org_id'])) {
                 $orgsToFetch[$sg['SharingGroup']['org_id']] = true;
             }
-            if (isset($sg['SharingGroupOrgs'])) {
-                foreach ($sg['SharingGroupOrgs'] as $sgo) {
+            if (isset($sg['SharingGroupOrg'])) {
+                foreach ($sg['SharingGroupOrg'] as $sgo) {
                     $orgsToFetch[$sgo['org_id']] = true;
                 }
             }
@@ -309,8 +309,8 @@ class SharingGroupsTable extends AppTable
                 $sg['Organisation'] = $orgsById[$sg['SharingGroup']['org_id']];
             }
 
-            if (isset($sg['SharingGroupOrgs'])) {
-                foreach ($sg['SharingGroupOrgs'] as &$sgo) {
+            if (isset($sg['SharingGroupOrg'])) {
+                foreach ($sg['SharingGroupOrg'] as &$sgo) {
                     if (isset($orgsById[$sgo['org_id']])) {
                         $sgo['Organisation'] = $orgsById[$sgo['org_id']];
                     }
@@ -353,18 +353,18 @@ class SharingGroupsTable extends AppTable
         }
         // First let us find out if we already have the SG
         $local = $this->find(
-            'first',
+            'all',
             [
                 'recursive' => -1,
                 'conditions' => ['uuid' => $sg['uuid']],
                 'fields' => ['id'],
             ]
-        );
+        )->disableHydration()->first();
         if (empty($local)) {
             $orgCheck = false;
             $serverCheck = false;
-            if (isset($sg['SharingGroupOrgs'])) {
-                foreach ($sg['SharingGroupOrgs'] as $org) {
+            if (isset($sg['SharingGroupOrg'])) {
+                foreach ($sg['SharingGroupOrg'] as $org) {
                     if (isset($org['Organisation'][0])) {
                         $org['Organisation'] = $org['Organisation'][0];
                     }
@@ -425,7 +425,7 @@ class SharingGroupsTable extends AppTable
         }
         if ($user['Role']['perm_sync']) {
             $sg = $this->find(
-                'first',
+                'all',
                 [
                     'conditions' => [
                         'id' => $id,
@@ -433,7 +433,7 @@ class SharingGroupsTable extends AppTable
                     ],
                     'recursive' => -1,
                 ]
-            );
+            )->disableHydration()->first();
             if (!empty($sg)) {
                 return true;
             }
@@ -468,13 +468,13 @@ class SharingGroupsTable extends AppTable
         }
         if (Validation::uuid($id)) {
             $sgid = $this->find(
-                'first',
+                'all',
                 [
-                    'conditions' => ['SharingGroup.uuid' => $id],
+                    'conditions' => ['uuid' => $id],
                     'recursive' => -1,
-                    'fields' => ['SharingGroup.id']
+                    'fields' => ['id']
                 ]
-            );
+            )->disableHydration()->first();
             if (empty($sgid)) {
                 return false;
             }
@@ -489,13 +489,13 @@ class SharingGroupsTable extends AppTable
             throw new MethodNotAllowedException('Invalid user.');
         }
         $sg_org_id = $this->find(
-            'first',
+            'all',
             [
                 'recursive' => -1,
-                'fields' => ['SharingGroup.org_id'],
-                'conditions' => ['SharingGroup.id' => $id]
+                'fields' => ['org_id'],
+                'conditions' => ['id' => $id]
             ]
-        );
+        )->disableHydration()->first();
         $authorized = ($adminCheck && $user['Role']['perm_site_admin']) ||
             $user['org_id'] === $sg_org_id['SharingGroup']['org_id'] ||
             $this->SharingGroupServer->checkIfAuthorised($id) ||
@@ -558,13 +558,13 @@ class SharingGroupsTable extends AppTable
             throw new MethodNotAllowedException('Invalid user.');
         }
         $sg = $this->find(
-            'first',
+            'all',
             [
                 'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
                 'recursive' => -1,
                 'fields' => ['org_id'],
             ]
-        );
+        )->disableHydration()->first();
         if (empty($sg)) {
             return false;
         }
@@ -582,7 +582,7 @@ class SharingGroupsTable extends AppTable
     public function getOrgsWithAccess($id)
     {
         $sg = $this->find(
-            'first',
+            'all',
             [
                 'conditions' => ['SharingGroup.id' => $id],
                 'recursive' => -1,
@@ -592,7 +592,7 @@ class SharingGroupsTable extends AppTable
                     'SharingGroupServer' => ['fields' => ['id', 'server_id', 'all_orgs']],
                 ]
             ]
-        );
+        )->disableHydration()->first();
         if (empty($sg)) {
             return [];
         }
@@ -605,7 +605,7 @@ class SharingGroupsTable extends AppTable
             }
         }
         // return a list of arrays with all organisations tied to the SG.
-        return array_column($sg['SharingGroupOrgs'], 'org_id');
+        return array_column($sg['SharingGroupOrg'], 'org_id');
     }
 
     public function checkIfServerInSG($sg, $server)
@@ -625,8 +625,8 @@ class SharingGroupsTable extends AppTable
                 return false;
             }
         }
-        if (isset($sg['SharingGroupOrgs']) && !empty($sg['SharingGroupOrgs'])) {
-            foreach ($sg['SharingGroupOrgs'] as $org) {
+        if (isset($sg['SharingGroupOrg']) && !empty($sg['SharingGroupOrg'])) {
+            foreach ($sg['SharingGroupOrg'] as $org) {
                 if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
                     return true;
                 }
@@ -652,7 +652,7 @@ class SharingGroupsTable extends AppTable
             $syncLocal = true;
         }
         $existingSG = !isset($sg['uuid']) ? null : $this->find(
-            'first',
+            'all',
             [
                 'recursive' => -1,
                 'conditions' => ['SharingGroup.uuid' => $sg['uuid']],
@@ -662,7 +662,7 @@ class SharingGroupsTable extends AppTable
                     'SharingGroupOrgs' => ['Organisation']
                 ]
             ]
-        );
+        )->disableHydration()->first();
         $forceUpdate = false;
         if (empty($existingSG)) {
             if (!$user['Role']['perm_sharing_group']) {
@@ -767,7 +767,8 @@ class SharingGroupsTable extends AppTable
         }
         $this->create();
         $date = date('Y-m-d H:i:s');
-        $newSG = new SharingGroup([
+        $newSG = new SharingGroup(
+            [
             'name' => $sg['name'],
             'releasability' => !isset($sg['releasability']) ? '' : $sg['releasability'],
             'description' => !isset($sg['description']) ? '' : $sg['description'],
@@ -780,7 +781,8 @@ class SharingGroupsTable extends AppTable
             'local' => 0,
             'sync_user_id' => $user['id'],
             'org_id' => $user['Role']['perm_sync'] ? $this->__retrieveOrgIdFromCapturedSG($user, $sg) : $user['org_id']
-        ]);
+            ]
+        );
         if (empty($newSG->org_id)) {
             return false;
         }
@@ -801,15 +803,15 @@ class SharingGroupsTable extends AppTable
     private function __retrieveOrgIdFromCapturedSG($user, $sg)
     {
         if (!isset($sg['Organisation'])) {
-            if (!isset($sg['SharingGroupOrgs'])) {
-                $sg['SharingGroupOrgs'] = [[
+            if (!isset($sg['SharingGroupOrg'])) {
+                $sg['SharingGroupOrg'] = [[
                     'extend' => 1,
                     'uuid' => $user['Organisation']['uuid'],
                     'name' => $user['Organisation']['name'],
                 ]];
                 return $user['org_id'];
             } else {
-                foreach ($sg['SharingGroupOrgs'] as $k => $org) {
+                foreach ($sg['SharingGroupOrg'] as $k => $org) {
                     if (!isset($org['Organisation'])) {
                         $org['Organisation'] = $org;
                     }
@@ -865,48 +867,48 @@ class SharingGroupsTable extends AppTable
     public function captureSGOrgs(array $user, array $sg, int $sg_id, bool $force)
     {
         $creatorOrgFound = false;
-        if (!empty($sg['SharingGroupOrgs'])) {
-            if (isset($sg['SharingGroupOrgs']['id'])) {
-                $temp = $sg['SharingGroupOrgs'];
-                unset($sg['SharingGroupOrgs']);
-                $sg['SharingGroupOrgs'][0] = $temp;
+        if (!empty($sg['SharingGroupOrg'])) {
+            if (isset($sg['SharingGroupOrg']['id'])) {
+                $temp = $sg['SharingGroupOrg'];
+                unset($sg['SharingGroupOrg']);
+                $sg['SharingGroupOrg'][0] = $temp;
             }
-            foreach ($sg['SharingGroupOrgs'] as $k => $org) {
+            foreach ($sg['SharingGroupOrg'] as $k => $org) {
                 if (empty($org['Organisation'])) {
                     $org['Organisation'] = $org;
                 }
                 if (isset($org['Organisation'][0])) {
                     $org['Organisation'] = $org['Organisation'][0];
                 }
-                $sg['SharingGroupOrgs'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $force);
-                if ($sg['SharingGroupOrgs'][$k]['org_id'] == $user['org_id']) {
+                $sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $force);
+                if ($sg['SharingGroupOrg'][$k]['org_id'] == $user['org_id']) {
                     $creatorOrgFound = true;
                 }
-                unset($sg['SharingGroupOrgs'][$k]['Organisation']);
+                unset($sg['SharingGroupOrg'][$k]['Organisation']);
                 if ($force) {
                     // we are editing not creating here
                     $temp = $this->SharingGroupOrgs->find(
-                        'first',
+                        'all',
                         [
                             'recursive' => -1,
                             'conditions' => [
                                 'sharing_group_id' => $sg_id,
-                                'org_id' => $sg['SharingGroupOrgs'][$k]['org_id']
+                                'org_id' => $sg['SharingGroupOrg'][$k]['org_id']
                             ],
                         ]
-                    );
+                    )->disableHydration()->first();
                     if (empty($temp)) {
                         $this->SharingGroupOrgs->create();
-                        $this->SharingGroupOrgs->save(['sharing_group_id' => $sg_id, 'org_id' => $sg['SharingGroupOrgs'][$k]['org_id'], 'extend' => $org['extend']]);
+                        $this->SharingGroupOrgs->save(['sharing_group_id' => $sg_id, 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'], 'extend' => $org['extend']]);
                     } else {
-                        if ($temp['SharingGroupOrgs']['extend'] != $sg['SharingGroupOrgs'][$k]['extend']) {
-                            $temp['SharingGroupOrgs']['extend'] = $sg['SharingGroupOrgs'][$k]['extend'];
-                            $this->SharingGroupOrgs->save($temp['SharingGroupOrgs']);
+                        if ($temp['SharingGroupOrg']['extend'] != $sg['SharingGroupOrg'][$k]['extend']) {
+                            $temp['SharingGroupOrg']['extend'] = $sg['SharingGroupOrg'][$k]['extend'];
+                            $this->SharingGroupOrgs->save($temp['SharingGroupOrg']);
                         }
                     }
                 } else {
                     $this->SharingGroupOrgs->create();
-                    $this->SharingGroupOrgs->save(['sharing_group_id' => $sg_id, 'org_id' => $sg['SharingGroupOrgs'][$k]['org_id'], 'extend' => $org['extend']]);
+                    $this->SharingGroupOrgs->save(['sharing_group_id' => $sg_id, 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'], 'extend' => $org['extend']]);
                 }
             }
         }
@@ -942,7 +944,7 @@ class SharingGroupsTable extends AppTable
                     if ($force) {
                         // we are editing not creating here
                         $temp = $this->SharingGroupServer->find(
-                            'first',
+                            'all',
                             [
                                 'recursive' => -1,
                                 'conditions' => [
@@ -950,7 +952,7 @@ class SharingGroupsTable extends AppTable
                                     'server_id' => $sg['SharingGroupServer'][$k]['server_id']
                                 ],
                             ]
-                        );
+                        )->disableHydration()->first();
                         if (empty($temp)) {
                             $this->SharingGroupServer->create();
                             $this->SharingGroupServer->save(['sharing_group_id' => $sg_id, 'server_id' => $sg['SharingGroupServer'][$k]['server_id'], 'all_orgs' => empty($server['all_orgs']) ? 0 : $server['all_orgs']]);
@@ -991,7 +993,8 @@ class SharingGroupsTable extends AppTable
                 $syncUsers[$sg['SharingGroup']['sync_user_id']] = $UsersTable->getAuthUser($sg['SharingGroup']['sync_user_id']);
                 if (empty($syncUsers[$sg['SharingGroup']['sync_user_id']])) {
                     $LogsTable->create();
-                    $entry = new Log([
+                    $entry = new Log(
+                        [
                         'org' => 'SYSTEM',
                         'model' => 'SharingGroup',
                         'model_id' => $sg['SharingGroup']['id'],
@@ -999,7 +1002,8 @@ class SharingGroupsTable extends AppTable
                         'action' => 'error',
                         'user_id' => 0,
                         'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but the user used for creating the sharing group locally doesn\'t exist any longer.'
-                    ]);
+                        ]
+                    );
                     $LogsTable->save($entry);
                     unset($syncUsers[$sg['SharingGroup']['sync_user_id']]);
                     continue;
@@ -1009,7 +1013,8 @@ class SharingGroupsTable extends AppTable
                 $sharingGroupOrg = ['sharing_group_id' => $sg['SharingGroup']['id'], 'org_id' => $syncUsers[$sg['SharingGroup']['sync_user_id']]['org_id'], 'extend' => 0];
                 $result = $this->SharingGroupOrgs->save($sharingGroupOrg);
                 if (!$result) {
-                    $entry = new Log([
+                    $entry = new Log(
+                        [
                         'org' => 'SYSTEM',
                         'model' => 'SharingGroup',
                         'model_id' => $sg['SharingGroup']['id'],
@@ -1017,7 +1022,8 @@ class SharingGroupsTable extends AppTable
                         'action' => 'error',
                         'user_id' => 0,
                         'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but saving the changes has resulted in the following error: ' . json_encode($this->SharingGroupOrgs->validationErrors)
-                    ]);
+                        ]
+                    );
                     $LogsTable->save($entry);
                 }
             }
@@ -1050,13 +1056,13 @@ class SharingGroupsTable extends AppTable
         }
         if (Validation::uuid($id)) {
             $id = $this->find(
-                'first',
+                'all',
                 [
                     'conditions' => ['SharingGroup.uuid' => $id],
                     'recursive' => -1,
                     'fields' => ['SharingGroup.id']
                 ]
-            );
+            )->disableHydration()->first();
             if (empty($id)) {
                 return false;
             } else {

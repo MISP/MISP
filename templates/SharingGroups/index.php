@@ -1,4 +1,4 @@
-<div class="sharing_groups<?php if (!$ajax) echo ' index' ?>">
+<div class="sharingGroups<?php if (!$ajax) echo ' index' ?>">
 <?= $this->element(
     '/genericElements/IndexTable/index_table',
     [
@@ -13,8 +13,8 @@
                         [
                             'text' => __('Add'),
                             'fa-icon' => 'plus',
-                            'url' => $baseurl . '/sharing_groups/add',
-                            'requirement' => $this->Acl->checkAccess('sharing_groups', 'add'),
+                            'url' => '/sharingGroups/add',
+                            'requirement' => $this->Acl->checkAccess('sharingGroups', 'add'),
                         ]
                     ]
                 ],
@@ -22,12 +22,12 @@
                     'type' => 'simple',
                     'children' => [
                         [
-                            'url' => $baseurl . '/sharing_groups/index',
+                            'url' => '/sharingGroups/index',
                             'text' => __('Active Sharing Groups'),
                             'active' => !$passive,
                         ],
                         [
-                            'url' => $baseurl . '/sharing_groups/index/true',
+                            'url' => '/sharingGroups/index/true',
                             'text' => __('Passive Sharing Groups'),
                             'active' => $passive,
                         ]
@@ -52,7 +52,7 @@
                 'sort' => 'id',
                 'class' => 'short',
                 'data_path' => 'id',
-                'url' => '/sharing_groups/view/{{id}}',
+                'url' => '/sharingGroups/view/{{id}}',
                 'url_vars' => ['id' => 'id']
             ],
             [
@@ -87,14 +87,14 @@
             [
                 'name' => __('Releasable to'),
                 'element' => 'custom',
-                'function' => function (array $sharingGroup) use ($baseurl) {
+                'function' => function (array $sharingGroup) {
                     $combined = __("Organisations:");
                     if (empty($sharingGroup['SharingGroupOrg'])) {
                         $combined .= "<br>N/A";
                     } else {
                         foreach ($sharingGroup['SharingGroupOrg'] as $sge) {
                             if (!empty($sge['Organisation'])) {
-                                $combined .= "<br><a href='" . $baseurl . "/organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
+                                $combined .= "<br><a href='/organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
                                 if ($sge['extend']) {
                                     $combined .= ' (can extend)';
                                 }
@@ -107,7 +107,7 @@
                     } else {
                         foreach ($sharingGroup['SharingGroupServer'] as $sgs) {
                             if ($sgs['server_id'] != 0) {
-                                $combined .= "<br><a href='" . $baseurl . "/server/view/" . h($sgs['Server']['id']) . "'>" . h($sgs['Server']['name']) . "</a>";
+                                $combined .= "<br><a href='/server/view/" . h($sgs['Server']['id']) . "'>" . h($sgs['Server']['name']) . "</a>";
                             } else {
                                 $combined .= "<br>This instance";
                             }
@@ -130,13 +130,13 @@
         ],
         'actions' => [
             [
-                'url' => $baseurl . '/sharing_groups/view',
+                'url' => '/sharingGroups/view',
                 'url_params_data_paths' => ['id'],
                 'icon' => 'eye',
                 'title' => __('View Sharing Group'),
             ],
             [
-                'url' => '/sharing_groups/edit',
+                'url' => '/sharingGroups/edit',
                 'url_params_data_paths' => ['id'],
                 'icon' => 'edit',
                 'complex_requirement' => [
@@ -147,7 +147,7 @@
                 'title' => __('Edit Sharing Group'),
             ],
             [
-                'url' => '/sharing_groups/delete',
+                'url' => '/sharingGroups/delete',
                 'url_params_data_paths' => ['id'],
                 'postLinkConfirm' => __('Are you sure you want to delete the sharing group?'),
                 'icon' => 'trash',
