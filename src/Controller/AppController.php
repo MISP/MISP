@@ -260,6 +260,6 @@ class AppController extends Controller
     // checks if the currently logged user is a site administrator (an admin that can manage any user or event on the instance and create / edit the roles).
     protected function isSiteAdmin()
     {
-        return $this->ACLComponent->getUser()->Role->perm_site_admin;
+        return $this->ACL->getUser()->Role->perm_site_admin;
     }
 }

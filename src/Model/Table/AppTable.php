@@ -2,15 +2,15 @@
 
 namespace App\Model\Table;
 
+use Cake\Collection\CollectionInterface;
+use Cake\Database\Expression\QueryExpression;
+use Cake\Http\Exception\MethodNotAllowedException;
+use Cake\I18n\FrozenTime;
+use Cake\ORM\Query;
 use Cake\ORM\Table;
-use Cake\Validation\Validator;
-use Cake\Core\Configure;
-use Cake\Core\Configure\Engine\PhpConfig;
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Hash;
-use Cake\Database\Expression\QueryExpression;
-use Cake\ORM\Query;
-use Cake\I18n\FrozenTime;
+use InvalidArgumentException;
 
 class AppTable extends Table
 {
@@ -18,7 +18,7 @@ class AppTable extends Table
     {
     }
 
-    public function getStatisticsUsageForModel(Object $table, array $scopes, array $options=[]): array
+    public function getStatisticsUsageForModel(Object $table, array $scopes, array $options = []): array
     {
         $defaultOptions = [
             'limit' => 5,
@@ -30,16 +30,20 @@ class AppTable extends Table
         foreach ($scopes as $scope) {
             $queryTopUsage = $table->find();
             $queryTopUsage
-                ->select([
+                ->select(
+                    [
                     $scope,
                     'count' => $queryTopUsage->func()->count('id'),
-                ]);
+                    ]
+                );
             if ($queryTopUsage->getDefaultTypes()[$scope] != 'boolean') {
-                $queryTopUsage->where(function (QueryExpression $exp) use ($scope) {
+                $queryTopUsage->where(
+                    function (QueryExpression $exp) use ($scope) {
                     return $exp
                         ->isNotNull($scope)
                         ->notEq($scope, '');
-                });
+                    }
+                );
             }
             $queryTopUsage
                 ->group($scope)
@@ -55,23 +59,29 @@ class AppTable extends Table
             ) {
                 $queryOthersUsage = $table->find();
                 $queryOthersUsage
-                    ->select([
+                    ->select(
+                        [
                         'count' => $queryOthersUsage->func()->count('id'),
-                    ])
-                    ->where(function (QueryExpression $exp, Query $query) use ($topUsage, $scope, $options) {
+                        ]
+                    )
+                    ->where(
+                        function (QueryExpression $exp, Query $query) use ($topUsage, $scope, $options) {
                         if (!empty($options['ignoreNull'])) {
                             return $exp
                                 ->isNotNull($scope)
                                 ->notEq($scope, '')
                                 ->notIn($scope, Hash::extract($topUsage, "{n}.{$scope}"));
                         } else {
-                            return $exp->or([
+                            return $exp->or(
+                                [
                                 $query->newExpr()->isNull($scope),
                                 $query->newExpr()->eq($scope, ''),
                                 $query->newExpr()->notIn($scope, Hash::extract($topUsage, "{n}.{$scope}")),
-                            ]);
+                                ]
+                            );
                         }
-                    })
+                        }
+                    )
                     ->enableHydration(false);
                 $othersUsage = $queryOthersUsage->all()->toList();
                 if (!empty($othersUsage)) {
@@ -85,7 +95,7 @@ class AppTable extends Table
         return $stats;
     }
 
-    private function getOptions($defaults=[], $options=[]): array
+    private function getOptions($defaults = [], $options = []): array
     {
         return array_merge($defaults, $options);
     }
@@ -130,10 +140,12 @@ class AppTable extends Table
             }
             $days = $days - 1;
             $query = $table->find();
-            $query->select([
+            $query->select(
+                [
                 'count' => $query->func()->count('id'),
                 'date' => "DATE({$field})",
-            ])
+                ]
+            )
                 ->where(["{$field} >" => FrozenTime::now()->subDays($days)])
                 ->group(['date'])
                 ->order(['date']);
@@ -159,10 +171,12 @@ class AppTable extends Table
         $this->MetaFields = TableRegistry::getTableLocator()->get('MetaFields');
         $this->MetaTemplates = TableRegistry::getTableLocator()->get('MetaTemplates');
         foreach ($input['metaFields'] as $templateID => $metaFields) {
-            $metaTemplates = $this->MetaTemplates->find()->where([
+            $metaTemplates = $this->MetaTemplates->find()->where(
+                [
                 'id' => $templateID,
                 'enabled' => 1
-            ])->contain(['MetaTemplateFields'])->first();
+                ]
+            )->contain(['MetaTemplateFields'])->first();
             $fieldNameToId = [];
             foreach ($metaTemplates->meta_template_fields as $i => $metaTemplateField) {
                 $fieldNameToId[$metaTemplateField->field] = $metaTemplateField->id;
@@ -199,16 +213,58 @@ class AppTable extends Table
      */
     public function addCountField(string $field, Table $model, array $conditions)
     {
-        $db = $this->getDataSource();
-        $subQuery = $db->buildStatement(
-            array(
+        $subQuery = $this->buildStatement(
+            [
                 'fields'     => ['COUNT(*)'],
-                'table'      => $db->fullTableName($model),
+                'table'      => $model->table(),
                 'alias'      => $model->alias,
                 'conditions' => $conditions,
-            ),
+            ],
             $model
         );
+
+        $subQuery->select(['count' => $subQuery->func()->count('*')]);
+
+
         $this->virtualFields[$field] = $subQuery;
+    }
+
+
+    /**
+     * Find method that allows to fetch just one column from database.
+     * @param $state
+     * @param $query
+     * @param array $results
+     * @return \Cake\ORM\Query The query builder
+     * @throws InvalidArgumentException
+     */
+    protected function findColumn(Query $query, array $options): Query
+    {
+        $fields = $query->clause('select');
+        if (!isset($fields)) {
+            throw new InvalidArgumentException("This method requires `fields` option defined.");
+        }
+
+        if (!is_array($fields) || count($fields) != 1) {
+            throw new InvalidArgumentException("Not a valid array or invalid number of columns, expected one, " . count($fields) . " given");
+        }
+
+        if (isset($options['unique']) && $options['unique']) {
+            $query->distinct();
+        }
+        $query->enableHydration(false);
+
+        $query->formatResults(
+            function (CollectionInterface $results) use ($fields) {
+                return $results->map(
+                    function ($row) use ($fields) {
+                        return $row[$fields[0]];
+                    }
+                );
+            },
+            $query::APPEND
+        );
+
+        return $query;
     }
 }
