@@ -48,10 +48,10 @@
             array(
                 'name' => __('ID'),
                 'sort' => 'id',
-                'element' => 'links',
                 'class' => 'short',
                 'data_path' => 'id',
-                'url' => $baseurl . '/sharing_groups/view/%s'
+                'url' => '/sharing_groups/view/{{id}}',
+                'url_vars' => ['id' => 'id']
             ),
             array(
                 'name' => __('UUID'),
