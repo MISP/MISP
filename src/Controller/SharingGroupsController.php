@@ -155,28 +155,31 @@ class SharingGroupsController extends AppController
         $sharingGroup = $this->SharingGroups->find(
             'all',
             [
-                'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
+                'conditions' => Validation::uuid($id) ? ['SharingGroups.uuid' => $id] : ['SharingGroups.id' => $id],
                 'recursive' => -1,
                 'contain' => [
-                    'SharingGroupOrg' => [
-                        'Organisation' => ['name', 'local', 'id']
+                    'SharingGroupOrgs' => [
+                        'Organisations' => [
+                            'fields' => ['name', 'local', 'id']
+                        ]
                     ],
-                    'SharingGroupServer' => [
-                        'Server' => [
+                    'SharingGroupServers' => [
+                        'Servers' => [
                             'fields' => ['name', 'url', 'id']
                         ]
                     ],
-                    'Organisation' => [
+                    'Organisations' => [
                         'fields' => ['name', 'local', 'id']
                     ],
                 ],
             ]
         )->disableHydration()->first();
+
         if (empty($sharingGroup)) {
             throw new NotFoundException('Invalid sharing group.');
         }
 
-        if (!$this->SharingGroups->checkIfAuthorisedExtend($this->ACL->getUser(), $sharingGroup['id'])) {
+        if (!$this->SharingGroups->checkIfAuthorisedExtend($this->ACL->getUser()->toArray(), $sharingGroup['id'])) {
             throw new MethodNotAllowedException('Action not allowed.');
         }
         if ($this->request->is('post')) {
@@ -224,15 +227,16 @@ class SharingGroupsController extends AppController
         } elseif ($this->ParamHandler->isRest()) {
             return $this->RestResponse->describe('SharingGroup', 'edit', false, $this->response->getType());
         }
-        $orgs = $this->SharingGroups->Organisation->find(
+        $orgs = $this->SharingGroups->Organisations->find(
             'all',
             [
                 'conditions' => ['local' => 1],
                 'recursive' => -1,
                 'fields' => ['id', 'name']
             ]
-        );
-        $this->set('sharingGroup', $sharingGroup);
+        )->disableHydration()->toArray();
+        
+        $this->set('entity', $sharingGroup);
         $this->set('id', $sharingGroup['id']);
         $this->set('orgs', $orgs);
         $this->set('localInstance', empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'));
