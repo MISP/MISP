@@ -2303,7 +2303,7 @@ function runIndexQuickFilterFixed(preserveParams, url, target) {
         searchKey = 'searchall';
     }
     if ($quickFilterField.val().trim().length > 0) {
-        preserveParams[searchKey] = encodeURIComponent($quickFilterField.val().trim());
+        preserveParams[searchKey] = encodeURIComponent($quickFilterField.val().trim()).replace('%20', '+');
     } else {
         delete preserveParams[searchKey]
     }
