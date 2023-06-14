@@ -12,6 +12,7 @@
         "kamisama/cake-resque": "4.1.2",
         "pear/crypt_gpg": "1.6.7",
         "monolog/monolog": "1.24.0",
+        "thecodingmachine/safe": "^1.0",
         "spomky-labs/otphp": "^10.0",
         "bacon/bacon-qr-code": "^2.0"
     },
