@@ -6,7 +6,7 @@ use App\Model\Entity\AppModel;
 
 class MetaTemplateField extends AppModel
 {
-    protected $_virtual = ['index_type', 'form_type', 'form_options', ];
+    protected $_virtual = ['index_type', 'form_type', 'form_options',];
 
     protected function _getIndexType()
     {
@@ -46,5 +46,4 @@ class MetaTemplateField extends AppModel
         }
         return $formOptions;
     }
-
 }

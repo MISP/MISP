@@ -6,5 +6,4 @@ use App\Model\Entity\AppModel;
 
 class MetaField extends AppModel
 {
-
 }
