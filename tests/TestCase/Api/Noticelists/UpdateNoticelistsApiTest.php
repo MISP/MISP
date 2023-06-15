@@ -8,7 +8,7 @@ use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Helper\ApiTestTrait;
 
-class AddNoticelistApiTest extends TestCase
+class UpdateNoticelistsApiTest extends TestCase
 {
     use ApiTestTrait;
 

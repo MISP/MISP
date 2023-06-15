@@ -25,6 +25,7 @@ class NoticelistsTable extends AppTable
             'NoticelistEntries',
             [
                 'dependent' => true,
+                'propertyName' => 'NoticelistEntry',
             ]
         );
     }

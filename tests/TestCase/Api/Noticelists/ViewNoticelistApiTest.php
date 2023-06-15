@@ -38,8 +38,8 @@ class ViewNoticelistApiTest extends TestCase
         $this->assertEquals(NoticelistsFixture::NOTICELIST_1_ID, $noticelist['id']);
         $this->assertEquals(NoticelistsFixture::NOTICELIST_1_NAME, $noticelist['name']);
 
-        $this->assertArrayHasKey('noticelist_entries', $noticelist);
-        $this->assertCount(1, $noticelist['noticelist_entries']);
-        $this->assertEquals(NoticelistEntriesFixture::NOTICELIST_ENTRY_1_ID, $noticelist['noticelist_entries'][0]['id']);
+        $this->assertArrayHasKey('NoticelistEntry', $noticelist);
+        $this->assertCount(1, $noticelist['NoticelistEntry']);
+        $this->assertEquals(NoticelistEntriesFixture::NOTICELIST_ENTRY_1_ID, $noticelist['NoticelistEntry'][0]['id']);
     }
 }

@@ -77,6 +77,6 @@ class EventBlocklistsTable extends AppTable
      */
     public function isBlocked($eventUuid)
     {
-        return $this->hasAny(['event_uuid' => $eventUuid]);
+        return $this->exists(['event_uuid' => $eventUuid]);
     }
 }
