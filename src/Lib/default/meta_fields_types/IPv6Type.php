@@ -1,8 +1,8 @@
 <?php
 
-namespace MetaFieldsTypes;
+namespace App\Lib\default\meta_fields_types;
 
-use MetaFieldsTypes\IPv4Type;
+use App\Lib\default\meta_fields_types\IPv4Type;
 
 class IPv6Type extends IPv4Type
 {

@@ -1,6 +1,7 @@
 <?php
-namespace MetaFieldsTypes;
+namespace App\Lib\default\meta_fields_types;
 
+use App\Model\Entity\MetaTemplateField;
 use Cake\Database\Expression\QueryExpression;
 use Cake\ORM\TableRegistry;
 
@@ -8,6 +9,9 @@ class TextType
 {
     public const OPERATORS = ['=', '!='];
     public const TYPE = 'text';
+
+    protected $MetaFields;
+    protected $MetaTemplateFields;
 
     public function __construct()
     {
@@ -19,7 +23,7 @@ class TextType
         return is_string($value);
     }
 
-    public function setQueryExpression(QueryExpression $exp, string $searchValue, \App\Model\Entity\MetaTemplateField $metaTemplateField): QueryExpression
+    public function setQueryExpression(QueryExpression $exp, string $searchValue, MetaTemplateField $metaTemplateField): QueryExpression
     {
         $field = 'MetaFields.value';
         if (substr($searchValue, 0, 1) == '!') {

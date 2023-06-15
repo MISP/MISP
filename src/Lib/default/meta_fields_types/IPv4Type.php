@@ -1,14 +1,13 @@
 <?php
 
-namespace MetaFieldsTypes;
+namespace App\Lib\default\meta_fields_types;
 
-use Cake\Database\Expression\QueryExpression;
-use Cake\ORM\TableRegistry;
-use Cake\ORM\Query;
-
-use MetaFieldsTypes\TextType;
-use TypeError;
+use App\Lib\default\meta_fields_types\TextType;
 use App\Lib\Tools\CidrTool;
+use App\Model\Entity\MetaTemplateField;
+use Cake\Database\Expression\QueryExpression;
+use Cake\ORM\Query;
+use Cake\ORM\TableRegistry;
 
 class IPv4Type extends TextType
 {
@@ -31,7 +30,7 @@ class IPv4Type extends TextType
         return $this->_isValidIP($value) || $this->_isValidIP(explode('/', $value)[0]);
     }
 
-    public function setQueryExpression(QueryExpression $exp, string $searchValue, \App\Model\Entity\MetaTemplateField $metaTemplateField): QueryExpression
+    public function setQueryExpression(QueryExpression $exp, string $searchValue, MetaTemplateField $metaTemplateField): QueryExpression
     {
         if (strpos($searchValue, '%') !== false) {
             $textHandler = new TextType(); // we are wildcard filtering, use text filter instead
@@ -85,10 +84,13 @@ class IPv4Type extends TextType
             return [];
         }
         $conditions = array_merge($conditions, ['meta_template_field_id IN' => $metaTemplateFieldsIDs]);
-        $allMetaValues = $this->MetaFields->find('list', [
+        $allMetaValues = $this->MetaFields->find(
+            'list',
+            [
             'keyField' => 'id',
             'valueField' => 'value'
-        ])->where($conditions)->toArray();
+            ]
+        )->where($conditions)->toArray();
         return $allMetaValues;
     }
 
