@@ -4,11 +4,11 @@
 namespace App\Model\Table;
 
 use App\Model\Table\AppTable;
-use Cake\Validation\Validator;
-use Cake\ORM\RulesChecker;
-use Cake\Event\EventInterface;
-use Cake\Datasource\EntityInterface;
 use ArrayObject;
+use Cake\Datasource\EntityInterface;
+use Cake\Event\EventInterface;
+use Cake\ORM\RulesChecker;
+use Cake\Validation\Validator;
 
 class EventBlocklistsTable extends AppTable
 {
@@ -18,7 +18,7 @@ class EventBlocklistsTable extends AppTable
         $this->addBehavior('AuditLog');
     }
 
-    public $blocklistFields = array('event_uuid', 'comment', 'event_info', 'event_orgc');
+    public $blocklistFields = ['event_uuid', 'comment', 'event_info', 'event_orgc'];
 
     public $blocklistTarget = 'event';
 
@@ -56,10 +56,13 @@ class EventBlocklistsTable extends AppTable
     {
         // When event array contains a lot events, it is more efficient to fetch all blocked events
         $conditions = (count($eventArray) > 10000) ? [] : ['EventBlocklist.event_uuid' => array_column($eventArray, 'uuid')];
-        $blocklistHits = $this->find('column', [
+        $blocklistHits = $this->find(
+            'column',
+            [
             'conditions' => $conditions,
             'fields' => ['EventBlocklist.event_uuid'],
-        ]);
+            ]
+        );
         if (empty($blocklistHits)) {
             return;
         }
