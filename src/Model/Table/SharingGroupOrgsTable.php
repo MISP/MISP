@@ -15,6 +15,7 @@ class SharingGroupOrgsTable extends AppTable
             'Organisations',
             [
                 'foreignKey' => 'org_id',
+                'propertyName' => 'Organisation',
             ]
         );
 

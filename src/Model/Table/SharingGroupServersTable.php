@@ -15,6 +15,7 @@ class SharingGroupServersTable extends AppTable
             'Servers',
             [
                 'foreignKey' => 'server_id',
+                'propertyName' => 'Server',
             ]
         );
 

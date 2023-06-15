@@ -13,7 +13,7 @@
                         [
                             'text' => __('Add'),
                             'fa-icon' => 'plus',
-                            'url' => '/sharingGroups/add',
+                            'url' => '/sharing-groups/add',
                             'requirement' => $this->Acl->checkAccess('sharingGroups', 'add'),
                         ]
                     ]
@@ -22,12 +22,12 @@
                     'type' => 'simple',
                     'children' => [
                         [
-                            'url' => '/sharingGroups/index',
+                            'url' => '/sharing-groups/index',
                             'text' => __('Active Sharing Groups'),
                             'active' => !$passive,
                         ],
                         [
-                            'url' => '/sharingGroups/index/true',
+                            'url' => '/sharing-groups/index/true',
                             'text' => __('Passive Sharing Groups'),
                             'active' => $passive,
                         ]
@@ -52,7 +52,7 @@
                 'sort' => 'id',
                 'class' => 'short',
                 'data_path' => 'id',
-                'url' => '/sharingGroups/view/{{id}}',
+                'url' => '/sharing-groups/view/{{id}}',
                 'url_vars' => ['id' => 'id']
             ],
             [
@@ -130,13 +130,13 @@
         ],
         'actions' => [
             [
-                'url' => '/sharingGroups/view',
+                'url' => '/sharing-groups/view',
                 'url_params_data_paths' => ['id'],
                 'icon' => 'eye',
                 'title' => __('View Sharing Group'),
             ],
             [
-                'url' => '/sharingGroups/edit',
+                'url' => '/sharing-groups/edit',
                 'url_params_data_paths' => ['id'],
                 'icon' => 'edit',
                 'complex_requirement' => [
@@ -147,7 +147,7 @@
                 'title' => __('Edit Sharing Group'),
             ],
             [
-                'url' => '/sharingGroups/delete',
+                'url' => '/sharing-groups/delete',
                 'url_params_data_paths' => ['id'],
                 'postLinkConfirm' => __('Are you sure you want to delete the sharing group?'),
                 'icon' => 'trash',
