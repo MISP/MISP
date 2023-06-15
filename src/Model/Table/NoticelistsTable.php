@@ -2,12 +2,12 @@
 
 namespace App\Model\Table;
 
-use App\Model\Table\AppTable;
-use Cake\Validation\Validator;
 use App\Lib\Tools\FileAccessTool;
 use App\Model\Entity\Noticelist;
 use App\Model\Entity\NoticelistEntry;
+use App\Model\Table\AppTable;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\Validation\Validator;
 
 class NoticelistsTable extends AppTable
 {
@@ -17,9 +17,12 @@ class NoticelistsTable extends AppTable
     {
         parent::initialize($config);
         $this->addBehavior('AuditLog');
-        $this->addBehavior('JsonFields', [
+        $this->addBehavior(
+            'JsonFields',
+            [
             'fields' => ['ref', 'geographical_area'],
-        ]);
+            ]
+        );
 
         $this->hasMany(
             'NoticelistEntries',
@@ -42,25 +45,28 @@ class NoticelistsTable extends AppTable
     public function update()
     {
         $directories = glob(APP . '..' . DS . 'libraries' . DS . 'noticelists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
-        $updated = array();
+        $updated = [];
         foreach ($directories as $dir) {
             $list = FileAccessTool::readJsonFromFile($dir . DS . 'list.json');
             if (!isset($list['version'])) {
                 $list['version'] = 1;
             }
-            $current = $this->find('all', array(
-                'conditions' => array('name' => $list['name']),
+            $current = $this->find(
+                'all',
+                [
+                'conditions' => ['name' => $list['name']],
                 'recursive' => -1
-            ))->first();
+                ]
+            )->first();
             if (empty($current) || $list['version'] > $current['version']) {
                 $result = $this->__updateList($list, $current);
                 if (is_numeric($result)) {
-                    $updated['success'][$result] = array('name' => $list['name'], 'new' => $list['version']);
+                    $updated['success'][$result] = ['name' => $list['name'], 'new' => $list['version']];
                     if (!empty($current)) {
                         $updated['success'][$result]['old'] = $current['version'];
                     }
                 } else {
-                    $updated['fails'][] = array('name' => $list['name'], 'fail' => json_encode($result));
+                    $updated['fails'][] = ['name' => $list['name'], 'fail' => json_encode($result)];
                 }
             }
         }
@@ -73,24 +79,24 @@ class NoticelistsTable extends AppTable
     private function __updateList($list, $current)
     {
         $list['enabled'] = 0;
-        $noticelist = array();
+        $noticelist = [];
         if (!empty($current)) {
             if ($current['enabled']) {
                 $list['enabled'] = 1;
             }
             $this->quickDelete($current['id']);
         }
-        $fieldsToSave = array('name', 'expanded_name', 'ref', 'geographical_area', 'version', 'enabled');
+        $fieldsToSave = ['name', 'expanded_name', 'ref', 'geographical_area', 'version', 'enabled'];
         foreach ($fieldsToSave as $fieldToSave) {
             $noticelist[$fieldToSave] = $list[$fieldToSave];
         }
         $noticelist = new Noticelist($noticelist);
         $result = $this->save($noticelist);
         if ($result) {
-            $values = array();
+            $values = [];
             foreach ($list['notice'] as $value) {
                 if (!empty($value)) {
-                    $values[] = array('data' => $value, 'noticelist_id' => $result->id);
+                    $values[] = ['data' => $value, 'noticelist_id' => $result->id];
                 }
             }
             unset($list['notice']);
@@ -107,29 +113,32 @@ class NoticelistsTable extends AppTable
 
     public function getTriggerData($scope = 'attribute')
     {
-        $noticelists = $this->find('all', array(
-            'conditions' => array('enabled' => 1),
+        $noticelists = $this->find(
+            'all',
+            [
+            'conditions' => ['enabled' => 1],
             'recursive' => -1,
             'contain' => 'NoticelistEntry'
-        ));
-        $noticelist_triggers = array();
-        $validTriggers = array(
-            'attribute' => array(
+            ]
+        );
+        $noticelist_triggers = [];
+        $validTriggers = [
+            'attribute' => [
                 'category',
                 'type'
-            )
-        );
+            ]
+        ];
         foreach ($noticelists as $noticelist) {
             foreach ($noticelist['NoticelistEntry'] as $entry) {
                 if (in_array('attribute', $entry['data']['scope'])) {
                     foreach ($entry['data']['field'] as $data_field) {
                         if (in_array($data_field, $validTriggers[$scope])) {
                             foreach ($entry['data']['value'] as $value) {
-                                $noticelist_triggers[$data_field][$value][] = array(
+                                $noticelist_triggers[$data_field][$value][] = [
                                     'message' => $entry['data']['message'],
                                     'list_id' => $noticelist['id'],
                                     'list_name' => $noticelist['name']
-                                );
+                                ];
                             }
                         }
                     }
