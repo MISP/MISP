@@ -3,11 +3,6 @@
 namespace App\Controller;
 
 use App\Controller\AppController;
-use Cake\Utility\Hash;
-use Cake\Utility\Text;
-use Cake\Database\Expression\QueryExpression;
-use Cake\Http\Exception\NotFoundException;
-use Cake\Http\Exception\ForbiddenException;
 
 class CommunitiesController extends AppController
 {
@@ -16,7 +11,8 @@ class CommunitiesController extends AppController
 
     public function index()
     {
-        $this->CRUD->index([
+        $this->CRUD->index(
+            [
             'filters' => $this->filterFields,
             'quickFilters' => $this->quickFilterFields,
             'quickFilterForMetaField' => ['enabled' => true, 'wildcard_search' => true],
@@ -41,7 +37,9 @@ class CommunitiesController extends AppController
                     [
                         'label' => __('ENISA CSIRT Network (GOV)'),
                         'filterConditionFunction' => function($query) {
-                            return $this->CRUD->setParentConditionsForMetaFields($query, [
+                            return $this->CRUD->setParentConditionsForMetaFields(
+                                $query,
+                                [
                                 'ENISA CSIRT Network' => [
                                     [
                                         'field' => 'constituency',
@@ -52,14 +50,16 @@ class CommunitiesController extends AppController
                                         'value' => 'Member',
                                     ],
                                 ]
-                            ]);
+                                ]
+                            );
                         }
                     ]
                 ],
             ],
             'contain' => $this->containFields,
             'statisticsFields' => $this->statisticsFields,
-        ]);
+            ]
+        );
         $responsePayload = $this->CRUD->getResponsePayload();
         if (!empty($responsePayload)) {
             return $responsePayload;
@@ -67,29 +67,29 @@ class CommunitiesController extends AppController
         $this->set('metaGroup', 'Communities');
     }
 
-    public function index()
-    {
-        $filters = $this->IndexFilter->harvestParameters(array('context', 'value'));
-        if (empty($filters['context'])) {
-            $filters['context'] = 'vetted';
-        }
-        if (!empty($filters['value'])) {
-            $filters['value'] = strtolower($filters['value']);
-        } else {
-            $filters['value'] = false;
-        }
-        $community_list = $this->Community->getCommunityList($filters['context'], $filters['value']);
+    // public function index()
+    // {
+    //     $filters = $this->IndexFilter->harvestParameters(array('context', 'value'));
+    //     if (empty($filters['context'])) {
+    //         $filters['context'] = 'vetted';
+    //     }
+    //     if (!empty($filters['value'])) {
+    //         $filters['value'] = strtolower($filters['value']);
+    //     } else {
+    //         $filters['value'] = false;
+    //     }
+    //     $community_list = $this->Community->getCommunityList($filters['context'], $filters['value']);
 
-        //foreach ($community)
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($community_list, $this->response->type());
-        }
-        App::uses('CustomPaginationTool', 'Tools');
-        $customPagination = new CustomPaginationTool();
-        $customPagination->truncateAndPaginate($community_list, $this->params, $this->modelClass, true);
-        $this->set('community_list', $community_list);
-        $this->set('context', $filters['context']);
-    }
+    //     //foreach ($community)
+    //     if ($this->_isRest()) {
+    //         return $this->RestResponse->viewData($community_list, $this->response->type());
+    //     }
+    //     App::uses('CustomPaginationTool', 'Tools');
+    //     $customPagination = new CustomPaginationTool();
+    //     $customPagination->truncateAndPaginate($community_list, $this->params, $this->modelClass, true);
+    //     $this->set('community_list', $community_list);
+    //     $this->set('context', $filters['context']);
+    // }
 
     public function view($id)
     {
@@ -106,11 +106,14 @@ class CommunitiesController extends AppController
     {
         $community = $this->Community->getCommunity($id);
         $this->loadModel('User');
-        $gpgkey = $this->User->find('first', array(
-            'conditions' => array('User.id' => $this->Auth->user('id')),
+        $gpgkey = $this->User->find(
+            'first',
+            [
+            'conditions' => ['User.id' => $this->Auth->user('id')],
             'recursive' => -1,
-            'fields' => array('User.gpgkey')
-        ));
+            'fields' => ['User.gpgkey']
+            ]
+        );
         if (!empty($gpgkey['User']['gpgkey'])) {
             $gpgkey = $gpgkey['User']['gpgkey'];
         } else {
@@ -126,7 +129,7 @@ class CommunitiesController extends AppController
             $this->request->data['Server']['gpgkey'] = $gpgkey;
         } else {
             if (empty($this->request->data['Server'])) {
-                $this->request->data = array('Server' => $this->request->data);
+                $this->request->data = ['Server' => $this->request->data];
             }
             $body = sprintf(
                 'To whom it may concern,
@@ -166,7 +169,7 @@ Thank you in advance!',
                 )
             );
             $imgPath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS;
-            $possibleFields = array('id', 'name');
+            $possibleFields = ['id', 'name'];
             $image = false;
             App::uses('File', 'Utility');
             foreach ($possibleFields as $field) {
@@ -187,7 +190,7 @@ Thank you in advance!',
             if (!empty($this->request->data['Server']['gpgkey'])) {
                 $params['attachments']['requestor.asc'] = $this->request->data['Server']['gpgkey'];
             }
-            $params = array();
+            $params = [];
             $params['to'] = $community['email'];
             $params['reply-to'] = empty($this->request->data['Server']['email']) ? $this->Auth->user('email') : $this->request->data['Server']['email'];
             $params['requestor_gpgkey'] = empty($this->request->data['Server']['gpgkey']) ? $gpgkey : $this->request->data['Server']['gpgkey'];
@@ -211,7 +214,7 @@ Thank you in advance!',
             } else {
                 if ($result === true) {
                     $this->Flash->success($message);
-                    $this->redirect(array('controller' => 'communities', 'action' => 'view', $id));
+                    $this->redirect(['controller' => 'communities', 'action' => 'view', $id]);
                 } elseif ($result) {
                     $this->set('result', $result);
                     if (empty($this->request->data['Server']['mock'])) {
@@ -220,7 +223,7 @@ Thank you in advance!',
                     $this->render('request_access_email');
                 } else {
                     $this->Flash->error($message);
-                    $this->redirect(array('controller' => 'communities', 'action' => 'view', $id));
+                    $this->redirect(['controller' => 'communities', 'action' => 'view', $id]);
                 }
             }
             if (!empty($this->request->data['Server']['mock'])) {
