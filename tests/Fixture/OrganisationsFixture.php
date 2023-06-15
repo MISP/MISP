@@ -36,13 +36,14 @@ class OrganisationsFixture extends TestFixture
             ],
             [
                 'id' => self::ORGANISATION_B_ID,
-                'uuid' => $faker->uuid(),
-                'name' => self::ORGANISATION_B_UUID,
+                'uuid' => self::ORGANISATION_B_UUID,
+                'name' => 'Organisation B',
                 'url' => $faker->url,
                 'nationality' => $faker->countryCode,
                 'sector' => 'IT',
                 'type' => '',
                 'contacts' => '',
+                'description' => 'ORGANISATION B',
                 'date_created' => $faker->dateTime()->getTimestamp(),
                 'date_modified' => $faker->dateTime()->getTimestamp()
             ]
