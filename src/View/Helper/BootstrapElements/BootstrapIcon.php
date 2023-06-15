@@ -30,8 +30,11 @@ class BootstrapIcon extends BootstrapGeneric
         'attrs' => [],
     ];
 
-    function __construct($icon, array $options = [], $bsHelper)
+    function __construct($icon, array $options, $bsHelper)
     {
+        if(empty($options)){
+            $options = [];
+        }
         $this->icon = $icon;
         $this->processOptions($options);
         $this->bsHelper = $bsHelper;
