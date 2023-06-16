@@ -1953,6 +1953,7 @@ class AppModel extends Model
                 break;
             case 109:
                 $sqlArray[] = "UPDATE `over_correlating_values` SET `value` = LOWER(`value`) COLLATE utf8mb4_unicode_ci;";
+                break;
             case 110:
                 $sqlArray[] = "ALTER TABLE `users` ADD `totp` varchar(255) DEFAULT NULL;";
                 $sqlArray[] = "ALTER TABLE `users` ADD `hotp_counter` int(11) DEFAULT NULL;";
