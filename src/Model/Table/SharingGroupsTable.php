@@ -303,7 +303,7 @@ class SharingGroupsTable extends AppTable
                 ]
             )->where(
                 function (QueryExpression $exp, Query $q) use ($orgsToFetch) {
-                return $exp->in('id', array_keys($orgsToFetch));
+                    return $exp->in('id', array_keys($orgsToFetch));
                 }
             )->disableHydration()->toArray();
             $orgsById = array_column(array_column($orgs, 'Organisation'), null, 'id');
@@ -319,7 +319,7 @@ class SharingGroupsTable extends AppTable
                 ]
             )->where(
                 function (QueryExpression $exp, Query $q) use ($serverToFetch) {
-                return $exp->in('id', array_keys($serverToFetch));
+                    return $exp->in('id', array_keys($serverToFetch));
                 }
             )->disableHydration()->toArray();;
 
@@ -868,9 +868,9 @@ class SharingGroupsTable extends AppTable
     {
         $sharingGroupOrgEntity = new SharingGroupOrg(
             [
-            'sharing_group_id' => $sg_id,
-            'org_id' => $user['org_id'],
-            'extend' => false
+                'sharing_group_id' => $sg_id,
+                'org_id' => $user['org_id'],
+                'extend' => false
             ]
         );
         $this->SharingGroupOrgs->save($sharingGroupOrgEntity);
@@ -902,11 +902,11 @@ class SharingGroupsTable extends AppTable
                 if (isset($org['Organisation'][0])) {
                     $org['Organisation'] = $org['Organisation'][0];
                 }
-                $sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $force);
+                $sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisations->captureOrg($org['Organisation'], $user, $force);
                 if ($sg['SharingGroupOrg'][$k]['org_id'] == $user['org_id']) {
                     $creatorOrgFound = true;
                 }
-                unset($sg['SharingGroupOrg'][$k]['Organisation']);
+                unset($sg['SharingGroupOrg'][$k]['Organisations']);
                 if ($force) {
                     // we are editing not creating here
                     $temp = $this->SharingGroupOrgs->find(
@@ -922,11 +922,9 @@ class SharingGroupsTable extends AppTable
                     if (empty($temp)) {
                         $sharingGroupOrgEntity = new SharingGroupOrg(
                             [
-                            [
                                 'sharing_group_id' => $sg_id,
                                 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'],
                                 'extend' => $org['extend']
-                            ]
                             ]
                         );
                         $this->SharingGroupOrgs->save($sharingGroupOrgEntity);
@@ -939,11 +937,9 @@ class SharingGroupsTable extends AppTable
                 } else {
                     $sharingGroupOrgEntity = new SharingGroupOrg(
                         [
-                        [
                             'sharing_group_id' => $sg_id,
                             'org_id' => $sg['SharingGroupOrg'][$k]['org_id'],
                             'extend' => $org['extend']
-                        ]
                         ]
                     );
                     $this->SharingGroupOrgs->save($sharingGroupOrgEntity);
@@ -972,7 +968,7 @@ class SharingGroupsTable extends AppTable
                 if (!isset($server['all_orgs'])) {
                     $sg['SharingGroupServer'][$k]['all_orgs'] = 0;
                 }
-                $sg['SharingGroupServer'][$k]['server_id'] = $this->SharingGroupServers->Server->captureServer($server, $user, $force);
+                $sg['SharingGroupServer'][$k]['server_id'] = $this->SharingGroupServers->Servers->captureServer($server, $user, $force);
                 if ($sg['SharingGroupServer'][$k]['server_id'] == 0 && !empty($sg['SharingGroupServer'][$k]['all_orgs'])) {
                     $creatorOrgFound = true;
                 }
@@ -994,9 +990,9 @@ class SharingGroupsTable extends AppTable
                         if (empty($temp)) {
                             $sharingGroupServerEntity = new SharingGroupServer(
                                 [
-                                'sharing_group_id' => $sg_id,
-                                'server_id' => $sg['SharingGroupServer'][$k]['server_id'],
-                                'all_orgs' => empty($server['all_orgs']) ? 0 : $server['all_orgs']
+                                    'sharing_group_id' => $sg_id,
+                                    'server_id' => $sg['SharingGroupServer'][$k]['server_id'],
+                                    'all_orgs' => empty($server['all_orgs']) ? 0 : $server['all_orgs']
                                 ]
                             );
                             $this->SharingGroupServers->save($sharingGroupServerEntity);
@@ -1009,9 +1005,9 @@ class SharingGroupsTable extends AppTable
                     } else {
                         $sharingGroupServerEntity = new SharingGroupServer(
                             [
-                            'sharing_group_id' => $sg_id,
-                            'server_id' => $sg['SharingGroupServer'][$k]['server_id'],
-                            'all_orgs' => empty($server['all_orgs']) ? 0 : $server['all_orgs']
+                                'sharing_group_id' => $sg_id,
+                                'server_id' => $sg['SharingGroupServer'][$k]['server_id'],
+                                'all_orgs' => empty($server['all_orgs']) ? 0 : $server['all_orgs']
                             ]
                         );
                         $this->SharingGroupServers->save($sharingGroupServerEntity);

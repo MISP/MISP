@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Test\Fixture;
 
-use Cake\TestSuite\Fixture\TestFixture;
 use Authentication\PasswordHasher\DefaultPasswordHasher;
+use Cake\TestSuite\Fixture\TestFixture;
 
 class UsersFixture extends TestFixture
 {
@@ -13,22 +13,22 @@ class UsersFixture extends TestFixture
 
     // Admin user
     public const USER_ADMIN_ID = 1000;
-    public const USER_ADMIN_EMAIL = 'admin@admin.test';
+    public const USER_ADMIN_EMAIL = 'admin@test.test';
     public const USER_ADMIN_PASSWORD = 'AdminPassword';
 
     // Sync user
     public const USER_SYNC_ID = 2000;
-    public const USER_SYNC_EMAIL = 'sync@admin.test';
+    public const USER_SYNC_EMAIL = 'sync@test.test';
     public const USER_SYNC_PASSWORD = 'SyncPassword';
 
     // Org Admin user
     public const USER_ORG_ADMIN_ID = 3000;
-    public const USER_ORG_ADMIN_EMAIL = 'org_admin@admin.test';
+    public const USER_ORG_ADMIN_EMAIL = 'org_admin@test.test';
     public const USER_ORG_ADMIN_PASSWORD = 'OrgAdminPassword';
 
     // Regular User user
     public const USER_REGULAR_USER_ID = 4000;
-    public const USER_REGULAR_USER_EMAIL = 'user@admin.test';
+    public const USER_REGULAR_USER_EMAIL = 'user@test.test';
     public const USER_REGULAR_USER_PASSWORD = 'UserPassword';
 
     // Default Roles IDs
