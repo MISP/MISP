@@ -178,9 +178,9 @@ class SharingGroupsTable extends AppTable
                 [
                     'contain' => ['SharingGroupServers' => ['Servers'], 'SharingGroupOrgs' => ['Organisations'], 'Organisations'],
                     'conditions' => $conditions,
-                    'order' => 'SharingGroup.name ASC'
+                    'order' => 'SharingGroups.name ASC'
                 ]
-            );
+            )->disableHydration()->toArray();
             return $sgs;
         } elseif ($scope === 'simplified') {
             $fieldsOrg = ['id', 'name', 'uuid'];
@@ -217,7 +217,7 @@ class SharingGroupsTable extends AppTable
                     'fields' => $fieldsSharingGroup[$permissionTree]['fields'],
                     'order' => 'SharingGroups.name ASC'
                 ]
-            )->toArray();
+            )->disableHydration()->toArray();
             return $this->appendOrgsAndServers($sgs, $fieldsOrg, $fieldsServer);
         } elseif ($scope === 'distribution_graph') {
             // Specific scope that fetch just necessary information for distribution graph
@@ -231,7 +231,7 @@ class SharingGroupsTable extends AppTable
                     'fields' => ['SharingGroups.id', 'SharingGroups.name', 'SharingGroups.org_id'],
                     'order' => 'SharingGroups.name ASC'
                 ]
-            )->toArray();
+            )->disableHydration()->toArray();
             if ($canSeeOrgs) {
                 return $this->appendOrgsAndServers($sgs, ['id', 'name'], []);
             }
@@ -248,7 +248,7 @@ class SharingGroupsTable extends AppTable
                     'order' => 'SharingGroups.name ASC',
                     'conditions' => $conditions,
                 ]
-            );
+            )->disableHydration()->toArray();
             return $sgs;
         } elseif ($scope === 'uuid') {
             $sgs = $this->find(
@@ -258,7 +258,7 @@ class SharingGroupsTable extends AppTable
                     'fields' => ['SharingGroups.id', 'SharingGroups.uuid'],
                     'conditions' => $conditions,
                 ]
-            );
+            )->disableHydration()->toArray();
             return $sgs;
         }
         throw new InvalidArgumentException("Invalid scope $scope");

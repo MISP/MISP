@@ -66,9 +66,9 @@ class SharingGroupsController extends AppController
                     if (empty($sg['roaming']) && empty($sg['SharingGroupServer'])) {
                         $sharingGroupServerEntity = new SharingGroupServer(
                             [
-                            'sharing_group_id' => $id,
-                            'server_id' => 0,
-                            'all_orgs' => 0
+                                'sharing_group_id' => $id,
+                                'server_id' => 0,
+                                'all_orgs' => 0
                             ]
                         );
                         $this->SharingGroups->SharingGroupServers->save($sharingGroupServerEntity);
@@ -106,9 +106,9 @@ class SharingGroupsController extends AppController
                     foreach ($sg['Organisation'] as $org) {
                         $sharingGroupOrgEntity = new SharingGroupOrg(
                             [
-                            'sharing_group_id' => $sharingGroupEntity->id,
-                            'org_id' => $org['id'],
-                            'extend' => $org['extend']
+                                'sharing_group_id' => $sharingGroupEntity->id,
+                                'org_id' => $org['id'],
+                                'extend' => $org['extend']
                             ]
                         );
                         $this->SharingGroups->SharingGroupOrgs->save($sharingGroupOrgEntity);
@@ -118,9 +118,9 @@ class SharingGroupsController extends AppController
                     foreach ($sg['Server'] as $server) {
                         $sharingGroupServerEntity = new SharingGroupServer(
                             [
-                            'sharing_group_id' => $sharingGroupEntity->id,
-                            'server_id' => $server['id'],
-                            'all_orgs' => $server['all_orgs']
+                                'sharing_group_id' => $sharingGroupEntity->id,
+                                'server_id' => $server['id'],
+                                'all_orgs' => $server['all_orgs']
                             ]
                         );
                         $this->SharingGroups->SharingGroupServers->save($sharingGroupServerEntity);
@@ -192,7 +192,7 @@ class SharingGroupsController extends AppController
             if ($this->ParamHandler->isRest()) {
                 if (!empty($this->request->getData('SharingGroup'))) {
                     $data = $this->request->getData('SharingGroup');
-                }else{
+                } else {
                     $data = $this->request->getData();
                 }
                 $data['uuid'] = $sharingGroup['uuid'];
@@ -392,7 +392,7 @@ class SharingGroupsController extends AppController
             $response[$k]['deletable'] = $deletable;
         }
         if ($this->ParamHandler->isRest()) {
-            return $this->RestResponse->viewData(['response' => $response], $this->response->getType()); // 'response' to keep BC
+            return $this->RestResponse->viewData(['response' => $response]); // 'response' to keep BC
         }
         $this->set('passive', $passive);
         $this->set('sharingGroups', $response);
@@ -530,9 +530,9 @@ class SharingGroupsController extends AppController
         ];
         if (!empty($id)) {
             if ($type == 'org') {
-                return $this->SharingGroups->SharingGroupOrgs->Organisation->fetchOrg($id);
+                return $this->SharingGroups->SharingGroupOrgs->Organisations->fetchOrg($id);
             } else {
-                return $this->SharingGroups->SharingGroupServers->Server->fetchServer($id);
+                return $this->SharingGroups->SharingGroupServers->Servers->fetchServer($id);
             }
         }
         if ($type !== 'org' && $type !== 'server') {
@@ -541,9 +541,9 @@ class SharingGroupsController extends AppController
         foreach ($params[$type] as $param) {
             if (!empty($request[$param])) {
                 if ($type == 'org') {
-                    return $this->SharingGroups->SharingGroupOrgs->Organisation->fetchOrg($request[$param]);
+                    return $this->SharingGroups->SharingGroupOrgs->Organisations->fetchOrg($request[$param]);
                 } else {
-                    return $this->SharingGroups->SharingGroupServers->Server->fetchServer($request[$param]);
+                    return $this->SharingGroups->SharingGroupServers->Servers->fetchServer($request[$param]);
                 }
             }
         }
@@ -568,18 +568,18 @@ class SharingGroupsController extends AppController
             }
         }
         if (!$addOrg) {
-            return $this->RestResponse->saveFailResponse('SharingGroup', $this->action, false, 'Organisation is already in the sharing group.', $this->response->getType());
+            return $this->RestResponse->saveFailResponse('SharingGroup', 'addOrg', false, 'Organisation is already in the sharing group.');
         }
         $sharingGroupOrgEntity = new SharingGroupOrg(
             [
-            'org_id' => $org['id'],
-            'sharing_group_id' => $sg['id'],
-            'extend' => $extend ? 1 : 0
+                'org_id' => $org['id'],
+                'sharing_group_id' => $sg['id'],
+                'extend' => $extend ? 1 : 0
             ]
         );
 
         $result = $this->SharingGroups->SharingGroupOrgs->save($sharingGroupOrgEntity);
-        return $this->__sendQuickSaveResponse($this->action, $result, 'Organisation');
+        return $this->__sendQuickSaveResponse('addOrg', $result, 'Organisation');
     }
 
     public function removeOrg($sg_id = false, $object_id = false)
@@ -599,10 +599,11 @@ class SharingGroupsController extends AppController
             }
         }
         if (false === $removeOrg) {
-            return $this->RestResponse->saveFailResponse('SharingGroup', $this->action, false, 'Organisation is not in the sharing group.', $this->response->getType());
+            return $this->RestResponse->saveFailResponse('SharingGroup', 'removeOrg', false, 'Organisation is not in the sharing group.');
         }
-        $result = $this->SharingGroups->SharingGroupOrgs->delete($removeOrg);
-        return $this->__sendQuickSaveResponse($this->action, $result, 'Organisation');
+        $orgEntity = $this->SharingGroups->SharingGroupOrgs->get($removeOrg);
+        $result = $this->SharingGroups->SharingGroupOrgs->delete($orgEntity);
+        return $this->__sendQuickSaveResponse('removeOrg', $result, 'Organisation');
     }
 
     public function addServer($sg_id = false, $object_id = false, $all = false)
@@ -621,23 +622,23 @@ class SharingGroupsController extends AppController
         $addServer = true;
         if (!empty($sg['SharingGroupServer'])) {
             foreach ($sg['SharingGroupServer'] as $sgs) {
-                if ($sgs['server_id'] == $server['Server']['id']) {
+                if ($sgs['server_id'] == $server['id']) {
                     $addServer = false;
                 }
             }
         }
         if (!$addServer) {
-            return $this->RestResponse->saveFailResponse('SharingGroup', $this->action, false, 'Server is already in the sharing group.', $this->response->getType());
+            return $this->RestResponse->saveFailResponse('SharingGroup', 'addServer', false, 'Server is already in the sharing group.');
         }
         $sharingGroupServerEntity = new SharingGroupServer(
             [
-            'server_id' => $server['Server']['id'],
-            'sharing_group_id' => $sg['id'],
-            'all_orgs' => $all ? 1 : 0
+                'server_id' => $server['id'],
+                'sharing_group_id' => $sg['id'],
+                'all_orgs' => $all ? 1 : 0
             ]
         );
         $result = $this->SharingGroups->SharingGroupServers->save($sharingGroupServerEntity);
-        return $this->__sendQuickSaveResponse($this->action, $result);
+        return $this->__sendQuickSaveResponse('addServer', $result);
     }
 
     public function removeServer($sg_id = false, $object_id = false)
@@ -650,17 +651,18 @@ class SharingGroupsController extends AppController
         $removeServer = false;
         if (!empty($sg['SharingGroupServer'])) {
             foreach ($sg['SharingGroupServer'] as $sgs) {
-                if ($sgs['server_id'] == $server['Server']['id']) {
-                    $removeServer = $server['Server']['id'];
+                if ($sgs['server_id'] == $server['id']) {
+                    $removeServer = $sgs['id'];
                     break;
                 }
             }
         }
         if (false === $removeServer) {
-            return $this->RestResponse->saveFailResponse('SharingGroup', $this->action, false, 'Server is not in the sharing group.', $this->response->getType());
+            return $this->RestResponse->saveFailResponse('SharingGroup', 'removeServer', false, 'Server is not in the sharing group.');
         }
-        $result = $this->SharingGroups->SharingGroupServers->delete($removeServer);
-        return $this->__sendQuickSaveResponse($this->action, $result);
+        $serverEntity = $this->SharingGroups->SharingGroupServers->get($removeServer);
+        $result = $this->SharingGroups->SharingGroupServers->delete($serverEntity);
+        return $this->__sendQuickSaveResponse('removeServer', $result);
     }
 
     private function __sendQuickSaveResponse($action, $result, $object_type = 'Server')
@@ -670,9 +672,9 @@ class SharingGroupsController extends AppController
             $actionType = 'removed from';
         }
         if ($result) {
-            return $this->RestResponse->saveSuccessResponse('SharingGroup', $action, false, $this->response->getType(), $object_type . ' ' . $actionType . ' the sharing group.');
+            return $this->RestResponse->saveSuccessResponse('SharingGroup', $action, false, 'json', $object_type . ' ' . $actionType . ' the sharing group.');
         } else {
-            return $this->RestResponse->saveFailResponse('SharingGroup', $action, false, $object_type . ' could not be ' . $actionType . ' the sharing group.', $this->response->getType());
+            return $this->RestResponse->saveFailResponse('SharingGroup', $action, false, $object_type . ' could not be ' . $actionType . ' the sharing group.');
         }
     }
 

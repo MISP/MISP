@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\SharingGroups;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\OrganisationsFixture;
 use App\Test\Fixture\ServersFixture;
 use App\Test\Fixture\SharingGroupsFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class ViewSharingGroupApiTest extends TestCase
 {
@@ -51,8 +51,10 @@ class ViewSharingGroupApiTest extends TestCase
 
         // check that the sharing group contains the correct servers
         $this->assertArrayHasKey('SharingGroupServer', $sharingGroup);
-        $this->assertCount(1, $sharingGroup['SharingGroupServer']);
+        $this->assertCount(2, $sharingGroup['SharingGroupServer']);
         $this->assertEquals(ServersFixture::SERVER_A_ID, $sharingGroup['SharingGroupServer'][0]['Server']['id']);
         $this->assertEquals(ServersFixture::SERVER_A_NAME, $sharingGroup['SharingGroupServer'][0]['Server']['name']);
+        $this->assertEquals(ServersFixture::SERVER_C_ID, $sharingGroup['SharingGroupServer'][1]['Server']['id']);
+        $this->assertEquals(ServersFixture::SERVER_C_NAME, $sharingGroup['SharingGroupServer'][1]['Server']['name']);
     }
 }

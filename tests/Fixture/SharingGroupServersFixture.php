@@ -19,6 +19,11 @@ class SharingGroupServersFixture extends TestFixture
                 'sharing_group_id' => SharingGroupsFixture::SHARING_GROUP_A_ID,
                 'server_id' => ServersFixture::SERVER_A_ID,
                 'all_orgs' => false,
+            ],
+            [
+                'sharing_group_id' => SharingGroupsFixture::SHARING_GROUP_A_ID,
+                'server_id' => ServersFixture::SERVER_C_ID,
+                'all_orgs' => false,
             ]
         ];
         parent::init();
