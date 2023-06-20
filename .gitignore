@@ -10,6 +10,7 @@ webroot/scss/*.css
 .vscode
 docker/run/
 .phpunit.result.cache
+.phpunit.cache
 config.json
 phpunit.xml
 docker-compose.override.yml

@@ -3,12 +3,11 @@
 namespace App\Model\Table;
 
 use App\Model\Table\AppTable;
-use Cake\ORM\Table;
-use Cake\Validation\Validator;
-use Cake\Error\Debugger;
-use Cake\Event\EventInterface;
-use Cake\Datasource\EntityInterface;
 use ArrayObject;
+use Cake\Datasource\EntityInterface;
+use Cake\Event\EventInterface;
+use Cake\Validation\Validation;
+use Cake\Validation\Validator;
 
 class OrganisationsTable extends AppTable
 {
@@ -45,17 +44,23 @@ class OrganisationsTable extends AppTable
     public function captureOrg($org): ?int
     {
         if (!empty($org['uuid'])) {
-            $existingOrg = $this->find()->where([
+            $existingOrg = $this->find()->where(
+                [
                 'uuid' => $org['uuid']
-            ])->first();
+                ]
+            )->first();
         } else {
             return null;
         }
         if (empty($existingOrg)) {
             $entityToSave = $this->newEmptyEntity();
-            $this->patchEntity($entityToSave, $org, [
+            $this->patchEntity(
+                $entityToSave,
+                $org,
+                [
                 'accessibleFields' => $entityToSave->getAccessibleFieldForNew()
-            ]);
+                ]
+            );
         } else {
             $this->patchEntity($existingOrg, $org);
             $entityToSave = $existingOrg;
@@ -66,5 +71,26 @@ class OrganisationsTable extends AppTable
             return null;
         }
         return $savedEntity->id;
+    }
+
+    public function fetchOrg($id)
+    {
+        if (empty($id)) {
+            return false;
+        }
+        $conditions = ['Organisations.id' => $id];
+        if (Validation::uuid($id)) {
+            $conditions = ['Organisations.uuid' => $id];
+        } elseif (!is_numeric($id)) {
+            $conditions = ['LOWER(Organisations.name)' => strtolower($id)];
+        }
+        $org = $this->find(
+            'all',
+            [
+            'conditions' => $conditions,
+            'recursive' => -1
+            ]
+        )->disableHydration()->first();
+        return (empty($org)) ? false : $org;
     }
 }

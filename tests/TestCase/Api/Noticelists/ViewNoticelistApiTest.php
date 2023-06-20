@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Noticelists;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Fixture\NoticelistsFixture;
 use App\Test\Fixture\NoticelistEntriesFixture;
+use App\Test\Fixture\NoticelistsFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class ViewNoticelistApiTest extends TestCase
 {
@@ -38,8 +38,8 @@ class ViewNoticelistApiTest extends TestCase
         $this->assertEquals(NoticelistsFixture::NOTICELIST_1_ID, $noticelist['id']);
         $this->assertEquals(NoticelistsFixture::NOTICELIST_1_NAME, $noticelist['name']);
 
-        $this->assertArrayHasKey('noticelist_entries', $noticelist);
-        $this->assertCount(1, $noticelist['noticelist_entries']);
-        $this->assertEquals(NoticelistEntriesFixture::NOTICELIST_ENTRY_1_ID, $noticelist['noticelist_entries'][0]['id']);
+        $this->assertArrayHasKey('NoticelistEntry', $noticelist);
+        $this->assertCount(1, $noticelist['NoticelistEntry']);
+        $this->assertEquals(NoticelistEntriesFixture::NOTICELIST_ENTRY_1_ID, $noticelist['NoticelistEntry'][0]['id']);
     }
 }

@@ -1,16 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit colors="true" processIsolation="false" stopOnFailure="false" bootstrap="tests/bootstrap.php">
-    <php>
-        <ini name="memory_limit" value="-1" />
-        <ini name="apc.enable_cli" value="1" />
-        <env name="WIREMOCK_HOST" value="localhost" />
-        <env name="WIREMOCK_PORT" value="8080" />
-        <env name="OPENAPI_SPEC" value="webroot/docs/openapi.yaml" />
-        <env name="SKIP_DB_MIGRATIONS" value="0" />
-    </php>
-
-    <!-- Add any additional test suites you want to run here -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    cacheResultFile=".phpunit.cache/test-results"
+    executionOrder="depends,defects"
+    forceCoversAnnotation="false"
+    beStrictAboutCoversAnnotation="true"
+    beStrictAboutOutputDuringTests="true"
+    beStrictAboutTodoAnnotatedTests="true"
+    convertDeprecationsToExceptions="true"
+    failOnRisky="true"
+    failOnWarning="false"
+    colors="true"
+    verbose="true">
     <testsuites>
+        <testsuite name="default">
+            <directory>tests</directory>
+        </testsuite>
         <testsuite name="app">
             <directory>tests/TestCase/</directory>
         </testsuite>
@@ -21,19 +27,22 @@
             <directory>./tests/TestCase/Api</directory>
         </testsuite>
     </testsuites>
-
-    <extensions>
-        <extension class="\Cake\TestSuite\Fixture\PHPUnitExtension" />
-    </extensions>
-
-    <!-- Ignore vendor tests in code coverage reports -->
-    <filter>
-        <whitelist>
+    <php>
+        <ini name="memory_limit" value="-1" />
+        <ini name="apc.enable_cli" value="1" />
+        <env name="WIREMOCK_HOST" value="localhost" />
+        <env name="WIREMOCK_PORT" value="8080" />
+        <env name="OPENAPI_SPEC" value="webroot/docs/openapi.yaml" />
+        <env name="SKIP_DB_MIGRATIONS" value="0" />
+    </php>
+    <coverage cacheDirectory=".phpunit.cache/code-coverage"
+        processUncoveredFiles="true">
+        <include>
             <directory suffix=".php">src/</directory>
             <directory suffix=".php">plugins/*/src/</directory>
-            <exclude>
-                <file>src/Console/Installer.php</file>
-            </exclude>
-        </whitelist>
-    </filter>
+        </include>
+        <exclude>
+            <file>src/Console/Installer.php</file>
+        </exclude>
+    </coverage>
 </phpunit>

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -14,6 +15,7 @@ declare(strict_types=1);
  * @since         3.3.0
  * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
+
 namespace App\Test\TestCase;
 
 use App\Application;
@@ -21,19 +23,23 @@ use Cake\Error\Middleware\ErrorHandlerMiddleware;
 use Cake\Http\MiddlewareQueue;
 use Cake\Routing\Middleware\AssetMiddleware;
 use Cake\Routing\Middleware\RoutingMiddleware;
-use Cake\TestSuite\IntegrationTestCase;
+use Cake\TestSuite\IntegrationTestTrait;
+use Cake\TestSuite\TestCase;
 use InvalidArgumentException;
 
 /**
  * ApplicationTest class
  */
-class ApplicationTest extends IntegrationTestCase
+class ApplicationTest extends TestCase
 {
     /**
      * testBootstrap
      *
      * @return void
      */
+
+    use IntegrationTestTrait;
+
     public function testBootstrap()
     {
         $app = new Application(dirname(dirname(__DIR__)) . '/config');
@@ -60,7 +66,7 @@ class ApplicationTest extends IntegrationTestCase
 
         $app = $this->getMockBuilder(Application::class)
             ->setConstructorArgs([dirname(dirname(__DIR__)) . '/config'])
-            ->setMethods(['addPlugin'])
+            ->onlyMethods(['addPlugin'])
             ->getMock();
 
         $app->method('addPlugin')

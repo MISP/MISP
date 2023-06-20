@@ -8,7 +8,7 @@ function executeStateDependencyChecks(dependenceSourceSelector) {
     } else {
         var tempSelector = '*[data-dependence-source="' + dependenceSourceSelector + '"]';
     }
-    $(tempSelector).each(function(index, dependent) {
+    $(tempSelector).each(function (index, dependent) {
         var dependenceSource = $(dependent).data('dependence-source');
         if ($(dependent).data('dependence-option') === $(dependenceSource).val()) {
             $(dependent).parent().parent().removeClass('d-none');
@@ -30,19 +30,19 @@ function testConnection(id) {
     UI.overlayUntilResolve(
         $container[0],
         AJAXApi.quickFetchJSON(`/broods/testConnection/${id}`),
-        {text: 'Running test'}
+        { text: 'Running test' }
     ).then(result => {
         const $testResult = attachTestConnectionResultHtml(result, $container)
         $(`#connection_test_${id}`).append($testResult)
     })
-    .catch((error) => {
-        const $testResult = attachTestConnectionResultHtml(error.message, $container)
-        $(`#connection_test_${id}`).append($testResult)
-    })
+        .catch((error) => {
+            const $testResult = attachTestConnectionResultHtml(error.message, $container)
+            $(`#connection_test_${id}`).append($testResult)
+        })
 }
 
 function attachTestConnectionResultHtml(result, $container) {
-    function getKVHtml(key, value, valueClasses=[], extraValue='') {
+    function getKVHtml(key, value, valueClasses = [], extraValue = '') {
         return $('<div/>').append(
             $('<strong/>').text(key + ': '),
             $('<span/>').addClass(valueClasses).text(value),
@@ -84,15 +84,15 @@ function syntaxHighlightJson(json, indent) {
     return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
         var cls = 'text-info';
         if (/^"/.test(match)) {
-                if (/:$/.test(match)) {
-                        cls = 'text-primary';
-                } else {
-                        cls = '';
-                }
+            if (/:$/.test(match)) {
+                cls = 'text-primary';
+            } else {
+                cls = '';
+            }
         } else if (/true|false/.test(match)) {
-                cls = 'text-info';
+            cls = 'text-info';
         } else if (/null/.test(match)) {
-                cls = 'text-danger';
+            cls = 'text-danger';
         }
         return '<span class="' + cls + '">' + match + '</span>';
     });
@@ -103,10 +103,10 @@ function getTextColour(hex) {
         return 'black'
     }
     hex = hex.slice(1)
-    var r = parseInt(hex.substring(0,2), 16)
-    var g = parseInt(hex.substring(2,4), 16)
-    var b = parseInt(hex.substring(4,6), 16)
-    var avg = ((2 * r) + b + (3 * g))/6
+    var r = parseInt(hex.substring(0, 2), 16)
+    var g = parseInt(hex.substring(2, 4), 16)
+    var b = parseInt(hex.substring(4, 6), 16)
+    var avg = ((2 * r) + b + (3 * g)) / 6
     if (avg < 128) {
         return 'white'
     } else {
@@ -131,7 +131,7 @@ function performGlobalSearch(evt) {
         return;
     }
     const endpoint = '/instance/searchAll'
-    const searchParams = new URLSearchParams({search: value});
+    const searchParams = new URLSearchParams({ search: value });
     const url = endpoint + '?' + searchParams
     const options = {
         statusNode: $resultContainer.find('.search-results-wrapper')
@@ -171,7 +171,7 @@ function openSaveBookmarkModal(bookmark_url = '') {
     })
 }
 
-function deleteBookmark(bookmark, forSidebar=false) {
+function deleteBookmark(bookmark, forSidebar = false) {
     const url = '/user-settings/deleteMyBookmark'
     AJAXApi.quickFetchAndPostForm(url, {
         bookmark_name: bookmark.name,
@@ -315,10 +315,124 @@ $(document).ready(() => {
         const url = `/user-settings/setMySetting/${settingName}`
         AJAXApi.quickFetchAndPostForm(url, {
             value: expanded ? 0 : 1
-        }, { provideFeedback: false})
+        }, { provideFeedback: false })
     })
 
     $('.sidebar #btn-add-bookmark').click(() => {
         openSaveBookmarkModal(window.location.pathname)
     })
 })
+
+function simpleTabPage(page) {
+    $(".progress_tab").removeClass("btn-primary").addClass("btn-inverse");
+    $("#page" + page + "_tab").removeClass("btn-inverse").addClass("btn-primary");
+    $(".tabContent").hide();
+    $("#page" + page + "_content").show();
+    if (page == lastPage) simpleTabPageLast();
+}
+
+function simpleTabPageLast() {
+    var summaryorgs = summaryextendorgs = remotesummaryorgs = remotesummaryextendorgs = summaryservers = "";
+    var orgcounter = extendcounter = remoteorgcounter = remoteextendcounter = servercounter = 0;
+    var sgname = "[Sharing group name not set!]";
+    if ($('#SharingGroupName').val()) sgname = $('#SharingGroupName').val();
+    var sgreleasability = "[Sharing group releasability not set!]";
+    if ($('#SharingGroupReleasability').val()) sgreleasability = $('#SharingGroupReleasability').val();
+    $('#summarytitle').text(sgname);
+    $('#summaryreleasable').text(sgreleasability);
+    organisations.forEach(function (organisation) {
+        if (organisation.type == 'local') {
+            if (orgcounter > 0) summaryorgs += ", ";
+            summaryorgs += organisation.name;
+            if (organisation.extend == true) {
+                if (extendcounter > 0) summaryextendorgs += ", "
+                summaryextendorgs += organisation.name;
+                extendcounter++;
+            }
+            orgcounter++;
+        } else {
+            if (remoteorgcounter > 0) remotesummaryorgs += ", ";
+            remotesummaryorgs += organisation.name;
+            if (organisation.extend == true) {
+                if (remoteextendcounter > 0) remotesummaryextendorgs += ", "
+                remotesummaryextendorgs += organisation.name;
+                remoteextendcounter++;
+            }
+            remoteorgcounter++;
+        }
+    });
+    if (orgcounter == 0) $('#localText').hide();
+    if (remoteorgcounter == 0) $('#externalText').hide();
+    if (extendcounter == 0) summaryextendorgs = "nobody";
+    if (remoteextendcounter == 0) remotesummaryextendorgs = "nobody";
+    servers.forEach(function (server) {
+        if (servercounter > 0) summaryservers += ", ";
+        if (server.id != 0) {
+            summaryservers += server.name;
+            if (extendcounter == 0) summaryextendorgs = "none";
+            servercounter++;
+        }
+        if (server.id == 0 && server.all_orgs == true) summaryorgs = "all organisations on this instance";
+    });
+    if ($('#SharingGroupRoaming').is(":checked")) {
+        summaryservers = "any interconnected instances linked by an eligible organisation.";
+    } else {
+        if (servercounter == 0) {
+            summaryservers = "data marked with this sharing group will not be pushed.";
+        }
+    }
+    $('#summarylocal').text(summaryorgs);
+    $('#summarylocalextend').text(summaryextendorgs);
+    $('#summaryexternal').text(remotesummaryorgs);
+    $('#summaryexternalextend').text(remotesummaryextendorgs);
+    $('#summaryservers').text(summaryservers);
+}
+
+function sharingGroupPopulateOrganisations() {
+    $('input[id=SharingGroupOrganisations]').val(JSON.stringify(organisations));
+    $('.orgRow').remove();
+    var id = 0;
+    var html = '';
+    organisations.forEach(function (org) {
+        html = '<tr id="orgRow' + id + '" class="orgRow">';
+        html += '<td class="short">' + org.type + '&nbsp;</td>';
+        html += '<td>' + $('<div>').text(org.name).html() + '&nbsp;</td>';
+        html += '<td>' + org.uuid + '&nbsp;</td>';
+        html += '<td class="short" style="text-align:center;">';
+        if (org.removable == 1) {
+            html += '<input id="orgExtend' + id + '" type="checkbox" onClick="sharingGroupExtendOrg(' + id + ')" ';
+            if (org.extend) html += 'checked';
+            html += '>';
+        } else {
+            html += '<span class="icon-ok"></span>'
+        }
+        html += '</td>';
+        html += '<td class="actions short">';
+        if (org.removable == 1) html += '<span class="icon-trash" onClick="sharingGroupRemoveOrganisation(' + id + ')"></span>';
+        html += '&nbsp;</td></tr>';
+        $('#organisations_table tr:last').after(html);
+        id++;
+    });
+}
+
+function sharingGroupPopulateServers() {
+    $('input[id=SharingGroupServers]').val(JSON.stringify(servers));
+    $('.serverRow').remove();
+    var id = 0;
+    var html = '';
+    servers.forEach(function (server) {
+        html = '<tr id="serverRow' + id + '" class="serverRow">';
+        html += '<td>' + server.name + '&nbsp;</td>';
+        html += '<td>' + server.url + '&nbsp;</td>';
+        html += '<td>';
+        html += '<input id="serverAddOrgs' + id + '" type="checkbox" onClick="sharingGroupServerAddOrgs(' + id + ')" ';
+        if (server.all_orgs) html += 'checked';
+        html += '>';
+        html += '</td>';
+        html += '<td class="actions short">';
+        if (server.removable == 1) html += '<span class="icon-trash" onClick="sharingGroupRemoveServer(' + id + ')"></span>';
+        html += '&nbsp;</td></tr>';
+        $('#servers_table tr:last').after(html);
+        id++;
+    });
+}

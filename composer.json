@@ -9,7 +9,7 @@
         "admad/cakephp-social-auth": "^1.1",
         "cakephp/authentication": "^2.0",
         "cakephp/authorization": "^2.0",
-        "cakephp/cakephp": "^4.3",
+        "cakephp/cakephp": "^4.4",
         "cakephp/migrations": "^3.0",
         "cakephp/plugin-installer": "^1.2",
         "erusev/parsedown": "^1.7",
@@ -25,7 +25,7 @@
         "josegonzalez/dotenv": "^3.2",
         "league/openapi-psr7-validator": "^0.17",
         "phpstan/phpstan": "^1.10",
-        "phpunit/phpunit": "^8.5",
+        "phpunit/phpunit": "^9.5",
         "psy/psysh": "@stable",
         "wiremock-php/wiremock-php": "^2.33"
     },
@@ -78,6 +78,5 @@
             "dealerdirect/phpcodesniffer-composer-installer": true,
             "cakephp/plugin-installer": true
         }
-    },
-    "minimum-stability": "dev"
+    }
 }

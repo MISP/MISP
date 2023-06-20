@@ -29,6 +29,8 @@
     <rule ref="PSR2.Files.EndFileNewline" />
     <rule ref="PSR12.Files.OpenTag" />
     <rule ref="Zend.Files.ClosingTag" />
+    <rule ref="SlevomatCodingStandard.Namespaces.AlphabeticallySortedUses" />
+    <rule ref="SlevomatCodingStandard.Namespaces.UnusedUses" />
 
     <!-- Only one argument per line in multi-line function calls -->
     <rule ref="PEAR.Functions.FunctionCallSignature">
@@ -51,11 +53,6 @@
                 <element key="create_function" value="null" />
             </property>
         </properties>
-    </rule>
-
-    <!-- Private methods MUST not be prefixed with an underscore -->
-    <rule ref="PSR2.Methods.MethodDeclaration.Underscore">
-        <type>error</type>
     </rule>
 
     <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes">

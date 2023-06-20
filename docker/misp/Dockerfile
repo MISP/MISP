@@ -65,8 +65,8 @@ RUN usermod --uid $UID --gid $GID www-data
 COPY . /var/www/html/
 
 # Install development dependencies
-RUN pecl install -f xdebug \
-    && docker-php-ext-enable xdebug 
+RUN pecl install -f xdebug pcov \
+    && docker-php-ext-enable xdebug pcov
 
 # Install additional packages
 RUN apt-get update \

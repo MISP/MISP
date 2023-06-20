@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Noticelists;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
-class AddNoticelistApiTest extends TestCase
+class UpdateNoticelistsApiTest extends TestCase
 {
     use ApiTestTrait;
 
