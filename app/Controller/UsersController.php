@@ -1878,7 +1878,11 @@ class UsersController extends AppController
         );
         $writer = new \BaconQrCode\Writer($renderer);
         $totp->setLabel($user['User']['email']);
-        $totp->setIssuer(Configure::read('MISP.org') . ' MISP');
+        if (Configure::read('Security.otp_issuer')) {
+            $totp->setIssuer(Configure::read('Security.otp_issuer'));
+        } else {
+            $totp->setIssuer(Configure::read('MISP.org') . ' MISP');
+        }
         $qrcode = $writer->writeString($totp->getProvisioningUri());
         $qrcode = preg_replace('/^.+\n/', '', $qrcode); // ignore first <?xml version line 
 
