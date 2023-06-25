@@ -5,7 +5,7 @@
 
 ### -1/ Installer and Manual install instructions
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu2204/).
 
 ### 0/ MISP Ubuntu 22.04-server install - status
 -------------------------
@@ -362,8 +362,8 @@ apacheConfig () {
 <VirtualHost <IP, FQDN, or *>:443>
         ServerAdmin admin@<your.FQDN.here>
         ServerName <your.FQDN.here>
-        DocumentRoot /var/www/MISP/app/webroot
-        <Directory /var/www/MISP/app/webroot>
+        DocumentRoot /var/www/MISP/webroot
+        <Directory /var/www/MISP/webroot>
                 Options -Indexes
                 AllowOverride all
                 Order allow,deny

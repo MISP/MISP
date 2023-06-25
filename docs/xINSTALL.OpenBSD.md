@@ -143,7 +143,7 @@ server "default" {
         listen on $ext_addr port 80
         listen on $ext_addr tls port 443
 
-        root "/htdocs/MISP/app/webroot"
+        root "/htdocs/MISP/webroot"
 
         tls {
                 key "/etc/ssl/private/server.key"
@@ -422,7 +422,7 @@ ${SUDO_WWW} sh -c "mysql -u misp -p${DBPASSWORD_MISP} misp < /var/www/htdocs/MIS
 ### 6/ Apache configuration (optional)
 -----------------------
 ```bash
-# Now configure your Apache webserver with the DocumentRoot /var/www/htdocs/MISP/app/webroot/
+# Now configure your Apache webserver with the DocumentRoot /var/www/htdocs/MISP/webroot/
 
 #2.4
 doas mkdir /etc/apache2/sites-available/ /etc/apache2/sites-enabled/
@@ -461,8 +461,8 @@ doas mkdir /var/log/apache2/
 <VirtualHost <IP, FQDN, or *>:443>
         ServerAdmin admin@<your.FQDN.here>
         ServerName <your.FQDN.here>
-        DocumentRoot /var/www/htdocs/MISP/app/webroot
-        <Directory /var/www/htdocs/MISP/app/webroot>
+        DocumentRoot /var/www/htdocs/MISP/webroot
+        <Directory /var/www/htdocs/MISP/webroot>
                 Options -Indexes
                 AllowOverride all
                 Order allow,deny
@@ -585,7 +585,7 @@ doas gpg2 --homedir /var/www/htdocs/MISP/.gnupg --batch --gen-key /tmp/gen-key-s
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
 # And export the public key to the webroot
-doas sh -c "gpg2 --homedir /var/www/htdocs/MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS > /var/www/htdocs/MISP/app/webroot/gpg.asc"
+doas sh -c "gpg2 --homedir /var/www/htdocs/MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS > /var/www/htdocs/MISP/webroot/gpg.asc"
 
 # To make the background workers start on boot
 doas chmod +x /var/www/htdocs/MISP/app/Console/worker/start.sh

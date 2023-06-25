@@ -21,13 +21,13 @@ chmod 440 /var/www/MISP/.smime/*
 
 ## Export the public certificate (for Encipherment) to the webroot
 ```bash
-cp public_certificate.pem /var/www/MISP/app/webroot/public_certificate.pem
+cp public_certificate.pem /var/www/MISP/webroot/public_certificate.pem
 ```
 Due to this action, the MISP users will be able to download your public certificate (for Encipherment) by clicking on the footer
 
 ### Set permissions
 ```bash
-chown www-data:www-data /var/www/MISP/app/webroot/public_certificate.pem
-chmod 440 /var/www/MISP/app/webroot/public_certificate.pem
+chown www-data:www-data /var/www/MISP/webroot/public_certificate.pem
+chmod 440 /var/www/MISP/webroot/public_certificate.pem
 ```
 ## Configure the section "SMIME" in the server settings (Administration -> Server settings -> Encryption tab)

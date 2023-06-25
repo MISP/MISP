@@ -1,8 +1,8 @@
 <VirtualHost *:80>
     ServerAdmin me@me.local
     ServerName misp.local
-    DocumentRoot /var/www/MISP/app/webroot
-    <Directory /var/www/MISP/app/webroot>
+    DocumentRoot /var/www/MISP/webroot
+    <Directory /var/www/MISP/webroot>
         Options -Indexes
         AllowOverride all
         Order allow,deny

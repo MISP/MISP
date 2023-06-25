@@ -347,8 +347,8 @@ apacheConfig () {
 <VirtualHost <IP, FQDN, or *>:443>
         ServerAdmin admin@<your.FQDN.here>
         ServerName <your.FQDN.here>
-        DocumentRoot /var/www/MISP/app/webroot
-        <Directory /var/www/MISP/app/webroot>
+        DocumentRoot /var/www/MISP/webroot
+        <Directory /var/www/MISP/webroot>
                 Options -Indexes
                 AllowOverride all
                 Order allow,deny

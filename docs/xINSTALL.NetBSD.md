@@ -280,7 +280,7 @@ sudo -u www sh -c "mysql -u misp -pmisp < /var/www/htdocs/MISP/INSTALL/MYSQL.sql
 ### 6/ Apache configuration
 -----------------------
 ```bash
-# Now configure your Apache webserver with the DocumentRoot /var/www/htdocs/MISP/app/webroot/
+# Now configure your Apache webserver with the DocumentRoot /var/www/htdocs/MISP/webroot/
 
 #2.4
 sudo /usr/pkg/etc/httpd/sites-available /usr/pkg/etc/httpd/sites-enabled
@@ -316,8 +316,8 @@ sudo openssl req -newkey rsa:4096 -days 3650 -nodes -x509 \
 <VirtualHost <IP, FQDN, or *>:443>
         ServerAdmin admin@<your.FQDN.here>
         ServerName <your.FQDN.here>
-        DocumentRoot /var/www/htdocs/MISP/app/webroot
-        <Directory /var/www/htdocs/MISP/app/webroot>
+        DocumentRoot /var/www/htdocs/MISP/webroot
+        <Directory /var/www/htdocs/MISP/webroot>
                 Options -Indexes
                 AllowOverride all
                 Order allow,deny
