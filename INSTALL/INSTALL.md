@@ -39,10 +39,10 @@ sudo apt install nginx mariadb-server git composer php-intl php-mbstring php-dom
 Clone this repository (for example into /var/www/MISP)
 
 ```bash
-sudo mkdir /var/www/misp
-sudo chown www-data:www-data /var/www/misp
-sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/misp
-cd /var/www/misp
+sudo mkdir /var/www/MISP
+sudo chown www-data:www-data /var/www/MISP
+sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
+cd /var/www/MISP
 sudo -u www-data git checkout 3.x
 ```
 
@@ -51,7 +51,7 @@ Run composer
 ```bash
 sudo mkdir -p /var/www/.composer
 sudo chown www-data:www-data /var/www/.composer
-cd /var/www/misp
+cd /var/www/MISP
 sudo -H -u www-data composer install
 ```
 
@@ -84,9 +84,9 @@ sudo mysql -e "FLUSH PRIVILEGES;"
 create your local configuration and set the db credentials
 
 ```bash
-sudo -u www-data cp -a /var/www/misp/config/app_local.example.php /var/www/misp/config/app_local.php
-sudo -u www-data cp -a /var/www/misp/config/config.example.json /var/www/misp/config/config.json
-sudoedit -u www-data /var/www/misp/config/app_local.php
+sudo -u www-data cp -a /var/www/MISP/config/app_local.example.php /var/www/MISP/config/app_local.php
+sudo -u www-data cp -a /var/www/MISP/config/config.example.json /var/www/MISP/config/config.json
+sudoedit -u www-data /var/www/MISP/config/app_local.php
 ```
 
 Simply modify the Datasource -> default array's username, password, database fields
@@ -101,21 +101,12 @@ This would be, when following the steps above:
             'database' => 'misp',
 ```
 
-mod_rewrite needs to be enabled if __using apache__:
-
-```bash
-sudo a2enmod rewrite
-sudo systemctl restart apache2
-```
-
-
 ### WARNING: DURING THE PRE-RELEASE STATE, USE AN EXISTING MISP DB'S DUMP AS A STARTING POINT
 
 From your old MISP:
 
 ```
 mysqldump -u misp -p misp > misp_bkup.sql
-
 ```
 From the development 3.x branch MISP:
 
@@ -128,16 +119,16 @@ mysql -u misp -p misp < misp_bkup.sql
 
 Run the database schema migrations
 ```bash
-sudo -u www-data /var/www/misp/bin/cake migrations migrate
+sudo -u www-data /var/www/MISP/bin/cake migrations migrate
 ```
 
 Clean cakephp caches
 ```bash
-sudo rm /var/www/misp/tmp/cache/models/*
-sudo rm /var/www/misp/tmp/cache/persistent/*
+sudo rm /var/www/MISP/tmp/cache/models/*
+sudo rm /var/www/MISP/tmp/cache/persistent/*
 ```
 
-Create an apache config file for misp / ssh key and point the document root to /var/www/misp/webroot and you're good to go
+Create an apache config file for misp / ssh key and point the document root to /var/www/MISP/webroot and you're good to go
 
 For development installs the following can be done for either apache or nginx:
 
@@ -145,8 +136,10 @@ For development installs the following can be done for either apache or nginx:
 # Apache
 # This configuration is purely meant for local installations for development / testing
 # Using HTTP on an unhardened apache is by no means meant to be used in any production environment
-sudo cp /var/www/misp/INSTALL/misp_apache_dev.conf /etc/apache2/sites-available/
+sudo cp /var/www/MISP/INSTALL/apache.misp.ubuntu /etc/apache2/sites-available/misp_apache_dev.conf
 sudo ln -s /etc/apache2/sites-available/misp_apache_dev.conf /etc/apache2/sites-enabled/
+sudo a2enmod headers
+sudo a2enmod rewrite
 sudo service apache2 restart
 ```
 
@@ -156,7 +149,7 @@ OR
 # NGINX
 # This configuration is purely meant for local installations for development / testing
 # Using HTTP on an unhardened apache is by no means meant to be used in any production environment
-sudo cp /var/www/misp/INSTALL/misp_nginx.conf /etc/nginx/sites-available/
+sudo cp /var/www/MISP/INSTALL/misp_nginx.conf /etc/nginx/sites-available/
 sudo ln -s /etc/nginx/sites-available/misp_nginx.conf /etc/nginx/sites-enabled/
 sudo systemctl disable apache2 # may be required if apache is using port
 sudo service nginx restart
