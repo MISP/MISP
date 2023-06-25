@@ -41,8 +41,8 @@ Clone this repository (for example into /var/www/MISP)
 ```bash
 sudo mkdir /var/www/misp
 sudo chown www-data:www-data /var/www/misp
-sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
-cd /var/www/MISP
+sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/misp
+cd /var/www/misp
 sudo -u www-data git checkout 3.x
 ```
 
@@ -51,7 +51,7 @@ Run composer
 ```bash
 sudo mkdir -p /var/www/.composer
 sudo chown www-data:www-data /var/www/.composer
-cd /var/www/MISP
+cd /var/www/misp
 sudo -H -u www-data composer install
 ```
 
@@ -64,7 +64,6 @@ sudo -i mysql -u root
 
 From SQL shell:
 ```mysql
-mysql
 CREATE DATABASE misp;
 CREATE USER 'misp'@'localhost' IDENTIFIED BY 'YOUR_PASSWORD';
 GRANT USAGE ON *.* to misp@localhost;
@@ -87,13 +86,7 @@ create your local configuration and set the db credentials
 ```bash
 sudo -u www-data cp -a /var/www/misp/config/app_local.example.php /var/www/misp/config/app_local.php
 sudo -u www-data cp -a /var/www/misp/config/config.example.json /var/www/misp/config/config.json
-sudo -u www-data vim /var/www/misp/config/app_local.php
-```
-
-mod_rewrite needs to be enabled if __using apache__:
-
-```bash
-sudo a2enmod rewrite
+sudoedit -u www-data /var/www/misp/config/app_local.php
 ```
 
 Simply modify the Datasource -> default array's username, password, database fields
@@ -107,6 +100,14 @@ This would be, when following the steps above:
             'password' => 'YOUR_PASSWORD',
             'database' => 'misp',
 ```
+
+mod_rewrite needs to be enabled if __using apache__:
+
+```bash
+sudo a2enmod rewrite
+sudo systemctl restart apache2
+```
+
 
 ### WARNING: DURING THE PRE-RELEASE STATE, USE AN EXISTING MISP DB'S DUMP AS A STARTING POINT
 
