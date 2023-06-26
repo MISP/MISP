@@ -192,6 +192,10 @@ class DashboardsController extends AppController
             'widget_config' => empty($valueConfig['widget_config']) ? array() : $valueConfig['widget_config']
         );
 
+        if (!empty($this->request->params['named']['exportjson'])) {
+            return $this->RestResponse->viewData($data);
+        }
+
         $this->layout = false;
         $this->set('title', $dashboardWidget->title);
         $this->set('widget_id', $widget_id);
