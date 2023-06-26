@@ -161,6 +161,7 @@ class OrganisationMapWidget
         'Qatar' => 'QA',
         'Romania' => 'RO',
         'Russia' => 'RU',
+        'Russian Federation' => 'RU',
         'Rwanda' => 'RW',
         'S. Sudan' => 'SS',
         'Saudi Arabia' => 'SA',
