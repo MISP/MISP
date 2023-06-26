@@ -38,7 +38,7 @@ class TrendingAttributesWidget
         $organisationModel = ClassRegistry::init('Organisation');
         if (!empty($options['org_filter']) && is_array($options['org_filter'])) {
             foreach ($this->validOrgFilters as $filterKey) {
-                if (!empty($options['org_filter'][$filterKey])) {
+                if (isset($options['org_filter'][$filterKey])) {
                     if ($filterKey === 'local') {
                         $tempConditionBucket['Organisation.local'] = $options['org_filter']['local'];
                     } else {
