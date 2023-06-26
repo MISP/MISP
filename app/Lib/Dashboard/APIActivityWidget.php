@@ -87,6 +87,7 @@ class APIActivityWidget
                 'recursive' => 1
             ]);
         }
+        $results = [];
         $baseurl = empty(Configure::read('MISP.external_baseurl')) ? h(Configure::read('MISP.baseurl')) : Configure::read('MISP.external_baseurl');
         foreach ($counts as $key => $junk) {
             $data = $temp_apikeys[$key];
