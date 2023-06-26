@@ -11,6 +11,7 @@ class APIActivityWidget
         'limit' => 'Limits the number of displayed APIkeys. (-1 will list all) Default: -1',
         'days' => 'How many days back should the list go - for example, setting 7 will only show contributions in the past 7 days. (integer)',
         'month' => 'Who contributed most this month? (boolean)',
+        'previous_month' => 'Who contributed most the previous, finished month? (boolean)',
         'year' => 'Which contributed most this year? (boolean)',
     ];
     public $description = 'Basic widget showing some server statistics in regards to MISP.';
@@ -26,16 +27,20 @@ class APIActivityWidget
             $begin = new DateTime(date('Y-m-d', strtotime(sprintf("-%s days", $options['days']))));
         } else if (!empty($options['month'])) {
             $begin = new DateTime(date('Y-m-d', strtotime('first day of this month 00:00:00', time())));
+        } else if (!empty($options['previous_month'])) {
+            $begin = new DateTime(date('Y-m-d', strtotime('first day of last month 00:00:00', time())));
+            $end = new DateTime(date('Y-m-d', strtotime('last day of last month 23:59:59', time())));
         } else if (!empty($options['year'])) {
             $begin = new DateTime(date('Y-m-d', strtotime('first day of this year 00:00:00', time())));
         } else {
             $begin = new DateTime(date('Y-m-d', strtotime('-7 days', time())));;
         }
-        $now = new DateTime();
+
+        $end = isset($end) ? $end : new DateTime();
         $dates = new DatePeriod(
             $begin,
             new DateInterval('P1D'),
-            $now
+            $end
         );
         $results = [];
         foreach ($dates as $date) {
