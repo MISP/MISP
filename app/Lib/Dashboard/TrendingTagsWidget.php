@@ -30,9 +30,10 @@ class TrendingTagsWidget
 	    /** @var Event $eventModel */
         $eventModel = ClassRegistry::init('Event');
         $threshold = empty($options['threshold']) ? 10 : $options['threshold'];
-        $time_window = empty($options['time_window']) ? (7 * 24 * 60 * 60) : $options['time_window'];
-        if (is_string($time_window) && substr($time_window, -1) === 'd') {
-            $time_window = ((int)substr($time_window, 0, -1)) * 24 * 60 * 60;
+        if (is_string($options['time_window']) && substr($options['time_window'], -1) === 'd') {
+            $time_window = ((int)substr($options['time_window'], 0, -1)) * 24 * 60 * 60;
+        } else {
+            $time_window = empty($options['time_window']) ? (7 * 24 * 60 * 60) : (int)$options['time_window'];
         }
         $params = $time_window === -1 ? [] : ['timestamp' => time() - $time_window];
 
