@@ -255,6 +255,14 @@ class CurlClient extends HttpSocketExtended
         return $this->constructResponse($output, $responseHeaders, $code);
     }
 
+    public function disconnect()
+    {
+        if ($this->ch) {
+            curl_close($this->ch);
+            $this->ch = null;
+        }
+    }
+
     /**
      * @param string $body
      * @param array $headers
