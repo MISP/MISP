@@ -6108,7 +6108,7 @@ class Server extends AppModel
                 ],
                 'thumbnail_in_redis' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Store image thumbnails in Redis insteadof file system.'),
+                    'description' => __('Store image thumbnails in Redis instead of file system.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
