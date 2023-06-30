@@ -427,6 +427,7 @@ class EventsController extends AppController
                     // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
                     $pieces = is_array($v) ? $v : explode('|', $v);
                     $test = array();
+                    $foundOrg = false;
                     foreach ($pieces as $piece) {
                         if ($piece[0] === '!') {
                             $piece = substr($piece, 1); // remove `!` char
@@ -440,6 +441,7 @@ class EventsController extends AppController
                             }
                             if ($orgId) {
                                 $this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => $orgId);
+                                $foundOrg = true;
                             }
                         } else {
                             if (is_numeric($piece)) {
@@ -453,13 +455,17 @@ class EventsController extends AppController
                                 }
                                 if ($orgId) {
                                     $test['OR'][] = array('Event.orgc_id' => $orgId);
-                                } else {
-                                    $nothing = true;
+                                    $foundOrg = true;
                                 }
                             }
                         }
                     }
-                    $this->paginate['conditions']['AND'][] = $test;
+                    if (!$foundOrg) {
+                        $nothing = true;
+                    }
+                    if (!empty($test)) {
+                        $this->paginate['conditions']['AND'][] = $test;
+                    }
                     break;
                 case 'sharinggroup':
                     $pieces = explode('|', $v);
