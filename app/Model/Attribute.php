@@ -1773,7 +1773,8 @@ class Attribute extends AppModel
             if (($params['limit'] != 0) && ($options['enforceWarninglist'] || $proposals_block_attributes || $options['excludeDecayed'])) {
                 $loopLimit = $params['limit']; // optimistic approach
                 $loop = true;
-                $preventUnfinishedPages = True;                
+                $preventUnfinishedPages = True;
+                $params['page'] = 1;
             } else {
                 $loop = false;
             }         
