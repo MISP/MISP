@@ -1659,7 +1659,8 @@ class Attribute extends AppModel
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
         }
-        if (!empty($options['allow_proposal_blocking']) && Configure::read('MISP.proposals_block_attributes')) {
+        $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
+        if (!empty($options['allow_proposal_blocking']) && $proposals_block_attributes) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
                 'ShadowAttribute' => array(
@@ -1757,14 +1758,25 @@ class Attribute extends AppModel
         if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
         }
-        // If no limit is provided, fetch attributes in bulk
+
+        // If no limit is provided, fetch attributes in bull
+        $preventUnfinishedPages = False;
         if (empty($params['limit'])) {
             $loopLimit = 50000;
             $loop = true;
             $params['limit'] = $loopLimit;
             $params['page'] = 1;
         } else {
-            $loop = false;
+            // if page limit is set and entries are skipped because of warning list or decay model
+            // it could happen that some pages are empty or not full
+            // to avoid this attributes must be fetched in loop
+            if (($params['limit'] != 0) && ($options['enforceWarninglist'] || $proposals_block_attributes || $options['excludeDecayed'])) {
+                $loopLimit = $params['limit']; // optimistic approach
+                $loop = true;
+                $preventUnfinishedPages = True;                
+            } else {
+                $loop = false;
+            }         
         }
 
         // Do not fetch result count when `$result_count` is false
@@ -1798,8 +1810,7 @@ class Attribute extends AppModel
                 unset($eventIds);
             }
 
-            $this->attachTagsToAttributes($results, $options);
-            $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
+            $this->attachTagsToAttributes($results, $options);            
             $sgids = $this->SharingGroup->authorizedIds($user);
             foreach ($results as &$attribute) {
                 if (!empty($options['includeContext'])) {
@@ -1870,9 +1881,27 @@ class Attribute extends AppModel
                 if ($iteration_result_count < $loopLimit) { // we fetched fewer results than the limit, so we can exit the loop
                     break;
                 }
+                if ($preventUnfinishedPages) {
+                    if (count($attributes) >= $options['page'] * $options['limit']) {
+                        break;
+                    }
+                    if (count($attributes) < ($options['page'] * $options['limit']) * 0.25 && $loopLimit < 50000) {
+                        $params['page'] = 0; // relaying on Pages is not possible after changing fetch size
+                        $attributes = []; // already fetched attributes must be fetched again
+
+                        $params['limit'] *= 10;
+                        if ($params['limit'] > 50000) {
+                            $params['limit'] = 50000;
+                        }
+                        $loopLimit = $params['limit'];                        
+                    }
+                }
                 $params['page']++;
             }
         } while ($loop);
+        if ($preventUnfinishedPages) {
+            $attributes = array_slice($attributes, ($options['page']-1) * $options['limit'], $options['limit']);
+        }
         return $attributes;
     }
 
