@@ -3151,11 +3151,16 @@ class UsersController extends AppController
                 throw new MethodNotAllowedException($message);
             } else {
                 $this->Flash->error($message);
+                $this->redirect('/');
             }
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $abortPost = false;
-            return $this->__pw_change(['User' => $user], 'password_reset', $abortPost);
+            $result = $this->__pw_change(['User' => $user], 'password_reset', $abortPost);
+            if (!$abortPost) {
+                $this->User->purgeForgetToken($token);
+            }
+            return $result;
         }
     }
 

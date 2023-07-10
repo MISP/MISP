@@ -2094,4 +2094,11 @@ class User extends AppModel
         $user = $this->getAuthUser($userId, true);
         return $user;
     }
+
+    public function purgeForgetToken($token)
+    {
+        $redis = $this->setupRedis();
+        $userId = $redis->del('misp:forgot:' . $token);
+        return true;
+    }
 }
