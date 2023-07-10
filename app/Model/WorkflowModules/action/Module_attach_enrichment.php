@@ -5,6 +5,7 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
 {
     public $id = 'attach-enrichment';
     public $name = 'Attach enrichment';
+    public $version = '0.2';
     public $description = 'Attach selected enrichment result to Attributes.';
     public $icon = 'asterisk';
     public $inputs = 1;
@@ -16,6 +17,7 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
     private $Module;
     private $fastLookupArrayMispFormat = [];
     private $fastLookupArrayFlattened = [];
+    private $allModulesByName = [];
 
 
     public function __construct()
@@ -23,7 +25,7 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
         parent::__construct();
         $this->Module = ClassRegistry::init('Module');
         $modules = $this->Module->getModules('Enrichment');
-        $moduleOptions = [];
+        $this->allModulesByName = Hash::combine($modules, '{n}.name', '{n}');
         if (is_array($modules)) {
             $moduleOptions = array_merge([''], Hash::combine($modules, '{n}.name', '{n}.name'));
         } else {
@@ -34,7 +36,8 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
             [
                 'id' => 'modules',
                 'label' => 'Modules',
-                'type' => 'select',
+                'type' => 'picker',
+                'multiple' => true,
                 'options' => $moduleOptions,
             ],
         ];
@@ -48,12 +51,14 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
             $errors[] = __('No enrichmnent module selected');
             return false;
         }
+        $selectedModules = array_filter($params['modules']['value'], function($module) {
+            return $module !== '';
+        });
         $rData = $roamingData->getData();
         $event_id = $rData['Event']['id'];
         $options = [
             'user' => $roamingData->getUser(),
             'event_id' => $event_id,
-            'module' => $params['modules']['value'],
             'config' => ['_' => '_'], // avoid casting empty associative array in to empty list
         ];
 
@@ -64,10 +69,21 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
         $this->_buildFastLookupForRoamingData($rData);
 
         foreach ($matchingItems as $attribute) {
-            $moduleData = $options;
-            $moduleData['attribute'] = $attribute;
-            $queryResult = $this->_queryModules($moduleData, $attribute, $rData);
-            $rData = $this->_attachEnrichmentData($attribute, $queryResult, $rData);
+            foreach ($selectedModules as $selectedModule) {
+                $moduleConfig = $this->allModulesByName[$selectedModule];
+                $moduleData = $options;
+                $moduleData['module'] = $selectedModule;
+                $moduleData['attribute'] = $attribute;
+                if (!$this->_checkIfInputSupported($attribute, $moduleConfig)) { // Queried module doesn't support the Attribute's type
+                    continue;
+                }
+                if (empty($moduleConfig['mispattributes']['format'])) { // Adapt payload if modules doesn't support the misp-format
+                    $moduleData = $this->_convertPayloadToModuleFormat($moduleData, $moduleConfig);
+                }
+                $queryResult = $this->_queryModules($moduleData, $attribute, $rData);
+                $queryResult = $this->_handleModuleResult($queryResult, $moduleConfig);
+                $rData = $this->_attachEnrichmentData($attribute, $queryResult, $rData);
+            }
         }
         $roamingData->setData($rData);
         return true;
@@ -80,6 +96,33 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
             $result = $result['results'];
         }
         return $result;
+    }
+
+    protected function _convertPayloadToModuleFormat(array $options, array $moduleConfig): array
+    {
+        $attribute = $options['attribute'];
+        unset($options['attribute']);
+        foreach ($moduleConfig['mispattributes']['input'] as $supportedAttributeType) {
+            if ($supportedAttributeType == $attribute['type']) {
+                $options[$supportedAttributeType] = $attribute['value'];
+            }
+        }
+        return $options;
+    }
+
+    protected function _checkIfInputSupported(array $attribute, array $moduleConfig): bool
+    {
+        foreach ($moduleConfig['mispattributes']['input'] as $supportedAttributeType) {
+            if ($supportedAttributeType == $attribute['type']) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected function _handleModuleResult(array $queryResult, array $moduleConfig): array
+    {
+        return $queryResult;
     }
 
     protected function _buildFastLookupForRoamingData($rData): void
