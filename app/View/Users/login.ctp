@@ -58,6 +58,9 @@
                     __('Registration will be sent to the administrators of the instance for consideration.'),
                     __('No account yet? Register now!')
                 );
+            ?>
+            <div class="clear">
+            <?php
                 echo empty(Configure::read('Security.allow_password_forgotten')) ? '' : sprintf(
                     '<a href="%s/users/forgot" title="%s">%s</a>',
                     $baseurl,
