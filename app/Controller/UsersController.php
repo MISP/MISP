@@ -3159,7 +3159,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $abortPost = false;
-            return $this->__pw_change(['User' => $user], 'password_reset', $abortPost);
+            return $this->__pw_change(['User' => $user], 'password_reset', $abortPost, $token);
         }
     }
 
