@@ -266,7 +266,7 @@ class UsersController extends AppController
         $this->set('canFetchPgpKey', $this->__canFetchPgpKey());
     }
 
-    private function __pw_change($user, $source, &$abortPost)
+    private function __pw_change($user, $source, &$abortPost, $token = false)
     {
         if (!isset($this->request->data['User'])) {
             $this->request->data = array('User' => $this->request->data);
@@ -309,6 +309,9 @@ class UsersController extends AppController
             $temp = $user['User']['password'];
             // Save the data
             if ($this->User->save($user)) {
+                if ($token) {
+                    $this->User->purgeForgetToken($token);
+                }
                 $message = __('Password Changed.');
                 // log as System if the reset comes from an unauthed user using password_reset tokens
                 $logUser = empty($this->Auth->user()) ? 'SYSTEM' : $this->Auth->user();
@@ -3156,11 +3159,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $abortPost = false;
-            $result = $this->__pw_change(['User' => $user], 'password_reset', $abortPost);
-            if (!$abortPost) {
-                $this->User->purgeForgetToken($token);
-            }
-            return $result;
+            return $this->__pw_change(['User' => $user], 'password_reset', $abortPost);
         }
     }
 
