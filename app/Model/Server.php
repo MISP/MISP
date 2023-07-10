@@ -6108,7 +6108,7 @@ class Server extends AppModel
                 ],
                 'thumbnail_in_redis' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Store image thumbnails in Redis insteadof file system.'),
+                    'description' => __('Store image thumbnails in Redis instead of file system.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6404,6 +6404,14 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'beforeHook' => 'otpBeforeHook',
                     'type' => 'boolean',
+                    'null' => true
+                ),
+                'otp_issuer' => array(
+                    'level' => 2,
+                    'description' => __('If OTP is enabled, set the issuer string to an arbitrary value. Otherwise, MISP will default to "[MISP.org] MISP".'),
+                    'value' => false,
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
                     'null' => true
                 ),
                 'email_otp_enabled' => array(

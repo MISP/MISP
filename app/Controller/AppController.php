@@ -33,7 +33,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '151';
+    private $__queryVersion = '152';
     public $pyMispVersion = '2.4.172';
     public $phpmin = '7.2';
     public $phprec = '7.4';
@@ -1118,7 +1118,7 @@ class AppController extends Controller
                 $user['User'] = $temp;
                 if ($user['User']) {
                     $this->User->updateLoginTimes($user['User']);
-                    $this->Session->renew();
+                    //$this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user['User']);
                     if (Configure::read('MISP.log_auth')) {
                         $this->Log = ClassRegistry::init('Log');
