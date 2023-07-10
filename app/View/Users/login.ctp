@@ -58,6 +58,12 @@
                     __('Registration will be sent to the administrators of the instance for consideration.'),
                     __('No account yet? Register now!')
                 );
+                echo empty(Configure::read('Security.allow_password_forgotten')) ? '' : sprintf(
+                    '<a href="%s/users/forgot" title="%s">%s</a>',
+                    $baseurl,
+                    __('Initiate a password reset.'),
+                    __('I have forgotten my password')
+                );
             ?>
             </div>
             <?= $this->Form->button(__('Login'), array('class' => 'btn btn-primary')); ?>
