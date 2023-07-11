@@ -111,6 +111,17 @@ $objectId = intval($object['id']);
   <td class="short action-links">
     <?php
       if ($mayModify) {
+          if (Configure::read('Plugin.Enrichment_services_enable')) {
+            echo sprintf(
+              '<span class="fa fa-asterisk white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onclick="%2$s"></span> ',
+              __('Add enrichment'),
+              sprintf(
+                'simplePopup(\'%s/events/queryEnrichment/%s/0/Enrichment/Object\');',
+                  $baseurl, $objectId
+              )
+            );
+          }
+
           if (empty($object['deleted'])) {
             echo sprintf(
               '<a href="%s/objects/edit/%s" title="%s" aria-label="%s" class="fa fa-edit white"></a> ',

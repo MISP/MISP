@@ -158,7 +158,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'title' => __('Propose enrichment'),
                 'icon' => 'asterisk',
-                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/ShadowAttribute\');',
+                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Enrichment/ShadowAttribute\');',
                 'onclick_params_data_path' => 'Attribute.id',
                 'complex_requirement' => [
                     'function' => function ($object) use ($modules, $isSiteAdmin, $me) {
@@ -178,7 +178,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'title' => __('Propose enrichment through Cortex'),
                 'icon' => 'eye',
-                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/ShadowAttribute/Cortex\');',
+                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Enrichment/ShadowAttribute/Cortex\');',
                 'onclick_params_data_path' => 'Attribute.id',
                 'complex_requirement' => [
                     'function' => function ($object) use ($cortex_modules, $isSiteAdmin, $me) {
@@ -202,7 +202,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'title' => __('Add enrichment'),
                 'icon' => 'asterisk',
-                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Attribute\');',
+                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Enrichment/Attribute\');',
                 'onclick_params_data_path' => 'Attribute.id',
                 'complex_requirement' => function ($object) use ($modules) {
                     return $this->Acl->canModifyEvent($object) &&
@@ -213,7 +213,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'title' => __('Add enrichment via Cortex'),
                 'icon' => 'eye',
-                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Attribute/Cortex\');',
+                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Enrichment/Attribute/Cortex\');',
                 'onclick_params_data_path' => 'Attribute.id',
                 'complex_requirement' => function ($object) use ($cortex_modules) {
                     return $this->Acl->canModifyEvent($object) &&
