@@ -6465,6 +6465,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'allow_password_forgotten' => array(
+                    'level' => 1,
+                    'description' => __('Enabling this setting will allow users to request automated password reset tokens via mail and initiate a reset themselves. Users with no encryption keys will not be able to use this feature.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'self_registration_message' => array(
                     'level' => 1,
                     'bigField' => true,

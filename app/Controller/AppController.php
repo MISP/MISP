@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '152';
-    public $pyMispVersion = '2.4.172';
+    public $pyMispVersion = '2.4.173';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -222,8 +222,10 @@ class AppController extends Controller
             !$userLoggedIn &&
             (
                 $controller !== 'users' ||
-                $action !== 'register' ||
-                empty(Configure::read('Security.allow_self_registration'))
+                (
+                    ($action !== 'register' || empty(Configure::read('Security.allow_self_registration'))) &&
+                    (!in_array($action, ['forgot', 'password_reset']) || empty(Configure::read('Security.allow_password_forgotten')))
+                )
             )
         ) {
             // REST authentication
@@ -313,6 +315,10 @@ class AppController extends Controller
             $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401', 'otp');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
                 $preAuthActions[] = 'email_otp';
+            }
+            if (!empty(Configure::read('Security.allow_password_forgotten'))) {
+                $preAuthActions[] = 'forgot';
+                $preAuthActions[] = 'password_reset';
             }
             if (!$this->_isControllerAction(['users' => $preAuthActions, 'servers' => ['cspReport']])) {
                 if ($isAjax) {
