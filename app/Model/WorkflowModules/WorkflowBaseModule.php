@@ -217,7 +217,7 @@ class WorkflowBaseModule
             if (in_array($operator, ['equals', 'not_equals'])) {
                 $subItem = !empty($subItem) ? $subItem[0] : $subItem;
             }
-            if ($operator == 'any_value_in' && !empty($subItem)) {
+            if ($operator == 'any_value' && !empty($subItem)) {
                 continue;
             } else if (!$this->evaluateCondition($subItem, $operator, $value)) {
                 unset($items[$i]);
@@ -310,12 +310,16 @@ class WorkflowBaseActionModule extends WorkflowBaseModule
 
     protected function _buildFastLookupForRoamingData($rData): void
     {
-        foreach ($rData['Event']['Attribute'] as $i => $attribute) {
-            $this->fastLookupArrayMispFormat[$attribute['id']] = $i;
+        if (!empty($rData['Event']['Attribute'])) {
+            foreach ($rData['Event']['Attribute'] as $i => $attribute) {
+                $this->fastLookupArrayMispFormat[$attribute['id']] = $i;
+            }
         }
-        foreach ($rData['Event']['Object'] as $j => $object) {
-            foreach ($object['Attribute'] as $i => $attribute) {
-                $this->fastLookupArrayMispFormat[$attribute['id']] = [$j, $i];
+        if (!empty($rData['Event']['Object'])) {
+            foreach ($rData['Event']['Object'] as $j => $object) {
+                foreach ($object['Attribute'] as $i => $attribute) {
+                    $this->fastLookupArrayMispFormat[$attribute['id']] = [$j, $i];
+                }
             }
         }
         foreach ($rData['Event']['_AttributeFlattened'] as $i => $attribute) {

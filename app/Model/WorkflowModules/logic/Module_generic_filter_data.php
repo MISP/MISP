@@ -16,7 +16,8 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
         'not_in' => 'Not in',
         'equals' => 'Equals',
         'not_equals' => 'Not equals',
-        'any_value_in' => 'Any value in',
+        'any_value' => 'Any value',
+        'in_or' => 'Any value from',
     ];
 
     public function __construct()
@@ -41,6 +42,18 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
                 'label' => __('Value'),
                 'type' => 'input',
                 'placeholder' => 'tlp:red',
+                'display_on' => [
+                    'operator' => ['in', 'not_in', 'equals', 'not_equals',],
+                ],
+            ],
+            [
+                'id' => 'value_list',
+                'label' => __('Value list'),
+                'type' => 'input',
+                'placeholder' => '[\'ip-src\', \'ip-dst\']',
+                'display_on' => [
+                    'operator' => 'in_or',
+                ],
             ],
             [
                 'id' => 'operator',
@@ -66,6 +79,8 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
         $path = $params['hash_path']['value'];
         $operator = $params['operator']['value'];
         $value = $params['value']['value'];
+        $value_list = $params['value_list']['value'];
+        $valueToEvaluate = $operator == 'in_or' ? $value_list : $value;
         $filteringLabel = $params['filtering-label']['value'];
         $rData = $roamingData->getData();
 
@@ -77,7 +92,7 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
             'selector' => $selector,
             'path' => $path,
             'operator' => $operator,
-            'value' => $value,
+            'value' => $valueToEvaluate,
         ];
 
         $roamingData->setData($newRData);

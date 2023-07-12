@@ -1473,10 +1473,18 @@ function genSelect(options, forNode = true) {
         $select.attr('size', 1)
     }
     if (options.picker_create_new) {
+        options.multiple = true
         $select.attr('picker_create_new', 1)
+        $select.prop('multiple', true)
         if (!options.options) {
             options.options = []
-            $select.prop('multiple', true)
+        }
+        if (options.value) {
+            if (Array.isArray(options.value)) {
+                options.options = options.options.concat(options.value)
+            } else {
+                options.options.push(options.value)
+            }
         }
     }
     var selectOptions = options.options
