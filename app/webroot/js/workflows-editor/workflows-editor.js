@@ -1390,7 +1390,9 @@ function toggleDisplayOnFields() {
             Object.keys(node_param_config.display_on).forEach(function(target_param_id) {
                 var target_param_values = node_param_config.display_on[target_param_id]
                 var node_param_value = node.data.indexed_params[target_param_id]
-                if (target_param_values == node_param_value) {
+                if (Array.isArray(target_param_values) && target_param_values.includes(node_param_value)) {
+                    showContainer = true
+                } else if (target_param_values == node_param_value) {
                     showContainer = true
                 }
             });
