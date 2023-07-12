@@ -28,6 +28,7 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
                 'label' => __('Filtering Label'),
                 'type' => 'select',
                 'options' => $this->_genFilteringLabels(),
+                'default' => array_keys($this->_genFilteringLabels())[0],
             ],
             [
                 'id' => 'selector',
