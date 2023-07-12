@@ -49,7 +49,8 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
             [
                 'id' => 'value_list',
                 'label' => __('Value list'),
-                'type' => 'input',
+                'type' => 'picker',
+                'picker_create_new' => true,
                 'placeholder' => '[\'ip-src\', \'ip-dst\']',
                 'display_on' => [
                     'operator' => 'in_or',
