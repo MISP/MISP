@@ -15,8 +15,6 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
     public $params = [];
 
     private $Module;
-    private $fastLookupArrayMispFormat = [];
-    private $fastLookupArrayFlattened = [];
     private $allModulesByName = [];
 
 
@@ -50,6 +48,8 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
         if (empty($params['modules']['value'])) {
             $errors[] = __('No enrichmnent module selected');
             return false;
+        } else if (is_string($params['modules']['value'])) {
+            $params['modules']['value'] = [$params['modules']['value']];
         }
         $selectedModules = array_filter($params['modules']['value'], function($module) {
             return $module !== '';
@@ -123,21 +123,6 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
     protected function _handleModuleResult(array $queryResult, array $moduleConfig): array
     {
         return $queryResult;
-    }
-
-    protected function _buildFastLookupForRoamingData($rData): void
-    {
-        foreach ($rData['Event']['Attribute'] as $i => $attribute) {
-            $this->fastLookupArrayMispFormat[$attribute['id']] = $i;
-        }
-        foreach ($rData['Event']['Object'] as $j => $object) {
-            foreach ($object['Attribute'] as $i => $attribute) {
-                $this->fastLookupArrayMispFormat[$attribute['id']] = [$j, $i];
-            }
-        }
-        foreach ($rData['Event']['_AttributeFlattened'] as $i => $attribute) {
-            $this->fastLookupArrayFlattened[$attribute['id']] = $i;
-        }
     }
 
     protected function _attachEnrichmentData(array $attribute, array $queryResult, array $rData): array
