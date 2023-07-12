@@ -16,6 +16,7 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
         'not_in' => 'Not in',
         'equals' => 'Equals',
         'not_equals' => 'Not equals',
+        'any_value_in' => 'Any value in',
     ];
 
     public function __construct()
