@@ -1350,6 +1350,7 @@ function afterNodeDrawCallback() {
     var $nodes = $drawflow.find('.drawflow-node')
     $nodes.find('.start-chosen').chosen()
     toggleDisplayOnFields()
+    enablePickerCreateNewOptions()
 }
 
 function afterModalShowCallback() {
@@ -1402,6 +1403,30 @@ function toggleDisplayOnFields() {
     })
 }
 
+function enablePickerCreateNewOptions() {
+    var $nodes = $drawflow.find('.drawflow-node')
+    $nodes.find('.start-chosen[picker_create_new="1"]').each(function () {
+        var $select = $(this)
+        var $input = $select.parent().find('.chosen-search-input')
+
+        $input.on('keydown', function(evt) {
+            if (evt.which == 13) { // <ENTER>
+                var newVal = $input.val()
+                var optionExists = $select.find('option').filter(function () {
+                    return $(this).val() == newVal
+                }).length > 0
+                if (!optionExists) {
+                    var $newOption = $('<option>')
+                        .val(newVal)
+                        .text(newVal)
+                    $select.append($newOption);
+                    $select.trigger('chosen:updated');
+                }
+            }
+        })
+    })
+}
+
 function genParameterWarning(options) {
     var text = '', text_short = ''
     if (options.is_invalid) {
@@ -1444,6 +1469,13 @@ function genSelect(options, forNode = true) {
     if (options.multiple) {
         $select.prop('multiple', true)
         $select.attr('size', 1)
+    }
+    if (options.picker_create_new) {
+        $select.attr('picker_create_new', 1)
+        if (!options.options) {
+            options.options = []
+            $select.prop('multiple', true)
+        }
     }
     var selectOptions = options.options
     if (!Array.isArray(selectOptions)) {
