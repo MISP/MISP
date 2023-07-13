@@ -90,7 +90,9 @@ class Module_tag_replacement_generic extends Module_tag_operation
         }
 
         $result = false;
-        $optionsRemove = [];
+        $optionsRemove = [
+            'local' => $params['locality']['value'] == 'local' ? true : false,
+        ];
         $optionsAdd = [
             'local' => $params['locality']['value'] == 'local' ? true : false,
             'relationship_type' => $params['relationship_type']['value'],
