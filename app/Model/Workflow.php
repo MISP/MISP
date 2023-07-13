@@ -13,7 +13,7 @@ class Workflow extends AppModel
     public $recursive = -1;
 
     public $actsAs = [
-        'AuditLog',
+        // 'AuditLog',
         'Containable',
         'SysLogLogable.SysLogLogable' => [
             'roleModel' => 'Role',
