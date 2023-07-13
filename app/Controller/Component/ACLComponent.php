@@ -613,7 +613,7 @@ class ACLComponent extends Component
             ),
             'sightings' => array(
                 'add' => array('perm_sighting'),
-                'restSearch' => array('perm_sighting'),
+                'restSearch' => array('*'),
                 'advanced' => array('perm_sighting'),
                 'delete' => ['AND' => ['perm_sighting', 'perm_modify_org']],
                 'index' => array('*'),
