@@ -5,7 +5,7 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
 {
     public $id = 'attach-enrichment';
     public $name = 'Attach enrichment';
-    public $version = '0.2';
+    public $version = '0.3';
     public $description = 'Attach selected enrichment result to Attributes.';
     public $icon = 'asterisk';
     public $inputs = 1;
@@ -59,7 +59,6 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
         $options = [
             'user' => $roamingData->getUser(),
             'event_id' => $event_id,
-            'config' => ['_' => '_'], // avoid casting empty associative array in to empty list
         ];
 
         $matchingItems = $this->getMatchingItemsForAttributes($node, $rData);
@@ -72,6 +71,7 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
             foreach ($selectedModules as $selectedModule) {
                 $moduleConfig = $this->allModulesByName[$selectedModule];
                 $moduleData = $options;
+                $moduleData['config'] = $this->getModuleOptions($moduleConfig);
                 $moduleData['module'] = $selectedModule;
                 $moduleData['attribute'] = $attribute;
                 if (!$this->_checkIfInputSupported($attribute, $moduleConfig)) { // Queried module doesn't support the Attribute's type
@@ -138,5 +138,17 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
             $rData['Event']['Attribute'][$attributeID]['enrichment'][] = $queryResult;
         }
         return $rData;
+    }
+
+    protected function getModuleOptions(array $moduleConfig): array
+    {
+        $type = 'Enrichment';
+        $options = [];
+        if (isset($moduleConfig['meta']['config'])) {
+            foreach ($moduleConfig['meta']['config'] as $conf) {
+                $options[$conf] = Configure::read('Plugin.' . $type . '_' . $moduleConfig['name'] . '_' . $conf);
+            }
+        }
+        return !empty($options) ? $options : ['_' => '_']; // avoid casting empty associative array in to empty list
     }
 }
