@@ -1,8 +1,8 @@
 <?php
-class OrganisationMapWidget
+class OrganisationListWidget
 {
-    public $title = 'Organisation world map';
-    public $render = 'WorldMap';
+    public $title = 'Organisation list';
+    public $render = 'BarChart';
     public $description = 'The countries represented via organisations on the current instance.';
     public $width = 3;
     public $height = 4;
@@ -65,16 +65,17 @@ class OrganisationMapWidget
             'conditions' => $params['conditions'],
             'group' => ['Organisation.nationality']
         ]);
-        $results = ['data' => [], 'scope' => 'Organisations'];
+        $results = [];
         foreach($orgs as $org) {
             $country = $org['Organisation']['nationality'];
             $count = $org['0']['frequency'];
             if (isset($this->countryCodes[$country])) {
                 $countryCode = $this->countryCodes[$country];
-                $results['data'][$countryCode] = $count;
+                $results[$countryCode] = $count;
             }
         }
-        return $results;
+        arsort($results);
+        return ['data' => $results];
     }
 }
 ?>

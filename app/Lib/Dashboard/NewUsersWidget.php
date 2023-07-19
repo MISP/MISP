@@ -15,6 +15,7 @@ class NewUsersWidget
         'filter' => 'A list of filters for the organisations (nationality, sector, type, name, uuid) to include. (dictionary, prepending values with ! uses them as a negation)',
         'days' => 'How many days back should the list go - for example, setting 7 will only show the organisations that were added in the past 7 days. (integer)',
         'month' => 'Which organisations have been added this month? (boolean)',
+        'previous_month' => 'Who contributed most the previous, finished month? (boolean)',
         'year' => 'Which organisations have been added this year? (boolean)',
         'fields' => 'Which fields should be displayed, by default all are selected. Pass a list with the following options: [id, email, Organisation.name, Role.name, date_created]'
     ];
@@ -57,6 +58,10 @@ class NewUsersWidget
         } else if (!empty($options['month'])) {
             $condition = strtotime('first day of this month 00:00:00', time());
             $this->tableDescription = __('The %d newest users created during the current month', $limit);
+        } else if (!empty($options['previous_month'])) {
+            $condition = strtotime('first day of last month 00:00:00', time());
+            $end_condition = strtotime('last day of last month 23:59:59', time());
+            $this->tableDescription = __('The %d newest organisations created during the previous month', $limit);
         } else if (!empty($options['year'])) {
             $condition = strtotime('first day of this year 00:00:00', time());
             $this->tableDescription = __('The %d newest users created during the current year', $limit);
@@ -64,7 +69,18 @@ class NewUsersWidget
             $this->tableDescription = __('The %d newest users created', $limit);
             return null;
         }
-        return $condition;
+        $conditions = [];
+        if (!empty($condition)) {
+            $datetime = new DateTime();
+            $datetime->setTimestamp($condition);
+            $conditions['Organisation.date_created >='] = $datetime->format('Y-m-d H:i:s');
+        }
+        if (!empty($end_condition)) {
+            $datetime = new DateTime();
+            $datetime->setTimestamp($end_condition);
+            $conditions['Organisation.date_created <='] = $datetime->format('Y-m-d H:i:s');
+        }
+        return $conditions;
     }
 
     public function handler($user, $options = array())
@@ -123,7 +139,7 @@ class NewUsersWidget
         }
         $timeConditions = $this->timeConditions($options);
         if ($timeConditions) {
-            $params['conditions']['AND'][] = ['User.date_created >=' => $timeConditions];
+            $params['conditions']['AND'][] = $timeConditions;
         }
         if (isset($options['fields'])) {
             $fields = [];

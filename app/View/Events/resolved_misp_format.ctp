@@ -229,8 +229,8 @@
                 }
               ?>
             </td>
-            <td class="short">
-              <input type="text" class="ObjectComment" style="padding:0;height:20px;margin-bottom:0;" placeholder="<?php echo h($importComment); ?>"<?php if (!empty($object['comment'])) echo ' value="' . h($object['comment']) . '"';?>>
+            <td class="bitwider">
+              <textarea class="ObjectComment inline-input" cols="30" rows="6" placeholder="<?php echo h($importComment); ?>" oninput="autoresize(this)"><?php if (!empty($object['comment'])) echo h($object['comment']);?></textarea>
             </td>
             <td style="width:60px;text-align:center;">
               <select class="ObjectDistribution" style="padding:0;height:20px;margin-bottom:0;">
@@ -302,8 +302,8 @@
             <td class="short" style="width:40px;text-align:center;">
               <input type="checkbox" class="AttributeDisableCorrelation"<?php if (!empty($attribute['disable_correlation'])) echo ' checked'; ?>>
             </td>
-            <td class="short">
-              <input type="text" class="AttributeComment" style="padding:0;height:20px;margin-bottom:0;"<?php if (!empty($attribute['comment'])) echo ' value="' . h($attribute['comment']) . '"';?>>
+            <td class="bitwider">
+              <textarea class="AttributeComment inline-input" rows="1" oninput="autoresize(this)"><?php if (!empty($attribute['comment'])) echo h($attribute['comment']);?></textarea>
             </td>
             <td class="short" style="width:40px;text-align:center;">
               <select class="AttributeDistribution" style="padding:0;height:20px;margin-bottom:0;">
@@ -412,8 +412,8 @@
           <td class="short" style="width:40px;text-align:center;">
             <input type="checkbox" class="AttributeDisableCorrelation"<?php if (isset($attribute['disable_correlation']) && $attribute['disable_correlation']) echo ' checked'; ?>>
           </td>
-          <td class="short">
-            <input type="text" class="AttributeComment" style="padding:0;height:20px;margin-bottom:0;" placeholder="<?php echo h($importComment); ?>"<?php if (!empty($attribute['comment'])) echo ' value="' . h($attribute['comment']) . '"';?>>
+          <td class="bitwider">
+            <textarea class="AttributeComment inline-input" rows="1" oninput="autoresize(this)" placeholder="<?php echo h($importComment); ?>"><?php if (!empty($attribute['comment'])) echo h($attribute['comment']);?></textarea>
           </td>
           <td class="short" style="width:40px;text-align:center;">
             <select class="AttributeDistribution" style="padding:0;height:20px;margin-bottom:0;">

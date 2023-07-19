@@ -11,6 +11,7 @@ class LoginsWidget
         'limit' => 'Limits the number of displayed APIkeys. (-1 will list all) Default: -1',
         'days' => 'How many days back should the list go - for example, setting 7 will only show contributions in the past 7 days. (integer)',
         'month' => 'Who contributed most this month? (boolean)',
+        'previous_month' => 'Who contributed most the previous, finished month? (boolean)',
         'year' => 'Which contributed most this year? (boolean)',
     ];
     public $description = 'Basic widget showing some server statistics in regards to MISP.';
@@ -26,12 +27,22 @@ class LoginsWidget
             $begin = date('Y-m-d H:i:s', strtotime(sprintf("-%s days", $options['days'])));
         } else if (!empty($options['month'])) {
             $begin = date('Y-m-d H:i:s', strtotime('first day of this month 00:00:00', time()));
+        } else if (!empty($options['previous_month'])) {
+            $begin = date('Y-m-d H:i:s', strtotime('first day of last month 00:00:00', time()));
+            $end = date('Y-m-d H:i:s', strtotime('last day of last month 23:59:59', time()));
         } else if (!empty($options['year'])) {
             $begin = date('Y-m-d', strtotime('first day of this year 00:00:00', time()));
         } else {
             $begin = date('Y-m-d H:i:s', strtotime('-7 days', time()));
         }
-        return $begin ? ['Log.created >=' => $begin] : [];
+        $params = [];
+        if (!empty($end)) {
+            $params['Log.created <='] = $end;
+        }
+        if (!empty($begin)) {
+            $params['Log.created >='] = $begin;
+        }
+        return $params;
     }
 
 	public function handler($user, $options = array())

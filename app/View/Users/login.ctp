@@ -59,6 +59,15 @@
                     __('No account yet? Register now!')
                 );
             ?>
+            <div class="clear">
+            <?php
+                echo empty(Configure::read('Security.allow_password_forgotten')) ? '' : sprintf(
+                    '<a href="%s/users/forgot" title="%s">%s</a>',
+                    $baseurl,
+                    __('Initiate a password reset.'),
+                    __('I have forgotten my password')
+                );
+            ?>
             </div>
             <?= $this->Form->button(__('Login'), array('class' => 'btn btn-primary')); ?>
         <?php
