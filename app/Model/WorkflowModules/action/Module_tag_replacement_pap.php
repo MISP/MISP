@@ -22,6 +22,9 @@ class Module_tag_replacement_pap extends Module_tag_replacement_generic
     {
         $namespace = 'pap';
         $predicates = ['white', 'clear', 'green', 'amber', 'red'];
+        if (empty($matches)) {
+            return false;
+        }
         return strtolower($matches[1]) == $namespace && in_array(strtolower($matches['predicate']), $predicates);
     }
 

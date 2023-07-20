@@ -22,6 +22,9 @@ class Module_tag_replacement_tlp extends Module_tag_replacement_generic
     {
         $namespace = 'tlp';
         $predicates = ['white', 'clear', 'green', 'amber', 'amber+strict', 'red'];
+        if (empty($matches)) {
+            return false;
+        }
         return strtolower($matches[1]) == $namespace && in_array(strtolower($matches['predicate']), $predicates);
     }
 
