@@ -30,6 +30,7 @@ class Module_tag_replacement_generic extends Module_tag_operation
                 'options' => [
                     'event' => __('Event'),
                     'attribute' => __('Attributes'),
+                    'all' => __('All'),
                 ],
                 'default' => 'event',
             ],
@@ -80,9 +81,12 @@ class Module_tag_replacement_generic extends Module_tag_operation
             $matchingItems = $this->getItemsMatchingCondition($extracted, $filters['value'], $filters['operator'], $filters['path']);
         } else {
             $matchingItems = $rData;
-            if ($params['scope']['value'] == 'attribute') {
-                $matchingItems = Hash::extract($matchingItems, 'Event._AttributeFlattened.{n}');
-            }
+        }
+
+        $matchingEvent = $matchingItems;
+        $matchingAttributes = [];
+        if ($params['scope']['value'] == 'attribute' || $params['scope']['value'] == 'all') {
+            $matchingAttributes = Hash::extract($matchingItems, 'Event._AttributeFlattened.{n}');
         }
 
         if (empty($matchingItems)) {
@@ -91,38 +95,54 @@ class Module_tag_replacement_generic extends Module_tag_operation
 
         $result = false;
         $optionsRemove = [
-            'local' => $params['locality']['value'] == 'local' ? true : false,
+            'local' => [0, 1],
         ];
         $optionsAdd = [
             'local' => $params['locality']['value'] == 'local' ? true : false,
             'relationship_type' => $params['relationship_type']['value'],
         ];
-        if ($params['scope']['value'] == 'event') {
-            $extractedTags = Hash::extract($matchingItems['Event']['Tag'], '{n}.name');
+        if ($params['scope']['value'] == 'event' || $params['scope']['value'] == 'all') {
+            $result = $this->replaceOnEvent($matchingEvent, $params, $user, $optionsRemove, $optionsAdd);
+        }
+        if ($params['scope']['value'] == 'attribute' || $params['scope']['value'] == 'all') {
+            $result = $this->replaceOnAttribute($matchingAttributes, $params, $user, $optionsRemove, $optionsAdd);
+        }
+         return $result;
+    }
+
+
+    protected function replaceOnEvent(array $matchingItems, array $params, array $user, array $optionsRemove, array $optionsAdd): bool
+    {
+        $result = true;
+        $extractedTags = Hash::extract($matchingItems['Event']['Tag'], '{n}.name');
+        $options = $this->getReplacementOptions($extractedTags);
+        $optionsRemove['tags'] = $options['remove'];
+        $optionsAdd['tags'] = $options['add'];
+        if ($params['remove_substituted']['value'] == 'yes' && !empty($optionsRemove['tags'])) {
+            $result = $this->__removeTagsFromEvent($matchingItems, $optionsRemove);
+        }
+        if (!empty($optionsAdd['tags'])) {
+            $result = $this->__addTagsToEvent($matchingItems, $optionsAdd, $user);
+        }
+        return $result;
+    }
+
+    protected function replaceOnAttribute(array $matchingItems, array $params, array $user, array $optionsRemove, array $optionsAdd): bool
+    {
+        $result = true;
+        foreach ($matchingItems as $attribute) {
+            $extractedTags = Hash::extract($attribute['Tag'], '{n}.name');
             $options = $this->getReplacementOptions($extractedTags);
             $optionsRemove['tags'] = $options['remove'];
             $optionsAdd['tags'] = $options['add'];
             if ($params['remove_substituted']['value'] == 'yes' && !empty($optionsRemove['tags'])) {
-                $result = $this->__removeTagsFromEvent($matchingItems, $optionsRemove);
+                $result = $this->__removeTagsFromAttributes([$attribute], $optionsRemove);
             }
             if (!empty($optionsAdd['tags'])) {
-                $result = $this->__addTagsToEvent($matchingItems, $optionsAdd, $user);
-            }
-        } else {
-            foreach ($matchingItems as $attribute) {
-                $extractedTags = Hash::extract($attribute['Tag'], '{n}.name');
-                $options = $this->getReplacementOptions($extractedTags);
-                $optionsRemove['tags'] = $options['remove'];
-                $optionsAdd['tags'] = $options['add'];
-                if ($params['remove_substituted']['value'] == 'yes' && !empty($optionsRemove['tags'])) {
-                    $result = $this->__removeTagsFromAttributes([$attribute], $optionsRemove);
-                }
-                if (!empty($optionsAdd['tags'])) {
-                    $result = $this->__addTagsToAttributes([$attribute], $optionsAdd, $user);
-                }
+                $result = $this->__addTagsToAttributes([$attribute], $optionsAdd, $user);
             }
         }
-         return $result;
+        return $result;
     }
 
     protected function isAMatch($matches): bool
