@@ -90,26 +90,35 @@ class Module_assign_country_from_enrichment extends Module_tag_operation
             $matchingItems = $this->getItemsMatchingCondition($extracted, $filters['value'], $filters['operator'], $filters['path']);
         } else {
             $matchingItems = $rData;
-            if ($params['scope']['value'] == 'attribute') {
-                $matchingItems = Hash::extract($matchingItems, 'Event._AttributeFlattened.{n}');
-                if (substr($countryExtractionPath, 0, 4) !== '{n}.') {
-                    $countryExtractionPath = '{n}.' . $countryExtractionPath;
-                }
+        }
+        $matchingAttributes = Hash::extract($matchingItems, 'Event._AttributeFlattened.{n}');
+        if ($params['scope']['value'] == 'event') {
+            if (substr($countryExtractionPath, 0, 4) !== '{n}.') {
+                $countryExtractionPath = '{n}.' . $countryExtractionPath;
             }
         }
 
         $result = false;
-        $extractedCountries = Hash::extract($matchingItems, $countryExtractionPath);
-        $guessedCountryTags = $this->guessTagFromPath($extractedCountries);
-        $options = [
-            'tags' => $guessedCountryTags,
-            'local' => ($params['locality']['value'] == 'local' ? true : false),
-            'relationship_type' => $params['relationship_type']['value'],
-        ];
         if ($params['scope']['value'] == 'event') {
+            $extractedCountries = array_unique(Hash::extract($matchingAttributes, $countryExtractionPath));
+            $guessedCountryTags = $this->guessTagFromPath($extractedCountries);
+            $options = [
+                'tags' => $guessedCountryTags,
+                'local' => ($params['locality']['value'] == 'local' ? true : false),
+                'relationship_type' => $params['relationship_type']['value'],
+            ];
             $result = $this->__addTagsToEvent($matchingItems, $options, $user);
         } else {
-            $result = $this->__addTagsToAttributes($matchingItems, $options, $user);
+            foreach ($matchingAttributes as $attribute) {
+                $extractedCountries = Hash::extract($attribute, $countryExtractionPath);
+                $guessedCountryTags = $this->guessTagFromPath($extractedCountries);
+                $options = [
+                    'tags' => $guessedCountryTags,
+                    'local' => ($params['locality']['value'] == 'local' ? true : false),
+                    'relationship_type' => $params['relationship_type']['value'],
+                ];
+                $result = $this->__addTagsToAttributes([$attribute], $options, $user);
+            }
         }
         return $result;
     }
