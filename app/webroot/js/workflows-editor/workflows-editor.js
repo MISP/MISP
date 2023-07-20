@@ -1161,41 +1161,43 @@ function runWorkflow() {
         container: 'body',
         template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
     }
-    $runWorkflowButton
-        .popover(popoverOptions)
-        .on('shown.bs.popover', function () {
-            var $popover = $runWorkflowButton.data('popover').tip()
-            $popover.find('button').click(function() {
-                var url = baseurl + "/workflows/executeWorkflow/" + workflow.Workflow.id
-                fetchFormDataAjax(url, function (formHTML) {
-                    $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
-                    var $tmpForm = $('#temp form')
-                    var formUrl = $tmpForm.attr('action')
-                    data = $popover.find('textarea').val()
-                    $tmpForm.find('[name="data[Workflow][data]"]').val(data)
-                    
-                    $.ajax({
-                        data: $tmpForm.serialize(),
-                        beforeSend: function() {
-                            $popover.find('pre').empty()
-                            $popover.find('button i').removeClass('hidden')
-                        },
-                        success: function (data) {
-                            $popover.find('pre').text(data)
-                        },
-                        error: xhrFailCallback,
-                        complete: function () {
-                            $('#temp').remove();
-                            $popover.find('button i').addClass('hidden')
-                        },
-                        type: 'post',
-                        cache: false,
-                        url: formUrl,
+    if ($runWorkflowButton.data().popover === undefined) {
+        $runWorkflowButton
+            .popover(popoverOptions)
+            .on('shown.bs.popover', function () {
+                var $popover = $runWorkflowButton.data('popover').tip()
+                $popover.find('button').click(function() {
+                    var url = baseurl + "/workflows/executeWorkflow/" + workflow.Workflow.id
+                    fetchFormDataAjax(url, function (formHTML) {
+                        $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
+                        var $tmpForm = $('#temp form')
+                        var formUrl = $tmpForm.attr('action')
+                        data = $popover.find('textarea').val()
+                        $tmpForm.find('[name="data[Workflow][data]"]').val(data)
+
+                        $.ajax({
+                            data: $tmpForm.serialize(),
+                            beforeSend: function() {
+                                $popover.find('pre').empty()
+                                $popover.find('button i').removeClass('hidden')
+                            },
+                            success: function (data) {
+                                $popover.find('pre').text(data)
+                            },
+                            error: xhrFailCallback,
+                            complete: function () {
+                                $('#temp').remove();
+                                $popover.find('button i').addClass('hidden')
+                            },
+                            type: 'post',
+                            cache: false,
+                            url: formUrl,
+                        })
                     })
                 })
             })
-        })
-    $runWorkflowButton.popover('show')
+            .popover('show')
+    }
 }
 
 function getSelectedNodeID() {
