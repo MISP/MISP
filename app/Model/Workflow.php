@@ -1321,19 +1321,32 @@ class Workflow extends AppModel
             $node = $graphNode['node'];
             $nodeID = $node['id'];
             $parsedPathList = GraphWalker::parsePathList($graphNode['path_list']);
+            if (!empty($parsedPathList)) {
+                $lastNodeInPath = $parsedPathList[count($parsedPathList)-1];
+                $previousNodeId = $lastNodeInPath['source_id'];
+                $connections[$nodeID][$previousNodeId] = [];
+            }
             foreach ($parsedPathList as $pathEntry) {
                 if (!empty($filterNodeIDToLabel[$pathEntry['source_id']])) {
-                    $connections[$nodeID][] = $filterNodeIDToLabel[$pathEntry['source_id']];
+                    $connections[$nodeID][$previousNodeId][] = $filterNodeIDToLabel[$pathEntry['source_id']];
                 }
                 if (!empty($resetFilterNodeIDToLabel[$pathEntry['source_id']])) {
                     if ($resetFilterNodeIDToLabel[$pathEntry['source_id']] == 'all') {
-                        $connections[$nodeID] = [];
+                        $connections[$nodeID][$previousNodeId] = [];
                     } else {
-                        $connections[$nodeID] = array_values(array_diff($connections[$nodeID], [$resetFilterNodeIDToLabel[$pathEntry['source_id']]]));
+                        $connections[$nodeID][$previousNodeId] = array_values(array_diff($connections[$nodeID][$previousNodeId], [$resetFilterNodeIDToLabel[$pathEntry['source_id']]]));
                     }
                 }
             }
         }
+        $connections = array_filter($connections, function($connection) {
+            foreach ($connection as $labels) {
+                if (!empty($labels)) {
+                    return true;
+                }
+            }
+            return false;
+        });
         return $connections;
     }
 
@@ -1355,7 +1368,7 @@ class Workflow extends AppModel
                                 'name' => $label,
                                 'variant' => 'info',
                             ];
-                        }, $labelsByNodes[$node['id']]);
+                        }, $labelsByNodes[$node['id']][$connection['node']]);
                     }
                 }
             }
