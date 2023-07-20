@@ -540,7 +540,8 @@ class Event extends AppModel
                 'local' => $local,
                 'relationship_type' => $relationship,
             ];
-            $success = $success || $this->EventTag->attachTagToEvent($event_id, $tag, $nothingToChange);
+            $attachSuccess = $this->EventTag->attachTagToEvent($event_id, $tag, $nothingToChange);
+            $success = $success || $attachSuccess;
             $touchEvent = $touchEvent || !$nothingToChange;
         }
         if ($touchEvent) {
@@ -562,7 +563,8 @@ class Event extends AppModel
                 $success = $success || true;
                 continue;
             }
-            $success = $success || $this->EventTag->detachTagFromEvent($event_id, $tag_id, $local, $nothingToChange);
+            $detachSuccess = $this->EventTag->detachTagFromEvent($event_id, $tag_id, $local, $nothingToChange);
+            $success = $success || $detachSuccess;
             $touchEvent = $touchEvent || !$nothingToChange;
         }
         if ($touchEvent) {
