@@ -652,6 +652,9 @@ function addNode(block, position, additionalData={}) {
     if (newNode.data.module_data.module_type == 'logic') {
         blockClass.push('block-type-logic')
     }
+    if (newNode.data.module_data.expect_misp_core_format) {
+        blockClass.push('expect-misp-core-format')
+    }
     editor.addNode(
         newNode.name,
         module.inputs === undefined ? 1 : module.inputs,
@@ -753,6 +756,9 @@ function loadWorkflow(workflow) {
         nodeClass.push('block-type-' + (newNode.data.module_data.html_template !== undefined ? newNode.data.module_data.html_template : 'default'))
         if (newNode.data.module_data.module_type == 'logic') {
             nodeClass.push('block-type-logic')
+        }
+        if (newNode.data.module_data.expect_misp_core_format) {
+            nodeClass.push('expect-misp-core-format')
         }
         if (newNode.data.module_data.disabled) {
             nodeClass.push('disabled')

@@ -346,6 +346,10 @@
 }
 
 /* Custom input/output CSS */
+/* .drawflow .drawflow-node.expect-misp-core-format>.inputs>.input {
+    background-color: #2fa1db;
+} */
+
 .drawflow .drawflow-node > .inputs > .input::before {
     line-height: var(--dfInputHeight);
     vertical-align: top;

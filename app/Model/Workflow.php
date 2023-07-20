@@ -1421,6 +1421,7 @@ class Workflow extends AppModel
                 'indexed_params' => $indexed_params,
                 'saved_filters' => $module_config['saved_filters'],
                 'module_data' => $module_config,
+                'expect_misp_core_format' => $module_config['expect_misp_core_format'],
             ],
             'inputs' => [],
             'outputs' => [],
