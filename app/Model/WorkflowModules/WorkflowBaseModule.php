@@ -23,13 +23,23 @@ class WorkflowBaseModule
     ];
     public $params = [];
 
-    private $Event;
+    private $Workflow;
 
     /** @var PubSubTool */
     private static $loadedPubSubTool;
 
     public function __construct()
     {
+    }
+
+    public function debug(array $node, WorkflowRoamingData $roamingData, array $data=[]): void
+    {
+        if (!isset($this->Workflow)) {
+            $this->Workflow = ClassRegistry::init('Workflow');
+        }
+        $workflow = $roamingData->getWorkflow();
+        $path = sprintf('/debug/%s', $node['data']['id'] ?? '');
+        $this->Workflow->sendRequestToDebugEndpoint($workflow, $node, $path, $data);
     }
 
     protected function mergeNodeConfigIntoParameters($node): array
