@@ -219,9 +219,9 @@ class AuthKey extends AppModel
         $user['authkey_read_only'] = (bool)$authkey['AuthKey']['read_only'];
 
         if ($authkey['AuthKey']['read_only']) {
-            // Disable all permissions, keep just `perm_auth` unchanged
+            // Disable all permissions, keep just `perm_auth` and `perm_audit` unchanged
             foreach ($user['Role'] as $key => &$value) {
-                if (substr($key, 0, 5) === 'perm_' && $key !== 'perm_auth') {
+                if (substr($key, 0, 5) === 'perm_' && $key !== 'perm_auth' && $key !== 'perm_audit') {
                     $value = 0;
                 }
             }

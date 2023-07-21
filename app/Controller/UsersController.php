@@ -1383,6 +1383,7 @@ class UsersController extends AppController
         unset($user['User']['password']);
         $user['User']['action'] = 'logout';
         $this->User->save($user['User'], true, array('id'));
+        $this->Session->write('otp_secret', null);
         $this->redirect($this->Auth->logout());
     }
 
