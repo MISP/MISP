@@ -9,7 +9,7 @@ App::uses('AppModel', 'Model');
 class AuditLog extends AppModel
 {
     const BROTLI_HEADER = "\xce\xb2\xcf\x81";
-    const BROTLI_MIN_LENGTH = 200;
+    const COMPRESS_MIN_LENGTH = 256;
 
     const ACTION_ADD = 'add',
         ACTION_EDIT = 'edit',
@@ -25,7 +25,11 @@ class AuditLog extends AppModel
         ACTION_REMOVE_GALAXY = 'remove_galaxy',
         ACTION_REMOVE_GALAXY_LOCAL = 'remove_local_galaxy',
         ACTION_PUBLISH = 'publish',
-        ACTION_PUBLISH_SIGHTINGS = 'publish_sightings';
+        ACTION_PUBLISH_SIGHTINGS = 'publish_sightings',
+        ACTION_LOGIN = 'login',
+        ACTION_PASSWDCHANGE = 'password_change',
+        ACTION_LOGOUT = 'logout',
+        ACTION_LOGIN_FAILED = 'login_failed';
 
     const REQUEST_TYPE_DEFAULT = 0,
         REQUEST_TYPE_API = 1,
@@ -33,6 +37,7 @@ class AuditLog extends AppModel
 
     public $actsAs = [
         'Containable',
+        'LightPaginator'
     ];
 
     /** @var array|null */
@@ -45,9 +50,6 @@ class AuditLog extends AppModel
     private $pubToZmq;
 
     /** @var bool */
-    private $elasticLogging;
-
-    /** @var bool */
     private $logClientIp;
 
     /**
@@ -58,6 +60,7 @@ class AuditLog extends AppModel
 
     public $compressionStats = [
         'compressed' => 0,
+        'bytes_total' => 0,
         'bytes_compressed' => 0,
         'bytes_uncompressed' => 0,
     ];
@@ -80,9 +83,9 @@ class AuditLog extends AppModel
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-        $this->compressionEnabled = Configure::read('MISP.log_new_audit_compress') && function_exists('brotli_compress');
+        $this->compressionEnabled = Configure::read('MISP.log_new_audit_compress') &&
+            function_exists('brotli_compress');
         $this->pubToZmq = $this->pubToZmq('audit');
-        $this->elasticLogging = Configure::read('Plugin.ElasticSearch_logging_enable');
         $this->logClientIp = Configure::read('MISP.log_client_ip');
     }
 
@@ -145,16 +148,33 @@ class AuditLog extends AppModel
     }
 
     /**
+     * @param mixed $change
+     * @return string
+     * @throws JsonException
+     */
+    private function encodeChange($change)
+    {
+        $change = JsonTool::encode($change);
+        if ($this->compressionEnabled && strlen($change) >= self::COMPRESS_MIN_LENGTH) {
+            return self::BROTLI_HEADER . brotli_compress($change, 4, BROTLI_TEXT);
+        }
+        return $change;
+    }
+
+    /**
      * @param string $change
      * @return array|string
      * @throws JsonException
      */
     private function decodeChange($change)
     {
-        if (substr($change, 0, 4) === self::BROTLI_HEADER) {
+        $len = strlen($change);
+        $this->compressionStats['bytes_total'] += $len;
+        $header = substr($change, 0, 4);
+        if ($header === self::BROTLI_HEADER) {
             $this->compressionStats['compressed']++;
             if (function_exists('brotli_uncompress')) {
-                $this->compressionStats['bytes_compressed'] += strlen($change);
+                $this->compressionStats['bytes_compressed'] += $len;
                 $change = brotli_uncompress(substr($change, 4));
                 $this->compressionStats['bytes_uncompressed'] += strlen($change);
                 if ($change === false) {
@@ -164,7 +184,7 @@ class AuditLog extends AppModel
                 return 'Compressed';
             }
         }
-        return $this->jsonDecode($change);
+        return JsonTool::decode($change);
     }
 
     public function beforeValidate($options = array())
@@ -178,10 +198,7 @@ class AuditLog extends AppModel
     {
         $auditLog = &$this->data['AuditLog'];
         if (!isset($auditLog['ip']) && $this->logClientIp) {
-            $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-            if (isset($_SERVER[$ipHeader])) {
-                $auditLog['ip'] = $_SERVER[$ipHeader];
-            }
+            $auditLog['ip'] = $this->_remoteIp();
         }
 
         if (!isset($auditLog['user_id'])) {
@@ -221,11 +238,7 @@ class AuditLog extends AppModel
         }
 
         if (isset($auditLog['change'])) {
-            $change = JsonTool::encode($auditLog['change']);
-            if ($this->compressionEnabled && strlen($change) >= self::BROTLI_MIN_LENGTH) {
-                $change = self::BROTLI_HEADER . brotli_compress($change, 4, BROTLI_TEXT);
-            }
-            $auditLog['change'] = $change;
+            $auditLog['change'] = $this->encodeChange($auditLog['change']);
         }
     }
 
@@ -242,12 +255,7 @@ class AuditLog extends AppModel
 
         $this->publishKafkaNotification('audit', $data, 'log');
 
-        if ($this->elasticLogging) {
-            // send off our logs to distributed /dev/null
-            $logIndex = Configure::read("Plugin.ElasticSearch_log_index");
-            $elasticSearchClient = $this->getElasticSearchTool();
-            $elasticSearchClient->pushDocument($logIndex, "log", $data);
-        }
+        // In future add support for sending logs to elastic
 
         // write to syslogd as well if enabled
         if ($this->syslog === null) {
@@ -272,7 +280,7 @@ class AuditLog extends AppModel
             if ($title) {
                 $entry .= " -- $title";
             }
-            $this->syslog->write('info', $entry);
+            $this->syslog->write(LOG_INFO, $entry);
         }
         return true;
     }
@@ -318,6 +326,9 @@ class AuditLog extends AppModel
         return $this->user;
     }
 
+    /**
+     * @throws Exception
+     */
     public function insert(array $data)
     {
         try {
@@ -325,20 +336,39 @@ class AuditLog extends AppModel
         } catch (Exception $e) {
             return; // Table is missing when updating, so this is intentional
         }
-        if ($this->save($data) === false) {
+        if ($this->save(['AuditLog' => $data], ['atomic' => false]) === false) {
             throw new Exception($this->validationErrors);
         }
     }
 
+    /**
+     * @throws JsonException
+     * @throws Exception
+     */
     public function recompress()
     {
         $changes = $this->find('all', [
             'fields' => ['AuditLog.id', 'AuditLog.change'],
             'recursive' => -1,
-            'conditions' => ['length(AuditLog.change) >=' => self::BROTLI_MIN_LENGTH],
+            'conditions' => ['OR' => [
+                ['length(AuditLog.change) >=' => self::COMPRESS_MIN_LENGTH],
+                ['AuditLog.change LIKE' => self::BROTLI_HEADER . '%'],
+            ]],
         ]);
-        foreach ($changes as $change) {
-            $this->save($change, true, ['id', 'change']);
+
+        $options = [
+            'validate' => false,
+            'callbacks' => false,
+            'fieldList' => ['change'],
+        ];
+
+        foreach (array_chunk($changes, 100) as $chunk) {
+            $toSave = [];
+            foreach ($chunk as $change) {
+                $change['AuditLog']['change'] = $this->encodeChange($change['AuditLog']['change']);
+                $toSave[] = $change;
+            }
+            $this->saveMany($toSave, $options);
         }
     }
 
@@ -357,8 +387,7 @@ class AuditLog extends AppModel
             $conditions['org_id'] = $org['id'];
         }
 
-        $dataSource = ConnectionManager::getDataSource('default')->config['datasource'];
-        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $validDates = $this->find('all', [
                 'recursive' => -1,
                 'fields' => ['DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'],
@@ -367,7 +396,7 @@ class AuditLog extends AppModel
                 'order' => ['Date'],
                 'callbacks' => false,
             ]);
-        } elseif ($dataSource === 'Database/Postgres') {
+        } else {
             if (!empty($conditions['org_id'])) {
                 $condOrg = sprintf('WHERE org_id = %s', intval($conditions['org_id']));
             } else {

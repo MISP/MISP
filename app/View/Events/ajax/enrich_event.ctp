@@ -7,15 +7,14 @@
             if (!empty($modules['modules'])) {
                 foreach ($modules['modules'] as $module) {
                     echo $this->Form->input($module['name'], array('type' => 'checkbox', 'label' => h($module['name'])));
+                    echo '<div class="clear"></div>';
                 }
             }
         ?>
         <table>
             <tr>
                 <td style="vertical-align:top">
-                    <?php
-                        echo $this->Form->submit(__('Enrich'), array('class' => 'btn btn-primary'));
-                    ?>
+                    <?= $this->Form->submit(__('Enrich'), array('class' => 'btn btn-primary')); ?>
                 </td>
                 <td style="width:540px;"></td>
                 <td style="vertical-align:top;">
@@ -23,12 +22,10 @@
                 </td>
             </tr>
         </table>
-        <?php
-          echo $this->Form->end();
-        ?>
+        <?= $this->Form->end(); ?>
     </div>
 </div>
-<script type="text/javascript">
+<script>
     $(document).ready(function() {
         resizePopoverBody();
     });

@@ -30,13 +30,9 @@ $deleteSightingTitle = __('Delete sighting');
         <td class="short"><?= h($item['Sighting']['event_id']) ?></td>
         <td class="short"><?= h($item['Sighting']['attribute_id']) ?></td>
         <td class="short action-links">
-          <?php
-            if ($isSiteAdmin || ($item['Sighting']['org_id'] == $me['org_id'] && $isAclAdd)):
-          ?>
-            <span class="fa fa-trash useCursorPointer" title="<?= $deleteSightingTitle ?>" role="button" tabindex="0" aria-label="<?= $deleteSightingTitle ?>" onClick="quickDeleteSighting('<?= h($item['Sighting']['id']) ?>', '<?= h($rawId) ?>', '<?= h($context) ?>');"></span>
-          <?php
-            endif;
-                ?>
+          <?php if ($this->Acl->canDeleteSighting($item)): ?>
+            <span class="fa fa-trash useCursorPointer" title="<?= $deleteSightingTitle ?>" role="button" tabindex="0" aria-label="<?= $deleteSightingTitle ?>" onclick="quickDeleteSighting('<?= h($item['Sighting']['id']) ?>', '<?= h($rawId) ?>', '<?= h($context) ?>');"></span>
+          <?php endif; ?>
         </td>
     </tr>
 <?php

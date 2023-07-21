@@ -27,9 +27,6 @@ class OrganisationsController extends AppController
 
     public function index()
     {
-        if (!$this->Auth->user('Role')['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
-            throw new MethodNotAllowedException(__('This feature is disabled on this instance for normal users.'));
-        }
         $conditions = array();
         // We can either index all of the organisations existing on this instance (default)
         // or we can pass the 'external' keyword in the URL to look at the added external organisations
@@ -392,7 +389,7 @@ class OrganisationsController extends AppController
     {
         $this->layout = false;
         $this->autoRender = false;
-        $this->set('id', $id);
+        $this->set('id', (int)$id);
         $this->set('removable', $removable);
         $this->set('extend', $extend);
         $this->render('ajax/sg_org_row_empty');
@@ -483,6 +480,12 @@ class OrganisationsController extends AppController
         if ($logo['size'] > 0 && $logo['error'] == 0) {
             $extension = pathinfo($logo['name'], PATHINFO_EXTENSION);
             $filename = $orgId . '.' . ($extension === 'svg' ? 'svg' : 'png');
+
+            if ($extension === 'svg' && !Configure::read('Security.enable_svg_logos')) {
+                $this->Flash->error(__('Invalid file extension, SVG images are not allowed.'));
+                return false;
+            }
+
             if (!empty($logo['tmp_name']) && is_uploaded_file($logo['tmp_name'])) {
                 return move_uploaded_file($logo['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
             }

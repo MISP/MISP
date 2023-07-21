@@ -7,17 +7,17 @@ App::uses('BackgroundJob', 'Tools/BackgroundJobs');
 
 /**
  * BackgroundJobs Tool
- * 
+ *
  * Utility class to queue jobs, run them and monitor workers.
- * 
+ *
  * To run a worker manually (debug only):
  *      $ ./Console/cake start_worker [queue]
- * 
+ *
  * It is recommended to run these commands with [Supervisor](http://supervisord.org).
- * `Supervisor` has an extensive feature set to manage scripts as services, 
- * such as autorestart, parallel execution, logging, monitoring and much more. 
+ * `Supervisor` has an extensive feature set to manage scripts as services,
+ * such as autorestart, parallel execution, logging, monitoring and much more.
  * All can be managed via the terminal or a XML-RPC API.
- * 
+ *
  * Use the following configuration as a template for the services:
  *      /etc/supervisor/conf.d/misp-workers.conf:
  *      [group:misp-workers]
@@ -27,14 +27,14 @@ App::uses('BackgroundJob', 'Tools/BackgroundJobs');
  *      [program:default]
  *      command=/var/www/MISP/app/Console/cake start_worker default
  *      process_name=%(program_name)s_%(process_num)02d
- *      numprocs=5 ; adjust the amount of parallel workers to your MISP usage 
+ *      numprocs=5 ; adjust the amount of parallel workers to your MISP usage
  *      autostart=true
  *      autorestart=true
  *      redirect_stderr=false
  *      stderr_logfile=/var/www/MISP/app/tmp/logs/misp-workers-errors.log
  *      stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers.log
  *      user=www-data
- * 
+ *
  */
 class BackgroundJobsTool
 {
@@ -73,28 +73,32 @@ class BackgroundJobsTool
     const
         CMD_EVENT = 'event',
         CMD_SERVER = 'server',
-        CMD_ADMIN = 'admin';
+        CMD_ADMIN = 'admin',
+        CMD_WORKFLOW = 'workflow';
 
     const ALLOWED_COMMANDS = [
         self::CMD_EVENT,
         self::CMD_SERVER,
-        self::CMD_ADMIN
+        self::CMD_ADMIN,
+        self::CMD_WORKFLOW,
     ];
 
     const CMD_TO_SHELL_DICT = [
         self::CMD_EVENT => 'EventShell',
         self::CMD_SERVER => 'ServerShell',
-        self::CMD_ADMIN => 'AdminShell'
+        self::CMD_ADMIN => 'AdminShell',
+        self::CMD_WORKFLOW => 'WorkflowShell',
     ];
 
-    const JOB_STATUS_PREFIX = 'job_status';
+    const JOB_STATUS_PREFIX = 'job_status',
+        DATA_CONTENT_PREFIX = 'data_content';
 
     /** @var array */
     private $settings;
 
     /**
      * Initialize
-     * 
+     *
      * Settings should have the following format:
      *      [
      *           'enabled' => true,
@@ -111,6 +115,7 @@ class BackgroundJobsTool
      *      ]
      *
      * @param array $settings
+     * @throws Exception
      */
     public function __construct(array $settings)
     {
@@ -119,6 +124,47 @@ class BackgroundJobsTool
         if ($this->settings['enabled'] === true) {
             $this->RedisConnection = $this->createRedisConnection();
         }
+    }
+
+    /**
+     * @param array $data
+     * @return string Full path to data file or `redis:UUID` when data are stored in Redis
+     * @throws JsonException
+     * @throws RedisException
+     */
+    public function enqueueDataFile(array $data)
+    {
+        if (!$this->settings['enabled']) {
+            // Store serialized data to tmp file when SimpleBackgroundJobs are not enabled
+            return FileAccessTool::writeToTempFile(JsonTool::encode($data));
+        }
+
+        // Keep content stored in Redis for 24 hours, that should be enough to process that data
+        $uuid = CakeText::uuid();
+        $this->RedisConnection->setex(self::DATA_CONTENT_PREFIX . ':' . $uuid, 24 * 3600, $data);
+        return "redis:$uuid";
+    }
+
+    /**
+     * @param string $path
+     * @return array Deserialized data
+     * @throws JsonException
+     * @throws RedisException
+     */
+    public function fetchDataFile($path)
+    {
+        if (strpos($path, 'redis:') === 0) {
+            $uuid = substr($path, 6);
+            $data = $this->RedisConnection->get(self::DATA_CONTENT_PREFIX . ':' . $uuid);
+            if ($data === false) {
+                throw new Exception("Redis data key with UUID $uuid doesn't exists.");
+            }
+            RedisTool::unlink($this->RedisConnection, self::DATA_CONTENT_PREFIX . ':' . $uuid);
+            return $data;
+        } else if ($path[0] !== '/') { // deprecated storage location when not full path is provided
+            $path = APP . 'tmp/cache/ingest' . DS . $path;
+        }
+        return JsonTool::decode(FileAccessTool::readAndDelete($path));
     }
 
     /**
@@ -158,12 +204,10 @@ class BackgroundJobsTool
             ]
         );
 
-        $this->RedisConnection->rpush(
-            $queue,
-            $backgroundJob
-        );
-
+        $this->RedisConnection->pipeline();
+        $this->RedisConnection->rpush($queue, $backgroundJob);
         $this->update($backgroundJob);
+        $this->RedisConnection->exec();
 
         if ($jobId) {
             $this->updateJobProcessId($jobId, $backgroundJob->id());
@@ -175,7 +219,7 @@ class BackgroundJobsTool
     /**
      * Enqueue a Job using the CakeResque.
      * @deprecated
-     * 
+     *
      * @param string $queue Name of the queue to enqueue the job to.
      * @param string $class Class of the job.
      * @param array $args Arguments passed to the job.
@@ -211,9 +255,10 @@ class BackgroundJobsTool
      *
      * @param string $queue Queue name, e.g. 'default'.
      * @param int    $timeout Time to block the read if the queue is empty.
-     *                  Must be less than your configured `read_write_timeout` 
+     *                  Must be less than your configured `read_write_timeout`
      *                  for the redis connection.
-     * 
+     *
+     * @return BackgroundJob|null
      * @throws Exception
      */
     public function dequeue($queue, int $timeout = 30)
@@ -223,6 +268,9 @@ class BackgroundJobsTool
         $rawJob = $this->RedisConnection->blpop($queue, $timeout);
 
         if (!empty($rawJob)) {
+            if ($rawJob[1] instanceof BackgroundJob) {
+                return $rawJob[1];
+            }
             return new BackgroundJob($rawJob[1]);
         }
 
@@ -233,8 +281,8 @@ class BackgroundJobsTool
      * Get the job status.
      *
      * @param string $jobId Background Job Id.
-     * 
-     * 
+     * @return BackgroundJob|null
+     * @throws RedisException
      */
     public function getJob(string $jobId)
     {
@@ -242,7 +290,9 @@ class BackgroundJobsTool
             self::JOB_STATUS_PREFIX . ':' . $jobId
         );
 
-        if ($rawJob) {
+        if ($rawJob instanceof BackgroundJob) {
+            return $rawJob;
+        } else if ($rawJob) {
             return new BackgroundJob($rawJob);
         }
 
@@ -263,7 +313,7 @@ class BackgroundJobsTool
      * Clear all the queue's jobs.
      *
      * @param string $queue Queue name, e.g. 'default'.
-     * 
+     *
      * @return boolean True on success, false on failure.
      */
     public function clearQueue($queue): bool
@@ -283,7 +333,7 @@ class BackgroundJobsTool
         try {
             $procs = $this->getSupervisor()->getAllProcesses();
         } catch (\Exception $exception) {
-            CakeLog::error("An error occured when getting the workers statuses via Supervisor API: {$exception->getMessage()}");
+            CakeLog::error("An error occurred when getting the workers statuses via Supervisor API: {$exception->getMessage()}");
             return [];
         }
 
@@ -310,7 +360,7 @@ class BackgroundJobsTool
      * Get the number of jobs inside a queue.
      *
      * @param  string $queue Queue name, e.g. 'default'.
-     * 
+     *
      * @return integer Number of jobs.
      */
     public function getQueueSize(string $queue): int
@@ -328,7 +378,7 @@ class BackgroundJobsTool
      * Update job
      *
      * @param BackgroundJob $job
-     * 
+     *
      * @return void
      */
     public function update(BackgroundJob $job)
@@ -366,9 +416,10 @@ class BackgroundJobsTool
     /**
      * Start worker by queue
      *
-     * @param string $name
+     * @param string $queue Queue name
      * @param boolean $waitForRestart
      * @return boolean
+     * @throws Exception
      */
     public function startWorkerByQueue(string $queue, bool $waitForRestart = false): bool
     {
@@ -401,6 +452,7 @@ class BackgroundJobsTool
      * @param string|int $id
      * @param boolean $waitForRestart
      * @return boolean
+     * @throws Exception
      */
     public function stopWorker($id, bool $waitForRestart = false): bool
     {
@@ -428,6 +480,7 @@ class BackgroundJobsTool
      *
      * @param boolean $waitForRestart
      * @return void
+     * @throws Exception
      */
     public function restartWorkers(bool $waitForRestart = false)
     {
@@ -440,6 +493,7 @@ class BackgroundJobsTool
      *
      * @param boolean $waitForRestart
      * @return void
+     * @throws Exception
      */
     public function restartDeadWorkers(bool $waitForRestart = false)
     {
@@ -499,6 +553,7 @@ class BackgroundJobsTool
      * Return true if Supervisor process is running.
      *
      * @return boolean
+     * @throws Exception
      */
     public function getSupervisorStatus(): bool
     {
@@ -508,8 +563,8 @@ class BackgroundJobsTool
     /**
      * Validate queue
      *
+     * @param string $queue
      * @return boolean
-     * @throws InvalidArgumentException
      */
     private function validateQueue(string $queue): bool
     {
@@ -529,8 +584,8 @@ class BackgroundJobsTool
     /**
      * Validate command
      *
+     * @param string $command
      * @return boolean
-     * @throws InvalidArgumentException
      */
     private function validateCommand(string $command): bool
     {
@@ -569,15 +624,28 @@ class BackgroundJobsTool
 
     /**
      * @return Redis
+     * @throws Exception
      */
     private function createRedisConnection(): Redis
     {
+        if (!class_exists('Redis')) {
+            throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
+        }
+
+        if (!isset($this->settings['redis_host'])) {
+            throw new RuntimeException("Required option `redis_host` for BackgroundJobsTool is not set.");
+        }
+
         $redis = new Redis();
         $redis->connect($this->settings['redis_host'], $this->settings['redis_port']);
-        $redis->setOption(Redis::OPT_SERIALIZER, Redis::SERIALIZER_JSON);
+        $serializer = $this->settings['redis_serializer'] ?? false;
+        $serializer = $serializer === 'igbinary' ? Redis::SERIALIZER_IGBINARY : Redis::SERIALIZER_JSON;
+        $redis->setOption(Redis::OPT_SERIALIZER, $serializer);
         $redis->setOption(Redis::OPT_PREFIX, $this->settings['redis_namespace'] . ':');
+        if (isset($this->settings['redis_read_timeout'])) {
+            $redis->setOption(Redis::OPT_READ_TIMEOUT, $this->settings['redis_read_timeout']);
+        }
         $redisPassword = $this->settings['redis_password'];
-
         if (!empty($redisPassword)) {
             $redis->auth($redisPassword);
         }
@@ -588,6 +656,7 @@ class BackgroundJobsTool
 
     /**
      * @return \Supervisor\Supervisor
+     * @throws Exception
      */
     private function getSupervisor()
     {
@@ -611,6 +680,10 @@ class BackgroundJobsTool
                     $this->settings['supervisor_password'],
                 ],
             ];
+        }
+
+        if (!isset($this->settings['supervisor_host'])) {
+            throw new RuntimeException("Required option `supervisor_host` for BackgroundJobsTool is not set.");
         }
 
         $host = null;

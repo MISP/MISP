@@ -229,20 +229,25 @@ class ObjectReference extends AppModel
                 }
             }
         }
+
         if (isset($reference['source_uuid'])) {
-            $conditions = array('Object.uuid' => $reference['source_uuid']);
+            $sourceObjectConditions = array('Object.uuid' => $reference['source_uuid']);
         } elseif (isset($reference['object_uuid'])) {
-            $conditions = array('Object.uuid' => $reference['object_uuid']);
+            $sourceObjectConditions = array('Object.uuid' => $reference['object_uuid']);
         } elseif (isset($reference['object_id'])) {
-            $conditions = array('Object.id' => $reference['object_id']);
+            $sourceObjectConditions = array('Object.id' => $reference['object_id']);
         } else {
             return true;
         }
+        $sourceObjectConditions['Object.event_id'] = $eventId;
         $sourceObject = $this->Object->find('first', array(
             'recursive' => -1,
-            'conditions' => $conditions,
-            'fields' => ['Object.id', 'Object.uuid', 'Object.event_id'],
+            'conditions' => $sourceObjectConditions,
+            'fields' => ['Object.id', 'Object.uuid'],
         ));
+        if (empty($sourceObject)) {
+            return true; // Source object not found or is part of different event
+        }
         if (isset($reference['referenced_uuid'])) {
             $conditions[0] = array('Attribute.uuid' => $reference['referenced_uuid']);
             $conditions[1] = array('Object.uuid' => $reference['referenced_uuid']);
@@ -259,35 +264,35 @@ class ObjectReference extends AppModel
         if ($conditions) {
             $referencedObject = $this->Object->find('first', array(
                 'recursive' => -1,
+                'fields' => ['Object.id', 'Object.uuid', 'Object.event_id'],
                 'conditions' => $conditions[1]
             ));
         }
         if (empty($referencedObject)) {
             $referencedObject = $this->Object->Attribute->find('first', array(
                 'recursive' => -1,
+                'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.event_id'],
                 'conditions' => $conditions[0]
             ));
             if (empty($referencedObject)) {
                 return true;
             }
+            $referencedObject = $referencedObject['Attribute'];
             $referenced_type = 0;
         } else {
+            $referencedObject = $referencedObject['Object'];
             $referenced_type = 1;
         }
-        $referenced_type_name = array('Attribute', 'Object')[$referenced_type];
-        if (!isset($sourceObject['Object']) || $sourceObject['Object']['event_id'] != $eventId) {
-            return true;
-        }
-        if ($referencedObject[$referenced_type_name]['event_id'] != $eventId) {
+        if ($referencedObject['event_id'] != $eventId) {
             return true;
         }
         $this->create();
         unset($reference['id']);
         $reference['referenced_type'] = $referenced_type;
         $reference['object_id'] = $sourceObject['Object']['id'];
-        $reference['referenced_id'] = $referencedObject[$referenced_type_name]['id'];
-        $reference['referenced_uuid'] = $referencedObject[$referenced_type_name]['uuid'];
         $reference['object_uuid'] = $sourceObject['Object']['uuid'];
+        $reference['referenced_id'] = $referencedObject['id'];
+        $reference['referenced_uuid'] = $referencedObject['uuid'];
         $reference['event_id'] = $eventId;
         $result = $this->save(array('ObjectReference' => $reference));
         if (!$result) {

@@ -21,7 +21,7 @@
          echo sprintf(
              '<li><a href="%s">%s%s</a></li>',
              $data['url'],
-             (empty($data['html']) ? '' : h($data['html'])),
+             (empty($data['html']) ? '' : $data['html']),
              (empty($data['text']) ? '' : h($data['text']))
          );
      }

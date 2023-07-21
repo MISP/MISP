@@ -1,7 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('FileAccessTool', 'Tools');
-App::uses('JsonTool', 'Tools');
 
 /**
  * @property ObjectTemplateElement $ObjectTemplateElement
@@ -23,8 +22,8 @@ class ObjectTemplate extends AppModel
             'foreignKey' => 'user_id'
         ),
         'Organisation' => array(
-                'className' => 'Organisation',
-                'foreignKey' => 'org_id'
+            'className' => 'Organisation',
+            'foreignKey' => 'org_id'
         )
     );
     public $hasMany = array(
@@ -34,7 +33,7 @@ class ObjectTemplate extends AppModel
         )
     );
 
-    public $objectsDir = APP . 'files/misp-objects/objects';
+    const OBJECTS_DIR = APP . 'files/misp-objects/objects';
 
     public function afterFind($results, $primary = false)
     {
@@ -56,7 +55,7 @@ class ObjectTemplate extends AppModel
     {
         $directories = $this->getTemplateDirectoryPaths();
         foreach ($directories as $k => $dir) {
-            $dir = str_replace($this->objectsDir, '', $dir);
+            $dir = str_replace(self::OBJECTS_DIR, '', $dir);
             $directories[$k] = $dir;
         }
         $updated = array();
@@ -64,11 +63,10 @@ class ObjectTemplate extends AppModel
             if ($type && '/' . $type != $dir) {
                 continue;
             }
-            if (!file_exists($this->objectsDir . DS . $dir . DS . 'definition.json')) {
+            if (!file_exists(self::OBJECTS_DIR . DS . $dir . DS . 'definition.json')) {
                 continue;
             }
-            $file = FileAccessTool::readFromFile($this->objectsDir . DS . $dir . DS . 'definition.json');
-            $template = JsonTool::decode($file);
+            $template = FileAccessTool::readJsonFromFile(self::OBJECTS_DIR . DS . $dir . DS . 'definition.json');
             if (!isset($template['version'])) {
                 $template['version'] = 1;
             }
@@ -208,20 +206,81 @@ class ObjectTemplate extends AppModel
         return true;
     }
 
-    public function checkTemplateConformityBasedOnTypes($template, $attributes)
+    /**
+     * @param array $attributeTypes Array of attribute types to check, can contains multiple types
+     * @return array
+     */
+    public function fetchPossibleTemplatesBasedOnTypes(array $attributeTypes)
+    {
+        $uniqueAttributeTypes = array_unique($attributeTypes, SORT_REGULAR);
+        $potentialTemplateIds = $this->find('column', array(
+            'recursive' => -1,
+            'fields' => array(
+                'ObjectTemplate.id',
+            ),
+            'conditions' => array(
+                'ObjectTemplate.active' => true,
+                'ObjectTemplateElement.type' => $uniqueAttributeTypes,
+            ),
+            'joins' => array(
+                array(
+                    'table' => 'object_template_elements',
+                    'alias' => 'ObjectTemplateElement',
+                    'type' => 'RIGHT',
+                    'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
+                    'conditions' => array('ObjectTemplate.id = ObjectTemplateElement.object_template_id')
+                )
+            ),
+            'group' => 'ObjectTemplate.id',
+        ));
+
+        $templates = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => ['id' => $potentialTemplateIds],
+            'contain' => ['ObjectTemplateElement' => ['fields' => ['object_relation', 'type', 'multiple']]]
+        ]);
+
+        foreach ($templates as $i => $template) {
+            $res = $this->checkTemplateConformityBasedOnTypes($template, $attributeTypes);
+            $templates[$i]['ObjectTemplate']['compatibility'] = $res['valid'] ? true : $res['missingTypes'];
+            $templates[$i]['ObjectTemplate']['invalidTypes'] = $res['invalidTypes'];
+            $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
+        }
+
+        usort($templates, function($a, $b) {
+            if ($a['ObjectTemplate']['id'] == $b['ObjectTemplate']['id']) {
+                return 0;
+            } else if (is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
+                return count($a['ObjectTemplate']['compatibility']) > count($b['ObjectTemplate']['compatibility']) ? 1 : -1;
+            } else if (is_array($a['ObjectTemplate']['compatibility']) && !is_array($b['ObjectTemplate']['compatibility'])) {
+                return 1;
+            } else if (!is_array($a['ObjectTemplate']['compatibility']) && is_array($b['ObjectTemplate']['compatibility'])) {
+                return -1;
+            } else { // sort based on invalidTypes count
+                return count($a['ObjectTemplate']['invalidTypes']) > count($b['ObjectTemplate']['invalidTypes']) ? 1 : -1;
+            }
+        });
+
+        return array('templates' => $templates, 'types' => $uniqueAttributeTypes);
+    }
+
+    /**
+     * @param array $template
+     * @param array $attributeTypes Array of attribute types to check, can contains multiple types
+     * @return array
+     */
+    public function checkTemplateConformityBasedOnTypes(array $template, array $attributeTypes)
     {
         $to_return = array('valid' => true, 'missingTypes' => array());
         if (!empty($template['ObjectTemplate']['requirements'])) {
+            // construct array containing ObjectTemplateElement with object_relation as key for faster search
+            $elementsByObjectRelationName = array_column($template['ObjectTemplateElement'], null, 'object_relation');
+
             // check for all required attributes
             if (!empty($template['ObjectTemplate']['requirements']['required'])) {
                 foreach ($template['ObjectTemplate']['requirements']['required'] as $requiredField) {
-                    $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField))[0];
-                    $found = false;
-                    foreach ($attributes as $attribute) {
-                        if ($attribute['Attribute']['type'] == $requiredType) {
-                            $found = true;
-                        }
-                    }
+                    $requiredType = $elementsByObjectRelationName[$requiredField]['type'];
+                    $found = in_array($requiredType, $attributeTypes, true);
                     if (!$found) {
                         $to_return = array('valid' => false, 'missingTypes' => array($requiredType));
                     }
@@ -230,24 +289,21 @@ class ObjectTemplate extends AppModel
             // check for all required one of attributes
             if (!empty($template['ObjectTemplate']['requirements']['requiredOneOf'])) {
                 $found = false;
-                $all_required_type = array();
+                $allRequiredTypes = array();
                 foreach ($template['ObjectTemplate']['requirements']['requiredOneOf'] as $requiredField) {
-                    $requiredType = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[object_relation=%s].type', $requiredField));
-                    $requiredType = empty($requiredType) ? NULL : $requiredType[0];
-                    $all_required_type[] = $requiredType;
-                    foreach ($attributes as $attribute) {
-                        if ($attribute['Attribute']['type'] == $requiredType) {
-                            $found = true;
-                        }
+                    $requiredType = $elementsByObjectRelationName[$requiredField]['type'] ?? null;
+                    $allRequiredTypes[] = $requiredType;
+                    if (!$found) {
+                        $found = in_array($requiredType, $attributeTypes, true);
                     }
                 }
                 if (!$found) {
-                    $to_return = array('valid' => false, 'missingTypes' => $all_required_type);
+                    $to_return = array('valid' => false, 'missingTypes' => $allRequiredTypes);
                 }
             }
         }
 
-        // at this point, an object could created; checking if all attribute are valids
+        // at this point, an object could created; checking if all attribute are valid
         $valid_types = array();
         $to_return['invalidTypes'] = array();
         $to_return['invalidTypesMultiple'] = array();
@@ -255,21 +311,21 @@ class ObjectTemplate extends AppModel
             $valid_types[$templateElement['type']] = $templateElement['multiple'];
         }
         $check_for_multiple_type = array();
-        foreach ($attributes as $attribute) {
-            if (isset($valid_types[$attribute['Attribute']['type']])) {
-                if (!$valid_types[$attribute['Attribute']['type']]) { // is not multiple
-                    if (isset($check_for_multiple_type[$attribute['Attribute']['type']])) {
-                        $to_return['invalidTypesMultiple'][] = $attribute['Attribute']['type'];
+        foreach ($attributeTypes as $attributeType) {
+            if (isset($valid_types[$attributeType])) {
+                if (!$valid_types[$attributeType]) { // is not multiple
+                    if (isset($check_for_multiple_type[$attributeType])) {
+                        $to_return['invalidTypesMultiple'][] = $attributeType;
                     } else {
-                        $check_for_multiple_type[$attribute['Attribute']['type']] = 1;
+                        $check_for_multiple_type[$attributeType] = 1;
                     }
                 }
             } else {
-                $to_return['invalidTypes'][] = $attribute['Attribute']['type'];
+                $to_return['invalidTypes'][] = $attributeType;
             }
         }
-        $to_return['invalidTypes'] = array_unique($to_return['invalidTypes']);
-        $to_return['invalidTypesMultiple'] = array_unique($to_return['invalidTypesMultiple']);
+        $to_return['invalidTypes'] = array_unique($to_return['invalidTypes'], SORT_REGULAR);
+        $to_return['invalidTypesMultiple'] = array_unique($to_return['invalidTypesMultiple'], SORT_REGULAR);
         if (!empty($to_return['invalidTypesMultiple'])) {
             $to_return['valid'] = false;
         }
@@ -277,16 +333,11 @@ class ObjectTemplate extends AppModel
     }
 
     // simple test to see if there are any object templates - if not trigger update
-    public function populateIfEmpty($user)
+    public function populateIfEmpty(array $user)
     {
-        $result = $this->find('first', array(
-            'recursive' => -1,
-            'fields' => array('ObjectTemplate.id')
-        ));
-        if (empty($result)) {
+        if (!$this->hasAny()) {
             $this->update($user);
         }
-        return true;
     }
 
     public function setActive($id)
@@ -348,10 +399,13 @@ class ObjectTemplate extends AppModel
         if (!file_exists($path)) {
             return false;
         }
-        $content = FileAccessTool::readFromFile($path);
-        return JsonTool::decode($content);
+        return FileAccessTool::readJsonFromFile($path);
     }
 
+    /**
+     * @return Generator<array>
+     * @throws Exception
+     */
     private function readTemplatesFromDisk()
     {
         foreach ($this->getTemplateDirectoryPaths() as $dirpath) {
@@ -363,14 +417,19 @@ class ObjectTemplate extends AppModel
         }
     }
 
+    /**
+     * @param bool $fullPath
+     * @return array
+     */
     private function getTemplateDirectoryPaths($fullPath=true)
     {
-        $dir = new Folder($this->objectsDir, false);
+        App::uses('Folder', 'Utility');
+        $dir = new Folder(self::OBJECTS_DIR, false);
         return $dir->read(true, false, $fullPath)[0];
     }
 
     private function getFullPathFromTemplateName($templateName)
     {
-        return $this->objectsDir . DS . $templateName . DS . 'definition.json';
+        return self::OBJECTS_DIR . DS . $templateName . DS . 'definition.json';
     }
 }

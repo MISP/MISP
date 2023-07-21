@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2022-01-05 08:09\n"
+"PO-Revision-Date: 2022-07-21 15:58\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Portuguese, Brazilian\n"
 "MIME-Version: 1.0\n"
@@ -721,7 +721,7 @@ msgid "Invalid Sharing Group or not authorised."
 msgstr "Grupo de compartilhamento inválido ou não autorizado."
 
 #: Controller/AttributesController.php:316;1772
-msgid "Attribute does not exists or you do not have the permission to download this attribute."
+msgid "Attribute does not exist or you do not have the permission to download this attribute."
 msgstr ""
 
 #: Controller/AttributesController.php:334
@@ -1466,13 +1466,13 @@ msgid "Event Report %s %s deleted"
 msgstr ""
 
 #: Controller/EventReportsController.php:133;136
-#: Controller/GalaxyClustersController.php:721;731
+#: Controller/GalaxyClustersController.php:722;732
 #: View/Objects/group_attributes_into_object.ctp:129
 msgid "hard"
 msgstr ""
 
 #: Controller/EventReportsController.php:133;136
-#: Controller/GalaxyClustersController.php:721;731
+#: Controller/GalaxyClustersController.php:722;732
 #: View/Objects/group_attributes_into_object.ctp:129
 msgid "soft"
 msgstr ""
@@ -1482,7 +1482,7 @@ msgid "Event Report %s could not be %s deleted.%sReasons: %s"
 msgstr ""
 
 #: Controller/EventReportsController.php:141;165;212;242;262;298
-#: Controller/GalaxyClustersController.php:745
+#: Controller/GalaxyClustersController.php:746
 #: Controller/GalaxyElementsController.php:83
 #: Controller/TaxonomiesController.php:531
 #: Controller/WarninglistsController.php:434
@@ -2349,100 +2349,100 @@ msgstr ""
 msgid "Galaxy cluster relationship could not be deleted."
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:203
+#: Controller/GalaxyClustersController.php:204
 msgid "This cluster is not published. Users will not be able to use it"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:220;224
+#: Controller/GalaxyClustersController.php:221;225
 msgid "Invalid galaxy"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:283;284;391;392
+#: Controller/GalaxyClustersController.php:284;285;392;393
 msgid "Invalid JSON"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:314;427
+#: Controller/GalaxyClustersController.php:315;428
 msgid "Galaxy cluster saved"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:446
+#: Controller/GalaxyClustersController.php:447
 #: View/GalaxyClusters/add.ctp:72
 msgid "Valid JSON array or comma separated"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:447
+#: Controller/GalaxyClustersController.php:448
 msgid "Valid JSON array composed from Object of the form {key: keyname, value: actualValue}"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:470
+#: Controller/GalaxyClustersController.php:471
 msgid "You can't publish a galaxy cluster that is already published"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:473
+#: Controller/GalaxyClustersController.php:474
 msgid "Default galaxy cluster cannot be published"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:479
+#: Controller/GalaxyClustersController.php:480
 msgid "Publish job queued. Job ID: %s"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:486
+#: Controller/GalaxyClustersController.php:487
 msgid "Could not publish galaxy cluster"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:493
+#: Controller/GalaxyClustersController.php:494
 msgid "Galaxy cluster published"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:516
+#: Controller/GalaxyClustersController.php:517
 msgid "You can't unpublish a galaxy cluster that is not published"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:519
+#: Controller/GalaxyClustersController.php:520
 msgid "Default galaxy cluster cannot be unpublished"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:525
+#: Controller/GalaxyClustersController.php:526
 msgid "Could not unpublish galaxy cluster"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:532
+#: Controller/GalaxyClustersController.php:533
 msgid "Galaxy cluster unpublished"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:719
+#: Controller/GalaxyClustersController.php:720
 msgid "Galaxy cluster successfuly %s deleted%s."
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:722
+#: Controller/GalaxyClustersController.php:723
 msgid " and added to the block list"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:731
+#: Controller/GalaxyClustersController.php:732
 msgid "Galaxy cluster could not be %s deleted."
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:757
+#: Controller/GalaxyClustersController.php:758
 msgid "Galaxy cluster successfuly restored."
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:765
+#: Controller/GalaxyClustersController.php:766
 msgid "Galaxy cluster could not be %s restored."
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:774
+#: Controller/GalaxyClustersController.php:775
 msgid "This function can only be reached via POST."
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:917
+#: Controller/GalaxyClustersController.php:918
 msgid "Default galaxy cluster cannot be updated"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:920
+#: Controller/GalaxyClustersController.php:921
 msgid "Galaxy cluster is not a fork"
 msgstr ""
 
-#: Controller/GalaxyClustersController.php:951
+#: Controller/GalaxyClustersController.php:952
 msgid "Cluster updated to the newer version"
 msgstr ""
 
@@ -4565,7 +4565,7 @@ msgid "Base64 encoded certificate"
 msgstr ""
 
 #: Controller/Component/RestResponseComponent.php:1620
-msgid "A tad ID to attach to created events"
+msgid "A tag ID to attach to created events"
 msgstr ""
 
 #: Controller/Component/RestResponseComponent.php:1633
@@ -5971,7 +5971,7 @@ msgid "Event publish is not banned"
 msgstr ""
 
 #: Model/Event.php:7584
-msgid "Reason: Could not reach redis to chech republish emailing ban status."
+msgid "Reason: Could not reach redis to check republish emailing ban status."
 msgstr ""
 
 #: Model/Event.php:7597
@@ -8021,7 +8021,7 @@ msgid "User is not banned to sent email notification"
 msgstr ""
 
 #: Model/User.php:1481
-msgid "Reason: Could not reach redis to chech user email notification ban status."
+msgid "Reason: Could not reach redis to check user email notification ban status."
 msgstr ""
 
 #: Model/User.php:1493

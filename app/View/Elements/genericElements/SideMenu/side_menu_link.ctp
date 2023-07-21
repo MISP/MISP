@@ -29,6 +29,9 @@ if (empty($url)) {
 if (!empty($title)) {
     $a .= ' title="' . h($title) . '"';
 }
+if (!empty($link_class)) {
+    $a .= ' class="' . h($link_class) . '"';
+}
 if (!empty($onClick)) {
     $params = '';
     foreach ($onClick['params'] as $param) {
@@ -41,7 +44,7 @@ if (!empty($onClick)) {
             $params .= "'" . h($param) . "'";
         }
     }
-    $a .= sprintf(' onclick="%s(%s)"', $onClick['function'], $params);
+    $a .= sprintf(' onclick="event.preventDefault();%s(%s)"', $onClick['function'], $params);
 }
 if (!empty($download)) {
     $a .= ' download="' . h($download) . '"';

@@ -138,7 +138,7 @@ class SecurityAudit
         if (!Configure::read('MISP.log_new_audit')) {
             $output['Logging'][] = [
                 'hint',
-                __('New audit log stores more information, like used authkey ID or request ID that can help when analysing or correlating audit logs.'),
+                __('New audit log stores more information, like used authkey ID or request ID that can help when analysing or correlating audit logs. Set `MISP.log_new_audit` to `true` to enable.'),
             ];
         }
 
@@ -431,7 +431,7 @@ class SecurityAudit
         App::uses('CakeEmail', 'Network/Email');
         $email = new CakeEmail();
         $emailConfig = $email->config();
-        if ($emailConfig['transport'] === 'Smtp' && $emailConfig['port'] == 25 && !$emailConfig['tls']) {
+        if ($emailConfig['transport'] === 'Smtp' && $emailConfig['port'] == 25 && empty($emailConfig['tls'])) {
             $output['Email'][] = [
                 'warning',
                 __('STARTTLS is not enabled.'),
@@ -497,7 +497,7 @@ class SecurityAudit
         if ($linuxVersion) {
             list($name, $version) = $linuxVersion;
             if ($name === 'Ubuntu') {
-                if (in_array($version, ['14.04', '16.04', '19.10', '20.10', '21.04'], true)) {
+                if (in_array($version, ['14.04', '16.04', '19.10', '20.10', '21.04', '21.10'], true)) {
                     $output['System'][] = [
                         'warning',
                         __('You are using Ubuntu %s. This version doesn\'t receive security support anymore.', $version),

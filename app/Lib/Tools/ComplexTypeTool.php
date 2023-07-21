@@ -31,19 +31,22 @@ class ComplexTypeTool
         )
     );
 
-    const HEX_HASH_TYPES = array(
-        32 => array('single' => array('md5', 'imphash', 'x509-fingerprint-md5'), 'composite' => array('filename|md5', 'filename|imphash')),
-        40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1', 'cdhash'), 'composite' => array('filename|sha1', 'filename|pehash')),
-        56 => array('single' => array('sha224', 'sha512/224'), 'composite' => array('filename|sha224', 'filename|sha512/224')),
-        64 => array('single' => array('sha256', 'authentihash', 'sha512/256', 'x509-fingerprint-sha256'), 'composite' => array('filename|sha256', 'filename|authentihash', 'filename|sha512/256')),
-        96 => array('single' => array('sha384'), 'composite' => array('filename|sha384')),
-        128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
-    );
+    const HEX_HASH_TYPES = [
+        32 => ['single' => ['md5', 'imphash', 'x509-fingerprint-md5', 'ja3-fingerprint-md5'], 'composite' => ['filename|md5', 'filename|imphash']],
+        40 => ['single' => ['sha1', 'pehash', 'x509-fingerprint-sha1', 'cdhash'], 'composite' => ['filename|sha1', 'filename|pehash']],
+        56 => ['single' => ['sha224', 'sha512/224'], 'composite' => ['filename|sha224', 'filename|sha512/224']],
+        64 => ['single' => ['sha256', 'authentihash', 'sha512/256', 'x509-fingerprint-sha256'], 'composite' => ['filename|sha256', 'filename|authentihash', 'filename|sha512/256']],
+        96 => ['single' => ['sha384'], 'composite' => ['filename|sha384']],
+        128 => ['single' => ['sha512'], 'composite' => ['filename|sha512']],
+    ];
 
-    // algorithms to run through in order, without Hashes that are checked separately
-    const CHECKS = array('Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS', 'BTC');
+    private $__tlds;
 
-    private $__tlds = null;
+    /**
+     * Hardcoded list if properly warninglist is not available
+     * @var string[]
+     */
+    private $securityVendorDomains = ['virustotal.com', 'hybrid-analysis.com'];
 
     public static function refangValue($value, $type)
     {
@@ -61,6 +64,14 @@ class ComplexTypeTool
         foreach ($tlds as $tld) {
             $this->__tlds[$tld] = true;
         }
+    }
+
+    public function setSecurityVendorDomains(array $securityVendorDomains)
+    {
+        if (empty($securityVendorDomains)) {
+            return; // if provided warninglist is empty, keep hardcoded domains
+        }
+        $this->securityVendorDomains = $securityVendorDomains;
     }
 
     public function checkComplexRouter($input, $type, $settings = array())
@@ -179,6 +190,9 @@ class ComplexTypeTool
                 continue;
             }
             foreach ($row as $elementPos => $element) {
+                if (empty($element)) {
+                    continue;
+                }
                 if (empty($values) || in_array(($elementPos + 1), $values)) {
                     $element = trim($element, " \t\n\r\0\x0B\"\'");
                     if (empty($element)) {
@@ -188,6 +202,7 @@ class ComplexTypeTool
                         continue;
                     }
                     $resolvedResult = $this->__resolveType($element);
+                    // Do not extract datetime from CSV
                     if ($resolvedResult) {
                         $iocArray[] = $resolvedResult;
                     }
@@ -198,23 +213,29 @@ class ComplexTypeTool
         return $iocArray;
     }
 
-    public function checkFreeText($input, $settings = array())
+    /**
+     * @param string $input
+     * @param array $settings
+     * @return array
+     */
+    public function checkFreeText($input, array $settings = [])
     {
-        $charactersToTrim = '\'".,() ' . "\t\n\r\0\x0B"; // custom + default PHP trim
-        $input = str_replace("\xc2\xa0", ' ', $input); // non breaking space to normal space
-        $input = preg_replace('/\p{C}+/u', ' ', $input);
-        $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
+        if (empty($input)) {
+            return [];
+        }
 
-         preg_match_all('/\"([^\"]*)\"/', $input, $matches);
-         foreach ($matches[1] as $match) {
-             if ($match !== '') {
-                 $iocArray[] = $match;
-             }
-         }
+        if ($input[0] === '{') {
+            // If input looks like JSON, try to parse it as JSON
+            try {
+                return $this->parseJson($input, $settings);
+            } catch (Exception $e) {}
+        }
+
+        $iocArray = $this->parseFreetext($input);
 
         $resultArray = [];
         foreach ($iocArray as $ioc) {
-            $ioc = trim($ioc, $charactersToTrim);
+            $ioc = trim($ioc, '\'".,() ' . "\t\n\r\0\x0B"); // custom + default PHP trim
             if (empty($ioc)) {
                 continue;
             }
@@ -236,6 +257,69 @@ class ComplexTypeTool
     }
 
     /**
+     * @param string $input
+     * @throws JsonException
+     */
+    private function parseJson($input, array $settings)
+    {
+        $parsed = JsonTool::decode($input);
+
+        $values = [];
+        array_walk_recursive($parsed, function ($value) use (&$values) {
+            if (is_bool($value) || is_int($value) || empty($value)) {
+                return; // skip boolean, integer or empty values
+            }
+
+            $values[] = $value;
+            foreach ($this->parseFreetext($value) as $v) {
+                if ($v !== $value) {
+                    $values[] = $v;
+                }
+            }
+        });
+        unset($parsed);
+
+        $resultArray = [];
+        foreach ($values as $ioc) {
+            $ioc = trim($ioc, '\'".,() ' . "\t\n\r\0\x0B"); // custom + default PHP trim
+            if (empty($ioc)) {
+                continue;
+            }
+            if (!empty($settings['excluderegex']) && preg_match($settings['excluderegex'], $ioc)) {
+                continue;
+            }
+            $typeArray = $this->__resolveType($ioc);
+            if ($typeArray === false) {
+                continue;
+            }
+            // Remove duplicates
+            if (isset($resultArray[$typeArray['value']])) {
+                continue;
+            }
+            $typeArray['original_value'] = $ioc;
+            $resultArray[$typeArray['value']] = $typeArray;
+        }
+        return array_values($resultArray);
+    }
+
+    /**
+     * @param string $input
+     * @return array|string[]
+     */
+    private function parseFreetext($input)
+    {
+        $input = str_replace("\xc2\xa0", ' ', $input); // non breaking space to normal space
+        $input = preg_replace('/\p{C}+/u', ' ', $input);
+        $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
+
+        preg_match_all('/\"([^\"]+)\"/', $input, $matches);
+        foreach ($matches[1] as $match) {
+            $iocArray[] = $match;
+        }
+        return $iocArray;
+    }
+
+    /**
      * @param string $raw_input Trimmed value
      * @return array|false
      */
@@ -245,29 +329,42 @@ class ComplexTypeTool
         if (filter_var($raw_input, FILTER_VALIDATE_IP)) {
             return [
                 'types' => ['ip-dst', 'ip-src', 'ip-src/ip-dst'],
-                'to_ids' => true,
                 'default_type' => 'ip-dst',
                 'value' => $raw_input,
             ];
         }
 
-        $input = array('raw' => $raw_input);
+        $input = ['raw' => $raw_input];
 
         // Check hashes before refang and port extracting, it is not necessary for hashes. This speedups parsing
         // freetexts or CSVs with a lot of hashes.
-        $hashes = $this->__checkForHashes($input);
-        if ($hashes) {
-            return $hashes;
+        if ($result = $this->__checkForHashes($input)) {
+            return $result;
         }
 
         $input = $this->__refangInput($input);
-        $input = $this->__extractPort($input);
 
-        foreach (self::CHECKS as $check) {
-            $result = $this->{'__checkFor' . $check}($input);
-            if ($result) {
-                return $result;
-            }
+        // Check email before port extracting, it is not necessary for email. This speedups parsing
+        // freetexts or CSVs with a lot of emails.
+        if ($result = $this->__checkForEmail($input)) {
+            return $result;
+        }
+
+        $input = $this->__extractPort($input);
+        if ($result = $this->__checkForIP($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForDomainOrFilename($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForSimpleRegex($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForAS($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForBTC($input)) {
+            return $result;
         }
         return false;
     }
@@ -277,7 +374,6 @@ class ComplexTypeTool
         if (preg_match("#^([13][a-km-zA-HJ-NP-Z1-9]{25,34})|(bc|tb)1([023456789acdefghjklmnpqrstuvwxyz]{11,71})$#i", $input['raw'])) {
             return [
                 'types' => ['btc'],
-                'to_ids' => true,
                 'default_type' => 'btc',
                 'value' => $input['raw'],
             ];
@@ -290,7 +386,11 @@ class ComplexTypeTool
         // quick filter for an @ to see if we should validate a potential e-mail address
         if (strpos($input['refanged'], '@') !== false) {
             if (filter_var($input['refanged'], FILTER_VALIDATE_EMAIL)) {
-                return array('types' => array('email', 'email-src', 'email-dst', 'target-email', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input['refanged']);
+                return [
+                    'types' => array('email', 'email-src', 'email-dst', 'target-email', 'whois-registrant-email'),
+                    'default_type' => 'email-src',
+                    'value' => $input['refanged'],
+                ];
             }
         }
         return false;
@@ -300,7 +400,7 @@ class ComplexTypeTool
     {
         if (preg_match('#^as[0-9]+$#i', $input['raw'])) {
             $input['raw'] = strtoupper($input['raw']);
-            return array('types' => array('AS'), 'to_ids' => false, 'default_type' => 'AS', 'value' => $input['raw']);
+            return array('types' => array('AS'), 'default_type' => 'AS', 'value' => $input['raw']);
         }
         return false;
     }
@@ -314,10 +414,10 @@ class ComplexTypeTool
                 if ($this->__resolveFilename($compositeParts[0])) {
                     $hash = $this->__resolveHash($compositeParts[1]);
                     if ($hash) {
-                        return array('types' => $hash['composite'], 'to_ids' => true, 'default_type' => $hash['composite'][0], 'value' => $input['raw']);
+                        return array('types' => $hash['composite'], 'default_type' => $hash['composite'][0], 'value' => $input['raw']);
                     }
                     if ($this->__resolveSsdeep($compositeParts[1])) {
-                        return array('types' => array('filename|ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep', 'value' => $input['raw']);
+                        return array('types' => array('filename|ssdeep'), 'default_type' => 'filename|ssdeep', 'value' => $input['raw']);
                     }
                 }
             }
@@ -330,11 +430,11 @@ class ComplexTypeTool
             if ($this->__checkForBTC($input)) {
                 $types[] = 'btc';
             }
-            return array('types' => $types, 'to_ids' => true, 'default_type' => $types[0], 'value' => $input['raw']);
+            return array('types' => $types, 'default_type' => $types[0], 'value' => $input['raw']);
         }
         // ssdeep has a different pattern
         if ($this->__resolveSsdeep($input['raw'])) {
-            return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep', 'value' => $input['raw']);
+            return array('types' => array('ssdeep'), 'default_type' => 'ssdeep', 'value' => $input['raw']);
         }
         return false;
     }
@@ -356,17 +456,17 @@ class ComplexTypeTool
 
     private function __refangInput($input)
     {
-        $input['refanged'] = $input['raw'];
+        $refanged = $input['raw'];
         foreach (self::REFANG_REGEX_TABLE as $regex) {
-            $input['refanged'] = preg_replace($regex['from'], $regex['to'], $input['refanged']);
+            $refanged = preg_replace($regex['from'], $regex['to'], $refanged);
         }
-        $input['refanged'] = rtrim($input['refanged'], ".");
+        $refanged = rtrim($refanged, ".");
         $input['refanged'] = preg_replace_callback(
             '/\[.\]/',
             function ($matches) {
                 return trim($matches[0], '[]');
             },
-            $input['refanged']
+            $refanged
         );
         return $input;
     }
@@ -377,15 +477,15 @@ class ComplexTypeTool
         if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input['raw'])) {
             return [
                 'types' => ['vulnerability'],
-                'to_ids' => false,
                 'default_type' => 'vulnerability',
                 'value' => strtoupper($input['raw']), // 'CVE' must be uppercase
             ];
         }
+
         // Phone numbers - for automatic recognition, needs to start with + or include dashes
         if ($input['raw'][0] === '+' || strpos($input['raw'], '-')) {
             if (!preg_match('#^[0-9]{4}-[0-9]{2}-[0-9]{2}$#i', $input['raw']) && preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input['raw'])) {
-                return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input['raw']);
+                return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'default_type' => 'phone-number', 'value' => $input['raw']);
             }
         }
         return false;
@@ -395,16 +495,15 @@ class ComplexTypeTool
     {
         if (filter_var($input['refanged_no_port'], FILTER_VALIDATE_IP)) {
             if (isset($input['port'])) {
-                return array('types' => array('ip-dst|port', 'ip-src|port', 'ip-src|port/ip-dst|port'), 'to_ids' => true, 'default_type' => 'ip-dst|port', 'comment' => $input['comment'], 'value' => $input['refanged_no_port'] . '|' . $input['port']);
+                return array('types' => array('ip-dst|port', 'ip-src|port', 'ip-src|port/ip-dst|port'), 'default_type' => 'ip-dst|port', 'comment' => $input['comment'], 'value' => $input['refanged_no_port'] . '|' . $input['port']);
             } else {
-                return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
+                return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'default_type' => 'ip-dst', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
             }
         }
         // IPv6 address that is considered as IP address with port
         if (filter_var($input['refanged'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
             return [
                 'types' => ['ip-dst', 'ip-src', 'ip-src/ip-dst'],
-                'to_ids' => true,
                 'default_type' => 'ip-dst',
                 'comment' => '',
                 'value' => $input['refanged'],
@@ -419,7 +518,6 @@ class ComplexTypeTool
             $value = substr($input['refanged_no_port'], 1, -1); // remove brackets
             return [
                 'types' => ['ip-dst|port', 'ip-src|port', 'ip-src|port/ip-dst|port'],
-                'to_ids' => true,
                 'default_type' => 'ip-dst|port',
                 'comment' => $input['comment'],
                 'value' => "$value|{$input['port']}",
@@ -429,7 +527,7 @@ class ComplexTypeTool
         if (strpos($input['refanged_no_port'], '/')) {
             $temp = explode('/', $input['refanged_no_port']);
             if (count($temp) === 2 && filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) {
-                return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
+                return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'default_type' => 'ip-dst', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
             }
         }
         return false;
@@ -449,25 +547,24 @@ class ComplexTypeTool
             }
             if ($domainDetection) {
                 if (count($temp) > 2) {
-                    return array('types' => array('hostname', 'domain', 'url', 'filename'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
+                    return array('types' => array('hostname', 'domain', 'url', 'filename'), 'default_type' => 'hostname', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
                 } else {
-                    return array('types' => array('domain', 'filename'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
+                    return array('types' => array('domain', 'filename'), 'default_type' => 'domain', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
                 }
             } else {
                 // check if it is a URL
                 // Adding http:// infront of the input in case it was left off. github.com/MISP/MISP should still be counted as a valid link
                 if (count($temp) > 1 && (filter_var($input['refanged_no_port'], FILTER_VALIDATE_URL) || filter_var('http://' . $input['refanged_no_port'], FILTER_VALIDATE_URL))) {
                     // Even though some domains are valid, we want to exclude them as they are known security vendors / etc
-                    // TODO, replace that with the appropriate warninglist.
-                    if (preg_match('/^(https:\/\/(www.)?virustotal.com\/|https:\/\/www\.hybrid-analysis\.com\/)/i', $input['refanged_no_port'])) {
-                        return array('types' => array('link'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
+                    if ($this->isLink($input['refanged_no_port'])) {
+                        return array('types' => array('link'), 'default_type' => 'link', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
                     }
                     if (strpos($input['refanged_no_port'], '/')) {
-                        return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
+                        return array('types' => array('url'), 'default_type' => 'url', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
                     }
                 }
                 if ($this->__resolveFilename($input['raw'])) {
-                    return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $input['raw']);
+                    return array('types' => array('filename'), 'default_type' => 'filename', 'value' => $input['raw']);
                 }
             }
         }
@@ -475,10 +572,10 @@ class ComplexTypeTool
             $temp = explode('\\', $input['raw']);
             if (strpos(end($temp), '.') || preg_match('/^.:/i', $temp[0])) {
                 if ($this->__resolveFilename(end($temp))) {
-                    return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $input['raw']);
+                    return array('types' => array('filename'), 'default_type' => 'filename', 'value' => $input['raw']);
                 }
             } else if (!empty($temp[0])) {
-                return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey', 'value' => $input['raw']);
+                return array('types' => array('regkey'), 'default_type' => 'regkey', 'value' => $input['raw']);
             }
         }
         return false;
@@ -501,7 +598,7 @@ class ComplexTypeTool
      */
     private function __resolveSsdeep($value)
     {
-        return preg_match('#^[0-9]+:[0-9a-zA-Z\/\+]+:[0-9a-zA-Z\/\+]+$#', $value) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $value);
+        return preg_match('#^[0-9]+:[0-9a-zA-Z/+]+:[0-9a-zA-Z/+]+$#', $value) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $value);
     }
 
     /**
@@ -527,6 +624,29 @@ class ComplexTypeTool
             $this->setTLDs($this->__generateTLDList());
         }
         return isset($this->__tlds[strtolower($tld)]);
+    }
+
+    /**
+     * Check if URL should be considered as link attribute type
+     * @param string $value
+     * @return bool
+     */
+    private function isLink($value)
+    {
+        if (!preg_match('/^https:\/\/([^\/]*)/i', $value, $matches)) {
+            return false;
+        }
+
+        $domainToCheck = '';
+        $domainParts = array_reverse(explode('.', strtolower($matches[1])));
+        foreach ($domainParts as $domainPart) {
+            $domainToCheck = $domainPart . $domainToCheck;
+            if (in_array($domainToCheck, $this->securityVendorDomains, true)) {
+                return true;
+            }
+            $domainToCheck = '.' . $domainToCheck;
+        }
+        return false;
     }
 
     private function __generateTLDList()

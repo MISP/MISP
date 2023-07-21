@@ -578,7 +578,7 @@ msgid "Workers number [%s] is not valid. Please enter a valid number"
 msgstr ""
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1282
-msgid "User [%s] does not exists. Please enter a valid system user"
+msgid "User [%s] does not exist. Please enter a valid system user"
 msgstr ""
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1304

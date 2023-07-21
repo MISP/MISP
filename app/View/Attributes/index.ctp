@@ -2,7 +2,6 @@
 
 $modules = isset($modules) ? $modules : null;
 $cortex_modules = isset($cortex_modules) ? $cortex_modules : null;
-
 echo '<div class="index">';
 echo $this->element('/genericElements/IndexTable/index_table', [
     'data' => [
@@ -46,7 +45,8 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('Value'),
                 'sort' => 'Attribute.value',
-                'data_path' => 'Attribute.value'
+                'data_path' => 'Attribute',
+                'element' => 'attributeValue',
             ],
             [
                 'name' => __('Tags'),
@@ -103,7 +103,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'name' => __('Distribution'),
                 'element' => 'distribution_levels',
                 'data_path' => 'Attribute.distribution',
-                'distributionLevels' => $distributionLevels,
+                'distributionLevels' => $shortDist,
                 'data' => [
                     'object' => [
                         'value_path' => 'Attribute'
@@ -140,22 +140,19 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                     'Attribute.id'
                 ],
                 'icon' => 'comment',
-                'complex_requirement' => [
-                    'function' => function ($object) use ($isSiteAdmin, $me) {
-                        return $isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id']);
-                    }
-                ]
+                'title' => __('Add proposal'),
+                'complex_requirement' => function ($object) use ($isSiteAdmin, $me) {
+                    return $isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id']);
+                },
             ],
             [
                 'onclick' => "deleteObject('shadow_attributes', 'delete', '[onclick_params_data_path]');",
                 'onclick_params_data_path' => 'Attribute.id',
                 'icon' => 'trash',
                 'title' => __('Propose deletion'),
-                'complex_requirement' => [
-                    'function' => function ($object) use ($isSiteAdmin, $me) {
-                        return $isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id']);
-                    }
-                ]
+                'complex_requirement' => function ($object) use ($isSiteAdmin, $me) {
+                    return $isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id']);
+                }
             ],
             [
                 'title' => __('Propose enrichment'),
@@ -206,40 +203,22 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'icon' => 'asterisk',
                 'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Attribute\');',
                 'onclick_params_data_path' => 'Attribute.id',
-                'complex_requirement' => [
-                    'function' => function ($object) use ($modules, $isSiteAdmin, $me) {
-                        return (
-                            ($isSiteAdmin || ($object['Event']['orgc_id'] === $me['org_id'])) &&
-                            isset($cortex_modules) &&
-                            isset($cortex_modules['types'][$object['type']])
-                        );
-                    },
-                    'options' => [
-                        'datapath' => [
-                            'type' => 'Attribute.type'
-                        ]
-                    ],
-                ],
+                'complex_requirement' => function ($object) use ($modules) {
+                    return $this->Acl->canModifyEvent($object) &&
+                        isset($cortex_modules) &&
+                        isset($cortex_modules['types'][$object['Attribute']['type']]);
+                },
             ],
             [
                 'title' => __('Add enrichment via Cortex'),
                 'icon' => 'eye',
                 'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Attribute/Cortex\');',
                 'onclick_params_data_path' => 'Attribute.id',
-                'complex_requirement' => [
-                    'function' => function ($object) use ($cortex_modules, $isSiteAdmin, $me) {
-                        return (
-                            ($isSiteAdmin || ($object['Event']['orgc_id'] === $me['org_id'])) &&
-                            isset($cortex_modules) &&
-                            isset($cortex_modules['types'][$object['type']])
-                        );
-                    },
-                    'options' => [
-                        'datapath' => [
-                            'type' => 'Attribute.type'
-                        ]
-                    ],
-                ],
+                'complex_requirement' => function ($object) use ($cortex_modules) {
+                    return $this->Acl->canModifyEvent($object) &&
+                        isset($cortex_modules) &&
+                        isset($cortex_modules['types'][$object['Attribute']['type']]);
+                }
             ],
             [
                 'url' => $baseurl . '/attributes/edit',
@@ -247,51 +226,36 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                     'Attribute.id'
                 ],
                 'icon' => 'edit',
-                'complex_requirement' => [
-                    'function' => function ($object) use ($isSiteAdmin, $me) {
-                        return $isSiteAdmin || ($object['Event']['orgc_id'] === $me['org_id']);
-                    }
-                ]
+                'title' => __('Edit attribute'),
+                'complex_requirement' => function ($object) {
+                    return $this->Acl->canModifyEvent($object);
+                },
             ],
             [
                 'onclick' => "deleteObject('attributes', 'delete', '[onclick_params_data_path]');",
                 'onclick_params_data_path' => 'Attribute.id',
                 'icon' => 'trash',
                 'title' => __('Soft delete attribute'),
-                'requirement' => $isSiteAdmin,
-                'complex_requirement' => [
-                    'function' => function ($object) use ($isSiteAdmin, $me) {
-                        return (
-                            (
-                                $isSiteAdmin ||
-                                $object['Event']['orgc_id'] !== $me['org_id'])
-                            ) &&
-                            !empty($object['Event']['publish_timestamp']
-                        );
-                    },
-                ]
+                'complex_requirement' => function ($object) {
+                    return $this->Acl->canModifyEvent($object) && !empty($object['Event']['publish_timestamp']);
+                },
             ],
             [
                 'onclick' => "deleteObject('attributes', 'delete', '[onclick_params_data_path]/true');",
                 'onclick_params_data_path' => 'Attribute.id',
                 'icon' => 'trash',
                 'title' => __('Permanently delete attribute'),
-                'requirement' => $isSiteAdmin,
-                'complex_requirement' => [
-                    'function' => function ($object) use ($isSiteAdmin, $me) {
-                        return (
-                            (
-                                $isSiteAdmin ||
-                                $object['Event']['orgc_id'] !== $me['org_id'])
-                            ) &&
-                            empty($object['Event']['publish_timestamp']
-                        );
-                    },
-                ]
+                'complex_requirement' => function ($object) {
+                    return $this->Acl->canModifyEvent($object) && empty($object['Event']['publish_timestamp']);
+                },
             ]
         ]
     ]
 ]);
+
+if ($isSearch) {
+    echo "<button class=\"btn\" onclick=\"getPopup(0, 'attributes', 'exportSearch')\">" . __("Export found attributes as&hellip;") . "</button>";
+}
 
 echo '</div>';
 
@@ -301,12 +265,11 @@ echo $this->Form->input('id', ['label' => false, 'type' => 'number']);
 echo $this->Form->input('type', ['label' => false]);
 echo $this->Form->end();
 
-$class = $isSearch == 1 ? 'searchAttributes2' : 'listAttributes';
+$class = $isSearch ? 'searchAttributes' : 'listAttributes';
 echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event-collection', 'menuItem' => $class]);
 
 ?>
-
-<script type="text/javascript">
+<script>
     // tooltips
     $(function() {
         $("td, div").tooltip({
@@ -316,37 +279,6 @@ echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event
                 show: 500,
                 hide: 100
             }
-        });
-        $('.screenshot').click(function() {
-            screenshotPopup($(this).attr('src'), $(this).attr('title'));
-        });
-        $('.addGalaxy').click(function() {
-            addGalaxyListener(this);
-        });
-        $('.sightings_advanced_add').click(function() {
-            var selected = [];
-            var object_context = $(this).data('object-context');
-            var object_id = $(this).data('object-id');
-            if (object_id == 'selected') {
-                $(".select_attribute").each(function() {
-                    if ($(this).is(":checked")) {
-                        selected.push($(this).data("id"));
-                    }
-                });
-                object_id = selected.join('|');
-            }
-            url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
-            genericPopup(url, '#popover_box');
-        });
-        $('.correlation-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
-            return false;
-        });
-        $('.toids-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
-            return false;
         });
         popoverStartup();
         $(document).on('click', function(e) {

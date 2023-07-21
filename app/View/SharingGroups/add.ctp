@@ -48,6 +48,10 @@
             }
         ?>
         <div id="page1_content" class="multi-page-form-div tabContent" style="width:544px;">
+            <?php if ($canModifyUuid): ?>
+            <label for="SharingGroupUuid"><?php echo __('UUID');?></label>
+            <input type="text" class="input-xxlarge" placeholder="<?= __('If not provided, random UUID will be generated') ?>" id="SharingGroupUuid">
+            <?php endif; ?>
             <label for="SharingGroupName"><?php echo __('Name');?></label>
             <input type="text" class="input-xxlarge" placeholder="<?php echo __('Example: Multinational sharing group');?>" id="SharingGroupName">
             <label for="SharingGroupReleasability"><?php echo __('Releasable to');?></label>

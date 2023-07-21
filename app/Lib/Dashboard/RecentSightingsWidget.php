@@ -8,7 +8,7 @@ class RecentSightingsWidget
     public $height = 6;
     public $params = array(
         'limit' => 'Maximum amount of sightings to return',
-        'last' => 'Limit sightins to last 1d, 12h, ...'
+        'last' => 'Limit sightings to last 1d, 12h, ...'
     );
     public $description = 'Widget showing information on recent sightings';
     public $cacheLifetime = false;
@@ -28,26 +28,28 @@ class RecentSightingsWidget
         $last = $params['last'];
         $limit = $params['limit'];
 
-        $this->Sighting = ClassRegistry::init('Sighting');
-        $filters = array( 'last' => $last, 'includeAttribute' => 'true', 'includeEvent' => 'true');
+        /** @var Sighting $Sighting */
+        $Sighting = ClassRegistry::init('Sighting');
+
+        $filters = array('last' => $last, 'includeAttribute' => 'true', 'includeEvent' => 'true');
         $data = array();
         $count = 0;
 
-        foreach(json_decode($this->Sighting->restSearch($user, 'json', $filters))->{'response'} as $el) {
-            $sighting = $el->{'Sighting'};
-            $event = $sighting->{'Event'};
-            $attribute = $sighting->{'Attribute'};
+        foreach (JsonTool::decode($Sighting->restSearch($user, 'json', $filters)->intoString())['response'] as $el) {
+            $sighting = $el['Sighting'];
+            $event = $sighting['Event'];
+            $attribute = $sighting['Attribute'];
 
-            if ($sighting->{'type'} == 0) $type = "Sighting";
-            elseif ($sighting->{'type'} == 1) $type = "False positive";
+            if ($sighting['type'] == 0) $type = "Sighting";
+            elseif ($sighting['type'] == 1) $type = "False positive";
             else $type = "Expiration";
 
-            $output = $attribute->{'value'} . " (id: " . $attribute->{'id'} . ") in " . $event->{'info'} . " (id: " . $event->{'id'} . ")";
-            $data[] = array( 'title' => __($type), 'value' => $output, 
+            $output = $attribute['value'] . " (id: " . $attribute['id'] . ") in " . $event['info'] . " (id: " . $event['id'] . ")";
+            $data[] = array( 'title' => $type, 'value' => $output, 
                                 'html' => sprintf(
                                     ' (Event <a href="%s%s">%s</a>)',
-                                    Configure::read('MISP.baseurl') . '/events/view/', $event->{'id'},
-                                    $event->{'id'}
+                                    Configure::read('MISP.baseurl') . '/events/view/', $event['id'],
+                                    $event['id']
                                 )
                         );
             ++$count;

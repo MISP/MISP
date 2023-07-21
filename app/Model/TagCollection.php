@@ -2,6 +2,9 @@
 
 App::uses('AppModel', 'Model');
 
+/**
+ * @property TagCollectionTag $TagCollectionTag
+ */
 class TagCollection extends AppModel
 {
     public $useTable = 'tag_collections';
@@ -31,8 +34,6 @@ class TagCollection extends AppModel
             'foreignKey' => 'org_id'
         )
     );
-
-    public $allowedlistedItems = false;
 
     public $validate = array(
         'name' => array(
@@ -67,12 +68,7 @@ class TagCollection extends AppModel
     public function fetchTagCollection(array $user, $params = array())
     {
         if (empty($user['Role']['perm_site_admin'])) {
-            $params['conditions']['AND'][] = array(
-                'OR' => array(
-                    'TagCollection.org_id' => $user['org_id'],
-                    'TagCollection.all_orgs' => 1
-                )
-            );
+            $params['conditions']['AND'][] = $this->createConditions($user);
         }
         if (empty($params['contain'])) {
             $params['contain'] = array(
@@ -84,25 +80,6 @@ class TagCollection extends AppModel
         $tagCollections = $this->find('all', $params);
         $tagCollections = $this->cullBlockedTags($user, $tagCollections);
         return $tagCollections;
-    }
-
-    public function checkAccess($user, $tagCollection, $accessLevel = 'read')
-    {
-        if (isset($tagCollection['TagCollection'])) {
-            $tagCollection = $tagCollection['TagCollection'];
-        }
-        if (!empty($user['Role']['perm_site_admin'])) {
-            return true;
-        }
-        if (!$tagCollection['all_orgs'] && $user['org_id'] != $tagCollection['org_id']) {
-            return false;
-        }
-        if ($accessLevel === 'write') {
-            if ($tagCollection['org_id'] !== $user['org_id']) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
@@ -198,5 +175,21 @@ class TagCollection extends AppModel
             }
         }
         return $results;
+    }
+
+    /**
+     * @param array $user
+     * @return array[]
+     */
+    public function createConditions(array $user)
+    {
+        if ($user['Role']['perm_site_admin']) {
+            return [];
+        }
+
+        return ['OR' => [
+            'TagCollection.all_orgs' => 1,
+            'TagCollection.org_id' => $user['org_id'],
+        ]];
     }
 }

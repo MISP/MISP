@@ -153,6 +153,12 @@
                         'style' => 'display:none;width:424px;',
                         'div' => false
                 ));
+                echo $this->Form->input('searchall', array(
+                        'label' => false,
+                        'class' => 'input-large',
+                        'style' => 'display:none;width:424px;',
+                        'div' => false
+                ));
             ?>
             <span id="addRuleButton" class="btn btn-inverse" style="margin-bottom:10px;display:none;"><?php echo __('Add');?></span>
             </div>
@@ -167,7 +173,7 @@
                         <th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
                     </tr>
                     <?php
-                        $fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'sharinggroup', 'attribute', 'hasproposal', 'timestamp', 'publishtimestamp');
+                        $fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'sharinggroup', 'attribute', 'hasproposal', 'timestamp', 'publishtimestamp', 'all');
                         if ($isSiteAdmin) $fields[] = 'email';
                         foreach ($fields as $k => $field):
                     ?>
@@ -242,9 +248,9 @@ var filtering = <?php echo $filtering; ?>;
 
 var operators = ["<?php echo __('OR');?>", "<?php echo __('NOT');?>"];
 
-var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "hasproposal", "timestamp", "publishtimestamp"];
+var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "hasproposal", "timestamp", "publishtimestamp", "all"];
 
-var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute"];
+var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "all"];
 
 var differentFilters = ["published", "date", "hasproposal", "timestamp", "publishtimestamp"];
 

@@ -300,6 +300,31 @@ class MispObject extends AppModel
 
     public function afterSave($created, $options = array())
     {
+        if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
+            $object = $this->data['Object'];
+            $this->Attribute->Correlation->updateContainedCorrelations($object, 'object', $options);
+        }
+        if (!empty($this->data['Object']['deleted']) && !$created) {
+            $attributes_to_delete = $this->Attribute->find('all', [
+                'recursive' => -1,
+                'conditions' => [
+                    'Attribute.object_id' => $this->id,
+                    'Attribute.deleted' => 0
+                ]
+            ]);
+            foreach ($attributes_to_delete as &$attribute_to_delete) {
+                $attribute_to_delete['Attribute']['deleted'] = 1;
+                unset($attribute_to_delete['Attribute']['timestamp']);
+            }
+            $this->Attribute->saveMany($attributes_to_delete);
+        }
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'Object',
+            'action' => $created ? 'add' : 'edit',
+            'id' => $this->data['Object']['id'],
+        ];
+        $this->executeTrigger('object-after-save', $this->data, $workflowErrors, $logging);
         $pubToZmq = $this->pubToZmq('object') && empty($this->data['Object']['skip_zmq']);
         $kafkaTopic = $this->kafkaTopic('object');
         $pubToKafka = $kafkaTopic && empty($this->data['Object']['skip_kafka']);
@@ -359,7 +384,14 @@ class MispObject extends AppModel
         }
     }
 
-    public function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectID, &$duplicateObjectUuid)
+    /**
+     * @param array $object
+     * @param int $eventId
+     * @param int $duplicatedObjectId
+     * @param string $duplicateObjectUuid
+     * @return bool
+     */
+    private function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectId, &$duplicateObjectUuid)
     {
         $newObjectAttributes = array();
         if (isset($object['Object']['Attribute'])) {
@@ -368,22 +400,14 @@ class MispObject extends AppModel
             $attributeArray = $object['Attribute'];
         }
         foreach ($attributeArray as $attribute) {
-            if ($attribute['type'] === 'malware-sample') {
-                if (strpos($attribute['value'], '|') === false && !empty($attribute['data'])) {
-                    $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
-                }
-            }
-            $attributeValueAfterModification = AttributeValidationTool::modifyBeforeValidation($attribute['type'], $attribute['value']);
-            $attributeValueAfterModification = $this->Attribute->runRegexp($attribute['type'], $attributeValueAfterModification);
-
-            $newObjectAttributes[] = sha1($attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $attributeValueAfterModification, true);
+            $newObjectAttributes[] = $this->getObjectAttributeHash($attribute);
         }
         $newObjectAttributeCount = count($newObjectAttributes);
         if (!empty($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']])) {
             foreach ($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']] as $previousNewObject) {
                 if ($newObjectAttributeCount === count($previousNewObject)) {
                     if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
-                        $duplicatedObjectID = $previousNewObject['Object']['id'];
+                        $duplicatedObjectId = $previousNewObject['Object']['id'];
                         $duplicateObjectUuid = $previousNewObject['Object']['uuid'];
                         return true;
                     }
@@ -401,7 +425,7 @@ class MispObject extends AppModel
                         'conditions' => array('Attribute.deleted' => 0)
                     )
                 ),
-                'fields' => array('template_uuid'),
+                'fields' => array('template_uuid', 'uuid'),
                 'conditions' => array('template_uuid' => $object['Object']['template_uuid'], 'Object.deleted' => 0, 'event_id' => $eventId)
             ));
         }
@@ -409,10 +433,12 @@ class MispObject extends AppModel
             $temp = array();
             if (!empty($existingObject['Attribute']) && $newObjectAttributeCount === count($existingObject['Attribute'])) {
                 foreach ($existingObject['Attribute'] as $existingAttribute) {
-                    $temp[] = sha1($existingAttribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value'], true);
+                    $temp[] = $this->getObjectAttributeHash($existingAttribute);
                 }
+
                 if (empty(array_diff($temp, $newObjectAttributes))) {
-                    $duplicatedObjectID = $existingObject['Object']['id'];
+                    $duplicatedObjectId = $existingObject['Object']['id'];
+                    $duplicateObjectUuid = $existingObject['Object']['uuid'];
                     return true;
                 }
             }
@@ -420,7 +446,37 @@ class MispObject extends AppModel
         return false;
     }
 
-    public function saveObject($object, $eventId, $template = false, $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
+    /**
+     * @param array $object
+     * @param array $template
+     * @return array
+     */
+    public function fillObjectDataFromTemplate(array $object, array $template)
+    {
+        $templateFields = array(
+            'name' => 'name',
+            'meta-category' => 'meta-category',
+            'description' => 'description',
+            'template_version' => 'version',
+            'template_uuid' => 'uuid'
+        );
+        foreach ($templateFields as $objectField => $templateField) {
+            $object['Object'][$objectField] = $template['ObjectTemplate'][$templateField];
+        }
+        return $object;
+    }
+
+    /**
+     * @param array $object
+     * @param int $eventId
+     * @param array $template
+     * @param array $user
+     * @param string $errorBehaviour
+     * @param bool $breakOnDuplicate
+     * @return array|array[]|bool|int|mixed|string
+     * @throws Exception
+     */
+    public function saveObject(array $object, $eventId, $template = false, array $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
     {
         $templateFields = array(
             'name' => 'name',
@@ -442,15 +498,14 @@ class MispObject extends AppModel
         }
         $object['Object']['event_id'] = $eventId;
         if ($breakOnDuplicate) {
-            $duplicatedObjectID = null;
+            $duplicatedObjectId = null;
             $duplicateObjectUuid = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $dupicateObjectUuid);
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectId, $duplicateObjectUuid);
             if ($duplicate) {
-                return array('value' => array(__('Duplicate object found (id: %s, uuid: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectID, $dupicateObjectUuid)));
+                return array('value' => array(__('Duplicate object found (id: %s, uuid: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectId, $duplicateObjectUuid)));
             }
         }
         $this->create();
-        $result = false;
         if ($this->save($object)) {
             $result = $this->id;
             foreach ($object['Attribute'] as $k => $attribute) {
@@ -481,7 +536,7 @@ class MispObject extends AppModel
             return [];
         }
 
-        $sgids = $this->Event->cacheSgids($user, true);
+        $sgids = $this->SharingGroup->authorizedIds($user);
         return [
             'AND' => [
                 'OR' => [
@@ -506,7 +561,6 @@ class MispObject extends AppModel
         $params = array(
             'conditions' => $this->buildConditions($user),
             'fields' => array(),
-            'recursive' => -1
         );
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
@@ -532,11 +586,11 @@ class MispObject extends AppModel
     //     conditions
     //     order
     //     group
-    public function fetchObjects($user, $options = array())
+    public function fetchObjects(array $user, array $options = array())
     {
         $attributeConditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $attributeConditions = array(
                 'OR' => array(
                     array(
@@ -578,8 +632,6 @@ class MispObject extends AppModel
         }
         if (isset($options['contain'])) {
             $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
-        } else {
-            $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
         }
         if (
             empty($options['metadata']) &&
@@ -632,7 +684,6 @@ class MispObject extends AppModel
         if ($options['enforceWarninglist'] && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
         }
-        $results = array_values($results);
         $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
         if (empty($options['metadata'])) {
             foreach ($results as $key => $object) {
@@ -660,12 +711,14 @@ class MispObject extends AppModel
         return $results;
     }
 
-    /*
+    /**
      * Prepare the template form view's data, setting defaults, sorting elements
+     * @param array $template
+     * @param array $request
+     * @return array
      */
-    public function prepareTemplate($template, $request = array())
+    public function prepareTemplate(array $template, array $request = array())
     {
-        $temp = array();
         usort($template['ObjectTemplateElement'], function ($a, $b) {
             return $a['ui-priority'] < $b['ui-priority'];
         });
@@ -677,26 +730,28 @@ class MispObject extends AppModel
                 $request_rearranged[$attribute['object_relation']][] = $attribute;
             }
         }
-        foreach ($template_object_elements as $k => $v) {
+        $typeDefinitions = $this->Event->Attribute->typeDefinitions;
+        $categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
+        foreach ($template_object_elements as $v) {
             if (empty($request_rearranged[$v['object_relation']])) {
-                if (isset($this->Event->Attribute->typeDefinitions[$v['type']])) {
-                    $v['default_category'] = $this->Event->Attribute->typeDefinitions[$v['type']]['default_category'];
-                    $v['to_ids'] = $this->Event->Attribute->typeDefinitions[$v['type']]['to_ids'];
+                if (isset($typeDefinitions[$v['type']])) {
+                    $v['default_category'] = $typeDefinitions[$v['type']]['default_category'];
+                    $v['to_ids'] = $typeDefinitions[$v['type']]['to_ids'];
                     if (empty($v['categories'])) {
                         $v['categories'] = array();
-                        foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
-                            if (in_array($v['type'], $catv['types'])) {
+                        foreach ($categoryDefinitions as $catk => $catv) {
+                            if (in_array($v['type'], $catv['types'], true)) {
                                 $v['categories'][] = $catk;
                             }
                         }
                     }
                     $template['ObjectTemplateElement'][] = $v;
                 } else {
-                    $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template_object_elements[$k]['object_relation'] . '") that would not pass validation due to this.';
+                    $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $v['object_relation'] . '") that would not pass validation due to this.';
                 }
             } else {
                 foreach ($request_rearranged[$v['object_relation']] as $request_item) {
-                    if (isset($this->Event->Attribute->typeDefinitions[$v['type']])) {
+                    if (isset($typeDefinitions[$v['type']])) {
                         $v['default_category'] = $request_item['category'];
                         $v['value'] = $request_item['value'];
                         $v['to_ids'] = $request_item['to_ids'];
@@ -709,8 +764,8 @@ class MispObject extends AppModel
                         }
                         if (empty($v['categories'])) {
                             $v['categories'] = array();
-                            foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
-                                if (in_array($v['type'], $catv['types'])) {
+                            foreach ($categoryDefinitions as $catk => $catv) {
+                                if (in_array($v['type'], $catv['types'], true)) {
                                     $v['categories'][] = $catk;
                                 }
                             }
@@ -719,7 +774,7 @@ class MispObject extends AppModel
                         $template['ObjectTemplateElement'][] = $v;
                         unset($v['uuid']); // force creating a new attribute if template element entry gets reused
                     } else {
-                        $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template_object_elements[$k]['object_relation'] . '") that would not pass validation due to this.';
+                        $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $v['object_relation'] . '") that would not pass validation due to this.';
                     }
                 }
             }
@@ -730,7 +785,7 @@ class MispObject extends AppModel
     /**
      * Clean the attribute list up from artifacts introduced by the object form
      * @param array $attributes
-     * @return string|array
+     * @return array
      * @throws InternalErrorException
      * @throws Exception
      */
@@ -778,6 +833,70 @@ class MispObject extends AppModel
         return $attributes;
     }
 
+    /**
+     * @param array $user
+     * @param int $eventId
+     * @param array $attributes
+     * @param array $template
+     * @param int $threshold
+     * @return array
+     */
+    public function findSimilarObjects(array $user, $eventId, array $attributes, array $template, $threshold = 15)
+    {
+        $attributeValues = array_column($attributes, 'value');
+        $conditions = array(
+            'event_id' => $eventId,
+            'value1' => $attributeValues,
+            'object_id !=' => 0,
+        );
+        $similarObjects = $this->Attribute->find('all', array(
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => 'object_id, count(object_id) as similarity_amount',
+            'group' => 'object_id',
+            'order' => 'similarity_amount DESC'
+        ));
+
+        if (empty($similarObjects)) {
+            return [0, [], [], []];
+        }
+
+        $similar_object_ids = array();
+        $similar_object_similarity_amount = array();
+        foreach ($similarObjects as $obj) {
+            $similar_object_ids[] = $obj['Attribute']['object_id'];
+            $similar_object_similarity_amount[$obj['Attribute']['object_id']] = (int)$obj[0]['similarity_amount'];
+        }
+        $similar_objects_count = count($similar_object_ids);
+        $similar_object_ids = array_slice($similar_object_ids, 0, $threshold); // slice to honor the threshold
+        $similar_objects = $this->fetchObjects($user, array(
+            'conditions' => array(
+                'Object.id' => $similar_object_ids,
+                'Object.template_uuid' => $template['ObjectTemplate']['uuid']
+            )
+        ));
+        foreach ($similar_objects as $key => $obj) {
+            $similar_objects[$key]['Object']['similarity_amount'] = $similar_object_similarity_amount[$obj['Object']['id']]; // sorting function cannot use external variables
+        }
+        usort($similar_objects, function ($a, $b) { // fetch Object returns object sorted by IDs, force the sort by the similarity amount
+            if ($a['Object']['similarity_amount'] == $b['Object']['similarity_amount']) {
+                return 0;
+            }
+            return ($a['Object']['similarity_amount'] > $b['Object']['similarity_amount']) ? -1 : 1;
+        });
+
+        $simple_flattened_attribute = [];
+        $simple_flattened_attribute_noval = [];
+        foreach ($attributes as $k => $attribute) {
+            $curFlat = $attribute['object_relation'] . '.' . $attribute['type'] . '.' .$attribute['value'];
+            $simple_flattened_attribute[$curFlat] = $k;
+            $curFlatNoval = $attribute['object_relation'] . '.' . $attribute['type'];
+            $simple_flattened_attribute_noval[$curFlatNoval] = $k;
+        }
+
+        return [$similar_objects_count, $similar_objects, $simple_flattened_attribute, $simple_flattened_attribute_noval];
+    }
+
     // Set Object's *-seen (and ObjectAttribute's *-seen and ObjectAttribute's value if requested) to the provided *-seen value
     // Therefore, synchronizing the 3 values
     public function syncObjectAndAttributeSeen($object, $forcedSeenOnElements, $applyOnAttribute=True) {
@@ -817,6 +936,14 @@ class MispObject extends AppModel
         return $object;
     }
 
+    /**
+     * @param array $object
+     * @param array $objectToSave
+     * @param bool $onlyAddNewAttribute
+     * @param array $user
+     * @return array|int
+     * @throws JsonException
+     */
     public function deltaMerge(array $object, array $objectToSave, $onlyAddNewAttribute=false, array $user)
     {
         if (!isset($objectToSave['Object'])) {
@@ -931,7 +1058,6 @@ class MispObject extends AppModel
             }
         } else { // we only add the new attribute
             $newAttribute = $objectToSave['Attribute'][0];
-            $this->Event->Attribute->create();
             $newAttribute['event_id'] = $object['Object']['event_id'];
             $newAttribute['object_id'] = $object['Object']['id'];
             // Set seen of object at attribute level
@@ -946,10 +1072,9 @@ class MispObject extends AppModel
                 (!array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
             ) {
                 $newAttribute['last_seen'] = $object['Object']['last_seen'];
-                $different = true;
             }
             $saveAttributeResult = $this->Attribute->saveAttributes(array($newAttribute), $user);
-            return $saveAttributeResult ? $this->id : $this->validationErrors;
+            return $saveAttributeResult ? $this->id : $this->Attribute->validationErrors;
         }
         return $this->id;
     }
@@ -971,12 +1096,12 @@ class MispObject extends AppModel
             $object = array('Object' => $object);
         }
         if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
-            $duplicatedObjectID = null;
+            $duplicatedObjectId = null;
             $duplicateObjectUuid = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $duplicateObjectUuid);
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectId, $duplicateObjectUuid);
             if ($duplicate) {
                 $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
-                    __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectID, $dupicateObjectUuid, $eventId),
+                    __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectId, $duplicateObjectUuid, $eventId),
                     'Duplicate object found.'
                 );
                 return true;
@@ -997,6 +1122,9 @@ class MispObject extends AppModel
         $objectId = $this->id;
         if (!empty($object['Object']['Attribute'])) {
             foreach ($object['Object']['Attribute'] as $attribute) {
+                if (!empty($object['Object']['deleted'])) {
+                    $attribute['deleted'] = 1;
+                }
                 $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
             }
         }
@@ -1081,6 +1209,9 @@ class MispObject extends AppModel
         }
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
+                if (!empty($object['deleted'])) {
+                    $attribute['deleted'] = 1;
+                }
                 $result = $this->Attribute->editAttribute($attribute, $event, $user, $object['id'], false, $force);
             }
         }
@@ -1160,7 +1291,7 @@ class MispObject extends AppModel
                 'skip_kafka' => 1,
             ],
         ];
-        return $this->save($object, true, ['timestamp']);
+        return $this->save($object, ['fieldList' => ['timestamp'], 'skipAuditLog' => true]);
     }
 
     // Hunt down all LEDA and CASTOR clones
@@ -1177,77 +1308,37 @@ class MispObject extends AppModel
         return count($orphans);
     }
 
-    public function validObjectsFromAttributeTypes($user, $event_id, $selected_attribute_ids)
+    /**
+     * @param array $user
+     * @param int $eventId
+     * @param array $selectedAttributeIds
+     * @return array|array[]
+     * @throws Exception
+     */
+    public function validObjectsFromAttributeTypes(array $user, $eventId, array $selectedAttributeIds)
     {
-        $attributes = $this->Attribute->fetchAttributes($user,
-            array(
-                'conditions' => array(
-                    'Attribute.id' => $selected_attribute_ids,
-                    'Attribute.event_id' => $event_id,
-                    'Attribute.object_id' => 0
-                ),
-            )
-        );
+        $attributes = $this->Attribute->fetchAttributesSimple($user, [
+            'conditions' => [
+                'Attribute.id' => $selectedAttributeIds,
+                'Attribute.event_id' => $eventId,
+                'Attribute.object_id' => 0,
+            ],
+            'fields' => ['Attribute.type'],
+        ]);
         if (empty($attributes)) {
             return array('templates' => array(), 'types' => array());
         }
-        $attribute_types = array();
-        foreach ($attributes as $i => $attribute) {
-            $attribute_types[$attribute['Attribute']['type']] = 1;
-            $attributes[$i]['Attribute']['object_relation'] = $attribute['Attribute']['type'];
-        }
-        $attribute_types = array_keys($attribute_types);
 
-        $potential_templates = $this->ObjectTemplate->find('list', array(
-            'recursive' => -1,
-            'fields' => array(
-                'ObjectTemplate.id',
-                'COUNT(ObjectTemplateElement.type) as type_count'
-            ),
-            'conditions' => array(
-                'ObjectTemplate.active' => true,
-                'ObjectTemplateElement.type' => $attribute_types
-            ),
-            'joins' => array(
-                array(
-                    'table' => 'object_template_elements',
-                    'alias' => 'ObjectTemplateElement',
-                    'type' => 'RIGHT',
-                    'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
-                    'conditions' => array('ObjectTemplate.id = ObjectTemplateElement.object_template_id')
-                )
-            ),
-            'group' => 'ObjectTemplate.id',
-            'order' => 'type_count DESC'
-        ));
-
-        $potential_template_ids = array_keys($potential_templates);
-        $templates = $this->ObjectTemplate->find('all', array(
-            'recursive' => -1,
-            'conditions' => array('id' => $potential_template_ids),
-            'contain' => 'ObjectTemplateElement'
-        ));
-
-        foreach ($templates as $i => $template) {
-            $res = $this->ObjectTemplate->checkTemplateConformityBasedOnTypes($template, $attributes);
-            $templates[$i]['ObjectTemplate']['compatibility'] = $res['valid'] ? true : $res['missingTypes'];
-            $templates[$i]['ObjectTemplate']['invalidTypes'] = $res['invalidTypes'];
-            $templates[$i]['ObjectTemplate']['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
-        }
-        return array('templates' => $templates, 'types' => $attribute_types);
+        $attributeTypes = array_column(array_column($attributes, 'Attribute'), 'type');
+        return $this->ObjectTemplate->fetchPossibleTemplatesBasedOnTypes($attributeTypes);
     }
 
-    public function groupAttributesIntoObject($user, $event_id, $object, $template, $selected_attribute_ids, $selected_object_relation_mapping, $hard_delete_attribute)
+    public function groupAttributesIntoObject(array $user, $event_id, array $object, $template, array $selected_attribute_ids, array $selected_object_relation_mapping, $hard_delete_attribute)
     {
         $saved_object_id = $this->saveObject($object, $event_id, $template, $user);
         if (!is_numeric($saved_object_id)) {
             return $saved_object_id;
         }
-
-        $saved_object = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Object.id' => $saved_object_id)
-        ));
 
         $existing_attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array(
             'Attribute.id' => $selected_attribute_ids,
@@ -1261,7 +1352,7 @@ class MispObject extends AppModel
         $event = array('Event' => $existing_attributes[0]['Event']);
 
         // Duplicate the attribute and its context, otherwise connected instances will drop the duplicated UUID
-        foreach ($existing_attributes as $i => $existing_attribute) {
+        foreach ($existing_attributes as $existing_attribute) {
             if (isset($selected_object_relation_mapping[$existing_attribute['Attribute']['id']])) {
                 $sightings = $this->Event->Sighting->attachToEvent($event, $user, $existing_attribute['Attribute']['id']);
                 $object_relation = $selected_object_relation_mapping[$existing_attribute['Attribute']['id']];
@@ -1270,20 +1361,18 @@ class MispObject extends AppModel
                 unset($created_attribute['id']);
                 unset($created_attribute['uuid']);
                 $created_attribute['object_relation'] = $object_relation;
-                $created_attribute['object_id'] = $saved_object['Object']['id'];
+                $created_attribute['object_id'] = $saved_object_id;
                 if (isset($existing_attribute['AttributeTag'])) {
                     $created_attribute['AttributeTag'] = $existing_attribute['AttributeTag'];
                 }
                 if (!empty($sightings)) {
                     $created_attribute['Sighting'] = $sightings;
                 }
-                $saved_object['Attribute'][$i] = $created_attribute;
-                $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object['Object']['id']);
+                $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object_id);
                 $this->Attribute->deleteAttribute($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
             }
         }
-        return $saved_object['Object']['id'];
-
+        return $saved_object_id;
     }
 
     public function resolveUpdatedTemplate($template, $object, $update_template_available = false)
@@ -1357,30 +1446,31 @@ class MispObject extends AppModel
             }
             $toReturn['updateable_attribute'] = $object['Attribute'];
             $toReturn['not_updateable_attribute'] = array();
-        } else {
-            $toReturn['newer_template_version'] = false;
-        }
-        if (!empty($template_difference)) { // older template not completely embeded in newer
-            foreach ($template_difference as $temp_diff_element) {
-                foreach ($object['Attribute'] as $i => $attribute) {
-                    if (
-                        $attribute['object_relation'] == $temp_diff_element['object_relation']
-                        && $attribute['type'] == $temp_diff_element['type']
-                    ) { // This attribute cannot be merged automatically
-                        $attribute['merge-possible'] = false;
-                        $toReturn['not_updateable_attribute'][] = $attribute;
-                        unset($toReturn['updateable_attribute'][$i]);
+
+            if (!empty($template_difference)) { // older template not completely embeded in newer
+                foreach ($template_difference as $temp_diff_element) {
+                    foreach ($object['Attribute'] as $i => $attribute) {
+                        if (
+                            $attribute['object_relation'] == $temp_diff_element['object_relation']
+                            && $attribute['type'] == $temp_diff_element['type']
+                        ) { // This attribute cannot be merged automatically
+                            $attribute['merge-possible'] = false;
+                            $toReturn['not_updateable_attribute'][] = $attribute;
+                            unset($toReturn['updateable_attribute'][$i]);
+                        }
                     }
                 }
             }
         }
+
         if ($update_template_available) { // template version bump requested
             $toReturn['template'] = $newer_template; // bump the template version
         }
         return $toReturn;
     }
 
-    public function reviseObject($revised_object, $object, $template) {
+    public function reviseObject($revised_object, $object, $template)
+    {
         $revised_object_both = array('mergeable' => array(), 'notMergeable' => array());
 
         // Loop through attributes to inject and perform the correct action
@@ -1610,5 +1700,18 @@ class MispObject extends AppModel
         } else {
             return $newValue != $originalValue;
         }
+    }
+
+    private function getObjectAttributeHash($attribute)
+    {
+        if ($attribute['type'] === 'malware-sample') {
+            if (strpos($attribute['value'], '|') === false && !empty($attribute['data'])) {
+                $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
+            }
+        }
+        $attributeValueAfterModification = AttributeValidationTool::modifyBeforeValidation($attribute['type'], $attribute['value']);
+        $attributeValueAfterModification = $this->Attribute->runRegexp($attribute['type'], $attributeValueAfterModification);
+
+        return sha1($attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $attributeValueAfterModification, true);
     }
 }

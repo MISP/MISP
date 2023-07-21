@@ -81,7 +81,7 @@
     </div>
 
     <?php
-    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) {
+    if ($pull_scope == 'server' && !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) {
         echo $this->element('serverRuleElements/rules_filtering_type', [
             'technique' => 'pull',
             'allowEmptyOptions' => true,
@@ -99,6 +99,7 @@ echo $this->element('genericElements/assetLoader', array(
     'js' => array(
         'codemirror/codemirror',
         'codemirror/modes/javascript',
+        'codemirror/addons/show-hint',
         'codemirror/addons/closebrackets',
         'codemirror/addons/lint',
         'codemirror/addons/jsonlint',
@@ -114,6 +115,7 @@ echo $this->element('genericElements/assetLoader', array(
 
 <script>
     var pullRemoteRules404Error = '<?= __('Connection error or the remote version is not supporting remote filter lookups (v2.4.142+). Make sure that the remote instance is accessible and that it is up to date.') ?>'
+    var coreMirrorHints = <?= json_encode(!empty($coreMirrorHints) ? $coreMirrorHints : []) ?>;
     var cm;
     $(function() {
         var serverID = "<?= isset($id) ? $id : '' ?>"
@@ -194,6 +196,28 @@ echo $this->element('genericElements/assetLoader', array(
             });
         }
 
+        function jsonHints() {
+            var cur = cm.getCursor()
+            var token = cm.getTokenAt(cur)
+            if (token.type != 'string property' && token.type != 'string') {
+                return
+            }
+            if (cm.getMode().helperType !== "json") return;
+            token.state = cm.state;
+            token.line = cur.line
+
+            if (/\"([^\"]*)\"/.test(token.string)) {
+                token.end = cur.ch;
+                token.string = token.string.slice(1, cur.ch - token.start);
+            }
+
+            return {
+                list: token.type == 'string property' ? coreMirrorHints : [],
+                from: CodeMirror.Pos(cur.line, token.start + 1),
+                to: CodeMirror.Pos(cur.line, token.end)
+            }
+        }
+
         function setupCodeMirror() {
             var cmOptions = {
                 mode: "application/json",
@@ -205,10 +229,23 @@ echo $this->element('genericElements/assetLoader', array(
                 showCursorWhenSelecting: true,
                 lineWrapping: true,
                 autoCloseBrackets: true,
+                extraKeys: {
+                    "Esc": function(cm) {},
+                    "Ctrl-Space": "autocomplete",
+                },
+                hintOptions: {
+                    completeSingle: false,
+                    hint: jsonHints
+                },
             }
             cm = CodeMirror.fromTextArea(document.getElementById('urlParams'), cmOptions);
             cm.on("keyup", function(cm, event) {
                 $('#urlParams').val(cm.getValue())
+                if (!cm.state.completionActive && /*Enables keyboard navigation in autocomplete list*/
+                    event.keyCode != 13) {
+                    /*Enter - do not open autocomplete list just after item has been selected in it*/
+                    cm.showHint()
+                }
             });
         }
     })
@@ -219,5 +256,9 @@ echo $this->element('genericElements/assetLoader', array(
         height: 100px;
         width: 100%;
         border: 1px solid #ddd;
+    }
+
+    .CodeMirror-hints {
+        z-index: 1050;
     }
 </style>

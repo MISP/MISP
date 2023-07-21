@@ -11,15 +11,10 @@
                         'children' => [
                             'data' => [
                                 'type' => 'simple',
+                                'fa-icon' => 'plus',
                                 'text' => __('Add correlation exclusion entry'),
-                                'class' => 'btn btn-primary',
-                                'onClick' => 'openGenericModal',
-                                'onClickParams' => [
-                                    sprintf(
-                                        '%s/correlation_exclusions/add',
-                                        $baseurl
-                                    )
-                                ]
+                                'class' => 'btn btn-primary modal-open',
+                                'url' => "$baseurl/correlation_exclusions/add",
                             ]
                         ]
                     ],
@@ -29,14 +24,8 @@
                             'data' => [
                                 'type' => 'simple',
                                 'text' => __('Clean up correlations'),
-                                'class' => 'btn btn-primary',
-                                'onClick' => 'openGenericModal',
-                                'onClickParams' => [
-                                    sprintf(
-                                        '%s/correlation_exclusions/clean',
-                                        $baseurl
-                                    )
-                                ]
+                                'class' => 'btn btn-primary modal-open',
+                                'url' => "$baseurl/correlation_exclusions/clean",
                             ]
                         ]
                     ],
@@ -45,6 +34,11 @@
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
                         'searchKey' => 'quickFilter',
+                        'cancel' => [
+                            'fa-icon' => 'times',
+                            'title' => __('Remove filters'),
+                            'onClick' => 'cancelSearch',
+                        ],
                     ]
                 ]
             ],
@@ -102,7 +96,7 @@
         echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
     }
 ?>
-<script type="text/javascript">
+<script>
     var passedArgsArray = <?php echo $passedArgs; ?>;
     $(function() {
         $('#quickFilterButton').click(function() {

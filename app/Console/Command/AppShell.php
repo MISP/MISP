@@ -17,6 +17,7 @@
  */
 
 App::uses('AppModel', 'Model');
+App::uses('BackgroundJobsTool', 'Tools');
 
 /**
  * Application Shell
@@ -26,15 +27,19 @@ App::uses('AppModel', 'Model');
  *
  * @package       app.Console.Command
  */
-class AppShell extends Shell
+abstract class AppShell extends Shell
 {
     public $tasks = array('ConfigLoad');
 
+    /** @var BackgroundJobsTool */
+    private $BackgroundJobsTool;
+
     public function initialize()
     {
-        parent::initialize();
         $this->ConfigLoad = $this->Tasks->load('ConfigLoad');
         $this->ConfigLoad->execute();
+
+        parent::initialize();
     }
 
     public function perform()
@@ -55,7 +60,7 @@ class AppShell extends Shell
      */
     protected function json($data)
     {
-        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        return JsonTool::encode($data, true);
     }
 
     /**
@@ -75,5 +80,21 @@ class AppShell extends Shell
             default:
                 $this->error("Invalid state value `$value`, it must be `true`, `false`, `1`, or `0`.");
         }
+    }
+
+    /**
+     * @return BackgroundJobsTool
+     * @throws Exception
+     */
+    protected function getBackgroundJobsTool()
+    {
+        if (!isset($this->BackgroundJobsTool)) {
+            $settings = ['enabled' => false];
+            if (!empty(Configure::read('SimpleBackgroundJobs.enabled'))) {
+                $settings = Configure::read('SimpleBackgroundJobs');
+            }
+            $this->BackgroundJobsTool = new BackgroundJobsTool($settings);
+        }
+        return $this->BackgroundJobsTool;
     }
 }

@@ -40,7 +40,12 @@ class WarninglistsController extends AppController
             $this->Warninglist->WarninglistEntry,
             ['WarninglistEntry.warninglist_id = Warninglist.id']
         );
-        $warninglists = $this->paginate();
+        if ($this->_isRest()) {
+            unset($this->paginate['limit']);
+            $warninglists = $this->Warninglist->find('all', $this->paginate);
+        } else {
+            $warninglists = $this->paginate();
+        }
         foreach ($warninglists as &$warninglist) {
             $validAttributes = array_column($warninglist['WarninglistType'], 'type');
             $warninglist['Warninglist']['valid_attributes'] = implode(', ', $validAttributes);
@@ -321,7 +326,7 @@ class WarninglistsController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This action is available via AJAX only.'));
         }
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/getToggleField');
     }
 
@@ -360,9 +365,7 @@ class WarninglistsController extends AppController
 
     public function import()
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('This function only accepts POST requests.'));
-        }
+        $this->request->allowMethod(['post']);
 
         if (empty($this->request->data)) {
             throw new BadRequestException(__('No valid data received.'));
@@ -378,11 +381,11 @@ class WarninglistsController extends AppController
             throw new BadRequestException(__('No valid data received: `list` field is not array'));
         }
 
-        $id = $this->Warninglist->import($this->request->data);
-        if (is_int($id)) {
+        try {
+            $id = $this->Warninglist->import($this->request->data);
             return $this->RestResponse->saveSuccessResponse('Warninglist', 'import', $id, false, __('Warninglist imported'));
-        } else {
-            return $this->RestResponse->saveFailResponse('Warninglist', 'import', false, $id);
+        } catch (Exception $e) {
+            return $this->RestResponse->saveFailResponse('Warninglist', 'import', false, $e->getMessage());
         }
     }
 
@@ -417,15 +420,14 @@ class WarninglistsController extends AppController
     public function delete($id)
     {
         if ($this->request->is('post')) {
-            $id = intval($id);
+            $id = (int)$id;
             $result = $this->Warninglist->quickDelete($id);
             if ($result) {
                 $this->Flash->success(__('Warninglist successfully deleted.'));
-                $this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
             } else {
-                $this->Flash->error(__('Warninglists could not be deleted.'));
-                $this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+                $this->Flash->error(__('Warninglist could not be deleted.'));
             }
+            $this->redirect(['controller' => 'warninglists', 'action' => 'index']);
         } else {
             if ($this->request->is('ajax')) {
                 $this->set('id', $id);

@@ -33,6 +33,6 @@ $(function() {
 
             saveElementSorting(JSON.stringify(order));
         }
-    }).disableSelection();
+    });
 });
 </script>

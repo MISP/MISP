@@ -19,7 +19,7 @@ class RandomTool
      * @return string
      * @throws Exception
      */
-    public function random_str($crypto_secure = true, $length = 32, $charset = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    public static function random_str($crypto_secure = true, $length = 32, $charset = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
     {
         // Type checks:
         if (!is_bool($crypto_secure)) {

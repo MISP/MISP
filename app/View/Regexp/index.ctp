@@ -11,7 +11,7 @@
     </div>
     <table class="table table-striped table-hover table-condensed">
     <tr>
-            <th><?php echo $this->Paginator->sort('id');?></th>
+            <th><?php echo $this->Paginator->sort('id', __('ID'));?></th>
             <th><?php echo $this->Paginator->sort('regexp', __('Regexp'));?></th>
             <th><?php echo $this->Paginator->sort('replacement', __('Replacement'));?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>

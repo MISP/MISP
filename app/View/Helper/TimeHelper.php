@@ -26,4 +26,17 @@ class TimeHelper extends AppHelper
 
         return '<time>' . h($time) . '</time>';
     }
+
+    /**
+     * @param int $date
+     * @return string
+     */
+    public function date($date)
+    {
+        if (empty($date)) {
+            return '';
+        }
+        $date = date('Y-m-d', $date);
+        return '<time>' . h($date) . '</time>';
+    }
 }

@@ -46,9 +46,9 @@ class FileAccessTool
     public static function readFromFile($file, $fileSize = -1)
     {
         if ($fileSize === -1) {
-            $content = file_get_contents($file);
+            $content = @file_get_contents($file);
         } else {
-            $content = file_get_contents($file, false, null, 0, $fileSize);
+            $content = @file_get_contents($file, false, null, 0, $fileSize);
         }
         if ($content === false) {
             if (!file_exists($file)) {
@@ -65,14 +65,15 @@ class FileAccessTool
 
     /**
      * @param string $file
+     * @param bool $mustBeArray If true, exception will be thrown if deserialized data are not array type
      * @return mixed
      * @throws Exception
      */
-    public static function readJsonFromFile($file)
+    public static function readJsonFromFile($file, $mustBeArray = false)
     {
         $content = self::readFromFile($file);
         try {
-            return JsonTool::decode($content);
+            return $mustBeArray ? JsonTool::decodeArray($content) : JsonTool::decode($content);
         } catch (Exception $e) {
             throw new Exception("Could not decode JSON from file `$file`", 0, $e);
         }
@@ -96,7 +97,7 @@ class FileAccessTool
      * @param bool $createFolder
      * @throws Exception
      */
-    public static function writeToFile($file, $content, $createFolder = false)
+    public static function writeToFile($file, $content, $createFolder = false, $append = false)
     {
         $dir = dirname($file);
         if ($createFolder && !is_dir($dir)) {
@@ -105,9 +106,15 @@ class FileAccessTool
             }
         }
 
-        if (file_put_contents($file, $content, LOCK_EX) === false) {
-            $freeSpace = disk_free_space($dir);
-            throw new Exception("An error has occurred while attempt to write to file `$file`. Maybe not enough space? ($freeSpace bytes left)");
+        if (file_put_contents($file, $content, LOCK_EX | (!empty($append) ? FILE_APPEND : 0)) === false) {
+            if (file_exists($file) && !is_writable($file)) {
+                $errorMessage = 'File is not writeable.';
+            } else {
+                $freeSpace = disk_free_space($dir);
+                $errorMessage = "Maybe not enough space? ($freeSpace bytes left)";
+            }
+
+            throw new Exception("An error has occurred while attempt to write to file `$file`. $errorMessage");
         }
     }
 
@@ -149,6 +156,27 @@ class FileAccessTool
 
     /**
      * @param string $file
+     * @return string
+     * @throws Exception
+     */
+    public static function readCompressedFile($file)
+    {
+        $content = file_get_contents("compress.zlib://$file");
+        if ($content === false) {
+            if (!file_exists($file)) {
+                $message = "file doesn't exists";
+            } else if (!is_readable($file)) {
+                $message = "file is not readable";
+            } else {
+                $message = 'unknown error';
+            }
+            throw new Exception("An error has occurred while attempt to read file `$file`: $message.");
+        }
+        return $content;
+    }
+
+    /**
+     * @param string $file
      * @return bool
      */
     public static function deleteFile($file)
@@ -167,5 +195,37 @@ class FileAccessTool
         } else {
             return true;
         }
+    }
+
+    /**
+     * @param array $submittedFile
+     * @param string $alternate
+     * @return string
+     */
+    public static function getTempUploadedFile($submittedFile, $alternate = false)
+    {
+        if ($submittedFile['name'] != '' && $alternate != '') {
+            throw new MethodNotAllowedException(__('Only one import field can be used'));
+        }
+        if ($submittedFile['size'] > 0) {
+            $filename = basename($submittedFile['name']);
+            if (!is_uploaded_file($submittedFile['tmp_name'])) {
+                throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
+            }
+            $file = new File($submittedFile['tmp_name']);
+            $file_content = $file->read();
+            $file->close();
+            if ((isset($submittedFile['error']) && $submittedFile['error'] == 0) ||
+                (!empty($submittedFile['tmp_name']) && $submittedFile['tmp_name'] != '')
+            ) {
+                if (!$file_content) {
+                    throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
+                }
+            }
+            $text = $file_content;
+        } else {
+            $text = $alternate ? $alternate : '';
+        }
+        return $text;
     }
 }

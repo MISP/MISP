@@ -67,9 +67,7 @@ if (!empty($data['fields'])) {
 }
 $metaFieldString = '';
 if (!empty($data['metaFields'])) {
-    foreach ($data['metaFields'] as $metaField) {
-        $metaFieldString .= $metaField;
-    }
+    $metaFieldString = implode('', $data['metaFields']);
 }
 $submitButtonData = array('model' => $modelForForm);
 if (!empty($data['submit'])) {
@@ -107,7 +105,7 @@ if (!empty($ajax)) {
         ),
         sprintf(
             '<div class="modal-footer">%s</div>',
-            $this->element('genericElements/Form/submitButton', $submitButtonData)
+            !empty($data['submit']['no_submit']) ? '' : $this->element('genericElements/Form/submitButton', $submitButtonData)
         )
     );
 } else {
@@ -121,7 +119,7 @@ if (!empty($ajax)) {
         empty($data['description']) ? '' : $data['description'],
         $fieldsString,
         $metaFieldString,
-        $this->element('genericElements/Form/submitButton', $submitButtonData),
+        !empty($data['submit']['no_submit']) ? '' : $this->element('genericElements/Form/submitButton', $submitButtonData),
         $formEnd
     );
 }

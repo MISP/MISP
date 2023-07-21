@@ -25,9 +25,10 @@
             <?php
                 $addTagButton = '&nbsp;';
                 if ($full) {
+                    $url = $baseurl . '/tags/selectTaxonomy/' . h($tagCollection['TagCollection']['id']) . '/tag_collection';
                     $addTagButton = sprintf(
-                        '<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 2px;" onClick="popoverPopup(this, %s);"><i class="fas fa-globe-americas"></i> +</button>',
-                        sprintf("'%s/tag_collection', 'tags', 'selectTaxonomy'", h($tagCollection['TagCollection']['id']))
+                        '<button id="addTagButton" class="btn addButton btn-inverse noPrint" data-popover-popup="%s"><i class="fas fa-globe-americas"></i> <i class="fas fa-plus"></i></button>',
+                        $url
                     );
                 }
                 echo $addTagButton;

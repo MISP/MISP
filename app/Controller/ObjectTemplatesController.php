@@ -9,18 +9,29 @@ class ObjectTemplatesController extends AppController
     public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
-            'limit' => 60,
-            'order' => array(
-                    'Object.id' => 'desc'
-            ),
-            'contain' => array(
-                'Organisation' => array('fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'))
-            ),
-            'recursive' => -1
+        'limit' => 60,
+        'order' => array(
+            'Object.id' => 'desc'
+        ),
+        'contain' => array(
+            'Organisation' => array('fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'))
+        ),
+        'recursive' => -1
     );
 
-    public function objectMetaChoice($event_id)
+    public function beforeFilter()
     {
+        parent::beforeFilter();
+        if (in_array($this->request->action, ['objectMetaChoice', 'objectChoice', 'possibleObjectTemplates'], true)) {
+            $this->Security->doNotGenerateToken = true;
+        }
+        $this->Security->unlockedActions[] = 'possibleObjectTemplates';
+    }
+
+    public function objectMetaChoice($eventId)
+    {
+        session_abort();
+
         $metas = $this->ObjectTemplate->find('column', array(
             'conditions' => array('ObjectTemplate.active' => 1),
             'fields' => array('ObjectTemplate.meta-category'),
@@ -28,7 +39,6 @@ class ObjectTemplatesController extends AppController
             'unique' => true,
         ));
 
-        $eventId = h($event_id);
         $items = [[
             'name' => __('All Objects'),
             'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/0"
@@ -36,7 +46,7 @@ class ObjectTemplatesController extends AppController
         foreach ($metas as $meta) {
             $items[] = array(
                 'name' => $meta,
-                'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/" . h($meta)
+                'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/$meta",
             );
         }
 
@@ -49,7 +59,8 @@ class ObjectTemplatesController extends AppController
 
     public function objectChoice($event_id, $category=false)
     {
-        $this->ObjectTemplate->populateIfEmpty($this->Auth->user());
+        $user = $this->_closeSession();
+        $this->ObjectTemplate->populateIfEmpty($user);
         $conditions = array('ObjectTemplate.active' => 1);
         if ($category !== false && $category !== "0") {
             $conditions['meta-category'] = $category;
@@ -152,16 +163,6 @@ class ObjectTemplatesController extends AppController
         $this->redirect($this->referer());
     }
 
-    public function viewElements($id, $context = 'all')
-    {
-        $elements = $this->ObjectTemplate->ObjectTemplateElement->find('all', array(
-            'conditions' => array('ObjectTemplateElement.object_template_id' => $id)
-        ));
-        $this->set('list', $elements);
-        $this->layout = 'ajax';
-        $this->render('ajax/view_elements');
-    }
-
     public function index($all = false)
     {
         $passedArgsArray = array();
@@ -173,11 +174,12 @@ class ObjectTemplatesController extends AppController
             $this->set('all', true);
         }
         if (!empty($this->params['named']['searchall'])) {
+            $searchTerm = '%' . strtolower($this->request->params['named']['searchall']) . '%';
             $this->paginate['conditions']['AND']['OR'] = array(
-                'ObjectTemplate.uuid LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%',
-                'LOWER(ObjectTemplate.name) LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%',
-                'ObjectTemplate.meta-category LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%',
-                'LOWER(ObjectTemplate.description) LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%'
+                'ObjectTemplate.uuid LIKE' => $searchTerm,
+                'LOWER(ObjectTemplate.name) LIKE' => $searchTerm,
+                'ObjectTemplate.meta-category LIKE' => $searchTerm,
+                'LOWER(ObjectTemplate.description) LIKE' => $searchTerm,
             );
         }
         if ($this->_isRest()) {
@@ -186,11 +188,11 @@ class ObjectTemplatesController extends AppController
             unset($rules['order']);
             $objectTemplates = $this->ObjectTemplate->find('all', $rules);
             return $this->RestResponse->viewData($objectTemplates, $this->response->type());
-        } else {
-            $this->paginate['order'] = array('ObjectTemplate.name' => 'ASC');
-            $objectTemplates = $this->paginate();
-            $this->set('list', $objectTemplates);
         }
+
+        $this->paginate['order'] = array('ObjectTemplate.name' => 'ASC');
+        $objectTemplates = $this->paginate();
+        $this->set('list', $objectTemplates);
         $this->set('passedArgs', json_encode($passedArgs));
         $this->set('passedArgsArray', $passedArgsArray);
     }
@@ -293,7 +295,7 @@ class ObjectTemplatesController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This action is available via AJAX only.');
         }
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/getToggleField');
     }
 
@@ -304,5 +306,29 @@ class ObjectTemplatesController extends AppController
             throw new NotFoundException(__('Template not found'));
         }
         return $this->RestResponse->viewData($template, $this->response->type());
+    }
+
+    public function possibleObjectTemplates()
+    {
+        session_abort();
+        $this->request->allowMethod(['post']);
+
+        $attributeTypes = $this->request->data['attributeTypes'];
+        $templates = $this->ObjectTemplate->fetchPossibleTemplatesBasedOnTypes($attributeTypes)['templates'];
+
+        $results = [];
+        foreach ($templates as $template) {
+            $template = $template['ObjectTemplate'];
+            if ($template['compatibility'] === true && empty($template['invalidTypes'])) {
+                $results[] = [
+                    'id' => $template['id'],
+                    'name' => $template['name'],
+                    'description' => $template['description'],
+                    'meta-category' => $template['meta-category'],
+                ];
+            }
+        }
+
+        return $this->RestResponse->viewData($results, 'json');
     }
 }

@@ -157,7 +157,7 @@ class AttachmentTool
             $filepath = $this->attachmentDir() . DS . $path;
             $file = new File($filepath);
             if (!is_file($file->path)) {
-                throw new NotFoundException("File '$filepath' does not exists.");
+                throw new NotFoundException("File '$filepath' does not exist.");
             }
         }
 
@@ -387,10 +387,11 @@ class AttachmentTool
      * @param string $data
      * @param int $maxWidth
      * @param int $maxHeight
+     * @param string $outputFormat Can be 'png' or 'webp'
      * @return string
      * @throws Exception
      */
-    public function resizeImage($data, $maxWidth, $maxHeight)
+    public function resizeImage($data, $maxWidth, $maxHeight, $outputFormat = 'png')
     {
         $image = imagecreatefromstring($data);
         if ($image === false) {
@@ -425,7 +426,16 @@ class AttachmentTool
 
         // Output image to string
         ob_start();
-        imagepng($imageThumbnail, null, 9);
+        if ($outputFormat === 'webp') {
+            if (!function_exists('imagewebp')) {
+                throw new InvalidArgumentException("Webp image format is not supported.");
+            }
+            imagewebp($imageThumbnail);
+        } elseif ($outputFormat === 'png') {
+            imagepng($imageThumbnail, null, 9);
+        } else {
+            throw new InvalidArgumentException("Unsupported image format $outputFormat.");
+        }
         $imageData = ob_get_clean();
         imagedestroy($imageThumbnail);
 
@@ -460,7 +470,8 @@ class AttachmentTool
      */
     public function attachmentDirIsS3()
     {
-        return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
+        $attachmentsDir = Configure::read('MISP.attachments_dir');
+        return $attachmentsDir && substr($attachmentsDir, 0, 2) === "s3";
     }
 
     /**

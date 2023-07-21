@@ -1,11 +1,11 @@
 # INSTALLATION INSTRUCTIONS
 ## for Ubuntu 20.04.2.0-server
 
-{!generic/manual-install-notes.md!}
+{% include_relative generic/manual-install-notes.md %}
 
 ### -1/ Installer and Manual install instructions
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004).
 
 ### 0/ MISP Ubuntu 20.04-server install - status
 -------------------------
@@ -13,9 +13,9 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210401 (works with **Ubuntu 19.04/20.04/21.04** too)
 
 !!! notice
-    If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
+    If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004).
 
-{!generic/core.md!}
+{% include_relative generic/core.md %}
 
 ### 1/ Minimal Ubuntu install
 -------------------------
@@ -44,9 +44,9 @@ aptUpgrade () {
 # <snippet-end 0_apt-upgrade.sh>
 ```
 
-{!generic/sudo_etckeeper.md!}
+{% include_relative generic/sudo_etckeeper.md %}
 
-{!generic/ethX.md!}
+{% include_relative generic/ethX.md %}
 
 #### install postfix, there will be some questions.
 ```bash
@@ -63,7 +63,7 @@ sudo apt-get install postfix dialog -qy
     sudo postfix reload
     ```
 
-{!generic/globalVariables.md!}
+{% include_relative generic/globalVariables.md %}
 
 ### 2/ Install LAMP & dependencies
 ------------------------------
@@ -73,7 +73,7 @@ Once the system is installed you can perform the following steps.
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 moreutils -qy
+  sudo apt-get install curl gcc git gpg-agent make python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 moreutils -qy
 
   # Install MariaDB (a MySQL fork/alternative)
   sudo apt-get install mariadb-client mariadb-server -qy
@@ -423,7 +423,7 @@ configMISP () {
 # <snippet-end 2_configMISP.sh>
 ```
 
-{!generic/gnupg.md!}
+{% include_relative generic/gnupg.md %}
 
 !!! notice
     If entropy is not high enough, you can install havegd and then start the service
@@ -477,15 +477,15 @@ echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-{!generic/MISP_CAKE_init.md!}
+{% include_relative generic/MISP_CAKE_init.md %}
 
-{!generic/misp-modules-debian.md!}
+{% include_relative generic/misp-modules-debian.md %}
 
-{!generic/misp-modules-cake.md!}
+{% include_relative generic/misp-modules-cake.md %}
 
-{!generic/INSTALL.done.md!}
+{% include_relative generic/INSTALL.done.md %}
 
-{!generic/recommended.actions.md!}
+{% include_relative generic/recommended.actions.md %}
 
 ### Optional features
 -----------------
@@ -508,17 +508,17 @@ installKafka () {
 # <snippet-end 4_kafka.sh>
 ```
 
-{!generic/misp-dashboard-debian.md!}
+{% include_relative generic/misp-dashboard-debian.md %}
 
-{!generic/misp-dashboard-cake.md!}
+{% include_relative generic/misp-dashboard-cake.md %}
 
-{!generic/viper-debian.md!}
+{% include_relative generic/viper-debian.md %}
 
-{!generic/ssdeep-debian.md!}
+{% include_relative generic/ssdeep-debian.md %}
 
-{!generic/mail_to_misp-debian.md!}
+{% include_relative generic/mail_to_misp-debian.md %}
 
-{!generic/hardening.md!}
+{% include_relative generic/hardening.md %}
 
 # INSTALL.sh
 
@@ -526,4 +526,4 @@ installKafka () {
     The following section is an administrative section that is used by the "[INSTALL.sh](https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh)" script.
     Please ignore.
 
-{!generic/supportFunctions.md!}
+{% include_relative generic/supportFunctions.md %}

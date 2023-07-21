@@ -2,14 +2,10 @@
 
 declare(strict_types=1);
 
-App::uses('BackgroundJobsTool', 'Tools');
 App::uses('ProcessTool', 'Tools');
 
 class StartWorkerShell extends AppShell
 {
-    /** @var BackgroundJobsTool */
-    private $BackgroundJobsTool;
-
     /** @var Worker */
     private $worker;
 
@@ -18,19 +14,13 @@ class StartWorkerShell extends AppShell
 
     const DEFAULT_MAX_EXECUTION_TIME = 86400; // 1 day
 
-    public function initialize()
-    {
-        parent::initialize();
-        $this->BackgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs'));
-    }
-
     public function getOptionParser(): ConsoleOptionParser
     {
         $parser = parent::getOptionParser();
         $parser
             ->addArgument('queue', [
                 'help' => 'Name of the queue to process.',
-                'choices' => $this->BackgroundJobsTool->getQueues(),
+                'choices' => $this->getBackgroundJobsTool()->getQueues(),
                 'required' => true
             ])
             ->addOption(
@@ -62,7 +52,7 @@ class StartWorkerShell extends AppShell
         while (true) {
             $this->checkMaxExecutionTime();
 
-            $job = $this->BackgroundJobsTool->dequeue($this->worker->queue());
+            $job = $this->getBackgroundJobsTool()->dequeue($this->worker->queue());
             if ($job) {
                 $this->runJob($job);
             }
@@ -78,8 +68,10 @@ class StartWorkerShell extends AppShell
 
         try {
             $job->setStatus(BackgroundJob::STATUS_RUNNING);
-            CakeLog::info("[JOB ID: {$job->id()}] - started.");
-            $this->BackgroundJobsTool->update($job);
+
+            $command = implode(' ', array_merge([$job->command()], $job->args()));
+            CakeLog::info("[JOB ID: {$job->id()}] - started command `$command`.");
+            $this->getBackgroundJobsTool()->update($job);
 
             $job->run();
 
@@ -92,7 +84,7 @@ class StartWorkerShell extends AppShell
             CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - job ID: {$job->id()} failed with exception: {$exception->getMessage()}");
             $job->setStatus(BackgroundJob::STATUS_FAILED);
         }
-        $this->BackgroundJobsTool->update($job);
+        $this->getBackgroundJobsTool()->update($job);
     }
 
     /**

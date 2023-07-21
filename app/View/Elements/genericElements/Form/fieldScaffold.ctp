@@ -11,6 +11,15 @@
             $fieldData['label'] = Inflector::humanize($fieldData['field']);
         }
 
+        if (!empty($fieldData['populateAction'])) {
+            $fieldData['label'] .= sprintf(
+                ' <span class="fas fa-wrench populateActionTrigger" data-request-script="%s" data-update-target="%s"></span>',
+                base64_encode($fieldData['populateAction']),
+                h($modelForForm . Inflector::camelize($fieldData['field']))
+            );
+            unset($fieldData['populateAction']);
+        }
+
         if (!empty($fieldData['field']) && !empty($fieldDesc[$fieldData['field']])) {
             $fieldData['label'] .= $this->element(
                 'genericElements/Form/formInfo', array(

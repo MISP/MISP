@@ -50,7 +50,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'file',
                 'field' => 'logo',
                 'error' => array('escape' => false),
-                'label' => __('Logo (48×48 PNG or SVG)'),
+                'label' => __('Logo (48×48 %s)', Configure::read('Security.enable_svg_logos')? 'PNG or SVG' : 'PNG'),
             ],
             [
                 'field' => 'nationality',

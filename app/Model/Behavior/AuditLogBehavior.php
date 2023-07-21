@@ -6,8 +6,8 @@ class AuditLogBehavior extends ModelBehavior
     /** @var array|null */
     private $beforeSave;
 
-    /** @var array|null */
-    private $beforeDelete;
+    /** @var array */
+    private $beforeDelete = [];
 
     /** @var AuditLog|null */
     private $AuditLog;
@@ -84,6 +84,10 @@ class AuditLogBehavior extends ModelBehavior
             return true;
         }
 
+        if (isset($options['skipAuditLog']) && $options['skipAuditLog']) {
+            return true;
+        }
+
         // Do not fetch old version when just few fields will be fetched
         $fieldToFetch = [];
         if (!empty($options['fieldList'])) {
@@ -125,6 +129,10 @@ class AuditLogBehavior extends ModelBehavior
     public function afterSave(Model $model, $created, $options = [])
     {
         if (!$this->enabled) {
+            return;
+        }
+
+        if (isset($options['skipAuditLog']) && $options['skipAuditLog']) {
             return;
         }
 
@@ -198,14 +206,14 @@ class AuditLogBehavior extends ModelBehavior
             $id = 0;
         }
 
-        $this->auditLog()->insert(['AuditLog' => [
+        $this->auditLog()->insert([
             'action' => $action,
             'model' => $modelName,
             'model_id' => $id,
             'model_title' => $modelTitle,
             'event_id' => $eventId,
             'change' => $changedFields,
-        ]]);
+        ]);
 
         $this->beforeSave = null; // cleanup
     }
@@ -216,7 +224,7 @@ class AuditLogBehavior extends ModelBehavior
             return true;
         }
 
-        $this->beforeDelete = $model->find('first', [
+        $this->beforeDelete[$model->name] = $model->find('first', [
             'conditions' => array($model->alias . '.' . $model->primaryKey => $model->id),
             'recursive' => -1,
             'callbacks' => false,
@@ -229,8 +237,8 @@ class AuditLogBehavior extends ModelBehavior
         if (!$this->enabled) {
             return;
         }
-        $model->data = $this->beforeDelete;
-        $this->beforeDelete = null;
+        $model->data = $this->beforeDelete[$model->name];
+        unset($this->beforeDelete[$model->name]);
         if ($model->name === 'Event') {
             $eventId = $model->id;
         } else {
@@ -270,14 +278,14 @@ class AuditLogBehavior extends ModelBehavior
             $id = 0;
         }
 
-        $this->auditLog()->insert(['AuditLog' => [
+        $this->auditLog()->insert([
             'action' => $action,
             'model' => $modelName,
             'model_id' => $id,
             'model_title' => $modelTitle,
             'event_id' => $eventId,
             'change' => $this->changedFields($model, null),
-        ]]);
+        ]);
     }
 
     /**

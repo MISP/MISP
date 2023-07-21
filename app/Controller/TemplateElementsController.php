@@ -38,7 +38,7 @@ class TemplateElementsController extends AppController
         $this->loadModel('Attribute');
         $this->set('validTypeGroups', $this->Attribute->validTypeGroups);
         $this->set('id', $id);
-        $this->layout = 'ajaxTemplate';
+        $this->layout = false;
         $this->set('elements', $templateElements);
         $mayModify = false;
         if ($this->_isSiteAdmin() || $template['Template']['org'] == $this->Auth->user('Organisation')['name']) {
@@ -57,7 +57,7 @@ class TemplateElementsController extends AppController
             throw new MethodNotAllowedException('This action is for ajax requests only.');
         }
         $this->set('id', $id);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/template_element_add_choices');
     }
 
@@ -116,7 +116,7 @@ class TemplateElementsController extends AppController
                 $this->set('categoryArray', $categoryArray);
                 $this->set('categories', $categories);
             }
-            $this->layout = 'ajaxTemplate';
+            $this->layout = false;
             $this->render('ajax/template_element_add_' . $type);
         } elseif ($this->request->is('post')) {
             $pos = $this->TemplateElement->lastPosition($id);
@@ -210,7 +210,7 @@ class TemplateElementsController extends AppController
                 $this->set('categoryArray', $categoryArray);
                 $this->set('categories', $categories);
             }
-            $this->layout = 'ajaxTemplate';
+            $this->layout = false;
             $this->render('ajax/template_element_edit_' . $type);
         } elseif ($this->request->is('post') || $this->request->is('put')) {
             $this->request->data[$ModelType]['id'] = $templateElement[$ModelType][0]['id'];

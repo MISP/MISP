@@ -1,6 +1,5 @@
 <?php
 App::uses('AppModel', 'Model');
-App::uses('RandomTool', 'Tools');
 
 class CorrelationExclusion extends AppModel
 {
@@ -53,11 +52,11 @@ class CorrelationExclusion extends AppModel
     public function cacheValues()
     {
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             return false;
         }
-        $redis->del($this->key);
+        RedisTool::unlink($redis, $this->key);
         $exclusions = $this->find('column', [
             'fields' => ['value']
         ]);
@@ -98,19 +97,16 @@ class CorrelationExclusion extends AppModel
             $this->Job = ClassRegistry::init('Job');
             $this->Job->id = $jobId;
         }
-        $query = sprintf(
-            'DELETE FROM correlations where (%s) or (%s);',
-            sprintf(
-                'value IN (%s)',
-                'SELECT correlation_exclusions.value FROM correlation_exclusions WHERE correlations.value = correlation_exclusions.value'
-            ),
-            sprintf(
-                'EXISTS (SELECT NULL FROM correlation_exclusions WHERE (%s) OR (%s))',
-                "correlations.value LIKE CONCAT('%', correlation_exclusions.value)",
-                "correlations.value LIKE CONCAT(correlation_exclusions.value, '%')"
-            )
-        );
-        $this->query($query);
-        $this->Job->saveProgress($jobId, 'Job done.', 100);
+        $values = $this->find('column', [
+            'recursive' => -1,
+            'fields' => ['value']
+        ]);
+        $this->Correlation = ClassRegistry::init('Correlation');
+        foreach ($values as $value) {
+            $this->Correlation->purgeByValue($value);
+        }
+        if ($jobId) {
+            $this->Job->saveProgress($jobId, 'Job done.', 100);
+        }
     }
 }

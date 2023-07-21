@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property EventTag $EventTag
+ * @property User $User
  * @property AttributeTag $AttributeTag
  * @property FavouriteTag $FavouriteTag
  * @property Organisation $Organisation
@@ -172,11 +173,9 @@ class Tag extends AppModel
      */
     public function lookupTagIdForUser(array $user, $tagName)
     {
-        $conditions = ['LOWER(Tag.name)' => mb_strtolower($tagName)];
-        if (!$user['Role']['perm_site_admin']) {
-            $conditions['Tag.org_id'] = [0, $user['org_id']];
-            $conditions['Tag.user_id'] = [0, $user['id']];
-        }
+        $conditions = $this->createConditions($user);
+        $conditions['LOWER(Tag.name)'] = mb_strtolower($tagName);
+
         $tagId = $this->find('first', array(
             'conditions' => $conditions,
             'recursive' => -1,
@@ -208,13 +207,21 @@ class Tag extends AppModel
         }
     }
 
-    public function fetchUsableTags(array $user)
+    /**
+     * @param array $user
+     * @param bool|null $isGalaxy
+     * @return array|int|null
+     */
+    public function fetchUsableTags(array $user, $isGalaxy = null)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $conditions['Tag.org_id'] = array(0, $user['org_id']);
             $conditions['Tag.user_id'] = array(0, $user['id']);
             $conditions['Tag.hide_tag'] = 0;
+        }
+        if ($isGalaxy !== null) {
+            $conditions['Tag.is_galaxy'] = $isGalaxy;
         }
         return $this->find('all', array('conditions' => $conditions, 'recursive' => -1));
     }
@@ -284,7 +291,7 @@ class Tag extends AppModel
                 $conditions[] = array('Tag.name LIKE' => $tagName);
             }
             $result = $this->find('column', array(
-                'recursive' => 1,
+                'recursive' => -1,
                 'conditions' => ['OR' => $conditions],
                 'fields' => array('Tag.id')
             ));
@@ -390,7 +397,7 @@ class Tag extends AppModel
         if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false || $tag['Tag']['numerical_value'] !== $numerical_value || ($tag['Tag']['local_only'] !== $local_only && $local_only !== -1)) {
             $tag['Tag']['name'] = $name;
             $tag['Tag']['colour'] = $colour;
-            if ($tag['Tag']['local_only'] !== -1) {
+            if ($local_only !== -1) {
                 $tag['Tag']['local_only'] = $local_only;
             }
             if ($hide !== false) {
@@ -452,7 +459,7 @@ class Tag extends AppModel
         $tags_temp = $this->find('all', $tag_params);
         $tags = array();
         foreach ($tags_temp as $temp) {
-            $tags[strtoupper($temp['Tag']['name'])] = $temp;
+            $tags[mb_strtolower($temp['Tag']['name'])] = $temp;
         }
         return $tags;
     }
@@ -574,7 +581,8 @@ class Tag extends AppModel
         $changedTags = $this->AttributeTag->getAffectedRows();
         $this->EventTag->updateAll(['tag_id' => $destinationTag['Tag']['id']], ['tag_id' => $sourceTag['Tag']['id']]);
         $changedTags += $this->EventTag->getAffectedRows();
-
+        $this->GalaxyClusterRelationTag->updateAll(['tag_id' => $destinationTag['Tag']['id']], ['tag_id' => $sourceTag['Tag']['id']]);
+        $changedTags += $this->GalaxyClusterRelationTag->getAffectedRows();
         $this->delete($sourceTag['Tag']['id']);
 
         return [
@@ -795,5 +803,71 @@ class Tag extends AppModel
             }
         }
         return $full_print_buffer;
+    }
+
+    /**
+     * Similar method as `Event::massageTags`, but just removes tags that are part of existing galaxy
+     * @param array $user
+     * @param array $data
+     * @param string $dataType
+     * @return array
+     */
+    public function removeGalaxyClusterTags(array $user, array $data, $dataType = 'Event')
+    {
+        $possibleGalaxyClusterTag = [];
+        foreach ($data[$dataType . 'Tag'] as $k => &$dataTag) {
+            if (empty($dataTag['Tag'])) {
+                unset($data[$dataType . 'Tag'][$k]);
+                continue;
+            }
+            $dataTag['Tag']['local'] = empty($dataTag['local']) ? 0 : 1;
+            if (substr($dataTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
+                $possibleGalaxyClusterTag[] = $dataTag['Tag']['name'];
+            }
+        }
+        unset($dataTag);
+
+        if (empty($possibleGalaxyClusterTag)) {
+            return $data;
+        }
+
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $conditions = $this->GalaxyCluster->buildConditions($user);
+        $conditions['GalaxyCluster.tag_name'] = $possibleGalaxyClusterTag;
+        $galaxyClusterTags = $this->GalaxyCluster->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['GalaxyCluster.tag_name'],
+        ]);
+
+        foreach ($data[$dataType . 'Tag'] as $k => $dataTag) {
+            if (in_array($dataTag['Tag']['name'], $galaxyClusterTags, true)) {
+                unset($data[$dataType . 'Tag'][$k]);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param array $user
+     * @return array
+     */
+    public function createConditions(array $user)
+    {
+        $conditions = [];
+        if (!$user['Role']['perm_site_admin']) {
+            $conditions['Tag.org_id'] = [0, $user['org_id']];
+            $conditions['Tag.user_id'] = [0, $user['id']];
+        }
+        return $conditions;
+    }
+
+    /**
+     * @param string $tagName
+     * @return bool
+     */
+    public function isCustomGalaxyClusterTag($tagName)
+    {
+        return (bool)preg_match(self::RE_CUSTOM_GALAXY, $tagName);
     }
 }

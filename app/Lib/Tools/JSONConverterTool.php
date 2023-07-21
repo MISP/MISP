@@ -5,10 +5,10 @@ class JSONConverterTool
     {
         $toRearrange = array('AttributeTag');
         foreach ($toRearrange as $object) {
-          if (isset($attribute[$object])) {
-            $attribute['Attribute'][$object] = $attribute[$object];
-            unset($attribute[$object]);
-          }
+            if (isset($attribute[$object])) {
+                $attribute['Attribute'][$object] = $attribute[$object];
+                unset($attribute[$object]);
+            }
         }
 
         // Submit as list to the attribute cleaner but obtain the only attribute
@@ -21,7 +21,7 @@ class JSONConverterTool
 
     public static function convertObject($object, $isSiteAdmin = false, $raw = false)
     {
-        $toRearrange = array('SharingGroup', 'Attribute', 'ShadowAttribute', 'Event');
+        $toRearrange = array('SharingGroup', 'Attribute', 'ShadowAttribute', 'Event', 'CryptographicKey');
         foreach ($toRearrange as $element) {
             if (isset($object[$element])) {
                 $object['Object'][$element] = $object[$element];
@@ -40,7 +40,7 @@ class JSONConverterTool
 
     public static function convert($event, $isSiteAdmin=false, $raw = false)
     {
-        $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object', 'EventReport');
+        $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object', 'EventReport', 'CryptographicKey');
         foreach ($toRearrange as $object) {
             if (isset($event[$object])) {
                 $event['Event'][$object] = $event[$object];
@@ -77,7 +77,6 @@ class JSONConverterTool
             }
             unset($event['Sighting']);
         }
-        unset($event['Event']['user_id']);
         if (isset($event['Event']['Attribute'])) {
             $event['Event']['Attribute'] = self::__cleanAttributes($event['Event']['Attribute'], $tempSightings);
         }
@@ -86,6 +85,15 @@ class JSONConverterTool
         }
         unset($tempSightings);
         unset($event['Event']['RelatedAttribute']);
+
+        // Remove information about user_id from JSON export
+        unset($event['Event']['user_id']);
+        if (isset($event['extensionEvents'])) {
+            foreach ($event['extensionEvents'] as $k => $extensionEvent) {
+                unset($event['extensionEvents'][$k]['user_id']);
+            }
+        }
+
         $result = array('Event' => $event['Event']);
         if (isset($event['errors'])) {
             $result = array_merge($result, array('errors' => $event['errors']));
@@ -93,7 +101,7 @@ class JSONConverterTool
         if ($raw) {
             return $result;
         }
-        return json_encode($result, JSON_PRETTY_PRINT);
+        return json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /**
@@ -112,7 +120,6 @@ class JSONConverterTool
             yield json_encode($event, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             return;
         }
-
         yield '{"Event":{';
         $firstKey = key($event['Event']);
         foreach ($event['Event'] as $key => $value) {
@@ -128,7 +135,7 @@ class JSONConverterTool
             }
         }
         if (isset($event['errors'])) {
-            yield '},"errors":' . json_encode($event['errors']) . '}';
+            yield '},"errors":' . json_encode($event['errors'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '}';
         } else {
             yield "}}";
         }
@@ -188,11 +195,7 @@ class JSONConverterTool
             $resultArray = ': ' . $array . PHP_EOL;
         }
         if ($root) {
-            $text = '';
-            foreach ($resultArray as $r) {
-                $text .= $r;
-            }
-            return $text;
+            return implode('', $resultArray);
         } else {
             return $resultArray;
         }
