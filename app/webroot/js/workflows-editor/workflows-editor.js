@@ -1356,13 +1356,19 @@ function genNodeParamHtml(node, forNode = true) {
 
 function afterNodeDrawCallback() {
     var $nodes = $drawflow.find('.drawflow-node')
-    $nodes.find('.start-chosen').chosen()
+    $nodes.find('.start-chosen').each(function() {
+        var chosenOptions = $(this).data('chosen_options')
+        $(this).chosen(chosenOptions)
+    })
     toggleDisplayOnFields()
     enablePickerCreateNewOptions()
 }
 
 function afterModalShowCallback() {
-    $blockModal.find('.start-chosen').chosen()
+    $blockModal.find('.start-chosen').each(function() {
+        var chosenOptions = $(this).data('chosen_options')
+        $(this).chosen(chosenOptions)
+    })
     var cmOptions = {
         theme: 'default',
         lineNumbers: true,
@@ -1495,6 +1501,9 @@ function genSelect(options, forNode = true) {
             }
         }
     }
+    if (options.disabled !== undefined) {
+        $select.prop('disabled', options.disabled == true)
+    }
     var selectOptions = options.options
     if (!Array.isArray(selectOptions)) {
         selectOptions = Object.keys(options.options).map((k) => { return { name: options.options[k], value: k } })
@@ -1543,6 +1552,10 @@ function genPicker(options, forNode = true) {
     var $container = genSelect(options)
     var $select = $container.find('select')
     $select.addClass('start-chosen')
+    if (options.picker_options) {
+        // $select.data('chosen_options', options.picker_options)
+        $select.attr('data-chosen_options', JSON.stringify(options.picker_options))
+    }
     return $container
 }
 
@@ -1587,6 +1600,9 @@ function genInput(options, isTextArea, forNode = true) {
     if (options.placeholder !== undefined) {
         $input.attr('placeholder', options.placeholder)
     }
+    if (options.disabled !== undefined) {
+        $input.prop('disabled', options.disabled == true)
+    }
     $label.append($input)
     $container.append($label)
     return $container
@@ -1613,6 +1629,9 @@ function genCheckbox(options, forNode = true) {
         }
     } else if (options.default) {
         $input.attr('checked', '')
+    }
+    if (options.disabled !== undefined) {
+        $input.prop('disabled', options.disabled == true)
     }
     $label.append($input)
     var $container = $('<div>')
@@ -1669,6 +1688,9 @@ function genRadio(options, forNode = true) {
             }
         } else if (options.default) {
             $input.attr('checked', '')
+        }
+        if (options.disabled !== undefined) {
+            $input.prop('disabled', options.disabled == true)
         }
         var $label = $('<label>')
             .addClass('radio')

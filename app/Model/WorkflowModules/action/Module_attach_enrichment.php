@@ -23,11 +23,19 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
         parent::__construct();
         $this->Module = ClassRegistry::init('Module');
         $modules = $this->Module->getModules('Enrichment');
-        $this->allModulesByName = Hash::combine($modules, '{n}.name', '{n}');
         if (is_array($modules)) {
+            $this->allModulesByName = Hash::combine($modules, '{n}.name', '{n}');
+        }
+        $moduleOptions = [];
+        $pickerOptions = [];
+        $enrichmentAvailable = false;
+        if (!empty($modules) && is_array($modules)) {
+            $enrichmentAvailable = true;
             $moduleOptions = array_merge([''], Hash::combine($modules, '{n}.name', '{n}.name'));
         } else {
-            $moduleOptions[] = $modules;
+            $pickerOptions = [
+                'placeholder_text_multiple' => __('No enrichment module available'),
+            ];
         }
         sort($moduleOptions);
         $this->params = [
@@ -36,7 +44,9 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
                 'label' => 'Modules',
                 'type' => 'picker',
                 'multiple' => true,
+                'disabled' => !$enrichmentAvailable,
                 'options' => $moduleOptions,
+                'picker_options' => $pickerOptions,
             ],
         ];
     }
