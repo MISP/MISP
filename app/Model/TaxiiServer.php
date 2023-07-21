@@ -79,6 +79,7 @@ class TaxiiServer extends AppModel
             $this->__pushEvents($user, $taxii_server, $filters, $eventids, $i, $jobId, $eventCount);
         }
         unset($eventid);
+        return true;
     }
 
     private function __setPushFilters($taxii_server)

@@ -30,6 +30,10 @@ class UsersController extends AppController
 
         // what pages are allowed for non-logged-in users
         $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401', 'otp');
+        if (!empty(Configure::read('Security.allow_password_forgotten'))) {
+            $allowedActions[] = 'forgot';
+            $allowedActions[] = 'password_reset';
+        }
         if(!empty(Configure::read('Security.email_otp_enabled'))) {
           $allowedActions[] = 'email_otp';
         }
@@ -262,6 +266,77 @@ class UsersController extends AppController
         $this->set('canFetchPgpKey', $this->__canFetchPgpKey());
     }
 
+    private function __pw_change($user, $source, &$abortPost, $token = false)
+    {
+        if (!isset($this->request->data['User'])) {
+            $this->request->data = array('User' => $this->request->data);
+        }
+        if (Configure::read('Security.require_password_confirmation')) {
+            if (!empty($this->request->data['User']['current_password'])) {
+                $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
+                if (!$hashed) {
+                    $message = __('Invalid password. Please enter your current password to continue.');
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('Users', $source, false, $message, $this->response->type());
+                    }
+                    $abortPost = true;
+                    $this->Flash->error($message);
+                }
+                unset($this->request->data['User']['current_password']);
+            } else if (!$this->_isRest()) {
+                $message = __('Please enter your current password to continue.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Users', $source, false, $message, $this->response->type());
+                }
+                $abortPost = true;
+                $this->Flash->info($message);
+            }
+        }
+        $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['password']);
+        if ($hashed) {
+            $message = __('Submitted new password cannot be the same as the current one');
+            $abortPost = true;
+        }
+        if (!$abortPost) {
+            // What fields should be saved (allowed to be saved)
+            $user['User']['change_pw'] = 0;
+            $user['User']['password'] = $this->request->data['User']['password'];
+            if ($this->_isRest()) {
+                $user['User']['confirm_password'] = $this->request->data['User']['password'];
+            } else {
+                $user['User']['confirm_password'] = $this->request->data['User']['confirm_password'];
+            }
+            $temp = $user['User']['password'];
+            // Save the data
+            if ($this->User->save($user)) {
+                if ($token) {
+                    $this->User->purgeForgetToken($token);
+                }
+                $message = __('Password Changed.');
+                // log as System if the reset comes from an unauthed user using password_reset tokens
+                $logUser = empty($this->Auth->user()) ? 'SYSTEM' : $this->Auth->user();
+                $this->User->extralog($logUser, $source, null, null, $user);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('User', $source, false, $this->response->type(), $message);
+                }
+                $this->Flash->success($message);
+                $this->redirect(array('action' => 'view', $user['User']['id']));
+            } else {
+                $message = __('The password could not be updated. Make sure you meet the minimum password length / complexity requirements.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Users', $source, false, $message, $this->response->type());
+                }
+                $this->Flash->error($message);
+            }
+        } else {
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Users', $source, false, $message, $this->response->type());
+            } else {
+                $this->Flash->error($message);
+            }
+        }
+    }
+
     public function change_pw()
     {
         $id = $this->Auth->user('id');
@@ -270,69 +345,8 @@ class UsersController extends AppController
             'recursive' => -1
         ));
         if ($this->request->is('post') || $this->request->is('put')) {
-            if (!isset($this->request->data['User'])) {
-                $this->request->data = array('User' => $this->request->data);
-            }
             $abortPost = false;
-            if (Configure::read('Security.require_password_confirmation')) {
-                if (!empty($this->request->data['User']['current_password'])) {
-                    $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
-                    if (!$hashed) {
-                        $message = __('Invalid password. Please enter your current password to continue.');
-                        if ($this->_isRest()) {
-                            return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
-                        }
-                        $abortPost = true;
-                        $this->Flash->error($message);
-                    }
-                    unset($this->request->data['User']['current_password']);
-                } else if (!$this->_isRest()) {
-                    $message = __('Please enter your current password to continue.');
-                    if ($this->_isRest()) {
-                        return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
-                    }
-                    $abortPost = true;
-                    $this->Flash->info($message);
-                }
-            }
-            $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['password']);
-            if ($hashed) {
-                $message = __('Submitted new password cannot be the same as the current one');
-                $abortPost = true;
-            }
-            if (!$abortPost) {
-                // What fields should be saved (allowed to be saved)
-                $user['User']['change_pw'] = 0;
-                $user['User']['password'] = $this->request->data['User']['password'];
-                if ($this->_isRest()) {
-                    $user['User']['confirm_password'] = $this->request->data['User']['password'];
-                } else {
-                    $user['User']['confirm_password'] = $this->request->data['User']['confirm_password'];
-                }
-                $temp = $user['User']['password'];
-                // Save the data
-                if ($this->User->save($user)) {
-                    $message = __('Password Changed.');
-                    $this->User->extralog($this->Auth->user(), "change_pw", null, null, $user);
-                    if ($this->_isRest()) {
-                        return $this->RestResponse->saveSuccessResponse('User', 'change_pw', false, $this->response->type(), $message);
-                    }
-                    $this->Flash->success($message);
-                    $this->redirect(array('action' => 'view', $id));
-                } else {
-                    $message = __('The password could not be updated. Make sure you meet the minimum password length / complexity requirements.');
-                    if ($this->_isRest()) {
-                        return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
-                    }
-                    $this->Flash->error($message);
-                }
-            } else {
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
-                } else {
-                    $this->Flash->error($message);
-                }
-            }
+            return $this->__pw_change($user, 'change_pw', $abortPost);
         }
         if ($this->_isRest()) {
             return $this->RestResponse->describe('Users', 'change_pw', false, $this->response->type());
@@ -1878,7 +1892,11 @@ class UsersController extends AppController
         );
         $writer = new \BaconQrCode\Writer($renderer);
         $totp->setLabel($user['User']['email']);
-        $totp->setIssuer(Configure::read('MISP.org') . ' MISP');
+        if (Configure::read('Security.otp_issuer')) {
+            $totp->setIssuer(Configure::read('Security.otp_issuer'));
+        } else {
+            $totp->setIssuer(Configure::read('MISP.org') . ' MISP');
+        }
         $qrcode = $writer->writeString($totp->getProvisioningUri());
         $qrcode = preg_replace('/^.+\n/', '', $qrcode); // ignore first <?xml version line 
 
@@ -3080,4 +3098,69 @@ class UsersController extends AppController
         # To use this, set Plugin.CustomAuth_custom_logout to /users/logout401
         $this->response->statusCode(401);
     }
+
+    public function forgot()
+    {
+        if (empty(Configure::read('Security.allow_password_forgotten'))) {
+            $this->Flash->error(__('This feature is disabled.'));
+            $this->redirect('/');
+        }
+        if (!empty($this->Auth->user()) && !$this->_isRest()) {
+            $this->Flash->info(__('You are already logged in, no need to ask for a password reset. Log out first.'));
+            $this->redirect('/');
+        }
+        if ($this->request->is('post')) {
+            if (empty($this->request->data['User'])) {
+                $this->request->data = ['User' => $this->request->data];
+            }
+            if (empty($this->request->data['User']['email'])) {
+                throw new MethodNotAllowedException(__('No email provided, cannot generate password reset message.'));
+            }
+            $user = [
+                'id' => 0,
+                'email' => 'SYSTEM',
+                'Organisation' => [
+                    'name' => 'SYSTEM'
+                ]
+            ];
+            $this->loadModel('Log');
+            $this->Log->createLogEntry($user, 'forgot', 'User', 0, 'Password reset requested for: ' . $this->request->data['User']['email']);
+            $this->User->forgotRouter($this->request->data['User']['email'], $this->_remoteIp());
+            $message = __('Password reset request submitted. If a valid user is found, you should receive an e-mail with a temporary reset link momentarily. Please be advised that this link is only valid for 10 minutes.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('User', 'forgot', false, $this->response->type(), $message);
+            }
+            $this->Flash->info($message);
+            $this->redirect('/');
+        }
+    }
+
+    public function password_reset($token)
+    {
+        if (empty(Configure::read('Security.allow_password_forgotten'))) {
+            $this->Flash->error(__('This feature is disabled.'));
+            $this->redirect('/');
+        }
+        $this->loadModel('Server');
+        $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
+        $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
+        if (!empty($this->Auth->user()) && !$this->_isRest()) {
+            $this->redirect('/');
+        }
+        $user = $this->User->fetchForgottenPasswordUser($token);
+        if (empty($user)) {
+            $message = __('Invalid token, or password request token already expired.');
+            if ($this->_isRest()) {
+                throw new MethodNotAllowedException($message);
+            } else {
+                $this->Flash->error($message);
+                $this->redirect('/');
+            }
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $abortPost = false;
+            return $this->__pw_change(['User' => $user], 'password_reset', $abortPost, $token);
+        }
+    }
+
 }

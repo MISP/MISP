@@ -6108,7 +6108,7 @@ class Server extends AppModel
                 ],
                 'thumbnail_in_redis' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Store image thumbnails in Redis insteadof file system.'),
+                    'description' => __('Store image thumbnails in Redis instead of file system.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6406,6 +6406,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'otp_issuer' => array(
+                    'level' => 2,
+                    'description' => __('If OTP is enabled, set the issuer string to an arbitrary value. Otherwise, MISP will default to "[MISP.org] MISP".'),
+                    'value' => false,
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
                 'email_otp_enabled' => array(
                     'level' => 2,
                     'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),
@@ -6452,6 +6460,14 @@ class Server extends AppModel
                 'allow_self_registration' => array(
                     'level' => 1,
                     'description' => __('Enabling this setting will allow users to have access to the pre-auth registration form. This will create an inbox entry for administrators to review.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'allow_password_forgotten' => array(
+                    'level' => 1,
+                    'description' => __('Enabling this setting will allow users to request automated password reset tokens via mail and initiate a reset themselves. Users with no encryption keys will not be able to use this feature.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',

@@ -1,5 +1,5 @@
 <IfModule mod_rewrite.c>
     RewriteEngine on
-    RewriteRule    ^$    webroot/    [L]
-    RewriteRule    (.*) webroot/$1    [L]
+    RewriteRule    ^$    webroot/    "[B= ,L]"
+    RewriteRule    (.*) webroot/$1    "[B= ,L]"
 </IfModule>

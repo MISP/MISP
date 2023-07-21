@@ -38,14 +38,16 @@
         "aws/aws-sdk-php": "To upload samples to S3",
         "jakub-onderka/openid-connect-php": "For OIDC authentication",
         "supervisorphp/supervisor": "For managing background jobs",
-        "lstrojny/fxmlrpc": "Required for supervisorphp/supervisor XML-RPC requests",
         "guzzlehttp/guzzle": "Required for supervisorphp/supervisor XML-RPC requests",
+        "lstrojny/fxmlrpc": "Required for supervisorphp/supervisor XML-RPC requests",
         "php-http/message": "Required for supervisorphp/supervisor XML-RPC requests",
-        "spomky-labs/otphp": "Required for strong authentication with TOTP",
-        "bacon/bacon-qr-code": "Required for strong authentication with TOTP"
+        "php-http/message-factory": "Required for supervisorphp/supervisor XML-RPC requests"
     },
     "config": {
         "vendor-dir": "Vendor",
-        "optimize-autoloader": true
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "composer/installers": true
+        }
     }
 }

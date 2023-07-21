@@ -2303,7 +2303,7 @@ function runIndexQuickFilterFixed(preserveParams, url, target) {
         searchKey = 'searchall';
     }
     if ($quickFilterField.val().trim().length > 0) {
-        preserveParams[searchKey] = encodeURIComponent($quickFilterField.val().trim());
+        preserveParams[searchKey] = encodeURIComponent($quickFilterField.val().trim()).replace('%20', '+');
     } else {
         delete preserveParams[searchKey]
     }
@@ -5514,6 +5514,26 @@ function resetDashboardGrid(grid, save = true) {
         var el = $(this).closest('.grid-stack-item');
         grid.removeWidget(el);
         saveDashboardState();
+    });
+    $('.export-widget').click(function() {
+        var $element = $(this).parent().parent().parent();
+        var container_id = $element.attr('id').substring(7);
+          $.ajax({
+            type: 'POST',
+            url: baseurl + '/dashboards/renderWidget/' + container_id + '/exportjson:1',
+            data: {
+                config: $element.attr('config'),
+                widget: $element.attr('widget')
+            },
+            success:function (data) {
+                data = JSON.stringify(data, null, 2);
+                var blob=new Blob([data], {type: 'application/json'});
+                var link=window.document.createElement('a');
+                link.href=window.URL.createObjectURL(blob);
+                link.download=$element.attr('widget') + "_" + container_id + "_export.json";
+                link.click();
+            }
+        });
     });
 }
 
