@@ -518,15 +518,14 @@ class Workflow extends AppModel
     {
         $this->Log = ClassRegistry::init('Log');
         $message =  __('Started executing workflow for trigger `%s` (%s)', $triggerModule->id, $workflow['Workflow']['id']);
-        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
-        $this->__logToFile($workflow, $message);
+        $this->logExecutionIfDebug($workflow, $message);
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
         $debugData = ['original' => $data];
         $data = $this->__normalizeDataForTrigger($triggerModule, $data);
         $debugData['normalized'] = $data;
         $for_path = !empty($triggerModule->blocking) ? GraphWalker::PATH_TYPE_BLOCKING : GraphWalker::PATH_TYPE_NON_BLOCKING;
-        $this->sendRequestToDebugEndpoint($workflow, [], '/init?type=' . $for_path, $debugData);
+        $this->sendRequestToDebugEndpointIfDebug($workflow, [], '/init?type=' . $for_path, $debugData);
 
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNodeID, $for_path, $data, $blockingErrors, $walkResult);
         $executionStoppedByStopModule = in_array('stop-execution', Hash::extract($walkResult, 'blocking_nodes.{n}.data.id'));
@@ -542,9 +541,8 @@ class Workflow extends AppModel
         }
         $message =  __('Finished executing workflow for trigger `%s` (%s). Outcome: %s', $triggerModule->id, $workflow['Workflow']['id'], $outcomeText);
 
-        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
-        $this->__logToFile($workflow, $message);
-        $this->sendRequestToDebugEndpoint($workflow, [], '/end?outcome=' . $outcomeText, $walkResult);
+        $this->logExecutionIfDebug($workflow, $message);
+        $this->sendRequestToDebugEndpointIfDebug($workflow, [], '/end?outcome=' . $outcomeText, $walkResult);
         return [
             'outcomeText' => $outcomeText,
             'walkResult' => $walkResult,
@@ -661,7 +659,7 @@ class Workflow extends AppModel
             $message = __('Could not execute disabled module `%s`.', $node['data']['id']);
             $this->logExecutionError($roamingData->getWorkflow(), $message);
             $errors[] = $message;
-            $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'disabled_module'), $roamingData->getData());
+            $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'disabled_module'), $roamingData->getData());
             return false;
         }
         if (!is_null($moduleClass)) {
@@ -671,17 +669,25 @@ class Workflow extends AppModel
                 $message = __('Error while executing module %s. Error: %s', $node['data']['id'], $e->getMessage());
                 $this->logExecutionError($roamingData->getWorkflow(), $message);
                 $errors[] = $message;
-                $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s&message=%s', $moduleClass->id, 'error', $e->getMessage()), $roamingData->getData());
+                $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s&message=%s', $moduleClass->id, 'error', $e->getMessage()), $roamingData->getData());
                 return false;
             }
         } else {
             $message = sprintf(__('Could not load class for module: %s'), $node['data']['id']);
             $this->logExecutionError($roamingData->getWorkflow(), $message);
             $errors[] = $message;
-            $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $node['data']['id'], 'loading_error'), $roamingData->getData());
+            $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $node['data']['id'], 'loading_error'), $roamingData->getData());
             return false;
         }
-        $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'success'), $roamingData->getData());
+        $message = __('Executed node `%s`' .  PHP_EOL . 'Node `%s` (%s) from Workflow `%s` (%s) executed successfully',
+            $node['data']['id'],
+            $node['data']['id'],
+            $node['id'],
+            $roamingData->getWorkflow()['Workflow']['name'],
+            $roamingData->getWorkflow()['Workflow']['id'],
+        );
+        $this->logExecutionIfDebug($roamingData->getWorkflow(), $message);
+        $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'success'), $roamingData->getData());
         return $success;
     }
 
@@ -991,6 +997,14 @@ class Workflow extends AppModel
         $this->Log = ClassRegistry::init('Log');
         $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
         $this->__logToFile($workflow, $message);
+    }
+
+    public function logExecutionIfDebug(array $workflow, $message): void
+    {
+        if ($workflow['Workflow']['debug_enabled']) {
+            $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
+            $this->__logToFile($workflow, $message);
+        }
     }
 
     /**
@@ -1478,12 +1492,16 @@ class Workflow extends AppModel
         return $saveSuccess;
     }
 
+    public function sendRequestToDebugEndpointIfDebug(array $workflow, array $node, $path='/', array $data=[])
+    {
+        if ($workflow['Workflow']['debug_enabled']) {
+            $this->sendRequestToDebugEndpoint($workflow, $node, $path, $data);
+        }
+    }
+
     public function sendRequestToDebugEndpoint(array $workflow, array $node, $path='/', array $data=[])
     {
         $debug_url = Configure::read('Plugin.Workflow_debug_url');
-        if (empty($workflow['Workflow']['debug_enabled'])) {
-            return;
-        }
         App::uses('HttpSocket', 'Network/Http');
         $socket = new HttpSocket([
             'timeout' => 5
