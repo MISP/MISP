@@ -18,7 +18,7 @@ class TemplatesController extends AppController
     public function beforeFilter()
     { // TODO REMOVE
         parent::beforeFilter();
-        $this->Security->unlockedActions = array('uploadFile', 'deleteTemporaryFile');
+        $this->Security->unlockedActions = array('uploadFile', 'deleteTemporaryFile', 'saveElementSorting');
     }
 
     public function index()
@@ -188,7 +188,7 @@ class TemplatesController extends AppController
         $this->request->onlyAllow('ajax');
         $orderedElements = $this->request->data;
         foreach ($orderedElements as $key => $e) {
-            $orderedElements[$key] = ltrim($e, 'id_');
+            $orderedElements[$key] = (int)ltrim($e, 'id_');
         }
         $extractedIds = array();
         foreach ($orderedElements as $element) {

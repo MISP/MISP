@@ -2860,10 +2860,35 @@ class Event extends AppModel
         return $conditions;
     }
 
+    /**
+     * @param string $value
+     * @return string
+     */
+    private static function compressIpv6($value)
+    {
+        if (strpos($value, ':') && $converted = inet_pton($value)) {
+            return inet_ntop($converted);
+        }
+        return $value;
+    }
+
     public function set_filter_value(&$params, $conditions, $options)
     {
         if (!empty($params['value'])) {
             $params[$options['filter']] = $this->convert_filters($params['value']);
+            foreach (['OR', 'AND', 'NOT'] as $operand) {
+                if (!empty($params[$options['filter']][$operand])) {
+                    foreach ($params[$options['filter']][$operand] as $k => $v) {
+                        if ($operand === 'NOT') {
+                            $v = mb_substr($v, 1);
+                        }
+                        if (filter_var($v, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                            $v = $this->compressIpv6($v);
+                        }
+                        $params[$options['filter']][$operand][$k] = $operand === 'NOT' ? '!' . $v : $v;
+                    }
+                }
+            }
             $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
         }
 

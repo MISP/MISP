@@ -720,14 +720,14 @@ class GalaxyCluster extends AppModel
     /**
      * Gets a cluster then save it.
      *
-     * @param $user
+     * @param array $user
      * @param array $cluster Cluster to be saved
      * @param bool  $fromPull If the current capture is performed from a PULL sync
      * @param int   $orgId The organisation id that should own the cluster
      * @param array $server The server for which to capture is ongoing
      * @return array Result of the capture including successes, fails and errors
      */
-    public function captureCluster($user, $cluster, $fromPull=false, $orgId=0, $server=false)
+    public function captureCluster(array $user, $cluster, $fromPull=false, $orgId=0, $server=false)
     {
         $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
 
@@ -1859,7 +1859,7 @@ class GalaxyCluster extends AppModel
     }
 
     /**
-     * getClusterIdListBasedOnPullTechnique Collect the list of remote cluster IDs to be pulled based on the technique
+     * Collect the list of remote cluster IDs to be pulled based on the technique
      *
      * @param  array $user
      * @param  string|int $technique
@@ -1899,15 +1899,13 @@ class GalaxyCluster extends AppModel
                 $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($serverSync, $onlyUpdateLocalCluster = false);
             }
         } catch (HttpSocketHttpException $e) {
-            if ($e->getCode() === 403) {
-                return array('error' => array(1, null));
-            } else {
+            if ($e->getCode() !== 403) {
                 $this->logException("Could not get eligible cluster IDs from server {$serverSync->serverId()} for pull.", $e);
-                return array('error' => array(2, $e->getMessage()));
             }
+            return [];
         } catch (Exception $e) {
             $this->logException("Could not get eligible cluster IDs from server {$serverSync->serverId()} for pull.", $e);
-            return array('error' => array(2, $e->getMessage()));
+            return [];
         }
         return $clusterIds;
     }

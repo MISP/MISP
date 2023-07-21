@@ -139,8 +139,7 @@
     echo '</div>';
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'galaxy_index'));
 ?>
-<script type="text/javascript">
-    var passedArgsArray = <?php echo $passedArgs; ?>;
+<script>
     $(function() {
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();

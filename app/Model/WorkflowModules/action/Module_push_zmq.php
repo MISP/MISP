@@ -30,14 +30,14 @@ class Module_push_zmq extends WorkflowBaseActionModule
     {
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
-        $path = $params['match_condition']['value'];
+        $path = $params['data_extraction_path']['value'];
         $data = $roamingData->getData();
         $extracted = $this->extractData($data, $path);
         if ($extracted === false) {
             $errors[] = __('Error while trying to extract data with path `%s`', $path);
             return false;
         }
-        $this->push_zmq(JsonTool::encode($extracted));
+        $this->push_zmq($extracted);
         return true;
     }
 }

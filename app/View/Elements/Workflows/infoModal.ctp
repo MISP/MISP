@@ -7,6 +7,7 @@
         <ul class="nav nav-tabs">
             <li class="active"><a href=" #modal-info-concept" data-toggle="tab"><?= __('Terminology & Concepts') ?></a></li>
             <li class=""><a href=" #modal-hash-path" data-toggle="tab"><?= __('Hash Path') ?></a></li>
+            <li class=""><a href=" #modal-core-format" data-toggle="tab"><?= __('MISP Core Format') ?></a></li>
             <li class=""><a href=" #modal-blueprint" data-toggle="tab"><?= __('Blueprints') ?></a></li>
             <li class=""><a href=" #modal-debugging" data-toggle="tab"><?= __('Debugging') ?></a></li>
             <li><a href="#modal-info-usage" data-toggle="tab"><?= __('Usage & Shortcuts') ?></a></li>
@@ -101,6 +102,543 @@ $data_passed_to_if_module = [
 ];
 // The condition is satisfied as `fred` is contained in the extracted data.
 // Then `then` branch will be used by the execution path</pre>
+            </div>
+
+            <div class="tab-pane" id="modal-core-format">
+                <h2><?= __('MISP Core Format') ?></h2>
+                <h4><?= __('Accessing Attributes') ?></h4>
+                <p><?= __('There are two ways to access attributes') ?></p>
+                <ul>
+                    <li><?= sprintf('%s <code>%s</code> %s', __('Use the'), 'Attribute', __('key to access only attributes')) ?></li>
+                    <li><?= sprintf('%s <code>%s</code> %s', __('Use the'), '_AttributeFlattened', __('key to access all attributes including Object Attributes')) ?></li>
+                </ul>
+                <p><strong><?= __('Example:') ?></strong></p>
+                <pre>Event._AttributeFlattened.{n}</pre>
+
+                <h4><?= __('Getting all tag names attached an Attribute only') ?></h4>
+                <ul>
+                    <li><?= __('First, we access the Attributes with ') ?> <code>Event.Attribute.{n}</code></li>
+                    <li><?= __('Then, we access all tags with ') ?> <code>Tag.{n}.name</code></li>
+                </ul>
+                <p><strong><?= __('Full example:') ?></strong></p>
+                <pre>Event._AttributeFlattened.{n}.Tag.{n}.name</pre>
+
+                <h4><?= __('MISP Core Format Sample') ?></h4>
+                <ul>
+                    <li><?= __('Attributes are always encapsulated in the Event or Object') ?></li>
+                    <li><?= __('Additional key') ?> <code>_AttributeFlattened</code> containing all Attributes</li>
+                    <li><?= __('Additional key') ?> <code>_allTags</code> containing all tags</li>
+                        <ul>
+                            <li><?= __('Additional key %s for Tags', '<code>inherited</code>') ?></li>
+                        </ul>
+                </ul>
+                <p><strong><?= __('Sample:') ?></strong></p>
+                <pre>
+{
+    "Event": {
+        "id": "64",
+        "orgc_id": "1",
+        "org_id": "1",
+        "date": "2023-05-03",
+        "threat_level_id": "1",
+        "info": "Core format sample",
+        "published": false,
+        "uuid": "b9557473-bb46-4c65-b69e-974b3c93c1f4",
+        "attribute_count": "2",
+        "analysis": "0",
+        "timestamp": "1683117902",
+        "distribution": "1",
+        "proposal_email_lock": false,
+        "locked": false,
+        "publish_timestamp": "0",
+        "sharing_group_id": "0",
+        "disable_correlation": false,
+        "extends_uuid": "",
+        "protected": null,
+        "event_creator_email": "admin@admin.test",
+        "Org": {
+            "id": "1",
+            "name": "ORGNAME",
+            "uuid": "c5de83b4-36ba-49d6-9530-2a315caeece6",
+            "local": true
+        },
+        "Orgc": {
+            "id": "1",
+            "name": "ORGNAME",
+            "uuid": "c5de83b4-36ba-49d6-9530-2a315caeece6",
+            "local": true
+        },
+        "Attribute": [
+            {
+                "id": "1695",
+                "type": "ip-src",
+                "category": "Network activity",
+                "to_ids": true,
+                "uuid": "9ac36927-d874-4094-bf4c-f922c1e9cc35",
+                "event_id": "64",
+                "distribution": "5",
+                "timestamp": "1683117902",
+                "comment": "",
+                "sharing_group_id": "0",
+                "deleted": false,
+                "disable_correlation": false,
+                "object_id": "0",
+                "object_relation": null,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "8.8.8.8",
+                "Galaxy": [],
+                "ShadowAttribute": [],
+                "Tag": [
+                    {
+                        "id": "137",
+                        "name": "PAP:AMBER",
+                        "colour": "#ffa800",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null
+                    }
+                ],
+                "_allTags": [
+                    {
+                        "id": "299",
+                        "name": "misp-galaxy:country=\"belgium\"",
+                        "colour": "#0088cc",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": true,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    },
+                    {
+                        "id": "79",
+                        "name": "tlp:green",
+                        "colour": "#339900",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    },
+                    {
+                        "id": "137",
+                        "name": "PAP:AMBER",
+                        "colour": "#ffa800",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": false
+                    }
+                ]
+            }
+        ],
+        "ShadowAttribute": [],
+        "RelatedEvent": [
+            {
+                "Event": {
+                    "id": "43",
+                    "date": "2022-12-15",
+                    "threat_level_id": "1",
+                    "info": "Fake event WF",
+                    "published": false,
+                    "uuid": "3a928b41-a9ec-4252-ab9f-d1859dbfc14a",
+                    "analysis": "0",
+                    "timestamp": "1683116434",
+                    "distribution": "1",
+                    "org_id": "1",
+                    "orgc_id": "1",
+                    "Org": {
+                        "id": "1",
+                        "name": "ORGNAME",
+                        "uuid": "c5de83b4-36ba-49d6-9530-2a315caeece6"
+                    },
+                    "Orgc": {
+                        "id": "1",
+                        "name": "ORGNAME",
+                        "uuid": "c5de83b4-36ba-49d6-9530-2a315caeece6"
+                    }
+                }
+            }
+        ],
+        "Galaxy": [
+            {
+                "id": "4",
+                "uuid": "84668357-5a8c-4bdd-9f0f-6b50b2aee4c1",
+                "name": "Country",
+                "type": "country",
+                "description": "Country meta information based on the database provided by geonames.org.",
+                "version": "1",
+                "icon": "globe",
+                "namespace": "misp",
+                "enabled": true,
+                "local_only": false,
+                "GalaxyCluster": [
+                    {
+                        "id": "1703",
+                        "uuid": "84668357-5a8c-4bdd-9f0f-6b50b242454c",
+                        "collection_uuid": "84668357-5a8c-4bdd-9f0f-6b50b2aee4c1",
+                        "type": "country",
+                        "value": "belgium",
+                        "tag_name": "misp-galaxy:country=\"belgium\"",
+                        "description": "Belgium",
+                        "galaxy_id": "4",
+                        "source": "MISP Project",
+                        "authors": [
+                            "geonames.org"
+                        ],
+                        "version": "1",
+                        "distribution": "3",
+                        "sharing_group_id": null,
+                        "org_id": "0",
+                        "orgc_id": "0",
+                        "default": true,
+                        "locked": false,
+                        "extends_uuid": "",
+                        "extends_version": "0",
+                        "published": false,
+                        "deleted": false,
+                        "GalaxyClusterRelation": [],
+                        "Org": {
+                            "id": "0",
+                            "name": "MISP",
+                            "date_created": "",
+                            "date_modified": "",
+                            "description": "Automatically generated MISP organisation",
+                            "type": "",
+                            "nationality": "Not specified",
+                            "sector": "",
+                            "created_by": "0",
+                            "uuid": "0",
+                            "contacts": "",
+                            "local": true,
+                            "restricted_to_domain": [],
+                            "landingpage": null
+                        },
+                        "Orgc": {
+                            "id": "0",
+                            "name": "MISP",
+                            "date_created": "",
+                            "date_modified": "",
+                            "description": "Automatically generated MISP organisation",
+                            "type": "",
+                            "nationality": "Not specified",
+                            "sector": "",
+                            "created_by": "0",
+                            "uuid": "0",
+                            "contacts": "",
+                            "local": true,
+                            "restricted_to_domain": [],
+                            "landingpage": null
+                        },
+                        "meta": {
+                            "Capital": [
+                                "Brussels"
+                            ],
+                            "Continent": [
+                                "EU"
+                            ],
+                            "CurrencyCode": [
+                                "EUR"
+                            ],
+                            "CurrencyName": [
+                                "Euro"
+                            ],
+                            "ISO": [
+                                "BE"
+                            ],
+                            "ISO3": [
+                                "BEL"
+                            ],
+                            "Languages": [
+                                "nl-BE,fr-BE,de-BE"
+                            ],
+                            "Population": [
+                                "10403000"
+                            ],
+                            "tld": [
+                                ".be"
+                            ]
+                        },
+                        "tag_id": 299,
+                        "event_tag_id": "380",
+                        "local": false,
+                        "relationship_type": false
+                    }
+                ]
+            }
+        ],
+        "Object": [
+            {
+                "id": "111",
+                "name": "url",
+                "meta-category": "network",
+                "description": "url object describes an url along with its normalized field (like extracted using faup parsing library) and its metadata.",
+                "template_uuid": "60efb77b-40b5-4c46-871b-ed1ed999fce5",
+                "template_version": "9",
+                "event_id": "64",
+                "uuid": "384ebae1-c97d-48a4-9efb-94a945c4860f",
+                "timestamp": "1683117902",
+                "distribution": "5",
+                "sharing_group_id": "0",
+                "comment": "",
+                "deleted": false,
+                "first_seen": null,
+                "last_seen": null,
+                "ObjectReference": [],
+                "Attribute": [
+                    {
+                        "id": "1696",
+                        "type": "url",
+                        "category": "Network activity",
+                        "to_ids": true,
+                        "uuid": "a915bbbe-2639-4d9b-83a2-abd58b8e5498",
+                        "event_id": "64",
+                        "distribution": "5",
+                        "timestamp": "1683117902",
+                        "comment": "",
+                        "sharing_group_id": "0",
+                        "deleted": false,
+                        "disable_correlation": false,
+                        "object_id": "111",
+                        "object_relation": "url",
+                        "first_seen": null,
+                        "last_seen": null,
+                        "value": "https://www.misp-project.org/",
+                        "Galaxy": [],
+                        "ShadowAttribute": [],
+                        "_allTags": [
+                            {
+                                "id": "299",
+                                "name": "misp-galaxy:country=\"belgium\"",
+                                "colour": "#0088cc",
+                                "exportable": true,
+                                "user_id": "0",
+                                "hide_tag": false,
+                                "numerical_value": null,
+                                "is_galaxy": true,
+                                "is_custom_galaxy": false,
+                                "local_only": false,
+                                "local": 0,
+                                "relationship_type": null,
+                                "inherited": true
+                            },
+                            {
+                                "id": "79",
+                                "name": "tlp:green",
+                                "colour": "#339900",
+                                "exportable": true,
+                                "user_id": "0",
+                                "hide_tag": false,
+                                "numerical_value": null,
+                                "is_galaxy": false,
+                                "is_custom_galaxy": false,
+                                "local_only": false,
+                                "local": 0,
+                                "relationship_type": null,
+                                "inherited": true
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "EventReport": [],
+        "CryptographicKey": [],
+        "Tag": [
+            {
+                "id": "299",
+                "name": "misp-galaxy:country=\"belgium\"",
+                "colour": "#0088cc",
+                "exportable": true,
+                "user_id": "0",
+                "hide_tag": false,
+                "numerical_value": null,
+                "is_galaxy": true,
+                "is_custom_galaxy": false,
+                "local_only": false,
+                "local": 0,
+                "relationship_type": null
+            },
+            {
+                "id": "79",
+                "name": "tlp:green",
+                "colour": "#339900",
+                "exportable": true,
+                "user_id": "0",
+                "hide_tag": false,
+                "numerical_value": null,
+                "is_galaxy": false,
+                "is_custom_galaxy": false,
+                "local_only": false,
+                "local": 0,
+                "relationship_type": null
+            }
+        ],
+        "_AttributeFlattened": [
+            {
+                "id": "1695",
+                "type": "ip-src",
+                "category": "Network activity",
+                "to_ids": true,
+                "uuid": "9ac36927-d874-4094-bf4c-f922c1e9cc35",
+                "event_id": "64",
+                "distribution": "5",
+                "timestamp": "1683117902",
+                "comment": "",
+                "sharing_group_id": "0",
+                "deleted": false,
+                "disable_correlation": false,
+                "object_id": "0",
+                "object_relation": null,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "8.8.8.8",
+                "Galaxy": [],
+                "ShadowAttribute": [],
+                "Tag": [
+                    {
+                        "id": "137",
+                        "name": "PAP:AMBER",
+                        "colour": "#ffa800",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null
+                    }
+                ],
+                "_allTags": [
+                    {
+                        "id": "299",
+                        "name": "misp-galaxy:country=\"belgium\"",
+                        "colour": "#0088cc",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": true,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    },
+                    {
+                        "id": "79",
+                        "name": "tlp:green",
+                        "colour": "#339900",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    },
+                    {
+                        "id": "137",
+                        "name": "PAP:AMBER",
+                        "colour": "#ffa800",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": false
+                    }
+                ]
+            },
+            {
+                "id": "1696",
+                "type": "url",
+                "category": "Network activity",
+                "to_ids": true,
+                "uuid": "a915bbbe-2639-4d9b-83a2-abd58b8e5498",
+                "event_id": "64",
+                "distribution": "5",
+                "timestamp": "1683117902",
+                "comment": "",
+                "sharing_group_id": "0",
+                "deleted": false,
+                "disable_correlation": false,
+                "object_id": "111",
+                "object_relation": "url",
+                "first_seen": null,
+                "last_seen": null,
+                "value": "https://www.misp-project.org/",
+                "Galaxy": [],
+                "ShadowAttribute": [],
+                "_allTags": [
+                    {
+                        "id": "299",
+                        "name": "misp-galaxy:country=\"belgium\"",
+                        "colour": "#0088cc",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": true,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    },
+                    {
+                        "id": "79",
+                        "name": "tlp:green",
+                        "colour": "#339900",
+                        "exportable": true,
+                        "user_id": "0",
+                        "hide_tag": false,
+                        "numerical_value": null,
+                        "is_galaxy": false,
+                        "is_custom_galaxy": false,
+                        "local_only": false,
+                        "local": 0,
+                        "relationship_type": null,
+                        "inherited": true
+                    }
+                ]
+            }
+        ]
+    }
+}
+</pre>
+
             </div>
 
             <div class="tab-pane" id="modal-blueprint">

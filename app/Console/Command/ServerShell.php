@@ -800,28 +800,20 @@ class ServerShell extends AppShell
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $serverId = $this->args[1];
-        if (!empty($this->args[3])) {
-            $jobId = $this->args[3];
+        if (!empty($this->args[2])) {
+            $jobId = $this->args[2];
         } else {
             $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'push_taxii', 'Server: ' . $serverId, 'Pushing.');
         }
         $this->Job->read(null, $jobId);
 
-        $result = $this->TaxiiServer->push($serverId, $technique, $jobId, $HttpSocket, $user);
-
+        $result = $this->TaxiiServer->push($serverId, $user, $jobId);
         if ($result !== true && !is_array($result)) {
             $message = 'Job failed. Reason: ' . $result;
             $this->Job->saveStatus($jobId, false, $message);
         } else {
             $message = 'Job done.';
             $this->Job->saveStatus($jobId, true, $message);
-        }
-
-        if (isset($this->args[4])) {
-            $this->Task->id = $this->args[5];
-            $message = 'Job(s) started at ' . date('d/m/Y - H:i:s') . '.';
-            $this->Task->saveField('message', $message);
-            echo $message . PHP_EOL;
         }
     }
 }

@@ -81,7 +81,7 @@ $objectId = intval($object['id']);
       <?= nl2br(h($object['comment']), false); ?>
     </div>
   </td>
-  <td colspan="4"></td>
+  <td colspan="<?= $me['Role']['perm_view_feed_correlations'] ? 4 : 3 ?>"></td>
   <td class="shortish"<?= $quickEdit('distribution') ?>>
     <div class="inline-field-solid">
       <?php

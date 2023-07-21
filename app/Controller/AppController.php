@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '149';
-    public $pyMispVersion = '2.4.170';
+    private $__queryVersion = '152';
+    public $pyMispVersion = '2.4.173';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -222,8 +222,10 @@ class AppController extends Controller
             !$userLoggedIn &&
             (
                 $controller !== 'users' ||
-                $action !== 'register' ||
-                empty(Configure::read('Security.allow_self_registration'))
+                (
+                    ($action !== 'register' || empty(Configure::read('Security.allow_self_registration'))) &&
+                    (!in_array($action, ['forgot', 'password_reset']) || empty(Configure::read('Security.allow_password_forgotten')))
+                )
             )
         ) {
             // REST authentication
@@ -310,9 +312,13 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
-            $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401');
+            $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401', 'otp');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
                 $preAuthActions[] = 'email_otp';
+            }
+            if (!empty(Configure::read('Security.allow_password_forgotten'))) {
+                $preAuthActions[] = 'forgot';
+                $preAuthActions[] = 'password_reset';
             }
             if (!$this->_isControllerAction(['users' => $preAuthActions, 'servers' => ['cspReport']])) {
                 if ($isAjax) {
@@ -417,9 +423,12 @@ class AppController extends Controller
                 }
             }
             if ($foundMispAuthKey) {
-                $authKeyToStore = substr($authKey, 0, 4)
+                $start = substr($authKey, 0, 4);
+                $end = substr($authKey, -4);
+                $authKeyToStore = $start
                     . str_repeat('*', 32)
-                    . substr($authKey, -4);
+                    . $end;
+                $this->__logApiKeyUse($start . $end);
                 if ($user) {
                     // User found in the db, add the user info to the session
                     if (Configure::read('MISP.log_auth')) {
@@ -436,10 +445,7 @@ class AppController extends Controller
                         );
                         $this->Log->save($log);
                     }
-                    $storeAPITime = Configure::read('MISP.store_api_access_time');
-                    if (!empty($storeAPITime) && $storeAPITime) {
-                        $this->User->updateAPIAccessTime($user);
-                    }
+                    $this->User->updateAPIAccessTime($user);
                     $this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user);
                     $this->isApiAuthed = true;
@@ -492,7 +498,6 @@ class AppController extends Controller
         if (!$userFromDb) {
             $message = __('Something went wrong. Your user account that you are authenticated with doesn\'t exist anymore.');
             if ($this->_isRest()) {
-                // TODO: Why not exception?
                 $response = $this->RestResponse->throwException(401, $message);
                 $response->send();
                 $this->_stop();
@@ -602,6 +607,12 @@ class AppController extends Controller
             return true;
         }
 
+        // Check if user must create TOTP secret, force them to be on that page as long as needed.
+        if (empty($user['totp']) && Configure::read('Security.otp_required') && !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login', 'totp_new']])) {  // TOTP is mandatory for users, prevent login until the user has configured their TOTP
+            $this->redirect(array('controller' => 'users', 'action' => 'totp_new', 'admin' => false));
+            return false;
+        }
+
         // Check if user accepted terms and conditions
         if (!$user['termsaccepted'] && !empty(Configure::read('MISP.terms_file')) && !$this->_isControllerAction(['users' => ['terms', 'logout', 'login', 'downloadTerms']])) {
             //if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
@@ -640,6 +651,15 @@ class AppController extends Controller
             return false;
         }
         return in_array($this->request->params['action'], $actionsToCheck[$controller], true);
+    }
+
+    private function __logApiKeyUse($apikey)
+    {
+        $redis = $this->User->setupRedis();
+        if (!$redis) {
+            return;
+        }
+        $redis->zIncrBy('misp:authkey_log:' . date("Ymd"), 1, $apikey);
     }
 
     /**
@@ -1098,7 +1118,7 @@ class AppController extends Controller
                 $user['User'] = $temp;
                 if ($user['User']) {
                     $this->User->updateLoginTimes($user['User']);
-                    $this->Session->renew();
+                    //$this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user['User']);
                     if (Configure::read('MISP.log_auth')) {
                         $this->Log = ClassRegistry::init('Log');

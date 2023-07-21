@@ -7,7 +7,7 @@ class TrendingTagsWidget
     public $width = 3;
     public $height = 4;
     public $params = array(
-        'time_window' => 'The time window, going back in seconds, that should be included.',
+        'time_window' => 'The time window, going back in seconds, that should be included. (allows for filtering by days - example: 5d. -1 Will fetch all historic data)',
         'exclude' => 'List of substrings to exclude tags by - for example "sofacy" would exclude any tag containing sofacy.',
         'include' => 'List of substrings to include tags by - for example "sofacy" would include any tag containing sofacy.',
         'threshold' => 'Limits the number of displayed tags. Default: 10',
@@ -16,23 +16,27 @@ class TrendingTagsWidget
     );
     public $placeholder =
     '{
-    "time_window": "86400",
+    "time_window": "7d",
     "threshold": 15,
     "exclude": ["tlp:", "pap:"],
     "include": ["misp-galaxy:", "my-internal-taxonomy"],
     "filter_event_tags": ["misp-galaxy:threat-actor="APT 29"],
 }';
     public $description = 'Widget showing the trending tags over the past x seconds, along with the possibility to include/exclude tags.';
-    public $cacheLifetime = 600;
+    public $cacheLifetime = 3;
 
 	public function handler($user, $options = array())
 	{
 	    /** @var Event $eventModel */
         $eventModel = ClassRegistry::init('Event');
         $threshold = empty($options['threshold']) ? 10 : $options['threshold'];
-        $params = [
-            'timestamp' => time() - (empty($options['time_window']) ? 8640000 : $options['time_window']),
-        ];
+        if (is_string($options['time_window']) && substr($options['time_window'], -1) === 'd') {
+            $time_window = ((int)substr($options['time_window'], 0, -1)) * 24 * 60 * 60;
+        } else {
+            $time_window = empty($options['time_window']) ? (7 * 24 * 60 * 60) : (int)$options['time_window'];
+        }
+        $params = $time_window === -1 ? [] : ['timestamp' => time() - $time_window];
+
         if (!empty($options['filter_event_tags'])) {
             $params['event_tags'] = $options['filter_event_tags'];
         }
@@ -48,6 +52,7 @@ class TrendingTagsWidget
                 $events = $eventModel->fetchEvent($user, [
                     'eventid' => $eventIds,
                     'order' => 'Event.timestamp',
+                    'metadata' => 1
                 ]);
 
                 foreach ($events as $event) {
@@ -111,7 +116,6 @@ class TrendingTagsWidget
             }
     
         }
-
         return $data;
 	}
 

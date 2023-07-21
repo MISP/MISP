@@ -10,14 +10,18 @@
         empty($widget['config']) ? '[]' : h(json_encode($widget['config'])),
         h($widget['widget']),
         sprintf(
-            '<div class="grid-stack-item-content"><div class="widgetTitle"><span class="widgetTitleText">%s</span> %s %s</div><div class="widgetContent">%s</div></div>',
+            '<div class="grid-stack-item-content"><div class="widgetTitle"><span class="widgetTitleText">%s</span> %s %s %s</div><div class="widgetContent">%s</div></div>',
             empty($widget['config']['alias']) ? h($widget['title']) : h($widget['config']['alias']),
             sprintf(
-                '<span class="fas fa-edit edit-widget" title="%s"></span>',
+                '<span class="fas fa-download export-widget useCursorPointer" title="%s"></span>',
+                __('Export raw data')
+            ),
+            sprintf(
+                '<span class="fas fa-edit edit-widget useCursorPointer" title="%s"></span>',
                 __('Configure widget')
             ),
             sprintf(
-                '<span class="fas fa-trash remove-widget" title="%s"></span>',
+                '<span class="fas fa-trash remove-widget useCursorPointer" title="%s"></span>',
                 __('Remove widget')
             ),
             '&nbsp;'

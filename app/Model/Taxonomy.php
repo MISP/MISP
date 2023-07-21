@@ -33,6 +33,8 @@ class Taxonomy extends AppModel
         )
     );
 
+    private $__taxonomyConflicts = [];
+
     public function update()
     {
         $existing = $this->find('all', array(
@@ -593,7 +595,6 @@ class Taxonomy extends AppModel
         if ($splits === null) {
             return false; // not a taxonomy tag
         }
-
         $key = "misp:taxonomies_cache:tagName=$tagName&fullTaxonomy=$fullTaxonomy";
 
         try {
@@ -729,13 +730,19 @@ class Taxonomy extends AppModel
         $conflictingTaxonomy = array();
         foreach ($tagNameList as $tagName) {
             $tagShortened = $this->stripLastTagComponent($tagName);
+            // No exclusivity in non taxonomy tags.
+            if ($tagShortened === '') {
+                continue;
+            }
             if (isset($potentiallyConflictingTaxonomy[$tagShortened])) {
-                $potentiallyConflictingTaxonomy[$tagShortened]['taxonomy'] = $this->getTaxonomyForTag($tagName);
+                if (!isset($this->__taxonomyConflicts[$tagShortened])) {
+                    $this->__taxonomyConflicts[$tagShortened] = $this->getTaxonomyForTag($tagName);
+                }
                 $potentiallyConflictingTaxonomy[$tagShortened]['count']++;
             } else {
-                $potentiallyConflictingTaxonomy[$tagShortened] = array(
+                $potentiallyConflictingTaxonomy[$tagShortened] = [
                     'count' => 1
-                );
+                ];
             }
             $potentiallyConflictingTaxonomy[$tagShortened]['tagNames'][] = $tagName;
         }
@@ -747,9 +754,9 @@ class Taxonomy extends AppModel
         ) {
             unset($potentiallyConflictingTaxonomy['tlp']);
         }
-        foreach ($potentiallyConflictingTaxonomy as $potTaxonomy) {
+        foreach ($potentiallyConflictingTaxonomy as $taxonomyName => $potTaxonomy) {
             if ($potTaxonomy['count'] > 1) {
-                $taxonomy = $potTaxonomy['taxonomy'];
+                $taxonomy = $this->__taxonomyConflicts[$taxonomyName];
                 if (isset($taxonomy['Taxonomy']['exclusive']) && $taxonomy['Taxonomy']['exclusive']) {
                     $conflictingTaxonomy[] = array(
                         'tags' => $potTaxonomy['tagNames'],

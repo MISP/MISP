@@ -184,7 +184,7 @@ $debugEnabled = !empty($selectedWorkflow['Workflow']['debug_enabled']);
                             <a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import blueprint') ?></a>
                             <ul class="dropdown-menu pull-right">
                                 <?php if (empty($workflowBlueprints)) : ?>
-                                    <li><a href="#"><?= _('No workflow blueprints saved') ?></a></li>
+                                    <li><a href="#"><?= __('No workflow blueprints saved') ?></a></li>
                                 <?php endif; ?>
                                 <?php foreach ($workflowBlueprints as $workflowBlueprint) : ?>
                                     <li>
@@ -202,7 +202,7 @@ $debugEnabled = !empty($selectedWorkflow['Workflow']['debug_enabled']);
                             <a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('edit') ?>"></i> <?= __('Edit existing blueprint') ?></a>
                             <ul class="dropdown-menu pull-right disabled">
                                 <?php if (empty($workflowBlueprints)) : ?>
-                                    <li><a href="#"><?= _('No workflow blueprints saved') ?></a></li>
+                                    <li><a href="#"><?= __('No workflow blueprints saved') ?></a></li>
                                 <?php endif; ?>
                                 <?php foreach ($workflowBlueprints as $workflowBlueprint) : ?>
                                     <li class="control-edit-bp-blocks">
@@ -272,7 +272,8 @@ $debugEnabled = !empty($selectedWorkflow['Workflow']['debug_enabled']);
 <?php
 echo $this->element('genericElements/assetLoader', [
     'css' => ['drawflow.min', 'drawflow-default'],
-    'js' => ['jquery-ui.min', 'drawflow.min', 'doT', 'moment.min', 'viselect.cjs'],
+    'js' => ['jquery-ui.min', 'drawflow', 'doT', 'moment.min', 'viselect.cjs'],
+    // 'js' => ['jquery-ui.min', 'drawflow.min', 'doT', 'moment.min', 'viselect.cjs'],
 ]);
 echo $this->element('genericElements/assetLoader', [
     'css' => ['workflows-editor'],

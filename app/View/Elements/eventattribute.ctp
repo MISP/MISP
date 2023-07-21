@@ -111,7 +111,9 @@
             <th><?php echo $this->Paginator->sort('comment');?></th>
             <th><?php echo __('Correlate');?></th>
             <th><?php echo __('Related Events');?></th>
-            <th><?php echo __('Feed hits');?></th>
+            <?php if ($me['Role']['perm_view_feed_correlations']) { ?>
+                <th><?php echo __('Feed hits');?></th>
+            <?php } ?>
             <th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
             <th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
             <th><?php echo __('Sightings');?></th>

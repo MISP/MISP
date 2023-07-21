@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+
 class GalaxyClusterBlocklist extends AppModel
 {
     public $useTable = 'galaxy_cluster_blocklists';
@@ -22,12 +23,12 @@ class GalaxyClusterBlocklist extends AppModel
     public $validate = array(
         'cluster_uuid' => array(
             'unique' => array(
-                    'rule' => 'isUnique',
-                    'message' => 'Galaxy Cluster already blocklisted.'
+                'rule' => 'isUnique',
+                'message' => 'Galaxy Cluster already blocklisted.'
             ),
             'uuid' => array(
-                    'rule' => array('uuid'),
-                    'message' => 'Please provide a valid UUID'
+                'rule' => array('uuid'),
+                'message' => 'Please provide a valid UUID'
             ),
         )
     );
@@ -35,9 +36,8 @@ class GalaxyClusterBlocklist extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
-        $date = date('Y-m-d H:i:s');
         if (empty($this->data['GalaxyClusterBlocklist']['id'])) {
-            $this->data['GalaxyClusterBlocklist']['date_created'] = $date;
+            $this->data['GalaxyClusterBlocklist']['date_created'] = date('Y-m-d H:i:s');
         }
         if (empty($this->data['GalaxyClusterBlocklist']['comment'])) {
             $this->data['GalaxyClusterBlocklist']['comment'] = '';
@@ -45,12 +45,14 @@ class GalaxyClusterBlocklist extends AppModel
         return true;
     }
 
+    /**
+     * @param string $clusterUUID
+     * @return bool
+     */
     public function checkIfBlocked($clusterUUID)
     {
-        $entry = $this->find('first', array('conditions' => array('cluster_uuid' => $clusterUUID)));
-        if (!empty($entry)) {
-            return true;
-        }
-        return false;
+        return $this->hasAny([
+            'cluster_uuid' => $clusterUUID,
+        ]);
     }
 }
