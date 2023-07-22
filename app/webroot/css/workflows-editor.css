@@ -345,6 +345,11 @@
     border: 3px solid #e35651;
 }
 
+.drawflow svg.connection > path.link-hover-for-insertion {
+    stroke: #7210cd;
+    filter: drop-shadow(0px 0px 6px #7210cddd);
+}
+
 /* Custom input/output CSS */
 /* .drawflow .drawflow-node.expect-misp-core-format>.inputs>.input {
     background-color: #2fa1db;

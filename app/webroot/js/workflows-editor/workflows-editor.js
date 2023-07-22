@@ -304,8 +304,32 @@ function initDrawflow() {
             if (ui.draggable.data('blueprint')) {
                 addWorkflowBlueprint(ui.draggable.data('blueprint').WorkflowBlueprint.id, ui.position)
             } else {
-                addNode(ui.draggable.data('module'), ui.position)
+                var node = addNode(ui.draggable.data('module'), ui.position)
+                var fakeUi = {
+                    draggable: ui.helper,
+                    position: { left: ui.helper[0].getBoundingClientRect().left, top: ui.helper[0].getBoundingClientRect().top }
+                }
+                var link = getLinkUnderElement(fakeUi)
+                if (link !== undefined) {
+                    insertNodeOnLink(node, link)
+                }
             }
+        },
+        activate: function (event, ui) {
+            var $pathsWithClass = $()
+            ui.helper.mousemove(function (event) {
+                var fakeUi = {
+                    draggable: $(this),
+                    position: {left: this.getBoundingClientRect().left, top: this.getBoundingClientRect().top}
+                }
+                var links = getLinkUnderElement(fakeUi)
+                $pathsWithClass.removeClass('link-hover-for-insertion')
+                if (links) {
+                    $paths = $(links).find('path')
+                    $paths.addClass('link-hover-for-insertion')
+                    $pathsWithClass = $paths
+                }
+            })
         },
     });
 
@@ -666,6 +690,7 @@ function addNode(block, position, additionalData={}) {
         html
     )
     afterNodeDrawCallback()
+    return editor.getNodeFromId(editor.nodeId-1)
 }
 
 function getEditorData(cleanNodes) {
@@ -850,7 +875,8 @@ function duplicateNodesFromHtml(currentSelection) {
                         oldNewIDMapping[node_id],
                         oldNewIDMapping[connection.node],
                         outputName,
-                        connection.output
+                        connection.output,
+                        []
                     )
                 }
             });
@@ -916,7 +942,8 @@ function addNodesFromBlueprint(workflowBlueprint, cursorPosition) {
                             oldNewIDMapping[node.id],
                             oldNewIDMapping[connection.node],
                             outputName,
-                            connection.output
+                            connection.output,
+                            []
                         )
                     }
                 });
@@ -1263,6 +1290,85 @@ function addWorkflowBlueprint(blueprintId, cursorPosition) {
         selection.clearSelection()
         selection.select(newNodes)
         editor.dispatch('nodeSelected', newNodes[0].id);
+    }
+}
+
+function getLinkUnderElement(ui) {
+    var orig_pos_x = ui.position.left
+    var orig_pos_y = ui.position.top
+    var elementHeight = ui.draggable[0].clientHeight
+    var elementCenterY = ui.position.top + ui.draggable[0].clientHeight / 2
+
+     // Credit: Drawflow example page
+    var transpositionFactorX = (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom))
+    var transpositionOffsetX = -(editor.precanvas.getBoundingClientRect().x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)))
+    var transpositionFactorY = (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom))
+    var transpositionOffsetY = -(editor.precanvas.getBoundingClientRect().y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)))
+
+    var pos_x = orig_pos_x * transpositionFactorX + transpositionOffsetX
+    var pos_y = orig_pos_y * transpositionFactorY + transpositionOffsetY
+    var transposedHeight = (orig_pos_y + elementHeight) * transpositionFactorY + transpositionOffsetY
+    var transposedCenterY = elementCenterY * transpositionFactorY + transpositionOffsetY
+
+    var $allConnectionMiddlePoint = $drawflow.find('svg.connection > foreignObject')
+    var allValidLinks = []
+    $allConnectionMiddlePoint.each(function() {
+        var middlePointY = this.y.baseVal.value
+        if (pos_y <= middlePointY && middlePointY <= transposedHeight) {
+            var $svg = this.parentElement.childNodes[0]
+            var svgBR = $svg.getBoundingClientRect()
+            var linkTransposedLeftPosition = svgBR.x * transpositionFactorX + transpositionOffsetX
+            var linkTransposedRightPosition = (svgBR.x + svgBR.width) * transpositionFactorX + transpositionOffsetX
+            if (linkTransposedLeftPosition <= pos_x && pos_x <= linkTransposedRightPosition) {
+                allValidLinks.push(this.parentElement)
+            }
+        }
+    })
+
+    if (allValidLinks.length == 1) {
+        return allValidLinks[0]
+    } else if (allValidLinks.length > 1) {
+        // sort based on distance between link middle point and element input
+        function calcDistance(pt1, pt2) {
+            return Math.sqrt((pt2.x - pt1.x)**2 + (pt2.y - pt1.y)**2)
+        }
+        var elementInputPosition = { x: pos_x, y: transposedCenterY }
+        var allValidLinksSorted = allValidLinks.sort(function (link1, link2) {
+            var middlePoint1 = {
+                x: $(link1).find('foreignObject')[0].x.baseVal.value,
+                y: $(link1).find('foreignObject')[0].y.baseVal.value,
+            }
+            var middlePoint2 = {
+                x: $(link2).find('foreignObject')[0].x.baseVal.value,
+                y: $(link2).find('foreignObject')[0].y.baseVal.value,
+            }
+            var distance1 = calcDistance(elementInputPosition, middlePoint1)
+            var distance2 = calcDistance(elementInputPosition, middlePoint2)
+            return distance1 <= distance2 ? -1 : 1
+        });
+        return allValidLinksSorted[0]
+    }
+    return
+}
+
+function insertNodeOnLink(newNode, link) {
+    var defaultConnectionName = 'output_1'
+    var ids = getIDsFromSvgLink(link)
+    var nodeIn = ids.nodeIn
+    var inConnectionName = ids.inConnectionName
+    var nodeOut = ids.nodeOut
+    var outConnectionName = ids.outConnectionName
+    editor.addConnection(nodeOut, newNode.id, outConnectionName, inConnectionName, [])
+    editor.addConnection(newNode.id, nodeIn, defaultConnectionName, inConnectionName, [])
+    editor.removeSingleConnection(nodeOut, nodeIn, outConnectionName, inConnectionName)
+}
+
+function getIDsFromSvgLink(link) {
+    return {
+        'nodeIn': parseInt(Array.from(link.classList).filter(c => c.startsWith('node_in_node-'))[0].replace('node_in_node-', '')),
+        'inConnectionName': Array.from(link.classList).filter(c => c.startsWith('input_'))[0],
+        'nodeOut': parseInt(Array.from(link.classList).filter(c => c.startsWith('node_out_node-'))[0].replace('node_out_node-', '')),
+        'outConnectionName': Array.from(link.classList).filter(c => c.startsWith('output_'))[0],
     }
 }
 
