@@ -79,7 +79,8 @@ class Sighting extends AppModel
     {
         $pubToZmq = $this->pubToZmq('sighting');
         $kafkaTopic = $this->kafkaTopic('sighting');
-        if ($pubToZmq || $kafkaTopic) {
+        $isTriggerCallable = $this->isTriggerCallable('sighting-publish');
+        if ($pubToZmq || $kafkaTopic || $isTriggerCallable) {
             $sighting = $this->getSighting($this->id);
             if ($pubToZmq) {
                 $pubSubTool = $this->getPubSubTool();
@@ -88,6 +89,17 @@ class Sighting extends AppModel
             if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $sighting, 'add');
+            }
+
+            if($isTriggerCallable) {
+                $workflowErrors = [];
+                $logging = [
+                    'model' => 'Sighting',
+                    'action' => $action,
+                    'id' => $sighting['Sighting']['id'],
+                ];
+                $triggerData = $sighting;
+                $this->executeTrigger('sighting-publish', $triggerData, $workflowErrors, $logging);
             }
         }
         return true;
