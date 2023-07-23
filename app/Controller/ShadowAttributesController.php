@@ -906,7 +906,23 @@ class ShadowAttributesController extends AppController
         }
         $params = array(
             'conditions' => $conditions,
-            'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen'),
+            'fields' => array(
+                'ShadowAttribute.id',
+                'ShadowAttribute.old_id',
+                'ShadowAttribute.event_id',
+                'ShadowAttribute.type',
+                'ShadowAttribute.category',
+                'ShadowAttribute.uuid',
+                'ShadowAttribute.to_ids',
+                'ShadowAttribute.value',
+                'ShadowAttribute.comment',
+                'ShadowAttribute.org_id',
+                'ShadowAttribute.timestamp',
+                'ShadowAttribute.first_seen',
+                'ShadowAttribute.last_seen',
+                'ShadowAttribute.proposal_to_delete',
+                'ShadowAttribute.disable_correlation'
+            ),
             'contain' => array(
                     'Event' => array(
                             'fields' => array('id', 'org_id', 'info', 'orgc_id', 'uuid'),
