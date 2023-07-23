@@ -405,7 +405,17 @@ class EventShell extends AppShell
         $jobId = $this->args[2];
         $userId = $this->args[3];
         $user = $this->getUser($userId);
-        $job = $this->Job->read(null, $jobId);
+        $job = $this->Job->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'Job.id' => $jobId
+            ]
+        ]);
+        if (empty($job)) {
+            $log = ClassRegistry::init('Log');
+            $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): could not be published - valid job not found.', '');
+            return true;
+        }
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
         $result = $this->Event->publish($id, $passAlong);
         $job['Job']['progress'] = 100;
