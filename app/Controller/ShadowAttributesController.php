@@ -78,7 +78,7 @@ class ShadowAttributesController extends AppController
             }
 
             if (isset($shadow['proposal_to_delete']) && $shadow['proposal_to_delete']) {
-                $this->Attribute->delete($activeAttribute['Attribute']['id']);
+                $this->Attribute->deleteAttribute($activeAttribute['Attribute']['id'], $this->Auth->user(), false);
             } else {
                 // Update the live attribute with the shadow data
                 $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids', 'first_seen', 'last_seen');
