@@ -920,6 +920,7 @@ class ShadowAttributesController extends AppController
                 'ShadowAttribute.timestamp',
                 'ShadowAttribute.first_seen',
                 'ShadowAttribute.last_seen',
+                'ShadowAttribute.deleted',
                 'ShadowAttribute.proposal_to_delete',
                 'ShadowAttribute.disable_correlation'
             ),
