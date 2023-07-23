@@ -705,6 +705,8 @@ class ShadowAttribute extends AppModel
                 $this->logException("Could not fetch page $i of proposals from remote server {$serverSync->server()['Server']['id']}", $e);
                 return $fetchedCount;
             }
+            debug($data);
+            throw new Exception();
             $returnSize = count($data);
             if ($returnSize === 0) {
                 return $fetchedCount;
