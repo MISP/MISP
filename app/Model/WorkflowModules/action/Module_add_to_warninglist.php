@@ -1,5 +1,5 @@
 <?php
-include_once APP . 'Model/WorkflowModules/action/Module_attribute_edition_operation.php';
+include_once APP . 'Model/WorkflowModules/action/WorkflowBaseActionModule.php';
 
 class Module_add_to_warninglist extends WorkflowBaseActionModule 
 {
