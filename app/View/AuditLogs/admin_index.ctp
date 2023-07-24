@@ -10,7 +10,6 @@
     <?php
         echo $this->Html->script('moment.min');
         echo $this->Html->script('doT');
-        echo $this->Html->script('extendext');
         echo $this->Html->css('query-builder.default');
         echo $this->Html->script('query-builder');
     ?>
