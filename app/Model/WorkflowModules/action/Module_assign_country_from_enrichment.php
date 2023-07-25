@@ -3,7 +3,7 @@ include_once APP . 'Model/WorkflowModules/action/Module_tag_operation.php';
 
 class Module_assign_country_from_enrichment extends Module_tag_operation
 {
-    public $version = '0.1';
+    public $version = '0.2';
     public $blocking = false;
     public $id = 'assign_country';
     public $name = 'Assign country';
@@ -36,7 +36,7 @@ class Module_assign_country_from_enrichment extends Module_tag_operation
             [
                 'id' => 'hash_path',
                 'label' => 'Country Hash path',
-                'type' => 'input',
+                'type' => 'hashpath',
                 'placeholder' => 'enrichment.{n}.{n}.values.0',
                 'default' => 'enrichment.{n}.{n}.values.0'
             ],

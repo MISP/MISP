@@ -5,6 +5,7 @@ class Module_generic_if extends WorkflowBaseLogicModule
 {
     public $id = 'generic-if';
     public $name = 'IF :: Generic';
+    public $version = '0.2';
     public $description = 'Generic IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
     public $icon = 'code-branch';
     public $inputs = 1;
@@ -54,7 +55,7 @@ class Module_generic_if extends WorkflowBaseLogicModule
             [
                 'id' => 'hash_path',
                 'label' => 'Hash path',
-                'type' => 'input',
+                'type' => 'hashpath',
                 'placeholder' => 'Attribute.{n}.Tag',
             ],
         ];

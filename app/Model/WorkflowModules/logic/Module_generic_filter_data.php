@@ -5,6 +5,7 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
 {
     public $id = 'generic-filter-data';
     public $name = 'Filter :: Generic';
+    public $version = '0.2';
     public $description = 'Generic data filtering block. The module filters incoming data and forward the matching data to its output.';
     public $icon = 'filter';
     public $inputs = 1;
@@ -66,7 +67,7 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
             [
                 'id' => 'hash_path',
                 'label' => __('Hash path'),
-                'type' => 'input',
+                'type' => 'hashpath',
                 'placeholder' => 'Tag.name',
             ],
         ];
