@@ -350,6 +350,29 @@
     filter: drop-shadow(0px 0px 6px #7210cddd);
 }
 
+#core-format-picker {
+    padding: 5px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    border: 1px solid #e1e1e1;
+}
+#core-format-picker .selectable-key {
+    padding: 2px 3px;
+}
+#core-format-picker .selectable-key:hover {
+    box-shadow: 0 0 5px #00000077;
+    cursor: pointer;
+}
+
+#core-format-picker .selectable-value {
+    padding: 2px 3px;
+}
+#core-format-picker .selectable-value:hover {
+    box-shadow: 0 0 5px #00000077;
+    font-weight: bold;
+    cursor: pointer;
+}
+
 /* Custom input/output CSS */
 /* .drawflow .drawflow-node.expect-misp-core-format>.inputs>.input {
     background-color: #2fa1db;

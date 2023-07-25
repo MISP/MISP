@@ -143,6 +143,11 @@ var iconBySeverity = {
     'error': 'fa-exclamation-circle',
 }
 var severities = ['info', 'warning', 'error']
+var haspathQuickPickMenu = [
+    { 'name': 'All Attributes', 'path': 'Event._AttributeFlattened.{n}' },
+    { 'name': 'All tags attached to Attributes', 'path': 'Event._AttributeFlattened.{n}.Tag.{n}.name' },
+    { 'name': 'All tags attached to the Event', 'path': 'Event.Tag.{n}.name' },
+]
 
 var workflow_id = 0
 var contentChanged = false
@@ -1437,6 +1442,9 @@ function genNodeParamHtml(node, forNode = true) {
             case 'input':
                 paramHtml = genInput(param, false, forNode)[0].outerHTML
                 break;
+            case 'hashpath':
+                paramHtml = genHashpathInput(param, false, forNode)[0].outerHTML
+                break;
             case 'textarea':
                 paramHtml = genInput(param, true, forNode)[0].outerHTML
                 break;
@@ -1468,6 +1476,7 @@ function afterNodeDrawCallback() {
     })
     toggleDisplayOnFields()
     enablePickerCreateNewOptions()
+    enableHashpathPicker()
 }
 
 function afterModalShowCallback() {
@@ -1547,6 +1556,65 @@ function enablePickerCreateNewOptions() {
             }
         })
     })
+}
+
+function enableHashpathPicker() {
+    var $nodes = $drawflow.find('.drawflow-node')
+    $nodes.find('.hashpath-picker-container').each(function () {
+        $(this).find('.hashpath-quick-picker').click(function () {
+            $(this).closest('.input-append').find('input')
+                .val($(this).data('hashpath'))
+                .trigger('input')
+            
+        })
+        $(this).find('.hashpath-format-picker').click(function() {
+            toggleCoreFormatPicker(this)
+        })
+    })
+}
+
+function toggleCoreFormatPicker(btn) {
+    var associatedParamId = $(btn).closest('.input-append').find('input').data('paramid')
+    var sample = JSON.parse($('#misp-core-format-sample').text())
+    var UIPicker = generateCoreFormatUI(sample, associatedParamId)
+    var $selectedPath = $('<input>')
+        .attr({
+            id: 'selected-hashpath-input',
+            type: 'text',
+            placeholder: 'Click on a elemet on the JSON to show the path',
+            onchange: 'setValueOnAssociatedInput(this.value, "' + associatedParamId + '")',
+        })
+        .css({ margin: '0 0.75em 0 0', 'flex-grow': 2 })
+    var $selectedPathOperators = $('<select>')
+        .attr({
+            id: 'selected-hashpath-operator',
+            onchange: 'setHashpathOnInput(this, "' + associatedParamId + '")',
+        })
+        .css({margin: '0', 'max-width': '15%'})
+    var pathOperators = [
+        { name: 'Has key []', stringToFormat: '[{$key}]' },
+        { name: 'Match [=]', stringToFormat: '[{$key}={$value}]', default: true },
+        { name: 'Match [!=]', stringToFormat: '[{$key}!={$value}]' },
+        { name: 'Match [>]', stringToFormat: '[{$key}>{$value}]' },
+        { name: 'Match [>=]', stringToFormat: '[{$key}>={$value}]' },
+        { name: 'Match [<]', stringToFormat: '[{$key}<{$value}]' },
+        { name: 'Match [<=]', stringToFormat: '[{$key}<={$value}]' },
+        { name: 'Regex match [/.../]', stringToFormat: '[{$key}=/\S*\{$value}\S*/]' },
+    ]
+    pathOperators.forEach((opt) => {
+        var $option = $('<option>')
+            .val(opt.stringToFormat)
+            .text(opt.name)
+        if (opt.default === true) {
+            $option.attr('selected', 'selected')
+        }
+        $selectedPathOperators.append($option)
+    })
+    $pathGroup = $('<span>').css({'display': 'flex', 'width': '100%'})
+        .append($selectedPathOperators, $selectedPath)
+    var $closeButton = $('<div>').append($('<a href="#" class="btn" data-dismiss="modal">Close</a>'))
+    var $footer = $('<div>').css({display: 'flex'}).append($pathGroup, $closeButton)
+    openModal('Pick Hash path', UIPicker[0].outerHTML, $footer[0].outerHTML, undefined, undefined, 'max-height: 70vh;', 'modal-lg')
 }
 
 function genParameterWarning(options) {
@@ -1711,6 +1779,83 @@ function genInput(options, isTextArea, forNode = true) {
     }
     $label.append($input)
     $container.append($label)
+    return $container
+}
+
+function genHashpathInput(options, forNode = true) {
+    function hashPathGenDropdownMenu() {
+        var $divider = $('<li>').addClass('divider')
+        var $dropdownMenu = $('<ul>').addClass('dropdown-menu pull-right')
+        var $liPicker = $('<li>').append(
+            $('<a>')
+                .attr({
+                    'tabindex': '-1',
+                    'href': '#',
+                })
+                .addClass('hashpath-format-picker')
+                .text('Show picker')
+        )
+        $dropdownMenu.append($liPicker)
+        $dropdownMenu.append($divider)
+        haspathQuickPickMenu.forEach((entry) => {
+            var $li = $('<li>').append(
+                $('<a>')
+                    .attr({
+                        'tabindex': '-1',
+                        'href': '#',
+                        'data-hashpath': entry.path
+                    })
+                    .addClass('hashpath-quick-picker')
+                    .text(entry.name)
+            )
+            $dropdownMenu.append($li)
+        })
+        return $dropdownMenu
+    }
+
+    var $container = $('<div>')
+        .addClass('node-param-container')
+        .attr('param-id', options.id)
+    if (options.display_on) {
+        $container.addClass('display-on')
+    }
+    var $addonContainer = $('<div>')
+        .addClass('input-append')
+        .css({'display': 'flex'})
+    var $label = $('<label>')
+        .css({
+            marginLeft: '0.25em',
+            marginBbottom: 0,
+        })
+        .append(
+            $('<span>').text(options.label),
+            genParameterWarning(options)
+        )
+    var $input = $('<input>').attr('type', 'text').css({ height: '30px' })
+    $input.css({
+        'flex-grow': '1',
+        'box-sizing': 'border-box',
+    })
+    $input
+        .attr('oninput', 'handleInputChange(this)')
+        .attr('data-paramid', options.param_id)
+    $input.attr('value', options.value !== undefined ? options.value : options.default)
+    if (options.placeholder !== undefined) {
+        $input.attr('placeholder', options.placeholder)
+    }
+    if (options.disabled !== undefined) {
+        $input.prop('disabled', options.disabled == true)
+    }
+    var $dropdownContainer = $('<div>').addClass(['btn-group', 'hashpath-picker-container'])
+    var $dropdownButton = $('<button>')
+        .addClass(['btn', 'dropdown-toggle'])
+        .attr('data-toggle', 'dropdown')
+        .text('Pick ')
+        .append($('<span>').addClass('caret'))
+    var $dropdownMenu = hashPathGenDropdownMenu()
+    $dropdownContainer.append($dropdownButton, $dropdownMenu)
+    $addonContainer.append($input, $dropdownContainer)
+    $container.append($label, $addonContainer)
     return $container
 }
 
@@ -2125,4 +2270,156 @@ function highlightGraphIssues(graphProperties) {
     highlightAcyclic(graphProperties.is_acyclic)
     highlightMultipleOutputConnection(graphProperties.multiple_output_connection)
     highlightPathWarning(graphProperties.path_warnings)
+}
+
+function setHashpathOnInput(clicked, associatedParamId, isValue) {
+    var path = $(clicked).data('hashpath')
+    if (isValue === true) {
+        var key = $(clicked).data('hashpath-key')
+        var value = $(clicked).data('hashpath-value')
+        path += getPathFiltering(key, value)
+    }
+    $('#selected-hashpath-input').val(path)
+    setValueOnAssociatedInput(associatedParamId, path)
+}
+
+function setValueOnAssociatedInput(associatedParamId, value) {
+    var $associatedInput = $drawflow.find('input[data-paramid="' + associatedParamId + '"]')
+    $associatedInput.val(value)
+    $associatedInput.trigger('input')
+}
+
+function getPathFiltering(key, value) {
+    var stringToFormat = $('#selected-hashpath-operator').val()
+    var filter = stringToFormat
+        .replace('{$key}', key)
+        .replace('{$value}', value)
+    return filter
+}
+
+function generateCoreFormatUI(event, associatedParamId) {
+    var indent_size = 'calc(1em)'
+    var color_key = '#005cd5'
+    var color_index = '#727272'
+    var color_string = '#cf5900'
+    var color_null = '#747474'
+    var color_bool = '#004bad'
+    var color_brace = '#727272'
+    var color_column = '#727272'
+
+    function generate(item, depth, path) {
+        if (Array.isArray(item)) {
+            var $container = $('<span>').append(
+                depth == 1 ? '' : braceOpen(true),
+                genArray(item, depth, path),
+                depth == 1 ? '' : braceClose(true),
+            )
+        } else if (typeof item === 'object' && item !== null) {
+            var $container = $('<span>').append(
+                depth == 1 ? '' : braceOpen(),
+                genObject(item, depth, path),
+                depth == 1 ? '' : braceClose(),
+            )
+        } else {
+            var $container = genValue(item, path)
+        }
+        return $container
+    }
+
+    function genArray(arr, depth, path) {
+        var $container = $('<div>')
+        arr.forEach(function (v, i) {
+            var nextPath = path + '.{n}'
+            var $index = genIndex(i, nextPath)
+            var $value = generate(v, depth + 1, nextPath)
+            var $div = $('<div>')
+            $div.append($index, column(), $value)
+            $container.append($div)
+        })
+        setDepth($container, depth, path)
+        return $container
+    }
+
+    function genObject(obj, depth, path) {
+        var $container = $('<div>')
+        Object.keys(obj).forEach(function (k) {
+            var nextPath = path + '.' + k
+            var v = obj[k]
+            var $key = genKey(k, nextPath)
+            var $value = generate(v, depth+1, nextPath)
+            var $div = $('<div>')
+            $div.append($key, column(), $value)
+            $container.append($div)
+        })
+        setDepth($container, depth)
+        return $container
+    }
+
+    function genValue(val, path) {
+        var exploded_path = path.split('.')
+        var path_without_last_key = exploded_path.slice(0, -1).join('.')
+        var key = exploded_path.pop()
+        var path_filtered_by_value = path_without_last_key// + addFiltering(key, val)
+        var $value
+        if (val === null) {
+            $value = $('<span>').text('null').css({'color': color_null })
+        } else if (typeof val === 'boolean') {
+            $value = $('<span>').text(val).css({'color': color_bool })
+        } else {
+            $value = $('<span>').text(val).css({'color': color_string })
+        }
+        $value
+            .addClass('selectable-value')
+            .attr('data-hashpath-key', key)
+            .attr('data-hashpath-value', val)
+            .attr('data-hashpath', path_filtered_by_value.slice(1))
+            .attr('onclick', 'setHashpathOnInput(this, "' + associatedParamId + '", true)')
+        return $value
+    }
+
+    function genKey(key, path) {
+        return $('<span>')
+            .text(key)
+            .css({
+                'color': color_key,
+                'font-weight': 'bold',
+            })
+            .addClass('selectable-key')
+            .attr('data-hashpath', path.slice(1))
+            .attr('onclick', 'setHashpathOnInput(this, "' + associatedParamId + '")')
+    }
+
+    function genIndex(i, path) {
+        return $('<span>')
+            .text(i)
+            .addClass('selectable-key')
+            .css({ 'color': color_index })
+            .attr('data-hashpath', path.slice(1))
+            .attr('onclick', 'setHashpathOnInput(this, "' + associatedParamId + '")')
+    }
+
+    function header() {
+        return $('<div>').append(braceOpen())
+    }
+
+    function footer() {
+        return $('<div>').append(braceClose())
+    }
+
+    function braceOpen(isArray) {
+        return $('<span>').text(isArray ? '[' : '{').css({ 'color': color_brace, margin: '0 0.25em' })
+    }
+    function braceClose(isArray) {
+        return $('<span>').text(isArray ? ']' : '}').css({ 'color': color_brace, margin: '0 0.25em' })
+    }
+    function column() {
+        return $('<span>').text(':').css({ 'color': color_column, margin: '0 0.25em' })
+    }
+    function setDepth($obj) {
+        $obj.css('margin-left', 'calc( ' + indent_size + ' )')
+    }
+
+    var $mainContainer = $('<div id="core-format-picker">')
+    $mainContainer.append(header(), generate(event, 1, ''), footer())
+    return $mainContainer
 }

@@ -1998,9 +1998,9 @@ function choicePopup(legend, list) {
     openPopup("#popover_form");
 }
 
-function openModal(heading, body, footer, modal_option, css_container, css_body) {
+function openModal(heading, body, footer, modal_option, css_container, css_body, class_container) {
     var modal_id = 'dynamic_modal_' + new Date().getTime();
-    var modal_html = '<div id="' + modal_id + '" class="modal hide fade" style="' + (css_container !== undefined ? css_container : '') + '" tabindex="-1" role="dialog" aria-hidden="true">';
+    var modal_html = '<div id="' + modal_id + '" class="modal hide fade ' + (class_container !== undefined ? class_container : '') + '" style="' + (css_container !== undefined ? css_container : '') + '" tabindex="-1" role="dialog" aria-hidden="true">';
     if (heading !== undefined && heading !== '') {
         modal_html += '<div class="modal-header">'
                         + '<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>'
