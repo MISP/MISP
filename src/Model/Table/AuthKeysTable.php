@@ -3,13 +3,13 @@
 namespace App\Model\Table;
 
 use App\Model\Table\AppTable;
-use Cake\Validation\Validator;
+use ArrayObject;
+use Cake\Auth\DefaultPasswordHasher;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\Event;
 use Cake\Event\EventInterface;
-use Cake\Auth\DefaultPasswordHasher;
 use Cake\Utility\Security;
-use ArrayObject;
+use Cake\Validation\Validator;
 
 class AuthKeysTable extends AppTable
 {
@@ -19,7 +19,12 @@ class AuthKeysTable extends AppTable
         $this->addBehavior('UUID');
         $this->addBehavior('AuditLog');
         $this->belongsTo(
-            'Users'
+            'Users',
+            [
+                'dependent' => false,
+                'cascadeCallbacks' => false,
+                'propertyName' => 'User'
+            ]
         );
         $this->setDisplayField('comment');
     }
@@ -65,14 +70,16 @@ class AuthKeysTable extends AppTable
         }
         $start = substr($authkey, 0, 4);
         $end = substr($authkey, -4);
-        $candidates = $this->find()->where([
+        $candidates = $this->find()->where(
+            [
             'authkey_start' => $start,
             'authkey_end' => $end,
             'OR' => [
                 'expiration' => 0,
                 'expiration >' => time()
             ]
-        ]);
+            ]
+        );
         if (!empty($candidates)) {
             foreach ($candidates as $candidate) {
                 if ((new DefaultPasswordHasher())->check($authkey, $candidate['authkey'])) {
