@@ -12,7 +12,7 @@ class Module_sighting_publish extends WorkflowBaseTriggerModule
     public $outputs = 1;
     public $blocking = false;
     public $misp_core_format = false;
-    public $trigger_overhead = self::OVERHEAD_LOW;
+    public $trigger_overhead = self::OVERHEAD_HIGH;
 
     public function __construct()
     {
