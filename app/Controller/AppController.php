@@ -1182,9 +1182,7 @@ class AppController extends Controller
 
     private function _redirectToLogin()
     {
-        $targetRoute = $this->Auth->loginAction;
-        $targetRoute['admin'] = false;
-        $this->redirect($targetRoute);
+        $this->redirect($this->Auth->loginAction);
     }
 
     /**
