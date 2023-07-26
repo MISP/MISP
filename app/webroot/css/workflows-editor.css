@@ -41,6 +41,11 @@
     flex-direction: column;
     position: absolute;
     top: var(--topbar-height)px;
+    left: 0;
+    transition: left 0.15s ease-out;
+}
+.sidebar.minimized {
+    left: calc(-1 * var(--editor-sidepanel-width));
 }
 
 .side-panel {
@@ -61,6 +66,31 @@
     background-color: #ffffff66;
     z-index: -1;
     top: 0;
+}
+
+.sidebar-minimize-button {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    cursor: pointer;
+}
+.sidebar-maximize-button {
+    position: absolute;
+    font-size: 1.25rem;
+    top: 3px;
+    right: -32px;
+    cursor: pointer;
+    background-color: #fff;
+    padding: 5px;
+    border-radius: 3px;
+    border: 1px #e3e3e3 solid;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+}
+.sidebar.minimized .sidebar-maximize-button {
+    display: inline-block;
+    opacity: 1;
 }
 
 .side-panel #block-tabs {

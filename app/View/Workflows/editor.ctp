@@ -71,6 +71,12 @@ $debugEnabled = !empty($selectedWorkflow['Workflow']['debug_enabled']);
     <div class="main-container">
         <div class="sidebar">
             <div class="side-panel">
+                <span class="sidebar-minimize-button">
+                    <i class="<?= $this->FontAwesome->getClass('angle-double-left') ?>"></i>
+                </span>
+                <span class="sidebar-maximize-button">
+                    <i class="<?= $this->FontAwesome->getClass('angle-double-right') ?>"></i>
+                </span>
                 <ul class="nav nav-tabs" id="block-tabs">
                     <li class="active">
                         <a href="#container-actions">
@@ -335,5 +341,11 @@ echo $this->element('genericElements/assetLoader', [
 
     $(document).ready(function() {
         initDrawflow()
+        $('.sidebar-minimize-button').click(function() {
+            $(this).closest('.sidebar').addClass('minimized')
+        })
+        $('.sidebar-maximize-button').click(function() {
+            $(this).closest('.sidebar').removeClass('minimized')
+        })
     })
 </script>
