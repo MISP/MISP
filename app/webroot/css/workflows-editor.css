@@ -357,6 +357,7 @@
     border: 1px solid #e1e1e1;
 }
 #core-format-picker .selectable-key {
+    font-weight: bold;
     padding: 2px 3px;
 }
 #core-format-picker .selectable-key:hover {
@@ -370,6 +371,22 @@
 #core-format-picker .selectable-value:hover {
     box-shadow: 0 0 5px #00000077;
     font-weight: bold;
+    cursor: pointer;
+}
+
+#core-format-picker .children-counter {
+    background-color: #6b6b6b;
+    color: #f2f2f2;
+    padding: 2px 5px;
+    margin: 0px 0.25rem;
+    font-size: smaller;
+    border-radius: 3px;
+}
+#core-format-picker .collaspe-button {
+    cursor: pointer;
+}
+#core-format-picker .collaspe-button:hover {
+    color: #292929;
     cursor: pointer;
 }
 
