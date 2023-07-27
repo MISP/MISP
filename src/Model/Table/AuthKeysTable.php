@@ -26,9 +26,12 @@ class AuthKeysTable extends AppTable
                 'propertyName' => 'User'
             ]
         );
-        // $this->addBehavior('JsonFields', [
-        //     'fields' => ['allowed_ips'],
-        // ]);
+        $this->addBehavior(
+            'JsonFields',
+            [
+            'fields' => ['allowed_ips'],
+            ]
+        );
         $this->setDisplayField('comment');
     }
 
@@ -75,12 +78,12 @@ class AuthKeysTable extends AppTable
         $end = substr($authkey, -4);
         $candidates = $this->find()->where(
             [
-            'authkey_start' => $start,
-            'authkey_end' => $end,
-            'OR' => [
-                'expiration' => 0,
-                'expiration >' => time()
-            ]
+                'authkey_start' => $start,
+                'authkey_end' => $end,
+                'OR' => [
+                    'expiration' => 0,
+                    'expiration >' => time()
+                ]
             ]
         );
         if (!empty($candidates)) {

@@ -41,7 +41,6 @@ class AuthKeysController extends AppController
                     $keyIds = Hash::extract($authKeys, "{n}.AuthKey.id");
                     $lastUsedById = $this->AuthKey->getLastUsageForKeys($keyIds);
                 }
-                $authKeys = $authKeys->toArray();
                 foreach ($authKeys as &$authKey) {
                     if ($keyUsageEnabled) {
                         $lastUsed = $lastUsedById[$authKey['id']];
@@ -225,14 +224,14 @@ class AuthKeysController extends AppController
         if ($this->request->is('post')) {
             // find entry, to confirm user is authorized
             $conditions = $this->__prepareConditions();
-            $conditions['AND'][]['AuthKey.id'] = $id;
-            $authKey = $this->AuthKey->find(
-                'first',
+            $conditions['AND'][]['id'] = $id;
+            $authKey = $this->AuthKeys->find(
+                'all',
                 [
                     'conditions' => $conditions,
                     'recursive' => 1
                 ]
-            );
+            )->first();
             // update the key with the source IP
             if ($authKey) {
                 $authKey['allowed_ips'] = $ip;
