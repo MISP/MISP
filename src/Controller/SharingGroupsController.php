@@ -99,6 +99,8 @@ class SharingGroupsController extends AppController
             $sg['organisation_uuid'] = $this->ACL->getUser()->Organisation->uuid;
             $sg['local'] = 1;
             $sg['org_id'] = $this->ACL->getUser()->org_id;
+            $sg['created'] = $sg['created'] ?? time();
+            $sg['modified'] = $sg['modified'] ?? time();
             $sharingGroupEntity = new SharingGroup($sg);
 
             if ($this->SharingGroups->save($sharingGroupEntity)) {
@@ -254,7 +256,7 @@ class SharingGroupsController extends AppController
 
     public function delete($id)
     {
-        $this->request->allowMethod(['post', 'delete']);
+        $this->request->allowMethod(['get', 'post', 'delete']);
 
         $deletedSg = $this->SharingGroups->find(
             'all',

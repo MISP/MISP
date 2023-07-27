@@ -1,50 +1,50 @@
-<div class="users form">
+<div class="sharing-groups form">
     <fieldset>
         <legend><?php echo __('New Sharing Group'); ?></legend>
         <?php
-            $data = array(
-                'children' => array(
-                    array(
-                        'children' => array(
-                            array(
+            $data = [
+                'children' => [
+                    [
+                        'children' => [
+                            [
                                 'text' => __('General'),
                                 'title' => __('General tab'),
                                 'class' => 'progress_tab',
                                 'id' => 'page1_tab',
                                 'active' => true,
                                 'onClick' => 'simpleTabPage',
-                                'onClickParams' => array(1)
-                            ),
-                            array(
+                                'onClickParams' => [1]
+                            ],
+                            [
                                 'text' => __('Organisations'),
                                 'title' => __('Organisations tab'),
                                 'class' => 'progress_tab',
                                 'id' => 'page2_tab',
                                 'onClick' => 'simpleTabPage',
-                                'onClickParams' => array(2)
-                            ),
-                            array(
+                                'onClickParams' => [2]
+                            ],
+                            [
                                 'text' => __('MISP Instances'),
                                 'title' => __('MISP instances tab'),
                                 'class' => 'progress_tab',
                                 'id' => 'page3_tab',
                                 'onClick' => 'simpleTabPage',
-                                'onClickParams' => array(3)
-                            ),
-                            array(
+                                'onClickParams' => [3]
+                            ],
+                            [
                                 'text' => __('Summary and Save'),
                                 'title' => __('Sharing group summary'),
                                 'class' => 'progress_tab',
                                 'id' => 'page4_tab',
                                 'onClick' => 'simpleTabPage',
-                                'onClickParams' => array(4)
-                            )
-                        )
-                    )
-                )
-            );
+                                'onClickParams' => [4]
+                            ]
+                        ]
+                    ]
+                ]
+            ];
             if (!$ajax) {
-                echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+                echo $this->element('/genericElements/ListTopBar/scaffold', ['data' => $data]);
             }
         ?>
         <div id="page1_content" class="multi-page-form-div tabContent" style="width:544px;">
@@ -110,8 +110,9 @@
         <p id="synchronisationText"><?php echo __('<span class="bold">Synchronisation: </span>Furthermore, events are automatically pushed to: <span id="summaryservers" class="red bold"></span>');?></p>
         <p><?php echo __('You can edit this information by going back to one of the previous pages, or if you agree with the above mentioned information, click Submit to create the Sharing group.');?></p>
         <?php
-            echo $this->Form->create('SharingGroup');
-            echo $this->Form->input('json', array('style' => 'display:none;', 'label' => false, 'div' => false));
+            $sharingGroupEntity = new \App\Model\Entity\SharingGroup(); 
+            echo $this->Form->create($sharingGroupEntity, ['id' => 'SharingGroupAddForm']);
+            echo $this->Form->input('json', ['id' => 'SharingGroupJson', 'style' => 'display:none;', 'label' => false, 'div' => false]);
             //echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
             echo $this->Form->end();
         ?>
@@ -120,7 +121,8 @@
     </div>
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'addSG'));
+    // TODO: [3.x-MIGRATION]
+    // echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'addSG'));
 ?>
 <script type="text/javascript">
     var lastPage = 4;
