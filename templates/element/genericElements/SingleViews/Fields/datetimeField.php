@@ -1,3 +1,3 @@
 <?php
 $value = $this->Hash->extract($data, $field['path'])[0];
-echo $this->Time->time($value);
+echo $this->Time->format($value);

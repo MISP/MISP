@@ -26,6 +26,9 @@ class AuthKeysTable extends AppTable
                 'propertyName' => 'User'
             ]
         );
+        // $this->addBehavior('JsonFields', [
+        //     'fields' => ['allowed_ips'],
+        // ]);
         $this->setDisplayField('comment');
     }
 

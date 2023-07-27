@@ -3,9 +3,9 @@
 namespace App\Controller;
 
 use App\Controller\AppController;
+use Cake\Core\Configure;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\ORM\Locator\LocatorAwareTrait;
-use Cake\Core\Configure;
 use Cake\Utility\Hash;
 
 class AuthKeysController extends AppController
@@ -30,7 +30,8 @@ class AuthKeysController extends AppController
         }
         $this->set('canCreateAuthkey', $canCreateAuthkey);
         $keyUsageEnabled = Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_authkeys');
-        $this->CRUD->index([
+        $this->CRUD->index(
+            [
             'filters' => ['Users.email', 'authkey_start', 'authkey_end', 'comment', 'Users.id'],
             'quickFilters' => ['comment', 'authkey_start', 'authkey_end', 'Users.email'],
             'conditions' => $conditions,
@@ -49,17 +50,21 @@ class AuthKeysController extends AppController
                 }
                 return $authKeys;
             }
-        ]);
+            ]
+        );
         if ($this->ParamHandler->isRest()) {
             return $this->restResponsePayload;
         }
         $this->set('title_for_layout', __('Auth Keys'));
         $this->set('advancedEnabled', !empty(Configure::read('Security.advanced_authkeys')));
         $this->set('keyUsageEnabled', $keyUsageEnabled);
-        $this->set('menuData', [
+        $this->set(
+            'menuData',
+            [
             'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
             'menuItem' => 'authkeys_index',
-        ]);
+            ]
+        );
     }
 
     public function delete($id)
@@ -67,10 +72,13 @@ class AuthKeysController extends AppController
         if (!$this->__canEditAuthKey($id)) {
             throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
         }
-        $this->CRUD->delete($id, [
+        $this->CRUD->delete(
+            $id,
+            [
             'conditions' => $this->__prepareConditions(),
-            'contain' => ['User'],
-        ]);
+            'contain' => ['Users'],
+            ]
+        );
         if ($this->ParamHandler->isRest()) {
             return $this->restResponsePayload;
         }
@@ -81,27 +89,39 @@ class AuthKeysController extends AppController
         if (!$this->__canEditAuthKey($id)) {
             throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
         }
-        $this->CRUD->edit($id, [
+        $this->CRUD->edit(
+            $id,
+            [
             'conditions' => $this->__prepareConditions(),
             'afterFind' => function (\App\Model\Entity\AuthKey $authKey) {
                 return $authKey;
             },
             'fields' => ['comment', 'allowed_ips', 'expiration', 'read_only'],
             'contain' => ['Users' => ['fields' => ['id', 'org_id']]]
-        ]);
+            ]
+        );
         if ($this->ParamHandler->isRest()) {
             return $this->restResponsePayload;
         }
-        $this->set('dropdownData', [
-            'user' => $this->Users->find('list', [
+        $this->set(
+            'dropdownData',
+            [
+            'user' => $this->Users->find(
+                'list',
+                [
                 'sort' => ['username' => 'asc'],
                 'conditions' => ['id' => $this->entity['user_id']],
-            ])
-        ]);
-        $this->set('menuData', [
+                ]
+            )
+            ]
+        );
+        $this->set(
+            'menuData',
+            [
             'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
             'menuItem' => 'authKeyAdd',
-        ]);
+            ]
+        );
         $this->set('edit', true);
         $this->set('validity', Configure::read('Security.advanced_authkeys_validity'));
         $this->set('title_for_layout', __('Edit auth key'));
@@ -144,29 +164,38 @@ class AuthKeysController extends AppController
             return $this->restResponsePayload;
         }
         $dropdownData = [
-            'user' => $this->AuthKeys->Users->find('list', [
+            'user' => $this->AuthKeys->Users->find(
+                'list',
+                [
                 'sort' => ['username' => 'asc'],
                 'conditions' => $selectConditions,
-            ])
+                ]
+            )
         ];
         $this->set(compact('dropdownData'));
         $this->set('title_for_layout', __('Add auth key'));
-        $this->set('menuData', [
+        $this->set(
+            'menuData',
+            [
             'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
             'menuItem' => 'authKeyAdd',
-        ]);
+            ]
+        );
         $this->set('validity', Configure::read('Security.advanced_authkeys_validity'));
     }
 
     public function view($id = false)
     {
-        $this->CRUD->view($id, [
+        $this->CRUD->view(
+            $id,
+            [
             'contain' => ['Users' => ['fields' => ['id', 'email']]],
             'conditions' => $this->__prepareConditions(),
             'afterFind' => function (\App\Model\Entity\AuthKey $authKey) {
                 return $authKey;
             }
-        ]);
+            ]
+        );
         if ($this->ParamHandler->isRest()) {
             return $this->restResponsePayload;
         }
@@ -179,10 +208,13 @@ class AuthKeysController extends AppController
         }
 
         $this->set('title_for_layout', __('Auth key'));
-        $this->set('menuData', [
+        $this->set(
+            'menuData',
+            [
             'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
             'menuItem' => 'authKeyView',
-        ]);
+            ]
+        );
     }
 
     public function pin($id, $ip)
@@ -241,7 +273,9 @@ class AuthKeysController extends AppController
                 return true;   // site admin is OK for all
             } else {
                 // org admin only for non-admin users and themselves
-                $user = $this->AuthKey->User->find('first', [
+                $user = $this->AuthKey->User->find(
+                    'first',
+                    [
                     'recursive' => -1,
                     'conditions' => [
                         'User.id' => $user_id,
@@ -255,7 +289,8 @@ class AuthKeysController extends AppController
                             ]
                         ]
                     ]
-                ]);
+                    ]
+                );
                 if (
                     $user['Role']['perm_site_admin'] ||
                     ($user['Role']['perm_admin'] && $user['User']['id'] !== $loggedUser->id) ||
@@ -276,12 +311,15 @@ class AuthKeysController extends AppController
 
     private function __canEditAuthKey($key_id)
     {
-        $user_id = $this->AuthKeys->find('column', [
+        $user_id = $this->AuthKeys->find(
+            'column',
+            [
             'fields' => ['user_id'],
             'conditions' => [
                 'id' => $key_id
             ]
-        ]);
+            ]
+        );
         return $this->__canCreateAuthKeyForUser($user_id);
     }
 }

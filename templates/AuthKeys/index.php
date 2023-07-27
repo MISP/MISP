@@ -3,7 +3,9 @@ echo sprintf('<div%s>', empty($ajax) ? ' class="index"' : '');
 if (!$advancedEnabled) {
     echo '<div class="alert">' . __('Advanced auth keys are not enabled.') . '</div>';
 }
-echo $this->element('genericElements/IndexTable/index_table', [
+echo $this->element(
+    'genericElements/IndexTable/index_table',
+    [
     'data' => [
         'data' => $data,
         'top_bar' => [
@@ -84,32 +86,32 @@ echo $this->element('genericElements/IndexTable/index_table', [
         'actions' => [
             [
                 'url' => '/auth-keys/view',
-                'url_params_data_paths' => array(
+                'url_params_data_paths' => [
                     'id'
-                ),
+                ],
                 'icon' => 'eye',
                 'title' => 'View auth key',
             ],
             [
                 'url' => '/auth-keys/edit',
-                'url_params_data_paths' => array(
+                'url_params_data_paths' => [
                     'id'
-                ),
+                ],
                 'icon' => 'edit',
                 'title' => 'Edit auth key',
                 'requirement' => $canCreateAuthkey
             ],
             [
-                'class' => 'modal-open',
-                'url' => '/authKeys/delete',
-                'url_params_data_paths' => ['id'],
+                'open_modal' => '/authKeys/delete/[onclick_params_data_path]',
+                'modal_params_data_path' => 'id',
                 'icon' => 'trash',
                 'title' => __('Delete auth key'),
                 'requirement' => $canCreateAuthkey
             ]
         ]
     ]
-]);
+    ]
+);
 echo '</div>';
 // TODO: [3.x-MIGRATION]
 // if (empty($ajax)) {

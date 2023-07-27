@@ -15,7 +15,9 @@ if (isset($keyUsage)) {
     $uniqueIps = null;
 }
 
-echo $this->element('genericElements/SingleViews/single_view', [
+echo $this->element(
+    'genericElements/SingleViews/single_view',
+    [
     'title' => 'Auth key view',
     'data' => $entity,
     'fields' => [
@@ -46,9 +48,9 @@ echo $this->element('genericElements/SingleViews/single_view', [
         [
             'key' => __('Allowed IPs'),
             'type' => 'custom',
-            'function' => function (array $data) {
-                if (is_array($data['allowed_ips'])) {
-                    return implode("<br />", array_map('h', $data['allowed_ips']));
+            'function' => function (\App\Model\Entity\AuthKey $authKey) {
+                if (is_array($authKey->allowed_ips)) {
+                    return implode("<br />", array_map('h', $authKey->allowed_ips));
                 }
                 return __('All');
             }
@@ -88,4 +90,5 @@ echo $this->element('genericElements/SingleViews/single_view', [
             'type' => 'authkey_pin'
         ]
     ],
-]);
+    ]
+);
