@@ -145,7 +145,7 @@ var iconBySeverity = {
 var severities = ['info', 'warning', 'error']
 var haspathQuickPickMenu = [
     { 'name': 'All Attributes', 'path': 'Event._AttributeFlattened.{n}' },
-    { 'name': 'All tags attached to Attributes', 'path': 'Event._AttributeFlattened.{n}.Tag.{n}.name' },
+    { 'name': 'All tags attached to all Attributes', 'path': 'Event._AttributeFlattened.{n}.Tag.{n}.name' },
     { 'name': 'All tags attached to the Event', 'path': 'Event.Tag.{n}.name' },
 ]
 
