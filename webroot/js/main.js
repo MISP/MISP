@@ -436,3 +436,99 @@ function sharingGroupPopulateServers() {
         id++;
     });
 }
+
+function sharingGroupExtendOrg(id) {
+    organisations[id].extend = $('#orgExtend' + id).is(":checked");
+}
+
+function sharingGroupServerAddOrgs(id) {
+    servers[id].all_orgs = $('#serverAddOrgs' + id).is(":checked");
+}
+
+function sharingGroupPopulateUsers() {
+    $('input[id=SharingGroupServers]').val(JSON.stringify(organisations));
+}
+
+function sharingGroupAdd(context, type) {
+    if (context == 'organisation') {
+        var jsonids = JSON.stringify(orgids);
+        url = baseurl + '/organisations/fetchOrgsForSG/' + jsonids + '/' + type
+    } else if (context == 'server') {
+        var jsonids = JSON.stringify(serverids);
+        url = baseurl + '/servers/fetchServersForSG/' + jsonids
+    }
+    $("#gray_out").fadeIn();
+    simplePopup(url);
+}
+
+function sharingGroupRemoveOrganisation(id) {
+    organisations.splice(id, 1);
+    orgids.splice(id, 1);
+    sharingGroupPopulateOrganisations();
+}
+
+function sharingGroupRemoveServer(id) {
+    servers.splice(id, 1);
+    serverids.splice(id, 1);
+    sharingGroupPopulateServers();
+}
+
+function submitPicklistValues(context, local) {
+    if (context == 'org') {
+        var localType = 'local';
+        if (local == 0) localType = 'remote';
+        $("#rightValues  option").each(function() {
+            if (orgids.indexOf($(this).val()) == -1) {
+                organisations.push({
+                        id: $(this).val(),
+                        type: localType,
+                        name: $(this).text(),
+                        extend: false,
+                        uuid: '',
+                        removable: 1
+                });
+            }
+            orgids.push($(this).val());
+            sharingGroupPopulateOrganisations();
+        });
+    } else if (context == 'server') {
+        $("#rightValues  option").each(function() {
+            if (serverids.indexOf($(this).val()) == -1) {
+                servers.push({
+                        id: $(this).val(),
+                        name: $(this).text(),
+                        url: $(this).attr("data-url"),
+                        all_orgs: false,
+                        removable: 1
+                });
+            }
+            serverids.push($(this).val());
+            sharingGroupPopulateServers();
+        });
+    }
+    $("#gray_out").fadeOut();
+    $("#popover_form").fadeOut();
+}
+
+function cancelPicklistValues() {
+    $("#popover_form").fadeOut();
+    $("#gray_out").fadeOut();
+}
+
+function sgSubmitForm(action) {
+    var ajax = {
+        'organisations': organisations,
+        'servers': servers,
+        'sharingGroup': {
+            'uuid': $('#SharingGroupUuid').val(),
+            'name': $('#SharingGroupName').val(),
+            'releasability': $('#SharingGroupReleasability').val(),
+            'description': $('#SharingGroupDescription').val(),
+            'active': $('#SharingGroupActive').is(":checked"),
+            'roaming': $('#SharingGroupRoaming').is(":checked"),
+        }
+    };
+    $('#SharingGroupJson').val(JSON.stringify(ajax));
+    var formName = "#SharingGroup" + action + "Form";
+    $(formName).submit();
+}
