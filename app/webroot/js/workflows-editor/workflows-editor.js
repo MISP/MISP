@@ -1312,7 +1312,16 @@ function getSelectedNode() {
 }
 
 function deleteSelectedNode() {
-    editor.removeNodeId(getSelectedNodeID())
+    deleteNodeByID(getSelectedNodeID())
+}
+
+function deleteNodeByID(nodeId) {
+    nodeIdInt = nodeId.slice(5)
+    editorData = getEditorData()
+    if (all_triggers_by_id[editorData[nodeIdInt].data.id]) {
+        return
+    }
+    editor.removeNodeId(nodeId)
 }
 
 function getNodeFromContainedHtml(htmlNode) {
@@ -1327,7 +1336,7 @@ function deleteSelectedNodes(fromDelKey) {
         if (fromDelKey && getSelectedNodeID() !== null && getSelectedNodeID() == node.id) {
             return // This node will be removed by drawflow delete callback
         }
-        editor.removeNodeId(node.id)
+        deleteNodeByID(node.id)
     })
     editor.dispatch('nodeUnselected')
 }
