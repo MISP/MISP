@@ -425,10 +425,23 @@
     background-color: #2fa1db;
 } */
 
+.drawflow .drawflow-framenode {
+    position: absolute;
+    z-index: -1;
+    text-align: center;
+    background-color: #b5b5b570;
+    border: 1px solid #333333aa;
+    border-radius: 5px;
+}
+
 .drawflow .drawflow-framenode.selected {
     box-shadow: 0 0 5px 2px #33333366;
 }
-.drawflow .drawflow-framenode .drawflow-framenode-text {
+.drawflow .drawflow-framenode > .drawflow-framenode-text {
+    line-height: 1.5em;
+    color: 505050;
+    font-size: 1.5em;
+    font-weight: bold;
     cursor: text;
 }
 

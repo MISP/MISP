@@ -1617,20 +1617,10 @@ class Drawflow {
       frameNode.classList.add(...frameNodeConfig.class.split(' '));
     }
 
-    frameNode.style.backgroundColor = '#b5b5b570';
-    frameNode.style.border = '1px solid #333333aa';
-    frameNode.style.position = 'absolute'
-    frameNode.style['text-align'] = 'center'
-    frameNode.style['z-index'] = -1
-    frameNode.style['border-radius'] = '5px'
     this.updateFrameNodePosition(frameNode, frameNodeConfig.nodes)
 
     const frameTextNode = document.createElement('span');
     frameTextNode.innerText = frameNodeConfig.text;
-    frameTextNode.style['line-height'] = '1.5em'
-    frameTextNode.style.color = '#505050'
-    frameTextNode.style['font-size'] = '1.5em'
-    frameTextNode.style['font-weight'] = 'bold'
     frameTextNode.classList.add('drawflow-framenode-text')
     frameNode.appendChild(frameTextNode);
 
