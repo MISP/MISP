@@ -47,6 +47,7 @@ class Drawflow {
     this.zoom_min = 0.5;
     this.zoom_value = 0.1;
     this.zoom_last_value = 1;
+    this.frameNodePadding = { "top": 100, "left": 30, "right": 30, "bottom": 20 }
 
     // Mobile
     this.evCache = new Array();
@@ -1642,13 +1643,6 @@ class Drawflow {
       return
     }
 
-    var offsetPadding = {
-      top: 100,
-      left: 30,
-      right: 30,
-      bottom: 20,
-    }
-
     var _this = this
     var nodesHtml = nodeIDs.map(function (id) {
       return _this.container.querySelector('#node-' + id)
@@ -1669,10 +1663,10 @@ class Drawflow {
 
     var frameCoordinates = getFrameCoordinatesFromNodes(nodesHtml)
 
-    var pos_x = frameCoordinates.topLeft.x - offsetPadding.left / 2
-    var pos_y = frameCoordinates.topLeft.y - offsetPadding.top / 2
-    var frameNodeHeight = (frameCoordinates.bottomRight.y - frameCoordinates.topLeft.y) + (offsetPadding.top / 2 + offsetPadding.bottom)
-    var frameNodeWidth = (frameCoordinates.bottomRight.x - frameCoordinates.topLeft.x) + (offsetPadding.left / 2 + offsetPadding.right)
+    var pos_x = frameCoordinates.topLeft.x - this.frameNodePadding.left / 2
+    var pos_y = frameCoordinates.topLeft.y - this.frameNodePadding.top / 2
+    var frameNodeHeight = (frameCoordinates.bottomRight.y - frameCoordinates.topLeft.y) + (this.frameNodePadding.top / 2 + this.frameNodePadding.bottom)
+    var frameNodeWidth = (frameCoordinates.bottomRight.x - frameCoordinates.topLeft.x) + (this.frameNodePadding.left / 2 + this.frameNodePadding.right)
 
     var transpositionFactorX = (this.precanvas.clientWidth / (this.precanvas.clientWidth * this.zoom))
     var transpositionOffsetX = -(this.precanvas.getBoundingClientRect().x * (this.precanvas.clientWidth / (this.precanvas.clientWidth * this.zoom)))
