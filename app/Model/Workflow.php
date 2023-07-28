@@ -1373,6 +1373,9 @@ class Workflow extends AppModel
         }
         $labelsByNodes = $this->getLabelsForConnections($workflow, $trigger_id);
         foreach ($graphData as $i => $node) {
+            if ($i == '_frames') {
+                continue;
+            }
             if (!empty($labelsByNodes[$node['id']])) {
                 foreach ($node['inputs'] as $inputName => $inputs) {
                     foreach ($inputs['connections'] as $j => $connection) {

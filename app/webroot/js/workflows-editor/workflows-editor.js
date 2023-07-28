@@ -175,6 +175,21 @@ function initDrawflow() {
     editor.on('nodeRemoved', function () {
         invalidateContentCache()
     })
+    editor.on('frameNodeCreated', function (framenodeUuid) {
+        invalidateContentCache()
+        var frameNodeFullUuid = 'framenode-' + framenodeUuid
+        $('#' + frameNodeFullUuid).find('.drawflow-framenode-text').dblclick(function() {
+            var existingText = $(this).text()
+            var newText = prompt('Edit frame node text', existingText)
+            editor.updateFramenode(frameNodeFullUuid, {text: newText})
+        })
+    })
+    editor.on('frameNodeUpdated', function () {
+        invalidateContentCache()
+    })
+    editor.on('frameNodeRemoved', function () {
+        invalidateContentCache()
+    })
     editor.on('nodeDataChanged', invalidateContentCache)
     editor.on('nodeMoved', invalidateContentCache)
     editor.on('connectionCreated', function() {
@@ -203,6 +218,9 @@ function initDrawflow() {
         if (evt.keyCode == 68 && evt.ctrlKey && $drawflow.is(evt.target)) {
             duplicateSelection()
             evt.preventDefault()
+        }
+        if (evt.keyCode == 70 && $drawflow.is(evt.target)) {
+            createFrameNodeForSelected()
         }
     })
     editor.translate_to = function (x, y) {
@@ -415,6 +433,7 @@ function initDrawflow() {
     })
     editor.on('nodeSelected', function(node_id) {
         $controlDuplicateButton.removeClass('disabled')
+        $controlFrameNodeButton.removeClass('disabled')
         $controlDeleteButton.removeClass('disabled')
         $controlSaveBlocksLi.removeClass('disabled')
         $controlEditBlocksLiContainer.removeClass('disabled').find('.dropdown-menu')
@@ -426,6 +445,7 @@ function initDrawflow() {
         })
         selection.clearSelection()
         $controlDuplicateButton.addClass('disabled')
+        $controlFrameNodeButton.addClass('disabled')
         $controlDeleteButton.addClass('disabled')
         $controlSaveBlocksLi.addClass('disabled')
         $controlEditBlocksLiContainer.addClass('disabled').find('.dropdown-menu')
@@ -472,6 +492,9 @@ function initDrawflow() {
     
     $controlDuplicateButton.click(function() {
         duplicateSelection()
+    })
+    $controlFrameNodeButton.click(function() {
+        createFrameNodeForSelected()
     })
     $controlDeleteButton.click(function() {
         deleteSelectedNodes(false)
@@ -572,6 +595,26 @@ function duplicateSelection() {
     var newNodes = duplicateNodesFromHtml(currentSelection)
     selection.clearSelection()
     selection.select(newNodes)
+}
+
+function createFrameNodeForSelected() {
+    var text = prompt('Enter text for the frame node')
+    var selectedNodesHtml = selection.getSelection()
+    var selectedIDs = selectedNodesHtml.map(function(nodeHtml) {
+        return parseInt(nodeHtml.id.slice(5))
+    })
+    createFrameForNodes(selectedIDs, text)
+    selection.clearSelection()
+    invalidateContentCache()
+}
+
+function createFrameForNodes(nodesIDs, text) {
+    const frameNode = {
+        nodes: nodesIDs,
+        text: text,
+        class: "",
+    }
+    editor.addFrameNode(frameNode)
 }
 
 function buildModalForBlock(node_id, node) {
@@ -701,6 +744,8 @@ function addNode(block, position, additionalData={}) {
 function getEditorData(cleanNodes) {
     var data = {} // Make sure nodes are index by their internal IDs
     var editorExport = editor.export().drawflow.Home.data
+    var frameNodes = editorExport._frames !== undefined ? editorExport._frames : {}
+    delete editorExport._frames
     editorExport = Array.isArray(editorExport) ? editorExport : Object.values(editorExport)
     editorExport.forEach(function(node) {
         if (node !== null) { // for some reason, the editor create null nodes
@@ -725,6 +770,7 @@ function getEditorData(cleanNodes) {
             data[node.id] = node
         }
     })
+    data._frames = frameNodes
     return data
 }
 
@@ -756,7 +802,12 @@ function loadWorkflow(workflow) {
     }
     // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
     // We have to manually add the nodes and their connections
-    Object.values(workflow.data).forEach(function (node) {
+    Object.entries(workflow.data).forEach(function (entry) {
+        var i = entry[0]
+        var node = entry[1]
+        if (i == '_frames') {
+            return
+        }
         var module = all_modules_by_id[node.data.id] || all_triggers_by_id[node.data.id]
         if (!module) {
             console.error('Tried to add node for unknown module ' + node.data.id + ' (' + node.id + ')')
@@ -817,6 +868,10 @@ function loadWorkflow(workflow) {
                 editor.addConnection(connection.node, node.id, connection.input, input_name, labels)
             })
         }
+    })
+    var frameNodes = workflow.data._frames || {}
+    Object.values(frameNodes).forEach(function (frameNode) {
+        editor.addFrameNode(frameNode)
     })
 }
 
@@ -1294,6 +1349,11 @@ function addWorkflowBlueprint(blueprintId, cursorPosition) {
     if (newNodes.length > 0) {
         selection.clearSelection()
         selection.select(newNodes)
+        var newNodeIDs = newNodes.map(function(node) {
+            return node.id.slice(5)
+        })
+        createFrameForNodes(newNodeIDs, workflowBlueprint.WorkflowBlueprint.name)
+
         editor.dispatch('nodeSelected', newNodes[0].id);
     }
 }

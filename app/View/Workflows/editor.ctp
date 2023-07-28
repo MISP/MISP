@@ -179,6 +179,9 @@ $debugEnabled = !empty($selectedWorkflow['Workflow']['debug_enabled']);
                     <button id="control-duplicate" class="btn btn-small btn-primary disabled" type="button" title="<?= __('Duplicate') ?>">
                         <i class="fa-fw <?= $this->FontAwesome->getClass('clone') ?>"></i> <?= __('Duplicate') ?>
                     </button>
+                    <button id="control-frame-node" class="btn btn-small btn-primary disabled" type="button" title="<?= __('Create frame node') ?>">
+                        <i class="fa-fw <?= $this->FontAwesome->getClass('object-group') ?>"></i> <?= __('Frame') ?>
+                    </button>
                     <button id="control-delete" class="btn btn-small btn-danger disabled" type="button" title="<?= __('Delete') ?>">
                         <i class="fa-fw <?= $this->FontAwesome->getClass('trash') ?>"></i> <?= __('Delete') ?>
                     </button>
@@ -309,6 +312,7 @@ echo $this->element('genericElements/assetLoader', [
     var $blockNotificationModal = $('#block-notifications-modal')
     var $blockFilteringModal = $('#block-filtering-modal')
     var $controlDuplicateButton = $('.control-buttons #control-duplicate')
+    var $controlFrameNodeButton = $('.control-buttons #control-frame-node')
     var $controlDeleteButton = $('.control-buttons #control-delete')
     var $controlExportBlocksLi = $('.control-buttons #control-export-blocks')
     var $controlSaveBlocksLi = $('.control-buttons #control-save-blocks')

@@ -425,6 +425,13 @@
     background-color: #2fa1db;
 } */
 
+.drawflow .drawflow-framenode.selected {
+    box-shadow: 0 0 5px 2px #33333366;
+}
+.drawflow .drawflow-framenode .drawflow-framenode-text {
+    cursor: text;
+}
+
 .drawflow .drawflow-node > .inputs > .input::before {
     line-height: var(--dfInputHeight);
     vertical-align: top;
