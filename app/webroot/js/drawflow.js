@@ -38,7 +38,7 @@ class Drawflow {
 
     this.noderegister = {};
     this.render = render;
-    this.drawflow = { "drawflow": { "Home": { "data": { _frames: {}} } } };
+    this.drawflow = { "drawflow": { "Home": { "data": { "_frames": {} } } } };
     // Configurable options
     this.module = 'Home';
     this.editor_mode = 'edit';
@@ -312,14 +312,14 @@ class Drawflow {
           this.node_selected = null;
           this.dispatch('nodeUnselected', true);
         }
-        if (this.framenode_selected != null) {
-          this.framenode_selected.classList.remove("selected");
-          this.framenode_selected = null
-        }
         if (this.connection_selected != null) {
           this.connection_selected.classList.remove("selected");
           this.removeReouteConnectionSelected();
           this.connection_selected = null;
+        }
+        if (this.framenode_selected != null) {
+          this.framenode_selected.classList.remove("selected");
+          this.framenode_selected = null
         }
         this.connection_selected = this.ele_selected;
         this.connection_selected.classList.add("selected");
@@ -1962,7 +1962,7 @@ class Drawflow {
     if (this.module === moduleName) {
       this.container.querySelector(`#${id}`).remove();
     }
-    
+
     var _this = this
     var new_frame_to_nodes_registry = []
     if (this.nodes_to_frames_registry[id.slice(5)] !== undefined) {
@@ -2115,7 +2115,7 @@ class Drawflow {
   }
 
   addModule(name) {
-    this.drawflow.drawflow[name] = { "data": { _frames: {} } };
+    this.drawflow.drawflow[name] = { "data": { "_frames": {} } };
     this.dispatch('moduleCreated', name);
   }
   changeModule(name) {
@@ -2144,14 +2144,14 @@ class Drawflow {
 
   clearModuleSelected() {
     this.precanvas.innerHTML = "";
-    this.drawflow.drawflow[this.module] = { "data": { _frames: {}} };
+    this.drawflow.drawflow[this.module] = { "data": { "_frames": {}} };
     this.frame_to_nodes_registry = {};
     this.nodes_to_frames_registry = {};
   }
 
   clear() {
     this.precanvas.innerHTML = "";
-    this.drawflow = { "drawflow": { "Home": { "data": { _frames: {} } } } };
+    this.drawflow = { "drawflow": { "Home": { "data": { "_frames": {} } } } };
     this.frame_to_nodes_registry = {};
     this.nodes_to_frames_registry = {};
   }
