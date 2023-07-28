@@ -439,7 +439,7 @@
 }
 .drawflow .drawflow-framenode > .drawflow-framenode-text {
     line-height: 1.5em;
-    color: 505050;
+    color: #505050;
     font-size: 1.5em;
     font-weight: bold;
     cursor: text;
