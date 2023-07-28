@@ -91,16 +91,19 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             ],
             [
                 'name' => __('Nationality'),
+                'sort' => 'Organisation.nationality',
                 'data_path' => 'Organisation',
                 'class' => 'short',
                 'element' => 'country',
             ],
             [
                 'name' => __('Sector'),
+                'sort' => 'Organisation.sector',
                 'data_path' => 'Organisation.sector',
             ],
             [
                 'name' => __('Type'),
+                'sort' => 'Organisation.type',
                 'data_path' => 'Organisation.type',
             ],
             [

@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '151';
-    public $pyMispVersion = '2.4.172';
+    private $__queryVersion = '152';
+    public $pyMispVersion = '2.4.173';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -111,6 +111,7 @@ class AppController extends Controller
 
         $this->_setupBaseurl();
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
+        $this->Auth->loginAction = $this->baseurl . '/users/login';
 
         $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
         $this->Auth->logoutRedirect = $customLogout ?: ($this->baseurl . '/users/login');
@@ -222,8 +223,10 @@ class AppController extends Controller
             !$userLoggedIn &&
             (
                 $controller !== 'users' ||
-                $action !== 'register' ||
-                empty(Configure::read('Security.allow_self_registration'))
+                (
+                    ($action !== 'register' || empty(Configure::read('Security.allow_self_registration'))) &&
+                    (!in_array($action, ['forgot', 'password_reset']) || empty(Configure::read('Security.allow_password_forgotten')))
+                )
             )
         ) {
             // REST authentication
@@ -313,6 +316,10 @@ class AppController extends Controller
             $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401', 'otp');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
                 $preAuthActions[] = 'email_otp';
+            }
+            if (!empty(Configure::read('Security.allow_password_forgotten'))) {
+                $preAuthActions[] = 'forgot';
+                $preAuthActions[] = 'password_reset';
             }
             if (!$this->_isControllerAction(['users' => $preAuthActions, 'servers' => ['cspReport']])) {
                 if ($isAjax) {
@@ -1112,7 +1119,7 @@ class AppController extends Controller
                 $user['User'] = $temp;
                 if ($user['User']) {
                     $this->User->updateLoginTimes($user['User']);
-                    $this->Session->renew();
+                    //$this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user['User']);
                     if (Configure::read('MISP.log_auth')) {
                         $this->Log = ClassRegistry::init('Log');

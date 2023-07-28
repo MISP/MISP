@@ -38,7 +38,7 @@ class TrendingAttributesWidget
         $organisationModel = ClassRegistry::init('Organisation');
         if (!empty($options['org_filter']) && is_array($options['org_filter'])) {
             foreach ($this->validOrgFilters as $filterKey) {
-                if (!empty($options['org_filter'][$filterKey])) {
+                if (isset($options['org_filter'][$filterKey])) {
                     if ($filterKey === 'local') {
                         $tempConditionBucket['Organisation.local'] = $options['org_filter']['local'];
                     } else {
@@ -72,9 +72,10 @@ class TrendingAttributesWidget
 	    /** @var Event $eventModel */
         $attributeModel = ClassRegistry::init('Attribute');
         $threshold = empty($options['threshold']) ? 10 : $options['threshold'];
-        $time_window = empty($options['time_window']) ? (7 * 24 * 60 * 60) : (int)$options['time_window'];
-        if (is_string($time_window) && substr($time_window, -1) === 'd') {
-            $time_window = ((int)substr($time_window, 0, -1)) * 24 * 60 * 60;
+        if (is_string($options['time_window']) && substr($options['time_window'], -1) === 'd') {
+            $time_window = ((int)substr($options['time_window'], 0, -1)) * 24 * 60 * 60;
+        } else {
+            $time_window = empty($options['time_window']) ? (7 * 24 * 60 * 60) : (int)$options['time_window'];
         }
         $conditions = $time_window === -1 ? [] : ['Attribute.timestamp >=' => time() - $time_window];
         $conditions['Attribute.deleted'] = 0;
