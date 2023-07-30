@@ -104,6 +104,9 @@ class UserShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('expire_authkeys_without_ip_allowlist', [
+            'help' => __('Expire all active authkeys that do not have an IP allowlist set.'),
+        ]);
         return $parser;
     }
 
@@ -428,6 +431,30 @@ class UserShell extends AppShell
                 '%s==============================%sIP: %s%s==============================%sUser #%s: %s%s==============================%s',
                 PHP_EOL, PHP_EOL, $ip, PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL
             ));
+        }
+    }
+
+    public function expire_authkeys_without_ip_allowlist(){
+        $time = time();
+        $authkeys = $this->User->AuthKey->find('all', [
+            'conditions' => [
+                'OR' => [
+                    'AuthKey.expiration >' => $time,
+                    'AuthKey.expiration' => 0
+                ],
+                'allowed_ips' => NULL
+            ],
+            'fields' => ['id', 'user_id'],
+            'recursive' => 0
+        ]);
+        foreach ($authkeys as $authkey) {
+            $authkey['AuthKey']['expiration'] = $time;
+            $authkeyId = $authkey['AuthKey']['id'];
+            if (!$this->User->AuthKey->save($authkey['AuthKey'])) {
+                $this->out("Could not update authkey $authkeyId.");
+                $this->out($this->json($this->User->AuthKey->validationErrors));
+                $this->_stop(self::CODE_ERROR);
+            }
         }
     }
 
