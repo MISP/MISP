@@ -111,7 +111,6 @@ class AppController extends Controller
 
         $this->_setupBaseurl();
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
-        $this->Auth->loginAction = $this->baseurl . '/users/login';
 
         $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
         $this->Auth->logoutRedirect = $customLogout ?: ($this->baseurl . '/users/login');

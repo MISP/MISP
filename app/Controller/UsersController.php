@@ -1835,7 +1835,7 @@ class UsersController extends AppController
     public function totp_new()
     {
         if (Configure::read('LinOTPAuth.enabled')) {
-            $this->Flash->error(__("LinOTP is enabled for this instance. Build-in TOTP should not be used."));
+            $this->Flash->error(__("LinOTP is enabled for this instance. Built-in TOTP should not be used."));
             $this->redirect($this->referer());
         }
         if (!class_exists('\OTPHP\TOTP') || !class_exists('\BaconQrCode\Writer')) {
@@ -1856,17 +1856,23 @@ class UsersController extends AppController
         }
         // do not allow this page to be accessed if the current already has a TOTP. Just redirect to the users details page with a Flash->error()
         if ($user['User']['totp']) { 
-            $this->Flash->error(__("Your account already has an TOTP. Please contact your organisational administrator to change or delete it."));
+            $this->Flash->error(__("Your account already has a TOTP. Please contact your organisational administrator to change or delete it."));
             $this->redirect($this->referer());
         }
 
-        $secret = $this->Session->read('otp_secret');  // Reload secret from session.
-        if ($secret) {
-            $totp = \OTPHP\TOTP::create($secret);
-        } else {
+        if ($this->request->is('get')) {
             $totp = \OTPHP\TOTP::create();
             $secret = $totp->getSecret();
-            $this->Session->write('otp_secret', $secret);  // Store in session, this is to keep the same QR code even if the page refreshes.
+            $this->Session->write('otp_secret', $secret);  // Store in session, we want to create a new secret each time the totp_new() function is queried via a GET (this will not impede incorrect confirmation attempty)
+        } else {
+            $secret = $this->Session->read('otp_secret');  // Reload secret from session.
+            if ($secret) {
+                $totp = \OTPHP\TOTP::create($secret);
+            } else {
+                $totp = \OTPHP\TOTP::create();
+                $secret = $totp->getSecret();
+                $this->Session->write('otp_secret', $secret); // Store in session, we want to keep reusing the same QR code until the user correctly enters the generated key on their authenticator
+            }
         }
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
             if ($totp->verify(trim($this->request->data['User']['otp']))) {
