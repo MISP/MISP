@@ -133,7 +133,7 @@ $data_passed_to_if_module = [
                         </ul>
                 </ul>
                 <p><strong><?= __('Sample:') ?></strong></p>
-                <pre>
+                <pre id="misp-core-format-sample">
 {
     "Event": {
         "id": "64",

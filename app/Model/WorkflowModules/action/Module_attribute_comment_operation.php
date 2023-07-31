@@ -1,13 +1,13 @@
 <?php
 include_once APP . 'Model/WorkflowModules/action/Module_attribute_edition_operation.php';
 
-class Module_attribute_ids_flag_operation extends Module_attribute_edition_operation
+class Module_attribute_comment_operation extends Module_attribute_edition_operation
 {
     public $version = '0.1';
     public $blocking = false;
-    public $id = 'attribute_ids_flag_operation';
-    public $name = 'Attribute IDS Flag operation';
-    public $description = 'Toggle or remove the IDS flag on selected attributes.';
+    public $id = 'Module_attribute_comment_operation';
+    public $name = 'Attribute comment operation';
+    public $description = 'Set the Attribute\'s comment to the selected value';
     public $icon = 'edit';
     public $inputs = 1;
     public $outputs = 1;
@@ -21,14 +21,10 @@ class Module_attribute_ids_flag_operation extends Module_attribute_edition_opera
         parent::__construct();
         $this->params = [
             [
-                'id' => 'action',
-                'label' => __('To IDS Flag'),
-                'type' => 'select',
-                'options' => [
-                    'add' => __('Toggle IDS flag'),
-                    'remove' => __('Remove IDS flag'),
-                ],
-                'default' => 'add',
+                'id' => 'comment',
+                'label' => __('Comment'),
+                'type' => 'textarea',
+                'placeholder' => 'Comment to be set',
             ],
         ];
     }
@@ -54,10 +50,11 @@ class Module_attribute_ids_flag_operation extends Module_attribute_edition_opera
 
     protected function _editAttribute(array $attribute, array $rData, array $params): array
     {
-        if ($params['action']['value'] == 'remove') {
-            $attribute['to_ids'] = false;
-        } else {
-            $attribute['to_ids'] = true;
+        $currentRData = $rData;
+        $currentRData['__currentAttribute'] = $attribute;
+        $renderedComment = $this->render_jinja_template($params['comment']['value'], $currentRData);
+        if ($attribute['comment'] !== $params['comment']['value']) {
+            $attribute['comment'] = $renderedComment;
         }
         return $attribute;
     }

@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '152';
-    public $pyMispVersion = '2.4.173';
+    private $__queryVersion = '153';
+    public $pyMispVersion = '2.4.174';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -111,7 +111,6 @@ class AppController extends Controller
 
         $this->_setupBaseurl();
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
-        $this->Auth->loginAction = $this->baseurl . '/users/login';
 
         $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
         $this->Auth->logoutRedirect = $customLogout ?: ($this->baseurl . '/users/login');
