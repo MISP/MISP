@@ -684,7 +684,7 @@ class Workflow extends AppModel
             $node['data']['id'],
             $node['id'],
             $roamingData->getWorkflow()['Workflow']['name'],
-            $roamingData->getWorkflow()['Workflow']['id'],
+            $roamingData->getWorkflow()['Workflow']['id']
         );
         $this->logExecutionIfDebug($roamingData->getWorkflow(), $message);
         $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'success'), $roamingData->getData());
