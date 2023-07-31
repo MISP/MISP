@@ -4511,7 +4511,7 @@ class Event extends AppModel
             }
 
             return $this->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::PRIO_QUEUE,
+                BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_EVENT,
                 $args,
                 true,
