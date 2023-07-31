@@ -6373,6 +6373,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'mandate_ip_allowlist_advanced_authkeys' => array(
+                    'level' => 2,
+                    'description' => __('If enabled, setting an ip allowlist will be mandatory when adding or editing an advanced authkey.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'disable_browser_cache' => array(
                     'level' => 0,
                     'description' => __('If enabled, HTTP headers that block browser cache will be send. Static files (like images or JavaScripts) will still be cached, but not generated pages.'),
@@ -7255,6 +7263,13 @@ class Server extends AppModel
                 'Sightings_sighting_db_enable' => array(
                     'level' => 1,
                     'description' => __('Enable SightingDB integration.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Sightings_enable_realtime_publish' => array(
+                    'level' => 1,
+                    'description' => __('By default, sightings will not be immediately pushed to connected instances, as this can have a heavy impact on the performance of sighting attributes. Enable realtime publishing to trigger the publishing of sightings immediately as they are added.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'

@@ -4,6 +4,8 @@ App::uses('EncryptedValue', 'Tools');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('RandomTool', 'Tools');
+App::uses('JSONConverterTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 class TaxiiServer extends AppModel
 {
@@ -102,7 +104,11 @@ class TaxiiServer extends AppModel
         $this->Job->id = $jobId;
         foreach ($result as $event) {
             $temporaryFile = $this->temporaryFile($temporaryFolderPath);
-            $temporaryFile->write(json_encode($event));
+            $temporaryFile->write(
+                JsonTool::encode(
+                    JSONConverterTool::convert($event, false, true)
+                )
+            );
             $temporaryFile->close();
             if ($jobId && $i % 10 == 0) {
                 $this->Job->saveField('progress', intval((100 * $i) / $eventCount));

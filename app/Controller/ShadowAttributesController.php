@@ -78,7 +78,7 @@ class ShadowAttributesController extends AppController
             }
 
             if (isset($shadow['proposal_to_delete']) && $shadow['proposal_to_delete']) {
-                $this->Attribute->delete($activeAttribute['Attribute']['id']);
+                $this->Attribute->deleteAttribute($activeAttribute['Attribute']['id'], $this->Auth->user(), false);
             } else {
                 // Update the live attribute with the shadow data
                 $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids', 'first_seen', 'last_seen');
@@ -906,7 +906,24 @@ class ShadowAttributesController extends AppController
         }
         $params = array(
             'conditions' => $conditions,
-            'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen'),
+            'fields' => array(
+                'ShadowAttribute.id',
+                'ShadowAttribute.old_id',
+                'ShadowAttribute.event_id',
+                'ShadowAttribute.type',
+                'ShadowAttribute.category',
+                'ShadowAttribute.uuid',
+                'ShadowAttribute.to_ids',
+                'ShadowAttribute.value',
+                'ShadowAttribute.comment',
+                'ShadowAttribute.org_id',
+                'ShadowAttribute.timestamp',
+                'ShadowAttribute.first_seen',
+                'ShadowAttribute.last_seen',
+                'ShadowAttribute.deleted',
+                'ShadowAttribute.proposal_to_delete',
+                'ShadowAttribute.disable_correlation'
+            ),
             'contain' => array(
                     'Event' => array(
                             'fields' => array('id', 'org_id', 'info', 'orgc_id', 'uuid'),
