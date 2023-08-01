@@ -65,7 +65,7 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./doc
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.test.yml --env-file="./docker/.env.test" build
 docker-compose -f docker-compose.yml -f docker-compose.test.yml --env-file="./docker/.env.test" up -d
-docker-compose --env-file="./docker/.env.test" exec --user www-data misp /var/www/html/bin/cake test
+docker-compose --env-file="./docker/.env.test" exec --user www-data misp vendor/bin/phpunit
 ```
 
 ## Production

@@ -1,7 +1,6 @@
 <?php
 namespace SidemenuNavigation;
 
-use Cake\Core\Configure;
 
 class Sidemenu {
     private $iconTable;

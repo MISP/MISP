@@ -2,7 +2,7 @@
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
-        'title' => __('Sharing Group %s', $entity['name']),
+        'title' => __('Sharing Group {0}', $entity['name']),
         'data' => $entity,
         'fields' => [
             [
