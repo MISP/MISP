@@ -111,7 +111,7 @@ $objectId = intval($object['id']);
   <td class="short action-links">
     <?php
       if ($mayModify) {
-          if (Configure::read('Plugin.Enrichment_services_enable')) {
+          if (Configure::read('Plugin.Enrichment_services_enable') && ($isSiteAdmin || $mayModify) && (isset($modules) && isset($modules['types'][$object['name']]))) {
             echo sprintf(
               '<span class="fa fa-asterisk white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onclick="%2$s"></span> ',
               __('Add enrichment'),
