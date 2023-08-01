@@ -250,7 +250,8 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                     return $this->Acl->canModifyEvent($object) && empty($object['Event']['publish_timestamp']);
                 },
             ]
-        ]
+        ],
+        'persistUrlParams' => ['results']
     ]
 ]);
 

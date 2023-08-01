@@ -55,6 +55,7 @@ class AuthKey extends AppModel
             $this->data['AuthKey']['authkey_raw'] = $authkey;
         }
 
+        $validAllowedIpFound = false;
         if (!empty($this->data['AuthKey']['allowed_ips'])) {
             $allowedIps = &$this->data['AuthKey']['allowed_ips'];
             if (is_string($allowedIps)) {
@@ -70,11 +71,17 @@ class AuthKey extends AppModel
             if (!is_array($allowedIps)) {
                 $this->invalidate('allowed_ips', 'Allowed IPs must be array');
             }
+
             foreach ($allowedIps as $cidr) {
                 if (!CidrTool::validate($cidr)) {
                     $this->invalidate('allowed_ips', "$cidr is not valid IP range");
+                } else {
+                    $validAllowedIpFound = true;
                 }
             }
+        }
+        if (!empty(Configure::read('Security.mandate_ip_allowlist_advanced_authkeys')) && $validAllowedIpFound === false){
+            $this->invalidate('allowed_ips', "Setting an ip allowlist is mandatory on this instance.");
         }
 
         $creationTime = isset($this->data['AuthKey']['created']) ? $this->data['AuthKey']['created'] : time();
@@ -219,9 +226,9 @@ class AuthKey extends AppModel
         $user['authkey_read_only'] = (bool)$authkey['AuthKey']['read_only'];
 
         if ($authkey['AuthKey']['read_only']) {
-            // Disable all permissions, keep just `perm_auth` unchanged
+            // Disable all permissions, keep just `perm_auth` and `perm_audit` unchanged
             foreach ($user['Role'] as $key => &$value) {
-                if (substr($key, 0, 5) === 'perm_' && $key !== 'perm_auth') {
+                if (substr($key, 0, 5) === 'perm_' && $key !== 'perm_auth' && $key !== 'perm_audit') {
                     $value = 0;
                 }
             }
