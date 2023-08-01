@@ -52,7 +52,8 @@ class CRUDComponent extends Component
         }
 
         $optionFilters = [];
-        $optionFilters += empty($options['filters']) ? [] : $options['filters'];
+        $optionValidFilters = empty($options['filters']) ? [] : $this->getFilterFieldsName($options['filters']);
+        $optionFilters += $optionValidFilters;
         foreach ($optionFilters as $i => $filter) {
             $optionFilters[] = "{$filter} !=";
             $optionFilters[] = "{$filter} >=";
@@ -1359,6 +1360,11 @@ class CRUDComponent extends Component
     protected function setRelatedCondition($query, $modelName, $fieldName, $filterValue)
     {
         return $query->matching($modelName, function (\Cake\ORM\Query $q) use ($fieldName, $filterValue) {
+            if (is_array($filterValue)) {
+                return $this->setInCondition($q, $fieldName, $filterValue);
+            } else {
+                return $this->setValueCondition($q, $fieldName, $filterValue);
+            }
             return $this->setValueCondition($q, $fieldName, $filterValue);
         });
     }
