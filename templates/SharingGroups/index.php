@@ -1,48 +1,38 @@
-<div class="sharingGroups<?php if (!$ajax) echo ' index' ?>">
 <?= $this->element(
     '/genericElements/IndexTable/index_table',
     [
     'data' => [
         'title' => __('Sharing Groups'),
-        'data' => $sharingGroups,
-        'top_bar' => $ajax ? [] : [
+        'data' => $data,
+        'top_bar' => [
             'children' => [
                 [
                     'type' => 'simple',
                     'children' => [
-                        [
-                            'text' => __('Add'),
-                            'fa-icon' => 'plus',
-                            'url' => '/sharing-groups/add',
-                            'requirement' => $this->Acl->checkAccess('sharingGroups', 'add'),
+                        'data' => [
+                            'type' => 'simple',
+                            'text' => __('Add sharing'),
+                            'popover_url' => '/sharing-groups/add',
+                            'button' => [
+                                'icon' => 'plus',
+                            ]
                         ]
                     ]
                 ],
                 [
-                    'type' => 'simple',
-                    'children' => [
-                        [
-                            'url' => '/sharing-groups/index',
-                            'text' => __('Active Sharing Groups'),
-                            'active' => !$passive,
-                        ],
-                        [
-                            'url' => '/sharing-groups/index/true',
-                            'text' => __('Passive Sharing Groups'),
-                            'active' => $passive,
-                        ]
-                    ]
+                    'type' => 'context_filters',
                 ],
                 [
                     'type' => 'search',
-                    'button' => __('Filter'),
+                    'button' => __('Search'),
                     'placeholder' => __('Enter value to search'),
+                    'data' => '',
                     'searchKey' => 'value',
-                    'cancel' => [
-                        'fa-icon' => 'times',
-                        'title' => __('Remove filters'),
-                        'onClick' => 'cancelSearch',
-                    ]
+                    'allowFilering' => true
+                ],
+                [
+                    'type' => 'table_action',
+                    'table_setting_id' => 'sharinggroup_index',
                 ]
             ]
         ],
@@ -96,7 +86,7 @@
                             if (!empty($sge['Organisation'])) {
                                 $combined .= "<br><a href='/organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
                                 if ($sge['extend']) {
-                                    $combined .= ' (can extend)';
+                                    $combined .= __(' (can extend)');
                                 }
                             }
                         }
@@ -109,12 +99,12 @@
                             if ($sgs['server_id'] != 0) {
                                 $combined .= "<br><a href='/server/view/" . h($sgs['Server']['id']) . "'>" . h($sgs['Server']['name']) . "</a>";
                             } else {
-                                $combined .= "<br>This instance";
+                                $combined .= "<br>" . __("This instance");
                             }
                             if ($sgs['all_orgs']) {
-                                $combined .= ' (all organisations)';
+                                $combined .= __(' (all organisations)');
                             } else {
-                                $combined .= ' (as defined above)';
+                                $combined .= __(' (as defined above)');
                             }
                         }
                     } ?>
@@ -163,12 +153,7 @@
     ]
 );
 ?>
-</div>
-<script type="text/javascript">
-    $(function(){
-        popoverStartup();
-    });
-</script>
+
 <?php
 // TODO: [3.x-MIGRATION]
 // if (!$ajax) {

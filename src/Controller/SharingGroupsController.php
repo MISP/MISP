@@ -26,6 +26,26 @@ class SharingGroupsController extends AppController
         }
     }
 
+    public $quickFilterFields = [['name' => true], 'uuid', ['releasability' => true], ['description' => true], ['Organisations.name' => true],];
+    public $filterFields = [
+        'name', 'uuid', 'releasability', 'description', 'active', 'created', 'modified', 'SharingGroups.local', 'roaming', ['name' => 'Organisations.name', 'multiple' => true],
+    ];
+    public $containFields = [
+        'SharingGroupOrgs' => [
+            'Organisations' => ['fields' => ['name', 'id', 'uuid']]
+        ],
+        'Organisations' => [
+            'fields' => ['id', 'name', 'uuid'],
+        ],
+        'SharingGroupServers' => [
+            'fields' => ['sharing_group_id', 'all_orgs'],
+            'Servers' => [
+                'fields' => ['name', 'id']
+            ]
+        ]
+    ];
+    public $statisticsFields = ['active', 'roaming'];
+
     public $paginate = [
         'limit' => 60,
         'maxLimit' => 9999,
@@ -286,7 +306,7 @@ class SharingGroupsController extends AppController
         }
     }
 
-    public function index($passive = false)
+    public function indexOld($passive = false)
     {
         $passive = $passive === 'true';
         $authorizedSgIds = $this->SharingGroups->authorizedIds($this->ACL->getUser()->toArray());
@@ -398,6 +418,67 @@ class SharingGroupsController extends AppController
         $this->set('sharingGroups', $response);
         $this->set('passedArgs', $passive ? 'true' : '[]');
         $this->set('title_for_layout', __('Sharing Groups'));
+    }
+
+    public function index()
+    {
+        $customContextFilters = [
+            [
+                'label' => __('Active Sharing Groups'),
+                'filterCondition' => ['active' => 0]
+            ],
+            [
+                'label' => __('Passive Sharing Groups'),
+                'filterCondition' => ['active' => 1]
+            ]
+        ];
+
+        $containFields = $this->containFields;
+        $validFilterFields = $this->CRUD->getFilterFieldsName($this->filterFields);
+        if (!$this->__showOrgs()) {
+            $validFilterFields = array_filter($validFilterFields, fn($filter) => $filter != 'Organisations.name' );
+            unset($containFields['SharingGroupOrgs']);
+            unset($containFields['SharingGroupServers']);
+        }
+
+        $conditions = [];
+        // Keep sharing group containing the requested orgs
+        $params = $this->ParamHandler->harvestParams($validFilterFields);
+        if ($this->__showOrgs() && !empty($params['Organisations.name'])) {
+            $sgIDs = $this->SharingGroups->fetchSharingGroupIDsForOrganisations($params['Organisations.name']);
+            if (empty($sgIDs)) {
+                $sgIDs = -1;
+            }
+            $conditions['SharingGroups.id'] = $sgIDs;
+        }
+
+        // Check if the current user can modify or delete the SG
+        $user = $this->ACL->getUser();
+        $afterFindHandler = function ($sg) use ($user) {
+            $sg = $this->SharingGroups->attachSharingGroupEditabilityForUser($sg, $user);
+            return $sg;
+        };
+
+        $this->CRUD->index([
+            'filters' => $this->filterFields,
+            'quickFilters' => $this->quickFilterFields,
+            'conditions' => $conditions,
+            'contextFilters' => [
+                'custom' => $customContextFilters,
+            ],
+            'contain' => $containFields,
+            'afterFind' => $afterFindHandler,
+            'statisticsFields' => $this->statisticsFields,
+        ]);
+        $responsePayload = $this->CRUD->getResponsePayload();
+        if (!empty($responsePayload)) {
+            return $responsePayload;
+        }
+    }
+
+    public function filtering()
+    {
+        $this->CRUD->filtering();
     }
 
     public function view($id)
@@ -681,7 +762,7 @@ class SharingGroupsController extends AppController
     /**
      * @return bool
      */
-    private function __showOrgs()
+    private function __showOrgs(): bool
     {
         return $this->ACL->getUser()->Role->perm_sharing_group || !Configure::read('Security.hide_organisations_in_sharing_groups');
     }
