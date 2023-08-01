@@ -68,7 +68,7 @@ class Sidemenu {
                 'SharingGroups' => [
                     'label' => __('Sharing Groups'),
                     'icon' => $this->iconTable['SharingGroups'],
-                    'url' => '/sharing_groups/index',
+                    'url' => '/sharing-groups/index',
                 ],
             ],
             __('Knowledge Base') => [
