@@ -124,7 +124,7 @@
             'modalClass' => $seedModal,
         ]);
     } else if (!empty($raw)) {
-        echo $this->element('genericElements/Form/formLayouts/formDefault', [
+        echo $this->element('genericElements/Form/formLayouts/formRaw', [
             'data' => $data,
             'actionName' => $actionName,
             'modelName' => $modelName,
