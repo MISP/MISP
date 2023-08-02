@@ -45,6 +45,9 @@ class BootstrapIcon extends BootstrapGeneric
         $this->options = array_merge($this->defaultOptions, $options);
         $this->checkOptionValidity();
         $this->options['class'] = $this->convertToArrayIfNeeded($this->options['class']);
+        $this->options['title'] = h($this->options['title']);
+        $this->options = array_merge($this->options['attrs'], $this->options);
+        unset($this->options['attrs']);
     }
 
     public function icon(): string
@@ -55,17 +58,16 @@ class BootstrapIcon extends BootstrapGeneric
     private function genIcon(): string
     {
         $options = [
-            'id' => $this->options['id'] ?? '',
             'class' => implode('', $this->options['class']),
-            'title' => h($this->options['title']),
+            'title' => $this->options['title'],
         ];
-        $options = array_merge($this->options['attrs'], $options);
         if (is_array($this->icon)) {
             $options = array_merge($options, $this->icon);
         } else {
             $options = array_merge($options, ['icon' => $this->icon]);
         }
-        $html = $this->bsHelper->Icon->icon($options);
+        $iconHtml = $this->bsHelper->Icon->icon($options);
+        $html = $this->node('span', $this->options, $iconHtml);
         return $html;
     }
 }
