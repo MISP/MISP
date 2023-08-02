@@ -167,6 +167,10 @@ class SharingGroupsController extends AppController
             return $this->RestResponse->describe('SharingGroup', 'add');
         }
 
+        $organisations = $this->SharingGroups->Organisations->find()->all()->toList();
+        $this->set('organisations', $organisations);
+        $mispInstances = []; // TODO: [3.x-MIGRATION] Fill with servers when Server model is migrated
+        $this->set('mispInstances', $mispInstances);
         $this->set('localInstance', empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'));
         // We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
         $this->set('user', $this->ACL->getUser()->toArray());

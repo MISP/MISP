@@ -1,160 +1,488 @@
-<div class="sharing-groups form">
-    <fieldset>
-        <legend><?php echo __('New Sharing Group'); ?></legend>
-        <?php
-            $data = [
-                'children' => [
-                    [
-                        'children' => [
-                            [
-                                'text' => __('General'),
-                                'title' => __('General tab'),
-                                'class' => 'progress_tab',
-                                'id' => 'page1_tab',
-                                'active' => true,
-                                'onClick' => 'simpleTabPage',
-                                'onClickParams' => [1]
-                            ],
-                            [
-                                'text' => __('Organisations'),
-                                'title' => __('Organisations tab'),
-                                'class' => 'progress_tab',
-                                'id' => 'page2_tab',
-                                'onClick' => 'simpleTabPage',
-                                'onClickParams' => [2]
-                            ],
-                            [
-                                'text' => __('MISP Instances'),
-                                'title' => __('MISP instances tab'),
-                                'class' => 'progress_tab',
-                                'id' => 'page3_tab',
-                                'onClick' => 'simpleTabPage',
-                                'onClickParams' => [3]
-                            ],
-                            [
-                                'text' => __('Summary and Save'),
-                                'title' => __('Sharing group summary'),
-                                'class' => 'progress_tab',
-                                'id' => 'page4_tab',
-                                'onClick' => 'simpleTabPage',
-                                'onClickParams' => [4]
-                            ]
-                        ]
-                    ]
-                ]
-            ];
-            if (!$ajax) {
-                echo $this->element('/genericElements/ListTopBar/scaffold', ['data' => $data]);
-            }
-        ?>
-        <div id="page1_content" class="multi-page-form-div tabContent" style="width:544px;">
-            <?php if ($canModifyUuid): ?>
-            <label for="SharingGroupUuid"><?php echo __('UUID');?></label>
-            <input type="text" class="input-xxlarge" placeholder="<?= __('If not provided, random UUID will be generated') ?>" id="SharingGroupUuid">
-            <?php endif; ?>
-            <label for="SharingGroupName"><?php echo __('Name');?></label>
-            <input type="text" class="input-xxlarge" placeholder="<?php echo __('Example: Multinational sharing group');?>" id="SharingGroupName">
-            <label for="SharingGroupReleasability"><?php echo __('Releasable to');?></label>
-            <input type="text" class="input-xxlarge" placeholder="<?php echo __('Example: Community1, Organisation1, Organisation2');?>" id="SharingGroupReleasability">
-            <label for="SharingGroupDescription"><?php echo __('Description');?></label>
-            <textarea class="input-xxlarge" placeholder="<?php echo __('A description of the sharing group.');?>" cols="30" rows="6" id="SharingGroupDescription"></textarea>
-            <div style="display:block;">
-                <input type="checkbox" style="float:left;" title="<?php echo __('Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled.');?>" value="1" id="SharingGroupActive" checked>
-                <label for="SharingGroupActive" style="padding-left:20px;"><?php echo __('Make the sharing group selectable (active)');?></label>
-            </div>
-            <span role="button" tabindex="0" aria-label="<?php echo __('Next page');?>" title="<?php echo __('Next page');?>" class="btn btn-inverse" onClick="simpleTabPage(2);"><?php echo __('Next page');?></span>
-        </div>
-        <div id="page2_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
-            <div class="tabMenuFixedContainer">
-                <span role="button" tabindex="0" aria-label="<?php echo __('Add local organisation(s) to the sharing group');?>" title="<?php echo __('Add local organisation(s) to the sharing group');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="sharingGroupAdd('organisation', 'local');"><?php echo __('Add local organisation');?></span>
-                <span role="button" tabindex="0" aria-label="<?php echo __('Add remote organisations to the sharing group');?>" title="<?php echo __('Add remote organisations to the sharing group');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="sharingGroupAdd('organisation', 'remote');"><?php echo __('Add remote organisation');?></span>
-            </div>
-            <table id="organisations_table" class="table table-striped table-hover table-condensed">
-                <tr id="organisations_table_header">
-                    <th><?php echo __('Type');?></th>
-                    <th><?php echo __('Name');?></th>
-                    <th><?php echo __('UUID');?></th>
-                    <th><?php echo __('Extend');?></th>
-                    <th><?php echo __('Actions');?></th>
-                </tr>
-            </table>
-                <span role="button" tabindex="0" aria-label="<?php echo __('Previous page');?>" title="<?php echo __('Previous page');?>" class="btn btn-inverse" onClick="simpleTabPage(1);"><?php echo __('Previous page');?></span>
-                <span role="button" tabindex="0" aria-label="<?php echo __('Next page');?>" title="<?php echo __('Next page');?>" class="btn btn-inverse" onClick="simpleTabPage(3);"><?php echo __('Next page');?></span>
-        </div>
-        <div id="page3_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
-            <div style="display:block;">
-                <input type="checkbox" style="float:left;" title="<?php echo __('Enable roaming mode for this sharing group. Roaming mode will allow the sharing group to be passed to any instance where the remote recipient is contained in the organisation list. It is preferred to list the recipient instances instead.');?>" value="1" id="SharingGroupRoaming">
-                <label for="SharingGroupRoaming" style="padding-left:20px;"><?php echo __('<b>Enable roaming mode</b> for this sharing group (pass the event to any connected instance where the sync connection is tied to an organisation contained in the SG organisation list).');?></label>
-            </div>
-            <div id="serverList">
-                <div class="tabMenuFixedContainer">
-                    <span role="button" tabindex="0" aria-label="<?php echo __('Add instance');?>" title="<?php echo __('Add instance');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="sharingGroupAdd('server');"><?php echo __('Add instance');?></span>
-                </div>
-                <table id="servers_table" class="table table-striped table-hover table-condensed">
-                    <tr>
-                        <th><?php echo __('Name');?></th>
-                        <th><?php echo __('URL');?></th>
-                        <th><?php echo __('All orgs');?></th>
-                        <th><?php echo __('Actions');?></th>
-                    </tr>
-                </table>
-            </div>
-                <span role="button" tabindex="0" aria-label="<?php echo __('Previous page');?>" title="<?php echo __('Previous page');?>" class="btn btn-inverse" onClick="simpleTabPage(2);"><?php echo __('Previous page');?></span>
-                <span role="button" tabindex="0" aria-label="<?php echo __('Next page');?>" title="<?php echo __('Next page');?>" class="btn btn-inverse" onClick="simpleTabPage(4);"><?php echo __('Next page');?></span>
-        </div>
-    </fieldset>
-    <div id="page4_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
-        <p><?php echo __('<span class="bold">General: </span>You are about to create the <span id="summarytitle" class="red bold"></span> sharing group, which is intended to be releasable to <span id="summaryreleasable" class="red bold"></span>.');?> </p>
-        <p id="localText"><span class="bold"><?php echo __('Local organisations: </span>It will be visible to <span id="summarylocal" class="red bold"></span>, from which <span id="summarylocalextend" class="red bold"></span> can extend the sharing group.');?> </p>
-        <p id="externalText"><span class="bold"><?php echo __('External organisations: </span>It will also be visible to <span id="summaryexternal" class="red bold"></span>, out of which <span id="summaryexternalextend" class="red bold"></span> can extend the sharing group.');?></p>
-        <p id="synchronisationText"><?php echo __('<span class="bold">Synchronisation: </span>Furthermore, events are automatically pushed to: <span id="summaryservers" class="red bold"></span>');?></p>
-        <p><?php echo __('You can edit this information by going back to one of the previous pages, or if you agree with the above mentioned information, click Submit to create the Sharing group.');?></p>
-        <?php
-            $sharingGroupEntity = new \App\Model\Entity\SharingGroup(); 
-            echo $this->Form->create($sharingGroupEntity, ['id' => 'SharingGroupAddForm']);
-            echo $this->Form->input('json', ['id' => 'SharingGroupJson', 'style' => 'display:none;', 'label' => false, 'div' => false]);
-            //echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
-            echo $this->Form->end();
-        ?>
-        <span role="button" tabindex="0" aria-label="<?php echo __('Previous page');?>" title="<?php echo __('Previous page');?>" class="btn btn-inverse" onClick="simpleTabPage(3);"><?php echo __('Previous page');?></span>
-        <span role="button" tabindex="0" aria-label="<?php echo __('Submit and create sharing group');?>" title="<?php echo __('Submit and create sharing group');?>" class="btn btn-primary" onClick="sgSubmitForm('Add');"><?php echo __('Submit');?></span>
-    </div>
-</div>
 <?php
-    // TODO: [3.x-MIGRATION]
-    // echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'addSG'));
+
+use Cake\Utility\Hash;
 ?>
-<script type="text/javascript">
-    var lastPage = 4;
+
+<h2 class="fw-light"><?= __('New Sharing Group') ?></h2>
+
+<div class="container-md ms-0">
+    <?php
+    $toggleNextTabButton = $this->Bootstrap->button([
+        'onclick' => 'toggleNextTab()',
+        'text' => __('Next page'),
+        'variant' => 'secondary',
+    ]);
+    $toggleNextTabDiv = $this->Bootstrap->node('div', ['class' => 'mt-2'], $toggleNextTabButton);
+
+    $formGeneral = $this->element('genericElements/Form/genericForm', [
+        'data' => [
+            'model' => 'SharingGroups',
+            'fields' => [
+                [
+                    'field' => 'uuid',
+                    'label' => 'UUID',
+                    'type' => 'uuid',
+                    'placeholder' => __('If not provided, random UUID will be generated'),
+                ],
+                [
+                    'field' => 'name',
+                    'placeholder' => __('Example: Multinational sharing group'),
+                ],
+                [
+                    'field' => 'releasability',
+                    'label' => __('Releasable to'),
+                    'placeholder' => __('Example: Community1, Organisation1, Organisation2'),
+                ],
+                [
+                    'field' => 'description',
+                    'type' => 'textarea',
+                    'placeholder' => __('A description of the sharing group.'),
+                ],
+                [
+                    'field' => 'active',
+                    'label' => __('Make the sharing group selectable (active)'),
+                    'type' => 'checkbox',
+                    'default' => 1,
+                    'tooltip' => __('Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled.'),
+                ],
+            ],
+        ],
+        'raw' => true,
+    ]);
+    $formOrgs = $this->element('genericElements/Form/genericForm', [
+        'data' => [
+            'model' => 'SharingGroups',
+            'fields' => [
+                [
+                    'field' => 'local_orgs',
+                    'label' => __('Local Organisations'),
+                    'placeholder' => __('Add local organisation(s) to the sharing group'),
+                    'type' => 'dropdown',
+                    'multiple' => true,
+                    'select2' => true,
+                    'options' => Hash::combine(
+                        array_filter($organisations, fn ($org) => $org['local']),
+                        '{n}.id',
+                        '{n}.name'
+                    ),
+                    'value' => h($user['Organisation']['id']),
+                ],
+                [
+                    'field' => 'remote_orgs',
+                    'label' => __('Remote Organisations'),
+                    'placeholder' => __('Add remote organisation(s) to the sharing group'),
+                    'type' => 'dropdown',
+                    'multiple' => true,
+                    'select2' => true,
+                    'options' => Hash::combine(
+                        array_filter($organisations, fn ($org) => !$org['local']),
+                        '{n}.id',
+                        '{n}.name'
+                    ),
+                ],
+            ],
+        ],
+        'raw' => true,
+    ]);
+    $orgTable = $this->Bootstrap->table(
+        [
+            'id' => 'organisations_table',
+            'condensed' => true,
+            'striped' => true,
+            'borderless' => true,
+        ],
+        [
+            'fields' => [
+                __('Type'),
+                __('Name'),
+                __('UUID'),
+                __('Extend'),
+                __('Actions'),
+            ],
+            'items' => [],
+        ]
+    );
+
+    $formServers = $this->element('genericElements/Form/genericForm', [
+        'data' => [
+            'model' => 'SharingGroups',
+            'fields' => [
+                [
+                    'field' => 'roaming',
+                    'label' => __('Enable roaming mode'),
+                    'type' => 'checkbox',
+                    'default' => false,
+                    'tooltip' => __('Roaming mode will allow the sharing group and associated data to be passed to any instance where the remote recipient is contained in the organisation list.'),
+                    'div' => [
+                        'class' => 'mb-3',
+                    ],
+                ],
+                [
+                    'field' => 'misp_instances',
+                    'label' => __('MISP instances'),
+                    'placeholder' => __('Add instance(s) to the sharing group'),
+                    'type' => 'dropdown',
+                    'multiple' => true,
+                    'select2' => true,
+                    'options' => Hash::combine(
+                        $mispInstances,
+                        '{n}.id',
+                        '{n}.name'
+                    ),
+                    'div' => [
+                        'id' => 'server-picker-container',
+                    ],
+                ],
+            ],
+        ],
+        'raw' => true,
+    ]);
+    $serverTable = $this->Bootstrap->table(
+        [
+            'id' => 'servers_table',
+            'condensed' => true,
+            'striped' => true,
+            'borderless' => true,
+        ],
+        [
+            'fields' => [
+                __('Name'),
+                __('URL'),
+                __('All orgs'),
+                __('Actions'),
+            ],
+            'items' => [],
+        ]
+    );
+
+    $formSummary = $this->element('genericElements/Form/genericForm', [
+        'data' => [
+            'model' => 'SharingGroups',
+            'fields' => [
+                [
+                    'field' => 'json',
+                    'type' => 'text',
+                ],
+            ],
+        ],
+        'raw' => true,
+    ]);
+
+    $summaryText = '<p>' . $this->Bootstrap->render(
+        '<b>' . __('General') . '</b>: ' .
+            __('You are about to create the {{title_container}} sharing group, which is intended to be releasable to {{releasable_container}}.'),
+        [
+            'title_container' => '<strong id="summarytitle" class="text-danger">XX</strong>',
+            'releasable_container' => '<strong id="summaryreleasable" class="text-danger">XX</strong>',
+        ]
+    ) . '</p>';
+    $summaryText .= '<p>' . $this->Bootstrap->render(
+        '<b>' . __('Local organisations') . '</b>: ' .
+            __('It will be visible to {{local}}, from which {{extend}} can extend the sharing group.'),
+        [
+            'local' => '<strong id="summarylocal" class="text-danger"></strong>',
+            'extend' => ' <strong id="summarylocalextend" class="text-danger"></strong>',
+        ]
+    ) . '</p>';
+    $summaryText .= '<p>' . $this->Bootstrap->render(
+        '<b>' . __('External organisations') . '</b>: ' .
+            __('It will also be visible to {{external}}, out of which {{extend}} can extend the sharing group.'),
+        [
+            'external' => '<strong id="summaryexternal" class="text-danger"></strong>',
+            'extend' => '<strong id="summaryexternalextend" class="text-danger"></strong>',
+        ]
+    ) . '</p>';
+    $summaryText .= '<p>' . $this->Bootstrap->render(
+        '<b>' . __('Synchronisation') . '</b>: ' .
+            __('Furthermore, events are automatically pushed to: {{servers}}'),
+        [
+            'servers' => '<strong id="summaryservers" class="text-danger"></strong>',
+        ]
+    ) . '</p>';
+    $summaryText .= $this->Bootstrap->alert([
+        'text' => __('You can edit this information by going back to one of the previous pages.'),
+        'dismissible' => false,
+    ]);
+
+    $formSummary =  $this->Bootstrap->node('div', ['class' => 'd-none'], $formSummary);
+    $formSummary .= $summaryText;
+    $formSummary .=  $this->Bootstrap->node('div', ['class' => 'mt-2'], $this->Bootstrap->button([
+        'text' => __('Create sharing group'),
+        'onclick' => 'sgSubmitForm()',
+    ]));
+
+    $formGeneral .= $toggleNextTabDiv;
+    $formOrgs .= $orgTable . $toggleNextTabDiv;
+    $formServers .= $serverTable . $toggleNextTabDiv;
+
+    echo $this->Bootstrap->tabs([
+        'id' => 'tabs-sg-form',
+        'card' => !false,
+        'content-class' => ['p-3'],
+        'data' => [
+            'navs' => [
+                ['text' => __('General'), 'active' => true],
+                ['text' => __('Organisations'),],
+                ['text' => __('Instances'),],
+                ['text' => __('Summary & Save'), 'id' => 'tab-summary-and-save'],
+            ],
+            'content' => [
+                $formGeneral,
+                $formOrgs,
+                $formServers,
+                $formSummary,
+            ],
+        ]
+    ]);
+
+    ?>
+</div>
+
+<script>
     var roaming = false;
     var organisations = [{
-        id: '<?php echo h($user['Organisation']['id'])?>',
+        id: '<?php echo h($user['Organisation']['id']) ?>',
         type: 'local',
-        name: '<?php echo h($user['Organisation']['name'])?>',
+        name: '<?php echo h($user['Organisation']['name']) ?>',
         extend: true,
         uuid: '',
         removable: 0
     }];
-    var orgids = ['<?php echo h($user['Organisation']['id'])?>'];
+    var orgids = ['<?php echo h($user['Organisation']['id']) ?>'];
     var servers = [{
         id: '0',
-        name: '<?php echo __('Local instance');?>',
+        name: '<?php echo __('Local instance'); ?>',
         url: '<?php echo h($localInstance); ?>',
         all_orgs: false,
         removable: 0
     }];
     var serverids = [0];
-    $(function() {
-        if ($('#SharingGroupJson').val()) sharingGroupPopulateFromJson();
+
+    $(document).ready(function() {
+        $('#roaming-field').change(function() {
+            toggleServerTableVisibility()
+        });
+        toggleServerTableVisibility()
+
+        if ($('#json-field').val()) sharingGroupPopulateFromJson();
         sharingGroupPopulateOrganisations();
         sharingGroupPopulateServers();
-    });
-    $('#SharingGroupRoaming').change(function() {
-        if ($(this).is(":checked")) {
-            $('#serverList').hide();
-        } else {
-            $('#serverList').show();
-        }
-    });
 
+        const lastTabEl = document.querySelector('#tabs-sg-form a#tab-summary-and-save-tab[data-bs-toggle].nav-link')
+        lastTabEl.addEventListener('shown.bs.tab', event => {
+            updateSummaryText()
+        })
+
+        $('#local_orgs-field').on('select2:select', function(e) {
+            const data = $(this).select2('data');
+            refreshPickedOrgList('local', data)
+        });
+        $('#remote_orgs-field').on('select2:select', function(e) {
+            const data = $(this).select2('data');
+            refreshPickedOrgList('remote', data)
+        });
+        $('#misp_instances-field').on('select2:select', function(e) {
+            const data = $(this).select2('data');
+            refreshPickedServerList('remote', data)
+        });
+
+    })
+
+    function toggleServerTableVisibility() {
+        if ($('#roaming-field').is(":checked")) {
+            $('#servers_table').hide();
+            $('#server-picker-container').hide();
+        } else {
+            $('#servers_table').show();
+            $('#server-picker-container').show();
+        }
+    }
+
+    function refreshPickedOrgList(localType, pickedOrgs) {
+        pickedOrgs.forEach(function(org) {
+            if (orgids.indexOf(org.id) == -1) {
+                organisations.push({
+                    id: org.id,
+                    type: localType,
+                    name: org.text,
+                    extend: false,
+                    uuid: '',
+                    removable: 1
+                });
+            }
+            orgids.push(org.id);
+            sharingGroupPopulateOrganisations();
+        })
+    }
+
+    function refreshPickedServerList(pickedServers) {
+        pickedServers.forEach(function(server) {
+            if (serverids.indexOf(server.id) == -1) {
+                servers.push({
+                    id: server.id,
+                    name: server.text,
+                    url: $(server.element).data('url'),
+                    all_orgs: false,
+                    removable: 1
+                });
+            }
+            serverids.push($(this).val());
+            sharingGroupPopulateServers();
+        })
+    }
+
+    function sgSubmitForm() {
+        var ajaxData = {
+            'organisations': organisations,
+            'servers': servers,
+            'sharingGroup': {
+                'uuid': $('#SharingGroupUuid').val(),
+                'name': $('#SharingGroupName').val(),
+                'releasability': $('#SharingGroupReleasability').val(),
+                'description': $('#SharingGroupDescription').val(),
+                'active': $('#SharingGroupActive').is(":checked"),
+                'roaming': $('#SharingGroupRoaming').is(":checked"),
+            }
+        };
+        $('#json-field').val(JSON.stringify(ajaxData));
+        $('#json-field').closest('form').submit();
+    }
+
+    function toggleNextTab() {
+        const activeTabEl = document.querySelector('#tabs-sg-form a[data-bs-toggle].nav-link.active')
+        const nexTabEl = activeTabEl.parentElement.nextElementSibling.querySelector('a[data-bs-toggle].nav-link')
+        bootstrap.Tab.getOrCreateInstance(nexTabEl).show()
+    }
+
+    function updateSummaryText() {
+        var summaryorgs = summaryextendorgs = remotesummaryorgs = remotesummaryextendorgs = summaryservers = "";
+        var orgcounter = extendcounter = remoteorgcounter = remoteextendcounter = servercounter = 0;
+        var sgname = "[Sharing group name not set!]";
+        if ($('#name-field').val()) sgname = $('#name-field').val();
+        var sgreleasability = "<?= __('[Sharing group releasability not set!]') ?>";
+        if ($('#releasability-field').val()) sgreleasability = $('#releasability-field').val();
+        $('#summarytitle').text(sgname);
+        $('#summaryreleasable').text(sgreleasability);
+        organisations.forEach(function(organisation) {
+            if (organisation.type == 'local') {
+                if (orgcounter > 0) summaryorgs += ", ";
+                summaryorgs += organisation.name;
+                if (organisation.extend == true) {
+                    if (extendcounter > 0) summaryextendorgs += ", "
+                    summaryextendorgs += organisation.name;
+                    extendcounter++;
+                }
+                orgcounter++;
+            } else {
+                if (remoteorgcounter > 0) remotesummaryorgs += ", ";
+                remotesummaryorgs += organisation.name;
+                if (organisation.extend == true) {
+                    if (remoteextendcounter > 0) remotesummaryextendorgs += ", "
+                    remotesummaryextendorgs += organisation.name;
+                    remoteextendcounter++;
+                }
+                remoteorgcounter++;
+            }
+        });
+        if (orgcounter == 0) $('#localText').hide();
+        if (remoteorgcounter == 0) $('#externalText').hide();
+        if (extendcounter == 0) summaryextendorgs = "nobody";
+        if (remoteextendcounter == 0) remotesummaryextendorgs = "nobody";
+        servers.forEach(function(server) {
+            if (servercounter > 0) summaryservers += ", ";
+            if (server.id != 0) {
+                summaryservers += server.name;
+                if (extendcounter == 0) summaryextendorgs = "none";
+                servercounter++;
+            }
+            if (server.id == 0 && server.all_orgs == true) summaryorgs = "all organisations on this instance";
+        });
+        if ($('#roaming-field').is(":checked")) {
+            summaryservers = "any interconnected instances linked by an eligible organisation.";
+        } else {
+            if (servercounter == 0) {
+                summaryservers = "data marked with this sharing group will not be pushed.";
+            }
+        }
+        $('#summarylocal').text(summaryorgs);
+        $('#summarylocalextend').text(summaryextendorgs);
+        $('#summaryexternal').text(remotesummaryorgs);
+        $('#summaryexternalextend').text(remotesummaryextendorgs);
+        $('#summaryservers').text(summaryservers);
+    }
+
+    function sharingGroupPopulateOrganisations() {
+        $('.orgRow').remove();
+        var id = 0;
+        var html = '';
+        organisations.forEach(function(org) {
+            html = '<tr id="orgRow' + id + '" class="orgRow">';
+            html += '<td class="short">' + org.type + '&nbsp;</td>';
+            html += '<td>' + $('<div>').text(org.name).html() + '&nbsp;</td>';
+            html += '<td>' + org.uuid + '&nbsp;</td>';
+            html += '<td class="short" style="text-align:center;">';
+            if (org.removable == 1) {
+                html += '<input id="orgExtend' + id + '" type="checkbox" onClick="sharingGroupExtendOrg(' + id + ')" ';
+                if (org.extend) html += 'checked';
+                html += '>';
+            } else {
+                html += '<?= $this->Bootstrap->icon('check') ?>'
+            }
+            html += '</td>';
+            html += '<td class="actions short">';
+            if (org.removable == 1) html += '<span class="icon-trash" onClick="sharingGroupRemoveOrganisation(' + id + ')"></span>';
+            html += '&nbsp;</td></tr>';
+            $('#organisations_table tbody').append(html);
+            id++;
+        });
+    }
+
+    function sharingGroupPopulateServers() {
+        $('.serverRow').remove();
+        var id = 0;
+        var html = '';
+        servers.forEach(function(server) {
+            html = '<tr id="serverRow' + id + '" class="serverRow">';
+            html += '<td>' + server.name + '&nbsp;</td>';
+            html += '<td>' + server.url + '&nbsp;</td>';
+            html += '<td>';
+            html += '<input id="serverAddOrgs' + id + '" type="checkbox" onClick="sharingGroupServerAddOrgs(' + id + ')" ';
+            if (server.all_orgs) html += 'checked';
+            html += '>';
+            html += '</td>';
+            html += '<td class="actions short">';
+            if (server.removable == 1) html += '<span class="icon-trash" onClick="sharingGroupRemoveServer(' + id + ')"></span>';
+            html += '&nbsp;</td></tr>';
+            $('#servers_table tbody').append(html);
+            id++;
+        });
+    }
+
+    function sharingGroupExtendOrg(id) {
+        organisations[id].extend = $('#orgExtend' + id).is(":checked");
+    }
+
+    function sharingGroupServerAddOrgs(id) {
+        servers[id].all_orgs = $('#serverAddOrgs' + id).is(":checked");
+    }
+
+    function sharingGroupPopulateUsers() {
+        $('input[id=SharingGroupServers]').val(JSON.stringify(organisations));
+    }
+
+    function sharingGroupRemoveOrganisation(id) {
+        organisations.splice(id, 1);
+        orgids.splice(id, 1);
+        sharingGroupPopulateOrganisations();
+    }
+
+    function sharingGroupRemoveServer(id) {
+        servers.splice(id, 1);
+        serverids.splice(id, 1);
+        sharingGroupPopulateServers();
+    }
 </script>
+
+
+<br />
+<br />
