@@ -162,7 +162,7 @@ class BootstrapModal extends BootstrapGeneric
     {
         $this->allowedOptionValues = [
             'size' => ['sm', 'lg', 'xl', ''],
-            'type' => ['ok-only', 'confirm', 'custom'],
+            'type' => ['ok-only', 'confirm', 'cancel', 'custom'],
             'header-variant' =>  array_merge(BootstrapGeneric::$variants, ['']),
             'body-variant' =>  array_merge(BootstrapGeneric::$variants, ['']),
             'footer-variant' =>  array_merge(BootstrapGeneric::$variants, ['']),
@@ -275,6 +275,8 @@ class BootstrapModal extends BootstrapGeneric
             return $this->getFooterOkOnly();
         } else if (str_contains($this->options['type'], 'confirm')) {
             return $this->getFooterConfirm();
+        } else if ($this->options['type'] == 'cancel') {
+            return $this->getFooterCancel();
         } else if ($this->options['type'] == 'custom') {
             return $this->getFooterCustom();
         } else {
@@ -291,6 +293,17 @@ class BootstrapModal extends BootstrapGeneric
             'attrs' => [
                 'data-bs-dismiss' => $this->options['confirmOnclick'] ?? 'modal',
             ],
+        ], $this->bsHelper))->button();
+    }
+
+    private function getFooterCancel(): string
+    {
+        return (new BootstrapButton([
+            'text' => __('Cancel'),
+            'variant' => 'secondary',
+            'attrs' => [
+                'data-bs-dismiss' => 'modal',
+            ]
         ], $this->bsHelper))->button();
     }
 
