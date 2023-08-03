@@ -778,7 +778,7 @@ class SharingGroupsTable extends AppTable
                         $editedSG[$a] = $sg[$a];
                     }
                 }
-                $editedSGEntity = new SharingGroup($editedSG);
+                $editedSGEntity = $this->newEntity($editedSG);
                 $this->save($editedSGEntity);
                 return true;
             } else {
@@ -823,7 +823,7 @@ class SharingGroupsTable extends AppTable
             return false;
         }
         $date = date('Y-m-d H:i:s');
-        $newSG = new SharingGroup(
+        $newSG = $this->newEntity(
             [
                 'name' => $sg['name'],
                 'releasability' => !isset($sg['releasability']) ? '' : $sg['releasability'],
