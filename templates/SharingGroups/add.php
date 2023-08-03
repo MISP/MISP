@@ -1,241 +1,284 @@
 <?php
 
 use Cake\Utility\Hash;
+use Cake\Core\Configure;
 ?>
 
-<h2 class="fw-light"><?= __('New Sharing Group') ?></h2>
+<?php
+$toggleNextTabButton = $this->Bootstrap->button([
+    'onclick' => 'toggleNextTab()',
+    'text' => __('Next page'),
+    'variant' => 'secondary',
+]);
+$toggleNextTabDiv = $this->Bootstrap->node('div', ['class' => 'mt-2'], $toggleNextTabButton);
 
-<div class="container-md ms-0">
-    <?php
-    $toggleNextTabButton = $this->Bootstrap->button([
-        'onclick' => 'toggleNextTab()',
-        'text' => __('Next page'),
-        'variant' => 'secondary',
-    ]);
-    $toggleNextTabDiv = $this->Bootstrap->node('div', ['class' => 'mt-2'], $toggleNextTabButton);
+$formGeneral = $this->element('genericElements/Form/genericForm', [
+    'data' => [
+        'model' => 'SharingGroups',
+        'fields' => [
+            [
+                'field' => 'uuid',
+                'label' => 'UUID',
+                'type' => 'uuid',
+                'placeholder' => __('If not provided, random UUID will be generated'),
+            ],
+            [
+                'field' => 'name',
+                'placeholder' => __('Example: Multinational sharing group'),
+            ],
+            [
+                'field' => 'releasability',
+                'label' => __('Releasable to'),
+                'placeholder' => __('Example: Community1, Organisation1, Organisation2'),
+            ],
+            [
+                'field' => 'description',
+                'type' => 'textarea',
+                'placeholder' => __('A description of the sharing group.'),
+            ],
+            [
+                'field' => 'active',
+                'label' => __('Make the sharing group selectable (active)'),
+                'type' => 'checkbox',
+                'default' => 1,
+                'tooltip' => __('Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled.'),
+            ],
+        ],
+    ],
+    'raw' => true,
+]);
 
-    $formGeneral = $this->element('genericElements/Form/genericForm', [
-        'data' => [
-            'model' => 'SharingGroups',
-            'fields' => [
-                [
-                    'field' => 'uuid',
-                    'label' => 'UUID',
-                    'type' => 'uuid',
-                    'placeholder' => __('If not provided, random UUID will be generated'),
+$formOrgs = $this->element('genericElements/Form/genericForm', [
+    'data' => [
+        'model' => 'SharingGroups',
+        'fields' => [
+            [
+                'field' => 'local_orgs',
+                'label' => __('Local Organisations'),
+                'placeholder' => __('Add local organisation(s) to the sharing group'),
+                'type' => 'dropdown',
+                'multiple' => false,
+                'select2' => [
+                    'placeholder' => __('Select a local organisation'),
                 ],
-                [
-                    'field' => 'name',
-                    'placeholder' => __('Example: Multinational sharing group'),
+                'options' => ['' => ''] + Hash::combine(
+                    array_filter($organisations, fn ($org) => $org['local']),
+                    '{n}.id',
+                    '{n}.name'
+                ),
+            ],
+            [
+                'field' => 'remote_orgs',
+                'label' => __('Remote Organisations'),
+                'placeholder' => __('Add remote organisation(s) to the sharing group'),
+                'type' => 'dropdown',
+                'multiple' => false,
+                'select2' => [
+                    'placeholder' => __('Select a remote organisation'),
                 ],
-                [
-                    'field' => 'releasability',
-                    'label' => __('Releasable to'),
-                    'placeholder' => __('Example: Community1, Organisation1, Organisation2'),
+                'options' => ['' => ''] + Hash::combine(
+                    array_filter($organisations, fn ($org) => !$org['local']),
+                    '{n}.id',
+                    '{n}.name'
+                ),
+            ],
+        ],
+    ],
+    'raw' => true,
+]);
+$orgTable = $this->Bootstrap->table(
+    [
+        'id' => 'organisations_table',
+        'condensed' => true,
+        'striped' => true,
+        'borderless' => true,
+    ],
+    [
+        'fields' => [
+            __('Type'),
+            __('Name'),
+            __('UUID'),
+            __('Extend'),
+            __('Actions'),
+        ],
+        'items' => [],
+    ]
+);
+
+$formServers = $this->element('genericElements/Form/genericForm', [
+    'data' => [
+        'model' => 'SharingGroups',
+        'fields' => [
+            [
+                'field' => 'roaming',
+                'label' => __('Enable roaming mode'),
+                'type' => 'checkbox',
+                'default' => false,
+                'tooltip' => __('Roaming mode will allow the sharing group and associated data to be passed to any instance where the remote recipient is contained in the organisation list.'),
+                'div' => [
+                    'class' => 'mb-3',
                 ],
-                [
-                    'field' => 'description',
-                    'type' => 'textarea',
-                    'placeholder' => __('A description of the sharing group.'),
-                ],
-                [
-                    'field' => 'active',
-                    'label' => __('Make the sharing group selectable (active)'),
-                    'type' => 'checkbox',
-                    'default' => 1,
-                    'tooltip' => __('Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled.'),
+            ],
+            [
+                'field' => 'misp_instances',
+                'label' => __('MISP instances'),
+                'placeholder' => __('Add instance(s) to the sharing group'),
+                'type' => 'dropdown',
+                'multiple' => true,
+                'select2' => true,
+                'options' => Hash::combine(
+                    $mispInstances,
+                    '{n}.id',
+                    '{n}.name'
+                ),
+                'div' => [
+                    'id' => 'server-picker-container',
                 ],
             ],
         ],
-        'raw' => true,
-    ]);
-    $formOrgs = $this->element('genericElements/Form/genericForm', [
-        'data' => [
-            'model' => 'SharingGroups',
-            'fields' => [
-                [
-                    'field' => 'local_orgs',
-                    'label' => __('Local Organisations'),
-                    'placeholder' => __('Add local organisation(s) to the sharing group'),
-                    'type' => 'dropdown',
-                    'multiple' => true,
-                    'select2' => true,
-                    'options' => Hash::combine(
-                        array_filter($organisations, fn ($org) => $org['local']),
-                        '{n}.id',
-                        '{n}.name'
-                    ),
-                    'value' => h($user['Organisation']['id']),
-                ],
-                [
-                    'field' => 'remote_orgs',
-                    'label' => __('Remote Organisations'),
-                    'placeholder' => __('Add remote organisation(s) to the sharing group'),
-                    'type' => 'dropdown',
-                    'multiple' => true,
-                    'select2' => true,
-                    'options' => Hash::combine(
-                        array_filter($organisations, fn ($org) => !$org['local']),
-                        '{n}.id',
-                        '{n}.name'
-                    ),
-                ],
+    ],
+    'raw' => true,
+]);
+$serverTable = $this->Bootstrap->table(
+    [
+        'id' => 'servers_table',
+        'condensed' => true,
+        'striped' => true,
+        'borderless' => true,
+    ],
+    [
+        'fields' => [
+            __('Name'),
+            __('URL'),
+            __('All orgs'),
+            __('Actions'),
+        ],
+        'items' => [],
+    ]
+);
+
+$formSummary = $this->element('genericElements/Form/genericForm', [
+    'data' => [
+        'model' => 'SharingGroups',
+        'fields' => [
+            [
+                'field' => 'json',
+                'type' => 'text',
             ],
         ],
-        'raw' => true,
-    ]);
-    $orgTable = $this->Bootstrap->table(
-        [
-            'id' => 'organisations_table',
-            'condensed' => true,
-            'striped' => true,
-            'borderless' => true,
+    ],
+    'raw' => true,
+]);
+
+$summaryText = '<p>' . $this->Bootstrap->render(
+    '<b>' . __('General') . '</b>: ' .
+        __('You are about to create the {{title_container}} sharing group, which is intended to be releasable to {{releasable_container}}.'),
+    [
+        'title_container' => '<strong id="summarytitle" class="text-danger">XX</strong>',
+        'releasable_container' => '<strong id="summaryreleasable" class="text-danger">XX</strong>',
+    ]
+) . '</p>';
+$summaryText .= '<p>' . $this->Bootstrap->render(
+    '<b>' . __('Local organisations') . '</b>: ' .
+        __('It will be visible to {{local}}, from which {{extend}} can extend the sharing group.'),
+    [
+        'local' => '<strong id="summarylocal" class="text-danger"></strong>',
+        'extend' => ' <strong id="summarylocalextend" class="text-danger"></strong>',
+    ]
+) . '</p>';
+$summaryText .= '<p>' . $this->Bootstrap->render(
+    '<b>' . __('External organisations') . '</b>: ' .
+        __('It will also be visible to {{external}}, out of which {{extend}} can extend the sharing group.'),
+    [
+        'external' => '<strong id="summaryexternal" class="text-danger"></strong>',
+        'extend' => '<strong id="summaryexternalextend" class="text-danger"></strong>',
+    ]
+) . '</p>';
+$summaryText .= '<p>' . $this->Bootstrap->render(
+    '<b>' . __('Synchronisation') . '</b>: ' .
+        __('Furthermore, events are automatically pushed to: {{servers}}'),
+    [
+        'servers' => '<strong id="summaryservers" class="text-danger"></strong>',
+    ]
+) . '</p>';
+$summaryText .= $this->Bootstrap->alert([
+    'text' => __('You can edit this information by going back to one of the previous pages.'),
+    'dismissible' => false,
+]);
+
+$formSummary =  $this->Bootstrap->node('div', ['class' => 'd-none'], $formSummary);
+$formSummary .= $summaryText;
+$formSummary .=  $this->Bootstrap->node('div', ['class' => 'mt-2'], $this->Bootstrap->button([
+    'text' => $this->request->getParam('action') == 'edit' ? __('Edit sharing group') : __('Create sharing group'),
+    'onclick' => 'sgSubmitForm()',
+]));
+
+$formGeneral .= $toggleNextTabDiv;
+$formOrgs .= $orgTable . $toggleNextTabDiv;
+$formServers .= $serverTable . $toggleNextTabDiv;
+
+$bsTabs = $this->Bootstrap->tabs([
+    'id' => 'tabs-sg-form',
+    'card' => !false,
+    'content-class' => ['p-3'],
+    'data' => [
+        'navs' => [
+            ['text' => __('General'), 'active' => true],
+            ['text' => __('Organisations'),],
+            ['text' => __('Instances'),],
+            ['text' => __('Summary & Save'), 'id' => 'tab-summary-and-save'],
         ],
-        [
-            'fields' => [
-                __('Type'),
-                __('Name'),
-                __('UUID'),
-                __('Extend'),
-                __('Actions'),
-            ],
-            'items' => [],
-        ]
-    );
-
-    $formServers = $this->element('genericElements/Form/genericForm', [
-        'data' => [
-            'model' => 'SharingGroups',
-            'fields' => [
-                [
-                    'field' => 'roaming',
-                    'label' => __('Enable roaming mode'),
-                    'type' => 'checkbox',
-                    'default' => false,
-                    'tooltip' => __('Roaming mode will allow the sharing group and associated data to be passed to any instance where the remote recipient is contained in the organisation list.'),
-                    'div' => [
-                        'class' => 'mb-3',
-                    ],
-                ],
-                [
-                    'field' => 'misp_instances',
-                    'label' => __('MISP instances'),
-                    'placeholder' => __('Add instance(s) to the sharing group'),
-                    'type' => 'dropdown',
-                    'multiple' => true,
-                    'select2' => true,
-                    'options' => Hash::combine(
-                        $mispInstances,
-                        '{n}.id',
-                        '{n}.name'
-                    ),
-                    'div' => [
-                        'id' => 'server-picker-container',
-                    ],
-                ],
-            ],
+        'content' => [
+            $formGeneral,
+            $formOrgs,
+            $formServers,
+            $formSummary,
         ],
-        'raw' => true,
+    ]
+]);
+
+if (!empty($ajax)) {
+    $seedModal = 'mseed-' . mt_rand();
+    echo $this->Bootstrap->modal([
+        'title' => __('New Sharing group'),
+        'bodyHtml' =>  $bsTabs,
+        'size' => 'lg',
+        'type' => 'cancel',
+        'modalClass' => $seedModal,
     ]);
-    $serverTable = $this->Bootstrap->table(
-        [
-            'id' => 'servers_table',
-            'condensed' => true,
-            'striped' => true,
-            'borderless' => true,
-        ],
-        [
-            'fields' => [
-                __('Name'),
-                __('URL'),
-                __('All orgs'),
-                __('Actions'),
-            ],
-            'items' => [],
-        ]
-    );
+} else {
+    $page = sprintf('<h2 class="fw-light">%s</h2>', __('New Sharing Group'));
+    $page .= $bsTabs;
+    echo $page;
+}
 
-    $formSummary = $this->element('genericElements/Form/genericForm', [
-        'data' => [
-            'model' => 'SharingGroups',
-            'fields' => [
-                [
-                    'field' => 'json',
-                    'type' => 'text',
-                ],
-            ],
-        ],
-        'raw' => true,
-    ]);
+$existingSharingGroupOrgs = [];
+foreach ($entity->SharingGroupOrg as $org) {
+    $existingSharingGroupOrgs[] = [
+        'id' => h($org['org_id']),
+        'type' => ($org['Organisation']['local'] == 1 ? 'local' : 'remote'),
+        'name' => h($org['Organisation']['name']),
+        'extend' => h($org['extend']),
+        'uuid' => h($org['Organisation']['uuid']),
+        'removable' => $entity->Organisation->id != $org['org_id'],
+    ];
+}
 
-    $summaryText = '<p>' . $this->Bootstrap->render(
-        '<b>' . __('General') . '</b>: ' .
-            __('You are about to create the {{title_container}} sharing group, which is intended to be releasable to {{releasable_container}}.'),
-        [
-            'title_container' => '<strong id="summarytitle" class="text-danger">XX</strong>',
-            'releasable_container' => '<strong id="summaryreleasable" class="text-danger">XX</strong>',
-        ]
-    ) . '</p>';
-    $summaryText .= '<p>' . $this->Bootstrap->render(
-        '<b>' . __('Local organisations') . '</b>: ' .
-            __('It will be visible to {{local}}, from which {{extend}} can extend the sharing group.'),
-        [
-            'local' => '<strong id="summarylocal" class="text-danger"></strong>',
-            'extend' => ' <strong id="summarylocalextend" class="text-danger"></strong>',
-        ]
-    ) . '</p>';
-    $summaryText .= '<p>' . $this->Bootstrap->render(
-        '<b>' . __('External organisations') . '</b>: ' .
-            __('It will also be visible to {{external}}, out of which {{extend}} can extend the sharing group.'),
-        [
-            'external' => '<strong id="summaryexternal" class="text-danger"></strong>',
-            'extend' => '<strong id="summaryexternalextend" class="text-danger"></strong>',
-        ]
-    ) . '</p>';
-    $summaryText .= '<p>' . $this->Bootstrap->render(
-        '<b>' . __('Synchronisation') . '</b>: ' .
-            __('Furthermore, events are automatically pushed to: {{servers}}'),
-        [
-            'servers' => '<strong id="summaryservers" class="text-danger"></strong>',
-        ]
-    ) . '</p>';
-    $summaryText .= $this->Bootstrap->alert([
-        'text' => __('You can edit this information by going back to one of the previous pages.'),
-        'dismissible' => false,
-    ]);
+$existingSharingGroupServers = [];
+foreach ($entity->SharingGroupServer as $server) {
+    if ($server['server_id'] == 0) {
+        continue;
+    }
+    $existingSharingGroupServers[] = [
+        'id' => h($server['server_id']),
+        'name' => h($server['Server']['name']),
+        'url' => h($server['Server']['url']),
+        'all_orgs' => h($server['all_orgs']),
+        'removable' => 1,
+    ];
+}
 
-    $formSummary =  $this->Bootstrap->node('div', ['class' => 'd-none'], $formSummary);
-    $formSummary .= $summaryText;
-    $formSummary .=  $this->Bootstrap->node('div', ['class' => 'mt-2'], $this->Bootstrap->button([
-        'text' => __('Create sharing group'),
-        'onclick' => 'sgSubmitForm()',
-    ]));
-
-    $formGeneral .= $toggleNextTabDiv;
-    $formOrgs .= $orgTable . $toggleNextTabDiv;
-    $formServers .= $serverTable . $toggleNextTabDiv;
-
-    echo $this->Bootstrap->tabs([
-        'id' => 'tabs-sg-form',
-        'card' => !false,
-        'content-class' => ['p-3'],
-        'data' => [
-            'navs' => [
-                ['text' => __('General'), 'active' => true],
-                ['text' => __('Organisations'),],
-                ['text' => __('Instances'),],
-                ['text' => __('Summary & Save'), 'id' => 'tab-summary-and-save'],
-            ],
-            'content' => [
-                $formGeneral,
-                $formOrgs,
-                $formServers,
-                $formSummary,
-            ],
-        ]
-    ]);
-
-    ?>
+?>
 </div>
 
 <script>
@@ -248,17 +291,28 @@ use Cake\Utility\Hash;
         uuid: '',
         removable: 0
     }];
-    var orgids = ['<?php echo h($user['Organisation']['id']) ?>'];
+    var orgids = [];
     var servers = [{
         id: '0',
         name: '<?php echo __('Local instance'); ?>',
-        url: '<?php echo h($localInstance); ?>',
-        all_orgs: false,
+        url: '<?php echo h(empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl')); ?>',
+        all_orgs: true,
         removable: 0
     }];
     var serverids = [0];
 
     $(document).ready(function() {
+
+        var existingSharingGroupOrgs = <?= json_encode($existingSharingGroupOrgs) ?>;
+        var existingSharingGroupServers = <?= json_encode($existingSharingGroupServers) ?>;
+        if (existingSharingGroupOrgs.length > 0) {
+            organisations = existingSharingGroupOrgs
+        }
+        if (existingSharingGroupServers.length > 0) {
+            servers = servers.concat(servers, existingSharingGroupServers)
+        }
+        orgids = organisations.map((org) => org.id.toString())
+
         $('#roaming-field').change(function() {
             toggleServerTableVisibility()
         });
@@ -275,11 +329,13 @@ use Cake\Utility\Hash;
 
         $('#local_orgs-field').on('select2:select', function(e) {
             const data = $(this).select2('data');
-            refreshPickedOrgList('local', data)
+            refreshPickedOrgList('local', data);
+            $(this).val(null).trigger('change');
         });
         $('#remote_orgs-field').on('select2:select', function(e) {
             const data = $(this).select2('data');
-            refreshPickedOrgList('remote', data)
+            refreshPickedOrgList('remote', data);
+            $(this).val(null).trigger('change');
         });
         $('#misp_instances-field').on('select2:select', function(e) {
             const data = $(this).select2('data');
@@ -336,12 +392,12 @@ use Cake\Utility\Hash;
             'organisations': organisations,
             'servers': servers,
             'sharingGroup': {
-                'uuid': $('#SharingGroupUuid').val(),
-                'name': $('#SharingGroupName').val(),
-                'releasability': $('#SharingGroupReleasability').val(),
-                'description': $('#SharingGroupDescription').val(),
-                'active': $('#SharingGroupActive').is(":checked"),
-                'roaming': $('#SharingGroupRoaming').is(":checked"),
+                'uuid': $('#uuid-field').val(),
+                'name': $('#name-field').val(),
+                'releasability': $('#releasability-field').val(),
+                'description': $('#description-field').val(),
+                'active': $('#active-field').is(":checked"),
+                'roaming': $('#roaming-field').is(":checked"),
             }
         };
         $('#json-field').val(JSON.stringify(ajaxData));
@@ -413,16 +469,15 @@ use Cake\Utility\Hash;
 
     function sharingGroupPopulateOrganisations() {
         $('.orgRow').remove();
-        var id = 0;
         var html = '';
-        organisations.forEach(function(org) {
-            html = '<tr id="orgRow' + id + '" class="orgRow">';
+        organisations.forEach(function(org, i) {
+            html = '<tr id="orgRow' + i + '" class="orgRow">';
             html += '<td class="short">' + org.type + '&nbsp;</td>';
             html += '<td>' + $('<div>').text(org.name).html() + '&nbsp;</td>';
             html += '<td>' + org.uuid + '&nbsp;</td>';
             html += '<td class="short" style="text-align:center;">';
             if (org.removable == 1) {
-                html += '<input id="orgExtend' + id + '" type="checkbox" onClick="sharingGroupExtendOrg(' + id + ')" ';
+                html += '<input id="orgExtend' + i + '" type="checkbox" onClick="sharingGroupExtendOrg(' + i + ')" ';
                 if (org.extend) html += 'checked';
                 html += '>';
             } else {
@@ -430,10 +485,9 @@ use Cake\Utility\Hash;
             }
             html += '</td>';
             html += '<td class="actions short">';
-            if (org.removable == 1) html += '<span class="icon-trash" onClick="sharingGroupRemoveOrganisation(' + id + ')"></span>';
+            if (org.removable == 1) html += '<span class="<?= $this->FontAwesome->getClass('trash') ?>" onClick="sharingGroupRemoveOrganisation(' + i + ')"></span>';
             html += '&nbsp;</td></tr>';
             $('#organisations_table tbody').append(html);
-            id++;
         });
     }
 
@@ -456,6 +510,18 @@ use Cake\Utility\Hash;
             $('#servers_table tbody').append(html);
             id++;
         });
+    }
+
+    function sharingGroupPopulateFromJson() {
+        var jsonparsed = JSON.parse($('#json-field').val());
+        organisations = jsonparsed.organisations;
+        servers = jsonparsed.servers;
+        if (jsonparsed.sharingGroup.active == 1) {
+            $("#active-field").prop("checked", true);
+        }
+        if (jsonparsed.sharingGroup.roaming == 1) {
+            $("#roaming-field").prop("checked", true);
+        }
     }
 
     function sharingGroupExtendOrg(id) {
@@ -482,7 +548,3 @@ use Cake\Utility\Hash;
         sharingGroupPopulateServers();
     }
 </script>
-
-
-<br />
-<br />
