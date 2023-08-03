@@ -29,6 +29,7 @@ class BootstrapIcon extends BootstrapGeneric
         'title' => '',
         'attrs' => [],
     ];
+    private $nodeType = 'span';
 
     function __construct($icon, array $options, $bsHelper)
     {
@@ -45,6 +46,10 @@ class BootstrapIcon extends BootstrapGeneric
         $this->options = array_merge($this->defaultOptions, $options);
         $this->checkOptionValidity();
         $this->options['class'] = $this->convertToArrayIfNeeded($this->options['class']);
+        if (!empty($this->options['attrs']['onclick']) || !empty($this->options['onclick'])) {
+            $this->nodeType = 'button';
+            $this->options['class'][] = 'btn btn-sm btn-link';
+        }
         $this->options['title'] = h($this->options['title']);
         $this->options = array_merge($this->options['attrs'], $this->options);
         unset($this->options['attrs']);
@@ -67,7 +72,7 @@ class BootstrapIcon extends BootstrapGeneric
             $options = array_merge($options, ['icon' => $this->icon]);
         }
         $iconHtml = $this->bsHelper->Icon->icon($options);
-        $html = $this->node('span', $this->options, $iconHtml);
+        $html = $this->node($this->nodeType, $this->options, $iconHtml);
         return $html;
     }
 }
