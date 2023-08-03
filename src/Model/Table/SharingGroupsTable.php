@@ -29,6 +29,7 @@ class SharingGroupsTable extends AppTable
     public function initialize(array $config): void
     {
         parent::initialize($config);
+        $this->addBehavior('Timestamp');
         $this->addBehavior('AuditLog');
 
         $this->belongsTo(
