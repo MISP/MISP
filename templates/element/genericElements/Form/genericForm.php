@@ -107,7 +107,7 @@
     $formEnd = $this->Form->end();
     $actionName = h(\Cake\Utility\Inflector::humanize($this->request->getParam('action')));
     $modelName = h(\Cake\Utility\Inflector::humanize(\Cake\Utility\Inflector::singularize($this->request->getParam('controller'))));
-    if (!empty($ajax)) {
+    if (empty($raw) && !empty($ajax)) {
         $seedModal = 'mseed-' . mt_rand();
         echo $this->Bootstrap->modal([
             'title' => empty($data['title']) ? sprintf('%s %s', $actionName, $modelName) : h($data['title']),
