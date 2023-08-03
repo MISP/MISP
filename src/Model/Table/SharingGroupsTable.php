@@ -73,6 +73,7 @@ class SharingGroupsTable extends AppTable
     {
         $validator
             ->requirePresence(['name'], 'create')
+            ->notEmptyString('name')
             ->add(
                 'uuid',
                 'uuid',
