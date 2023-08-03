@@ -9,6 +9,16 @@ class SharingGroup extends AppModel
 {
     use LocatorAwareTrait;
 
+    protected $_accessible = [
+        '*' => true,
+        'id' => false,
+        'created' => false
+    ];
+
+    protected $_accessibleOnNew = [
+        'created' => true
+    ];
+
     protected $_virtual = ['org_count'];
 
     protected function _getOrgCount()
