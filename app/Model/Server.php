@@ -4135,9 +4135,9 @@ class Server extends AppModel
         $current = implode('.', $version_array);
 
         $upToDate = version_compare($current, substr($newest, 1));
-        if ($newest === null && Configure::read('MISP.online_version_check')) {
+        if ($newest === null && (Configure::read('MISP.online_version_check') || !Configure::check('MISP.online_version_check'))) {
             $upToDate = 'error';
-        } elseif ($newest === null && !Configure::read('MISP.online_version_check')) {
+        } elseif ($newest === null && (!Configure::read('MISP.online_version_check') && Configure::check('MISP.online_version_check'))) {
             $upToDate = 'disabled';
         } elseif ($upToDate === 0) {
             $upToDate = 'same';
@@ -4177,7 +4177,7 @@ class Server extends AppModel
     {
         $latestCommit = false;
 
-        if (Configure::read('MISP.online_version_check')) {
+        if (Configure::read('MISP.online_version_check') || !Configure::check('MISP.online_version_check')) {
             $HttpSocket = $this->setupHttpSocket(null, null, 3);
             try {
                 $latestCommit = GitTool::getLatestCommit($HttpSocket);
