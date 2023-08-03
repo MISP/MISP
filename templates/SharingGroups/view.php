@@ -1,4 +1,7 @@
 <?php
+
+use App\Model\Entity\SharingGroup;
+
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
@@ -37,6 +40,18 @@ echo $this->element(
                 'data_path' => 'Organisation'
             ],
             [
+                'key' => __('Created'),
+                'sort' => 'created',
+                'path' => 'created',
+                'type' => 'datetime'
+            ],
+            [
+                'key' => __('Modified'),
+                'sort' => 'modified',
+                'path' => 'modified',
+                'type' => 'datetime'
+            ],
+            [
                 'key' => __('Synced by'),
                 'element' => 'org',
                 'path' => 'sync_org.name',
@@ -53,28 +68,18 @@ echo $this->element(
                 'type' => 'custom',
                 'requirement' => isset($entity['SharingGroupOrg']),
                 'function' => function (array $sharingGroup) {
-                    echo sprintf(
-                        '<div class="span6">
-                         <table class="table table-striped table-hover table-condensed">
-                            <tr>
-                                <th>%s</th>
-                                <th>%s</th>
-                                <th>%s</th>
-                            </tr>',
-                        __('Name'),
-                        __('Is local'),
-                        __('Can extend')
+                    $table = $this->Bootstrap->table(
+                       ['hover' => true, 'striped' => true, 'condensed' => true, 'variant' => 'secondary'],
+                       [
+                           'items' => $sharingGroup['SharingGroupOrg'],
+                           'fields' => [
+                                [ 'label' => __('Name'), 'path' => 'Organisation.name',], // TODO: [3.x-MIGRATION] $this->OrgImg->getNameWithImg($sgo)
+                                [ 'label' => __('Is local'), 'path' => 'Organisation.local', 'element' => 'boolean',],
+                                [ 'label' => __('Can extend'), 'path' => 'extend', 'element' => 'boolean',],
+                            ],
+                       ]
                     );
-                    foreach ($sharingGroup['SharingGroupOrg'] as $sgo) {
-                        echo '<tr>';
-                        // TODO: [3.x-MIGRATION]
-                        // echo sprintf('<td>%s</td>', $this->OrgImg->getNameWithImg($sgo));
-                        echo sprintf('<td><span class="%s"></span></td>', $sgo['Organisation']['local'] ? 'fas fa-check' : 'fas fa-times');
-                        echo sprintf('<td><span class="%s"></span></td>', $sgo['extend'] ? 'fas fa-check' : 'fas fa-times');
-                        echo '</tr>';
-                    }
-                    echo '</table>
-                    </div>';
+                    echo $table;
                 }
             ],
             [
@@ -82,27 +87,26 @@ echo $this->element(
                 'type' => 'custom',
                 'requirement' => isset($entity['SharingGroupServer']),
                 'function' => function (array $sharingGroup) {
-                    echo sprintf(
-                        '<div class="span6">
-                         <table class="table table-striped table-hover table-condensed">
-                            <tr>
-                                <th>%s</th>
-                                <th>%s</th>
-                                <th>%s</th>
-                            </tr>',
-                        __('Name'),
-                        __('URL'),
-                        __('All orgs')
-                    );
-                    foreach ($sharingGroup['SharingGroupServer'] as $entitys) {
-                        echo '<tr>';
-                        echo sprintf('<td>%s</td>', h($entitys['Server']['name']));
-                        echo sprintf('<td>%s</td>', h($entitys['Server']['url']));
-                        echo sprintf('<td><span class="%s"></span></td>', $entitys['all_orgs'] ? 'fas fa-check' : 'fas fa-times');
-                        echo '</tr>';
+                    if (empty($sharingGroup['roaming'])) {
+                        $cell = $this->Bootstrap->table(
+                            ['hover' => true, 'striped' => true, 'condensed' => true, 'variant' => 'secondary'],
+                            [
+                                'items' => $sharingGroup['SharingGroupServer'],
+                                'fields' => [
+                                    ['label' => __('Name'), 'path' => 'Server.name',], // TODO: [3.x-MIGRATION] $this->OrgImg->getNameWithImg($sgo)
+                                    ['label' => __('URL'), 'path' => 'Server.url',],
+                                    ['label' => __('All orgs'), 'path' => 'all_orgs', 'element' => 'boolean',],
+                                ],
+                            ]
+                        );
+                    } else {
+                        $cell = $this->Bootstrap->badge([
+                            'text' => __('Roaming mode'),
+                            'variant' => 'primary',
+                            'size' => 'md',
+                        ]);
                     }
-                    echo '</table>
-                    </div>';
+                    echo $cell;
                 }
             ]
         ]
