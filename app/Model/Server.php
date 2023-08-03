@@ -4135,7 +4135,11 @@ class Server extends AppModel
         $current = implode('.', $version_array);
 
         $upToDate = version_compare($current, substr($newest, 1));
-        if ($upToDate === 0) {
+        if ($newest === null && Configure::read('MISP.online_version_check')) {
+            $upToDate = 'error';
+        } elseif ($newest === null && !Configure::read('MISP.online_version_check')) {
+            $upToDate = 'disabled';
+        } elseif ($upToDate === 0) {
             $upToDate = 'same';
         } else {
             $upToDate = $upToDate === -1 ? 'older' : 'newer';
@@ -4171,11 +4175,15 @@ class Server extends AppModel
      */
     public function getCurrentGitStatus($checkVersion = false)
     {
-        $HttpSocket = $this->setupHttpSocket(null, null, 3);
-        try {
-            $latestCommit = GitTool::getLatestCommit($HttpSocket);
-        } catch (Exception $e) {
-            $latestCommit = false;
+        $latestCommit = false;
+
+        if (Configure::read('MISP.online_version_check')) {
+            $HttpSocket = $this->setupHttpSocket(null, null, 3);
+            try {
+                $latestCommit = GitTool::getLatestCommit($HttpSocket);
+            } catch (Exception $e) {
+                $latestCommit = false;
+            }
         }
 
         $output = [
@@ -4184,7 +4192,7 @@ class Server extends AppModel
             'latestCommit' => $latestCommit,
         ];
         if ($checkVersion) {
-            $output['version'] = $latestCommit ? $this->checkRemoteVersion($HttpSocket) : false;
+            $output['version'] = $latestCommit ? $this->checkRemoteVersion($HttpSocket) : $this->checkVersion(null);
         }
         return $output;
     }
@@ -6113,6 +6121,24 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
+                ],
+                'self_update' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Enable the GUI button for MISP self-update on the Diagnostics page.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true,
+                ],
+                'online_version_check' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Enable the online MISP version check when loading the Diagnostics page.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true,
                 ],
             ),
             'GnuPG' => array(

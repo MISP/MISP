@@ -7,33 +7,48 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
 ?>
 <div style="border:1px solid #dddddd; margin-top:1px; width:95%; padding:10px">
     <?php if (!$dbEncodingStatus):?>
-    <div style="font-size:12pt;padding-left:3px;width:100%;background-color:red;color:white;font-weight:bold;"><?= __('Incorrect database encoding setting: Your database connection is currently NOT set to UTF-8. Please make sure to uncomment the \'encoding\' => \'utf8\' line in ') . APP; ?>Config/database.php</div>
+    <div style="font-size:12pt;padding-left:3px;width:100%;background-color:red;color:white;font-weight:bold;">
+        <?= __('Incorrect database encoding setting: Your database connection is currently NOT set to UTF-8. Please make sure to uncomment the \'encoding\' => \'utf8\' line in ') . APP; ?>Config/database.php
+    </div>
     <?php endif; ?>
     <h3><?= __('MISP version');?></h3>
-    <p><?= __('Every version of MISP includes a JSON file with the current version. This is checked against the latest tag on GitHub, if there is a version mismatch the tool will warn you about it. Make sure that you update MISP regularly.');?></p>
+    <p><?php
+        echo __('Every version of MISP includes a JSON file with the current version.') . " ";
+        if (Configure::read('MISP.online_version_check')) {
+            echo _('This is checked against the latest tag on GitHub, if there is a version mismatch the tool will warn you about it.') . " ";
+        } else {
+            echo "<b>" . __('The online version check is disabled, so you will not be warned about an outdated MISP version.') . "</b> ";
+        }
+        echo __('Make sure that you update MISP regularly.');
+    ?></p>
     <div class="diagnostics-box" style="width:100%">
         <span><?= __('Currently installed version…');?>
             <?php
                 $upToDate = isset($version['upToDate']) ? $version['upToDate'] : null;
                 switch ($upToDate) {
                     case 'newer':
-                        $fontColour = 'orange';
+                        $colourClass = 'orange';
                         $versionText = __('Upcoming development version');
                         break;
                     case 'older':
-                        $fontColour = 'red';
+                        $colourClass = 'red';
                         $versionText = __('Outdated version');
                         break;
                     case 'same':
-                        $fontColour = 'green';
+                        $colourClass = 'green';
                         $versionText = __('OK');
                         break;
+                    case 'disabled':
+                        $colourClass = 'bold';
+                        $versionText = __('Online version checks are disabled');
+                    break;
+                    case 'error':
                     default:
-                        $fontColour = 'red';
+                        $colourClass = 'red';
                         $versionText = __('Could not retrieve version from GitHub');
                 }
             ?>
-            <span style="color:<?php echo $fontColour; ?>;">
+            <span class="<?= $colourClass; ?>">
                 <?= (isset($version['current']) ? $version['current'] : __('Unknown')) . ' (' . ($commit ? h($commit) : __('Unknown')) . ')';
                 ?>
                 <?php if ($commit === ''): ?>
@@ -45,25 +60,49 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
             </span>
         </span><br>
         <span><?php echo __('Latest available version…');?>
-            <span style="color:<?php echo $fontColour; ?>;">
-                <?= (isset($version['newest']) ? $version['newest'] : __('Unknown')) . ' (' . ($latestCommit ? $latestCommit : __('Unknown')) . ')' ?>
+            <span class="<?= $colourClass; ?>">
+                <?php
+                if (!Configure::read('MISP.online_version_check')) {
+                    echo __('Online version checks are disabled');
+                } else {
+                    echo (isset($version['newest']) ? $version['newest'] : __('Unknown')) . ' (' . ($latestCommit ? $latestCommit : __('Unknown')) . ')';
+                }
+                ?>
             </span>
         </span><br>
         <span><?php echo __('Status…');?>
-            <span style="color:<?= $fontColour; ?>;"><?= $versionText ?></span>
+            <span class="<?= $colourClass; ?>"><?= $versionText ?></span>
         </span><br>
         <span><?php echo __('Current branch…');?>
             <?php
-                $branchColour = $branch == '2.4' ? 'green' : 'red bold';
+                $branchColour = $branch == '2.4' ? 'green' : !Configure::read('MISP.self_update') ? 'bold' : 'red bold';
             ?>
             <span class="<?php echo h($branchColour); ?>">
-                <?= $branch == '2.4' ? h($branch) : __('You are not on a branch, Update MISP will fail'); ?>
+                <?php
+                  if ($branch == '2.4') {
+                      h($branch);
+                  } elseif (!Configure::read('MISP.self_update')) {
+                      echo __('You are not on a branch, but since MISP self-update is disabled this is expected.');
+                  } else {
+                      echo __('You are not on a branch, Update MISP will fail');
+                  }
+                ?>
             </span>
         </span><br>
         <pre class="hidden green bold" id="gitResult"></pre>
+
+    </div>
+
+    <h3><?php echo __('Update MISP');?></h3>
+    <p>
+    <?php if (Configure::read('MISP.self_update')): ?>
         <button title="<?php echo __('Pull the latest MISP version from GitHub');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
         <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" style="margin-left: 5px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><i class="fas fa-tasks"></i> <?php echo __('View Update Progress');?></a>
-    </div>
+    <?php else: ?>
+      You are using a MISP installation method that does not support or recommend using the MISP self-update, such as a Docker container. Please update using the appropriate update mechanism.
+    <?php endif; ?>
+    </p>
+
     <h3><?php echo __('Submodules version');?>
         <it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Refresh submodules version.'); ?>"></it>
     </h3>
