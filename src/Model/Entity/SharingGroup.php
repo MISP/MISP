@@ -23,8 +23,12 @@ class SharingGroup extends AppModel
 
     protected function _getOrgCount()
     {
+        if (isset($this->SharingGroupOrg)) {
+            return count($this->SharingGroupOrg);
+        }
         $SharingGroupOrgsTable = $this->fetchTable('SharingGroupOrgs');
 
+        return $SharingGroupOrgsTable->find()->where(['SharingGroupOrgs.sharing_group_id' => $this->id])->count();
         return $SharingGroupOrgsTable->find(
             'all',
             [
