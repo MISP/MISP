@@ -88,6 +88,10 @@ class BootstrapTable extends BootstrapGeneric
         'caption' => '',
         'elementsRootPath' => '/genericElements/SingleViews/Fields/',
     ];
+    private $fields = [];
+    private $items = [];
+    private $caption = [];
+    private $btHelper = [];
 
     function __construct(array $options, array $data, BootstrapHelper $btHelper)
     {
