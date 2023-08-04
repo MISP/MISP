@@ -93,16 +93,16 @@ if (!$skipPagination) {
         '/genericElements/IndexTable/pagination_links'
     );
 }
-$multiSelectData = getMultiSelectData($data['top_bar']);
-if (!empty($multiSelectData)) {
-    $multiSelectField = [
-        'element' => 'selector',
-        'class' => 'short',
-        'data' => $multiSelectData['data']
-    ];
-    array_unshift($data['fields'], $multiSelectField);
-}
 if (!empty($data['top_bar']) && empty($skipTableToolbar)) {
+    $multiSelectData = getMultiSelectData($data['top_bar']);
+    if (!empty($multiSelectData)) {
+        $multiSelectField = [
+            'element' => 'selector',
+            'class' => 'short',
+            'data' => $multiSelectData['data']
+        ];
+        array_unshift($data['fields'], $multiSelectField);
+    }
     $html .= $this->element(
         '/genericElements/ListTopBar/scaffold',
         [
