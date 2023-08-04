@@ -7,6 +7,7 @@ use Cake\Error\Debugger;
 use Cake\Utility\Hash;
 use Cake\Utility\Inflector;
 use Cake\Utility\Text;
+use Cake\Validation\Validation;
 use Cake\View\ViewBuilder;
 use Cake\ORM\TableRegistry;
 use Cake\ORM\Query;
@@ -812,11 +813,12 @@ class CRUDComponent extends Component
         }
     }
 
-    public function view(int $id, array $params = []): void
+    public function view($id, array $params = []): void
     {
         if (empty($id)) {
             throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
         }
+
 
         if ($this->taggingSupported()) {
             $params['contain'][] = 'Tags';
@@ -830,7 +832,15 @@ class CRUDComponent extends Component
             }
         }
 
-        $data = $this->Table->get($id, $params);
+        $data = false;
+        if (Validation::uuid($id) && $this->Table->getSchema()->hasColumn('uuid')) {
+            $data = $this->Table->find()->where([
+                "{$this->Table->getAlias()}.uuid" => $id,
+            ])->first();
+        } else {
+            $data = $this->Table->get($id, $params);
+        }
+
         if (empty($data)) {
             throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
         }
