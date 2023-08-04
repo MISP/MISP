@@ -309,6 +309,7 @@ class SharingGroupsController extends AppController
 
     public function index()
     {
+        // TODO: [3.x-MIGRATION] fixme, cannot paginate on virtual fields
         $customContextFilters = [
             [
                 'label' => __('Active Sharing Groups'),
@@ -435,7 +436,6 @@ class SharingGroupsController extends AppController
         }
     }
 
-
     public function view($id)
     {
         if ($this->request->is('head')) { // Just check if sharing group exists and user can access it
@@ -443,7 +443,7 @@ class SharingGroupsController extends AppController
             return new Response(['status' => $exists ? 200 : 404]);
         }
         if (!$this->SharingGroups->checkIfAuthorised($this->ACL->getUser()->toArray(), $id)) {
-            throw new MethodNotAllowedException('Sharing group doesn\'t exist or you do not have permission to access it.');
+            throw new MethodNotAllowedException(__('Sharing group doesn\'t exist or you do not have permission to access it.'));
         }
 
         $contain = [
@@ -465,69 +465,54 @@ class SharingGroupsController extends AppController
             unset($contain['SharingGroupServers']);
         }
 
-        // TODO: Move to using entity instead of array
-        $sg = $this->SharingGroups->find(
-            'all',
-            [
-                'conditions' => Validation::uuid($id) ? ['SharingGroups.uuid' => $id] : ['SharingGroups.id' => $id],
-                'contain' => $contain,
-            ]
-        )->disableHydration()->first();
-
-        if (empty($sg)) {
-            throw new NotFoundException('Sharing group doesn\'t exist or you do not have permission to access it.');
-        }
-        if (isset($sg['SharingGroupServer'])) {
-            foreach ($sg['SharingGroupServer'] as $key => $sgs) {
-                if ($sgs['server_id'] == 0) {
-                    $sg['SharingGroupServer'][$key]['Server'] = [
-                        'id' => "0",
-                        'name' => 'Local instance',
-                        'url' => empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl')
-                    ];
+        $afterFindHandler = function(SharingGroup $sg) {
+            if (isset($sg->SharingGroupServer)) {
+                foreach ($sg->SharingGroupServer as $key => $sgs) {
+                    if ($sgs['server_id'] == 0) {
+                        $sg->SharingGroupServer[$key]['Server'] = [
+                            'id' => "0",
+                            'name' => 'Local instance',
+                            'url' => empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl')
+                        ];
+                    }
                 }
             }
-        }
-        if (isset($sg['sync_user_id'])) {
-            $UserTable = $this->fetchTable('Users');
-            $syncUser = $UserTable->find(
-                'all',
-                [
-                    'conditions' => ['Users.id' => $sg['sync_user_id']],
+            if (!empty($sg->sync_user_id)) {
+                $UserTable = $this->fetchTable('Users');
+                $syncUser = $UserTable->find()->where([
+                    'conditions' => ['Users.id' => $sg->sync_user_id],
                     'recursive' => -1,
                     'fields' => ['Users.id'],
                     'contain' => ['Organisations' => [
                         'fields' => ['Organisations.id', 'Organisations.name', 'Organisations.uuid'],
                     ]]
-                ]
-            )->disableHydration()->first();
-            if (empty($syncUser)) {
-                $sg['sync_org_name'] = 'N/A';
-            } else {
-                $sg['sync_org_name'] = $syncUser['Organisation']['name'];
-                $sg['sync_org'] = $syncUser['Organisation'];
+                ])->first();
+                if (empty($syncUser)) {
+                    $sg['sync_org_name'] = __('N/A');
+                } else {
+                    $sg['sync_org_name'] = $syncUser->Organisation->name;
+                    $sg['sync_org'] = $syncUser->Organisation;
+                }
             }
-        }
-        if ($this->ParamHandler->isRest()) {
-            return $this->RestResponse->viewData($sg);
-        }
 
-        $EventsTable = $this->fetchTable('Events');
-        $conditions = $EventsTable->createEventConditions($this->ACL->getUser()->toArray());
-        $conditions['AND']['sharing_group_id'] = $sg['id'];
-        $sg['event_count'] = $EventsTable->find(
-            'all',
-            [
-                'conditions' => $conditions,
-                'recursive' => -1,
-                'callbacks' => false,
-            ]
-        )->count();
+            $EventsTable = $this->fetchTable('Events');
+            $conditions = $EventsTable->createEventConditions($this->ACL->getUser()->toArray());
+            $conditions['AND']['sharing_group_id'] = $sg->id;
+            $sg->event_count = $EventsTable->find()->where($conditions)->all()->count();
+            return $sg;
+        };
 
-        $this->set('mayModify', $this->SharingGroups->checkIfAuthorisedExtend($this->ACL->getUser()->toArray(), $sg['id']));
-        $this->set('id', $sg['id']);
-        $this->set('entity', $sg);
-        $this->set('menuData', ['menuList' => 'globalActions', 'menuItem' => 'viewSG']);
+        $conditions= [];
+        $params = [
+            'contain' => $contain,
+            'conditions' => $conditions,
+            'afterFind' => $afterFindHandler,
+        ];
+        $this->CRUD->view($id, $params);
+        $responsePayload = $this->CRUD->getResponsePayload();
+        if (!empty($responsePayload)) {
+            return $responsePayload;
+        }
     }
 
     private function __initialiseSGQuickEdit($id, $request)

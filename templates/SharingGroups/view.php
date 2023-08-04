@@ -1,6 +1,7 @@
 <?php
 
 use App\Model\Entity\SharingGroup;
+// debug($entity);
 
 echo $this->element(
     'genericElements/SingleViews/single_view',
@@ -35,9 +36,8 @@ echo $this->element(
             ],
             [
                 'key' => __('Created by'),
-                'element' => 'org',
-                'path' => 'Organisation.name',
-                'data_path' => 'Organisation'
+                'type' => 'org',
+                'path' => 'Organisation',
             ],
             [
                 'key' => __('Created'),
@@ -53,7 +53,7 @@ echo $this->element(
             ],
             [
                 'key' => __('Synced by'),
-                'element' => 'org',
+                'type' => 'org',
                 'path' => 'sync_org.name',
                 'data_path' => 'sync_org',
                 'requirement' => isset($entity['sync_org'])
@@ -67,13 +67,13 @@ echo $this->element(
                 'key' => __('Organisations'),
                 'type' => 'custom',
                 'requirement' => isset($entity['SharingGroupOrg']),
-                'function' => function (array $sharingGroup) {
+                'function' => function (SharingGroup $sharingGroup) {
                     $table = $this->Bootstrap->table(
                        ['hover' => true, 'striped' => true, 'condensed' => true, 'variant' => 'secondary'],
                        [
-                           'items' => $sharingGroup['SharingGroupOrg'],
+                           'items' => array_map(fn ($entity) => $entity->toArray(), $sharingGroup->SharingGroupOrg),
                            'fields' => [
-                                [ 'label' => __('Name'), 'path' => 'Organisation.name',], // TODO: [3.x-MIGRATION] $this->OrgImg->getNameWithImg($sgo)
+                                [ 'label' => __('Name'), 'path' => 'Organisation', 'element' => 'org'], // TODO: [3.x-MIGRATION] $this->OrgImg->getNameWithImg($sgo)
                                 [ 'label' => __('Is local'), 'path' => 'Organisation.local', 'element' => 'boolean',],
                                 [ 'label' => __('Can extend'), 'path' => 'extend', 'element' => 'boolean',],
                             ],
@@ -85,13 +85,13 @@ echo $this->element(
             [
                 'key' => __('Instances'),
                 'type' => 'custom',
-                'requirement' => isset($entity['SharingGroupServer']),
-                'function' => function (array $sharingGroup) {
-                    if (empty($sharingGroup['roaming'])) {
+                'requirement' => isset($entity->SharingGroupServer),
+                'function' => function (SharingGroup $sharingGroup) {
+                    if (empty($sharingGroup->roaming)) {
                         $cell = $this->Bootstrap->table(
                             ['hover' => true, 'striped' => true, 'condensed' => true, 'variant' => 'secondary'],
                             [
-                                'items' => $sharingGroup['SharingGroupServer'],
+                                'items' => array_map(fn ($entity) => $entity->toArray(), $sharingGroup->SharingGroupServer),
                                 'fields' => [
                                     ['label' => __('Name'), 'path' => 'Server.name',], // TODO: [3.x-MIGRATION] $this->OrgImg->getNameWithImg($sgo)
                                     ['label' => __('URL'), 'path' => 'Server.url',],
