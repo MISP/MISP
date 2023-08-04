@@ -59,27 +59,23 @@ class AppTable extends Table
             ) {
                 $queryOthersUsage = $table->find();
                 $queryOthersUsage
-                    ->select(
-                        [
+                    ->select([
                         'count' => $queryOthersUsage->func()->count('id'),
-                        ]
-                    )
+                    ])
                     ->where(
                         function (QueryExpression $exp, Query $query) use ($topUsage, $scope, $options) {
-                        if (!empty($options['ignoreNull'])) {
-                            return $exp
-                                ->isNotNull($scope)
-                                ->notEq($scope, '')
-                                ->notIn($scope, Hash::extract($topUsage, "{n}.{$scope}"));
-                        } else {
-                            return $exp->or(
-                                [
-                                $query->newExpr()->isNull($scope),
-                                $query->newExpr()->eq($scope, ''),
-                                $query->newExpr()->notIn($scope, Hash::extract($topUsage, "{n}.{$scope}")),
-                                ]
-                            );
-                        }
+                            if (!empty($options['ignoreNull'])) {
+                                return $exp
+                                    ->isNotNull($scope)
+                                    ->notEq($scope, '')
+                                    ->notIn($scope, Hash::extract($topUsage, "{n}.{$scope}"));
+                            } else {
+                                return $exp->or([
+                                    $query->newExpr()->isNull($scope),
+                                    $query->newExpr()->eq($scope, ''),
+                                    $query->newExpr()->notIn($scope, Hash::extract($topUsage, "{n}.{$scope}")),
+                                ]);
+                            }
                         }
                     )
                     ->enableHydration(false);
