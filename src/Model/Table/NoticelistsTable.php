@@ -3,7 +3,6 @@
 namespace App\Model\Table;
 
 use App\Lib\Tools\FileAccessTool;
-use App\Model\Entity\Noticelist;
 use App\Model\Entity\NoticelistEntry;
 use App\Model\Table\AppTable;
 use Cake\ORM\Locator\LocatorAwareTrait;
@@ -90,7 +89,7 @@ class NoticelistsTable extends AppTable
         foreach ($fieldsToSave as $fieldToSave) {
             $noticelist[$fieldToSave] = $list[$fieldToSave];
         }
-        $noticelist = new Noticelist($noticelist);
+        $noticelist = $this->newEntity($noticelist);
         $result = $this->save($noticelist);
         if ($result) {
             $values = [];

@@ -3,18 +3,17 @@
 
 namespace App\Model\Table;
 
-use App\Model\Table\AppTable;
-use App\Lib\Tools\RedisTool;
 use App\Lib\Tools\GpgTool;
-use App\Model\Entity\CryptographicKey;
-use Cake\Http\Exception\NotFoundException;
-use Cake\Http\Exception\MethodNotAllowedException;
-use Cake\Validation\Validator;
-use Cake\Utility\Text;
+use App\Lib\Tools\RedisTool;
+use App\Model\Table\AppTable;
+use ArrayObject;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
+use Cake\Http\Exception\MethodNotAllowedException;
+use Cake\Http\Exception\NotFoundException;
 use Cake\Log\Log;
-use ArrayObject;
+use Cake\Utility\Text;
+use Cake\Validation\Validator;
 use Exception;
 
 class CryptographicKeysTable extends AppTable
@@ -53,30 +52,50 @@ class CryptographicKeysTable extends AppTable
     {
         $validator
             ->requirePresence(['type', 'key_data'], 'create')
-            ->add('uuid', 'uuid', [
+            ->add(
+                'uuid',
+                'uuid',
+                [
                 'rule' => 'uuid',
                 'message' => 'Please provide a valid RFC 4122 UUID'
-            ])
-            ->add('type', 'inList', [
+                ]
+            )
+            ->add(
+                'type',
+                'inList',
+                [
                 'rule' => ['inList', self::VALID_TYPES],
                 'message' => 'Invalid key type'
-            ])
-            ->add('key_data', 'notBlankKey', [
+                ]
+            )
+            ->add(
+                'key_data',
+                'notBlankKey',
+                [
                 'rule' => 'notBlank',
                 'message' => 'No key data received.'
-            ])
-            ->add('key_data', 'validKey', [
+                ]
+            )
+            ->add(
+                'key_data',
+                'validKey',
+                [
                 'rule' => function ($value, $context) {
                     return $this->validateKey($context['data']['type'], $value);
                 },
                 'message' => 'Invalid key.'
-            ])
-            ->add('key_data', 'uniqueKeyForElement', [
+                ]
+            )
+            ->add(
+                'key_data',
+                'uniqueKeyForElement',
+                [
                 'rule' => function ($value, $context) {
                     return $this->uniqueKeyForElement($value, $context);
                 },
                 'message' => 'This key is already assigned to the target.'
-            ]);
+                ]
+            );
 
         return $validator;
     }
@@ -167,7 +186,9 @@ class CryptographicKeysTable extends AppTable
             return [];
         }
 
-        return $this->find('column', [
+        return $this->find(
+            'column',
+            [
             'conditions' => [
                 'CryptographicKey.parent_type' => 'Event',
                 'CryptographicKey.parent_id' => $eventIds,
@@ -175,7 +196,8 @@ class CryptographicKeysTable extends AppTable
             ],
             'fields' => ['CryptographicKey.parent_id'],
             'recursive' => -1,
-        ]);
+            ]
+        );
     }
 
     /**
@@ -275,12 +297,14 @@ class CryptographicKeysTable extends AppTable
 
     public function uniqueKeyForElement($value, $context)
     {
-        return $this->find()->where([
+        return $this->find()->where(
+            [
             'parent_type' => $context['data']['parent_type'],
             'parent_id' => $context['data']['parent_id'],
             'key_data' => $value,
             'type' => $context['data']['type'],
-        ])->all()->isEmpty();
+            ]
+        )->all()->isEmpty();
     }
 
     public function validateProtectedEvent($raw_data, array $user, $pgp_signature, array $event)
@@ -316,7 +340,9 @@ class CryptographicKeysTable extends AppTable
      */
     public function captureCryptographicKeyUpdate(array $user, array $cryptographicKeys, $parent_id, $type)
     {
-        $existingKeys = $this->find('all', [
+        $existingKeys = $this->find(
+            'all',
+            [
             'recursive' => -1,
             'conditions' => [
                 'parent_type' => $type,
@@ -330,7 +356,8 @@ class CryptographicKeysTable extends AppTable
                 'revoked',
                 'fingerprint',
             ]
-        ])->first();
+            ]
+        )->first();
         $toRemove = [];
         $results = ['add' => [], 'remove' => []];
         foreach ($existingKeys as $existingKey) {
@@ -348,8 +375,8 @@ class CryptographicKeysTable extends AppTable
             $results['remove'][$existingKey['CryptographicKey']['id']] = $existingKey['CryptographicKey']['fingerprint'];
         }
         foreach ($cryptographicKeys as $cryptographicKey) {
-
-            $crytpKeyEntity = new CryptographicKey([
+            $cryptoKeyEntity = $this->newEntity(
+                [
                 'uuid' => $cryptographicKey['uuid'],
                 'key_data' => $cryptographicKey['key_data'],
                 'fingerprint' => $cryptographicKey['fingerprint'],
@@ -357,9 +384,10 @@ class CryptographicKeysTable extends AppTable
                 'parent_type' => $cryptographicKey['parent_type'],
                 'parent_id' => $parent_id,
                 'type' => $cryptographicKey['type']
-            ]);
+                ]
+            );
 
-            $this->save($crytpKeyEntity);
+            $this->save($cryptoKeyEntity);
             $results['add'][$cryptographicKey['id']] = $cryptographicKey['fingerprint'];
         }
         $message = __(
