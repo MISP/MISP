@@ -32,9 +32,9 @@ echo $this->element('genericElements/IndexTable/index_table', [
         'data' => $data,
         'fields' => $fields,
         'title' => 'Values',
-        'paginatorOptions' => [
+        'paginatorOptions' => array_merge([
             'url' => [$noticelist['id']]
-        ],
+        ], $passedParams),
         'persistUrlParams' => [0, 'quickFilter']
     ],
     'containerId' => 'preview_entries_container'

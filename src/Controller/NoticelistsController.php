@@ -233,20 +233,23 @@ class NoticelistsController extends AppController
 
     public function previewEntries($id)
     {
-        $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewNoticelistEntries']);
-
-        $noticelist = $this->Noticelists->find('all', array('contain' => array('NoticelistEntries'), 'conditions' => array('id' => $id)))->first();
+        $noticelist = $this->Noticelists->find()
+            ->contain(['NoticelistEntries'])
+            ->where(['id' => $id])
+            ->disableHydration(true)
+            ->first();
         if (empty($noticelist)) {
             throw new NotFoundException(__('Noticelist not found.'));
         }
-        $noticelistEntries = $noticelist['noticelist_entries'];
+        $noticelistEntries = $noticelist['NoticelistEntry'];
 
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($noticelistEntries);
         } else {
             $customPagination = new CustomPaginationTool();
-            $params = $this->request->getQueryParams();
-            $customPagination->truncateAndPaginate($noticelistEntries, $params, 'NoticelistEntry', true);
+            $passedParams = $this->request->getQueryParams();
+            $customPagination->truncateAndPaginate($noticelistEntries, $passedParams, 'NoticelistEntry', true);
+            $this->set('passedParams', $passedParams);
             $this->set('data', $noticelistEntries);
             $this->set('noticelist', $noticelist);
         }
