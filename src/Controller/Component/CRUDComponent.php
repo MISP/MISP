@@ -874,27 +874,27 @@ class CRUDComponent extends Component
 
     public function delete($id = false, $params = []): void
     {
+        $ids = $this->getIdsOrFail(false);
+        $query = $this->Table->find()->where(function (QueryExpression $exp) use ($ids) {
+            return $exp->in($this->Table->getAlias() . '.id', $ids);
+        });
+        if (!empty($params['conditions'])) {
+            $query->where($params['conditions']);
+        }
+        if (!empty($params['contain'])) {
+            $query->contain($params['contain']);
+        }
+        $entities = $query->all()->toList();
         if ($this->request->is('get')) {
-            if (!empty($id)) {
-                $query = $this->Table->find()->where([$this->Table->getAlias() . '.id' => $id]);
-                if (!empty($params['conditions'])) {
-                    $query->where($params['conditions']);
-                }
-                if (!empty($params['contain'])) {
-                    $query->contain($params['contain']);
-                }
-                $data = $query->first();
-                if (isset($params['afterFind'])) {
-                    $data = $params['afterFind']($data, $params);
-                }
-                if (empty($data)) {
-                    throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
-                }
-                $this->Controller->set('id', $data['id']);
-                $this->Controller->set('data', $data);
-                $this->Controller->set('bulkEnabled', false);
+            $this->Controller->set('entities', $entities);
+            $this->Controller->set('tableFields', $params['tableFields'] ?? []);
+            $this->Controller->viewBuilder()->setLayout('ajax');
+            if (count($ids) > 1) {
+                $this->Controller->set('ids', $ids);
+                $this->Controller->render('/genericTemplates/massDelete');
             } else {
-                $this->Controller->set('bulkEnabled', true);
+                $this->Controller->set('id', $ids);
+                $this->Controller->render('/genericTemplates/delete');
             }
         } else if ($this->request->is('post') || $this->request->is('delete')) {
             $ids = $this->getIdsOrFail($id);
@@ -924,7 +924,6 @@ class CRUDComponent extends Component
                 }
                 if (!empty($data)) {
                     $success = $this->Table->delete($data);
-                    $success = true;
                 } else {
                     $success = false;
                 }
@@ -936,7 +935,7 @@ class CRUDComponent extends Component
                 $bulkSuccesses == count($ids),
                 $isBulk,
                 __('{0} deleted.', $this->ObjectAlias),
-                __('All {0} have been deleted.', Inflector::pluralize($this->ObjectAlias)),
+                __('All selected {0} have been deleted.', Inflector::pluralize($this->ObjectAlias)),
                 __('Could not delete {0}.', $this->ObjectAlias),
                 __(
                     '{0} / {1} {2} have been deleted.',
@@ -945,15 +944,8 @@ class CRUDComponent extends Component
                     Inflector::pluralize($this->ObjectAlias)
                 )
             );
-            $additionalData = [];
-            if ($bulkSuccesses > 0) {
-                $additionalData['redirect'] = Router::url(['controller' => $this->Controller->getName(), 'action' => 'index']);
-            }
-            $this->setResponseForController('delete', $bulkSuccesses, $message, $data, null, $additionalData);
+            $this->setResponseForController('massToggle', $bulkSuccesses == count($ids), $message, [], [], []);
         }
-        $this->Controller->set('scope', 'users');
-        $this->Controller->viewBuilder()->setLayout('ajax');
-        $this->Controller->render('/genericTemplates/delete');
     }
 
     public function tag($id = false): void
@@ -1150,22 +1142,26 @@ class CRUDComponent extends Component
      */
     public function getIdsOrFail($id = false): array
     {
+        $ids = $this->getIds($id);
+        if (empty($ids)) {
+            throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
+        }
+        return $ids;
+    }
+
+    public function getIds($id): array
+    {
         $params = $this->Controller->ParamHandler->harvestParams(['ids']);
         if (!empty($params['ids'])) {
             $params['ids'] = json_decode($params['ids']);
         }
         $ids = [];
-        if (empty($id)) {
-            if (empty($params['ids'])) {
-                throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
-            }
+        if (empty($id) && !empty($params['ids'])) {
             $ids = $params['ids'];
         } else {
             $id = $this->getInteger($id);
             if (!is_null($id)) {
                 $ids = [$id];
-            } else {
-                throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
             }
         }
         return $ids;
