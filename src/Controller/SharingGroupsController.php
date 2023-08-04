@@ -271,37 +271,39 @@ class SharingGroupsController extends AppController
         $this->render('add');
     }
 
-    public function delete($id)
+    public function delete($id=false)
     {
         $this->request->allowMethod(['get', 'post', 'delete']);
-
-        $deletedSg = $this->SharingGroups->find(
-            'all',
-            [
-                'conditions' => Validation::uuid($id) ? ['uuid' => $id] : ['id' => $id],
-                'recursive' => -1,
-                'fields' => ['id', 'active', 'name'],
-            ]
-        )->first();
-        if (empty($deletedSg) || !$this->SharingGroups->checkIfOwner($this->ACL->getUser()->toArray(), $deletedSg->id)) {
-            throw new MethodNotAllowedException('Action not allowed.');
+        $toggleParams = [
+            'contain' => ['SharingGroupOrgs'],
+            'tableFields' => [
+                ['path' => 'id', 'label' => __('ID')],
+                ['path' => 'name', 'label' => __('Name')],
+                ['path' => 'releasability', 'label' => __('Releasability')],
+                ['path' => 'active', 'label' => __('Active'), 'element' => 'boolean',],
+                ['path' => 'roaming', 'label' => __('Roaming'), 'element' => 'boolean',],
+                ['path' => 'org_count', 'label' => __('Org. count'), 'formatter' => function ($field, $row) {
+                    return count($row['SharingGroupOrg']);
+                }],
+            ],
+        ];
+        $currentUser = $this->ACL->getUser();
+        if (!$currentUser->Role->perm_admin) {
+            $toggleParams['afterFind'] = function ($sg, &$params) use ($currentUser) {
+                $authorizedSg = $this->SharingGroups->fetchSG($sg->id, $currentUser, false);
+                if (empty($authorizedSg)) {
+                    throw new MethodNotAllowedException(__('Invalid sharing group or no editing rights.'));
+                }
+                if (!$this->SharingGroups->checkIfOwner($currentUser->toArray(), $authorizedSg->id)) {
+                    throw new MethodNotAllowedException(__('Action not allowed.'));
+                }
+                return $authorizedSg;
+            };
         }
-        if ($this->SharingGroups->delete($deletedSg)) {
-            if ($this->ParamHandler->isRest()) {
-                return $this->RestResponse->saveSuccessResponse('SharingGroups', 'delete', $id);
-            }
-            $this->Flash->success(__('Sharing Group deleted'));
-        } else {
-            if ($this->ParamHandler->isRest()) {
-                return $this->RestResponse->saveFailResponse('SharingGroups', 'delete', $id, 'The sharing group could not be deleted.');
-            }
-            $this->Flash->error(__('Sharing Group could not be deleted. Make sure that there are no events, attributes or threads belonging to this sharing group.'));
-        }
-
-        if ($deletedSg->active) {
-            $this->redirect('/sharing-groups/index');
-        } else {
-            $this->redirect('/sharing-groups/index/true');
+        $this->CRUD->delete($id, $toggleParams);
+        $responsePayload = $this->CRUD->getResponsePayload();
+        if (!empty($responsePayload)) {
+            return $responsePayload;
         }
     }
 
@@ -479,6 +481,74 @@ class SharingGroupsController extends AppController
     {
         $this->CRUD->filtering();
     }
+
+    public function toggle($id, $fieldName = 'active')
+    {
+        $params = [];
+        $currentUser = $this->ACL->getUser();
+        if (!$currentUser->Role->perm_admin) {
+            $params['afterFind'] = function ($sg, &$params) use ($currentUser, $id) {
+                $authorizedSg = $this->SharingGroups->fetchSG($id, $currentUser, false);
+                if (empty($authorizedSg)) {
+                    throw new MethodNotAllowedException('Invalid sharing group or no editing rights.');
+                }
+                return $authorizedSg;
+            };
+        }
+        $this->CRUD->toggle($id, $fieldName, $params);
+        $responsePayload = $this->CRUD->getResponsePayload();
+        if (!empty($responsePayload)) {
+            return $responsePayload;
+        }
+    }
+
+    public function massToggleField()
+    {
+        $validFields = ['roaming', 'active',];
+        $toggleParams = [
+            'contain' => ['SharingGroupOrgs'],
+            'tableFields' => [
+                ['path' => 'id', 'label' => __('ID')],
+                ['path' => 'name', 'label' => __('Name')],
+                ['path' => 'releasability', 'label' => __('Releasability')],
+                ['path' => 'active', 'label' => __('Active'), 'element' => 'boolean',],
+                ['path' => 'roaming', 'label' => __('Roaming'), 'element' => 'boolean',],
+                ['path' => 'org_count', 'label' => __('Org. count'), 'formatter' => function ($field, $row) {
+                    return count($row['SharingGroupOrg']);
+                }],
+            ],
+        ];
+        $requestParams = $this->ParamHandler->harvestParams($validFields);
+        $fieldName = null;
+        $toggleValue = null;
+        foreach ($validFields as $field) {
+            if (isset($requestParams[$field])) {
+                $fieldName = $field;
+                $toggleValue = $requestParams[$field];
+                break;
+            }
+        }
+        if (is_null($fieldName)) {
+            throw new MethodNotAllowedException(__('Invalid field.'));
+        }
+        $toggleParams['force_state'] = $toggleValue;
+        $currentUser = $this->ACL->getUser();
+        if (!$currentUser->Role->perm_admin) {
+            $toggleParams['afterFind'] = function ($sg, &$params) use ($currentUser) {
+                $authorizedSg = $this->SharingGroups->fetchSG($sg->id, $currentUser, false);
+                if (empty($authorizedSg)) {
+                    throw new MethodNotAllowedException(__('Invalid sharing group or no editing rights.'));
+                }
+                return $authorizedSg;
+            };
+        }
+        $this->CRUD->massToggle($fieldName, $toggleParams);
+        $responsePayload = $this->CRUD->getResponsePayload();
+        if (!empty($responsePayload)) {
+            return $responsePayload;
+        }
+    }
+
 
     public function view($id)
     {
