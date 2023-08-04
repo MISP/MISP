@@ -22,21 +22,41 @@ class NoticelistsController extends AppController
         ],
     ];
 
+    public $quickFilterFields = [['name' => true], ['expanded_name' => true], ['geographical_area' => true],];
+    public $filterFields = [
+        'name', 'expanded_name', 'geographical_area', 'version', 'enabled',
+    ];
+    public $containFields = [
+        'NoticelistEntries'
+    ];
+    public $statisticsFields = ['enabled',];
+
+
     public function index()
     {
         $this->CRUD->index([
-            'quickFilters' => ['name', 'expanded_name'],
+            'filters' => $this->filterFields,
+            'quickFilters' => $this->quickFilterFields,
+            'quickFilterForMetaField' => ['enabled' => true, 'wildcard_search' => true],
+            'contain' => $this->containFields,
+            'statisticsFields' => $this->statisticsFields,
         ]);
-        if ($this->ParamHandler->isRest()) {
-            return $this->restResponsePayload;
+        $responsePayload = $this->CRUD->getResponsePayload();
+        if (!empty($responsePayload)) {
+            return $responsePayload;
         }
-        $this->set('menuData', array('menuList' => 'noticelist', 'menuItem' => 'list_noticelists'));
+    }
+
+
+    public function filtering()
+    {
+        $this->CRUD->filtering();
     }
 
     public function update()
     {
         $this->Log = $this->fetchTable('Logs');
-        //if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via POST requests.');
+        if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via POST requests.');
         $result = $this->Noticelists->update();
         $fails = 0;
         $successes = 0;
@@ -189,8 +209,6 @@ class NoticelistsController extends AppController
         if ($this->ParamHandler->isRest()) {
             return $this->restResponsePayload;
         }
-        $this->set('id', $id);
-        $this->set('menuData', array('menuList' => 'noticelist', 'menuItem' => 'view_noticelist'));
     }
 
     public function delete($id)
