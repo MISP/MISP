@@ -1598,6 +1598,75 @@ class CRUDComponent extends Component
         $this->Controller->render('/genericTemplates/toggle');
     }
 
+    public function massToggle($fieldName, $params): void
+    {
+        $ids = $this->getIdsOrFail(false);
+        $query = $this->Table->find()->where(function (QueryExpression $exp) use ($ids) {
+            return $exp->in($this->Table->getAlias() . '.id', $ids);
+        });
+        if (!empty($params['conditions'])) {
+            $query->where($params['conditions']);
+        }
+        if (!empty($params['contain'])) {
+            $query->contain($params['contain']);
+        }
+        $entities = $query->all()->toList();
+        if ($this->request->is('get')) {
+            $this->Controller->set('ids', $ids);
+            $this->Controller->set('entities', $entities);
+            $this->Controller->set('fieldName', $fieldName);
+            $this->Controller->set('tableFields', $params['tableFields'] ?? []);
+            $this->Controller->viewBuilder()->setLayout('ajax');
+            $this->Controller->set('fieldName', $fieldName);
+            $this->Controller->render('/genericTemplates/massToggle');
+        } else if ($this->request->is('post') || $this->request->is('delete')) {
+            $bulkSuccesses = 0;
+            foreach ($entities as $entity) {
+                if (isset($params['afterFind'])) {
+                    $entity = $params['afterFind']($entity, $params);
+                }
+                if (isset($params['beforeSave'])) {
+                    try {
+                        $entity = $params['beforeSave']($entity);
+                        if ($entity === false) {
+                            throw new NotFoundException(__('Could not save {0} due to the input failing to meet expectations. Your input is bad and you should feel bad.', $this->ObjectAlias));
+                        }
+                    } catch (\Exception $e) {
+                        $entity = false;
+                    }
+                }
+                if (!empty($entity)) {
+                    if (isset($params['force_state'])) {
+                        $entity->{$fieldName} = $params['force_state'];
+                    } else {
+                        $entity->{$fieldName} = !$entity->{$fieldName};
+                    }
+                    $savedData = $this->Table->save($entity);
+                    $success = $savedData !== false;
+                } else {
+                    $success = false;
+                }
+                if ($success) {
+                    $bulkSuccesses++;
+                }
+            }
+            $message = $this->getMessageBasedOnResult(
+                $bulkSuccesses == count($ids),
+                true,
+                __('{0} updated.', $this->ObjectAlias),
+                __('All selected {0} have been updated.', Inflector::pluralize($this->ObjectAlias)),
+                __('Could not update {0}.', $this->ObjectAlias),
+                __(
+                    '{0} / {1} {2} have been updated.',
+                    $bulkSuccesses,
+                    count($ids),
+                    Inflector::pluralize($this->ObjectAlias)
+                )
+            );
+            $this->setResponseForController('massToggle', $bulkSuccesses == count($ids), $message, [], [], []);
+        }
+    }
+
     public function toggleEnabled(int $id, array $path, string $fieldName = 'enabled'): void
     {
         if (empty($id)) {
