@@ -200,14 +200,12 @@ class NoticelistsController extends AppController
 
     public function view($id)
     {
-        $this->CRUD->view(
-            $id,
-            [
-                'contain' => ['NoticelistEntries']
-            ]
-        );
-        if ($this->ParamHandler->isRest()) {
-            return $this->restResponsePayload;
+        $params = [
+        ];
+        $this->CRUD->view($id, $params);
+        $responsePayload = $this->CRUD->getResponsePayload();
+        if (!empty($responsePayload)) {
+            return $responsePayload;
         }
     }
 
