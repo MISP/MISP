@@ -105,6 +105,10 @@ input[type="checkbox"]:disabled.change-cursor {
     -webkit-animation-delay: 0.1s;
 }
 
+.apexcharts-svg {
+    overflow: visible;
+}
+
 @keyframes slide-in {
     50% { opacity: 0.3; }
     100% { transform: translateX(0%); opacity: 1; }
