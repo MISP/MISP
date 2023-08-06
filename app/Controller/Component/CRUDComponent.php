@@ -114,7 +114,7 @@ class CRUDComponent extends Component
                     $this->Controller->Flash->success($message);
                     if (!empty($params['displayOnSuccess'])) {
                         $this->Controller->set('entity', $data);
-                        $this->Controller->set('referer', $this->Controller->referer());
+                        $this->Controller->set('referer', $this->Controller->referer(['action' => 'view', $model->id], true));
                         $this->Controller->render($params['displayOnSuccess']);
                         return;
                     }

@@ -13,7 +13,7 @@ class Workflow extends AppModel
     public $recursive = -1;
 
     public $actsAs = [
-        'AuditLog',
+        // 'AuditLog',
         'Containable',
         'SysLogLogable.SysLogLogable' => [
             'roleModel' => 'Role',
@@ -518,15 +518,14 @@ class Workflow extends AppModel
     {
         $this->Log = ClassRegistry::init('Log');
         $message =  __('Started executing workflow for trigger `%s` (%s)', $triggerModule->id, $workflow['Workflow']['id']);
-        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
-        $this->__logToFile($workflow, $message);
+        $this->logExecutionIfDebug($workflow, $message);
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
         $debugData = ['original' => $data];
         $data = $this->__normalizeDataForTrigger($triggerModule, $data);
         $debugData['normalized'] = $data;
         $for_path = !empty($triggerModule->blocking) ? GraphWalker::PATH_TYPE_BLOCKING : GraphWalker::PATH_TYPE_NON_BLOCKING;
-        $this->sendRequestToDebugEndpoint($workflow, [], '/init?type=' . $for_path, $debugData);
+        $this->sendRequestToDebugEndpointIfDebug($workflow, [], '/init?type=' . $for_path, $debugData);
 
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNodeID, $for_path, $data, $blockingErrors, $walkResult);
         $executionStoppedByStopModule = in_array('stop-execution', Hash::extract($walkResult, 'blocking_nodes.{n}.data.id'));
@@ -542,9 +541,8 @@ class Workflow extends AppModel
         }
         $message =  __('Finished executing workflow for trigger `%s` (%s). Outcome: %s', $triggerModule->id, $workflow['Workflow']['id'], $outcomeText);
 
-        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
-        $this->__logToFile($workflow, $message);
-        $this->sendRequestToDebugEndpoint($workflow, [], '/end?outcome=' . $outcomeText, $walkResult);
+        $this->logExecutionIfDebug($workflow, $message);
+        $this->sendRequestToDebugEndpointIfDebug($workflow, [], '/end?outcome=' . $outcomeText, $walkResult);
         return [
             'outcomeText' => $outcomeText,
             'walkResult' => $walkResult,
@@ -621,16 +619,20 @@ class Workflow extends AppModel
                 'id' => Configure::read('MISP.host_org_id')
             ],
         ]);
+        $this->User = ClassRegistry::init('User');
         if (!empty($hostOrg)) {
+            $perms = array_keys($this->User->Role->permFlags);
+            $allPermEnabled = array_map(function($perm) {
+                return true;
+            }, array_flip($perms));
             $userForWorkflow = [
                 'email' => 'SYSTEM',
                 'id' => 0,
                 'org_id' => $hostOrg['Organisation']['id'],
-                'Role' => ['perm_site_admin' => 1],
+                'Role' => $allPermEnabled,
                 'Organisation' => $hostOrg['Organisation']
             ];
         } else {
-            $this->User = ClassRegistry::init('User');
             $userForWorkflow = $this->User->find('first', [
                 'recursive' => -1,
                 'conditions' => [
@@ -657,7 +659,7 @@ class Workflow extends AppModel
             $message = __('Could not execute disabled module `%s`.', $node['data']['id']);
             $this->logExecutionError($roamingData->getWorkflow(), $message);
             $errors[] = $message;
-            $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'disabled_module'), $roamingData->getData());
+            $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'disabled_module'), $roamingData->getData());
             return false;
         }
         if (!is_null($moduleClass)) {
@@ -667,17 +669,25 @@ class Workflow extends AppModel
                 $message = __('Error while executing module %s. Error: %s', $node['data']['id'], $e->getMessage());
                 $this->logExecutionError($roamingData->getWorkflow(), $message);
                 $errors[] = $message;
-                $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s&message=%s', $moduleClass->id, 'error', $e->getMessage()), $roamingData->getData());
+                $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s&message=%s', $moduleClass->id, 'error', $e->getMessage()), $roamingData->getData());
                 return false;
             }
         } else {
             $message = sprintf(__('Could not load class for module: %s'), $node['data']['id']);
             $this->logExecutionError($roamingData->getWorkflow(), $message);
             $errors[] = $message;
-            $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $node['data']['id'], 'loading_error'), $roamingData->getData());
+            $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $node['data']['id'], 'loading_error'), $roamingData->getData());
             return false;
         }
-        $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'success'), $roamingData->getData());
+        $message = __('Executed node `%s`' .  PHP_EOL . 'Node `%s` (%s) from Workflow `%s` (%s) executed successfully',
+            $node['data']['id'],
+            $node['data']['id'],
+            $node['id'],
+            $roamingData->getWorkflow()['Workflow']['name'],
+            $roamingData->getWorkflow()['Workflow']['id']
+        );
+        $this->logExecutionIfDebug($roamingData->getWorkflow(), $message);
+        $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'success'), $roamingData->getData());
         return $success;
     }
 
@@ -989,6 +999,14 @@ class Workflow extends AppModel
         $this->__logToFile($workflow, $message);
     }
 
+    public function logExecutionIfDebug(array $workflow, $message): void
+    {
+        if ($workflow['Workflow']['debug_enabled']) {
+            $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
+            $this->__logToFile($workflow, $message);
+        }
+    }
+
     /**
      * __logToFile Log to file
      *
@@ -1022,8 +1040,8 @@ class Workflow extends AppModel
         $className = explode('/', $filepath);
         $className = str_replace('.php', '', $className[count($className)-1]);
         try {
-            if (!@include_once($filepath)) {
-                $message = __('Could not load module for path %s. File does not exists.', $filepath);
+            if (!include_once($filepath)) {
+                $message = __('Could not load module for path %s. File does not exist.', $filepath);
                 $this->log($message, LOG_ERR);
                 return $message;
             }
@@ -1156,9 +1174,16 @@ class Workflow extends AppModel
         if (isset($options['contain'])) {
             $params['contain'] = !empty($options['contain']) ? $options['contain'] : [];
         }
-        if (isset($options['order'])) {
-            $params['order'] = !empty($options['order']) ? $options['order'] : [];
+
+        $params['order'] = [];
+        if (!empty($options['order'])) {
+            $options['order'] = $this->findOrder(
+                $options['order'],
+                'Workflow',
+                ['id', 'name', 'timestmap', 'trigger_id', 'counter']
+            );
         }
+
         $workflows = $this->find('all', $params);
         return $workflows;
     }
@@ -1290,6 +1315,83 @@ class Workflow extends AppModel
         return $data;
     }
 
+    public function getLabelsForConnections($workflow, $trigger_id): array
+    {
+        $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
+        $startNodeID = $this->workflowGraphTool->getNodeIdForTrigger($graphData, $trigger_id);
+        if ($startNodeID  == -1) {
+            return [];
+        }
+
+        $connections = [];
+
+        $filterNodes = $this->workflowGraphTool->extractFilterNodesFromWorkflow($graphData, true);
+        $filterNodeIDToLabel = Hash::combine($filterNodes, '{n}.id', '{n}.data.indexed_params.filtering-label');
+        $resetFilterNodes = $this->workflowGraphTool->extractResetFilterFromWorkflow($graphData, true);
+        $resetFilterNodeIDToLabel = Hash::combine($resetFilterNodes, '{n}.id', '{n}.data.indexed_params.filtering-label');
+        $roamingData = $this->workflowGraphTool->getRoamingData();
+        $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $this, $startNodeID, GraphWalker::PATH_TYPE_INCLUDE_LOGIC, $roamingData);
+        foreach ($graphWalker as $graphNode) {
+            $node = $graphNode['node'];
+            $nodeID = $node['id'];
+            $parsedPathList = GraphWalker::parsePathList($graphNode['path_list']);
+            if (!empty($parsedPathList)) {
+                $lastNodeInPath = $parsedPathList[count($parsedPathList)-1];
+                $previousNodeId = $lastNodeInPath['source_id'];
+                $connections[$nodeID][$previousNodeId] = [];
+            }
+            foreach ($parsedPathList as $pathEntry) {
+                if (!empty($filterNodeIDToLabel[$pathEntry['source_id']])) {
+                    $connections[$nodeID][$previousNodeId][] = $filterNodeIDToLabel[$pathEntry['source_id']];
+                }
+                if (!empty($resetFilterNodeIDToLabel[$pathEntry['source_id']])) {
+                    if ($resetFilterNodeIDToLabel[$pathEntry['source_id']] == 'all') {
+                        $connections[$nodeID][$previousNodeId] = [];
+                    } else {
+                        $connections[$nodeID][$previousNodeId] = array_values(array_diff($connections[$nodeID][$previousNodeId], [$resetFilterNodeIDToLabel[$pathEntry['source_id']]]));
+                    }
+                }
+            }
+        }
+        $connections = array_filter($connections, function($connection) {
+            foreach ($connection as $labels) {
+                if (!empty($labels)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+        return $connections;
+    }
+
+    public function attachLabelToConnections($workflow, $trigger_id=null): array
+    {
+        $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
+        if (is_null($trigger_id)) {
+            $startNode = $this->workflowGraphTool->extractTriggerFromWorkflow($graphData, true);
+            $trigger_id = $startNode['data']['id'];
+        }
+        $labelsByNodes = $this->getLabelsForConnections($workflow, $trigger_id);
+        foreach ($graphData as $i => $node) {
+            if ($i == '_frames') {
+                continue;
+            }
+            if (!empty($labelsByNodes[$node['id']])) {
+                foreach ($node['inputs'] as $inputName => $inputs) {
+                    foreach ($inputs['connections'] as $j => $connection) {
+                        $workflow['Workflow']['data'][$i]['inputs'][$inputName]['connections'][$j]['labels'] = array_map(function($label) {
+                            return [
+                                'id' => Inflector::variable($label),
+                                'name' => $label,
+                                'variant' => 'info',
+                            ];
+                        }, $labelsByNodes[$node['id']][$connection['node']]);
+                    }
+                }
+            }
+        }
+        return $workflow;
+    }
     /**
      * moduleSattelesExecution Executes a module using the provided configuration and returns back the result
      *
@@ -1336,6 +1438,7 @@ class Workflow extends AppModel
                 'indexed_params' => $indexed_params,
                 'saved_filters' => $module_config['saved_filters'],
                 'module_data' => $module_config,
+                'expect_misp_core_format' => $module_config['expect_misp_core_format'],
             ],
             'inputs' => [],
             'outputs' => [],
@@ -1392,12 +1495,16 @@ class Workflow extends AppModel
         return $saveSuccess;
     }
 
+    public function sendRequestToDebugEndpointIfDebug(array $workflow, array $node, $path='/', array $data=[])
+    {
+        if ($workflow['Workflow']['debug_enabled']) {
+            $this->sendRequestToDebugEndpoint($workflow, $node, $path, $data);
+        }
+    }
+
     public function sendRequestToDebugEndpoint(array $workflow, array $node, $path='/', array $data=[])
     {
         $debug_url = Configure::read('Plugin.Workflow_debug_url');
-        if (empty($workflow['Workflow']['debug_enabled'])) {
-            return;
-        }
         App::uses('HttpSocket', 'Network/Http');
         $socket = new HttpSocket([
             'timeout' => 5

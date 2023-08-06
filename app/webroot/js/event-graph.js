@@ -636,7 +636,7 @@ class EventGraph {
                     btn_plot.data('network-preview', preview);
                     btn_plot.popover({
                         container: 'body',
-                        content: function() { return '<img style="width: 500px; height: 150px;" src="' + $(this).data('network-preview') + '" />'; },
+                        content: function() { return '<img style="width: 500px; height: 150px;" src="' + $('<div>').text($(this).data('network-preview')).html() + '" />'; },
                         placement: 'right',
                         trigger: 'hover',
                         template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
@@ -715,7 +715,7 @@ class EventGraph {
             if ( node.node_type == 'object' ) {
                 var group =  'object';
                 var label = dataHandler.generate_label(node);
-                var labelHtml = label + '</br><i>' + escapeHtml(node.comment) + '</i>'
+                var labelHtml = escapeHtml(label) + '</br><i>' + escapeHtml(node.comment) + '</i>'
                 label += ' ' + escapeHtml(node.comment)
                 var striped_value = that.strip_text_value(label);
                 node_conf = {
@@ -742,7 +742,7 @@ class EventGraph {
                     id: node.id,
                     uuid: node.uuid,
                     label: label,
-                    title: label,
+                    title: escapeHtml(label),
                     group: group,
                     mass: 20,
                     color: {
@@ -766,15 +766,15 @@ class EventGraph {
                 node_conf = {
                     id: node.id,
                     label: striped_value,
-                    title: label,
+                    title: escapeHtml(label),
                     group: group
                 };
                 dataHandler.mapping_value_to_nodeID.set(label, node.id);
             } else {
                 group =  'attribute';
-                label = node.type + ': ' + node.label;
+                label = escapeHtml(node.type) + ': ' + node.label;
                 label += ' ' + escapeHtml(node.comment)
-                var labelHtml = label + '</br><i>' + escapeHtml(node.comment) + '</i>'
+                var labelHtml = escapeHtml(label) + '</br><i>' + escapeHtml(node.comment) + '</i>'
                 var striped_value = that.strip_text_value(label);
                 node_conf = {
                     id: node.id,
@@ -822,7 +822,7 @@ class EventGraph {
                 from: rel.from,
                 to: rel.to,
                 label: rel.type,
-                title: rel.comment,
+                title: escapeHtml(rel.comment),
                 color: {
                     opacity: 1.0,
                 }
@@ -1053,7 +1053,7 @@ class EventGraph {
                         x: parent_pos.x,
                         y: parent_pos.y,
                         label: attr.object_relation + ': ' + striped_value,
-                        title: attr.object_relation + ': ' + attr.value,
+                        title: escapeHtml(attr.object_relation) + ': ' + escapeHtml(attr.value),
                         group: 'obj_relation',
                         color: {
                             background: parent_color
@@ -2002,7 +2002,7 @@ function reset_graph_history() {
                 btn_plot.data('network-preview', preview);
                 btn_plot.popover({
                     container: 'body',
-                    content: function() { return '<img style="width: 500px; height: 150px;" src="' + $(this).data('network-preview') + '" />'; },
+                    content: function() { return '<img style="width: 500px; height: 150px;" src="' + $('<div>').text($(this).data('network-preview')).html() + '" />'; },
                     placement: 'right',
                     trigger: 'hover',
                     template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',

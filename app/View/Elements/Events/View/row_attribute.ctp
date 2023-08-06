@@ -85,6 +85,7 @@
       <?php
         endif;
       ?>
+      <?php if ($includeOrgColumn): ?>
       <td class="short">
         <?php
           if (!empty($extended)):
@@ -92,6 +93,7 @@
           endif;
         ?>
       </td>
+      <?php endif; ?>
       <td class="short"<?= $quickEdit('category') ?>>
         <div class="inline-field-solid">
           <?php echo h($object['category']); ?>
@@ -194,107 +196,113 @@
             //}
           ?>
       </td>
-      <td class="shortish">
-        <ul class="inline correlations">
-          <?php
-              if (isset($object['Feed'])) {
-                  foreach ($object['Feed'] as $feed) {
-                      $relatedData = array(
-                          __('Name') => h($feed['name']),
-                          __('Provider') => h($feed['provider']),
-                      );
-                      if (isset($feed['event_uuids'])) {
-                          $relatedData[__('Event UUIDs')] = implode('<br>', array_map('h', $feed['event_uuids']));
-                      }
-                      $popover = '';
-                      foreach ($relatedData as $k => $v) {
-                          $popover .= '<span class="bold black">' . $k . '</span>: <span class="blue">' . $v . '</span><br>';
-                      }
-                      if ($isSiteAdmin || $hostOrgUser) {
-                          if ($feed['source_format'] === 'misp') {
-                              $liContents = sprintf(
-                                  '<form action="%s/feeds/previewIndex/%s" method="post" style="margin:0;line-height:auto;">%s%s</form>',
-                                  $baseurl,
-                                  h($feed['id']),
-                                  sprintf(
-                                      '<input type="hidden" name="data[Feed][eventid]" value="%s">',
-                                      h(json_encode($feed['event_uuids']))
-                                  ),
-                                  sprintf(
-                                      '<input type="submit" class="linkButton useCursorPointer" value="%s" data-toggle="popover" data-content="%s" data-trigger="hover" style="margin-right:3px;line-height:normal;vertical-align: text-top;">',
-                                      h($feed['id']),
-                                      h($popover)
-                                  )
-                              );
-                          } else {
-                              $liContents = sprintf(
-                                  '<a href="%s/feeds/previewIndex/%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
-                                  $baseurl,
-                                  h($feed['id']),
-                                  h($popover),
-                                  h($feed['id'])
-                              );
-                          }
-                      } else {
-                          $liContents = sprintf(
-                              '<span>%s</span>',
-                              h($feed['id'])
-                          );
-                      }
-                      echo "<li>$liContents</li>";
-                  }
-              }
-              if (isset($object['Server'])) {
-                  foreach ($object['Server'] as $server) {
-                      $popover = '';
-                      foreach ($server as $k => $v) {
-                          if ($k == 'id') continue;
-                          if (is_array($v)) {
-                              foreach ($v as $k2 => $v2) {
-                                  $v[$k2] = h($v2);
-                              }
-                              $v = implode('<br />', $v);
-                          } else {
-                              $v = h($v);
-                          }
-                          $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
-                      }
-                      foreach ($server['event_uuids'] as $k => $event_uuid) {
-                          $liContents = '';
-                          if ($isSiteAdmin) {
-                              $liContents .= sprintf(
-                                  '<a href="%s/servers/previewEvent/%s/%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
-                                  $baseurl,
-                                  h($server['id']),
-                                  h($event_uuid),
-                                  h($popover),
-                                  'S' . h($server['id']) . ':' . ($k + 1)
-                              );
-                          } else {
-                              $liContents .= sprintf(
-                                  '<span>%s</span>',
-                                  'S' . h($server['id']) . ':' . ($k + 1)
-                              );
-                          }
-                          echo "<li>$liContents</li>";
-                      }
-                  }
-              }
-          ?>
-        </ul>
-      </td>
+      <?php if ($me['Role']['perm_view_feed_correlations']): ?>
+        <td class="shortish">
+          <ul class="inline correlations">
+            <?php
+                if (isset($object['Feed'])) {
+                    foreach ($object['Feed'] as $feed) {
+                        $relatedData = array(
+                            __('Name') => h($feed['name']),
+                            __('Provider') => h($feed['provider']),
+                        );
+                        if (isset($feed['event_uuids'])) {
+                            $relatedData[__('Event UUIDs')] = implode('<br>', array_map('h', $feed['event_uuids']));
+                        }
+                        $popover = '';
+                        foreach ($relatedData as $k => $v) {
+                            $popover .= '<span class="bold black">' . $k . '</span>: <span class="blue">' . $v . '</span><br>';
+                        }
+                        if ($isSiteAdmin || $hostOrgUser) {
+                            if ($feed['source_format'] === 'misp') {
+                                $liContents = sprintf(
+                                    '<form action="%s/feeds/previewIndex/%s" method="post" style="margin:0;line-height:auto;">%s%s</form>',
+                                    $baseurl,
+                                    h($feed['id']),
+                                    sprintf(
+                                        '<input type="hidden" name="data[Feed][eventid]" value="%s">',
+                                        h(json_encode($feed['event_uuids'] ?? []))
+                                    ),
+                                    sprintf(
+                                        '<input type="submit" class="linkButton useCursorPointer" value="%s" data-toggle="popover" data-content="%s" data-trigger="hover" style="margin-right:3px;line-height:normal;vertical-align: text-top;">',
+                                        h($feed['id']),
+                                        h($popover)
+                                    )
+                                );
+                            } else {
+                                $liContents = sprintf(
+                                    '<a href="%s/feeds/previewIndex/%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
+                                    $baseurl,
+                                    h($feed['id']),
+                                    h($popover),
+                                    h($feed['id'])
+                                );
+                            }
+                        } else {
+                            $liContents = sprintf(
+                                '<span>%s</span>',
+                                h($feed['id'])
+                            );
+                        }
+                        echo "<li>$liContents</li>";
+                    }
+                }
+                if (isset($object['Server'])) {
+                    foreach ($object['Server'] as $server) {
+                        $popover = '';
+                        foreach ($server as $k => $v) {
+                            if ($k == 'id') continue;
+                            if (is_array($v)) {
+                                foreach ($v as $k2 => $v2) {
+                                    $v[$k2] = h($v2);
+                                }
+                                $v = implode('<br />', $v);
+                            } else {
+                                $v = h($v);
+                            }
+                            $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
+                        }
+                        foreach ($server['event_uuids'] as $k => $event_uuid) {
+                            $liContents = '';
+                            if ($isSiteAdmin) {
+                                $liContents .= sprintf(
+                                    '<a href="%s/servers/previewEvent/%s/%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
+                                    $baseurl,
+                                    h($server['id']),
+                                    h($event_uuid),
+                                    h($popover),
+                                    'S' . h($server['id']) . ':' . ($k + 1)
+                                );
+                            } else {
+                                $liContents .= sprintf(
+                                    '<span>%s</span>',
+                                    'S' . h($server['id']) . ':' . ($k + 1)
+                                );
+                            }
+                            echo "<li>$liContents</li>";
+                        }
+                    }
+                }
+            ?>
+          </ul>
+        </td>
+      <?php endif; ?>
       <td class="short">
           <input type="checkbox" class="toids-toggle" id="toids_toggle_<?= $objectId ?>" aria-label="<?= __('Toggle IDS flag') ?>" title="<?= __('Toggle IDS flag') ?>"<?= $object['to_ids'] ? ' checked' : ''; ?><?= $mayModify ? '' : ' disabled' ?>>
       </td>
       <td class="short"<?= $quickEdit('distribution') ?>>
-          <div class="inline-field-solid<?= $object['distribution'] == 0 ? ' red' : '' ?>">
+          <div class="inline-field-solid">
               <?php
                   if ($object['distribution'] == 4):
               ?>
                   <a href="<?php echo $baseurl;?>/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
               <?php
                   else:
-                      echo h($shortDist[$object['distribution']]);
+                      if ($object['distribution'] == 0) {
+                          echo '<span class="red">' . h($shortDist[$object['distribution']]) . '</span>';
+                      } else {
+                          echo h($shortDist[$object['distribution']]);
+                      }
                   endif;
               ?>
           </div>
@@ -330,12 +338,12 @@
             if ($isAclAdd && ($isSiteAdmin || !$mayModify)):
               if (isset($modules) && isset($modules['types'][$object['type']])):
         ?>
-          <span class="fas fa-asterisk useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query enrichment');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/ShadowAttribute');" title="<?php echo __('Propose enrichment');?>">&nbsp;</span>
+          <span class="fas fa-asterisk useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query enrichment');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Enrichment/ShadowAttribute');" title="<?php echo __('Propose enrichment');?>">&nbsp;</span>
         <?php
               endif;
               if (isset($cortex_modules) && isset($cortex_modules['types'][$object['type']])):
         ?>
-          <span class="icon-eye-open useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query Cortex');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/ShadowAttribute/Cortex');" title="<?php echo __('Propose enrichment through Cortex');?>"></span>
+          <span class="icon-eye-open useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query Cortex');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Enrichment/ShadowAttribute/Cortex');" title="<?php echo __('Propose enrichment through Cortex');?>"></span>
         <?php
               endif;
         ?>
@@ -350,12 +358,12 @@
             if ($isSiteAdmin || $mayModify):
               if (isset($modules) && isset($modules['types'][$object['type']])):
         ?>
-          <span class="fas fa-asterisk useCursorPointer" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Attribute');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment');?>">&nbsp;</span>
+          <span class="fas fa-asterisk useCursorPointer" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Enrichment/Attribute');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment');?>">&nbsp;</span>
         <?php
               endif;
               if (isset($cortex_modules) && isset($cortex_modules['types'][$object['type']])):
         ?>
-          <span class="icon-eye-open useCursorPointer" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Attribute/Cortex');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment via Cortex');?>"></span>
+          <span class="icon-eye-open useCursorPointer" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Enrichment/Attribute/Cortex');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment via Cortex');?>"></span>
         <?php
               endif;
         ?>

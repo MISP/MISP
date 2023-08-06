@@ -147,8 +147,6 @@
                 ],
                 [
                     'key' => __('Warnings'),
-                    'key_class' => !empty($warnings) ? 'background-red bold' : '',
-                    'class' => !empty($warnings) ? 'background-red bold' : '',
                     'type' => 'warnings',
                     'warnings' => $warnings,
                     'requirement' => !empty($warnings) && $mayModify,
@@ -181,7 +179,8 @@
                 ],
                 [
                     'key' => __('First recorded change'),
-                    'raw' => !$oldest_timestamp ? '' : $this->Time->time($oldest_timestamp)
+                    'raw' => !$oldest_timestamp ? '' : $this->Time->time($oldest_timestamp),
+                    'requirement' => $oldest_timestamp,
                 ],
                 [
                     'key' => __('Last change'),

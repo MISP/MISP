@@ -55,6 +55,7 @@ class AuthKey extends AppModel
             $this->data['AuthKey']['authkey_raw'] = $authkey;
         }
 
+        $validAllowedIpFound = false;
         if (!empty($this->data['AuthKey']['allowed_ips'])) {
             $allowedIps = &$this->data['AuthKey']['allowed_ips'];
             if (is_string($allowedIps)) {
@@ -70,11 +71,17 @@ class AuthKey extends AppModel
             if (!is_array($allowedIps)) {
                 $this->invalidate('allowed_ips', 'Allowed IPs must be array');
             }
+
             foreach ($allowedIps as $cidr) {
                 if (!CidrTool::validate($cidr)) {
                     $this->invalidate('allowed_ips', "$cidr is not valid IP range");
+                } else {
+                    $validAllowedIpFound = true;
                 }
             }
+        }
+        if (!empty(Configure::read('Security.mandate_ip_allowlist_advanced_authkeys')) && $validAllowedIpFound === false){
+            $this->invalidate('allowed_ips', "Setting an ip allowlist is mandatory on this instance.");
         }
 
         $creationTime = isset($this->data['AuthKey']['created']) ? $this->data['AuthKey']['created'] : time();
@@ -104,6 +111,12 @@ class AuthKey extends AppModel
             if (isset($val['AuthKey']['allowed_ips'])) {
                 $results[$key]['AuthKey']['allowed_ips'] = JsonTool::decode($val['AuthKey']['allowed_ips']);
             }
+            if (isset($val['AuthKey']['unique_ips'])) {
+                $results[$key]['AuthKey']['unique_ips'] = JsonTool::decode($val['AuthKey']['unique_ips']);
+            } else {
+                $results[$key]['AuthKey']['unique_ips'] = [];
+            }
+            
         }
         return $results;
     }
@@ -115,6 +128,13 @@ class AuthKey extends AppModel
                 $this->data['AuthKey']['allowed_ips'] = null;
             } else {
                 $this->data['AuthKey']['allowed_ips'] = JsonTool::encode($this->data['AuthKey']['allowed_ips']);
+            }
+        }
+        if (isset($this->data['AuthKey']['unique_ips'])) {
+            if (empty($this->data['AuthKey']['unique_ips'])) {
+                $this->data['AuthKey']['unique_ips'] = null;
+            } else {
+                $this->data['AuthKey']['unique_ips'] = JsonTool::encode($this->data['AuthKey']['unique_ips']);
             }
         }
         return true;
@@ -162,12 +182,27 @@ class AuthKey extends AppModel
 
         $possibleAuthkeys = $this->find('all', [
             'recursive' => -1,
-            'fields' => ['id', 'authkey', 'user_id', 'expiration', 'allowed_ips', 'read_only'],
+            'fields' => ['id', 'authkey', 'user_id', 'expiration', 'allowed_ips', 'read_only', 'unique_ips'],
             'conditions' => $conditions,
         ]);
         $passwordHasher = $this->getHasher();
         foreach ($possibleAuthkeys as $possibleAuthkey) {
-            if ($passwordHasher->check($authkey, $possibleAuthkey['AuthKey']['authkey'])) {
+            if ($passwordHasher->check($authkey, $possibleAuthkey['AuthKey']['authkey'])) {  // valid authkey
+                // store IP in db if not there yet
+                $remote_ip = $this->_remoteIp();
+                $update_db_ip = true;
+                if (in_array($remote_ip, $possibleAuthkey['AuthKey']['unique_ips'])) {
+                    $update_db_ip = false;  // IP already seen, skip saving in DB
+                } else {   // first time this IP is seen for this API key
+                    $possibleAuthkey['AuthKey']['unique_ips'][] = $remote_ip;
+                }
+                if ($update_db_ip) {
+                    // prevent double entries due to race condition
+                    $possibleAuthkey['AuthKey']['unique_ips'] = array_unique($possibleAuthkey['AuthKey']['unique_ips']);
+                    // save in db
+                    $this->save($possibleAuthkey, ['fieldList' => ['unique_ips']]);
+                }
+                // fetch user
                 $user = $this->User->getAuthUser($possibleAuthkey['AuthKey']['user_id']);
                 if ($user) {
                     $user = $this->setUserData($user, $possibleAuthkey);
@@ -191,9 +226,9 @@ class AuthKey extends AppModel
         $user['authkey_read_only'] = (bool)$authkey['AuthKey']['read_only'];
 
         if ($authkey['AuthKey']['read_only']) {
-            // Disable all permissions, keep just `perm_auth` unchanged
+            // Disable all permissions, keep just `perm_auth` and `perm_audit` unchanged
             foreach ($user['Role'] as $key => &$value) {
-                if (substr($key, 0, 5) === 'perm_' && $key !== 'perm_auth') {
+                if (substr($key, 0, 5) === 'perm_' && $key !== 'perm_auth' && $key !== 'perm_audit') {
                     $value = 0;
                 }
             }

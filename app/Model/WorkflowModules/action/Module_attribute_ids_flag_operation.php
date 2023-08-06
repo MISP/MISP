@@ -1,5 +1,5 @@
 <?php
-include_once APP . 'Model/WorkflowModules/Module_attribute_edition_operation.php';
+include_once APP . 'Model/WorkflowModules/action/Module_attribute_edition_operation.php';
 
 class Module_attribute_ids_flag_operation extends Module_attribute_edition_operation
 {
@@ -45,8 +45,11 @@ class Module_attribute_ids_flag_operation extends Module_attribute_edition_opera
         if ($matchingItems === false) {
             return true;
         }
-        $result = $this->__saveAttribute($matchingItems, $rData, $params, $user);
-        return $result;
+        $result = $this->__saveAttributes($matchingItems, $rData, $params, $user);
+        $success = $result['success'];
+        $updatedRData = $result['updated_rData'];
+        $roamingData->setData($updatedRData);
+        return $success;
     }
 
     protected function _editAttribute(array $attribute, array $rData, array $params): array

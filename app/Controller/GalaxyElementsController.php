@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property GalaxyElement $GalaxyElement
+ */
 class GalaxyElementsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -16,8 +19,9 @@ class GalaxyElementsController extends AppController
 
     public function index($clusterId)
     {
+        $user = $this->_closeSession();
         $filters = $this->IndexFilter->harvestParameters(array('context', 'searchall'));
-        $aclConditions = $this->GalaxyElement->buildClusterConditions($this->Auth->user(), $clusterId);
+        $aclConditions = $this->GalaxyElement->buildClusterConditions($user, $clusterId);
         if (empty($filters['context'])) {
             $filters['context'] = 'all';
         }
@@ -44,18 +48,15 @@ class GalaxyElementsController extends AppController
             'context' => $filters['context'],
             'searchall' => isset($filters['searchall']) ? $filters['searchall'] : ''
         ]));
-        $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, array('edit', 'delete'), false, false);
+        $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($user, $clusterId, array('edit', 'delete'), false, false);
         $canModify = !empty($cluster['authorized']);
-        $canModify = true;
         $this->set('canModify', $canModify);
-        if ($filters['context'] == 'JSONView') {
+        if ($filters['context'] === 'JSONView') {
             $expanded = $this->GalaxyElement->getExpandedJSONFromElements($elements);
             $this->set('JSONElements', $expanded);
         }
-        if ($this->request->is('ajax')) {
-            $this->layout = false;
-            $this->render('ajax/index');
-        }
+        $this->layout = false;
+        $this->render('ajax/index');
     }
 
     public function delete($elementId)

@@ -57,6 +57,12 @@
                 $event['Attribute'] = array();
             }
 
+            if (!empty($fullevent[0]['Sighting'])) {
+                $event['Sighting'] = $fullevent[0]['Sighting'];
+            } else {
+                $event['Sighting'] = array();
+            }
+
             return $event;
         }
 
@@ -81,6 +87,11 @@
                 $attribute = array();
             }
 
+            $sightingsAttributeMap = [];
+            foreach ($event['Sighting'] as $sighting) {
+                $sightingsAttributeMap[$sighting['attribute_id']][] = $sighting['date_sighting'];
+            }
+
             // extract links and node type
             foreach ($attribute as $attr) {
                 $toPush = array(
@@ -93,6 +104,7 @@
                     'first_seen' => $attr['first_seen'],
                     'last_seen' => $attr['last_seen'],
                     'attribute_type' => $attr['type'],
+                    'date_sighting' => $sightingsAttributeMap[$attr['id']] ?? [],
                     'is_image' => $this->__eventModel->Attribute->isImage($attr),
                 );
                 $this->__json['items'][] = $toPush;
@@ -134,6 +146,7 @@
                         'group' => 'object_attribute',
                         'timestamp' => $obj_attr['timestamp'],
                         'attribute_type' => $obj_attr['type'],
+                        'date_sighting' => $sightingsAttributeMap[$attr['id']] ?? [],
                         'is_image' => $this->__eventModel->Attribute->isImage($obj_attr),
                     );
                     $toPush_obj['Attribute'][] = $toPush_attr;

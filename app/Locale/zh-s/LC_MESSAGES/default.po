@@ -719,7 +719,7 @@ msgid "Invalid Sharing Group or not authorised."
 msgstr "无效的共享组或未授权."
 
 #: Controller/AttributesController.php:316;1772
-msgid "Attribute does not exists or you do not have the permission to download this attribute."
+msgid "Attribute does not exist or you do not have the permission to download this attribute."
 msgstr ""
 
 #: Controller/AttributesController.php:334

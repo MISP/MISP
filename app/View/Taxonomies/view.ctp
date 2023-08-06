@@ -47,6 +47,11 @@ echo $this->element(
                 'type' => 'boolean'
             ],
             [
+                'key' => __('Highlighted'),
+                'path' => 'highlighted',
+                'type' => 'boolean'
+            ],
+            [
                 'key' => __('Action'),
                 'type' => 'custom',
                 'requirement' => !empty($enableHTML),

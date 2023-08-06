@@ -62,8 +62,10 @@ class ShadowAttributesController extends AppController
         // If the old_id is set to anything but 0 then we're dealing with a proposed edit to an existing attribute
         if ($shadow['old_id'] != 0) {
             // Find the live attribute by the shadow attribute's uuid, so we can begin editing it
-            $this->Attribute->contain = 'Event';
-            $activeAttribute = $this->Attribute->findByUuid($shadow['uuid']);
+            $activeAttribute = $this->Attribute->find('first', [
+                'conditions' => ['Attribute.uuid' => $shadow['uuid']],
+                'contain' => ['Event'],
+            ]);
 
             // Send those away that shouldn't be able to edit this
             if (!$this->__canModifyEvent($activeAttribute)) {
@@ -76,7 +78,7 @@ class ShadowAttributesController extends AppController
             }
 
             if (isset($shadow['proposal_to_delete']) && $shadow['proposal_to_delete']) {
-                $this->Attribute->delete($activeAttribute['Attribute']['id']);
+                $this->Attribute->deleteAttribute($activeAttribute['Attribute']['id'], $this->Auth->user(), false);
             } else {
                 // Update the live attribute with the shadow data
                 $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids', 'first_seen', 'last_seen');
@@ -597,8 +599,8 @@ class ShadowAttributesController extends AppController
     // if any of these fields is set, it will create a proposal
     public function edit($id = null)
     {
-        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-            'contain' => array('Event' => array('fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'))),
+        $existingAttribute = $this->ShadowAttribute->Attribute->fetchAttributes($this->Auth->user(), array(
+            'contain' => ['Event' => ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid', 'Event.user_id']]],
             'conditions' => $this->__attributeIdToConditions($id),
             'flatten' => 1
         ));
@@ -673,9 +675,9 @@ class ShadowAttributesController extends AppController
                     $sa = $this->ShadowAttribute->find(
                             'first',
                             array(
-                                    'conditions' => array('ShadowAttribute.id' => $this->ShadowAttribute->id),
-                                    'recursive' => -1,
-                                    'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp', 'first_seen', 'last_seen')
+                                'conditions' => array('ShadowAttribute.id' => $this->ShadowAttribute->id),
+                                'recursive' => -1,
+                                'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp', 'first_seen', 'last_seen')
                             )
                     );
                     $this->set('ShadowAttribute', $sa['ShadowAttribute']);
@@ -904,7 +906,24 @@ class ShadowAttributesController extends AppController
         }
         $params = array(
             'conditions' => $conditions,
-            'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen'),
+            'fields' => array(
+                'ShadowAttribute.id',
+                'ShadowAttribute.old_id',
+                'ShadowAttribute.event_id',
+                'ShadowAttribute.type',
+                'ShadowAttribute.category',
+                'ShadowAttribute.uuid',
+                'ShadowAttribute.to_ids',
+                'ShadowAttribute.value',
+                'ShadowAttribute.comment',
+                'ShadowAttribute.org_id',
+                'ShadowAttribute.timestamp',
+                'ShadowAttribute.first_seen',
+                'ShadowAttribute.last_seen',
+                'ShadowAttribute.deleted',
+                'ShadowAttribute.proposal_to_delete',
+                'ShadowAttribute.disable_correlation'
+            ),
             'contain' => array(
                     'Event' => array(
                             'fields' => array('id', 'org_id', 'info', 'orgc_id', 'uuid'),

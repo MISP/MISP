@@ -18,7 +18,7 @@
                     sprintf(
                         "window.location='%s/events/queryEnrichment/%s';",
                         $baseurl,
-                        implode('/', array(h($attribute_id), h($module['name']), h($type)))
+                        implode('/', array(h($id), h($module['name']), h($type), h($model)))
                     ),
                     h($module['description']),
                     __('Enrich using the %s module', h($module['name'])),

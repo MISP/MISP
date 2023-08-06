@@ -37,7 +37,8 @@ class GalaxyClustersController extends AppController
 
     public function index($galaxyId)
     {
-        $filters = $this->IndexFilter->harvestParameters(array('context', 'searchall'));
+        $galaxyId = $this->Toolbox->findIdByUuid($this->GalaxyCluster->Galaxy, $galaxyId);
+        $filters = $this->_harvestParameters(array('context', 'searchall'));
         $aclConditions = $this->GalaxyCluster->buildConditions($this->Auth->user());
         $contextConditions = array();
         if (empty($filters['context'])) {
@@ -47,7 +48,7 @@ class GalaxyClustersController extends AppController
         }
 
         if ($filters['context'] == 'default') {
-                $contextConditions['GalaxyCluster.default'] = true;
+            $contextConditions['GalaxyCluster.default'] = true;
         } elseif ($filters['context'] == 'custom') {
             $contextConditions['GalaxyCluster.default'] = false;
         } elseif ($filters['context'] == 'org') {
@@ -146,9 +147,8 @@ class GalaxyClustersController extends AppController
                 'GalaxyCluster.default' => 0,
             ]
         ]);
-        $this->loadModel('Attribute');
-        $distributionLevels = $this->Attribute->distributionLevels;
-        unset($distributionLevels[5]);
+        $this->loadModel('Event');
+        $distributionLevels = $this->Event->shortDist;
         $this->set('distributionLevels', $distributionLevels);
         $this->set('list', $clusters);
         $this->set('galaxy_id', $galaxyId);

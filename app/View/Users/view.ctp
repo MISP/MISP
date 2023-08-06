@@ -1,32 +1,70 @@
 <?php
-    $periodic_notification_settings_html = '<table>';
-    foreach ($periodic_notifications as $periodic_notification) {
-        $active_html = $this->element('genericElements/IndexTable/Fields/boolean', [
-            'row' => ['active' => !empty($user['User'][$periodic_notification])],
-            'field' => ['data_path' => 'active', 'colors' => true, ],
-        ]);
-        $periodic_notification_settings_html .= sprintf('<tr><td>%s</td><td>%s<td></tr>', Inflector::humanize($periodic_notification), $active_html);
-    }
-    $periodic_notification_settings_html .= '</table>';
-    $table_data = array();
-    $table_data[] = array('key' => __('ID'), 'value' => $user['User']['id']);
-    $table_data[] = array(
-        'key' => __('Email'),
-        'html' => h($user['User']['email']) . ($admin_view ? sprintf(
-            ' <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s"></a>',
-            $baseurl,
-            h($user['User']['id']),
-            __('Send email to user')
-        ) : ''),
+
+$notificationTypes = [
+    'autoalert' => __('Event published notification'),
+    'notification_daily' => __('Daily notifications'),
+    'notification_weekly' => __('Weekly notifications'),
+    'notification_monthly' => __('Monthly notifications'),
+];
+
+$notificationsHtml = '<table>';
+foreach ($notificationTypes as $notificationType => $description) {
+    $isEnabled = !empty($user['User'][$notificationType]);
+    $boolean = sprintf(
+        '<span class="%s">%s</span>',
+            $isEnabled ? 'label label-success label-padding' : 'label label-important label-padding',
+        $isEnabled ? __('Yes') : __('No'));
+    $notificationsHtml .= '<tr><td>' . $description . '</td><td>' . $boolean . '</td>';
+}
+$notificationsHtml .= '</table>';
+
+$isTotp = isset($user['User']['totp']) ? true : false;
+$boolean = sprintf(
+'<span class="%s">%s</span>',
+    $isTotp ? 'label label-success label-padding' : 'label label-important label-padding',
+$isTotp ? __('Yes') : __('No'));
+$totpHtml = $boolean;
+$totpHtml .= (!$isTotp && !$admin_view ? $this->Html->link(__('Generate'), array('action' => 'totp_new')) : '');
+$totpHtml .= ($isTotp && !$admin_view ? $this->Html->link(__('View paper tokens'), array('action' => 'hotp', $user['User']['id'])): '');
+
+if ($admin_view && $isSiteAdmin && $isTotp) {
+    $totpHtml .= sprintf(
+        '<a href="#" onClick="openGenericModal(\'%s/users/totp_delete/%s\')">%s</a>',
+        h($baseurl),
+        h($user['User']['id']),
+        __('Delete')
     );
-    $table_data[] = array(
-        'key' => __('Organisation'),
-        'html' => $this->OrgImg->getNameWithImg($user),
-    );
-    $table_data[] = array('key' => __('Role'), 'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])));
-    $table_data[] = array('key' => __('Event alert enabled'), 'boolean' => $user['User']['autoalert']);
-    $table_data[] = ['key' => __('Periodic Notifications'), 'html' => $periodic_notification_settings_html];
-    $table_data[] = array('key' => __('Contact alert enabled'), 'boolean' => $user['User']['contactalert']);
+}
+    $table_data = [
+        array('key' => __('ID'), 'value' => $user['User']['id']),
+        array(
+            'key' => __('Email'),
+            'html' => h($user['User']['email']) . ($admin_view ? sprintf(
+                    ' <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s"></a>',
+                    $baseurl,
+                    h($user['User']['id']),
+                    __('Send email to user')
+                ) : ''),
+        ),
+        array(
+            'key' => __('Organisation'),
+            'html' => $this->OrgImg->getNameWithImg($user),
+        ),
+        array(
+            'key' => __('Role'),
+            'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])),
+        ),
+        // array('key' => __('TOTP'), 'boolean' => isset($user['User']['totp']) ? true : false),
+        array(
+            'key' => __('TOTP'),
+            'html' => $totpHtml
+        ),
+        array(
+            'key' => __('Email notifications'),
+            'html' => $notificationsHtml,
+        ),
+        array('key' => __('Contact alert enabled'), 'boolean' => $user['User']['contactalert'])
+    ];
 
     if (!$admin_view && !$user['Role']['perm_auth']) {
         $table_data[] = array(
@@ -86,12 +124,12 @@
         $table_data[] = array('key' => __('Terms accepted'), 'boolean' => $user['User']['termsaccepted']);
         $table_data[] = array('key' => __('Must change password'), 'boolean' => $user['User']['change_pw']);
     }
-    $table_data[] = array(
-        'key' => __('PGP key'),
-        'element' => 'genericElements/key',
-        'element_params' => array('key' => $user['User']['gpgkey']),
-    );
     if (!empty($user['User']['gpgkey'])) {
+        $table_data[] = array(
+            'key' => __('PGP key'),
+            'element' => 'genericElements/key',
+            'element_params' => array('key' => $user['User']['gpgkey']),
+        );
         $table_data[] = array(
             'key' => __('PGP key fingerprint'),
             'value_class' => 'quickSelect',
@@ -101,6 +139,11 @@
             'key' => __('PGP key status'),
             'value_class' => (empty($user['User']['pgp_status']) || $user['User']['pgp_status'] !== 'OK') ? 'red': '',
             'value' => !empty($user['User']['pgp_status']) ? $user['User']['pgp_status'] : 'N/A'
+        );
+    } else {
+        $table_data[] = array(
+            'key' => __('PGP key'),
+            'boolean' => false,
         );
     }
     if (Configure::read('SMIME.enabled')) {
@@ -130,7 +173,7 @@
         'js' => array('vis', 'jquery-ui.min', 'network-distribution-graph')
     ));
     echo sprintf(
-        '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s<div style="margin-top:20px;">%s%s</div></div>',
+        '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s%s<div style="margin-top:20px;">%s%s</div></div>',
         sprintf(
             '<h2>%s</h2>%s',
             __('User %s', h($user['User']['email'])),
@@ -144,6 +187,14 @@
                 h($user['User']['id'])
             ),
             __('Download user profile for data portability')
+        ),
+        sprintf(
+            '&nbsp;<a href="%s" class="btn btn-inverse">%s</a>',
+            sprintf(
+                '%s/logs/index',
+                $baseurl
+            ),
+            __('Review user logs')
         ),
         $me['Role']['perm_auth'] ? $this->element('/genericElements/accordion', array('title' => __('Auth keys'), 'url' => '/auth_keys/index/' . h($user['User']['id']))) : '',
         $this->element('/genericElements/accordion', array('title' => 'Events', 'url' => '/events/index/searchemail:' . urlencode(h($user['User']['email']))))

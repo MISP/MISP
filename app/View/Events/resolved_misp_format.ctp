@@ -1,27 +1,25 @@
-<div class="index" style="margin-bottom: 2em">
+<div class="index">
     <h2><?php echo h($title); ?></h2>
     <?php
         $event_id = $event['Event']['id'];
         $url = $baseurl . '/events/handleModuleResults/' . $event_id;
-        echo $this->Form->create('Event', array('url' => $url, 'class' => 'mainForm'));
-        $formSettings = array(
+        echo $this->Form->create('Event', array('url' => $url, 'class' => 'mainForm hidden'));
+        echo $this->Form->input('data', array(
             'type' => 'hidden',
-            'value' => json_encode($event, true)
-        );
-        echo $this->Form->input('data', $formSettings);
+            'value' => JsonTool::encode($event)
+        ));
         echo $this->Form->input('JsonObject', array(
-                'label' => false,
-                'type' => 'text',
-                'style' => 'display:none;',
-                'value' => ''
+            'label' => false,
+            'type' => 'text',
+            'value' => ''
         ));
         echo $this->Form->input('default_comment', array(
-                'label' => false,
-                'type' => 'text',
-                'style' => 'display:none;',
-                'value' => $importComment
+            'label' => false,
+            'type' => 'text',
+            'value' => $importComment
         ));
         echo $this->Form->end();
+
         $objects_array = array();
         foreach (array('Attribute', 'Object') as $field) {
             if (!empty($event[$field])) {
@@ -101,7 +99,7 @@
         <?php foreach($event['EventReport'] as $report): ?>
           <tr class="MISPEventReport">
               <td class="short" style="width:40px;text-align:center;">
-                <input type="checkbox" class="ImportMISPEventReport" checked />
+                <input type="checkbox" class="ImportMISPEventReport" checked>
               </td>
             <td class="EventReportName"><?= h($report['name']); ?></td>
             <td class="EventReportUUID hidden"><?= h($report['uuid']); ?></td>
@@ -109,7 +107,7 @@
               <?= h($report['content']); ?>
             </td>
             <td class="short" style="width:40px;text-align:center;">
-              <select class='EventReportDistribution' style='padding:0px;height:20px;margin-bottom:0px;'>
+              <select class="EventReportDistribution" style="padding:0;height:20px;margin-bottom:0;">
               <?php
                   foreach ($distributions as $distKey => $distValue) {
                       echo '<option value="' . h($distKey) . '" ' . ($distKey == $report['distribution'] ? 'selected="selected"' : '') . '>' . h($distValue) . '</option>';
@@ -117,7 +115,7 @@
               ?>
               </select>
               <div style="display:none;">
-                <select class='EventReportSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+                <select class="EventReportSharingGroup" style="padding:0;height:20px;margin-top:3px;margin-bottom:0;">
                   <?php
                   foreach ($sgs as $sgKey => $sgValue) {
                       echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $report['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
@@ -156,41 +154,41 @@
         <tbody class="MISPObject">
           <tr class="tableHighlightBorderTop borderBlue blueRow" tabindex="0">
             <td class="short" style="width:40px;text-align:center;">
-                <input type="checkbox" class="ImportMISPObject" checked />
+                <input type="checkbox" class="ImportMISPObject" checked>
             </td>
             <td colspan="6">
               <?php if(!empty($object['id'])) { ?>
-              <span class="bold"><?php echo __('ID: ');?></span><span class="ObjectID"><?php echo h($object['id']); ?></span><br />
+              <span class="bold"><?php echo __('ID: ');?></span><span class="ObjectID"><?php echo h($object['id']); ?></span><br>
               <?php } ?>
               <span class="bold"><?php echo __('Name: ');?></span><span class="ObjectName"><?php echo h($object['name']); ?></span>
-              <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $o; ?>_collapsible"></span><br />
+              <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $o; ?>_collapsible"></span><br>
               <div id="Object_<?php echo $o; ?>_collapsible" class="collapse">
                 <?php
                     if (!empty($object['description'])) {
-                        echo '<span class="bold">Description: </span><span class="ObjectDescription">' . h($object['description']) . '</span><br/>';
+                        echo '<span class="bold">Description: </span><span class="ObjectDescription">' . h($object['description']) . '</span><br>';
                     }
                     if (!empty($object['template_uuid'])) {
-                        echo '<span class="bold">Template UUID: </span><span class="TemplateUUID">' . h($object['template_uuid']) . '</span><br/>';
+                        echo '<span class="bold">Template UUID: </span><span class="TemplateUUID">' . h($object['template_uuid']) . '</span><br>';
                     }
                     if (!empty($object['template_version'])) {
-                        echo '<span class="bold">Template version: </span><span class="TemplateVersion">' . h($object['template_version']) . '</span><br/>';
+                        echo '<span class="bold">Template version: </span><span class="TemplateVersion">' . h($object['template_version']) . '</span><br>';
                     }
                 ?>
-                <span class="bold"><?php echo __('UUID: ');?></span><span class="ObjectUUID"><?php echo h($object['uuid']); ?></span><br />
-                <span class="bold"><?php echo __('Meta Category: ');?></span><span class="ObjectMetaCategory"><?php echo h($object['meta-category']); ?></span><br />
+                <span class="bold"><?php echo __('UUID: ');?></span><span class="ObjectUUID"><?php echo h($object['uuid']); ?></span><br>
+                <span class="bold"><?php echo __('Meta Category: ');?></span><span class="ObjectMetaCategory"><?php echo h($object['meta-category']); ?></span><br>
                 <?php
                     if (!empty($object['first_seen'])) {
-                        echo '<span class="bold">First seen: </span><span class="ObjectFirstSeen">' . h($object['first_seen']) . '</span><br/>';
+                        echo '<span class="bold">First seen: </span><span class="ObjectFirstSeen">' . h($object['first_seen']) . '</span><br>';
                     }
                     if (!empty($object['last_seen'])) {
-                        echo '<span class="bold">Last seen: </span><span class="ObjectLastSeen">' . h($object['last_seen']) . '</span><br/>';
+                        echo '<span class="bold">Last seen: </span><span class="ObjectLastSeen">' . h($object['last_seen']) . '</span><br>';
                     }
                 ?>
               </div>
               <span class="bold"><?php echo __('References: ')?></span>
               <?php
                 if (!empty($object['ObjectReference'])) {
-                    echo sizeof($object['ObjectReference']);
+                    echo count($object['ObjectReference']);
               ?>
               <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $o; ?>_references_collapsible"></span>
               <div id="Object_<?php echo $o; ?>_references_collapsible" class="collapse">
@@ -222,7 +220,7 @@
                                 $objectType = '';
                             }
                         }
-                        echo $objectType . ' <span class="ReferencedUUID">' . $referenced_uuid . '</span> (' . $name . ': ' . $category . ')</span><br />';
+                        echo $objectType . ' <span class="ReferencedUUID">' . $referenced_uuid . '</span> (' . $name . ': ' . $category . ')</span><br>';
                         unset($name);
                     }
                     echo '</div>';
@@ -231,22 +229,22 @@
                 }
               ?>
             </td>
-            <td class="short">
-              <input type="text" class="ObjectComment" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (!empty($object['comment'])) echo 'value="' . h($object['comment']) . '"';?>/>
+            <td class="bitwider">
+              <textarea class="ObjectComment inline-input" cols="30" rows="6" placeholder="<?php echo h($importComment); ?>" oninput="autoresize(this)"><?php if (!empty($object['comment'])) echo h($object['comment']);?></textarea>
             </td>
             <td style="width:60px;text-align:center;">
-              <select class="ObjectDistribution" style="padding:0px;height:20px;margin-bottom:0px;">
+              <select class="ObjectDistribution" style="padding:0;height:20px;margin-bottom:0;">
                 <?php
                 foreach ($distributions as $distKey => $distValue) {
-                    echo '<option value="' . h($distKey) . '" ' . ($distKey == $object['distribution'] ? 'selected="selected"' : '') . '>' . h($distValue) . '</option>';
+                    echo '<option value="' . h($distKey) . '"' . ($distKey == $object['distribution'] ? ' selected' : '') . '>' . h($distValue) . '</option>';
                 }
                 ?>
               </select>
               <div style="display:none;">
-                <select class='ObjectSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+                <select class="ObjectSharingGroup" style="padding:0;height:20px;margin-top:3px;margin-bottom:0;">
                   <?php
                     foreach ($sgs as $sgKey => $sgValue) {
-                        echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $object['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
+                        echo '<option value="' . h($sgKey) . '"' . ($sgKey == $object['sharing_group_id'] ? ' selected' : '') . '>' . h($sgValue) . '</option>';
                     }
                   ?>
                 </select>
@@ -256,24 +254,24 @@
           <?php
                 if (!empty($object['Attribute'])) {
                     $last_attribute = end($object['Attribute']);
-                    foreach ($object['Attribute'] as $a => $attribute) {
+                    foreach ($object['Attribute'] as $attribute) {
                         $border_position = ($attribute == $last_attribute ? 'Bottom' : 'Center');
           ?>
           <tr class="ObjectAttribute tableHighlightBorder<?php echo $border_position; ?> borderBlue">
-            <td class="short" style="width:40px;text-align:center;"><input type="checkbox" class="ImportMISPObjectAttribute" checked /></td>
+            <td class="short" style="width:40px;text-align:center;"><input type="checkbox" class="ImportMISPObjectAttribute" checked></td>
             <td class="ObjectCategory"><?php echo (isset($attribute['category']) ? h($attribute['category']) : ''); ?></td>
             <td class="short">
               <span class="ObjectRelation bold"><?php echo h($attribute['object_relation']); ?></span>
               <span class="AttributeType"><?php echo h($attribute['type']); ?></span>
             </td>
-            <td class="AttributeValue limitedWidth"><?= $this->element('Events/View/value_field', ['object' => $attribute]); ?></td>
+            <td class="AttributeValue limitedWidth" data-value="<?= h($attribute['value']) ?>"><?= $this->element('Events/View/value_field', ['object' => $attribute]); ?></td>
             <?php
-                if (in_array($attribute['type'], $typesWithData)) {
+                if (in_array($attribute['type'], $typesWithData, true)) {
                     if (!empty($attribute['data'])) {
-                        echo "<input class='AttributeData' type='hidden' value='" . h($attribute['data']) . "'/>";
+                        echo "<input class='AttributeData' type='hidden' value='" . h($attribute['data']) . "'>";
                     }
                     if (!empty($attribute['encrypt'])) {
-                        echo "<input class='AttributeEncrypt' type='hidden' value='" . h($attribute['encrypt']) . "'/>";
+                        echo "<input class='AttributeEncrypt' type='hidden' value='" . h($attribute['encrypt']) . "'>";
                     }
                 }
             ?>
@@ -299,34 +297,34 @@
               <?php } ?>
             </td>
             <td class="short" style="width:40px;text-align:center;">
-              <input type="checkbox" class="AttributeToIds" <?php if (!empty($attribute['to_ids'])) echo 'checked'; ?>/>
+              <input type="checkbox" class="AttributeToIds"<?php if (!empty($attribute['to_ids'])) echo ' checked'; ?>>
             </td>
             <td class="short" style="width:40px;text-align:center;">
-              <input type="checkbox" class="AttributeDisableCorrelation" <?php if (!empty($attribute['disable_correlation'])) echo 'checked'; ?>/>
+              <input type="checkbox" class="AttributeDisableCorrelation"<?php if (!empty($attribute['disable_correlation'])) echo ' checked'; ?>>
             </td>
-            <td class="short">
-              <input type="text" class="AttributeComment" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (!empty($attribute['comment'])) echo 'value="' . h($attribute['comment']) . '"';?>/>
+            <td class="bitwider">
+              <textarea class="AttributeComment inline-input" rows="1" oninput="autoresize(this)"><?php if (!empty($attribute['comment'])) echo h($attribute['comment']);?></textarea>
             </td>
             <td class="short" style="width:40px;text-align:center;">
-              <select class='AttributeDistribution' style='padding:0px;height:20px;margin-bottom:0px;'>
+              <select class="AttributeDistribution" style="padding:0;height:20px;margin-bottom:0;">
                 <?php
-                        foreach ($distributions as $distKey => $distValue) {
-                            echo '<option value="' . h($distKey) . '" ' . ($distKey == $attribute['distribution'] ? 'selected="selected"' : '') . '>' . h($distValue) . '</option>';
-                        }
+                    foreach ($distributions as $distKey => $distValue) {
+                        echo '<option value="' . h($distKey) . '"' . ($distKey == $attribute['distribution'] ? ' selected' : '') . '>' . h($distValue) . '</option>';
+                    }
                 ?>
               </select>
               <div style="display:none;">
-                <select class='AttributeSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+                <select class="AttributeSharingGroup" style="padding:0;height:20px;margin-top:3px;margin-bottom:0;">
                   <?php
-                        foreach ($sgs as $sgKey => $sgValue) {
-                            echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $attribute['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
-                        }
+                    foreach ($sgs as $sgKey => $sgValue) {
+                        echo '<option value="' . h($sgKey) . '"' . ($sgKey == $attribute['sharing_group_id'] ? ' selected' : '') . '>' . h($sgValue) . '</option>';
+                    }
                   ?>
                 </select>
               </div>
             </td>
+          </tr>
             <?php
-                        echo '</tr>';
                     }
                 }
                 echo '<tr><td colspan="9"></td></tr>';
@@ -354,17 +352,17 @@
             </tr>
           <?php
             }
-            foreach ($event['Attribute'] as $a => $attribute) {
+            foreach ($event['Attribute'] as $attribute) {
           ?>
                 <tr class="MISPAttribute">
-                <td class="short" style="width:40px;text-align:center;"><input type="checkbox" class="ImportMISPAttribute" checked /></td>
+                <td class="short" style="width:40px;text-align:center;"><input type="checkbox" class="ImportMISPAttribute" checked></td>
           <?php
                 foreach (array('category', 'type') as $field) {
                     $field_header = 'class="Attribute' . ucfirst($field);
                     if (isset($attribute[$field])) {
                         if (is_array($attribute[$field])) {
                             echo '<td class="short" style="width:40px;text-align:center;"><select ' . $field_header . 'Select"  style="padding:0px;height:20px;margin-bottom:0px;">';
-                            foreach ($attribute[$field] as $v => $value) {
+                            foreach ($attribute[$field] as $value) {
                                 echo '<option value="' . h($value) . '">' . h($value) . '</option>';
                             }
                             echo '</select></td>';
@@ -376,14 +374,14 @@
                     }
                 }
           ?>
-          <td class="AttributeValue limitedWidth"><?= $this->element('Events/View/value_field', ['object' => $attribute]); ?></td>
+          <td class="AttributeValue limitedWidth" data-value="<?= h($attribute['value']) ?>"><?= $this->element('Events/View/value_field', ['object' => $attribute]); ?></td>
           <?php
-                if (in_array($attribute['type'], $typesWithData)) {
+                if (in_array($attribute['type'], $typesWithData, true)) {
                     if (!empty($attribute['data'])) {
-                        echo "<input class='AttributeData' type='hidden' value='" . h($attribute['data']) . "'/>";
+                        echo "<input class='AttributeData' type='hidden' value='" . h($attribute['data']) . "'>";
                     }
                     if (!empty($attribute['encrypt'])) {
-                        echo "<input class='AttributeEncrypt' type='hidden' value='" . h($attribute['encrypt']) . "'/>";
+                        echo "<input class='AttributeEncrypt' type='hidden' value='" . h($attribute['encrypt']) . "'>";
                     }
                 }
           ?>
@@ -409,44 +407,44 @@
             <?php } ?>
           </td>
           <td class="short" style="width:40px;text-align:center;">
-            <input type="checkbox" class="AttributeToIds" <?php if (isset($attribute['to_ids']) && $attribute['to_ids']) echo 'checked'; ?>/>
+            <input type="checkbox" class="AttributeToIds"<?php if (isset($attribute['to_ids']) && $attribute['to_ids']) echo ' checked'; ?>>
           </td>
           <td class="short" style="width:40px;text-align:center;">
-            <input type="checkbox" class="AttributeDisableCorrelation" <?php if (isset($attribute['disable_correlation']) && $attribute['disable_correlation']) echo 'checked'; ?>/>
+            <input type="checkbox" class="AttributeDisableCorrelation"<?php if (isset($attribute['disable_correlation']) && $attribute['disable_correlation']) echo ' checked'; ?>>
           </td>
-          <td class="short">
-            <input type="text" class="AttributeComment" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (!empty($attribute['comment'])) echo 'value="' . h($attribute['comment']) . '"';?>/>
+          <td class="bitwider">
+            <textarea class="AttributeComment inline-input" rows="1" oninput="autoresize(this)" placeholder="<?php echo h($importComment); ?>"><?php if (!empty($attribute['comment'])) echo h($attribute['comment']);?></textarea>
           </td>
           <td class="short" style="width:40px;text-align:center;">
-            <select class='AttributeDistribution' style='padding:0px;height:20px;margin-bottom:0px;'>
+            <select class="AttributeDistribution" style="padding:0;height:20px;margin-bottom:0;">
             <?php
                 foreach ($distributions as $distKey => $distValue) {
-                    echo '<option value="' . h($distKey) . '" ' . ($distKey == $attribute['distribution'] ? 'selected="selected"' : '') . '>' . h($distValue) . '</option>';
+                    echo '<option value="' . h($distKey) . '"' . ($distKey == $attribute['distribution'] ? ' selected' : '') . '>' . h($distValue) . '</option>';
                 }
             ?>
             </select>
             <div style="display:none;">
-              <select class='AttributeSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+              <select class="AttributeSharingGroup" style="padding:0;height:20px;margin-top:3px;margin-bottom:0;">
                 <?php
                 foreach ($sgs as $sgKey => $sgValue) {
-                    echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $attribute['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
+                    echo '<option value="' . h($sgKey) . '"' . ($sgKey == $attribute['sharing_group_id'] ? ' selected' : '') . '>' . h($sgValue) . '</option>';
                 }
                 ?>
               </select>
             </div>
           </td>
+        </tr>
         <?php
-                echo '</tr>';
             }
         }
         ?>
       </tbody>
     </table>
 
-    <button class="btn btn-primary" style="float:left;" onClick="moduleResultsSubmit('<?php echo h($event_id); ?>');"><?php echo __('Submit'); ?></button>
+    <button class="btn btn-primary" style="float:left;" onclick="moduleResultsSubmit('<?php echo h($event_id); ?>');"><?php echo __('Submit'); ?></button>
     <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse"><?php echo __('Cancel');?></a>
 </div>
-<script type="text/javascript">
+<script>
     $(function() {
       $('.AttributeDistribution, .ObjectDistribution, .EventReportDistribution').change(function() {
           if ($(this).val() == 4) {

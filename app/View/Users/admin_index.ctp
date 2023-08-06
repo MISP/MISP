@@ -63,17 +63,22 @@
                         array(
                             'url' => $baseurl . '/admin/users/index',
                             'text' => __('All'),
-                            'active' => !isset($passedArgsArray['disabled']),
+                            'active' => !isset($passedArgsArray['disabled']) && !isset($passedArgsArray['inactive']),
                         ),
                         array(
                             'url' => $baseurl . '/admin/users/index/searchdisabled:0',
-                            'text' => __('Active'),
+                            'text' => __('Enabled'),
                             'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "0",
                         ),
                         array(
                             'url' => $baseurl . '/admin/users/index/searchdisabled:1',
                             'text' => __('Disabled'),
                             'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "1",
+                        ),
+                        array(
+                            'url' => $baseurl . '/admin/users/index/searchinactive:1',
+                            'text' => __('Inactive'),
+                            'active' => isset($passedArgsArray['inactive']) && $passedArgsArray['inactive'] === "1",
                         )
                     )
                 ),
@@ -139,15 +144,19 @@
                         'requirement' => empty(Configure::read('Security.advanced_authkeys'))
                     ),
                     array(
-                        'name' => __('Event alert'),
+                        'name' => '',
+                        'header_title' => __('TOTP'),
+                        'icon' => 'mobile',
                         'element' => 'boolean',
-                        'sort' => 'User.autoalert',
+                        'sort' => 'User.totp',
                         'class' => 'short',
-                        'data_path' => 'User.autoalert',
+                        'data_path' => 'User.totp',
                         'colors' => true,
                     ),
                     array(
-                        'name' => __('Contact alert'),
+                        'name' => '',
+                        'header_title' => __('Contact alert'),
+                        'icon' => 'handshake',
                         'element' => 'boolean',
                         'sort' => 'User.contactalert',
                         'class' => 'short',
@@ -155,21 +164,28 @@
                         'colors' => true,
                     ),
                     array(
-                        'name' => __('Periodic notif.'),
+                        'name' => '',
+                        'header_title' => __('Notification'),
+                        'icon' => 'clock',
                         'element' => 'custom',
                         'class' => 'short',
                         'function' => function (array $user) use ($periodic_notifications) {
-                            $period_subscriptions = [];
+                            $subscriptions = [];
+                            if ($user['User']['autoalert']) {
+                                $subscriptions[] = 'e';
+                            }
                             foreach ($periodic_notifications as $period) {
                                 if (!empty($user['User'][$period])) {
-                                    $period_subscriptions[] = substr($period, 13, 1);
+                                    $subscriptions[] = substr($period, 13, 1);
                                 }
                             }
-                            return implode('/', $period_subscriptions);
+                            return implode('/', $subscriptions);
                         }
                     ),
                     array(
-                        'name' => __('PGP Key'),
+                        'name' => '',
+                        'header_title' => __('PGP public key'),
+                        'icon' => 'key',
                         'element' => 'boolean',
                         'sort' => 'User.gpgkey',
                         'class' => 'short',
@@ -177,7 +193,9 @@
                         'colors' => true,
                     ),
                     array(
-                        'name' => __('S/MIME'),
+                        'name' => '',
+                        'header_title' => __('S/MIME public key'),
+                        'icon' => 'lock',
                         'element' => 'boolean',
                         'sort' => 'User.certif_public',
                         'class' => 'short',
@@ -191,7 +209,9 @@
                         'data_path' => 'User.nids_sid'
                     ),
                     array(
-                        'name' => __('Terms Accepted'),
+                        'name' => '',
+                        'header_title' => __('Terms accepted'),
+                        'icon' => 'gavel',
                         'element' => 'boolean',
                         'sort' => 'User.termsaccepted',
                         'class' => 'short',
@@ -219,7 +239,6 @@
                         'element' => 'datetime',
                         'class' => 'short',
                         'data_path' => 'User.last_api_access',
-                        'requirement' => !empty(Configure::read('MISP.store_api_access_time')) && Configure::read('MISP.store_api_access_time', false)
                     ),
                     array(
                         'name' => (Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : __('External Auth')),
@@ -230,19 +249,23 @@
                         'requirement' => Configure::read('Plugin.CustomAuth_enable') && empty(Configure::read('Plugin.CustomAuth_required'))
                     ),
                     array(
-                        'name' => __('Monitored'),
+                        'name' => '',
+                        'header_title' => __('Monitored'),
+                        'icon' => 'desktop',
                         'element' => 'toggle',
                         'url' => $baseurl . '/admin/users/monitor',
                         'url_params_data_paths' => array(
                             'User.id'
                         ),
-                        'sort' => 'User.disabled',
+                        'sort' => 'User.monitored',
                         'class' => 'short',
                         'data_path' => 'User.monitored',
                         'requirement' => $isSiteAdmin && Configure::read('Security.user_monitoring_enabled')
                     ),
                     array(
-                        'name' => __('Disabled'),
+                        'name' => '',
+                        'header_title' => __('User disabled'),
+                        'icon' => 'times',
                         'element' => 'boolean',
                         'sort' => 'User.disabled',
                         'class' => 'short',
@@ -280,16 +303,24 @@
                     'icon' => 'edit',
                     'title' => __('Edit')
                 ),
-                array(
-                    'url' => $baseurl . '/admin/users/delete',
-                    'url_params_data_paths' => array(
-                        'User.id'
+                [
+                    'onclick' => sprintf(
+                        'openGenericModal(\'%s/admin/users/destroy/[onclick_params_data_path]\');',
+                        $baseurl
                     ),
-                    'postLink' => 1,
-                    'postLinkConfirm' => __('Are you sure you want to delete the user? It is highly recommended to never delete users but to disable them instead.'),
+                    'onclick_params_data_path' => 'User.id',
+                    'icon' => 'bomb',
+                    'title' => __('Destroy sessions')
+                ],
+                [
+                    'onclick' => sprintf(
+                        'openGenericModal(\'%s/admin/users/delete/[onclick_params_data_path]\');',
+                        $baseurl
+                    ),
+                    'onclick_params_data_path' => 'User.id',
                     'icon' => 'trash',
                     'title' => __('Delete')
-                ),
+                ],
                 array(
                     'url' => $baseurl . '/admin/users/view',
                     'url_params_data_paths' => array(

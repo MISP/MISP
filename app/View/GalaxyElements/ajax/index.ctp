@@ -39,7 +39,7 @@ $indexOptions = array(
                             'text' => __('Add JSON as cluster\'s elements'),
                             'title' => __('The provided JSON will be converted into Galaxy Cluster Elements'),
                             'fa-icon' => 'plus',
-                            'requirement' => $canModify && ($context === 'JSONView'),
+                            'requirement' => $canModify && $context === 'JSONView',
                         ),
                     )
                 ),
@@ -74,7 +74,7 @@ $indexOptions = array(
     )
 );
 
-if ($context == 'JSONView') {
+if ($context === 'JSONView') {
     $indexOptions['data']['fields'] = [];
     $indexOptions['data']['data'] = [];
     $indexOptions['data']['skip_pagination'] = true;
@@ -82,7 +82,7 @@ if ($context == 'JSONView') {
 }
 
 echo $this->element('/genericElements/IndexTable/index_table', $indexOptions);
-if ($context == 'JSONView') {
+if ($context === 'JSONView') {
     echo sprintf('<div id="elementJSONDiv" class="well well-small">%s</div>', json_encode(h($JSONElements)));
 }
 ?>

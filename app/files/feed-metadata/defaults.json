@@ -829,26 +829,6 @@
   },
   {
     "Feed": {
-      "name": "abuse.ch Dyre SSL IPBL",
-      "provider": "abuse.ch",
-      "url": "https://sslbl.abuse.ch/blacklist/dyre_sslipblacklist.csv",
-      "rules": "",
-      "enabled": true,
-      "distribution": "3",
-      "default": false,
-      "source_format": "csv",
-      "fixed_event": true,
-      "delta_merge": false,
-      "publish": false,
-      "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"1\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
-      "input_source": "network",
-      "delete_local_file": false,
-      "lookup_visible": true
-    }
-  },
-  {
-    "Feed": {
       "name": "http://cybercrime-tracker.net hashlist",
       "provider": "http://cybercrime-tracker.net hashlist",
       "url": "https://cybercrime-tracker.net/ccamlist.php",
@@ -1168,26 +1148,6 @@
       "publish": false,
       "override_ids": false,
       "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
-      "input_source": "network",
-      "delete_local_file": false,
-      "lookup_visible": true
-    }
-  },
-  {
-    "Feed": {
-      "name": "Benkow.cc RAT",
-      "provider": "benkow.cc",
-      "url": "https://benkow.cc/export_rat.php",
-      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
-      "enabled": false,
-      "distribution": "0",
-      "default": false,
-      "source_format": "csv",
-      "fixed_event": true,
-      "delta_merge": false,
-      "publish": false,
-      "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"3,4\",\"delimiter\":\";\"},\"common\":{\"excluderegex\":\"\"}}",
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": true
@@ -1696,6 +1656,32 @@
         "lookup_visible": true,
         "caching_enabled": true,
         "force_to_ids": false
+    },
+    "Tag": {
+        "name": "osint:source-type=\"block-or-filter-list\"",
+        "colour": "#004f89",
+        "exportable": true,
+        "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+        "name": "James Brine Bruteforce IPs",
+        "provider": "jamesbrine.com.au",
+        "url": "https://jamesbrine.com.au/csv",
+        "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+        "enabled": true,
+        "distribution": "3",
+        "default": false,
+        "source_format": "csv",
+        "fixed_event": true,
+        "delta_merge": false,
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"1\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": false
     },
     "Tag": {
         "name": "osint:source-type=\"block-or-filter-list\"",

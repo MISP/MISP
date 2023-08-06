@@ -1,7 +1,6 @@
 <?php
     if (!empty($me)) {
         // New approach how to define menu requirements. It takes ACLs from ACLComponent.
-        // TODO: Use for every menu item
         $menu = array(
             array(
                 'type' => 'root',
@@ -253,15 +252,18 @@
                         'url' => $baseurl . '/users/statistics'
                     ),
                     array(
-                        'type' => 'separator'
+                        'type' => 'separator',
+                        'requirement' => $this->Acl->canAccess('threads', 'index'),
                     ),
                     array(
                         'text' => __('List Discussions'),
-                        'url' => $baseurl . '/threads/index'
+                        'url' => $baseurl . '/threads/index',
+                        'requirement' => $this->Acl->canAccess('threads', 'index'),
                     ),
                     array(
                         'text' => __('Start Discussion'),
-                        'url' => $baseurl . '/posts/add'
+                        'url' => $baseurl . '/posts/add',
+                        'requirement' => $this->Acl->canAccess('posts', 'add'),
                     )
                 )
             ),
@@ -281,12 +283,12 @@
                         'requirement' => $this->Acl->canAccess('servers', 'import'),
                     ),
                     array(
-                        'text' => __('List Servers'),
+                        'text' => __('Remote Servers'),
                         'url' => $baseurl . '/servers/index',
                         'requirement' => $this->Acl->canAccess('servers', 'index'),
                     ),
                     array(
-                        'text' => __('List Feeds'),
+                        'text' => __('Feeds'),
                         'url' => $baseurl . '/feeds/index',
                         'requirement' => $this->Acl->canAccess('feeds', 'index'),
                     ),
@@ -296,17 +298,12 @@
                         'requirement' => $this->Acl->canAccess('feeds', 'searchCaches'),
                     ),
                     array(
-                        'text' => __('List SightingDB Connections'),
+                        'text' => __('SightingDB'),
                         'url' => $baseurl . '/sightingdb/index',
                         'requirement' => $this->Acl->canAccess('sightingdb', 'index'),
                     ),
                     array(
-                        'text' => __('Add SightingDB Connection'),
-                        'url' => $baseurl . '/sightingdb/add',
-                        'requirement' => $this->Acl->canAccess('sightingdb', 'add'),
-                    ),
-                    array(
-                        'text' => __('List Communities'),
+                        'text' => __('Communities'),
                         'url' => $baseurl . '/communities/index',
                         'requirement' => $this->Acl->canAccess('communities', 'index'),
                     ),
@@ -314,6 +311,11 @@
                         'text' => __('Cerebrates'),
                         'url' => $baseurl . '/cerebrates/index',
                         'requirement' => $this->Acl->canAccess('cerebrates', 'index'),
+                    ),
+                    array(
+                        'text' => __('List Taxii Servers'),
+                        'url' => $baseurl . '/TaxiiServers/index',
+                        'requirement' => $this->Acl->canAccess('taxiiServers', 'index'),
                     ),
                     array(
                         'text' => __('Event ID translator'),
@@ -393,15 +395,11 @@
                     ),
                     array(
                         'type' => 'separator',
-                        'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
+                        'requirement' => $isSiteAdmin
                     ),
                     array(
                         'text' => __('Jobs'),
                         'url' => $baseurl . '/jobs/index',
-                        'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
-                    ),
-                    array(
-                        'type' => 'separator',
                         'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
                     ),
                     array(
@@ -410,48 +408,29 @@
                         'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
                     ),
                     array(
-                        'text' => __('Event Block Rules'),
-                        'url' => $baseurl . '/servers/eventBlockRule',
-                        'requirement' => $isSiteAdmin
-                    ),
-                    array(
-                        'type' => 'separator',
-                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
-                    ),
-                    array(
                         'html' => sprintf(
-                            '<span style="display: flex;"><span>%s</span><span class="label label-info" style="margin-left: auto;">%s</span></span>',
-                            __('Workflows'),
-                            __('new')
+                            '<span style="display: flex;"><span>%s</span></span>',
+                            __('Workflows')
                         ),
                         'url' => $baseurl . '/workflows/triggers',
                         'requirement' => $isSiteAdmin
                     ),
                     array(
                         'type' => 'separator',
-                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
+                        'requirement' => $isSiteAdmin
                     ),
                     array(
-                        'text' => __('Blocklist Event'),
-                        'url' => $baseurl . '/eventBlocklists/add',
-                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
+                        'text' => __('Event Block Rules'),
+                        'url' => $baseurl . '/servers/eventBlockRule',
+                        'requirement' => $isSiteAdmin
                     ),
                     array(
-                        'text' => __('Manage Event Blocklists'),
+                        'text' => __('Event Blocklists'),
                         'url' => $baseurl . '/eventBlocklists',
                         'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
                     ),
                     array(
-                        'type' => 'separator',
-                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
-                    ),
-                    array(
-                        'text' => __('Blocklist Organisation'),
-                        'url' => $baseurl . '/orgBlocklists/add',
-                        'requirement' => Configure::read('MISP.enableOrgBlocklisting') !== false && $isSiteAdmin
-                    ),
-                    array(
-                        'text' => __('Manage Org Blocklists'),
+                        'text' => __('Org Blocklists'),
                         'url' => $baseurl . '/orgBlocklists',
                         'requirement' => Configure::read('MISP.enableOrgBlocklisting') !== false && $isSiteAdmin
                     ),
@@ -466,9 +445,8 @@
                     ],
                     [
                         'html' => sprintf(
-                            '<span style="display: flex;"><span>%s</span><span class="label label-info" style="margin-left: auto;">%s</span></span>',
-                            __('Over-correlating values'),
-                            __('new')
+                            '<span style="display: flex;"><span>%s</span></span>',
+                            __('Over-correlating values')
                         ),
                         'url' => $baseurl . '/correlations/overCorrelations',
                         'requirement' => $isSiteAdmin
@@ -481,20 +459,26 @@
                 'requirement' => $isAclAudit,
                 'children' => array(
                     array(
-                        'text' => __('List Logs'),
-                        'url' => $baseurl . '/admin/logs/index'
+                        'text' => __('Application Logs'),
+                        'url' => $baseurl . '/logs/index'
                     ),
                     array(
-                        'text' => __('List Audit Logs'),
+                        'text' => __('Audit Logs'),
                         'url' => $baseurl . '/admin/audit_logs/index',
-                        'requirement' => Configure::read('MISP.log_new_audit'),
+                        'requirement' => Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index'),
+                    ),
+                    array(
+                        'text' => __('Access Logs'),
+                        'url' => $baseurl . '/admin/access_logs/index',
+                        'requirement' => $isSiteAdmin
                     ),
                     array(
                         'text' => __('Search Logs'),
-                        'url' => $baseurl . '/admin/logs/search'
+                        'url' => $baseurl . '/admin/logs/search',
+                        'requirement' => $this->Acl->canAccess('logs', 'admin_search')
                     )
                 )
-                    ),
+            ),
             array(
                 'type' => 'root',
                 'text' => __('API'),

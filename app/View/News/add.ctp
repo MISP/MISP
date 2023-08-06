@@ -1,16 +1,16 @@
 <?php
-$edit = $this->request->params['action'] === 'edit' ? true : false;
+$isEdit = $this->request->params['action'] === 'edit';
 echo $this->element(
     '/genericElements/SideMenu/side_menu',
     [
         'menuList' => 'news',
-        'menuItem' => $edit ? 'edit' : 'add'
+        'menuItem' => $isEdit ? 'edit' : 'add'
     ]
 );
 
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
-        'title' => $edit ? __('Edit News Item') : __('Add News Item'),
+        'title' => $isEdit ? __('Edit News Item') : __('Add News Item'),
         'fields' => [
             [
                 'field' => 'title',
@@ -22,7 +22,7 @@ echo $this->element('genericElements/Form/genericForm', [
             ],
             [
                 'field' => 'message',
-                'label' => __('Message'),
+                'label' => __('Message (you can use Markdown format)'),
                 'type' => 'textarea',
                 'error' => ['escape' => false],
                 'div' => 'input clear',

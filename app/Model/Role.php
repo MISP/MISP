@@ -14,7 +14,7 @@ class Role extends AppModel
         'name' => array(
             'unique' => array(
                 'rule' => 'isUnique',
-                'message' => 'A role with this name already exists.' // TODO i18n?
+                'message' => 'A role with this name already exists.'
             ),
             'valueNotEmpty' => array(
                 'rule' => array('valueNotEmpty'),
@@ -324,7 +324,13 @@ class Role extends AppModel
                 'text' => 'Warninglist Editor',
                 'readonlyenabled' => false,
                 'title' => __('Allow to manage warninglists.'),
-            )
+            ),
+            'perm_view_feed_correlations' => array(
+                'id' => 'RolePermViewFeedCorrelations',
+                'text' => 'View Feed Correlations',
+                'readonlyenabled' => true,
+                'title' => __('Allow the viewing of feed correlations. Enabling this can come at a performance cost.'),
+            ),
         );
     }
 }

@@ -40,7 +40,7 @@
             ),
             'fields' => array(
                 array(
-                    'name' => __('Galaxy Id'),
+                    'name' => __('ID'),
                     'sort' => 'Galaxy.id',
                     'element' => 'links',
                     'class' => 'short',
@@ -60,13 +60,14 @@
                     'data_path' => 'Galaxy.name',
                 ),
                 array(
-                    'name' => __('version'),
+                    'name' => __('Version'),
                     'class' => 'short',
                     'data_path' => 'Galaxy.version',
                 ),
                 array(
                     'name' => __('Namespace'),
                     'class' => 'short',
+                    'sort' => 'Galaxy.namespace',
                     'data_path' => 'Galaxy.namespace',
                 ),
                 array(
@@ -92,7 +93,7 @@
             'actions' => array(
                 array(
                     'url' => '/galaxies/view',
-		    'title' => __('View'),
+		            'title' => __('View'),
                     'url_params_data_paths' => array(
                         'Galaxy.id'
                     ),
@@ -106,16 +107,9 @@
                     'url' => $baseurl . '/galaxies/enable',
                     'url_params_data_paths' => ['Galaxy.id'],
                     'postLinkConfirm' => __('Are you sure you want to enable this galaxy library?'),
-                    'complex_requirement' => array(
-                        'function' => function ($row, $options) use ($isSiteAdmin) {
-                            return $isSiteAdmin && !$options['datapath']['enabled'];
-                        },
-                        'options' => array(
-                            'datapath' => array(
-                                'enabled' => 'Galaxy.enabled'
-                            )
-                        )
-                    ),
+                    'complex_requirement' => function ($row) use ($isSiteAdmin) {
+                        return $isSiteAdmin && !$row['Galaxy']['enabled'];
+                    }
                 ),
                 array(
                     'title' => __('Disable'),
@@ -124,20 +118,13 @@
                     'url' => $baseurl . '/galaxies/disable',
                     'url_params_data_paths' => ['Galaxy.id'],
                     'postLinkConfirm' => __('Are you sure you want to disable this galaxy library?'),
-                    'complex_requirement' => array(
-                        'function' => function ($row, $options) use ($isSiteAdmin) {
-                            return $isSiteAdmin && $options['datapath']['enabled'];
-                        },
-                        'options' => array(
-                            'datapath' => array(
-                                'enabled' => 'Galaxy.enabled'
-                            )
-                        )
-                    ),
+                    'complex_requirement' => function ($row) use ($isSiteAdmin) {
+                        return $isSiteAdmin && $row['Galaxy']['enabled'];
+                    }
                 ),
                 array(
                     'url' => '/galaxies/delete',
-		    'title' => __('Delete'),
+		            'title' => __('Delete'),
                     'url_params_data_paths' => array(
                         'Galaxy.id'
                     ),
@@ -152,8 +139,7 @@
     echo '</div>';
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'galaxy_index'));
 ?>
-<script type="text/javascript">
-    var passedArgsArray = <?php echo $passedArgs; ?>;
+<script>
     $(function() {
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();

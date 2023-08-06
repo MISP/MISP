@@ -1509,8 +1509,16 @@ coreCAKE () {
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.homedir" "${PATH_TO_MISP}/.gnupg"
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.password" "${GPG_PASSPHRASE}"
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.obscure_subject" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.key_fetching_disabled" false
   # FIXME: what if we have not gpg binary but a gpg2 one?
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.binary" "$(which gpg)"
+
+  # LinOTP
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "LinOTPAuth.enabled" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "LinOTPAuth.baseUrl" "https://<your-linotp-baseUrl>"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "LinOTPAuth.realm" "lino"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "LinOTPAuth.verifyssl" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "LinOTPAuth.mixedauth" false
 
   # Enable installer org and tune some configurables
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.host_org_id" 1
@@ -1870,7 +1878,7 @@ mispmodules () {
 modulesCAKE () {
   # Enable Enrichment, set better timeouts
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_services_enable" true
-  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hover_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hover_enable" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hover_popover_only" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hover_timeout" 150
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_timeout" 300
@@ -2543,7 +2551,7 @@ apacheConfig_RHEL7 () {
   #sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
   sudo rm /etc/httpd/conf.d/ssl.conf
   sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
-  sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
+  sudo sed -i '/Listen 443/!s/Listen 80/a Listen 443/' /etc/httpd/conf/httpd.conf
 
   # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
   echo "The Common Name used below will be: ${OPENSSL_CN}"
@@ -2591,7 +2599,7 @@ apacheConfig_RHEL8 () {
   #sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
   sudo rm /etc/httpd/conf.d/ssl.conf
   sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
-  sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
+  sudo sed -i '/Listen 443/!s/Listen 80/a Listen 443/' /etc/httpd/conf/httpd.conf
 
   # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
   echo "The Common Name used below will be: ${OPENSSL_CN}"

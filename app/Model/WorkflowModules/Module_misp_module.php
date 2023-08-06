@@ -46,7 +46,7 @@ class Module_misp_module extends WorkflowBaseActionModule
         if (!empty($misp_module_config['meta']['config']['support_filters'])) {
             $this->support_filters = !empty($misp_module_config['meta']['config']['support_filters']);
         }
-        if (!empty($misp_module_config['meta']['config'])) {
+        if (!empty($misp_module_config['meta']['config']['params'])) {
             foreach ($misp_module_config['meta']['config']['params'] as $paramName => $moduleParam) {
                 $this->params[] = $this->translateParams($paramName, $moduleParam);
             }

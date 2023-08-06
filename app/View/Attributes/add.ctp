@@ -53,14 +53,16 @@
                     'label' => __("Contextual Comment")
                 ),
                 array(
+                    'field' => 'batch_import',
+                    'type' => 'checkbox',
+                    'requirements' => $action === 'add',
+                    'label' => __('Batch import') . ' <span class="fas fa-info-circle" data-toggle="popover" data-trigger="hover" data-content="' . __('Insert multiple attributes to value field separated by new line') .'"></span>',
+                ),
+                array(
                     'field' => 'to_ids',
                     'type' => 'checkbox',
                     'label' => __("For Intrusion Detection System"),
                     //'stayInLine' => 1
-                ),
-                array(
-                    'field' => 'batch_import',
-                    'type' => 'checkbox'
                 ),
                 array(
                     'field' => 'disable_correlation',
@@ -89,7 +91,7 @@
             ),
             'metaFields' => array(
                 '<div id="notice_message" style="display: none;"></div>',
-                '<div id="bothSeenSliderContainer" style="height: 170px;"></div>'
+                '<div id="bothSeenSliderContainer"' . ($ajax ? '' : ' style="height: 170px;"') . '></div>'
             )
         )
     ));

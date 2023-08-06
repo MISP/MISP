@@ -11,7 +11,7 @@ require_once 'AppShell.php';
  */
 class ServerShell extends AppShell
 {
-    public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
+    public $uses = array('Server', 'Task', 'Job', 'User', 'Feed', 'TaxiiServer');
 
     public function getOptionParser()
     {
@@ -789,5 +789,31 @@ class ServerShell extends AppShell
             $this->error("Server with ID $serverId doesn't exists.");
         }
         return $server;
+    }
+
+    public function push_taxii()
+    {
+        if (empty($this->args[0]) || empty($this->args[1])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Push Taxii'] . PHP_EOL);
+        }
+
+        $userId = $this->args[0];
+        $user = $this->getUser($userId);
+        $serverId = $this->args[1];
+        if (!empty($this->args[2])) {
+            $jobId = $this->args[2];
+        } else {
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'push_taxii', 'Server: ' . $serverId, 'Pushing.');
+        }
+        $this->Job->read(null, $jobId);
+
+        $result = $this->TaxiiServer->push($serverId, $user, $jobId);
+        if ($result !== true && !is_array($result)) {
+            $message = 'Job failed. Reason: ' . $result;
+            $this->Job->saveStatus($jobId, false, $message);
+        } else {
+            $message = 'Job done.';
+            $this->Job->saveStatus($jobId, true, $message);
+        }
     }
 }

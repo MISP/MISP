@@ -65,13 +65,15 @@ switch ($object['type']) {
                     } else {
                         $confirm = __('According to AV scan, this file contains %s malware. Do you really want to download it?', $object['infected']);
                     }
+                } else if ($object['type'] === 'malware-sample') {
+                    $confirm = __('You are going to download file that is probably malware. For your safety, the file is compressed in encrypted ZIP file. To decrypt use password `infected`.');
                 } else {
                     $confirm = null;
                 }
 
                 $controller = $object['objectType'] === 'proposal' ? 'shadow_attributes' : 'attributes';
-                $url = array('controller' => $controller, 'action' => 'download', $object['id']);
-                echo $this->Html->link($filename, $url, array('class' => $linkClass), $confirm);
+                $url = ['controller' => $controller, 'action' => 'download', $object['id']];
+                echo $this->Html->link($filename, $url, ['class' => $linkClass], $confirm);
             } else {
                 echo $filename;
             }

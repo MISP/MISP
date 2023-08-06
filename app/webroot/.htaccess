@@ -2,7 +2,7 @@
     RewriteEngine On
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^(.*)$ index.php?/$1 [QSA,L]
+    RewriteRule ^(.*)$ index.php?/$1 "[QSA,L,B= ]"
 
     # Adds AUTH support to Rest Plugin:
     RewriteRule .* - [env=HTTP_AUTHORIZATION:%{HTTP:Authorization},last]

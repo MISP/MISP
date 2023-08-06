@@ -720,14 +720,14 @@ class GalaxyCluster extends AppModel
     /**
      * Gets a cluster then save it.
      *
-     * @param $user
+     * @param array $user
      * @param array $cluster Cluster to be saved
      * @param bool  $fromPull If the current capture is performed from a PULL sync
      * @param int   $orgId The organisation id that should own the cluster
      * @param array $server The server for which to capture is ongoing
      * @return array Result of the capture including successes, fails and errors
      */
-    public function captureCluster($user, $cluster, $fromPull=false, $orgId=0, $server=false)
+    public function captureCluster(array $user, $cluster, $fromPull=false, $orgId=0, $server=false)
     {
         $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
 
@@ -1063,8 +1063,12 @@ class GalaxyCluster extends AppModel
         if (isset($options['group'])) {
             $params['group'] = $options['group'];
         }
-        if (isset($options['order'])) {
-            $params['order'] = $options['order'];
+        if (!empty($options['order'])) {
+            $options['order'] = $this->findOrder(
+                $options['order'],
+                'GalaxyCluster',
+                ['id', 'event_id', 'version', 'type', 'value', 'distribution', 'orgc_id', 'org_id', 'tag_name', 'galaxy_id']
+            );
         }
         if (isset($options['page'])) {
             $params['page'] = $options['page'];
@@ -1667,7 +1671,7 @@ class GalaxyCluster extends AppModel
         }
 
         try {
-            if (!$serverSync->isSupported(ServerSyncTool::PERM_SYNC) || $serverSync->isSupported(ServerSyncTool::PERM_GALAXY_EDITOR)) {
+            if (!$serverSync->isSupported(ServerSyncTool::PERM_SYNC) || !$serverSync->isSupported(ServerSyncTool::PERM_GALAXY_EDITOR)) {
                 return __('The remote user does not have the permission to manipulate galaxies - the upload of the galaxy clusters has been blocked.');
             }
             $serverSync->pushGalaxyCluster($cluster)->json();
@@ -1855,7 +1859,7 @@ class GalaxyCluster extends AppModel
     }
 
     /**
-     * getClusterIdListBasedOnPullTechnique Collect the list of remote cluster IDs to be pulled based on the technique
+     * Collect the list of remote cluster IDs to be pulled based on the technique
      *
      * @param  array $user
      * @param  string|int $technique
@@ -1895,15 +1899,13 @@ class GalaxyCluster extends AppModel
                 $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($serverSync, $onlyUpdateLocalCluster = false);
             }
         } catch (HttpSocketHttpException $e) {
-            if ($e->getCode() === 403) {
-                return array('error' => array(1, null));
-            } else {
+            if ($e->getCode() !== 403) {
                 $this->logException("Could not get eligible cluster IDs from server {$serverSync->serverId()} for pull.", $e);
-                return array('error' => array(2, $e->getMessage()));
             }
+            return [];
         } catch (Exception $e) {
             $this->logException("Could not get eligible cluster IDs from server {$serverSync->serverId()} for pull.", $e);
-            return array('error' => array(2, $e->getMessage()));
+            return [];
         }
         return $clusterIds;
     }
@@ -2066,5 +2068,32 @@ class GalaxyCluster extends AppModel
             }
         }
         return $CyCatRelations;
+    }
+
+    /**
+     * convertGalaxyClustersToTags
+     *
+     * @param array $user
+     * @param array $galaxies
+     * @return array The tag names extracted from galaxy clusters
+     */
+    public function convertGalaxyClustersToTags($user, $galaxies)
+    {
+        $galaxyClusters = [];
+        $tag_names = [];
+        foreach ($galaxies as $galaxy) {
+            if (empty($galaxy['GalaxyCluster'])) {
+                continue;
+            }
+            $clusters = $galaxy['GalaxyCluster'];
+            unset($galaxy['GalaxyCluster']);
+            foreach ($clusters as $cluster) {
+                $cluster['Galaxy'] = $galaxy;
+                $galaxyClusters[] = array('GalaxyCluster' => $cluster);
+                $tag_names[] = !empty($cluster['tag_name']) ? $cluster['tag_name'] : 'misp-galaxy:' . $cluster['type'] . '="' . $cluster['uuid'] . '"';
+            }
+        }
+        $this->Galaxy->importGalaxyAndClusters($user, $galaxyClusters);
+        return $tag_names;
     }
 }

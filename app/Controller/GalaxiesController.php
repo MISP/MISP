@@ -22,8 +22,16 @@ class GalaxiesController extends AppController
     public function index()
     {
         $aclConditions = array();
-        $filters = $this->IndexFilter->harvestParameters(array('value', 'enabled'));
-        $searchConditions = array();
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => ['value', 'enabled'],
+            'ordered_url_params' => [],
+            'additional_delimiters' => PHP_EOL
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        $searchConditions = [];
         if (empty($filters['value'])) {
             $filters['value'] = '';
         } else {
@@ -220,14 +228,15 @@ class GalaxiesController extends AppController
             } else {
                 $data = $this->request->data['Galaxy'];
                 $text = FileAccessTool::getTempUploadedFile($data['submittedjson'], $data['json']);
-                $clusters = json_decode($text, true);
-                if ($clusters === null) {
-                    throw new MethodNotAllowedException(__('Error while decoding JSON'));
+                try {
+                    $clusters = JsonTool::decodeArray($text);
+                } catch (Exception $e) {
+                    throw new BadRequestException(__('Error while decoding JSON'));
                 }
             }
             $saveResult = $this->Galaxy->importGalaxyAndClusters($this->Auth->user(), $clusters);
             if ($saveResult['success']) {
-                $message = sprintf(__('Galaxy clusters imported. %s imported, %s ignored, %s failed. %s'), $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
+                $message = __('Galaxy clusters imported. %s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('Galaxy', 'import', false, $this->response->type(), $message);
                 } else {
@@ -235,7 +244,7 @@ class GalaxiesController extends AppController
                     $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
                 }
             } else {
-                $message = sprintf(__('Could not import galaxy clusters. %s imported, %s ignored, %s failed. %s'), $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
+                $message = __('Could not import galaxy clusters. %s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Galaxy', 'import', false, $message);
                 } else {
@@ -525,7 +534,7 @@ class GalaxiesController extends AppController
             }
         }
 
-        $result = $this->Galaxy->attachCluster($user, $target_type, $target_id, $cluster_id, $local);
+        $result = $this->Galaxy->attachCluster($user, $target_type, $target, $cluster_id, $local);
         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
     }
 

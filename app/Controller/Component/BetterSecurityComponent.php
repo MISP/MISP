@@ -13,6 +13,15 @@ class BetterSecurityComponent extends SecurityComponent
      */
     public $doNotGenerateToken = false;
 
+    public function blackHole(Controller $controller, $error = '', SecurityException $exception = null)
+    {
+        $action = $controller->request->params['action'];
+        $unlockedActions = JsonTool::encode($this->unlockedActions);
+        $isRest = $controller->IndexFilter->isRest() ? '1' : '0';
+        $this->log("Blackhole exception when accessing $controller->here (isRest: $isRest, action: $action, unlockedActions: $unlockedActions): {$exception->getMessage()}"); // log blackhole exception
+        return parent::blackHole($controller, $error, $exception);
+    }
+
     public function generateToken(CakeRequest $request)
     {
         if (isset($request->params['requested']) && $request->params['requested'] === 1) {

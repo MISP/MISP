@@ -67,6 +67,7 @@ class WorkflowsController extends AppController
             } else {
                 $successMessage = __('Workflow saved.');
                 $savedWorkflow = $result['saved'];
+                $savedWorkflow = $this->Workflow->attachLabelToConnections($savedWorkflow);
                 return $this->__getSuccessResponseBasedOnContext($successMessage, $savedWorkflow, 'edit', false, $redirectTarget);
             }
         } else {
@@ -101,6 +102,9 @@ class WorkflowsController extends AppController
             }
         }
         $this->CRUD->view($id, [
+            'afterFind' => function($workflow) {
+                return $this->Workflow->attachLabelToConnections($workflow);
+            }
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -151,6 +155,7 @@ class WorkflowsController extends AppController
         } else {
             $workflow = $this->Workflow->fetchWorkflow($workflow_id);
         }
+        $workflow = $this->Workflow->attachLabelToConnections($workflow, $trigger_id);
         $modules = $this->Workflow->attachNotificationToModules($modules, $workflow);
         $this->loadModel('WorkflowBlueprint');
         $workflowBlueprints = $this->WorkflowBlueprint->find('all');
@@ -285,6 +290,8 @@ class WorkflowsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($module, $this->response->type());
         }
+        if (!isset($module['Workflow']))
+            $module['Workflow'] = ['counter' => false, 'id' => false];
         $this->set('data', $module);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'view_module']);
     }

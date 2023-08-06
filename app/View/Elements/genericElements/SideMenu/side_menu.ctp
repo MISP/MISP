@@ -1,6 +1,6 @@
 <?php
 $this->set('menuItem', $menuItem);
-$divider = $this->element('/genericElements/SideMenu/side_menu_divider');
+$divider = '<li class="divider"></li>';
 ?>
 <div class="actions sideMenu">
     <ul class="nav nav-list">
@@ -119,7 +119,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
-                            'url' => '/eventReports/add/' . h($event['Event']['id']),
+                            'url' => '/eventReports/add/' . $eventId,
                             'text' => __('Add Event Report')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -163,34 +163,34 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                     }
                     echo $divider;
-                    $publishButtons = ' hidden';
-                    if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && $mayPublish) {
-                        $publishButtons = "";
+                    if ($isSiteAdmin || $mayPublish) {
+                        echo '<div id="hiddenSideMenuData" class="hidden" data-event-id="' . $eventId . '"></div>';
+                        $isPublished = isset($event['Event']['published']) && 0 == $event['Event']['published'];
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'onClick' => array(
+                                'function' => 'publishPopup',
+                                'params' => array($eventId, 'alert')
+                            ),
+                            'class' => 'publishButtons not-published' . ($isPublished ? '' : ' hidden'),
+                            'text' => __('Publish Event')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'onClick' => array(
+                                'function' => 'publishPopup',
+                                'params' => array($eventId, 'publish')
+                            ),
+                            'class' => 'publishButtons not-published' . ($isPublished ? '' : ' hidden'),
+                            'text' => __('Publish (no email)')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'onClick' => array(
+                                'function' => 'publishPopup',
+                                'params' => array($eventId, 'unpublish')
+                            ),
+                            'class' => (isset($event['Event']['published']) && (1 == $event['Event']['published'] && $mayModify)) ? '' : 'hidden',
+                            'text' => __('Unpublish')
+                        ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'onClick' => array(
-                            'function' => 'publishPopup',
-                            'params' => array($eventId, 'alert')
-                        ),
-                        'class' => 'publishButtons not-published' . $publishButtons,
-                        'text' => __('Publish Event')
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'onClick' => array(
-                            'function' => 'publishPopup',
-                            'params' => array($eventId, 'publish')
-                        ),
-                        'class' => 'publishButtons not-published' . $publishButtons,
-                        'text' => __('Publish (no email)')
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'onClick' => array(
-                            'function' => 'publishPopup',
-                            'params' => array($eventId, 'unpublish')
-                        ),
-                        'class' => (isset($event['Event']['published']) && (1 == $event['Event']['published'] && $mayModify)) ? '' : 'hidden',
-                        'text' => __('Unpublish')
-                    ));
                     if (!empty($event['Event']['published']) && $me['Role']['perm_sighting']) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'onClick' => array(
@@ -436,17 +436,19 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => '/eventReports/view/' . h($id),
                             'text' => __('View Event Report')
                         ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'edit',
-                            'url' => '/eventReports/edit/' . h($id),
-                            'text' => __('Edit Event Report'),
-                            'requirement' => $canEdit,
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/admin/audit_logs/index/model:EventReport/model_id:' .  h($id),
-                            'text' => __('View report history'),
-                            'requirement' => Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index'),
-                        ));
+                        if ($canEdit) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => '/eventReports/edit/' . h($id),
+                                'text' => __('Edit Event Report'),
+                            ));
+                        }
+                        if (Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => '/admin/audit_logs/index/model:EventReport/model_id:' . h($id),
+                                'text' => __('View report history'),
+                            ));
+                        }
                     }
                     break;
 
@@ -650,10 +652,6 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/user_settings/setSetting',
                         'text' => __('Set Setting')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/dashboards',
-                        'text' => __('Dashboard')
-                    ));
                     if ($this->Acl->canAccess('organisations', 'index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'indexOrg',
@@ -728,9 +726,9 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
                     echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'userGuide',
-                        'url' => $baseurl . '/pages/display/doc/general',
-                        'text' => __('User Guide')
+                        'element_id' => 'categoriesAndTypes',
+                        'url' => $baseurl . '/pages/display/doc/categories_and_types',
+                        'text' => __('Categories & Types'),
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/users/terms',
@@ -1091,19 +1089,29 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
 
                 case 'logs':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/admin/logs/index',
-                        'text' => __('List Logs')
+                        'url' => $baseurl . '/logs/index',
+                        'text' => __('Application Logs')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'listAuditLogs',
-                        'url' => $baseurl . '/admin/audit_logs/index',
-                        'text' => __('List Audit Logs'),
-                        'requirement' => Configure::read('MISP.log_new_audit'),
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/admin/logs/search',
-                        'text' => __('Search Logs')
-                    ));
+                    if (Configure::read('MISP.log_new_audit') && $isAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'listAuditLogs',
+                            'url' => $baseurl . '/admin/audit_logs/index',
+                            'text' => __('Audit Logs'),
+                        ));
+                    }
+                    if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'listAccessLogs',
+                            'url' => $baseurl . '/admin/access_logs/index',
+                            'text' => __('Access Logs'),
+                        ));
+                    }
+                    if ($isAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/admin/logs/search',
+                            'text' => __('Search Logs')
+                        ));
+                    }
                     break;
 
                 case 'threads':
@@ -1358,9 +1366,14 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 case 'news':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/news/index',
-                        'text' => __('View News')
+                        'text' => __('View News'),
                     ));
                     if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/admin/news/index',
+                            'text' => __('View News as Admin'),
+                            'element_id' => 'admin_index',
+                        ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/news/add',
                             'text' => __('Add News Item')
@@ -1441,7 +1454,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'text' => __('View Cluster')
                             ));
                         }
-                        if ($menuItem !== 'add_cluster' && $this->Acl->canModifyCluster($cluster)) {
+                        if ($menuItem !== 'add_cluster' && $this->Acl->canModifyGalaxyCluster($cluster)) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit_cluster',
                                 'url' => $baseurl . '/galaxy_clusters/edit/' . h($id),
@@ -1655,11 +1668,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Edit Workflow Blueprint')
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/admin/audit_logs/index/model:WorkflowBlueprint/model_id:' .  h($id),
-                        'text' => __('View workflow blueprint history'),
-                        'requirement' => Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index'),
-                    ));
+                    if (Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/admin/audit_logs/index/model:WorkflowBlueprint/model_id:' . h($id),
+                            'text' => __('View workflow blueprint history'),
+                        ));
+                    }
                 }
                 echo $divider;
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -1704,14 +1718,14 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Edit Workflow')
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/admin/audit_logs/index/model:Workflow/model_id:' .  h($id),
-                        'text' => __('View worflow history'),
-                        'requirement' => Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index'),
-                    ));
+                    if (Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/admin/audit_logs/index/model:Workflow/model_id:' . h($id),
+                            'text' => __('View workflow history'),
+                        ));
+                    }
                 }
                 break;
-
             }
         ?>
     </ul>

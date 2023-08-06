@@ -492,9 +492,9 @@ class EventReportsController extends AppController
         $this->set('sharingGroups', $sgs);
     }
 
-    private function __injectPermissionsToViewContext($user, $report)
+    private function __injectPermissionsToViewContext(array $user, array $report)
     {
-        $canEdit = $this->EventReport->canEditReport($user, $report) === true;
+        $canEdit = $this->ACL->canEditEventReport($user, $report);
         $this->set('canEdit', $canEdit);
     }
 

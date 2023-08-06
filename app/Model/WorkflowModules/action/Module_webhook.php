@@ -8,7 +8,7 @@ class Module_webhook extends WorkflowBaseActionModule
 {
     public $id = 'webhook';
     public $name = 'Webhook';
-    public $version = '0.2';
+    public $version = '0.4';
     public $description = 'Allow to perform custom callbacks to the provided URL';
     public $icon_path = 'webhook.png';
     public $inputs = 1;
@@ -42,7 +42,7 @@ class Module_webhook extends WorkflowBaseActionModule
             [
                 'id' => 'data_extraction_path',
                 'label' => __('Data extraction path'),
-                'type' => 'input',
+                'type' => 'hashpath',
                 'default' => '',
                 'placeholder' => 'Attribute.{n}.AttributeTag.{n}.Tag.name',
             ],
@@ -106,21 +106,22 @@ class Module_webhook extends WorkflowBaseActionModule
         return false;
     }
 
-    protected function doRequest($url, $contentType, $data)
+    protected function doRequest($url, $contentType, $data, $headers = [], $serverConfig = null)
     {
         $this->Event = ClassRegistry::init('Event'); // We just need a model to use AppModel functions
         $version = implode('.', $this->Event->checkMISPVersion());
         $commit = $this->Event->checkMIPSCommit();
 
         $request = [
-            'header' => [
+            'header' => array_merge([
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
                 'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
-            ]
+            ], $headers)
         ];
         $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket(null, $this->timeout);
+        $serverConfig = !empty($serverConfig['Server']) ? $serverConfig : ['Server' => $serverConfig];
+        $HttpSocket = $syncTool->setupHttpSocket($serverConfig, $this->timeout);
         if ($contentType == 'form') {
             $request['header']['Content-Type'] = 'application/x-www-form-urlencoded';
             $response = $HttpSocket->post($url, $data, $request);

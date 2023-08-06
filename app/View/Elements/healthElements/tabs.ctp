@@ -50,12 +50,13 @@
         ),
         'active' => $active_tab === 'diagnostics'
     );
-
-    $data['children'][0]['children'][] = array(
-        'url' => $baseurl . '/servers/serverSettings/files',
-        'text' => __('Manage files'),
-        'active' => $active_tab === 'files'
-    );
+    if (empty(Configure::read('Security.disable_instance_file_uploads'))) {
+        $data['children'][0]['children'][] = array(
+            'url' => $baseurl . '/servers/serverSettings/files',
+            'text' => __('Manage files'),
+            'active' => $active_tab === 'files'
+        );
+    }
     $data['children'][0]['children'][] = array(
         'url' => $baseurl . '/servers/serverSettings/workers',
         'title' => __('Workers'),

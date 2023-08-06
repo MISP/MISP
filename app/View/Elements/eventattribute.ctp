@@ -2,7 +2,7 @@
     $mayChangeCorrelation = $this->Acl->canDisableCorrelation($event);
     $possibleAction = $mayModify ? 'attribute' : 'shadow_attribute';
     $all = isset($this->params->params['paging']['Event']['page']) && $this->params->params['paging']['Event']['page'] == 0;
-    $fieldCount = 11;
+    $fieldCount = 10;
 ?>
     <div class="pagination">
         <ul>
@@ -81,7 +81,7 @@
         <tr>
             <?php
                 if ($extended || ($mayModify && !empty($event['objects']))):
-                    $fieldCount += 1;
+                    $fieldCount++;
             ?>
                     <th><input class="select_all" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all attributes/proposals on current page');?>" onclick="toggleAllAttributeCheckboxes()"></th>
             <?php
@@ -94,7 +94,9 @@
             <?php if ($extended): ?>
                 <th class="event_id"><?php echo $this->Paginator->sort('event_id', __('Event'));?></th>
             <?php endif; ?>
+            <?php if ($includeOrgColumn): $fieldCount++; ?>
             <th><?php echo $this->Paginator->sort('Org.name', __('Org')); ?>
+            <?php endif; ?>
             <th><?php echo $this->Paginator->sort('category');?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>
             <th><?php echo $this->Paginator->sort('value');?></th>
@@ -103,13 +105,15 @@
                 if ($includeRelatedTags) {
                     echo sprintf('<th>%s</th>', __('Related Tags'));
                 }
-                $fieldCount += 1;
+                $fieldCount++;
             ?>
             <th><?php echo __('Galaxies');?></th>
             <th><?php echo $this->Paginator->sort('comment');?></th>
             <th><?php echo __('Correlate');?></th>
             <th><?php echo __('Related Events');?></th>
-            <th><?php echo __('Feed hits');?></th>
+            <?php if ($me['Role']['perm_view_feed_correlations']) { ?>
+                <th><?php echo __('Feed hits');?></th>
+            <?php } ?>
             <th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
             <th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
             <th><?php echo __('Sightings');?></th>
@@ -120,7 +124,7 @@
                         '<th>%s</th>',
                         __('SightingDB')
                     );
-                    $fieldCount += 1;
+                    $fieldCount++;
                 }
                 if ($includeDecayScore) {
                     echo sprintf(
@@ -128,7 +132,7 @@
                         __('Decaying Score'),
                         __('Score')
                     );
-                    $fieldCount += 1;
+                    $fieldCount++;
                 }
             ?>
             <th class="actions"><?php echo __('Actions');?></th>

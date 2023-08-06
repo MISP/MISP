@@ -41,8 +41,6 @@ class AppModel extends Model
 
     private $__profiler = array();
 
-    public $elasticSearchClient;
-
     /** @var AttachmentTool|null */
     private $attachmentTool;
 
@@ -85,7 +83,9 @@ class AppModel extends Model
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
         87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
-        99 => false
+        99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
+        105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
+        111 => false, 112 => false, 113 => true, 114 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1882,6 +1882,97 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `event_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
                 $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
                 break;
+            case 100:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `access_logs` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `created` datetime(4) NOT NULL,
+                  `user_id` int(11) NOT NULL,
+                  `org_id` int(11) NOT NULL,
+                  `authkey_id` int(11) DEFAULT NULL,
+                  `ip` varbinary(16) DEFAULT NULL,
+                  `request_method` tinyint NOT NULL,
+                  `user_agent` varchar(255) DEFAULT NULL,
+                  `request_id` varchar(255) DEFAULT NULL,
+                  `controller` varchar(20) NOT NULL,
+                  `action` varchar(20) NOT NULL,
+                  `url` varchar(255) NOT NULL,
+                  `request` blob,
+                  `response_code` smallint NOT NULL,  
+                  `memory_usage` int(11) NOT NULL,
+                  `duration` int(11) NOT NULL,
+                  `query_count` int(11) NOT NULL,
+                  PRIMARY KEY (`id`),
+                  INDEX `user_id` (`user_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 101:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxii_servers` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                    `name` varchar(191) NOT NULL,
+                    `owner` varchar(191) NOT NULL,
+                    `baseurl` varchar(191) NOT NULL,
+                    `api_root` varchar(191) NOT NULL DEFAULT 0,
+                    `description` text,
+                    `filters` text,
+                    `api_key` varchar(255)COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `name` (`name`),
+                    INDEX `baseurl` (`baseurl`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 102:
+                $sqlArray[] = "UPDATE roles SET perm_audit = 1;";
+                break;
+            case 103:
+                $sqlArray[] = "ALTER TABLE `taxonomies` ADD `highlighted` tinyint(1) DEFAULT 0;";
+                break;
+            case 104:
+                $sqlArray[] = "ALTER TABLE `access_logs` ADD `query_log` blob DEFAULT NULL";
+                break;
+            case 105:
+                // set a default role if there is none
+                if (!$this->AdminSetting->getSetting('default_role')) {
+                    $role = ClassRegistry::init('Role')->findByName('User');
+                    if ($role) {
+                        $sqlArray[] = "INSERT INTO `admin_settings` (setting, value) VALUES ('default_role', '".$role['Role']['id']."');";
+                    } else {
+                        // there is no role called User, do nothing
+                    }
+                }
+                break;
+            case 106:
+                $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `baseurl` varchar(191) NOT NULL;";
+                break;
+            case 107:
+                $sqlArray[] = "ALTER TABLE `auth_keys` ADD `unique_ips` text COLLATE utf8mb4_unicode_ci";
+                break;
+            case 108:
+                $sqlArray[] = "ALTER TABLE `workflows` MODIFY `data` LONGTEXT;";
+                break;
+            case 109:
+                $sqlArray[] = "UPDATE `over_correlating_values` SET `value` = LOWER(`value`) COLLATE utf8mb4_unicode_ci;";
+                break;
+            case 110:
+                $sqlArray[] = "ALTER TABLE `users` ADD `totp` varchar(255) DEFAULT NULL;";
+                $sqlArray[] = "ALTER TABLE `users` ADD `hotp_counter` int(11) DEFAULT NULL;";
+                break;
+            case 111:
+                $sqlArray[] = "ALTER TABLE `taxii_servers` ADD `collection` varchar(40) CHARACTER SET ascii DEFAULT NULL;";
+                break;
+            case 112:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_view_feed_correlations` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 113:
+                // we only want to update the existing roles - going forward the default is still 0
+                // Also, we want to execute it as a separate update to ensure that cache clearing is done correctly
+                $this->cleanCacheFiles();
+                $sqlArray[] = "UPDATE roles SET perm_view_feed_correlations = 1;";
+                break;
+            case 114:
+                $indexArray[] = ['object_references', 'uuid'];
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2361,7 +2452,7 @@ class AppModel extends Model
                         'action' => 'update_db_worker',
                         'user_id' => 0,
                         'title' => __('Issues executing run_updates'),
-                        'change' => __('Database updates are locked. Worker not spawned')
+                        'change' => __('Database updates are locked. Make sure that you have an update worker running. If you do, it might be related to an update\'s execution repeatedly failing or still being in progress.')
                     ));
                     if (!empty($job)) { // if multiple prio worker is enabled, want to mark them as done
                         $job['Job']['progress'] = 100;
@@ -2952,17 +3043,6 @@ class AppModel extends Model
         return self::$loadedPubSubTool;
     }
 
-    protected function getElasticSearchTool()
-    {
-        if (!$this->elasticSearchClient) {
-            App::uses('ElasticSearchClient', 'Tools');
-            $client = new ElasticSearchClient();
-            $client->initTool();
-            $this->elasticSearchClient = $client;
-        }
-        return $this->elasticSearchClient;
-    }
-
     /**
      * @return BackgroundJobsTool
      */
@@ -3021,6 +3101,16 @@ class AppModel extends Model
             $subQuery = $lookupKey . ' IN (' . $subQuery . ') ';
         }
         return [$subQuery];
+    }
+
+    /**
+     * Returns estimated number of table rows
+     * @return int
+     */
+    public function tableRows()
+    {
+        $rows = $this->query("SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{$this->table}';");
+        return $rows[0]['TABLES']['TABLE_ROWS'];
     }
 
     // start a benchmark run for the given bench name
@@ -3244,10 +3334,12 @@ class AppModel extends Model
             $filter = array();
             foreach ($temp as $f) {
                 $f = strval($f);
-                if ($f[0] === '!') {
-                    $filter['NOT'][] = substr($f, 1);
-                } else {
-                    $filter['OR'][] = $f;
+                if ($f !== '') {
+                    if ($f[0] === '!') {
+                        $filter['NOT'][] = substr($f, 1);
+                    } else {
+                        $filter['OR'][] = $f;
+                    }
                 }
             }
             return $filter;
@@ -3523,6 +3615,11 @@ class AppModel extends Model
      */
     protected function logException($message, Exception $exception, $type = LOG_ERR)
     {
+        // If Sentry is installed, send exception to Sentry
+        if (function_exists('\Sentry\captureException') && $type === LOG_ERR) {
+            \Sentry\captureException($exception);
+        }
+
         $message .= "\n";
 
         do {
@@ -3859,5 +3956,36 @@ class AppModel extends Model
                 ) as c
             );
         ");
+    }
+
+    public function findOrder($order, $order_model, $valid_order_fields)
+    {
+        if (!is_array($order)) {
+            $order_rules = explode(' ', strtolower($order));
+            $order_field = explode('.', $order_rules[0]);
+            $order_field = end($order_field);
+            if (in_array($order_field, $valid_order_fields)) {
+                $direction = 'asc';
+                if (!empty($order_rules[1]) && trim($order_rules[1]) === 'desc') {
+                    $direction = 'desc';
+                }
+            } else {
+                return null;
+            }
+            return $order_model . '.' . $order_field . ' ' . $direction;
+        }
+        return null;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function _remoteIp()
+    {
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: null;
+        if ($ipHeader && isset($_SERVER[$ipHeader])) {
+            return trim($_SERVER[$ipHeader]);
+        }
+        return $_SERVER['REMOTE_ADDR'] ?? null;
     }
 }

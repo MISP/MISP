@@ -849,7 +849,7 @@ class User extends AppModel
             return true;
         }
 
-        $this->loadLog();
+        $log = $this->loadLog();
         $replyToLog = $replyToUser ? ' from ' . $replyToUser['User']['email'] : '';
 
         $gpg = $this->initializeGpg();
@@ -859,8 +859,8 @@ class User extends AppModel
 
         } catch (SendEmailException $e) {
             $this->logException("Exception during sending e-mail", $e);
-            $this->Log->create();
-            $this->Log->save(array(
+            $log->create();
+            $log->save(array(
                 'org' => 'SYSTEM',
                 'model' => 'User',
                 'model_id' => $user['User']['id'],
@@ -876,8 +876,8 @@ class User extends AppModel
         // Intentional two spaces to pass test :)
         $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $result['subject'] . '".';
 
-        $this->Log->create();
-        $this->Log->save(array(
+        $log->create();
+        $log->save(array(
             'org' => 'SYSTEM',
             'model' => 'User',
             'model_id' => $user['User']['id'],
@@ -1229,6 +1229,15 @@ class User extends AppModel
 
     public function extralog($user, $action = null, $description = null, $fieldsResult = null, $modifiedUser = null)
     {
+        if (!is_array($user) && $user === 'SYSTEM') {
+            $user = [
+                'id' => 0,
+                'email' => 'SYSTEM',
+                'Organisation' => [
+                    'name' => 'SYSTEM'
+                ]
+            ];
+        }
         // new data
         $model = 'User';
         $modelId = $user['id'];
@@ -1414,6 +1423,8 @@ class User extends AppModel
 
     /**
      * Updates `last_api_access` time in database.
+     * Always update when MISP.store_api_access_time is set.
+     * Only update every hour when it isn't set
      *
      * @param array $user
      * @return array|bool
@@ -1424,8 +1435,11 @@ class User extends AppModel
         if (!isset($user['id'])) {
             throw new InvalidArgumentException("Invalid user object provided.");
         }
-        $user['last_api_access'] = time();
-        return $this->save($user, true, array('id', 'last_api_access'));
+        $storeAPITime = Configure::read('MISP.store_api_access_time');
+        if ((!empty($storeAPITime) && $storeAPITime) || $user['last_api_access'] < time() - 60*60) {
+            $user['last_api_access'] = time();
+            return $this->save($user, true, array('id', 'last_api_access'));
+        }
     }
 
     /**
@@ -1458,18 +1472,23 @@ class User extends AppModel
      */
     public function checkIfUserIsValid(array $user)
     {
-        $auth = Configure::read('Security.auth');
-        if (!$auth) {
-            return true;
+        static $oidc;
+
+        if ($oidc === null) {
+            $auth = Configure::read('Security.auth');
+            if (!$auth) {
+                return true;
+            }
+            if (!is_array($auth)) {
+                throw new Exception("`Security.auth` config value must be array.");
+            }
+            if (!in_array('OidcAuth.Oidc', $auth, true)) {
+                return true; // this method currently makes sense just for OIDC auth provider
+            }
+            App::uses('Oidc', 'OidcAuth.Lib');
+            $oidc = new Oidc($this);
         }
-        if (!is_array($auth)) {
-            throw new Exception("`Security.auth` config value must be array.");
-        }
-        if (!in_array('OidcAuth.Oidc', $auth, true)) {
-            return true; // this method currently makes sense just for OIDC auth provider
-        }
-        App::uses('Oidc', 'OidcAuth.Lib');
-        $oidc = new Oidc($this);
+
         return $oidc->isUserValid($user);
     }
 
@@ -1970,5 +1989,116 @@ class User extends AppModel
             }
         }
         return $users;
+    }
+
+    public function checkForSessionDestruction($id)
+    {
+        if (empty(CakeSession::read('creation_timestamp'))) {
+            return false;
+        }
+        $redis = $this->setupRedis();
+        if ($redis) {
+            $cutoff = $redis->get('misp:session_destroy:' . $id);
+            $allcutoff = $redis->get('misp:session_destroy:all');
+            if (
+                empty($cutoff) || 
+                (
+                    !empty($cutoff) &&
+                    !empty($allcutoff) &&
+                    $allcutoff < $cutoff
+                ) 
+            ) {
+                $cutoff = $allcutoff;
+            }
+            if ($cutoff && CakeSession::read('creation_timestamp') < $cutoff) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function forgotRouter($email, $ip)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $dummyUser = [
+                'email' => 'SYSTEM',
+                'org_id' => 0,
+                'role_id' => 0
+            ];
+            $jobId = $job->createJob($dummyUser, Job::WORKER_EMAIL, 'forgot_password', $email, 'Sending...');
+
+            $args = [
+                'jobForgot',
+                $email,
+                $ip,
+                $jobId,
+            ];
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::EMAIL_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                $args,
+                true,
+                $jobId
+            );
+
+            return true;
+        } else {
+            return $this->forgot($email);
+        }
+    }
+
+    public function forgot($email, $ip, $jobId = null)
+    {
+        $user = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'User.email' => $email,
+                'User.disabled' => 0
+            ]
+        ]);
+        if (empty($user)) {
+            return false;
+        }
+        $redis = $this->setupRedis();
+        $token = RandomTool::random_str(true, 40, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
+        $redis->set('misp:forgot:' . $token, $user['User']['id'], ['nx', 'ex' => 600]);
+        $baseurl = Configure::check('MISP.external_baseurl') ? Configure::read('MISP.external_baseurl') : Configure::read('MISP.baseurl');
+        $body = __(
+            "Dear MISP user,\n\nyou have requested a password reset on the MISP instance at %s. Click the link below to change your password.\n\n%s\n\nThe link above is only valid for 10 minutes, feel free to request a new one if it has expired.\n\nIf you haven't requested a password reset, reach out to your admin team and let them know that someone has attempted it in your stead.\n\nMake sure you keep the contents of this e-mail confidential, do NOT ever forward it as it contains a reset token that is equivalent of a password if acted upon. The IP used to trigger the request was: %s\n\nBest regards,\nYour MISP admin team",
+            $baseurl,
+            $baseurl . '/users/password_reset/' . $token,
+            $ip
+        );
+        $bodyNoEnc = __(
+            "Dear MISP user,\n\nyou have requested a password reset on the MISP instance at %s, however, no valid encryption key was found for your user and thus we cannot deliver your reset token. Please get in touch with your org admin / with an instance site admin to ask for a reset.\n\nThe IP used to trigger the request was: %s\n\nBest regards,\nYour MISP admin team",
+            $baseurl,
+            $ip
+        );
+        $this->sendEmail($user, $body, $bodyNoEnc, __('MISP password reset'));
+        return true;
+    }
+
+    public function fetchForgottenPasswordUser($token)
+    {
+        if (!ctype_alnum($token)) {
+            return false;
+        }
+        $redis = $this->setupRedis();
+        $userId = $redis->get('misp:forgot:' . $token);
+        if (empty($userId)) {
+            return false;
+        }
+        $user = $this->getAuthUser($userId, true);
+        return $user;
+    }
+
+    public function purgeForgetToken($token)
+    {
+        $redis = $this->setupRedis();
+        $userId = $redis->del('misp:forgot:' . $token);
+        return true;
     }
 }
