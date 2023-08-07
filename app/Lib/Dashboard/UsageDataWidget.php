@@ -144,7 +144,7 @@ class UsageDataWidget
                 'title' => 'Event creator orgs', 'value' => $this->getContributingOrgsCount($orgConditions, $orgIdList, $thisMonth)
             ],
             'Average users / org' => [
-                'title' => 'Average users / org', 'value' => round($usersCount / $localOrgsCount, 1)
+                'title' => 'Average users / org', 'value' => (!empty($localOrgsCount) ? round($usersCount / $localOrgsCount, 1) : 'N/A')
             ],
             'Discussion threads' => [
                 'title' => 'Discussions threads',
