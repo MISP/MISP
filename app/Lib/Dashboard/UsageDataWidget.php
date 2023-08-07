@@ -332,7 +332,7 @@ class UsageDataWidget
     {
         $conditions = [];
         if ($orgConditions) {
-            $conditions['AND'][] = ['Event.orgc_id IN' => $orgIdList];
+            $conditions['AND'][] = ['Event.orgc_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
         }
         return $this->Event->find('count', [
             'recursive' => -1,
@@ -345,7 +345,7 @@ class UsageDataWidget
     {
         $conditions = ['Thread.post_count >' => 0];
         if ($orgConditions) {
-            $conditions['AND'][] = ['Thread.org_id IN' => $orgIdList];
+            $conditions['AND'][] = ['Thread.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
         }
         return $this->Thread->find('count', [
             'conditions' => $conditions,
@@ -360,7 +360,7 @@ class UsageDataWidget
             'Thread.date_created >=' => $thisMonth
         ];
         if ($orgConditions) {
-            $conditions['AND'][] = ['Thread.org_id IN' => $orgIdList];
+            $conditions['AND'][] = ['Thread.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
         }
         return $this->Thread->find('count', [
             'conditions' => $conditions,
@@ -372,7 +372,7 @@ class UsageDataWidget
     {
         $conditions = [];
         if ($orgConditions) {
-            $conditions['AND'][] = ['User.org_id IN' => $orgIdList];
+            $conditions['AND'][] = ['User.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
         }
         return $this->Thread->Post->find('count', [
             'conditions' => $conditions,
@@ -387,7 +387,7 @@ class UsageDataWidget
             'Post.date_created >=' => $thisMonth
         ];
         if ($orgConditions) {
-            $conditions['AND'][] = ['User.org_id IN' => $orgIdList];
+            $conditions['AND'][] = ['User.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
         }
         return $this->Thread->Post->find('count', [
             'conditions' => $conditions,
