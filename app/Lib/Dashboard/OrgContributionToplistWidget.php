@@ -11,6 +11,8 @@ class OrgContributionToplistWidget
         'month' => 'Who contributed most this month? (boolean)',
         'previous_month' => 'Who contributed most the previous, finished month? (boolean)',
         'year' => 'Which contributed most this year? (boolean)',
+        'first_half_year' => 'Which contributed most the first half-year (between Jan and June)? (boolean)',
+        'second_half_year' => 'Which contributed most the second half-year (between July and Dec)? (boolean)',
         'filter' => 'A list of filters by organisation meta information (nationality, sector, type, name, uuid, local (- expects a boolean or a list of boolean values)) to include. (dictionary, prepending values with ! uses them as a negation)',
         'limit' => 'Limits the number of displayed tags. Default: 10'
     ];
@@ -37,7 +39,6 @@ class OrgContributionToplistWidget
 
     private function timeConditions($options)
     {
-        $limit = empty($options['limit']) ? 10 : $options['limit'];
         if (!empty($options['days'])) {
             $condition = strtotime(sprintf("-%s days", $options['days']));
         } else if (!empty($options['month'])) {
@@ -47,6 +48,12 @@ class OrgContributionToplistWidget
             $end_condition = strtotime('last day of last month 23:59:59', time());
         } else if (!empty($options['year'])) {
             $condition = strtotime('first day of this year 00:00:00', time());
+        } else if (!empty($options['last_half_year'])) {
+            $condition =  strtotime('first day of january this year 00:00:00', time());
+            $end_condition =  strtotime('last day of june this year 23:59:59', time());
+        } else if (!empty($options['current_half'])) {
+            $condition =  strtotime('first day of july this year 00:00:00', time());
+            $end_condition = strtotime('last day of december this year 23:59:59', time());
         } else {
             return null;
         }
