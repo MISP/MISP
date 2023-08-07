@@ -12,9 +12,17 @@
         sprintf(
             '<div class="grid-stack-item-content"><div class="widgetTitle"><span class="widgetTitleText">%s</span> %s %s %s</div><div class="widgetContent">%s</div></div>',
             empty($widget['config']['alias']) ? h($widget['title']) : h($widget['config']['alias']),
-            sprintf(
-                '<span class="fas fa-download export-widget useCursorPointer" title="%s"></span>',
-                __('Export raw data')
+            sprintf('<span class="dropdown">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#" title="%s"><i class="%s"></i></a>
+                    <ul class="dropdown-menu widget-export-menu" role="menu" aria-labelledby="dLabel">
+                        <li><a tabindex="-1" href="#" data-exporttype="json">%s</a></li>
+                        <li><a tabindex="-1" href="#" data-exporttype="csv">%s</a></li>
+                    </ul>
+                </span>',
+                __('Export raw data'),
+                $this->FontAwesome->getClass('download'),
+                __('Export as JSON'),
+                __('Export as CSV'),
             ),
             sprintf(
                 '<span class="fas fa-edit edit-widget useCursorPointer" title="%s"></span>',
