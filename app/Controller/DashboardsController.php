@@ -194,6 +194,25 @@ class DashboardsController extends AppController
 
         if (!empty($this->request->params['named']['exportjson'])) {
             return $this->RestResponse->viewData($data);
+        } else if (!empty($this->request->params['named']['exportcsv'])) {
+            $csv = '';
+            $toConvert = !empty($data) ? (!empty($data['data']) ? $data['data'] : $data) : [];
+            if (!empty($toConvert)) {
+                $firstElement = key($toConvert);
+                if (is_string($firstElement)) {
+                    foreach ($toConvert as $key => $value) {
+                        $csv .= sprintf('%s,%s', $key, json_encode($value)) . PHP_EOL;
+                    }
+                } else { // second element is an array
+                    $csv = array_map(function($row) {
+                        $flattened = array_values(Hash::flatten($row));
+                        $stringified = array_map('json_encode', $flattened);
+                        return implode(',', $stringified);
+                    }, $toConvert);
+                    $csv = implode(',', array_keys($toConvert[0])) . PHP_EOL .  implode(PHP_EOL, array_values($csv));
+                }
+            }
+            return $this->RestResponse->viewData($csv, 'text/csv');
         }
 
         $this->layout = false;

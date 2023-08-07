@@ -30,7 +30,7 @@ class TrendingTagsWidget
 	    /** @var Event $eventModel */
         $eventModel = ClassRegistry::init('Event');
         $threshold = empty($options['threshold']) ? 10 : $options['threshold'];
-        if (is_string($options['time_window']) && substr($options['time_window'], -1) === 'd') {
+        if (!empty($options['time_window']) && is_string($options['time_window']) && substr($options['time_window'], -1) === 'd') {
             $time_window = ((int)substr($options['time_window'], 0, -1)) * 24 * 60 * 60;
         } else {
             $time_window = empty($options['time_window']) ? (7 * 24 * 60 * 60) : (int)$options['time_window'];
@@ -44,6 +44,7 @@ class TrendingTagsWidget
 
         $tagColours = [];
         $allTags = [];
+        $data = [];
         $this->render = $this->getRenderer($options);
         if (!empty($options['over_time'])) {
 
@@ -71,7 +72,6 @@ class TrendingTagsWidget
                 }
             }
 
-            $data = [];
             $data['data'] = [];
             foreach($tagOvertime as $date => $tagCount) {
                 $item = [];
