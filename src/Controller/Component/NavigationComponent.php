@@ -46,7 +46,7 @@ class NavigationComponent extends Component
         'DecayingModels' => 'hourglass-end',
         'ImportRegexp' => 'file-import',
         'SignatureAllowedlists' => 'fingerprint',
-        'NoticeLists' => 'list',
+        'Noticelists' => 'list',
         'Correlations' => 'project-diagram',
         'Servers' => 'network-wired',
         'Communities' => 'handshake-simple',
@@ -78,6 +78,17 @@ class NavigationComponent extends Component
             ['icon' => 'cloud'],
             ['icon' => 'cog', 'class' => 'fa-inverse']
         ]],
+    ];
+    protected $defaultCRUDControllers = [
+        //'Individuals',
+        'Organisations',
+        'SharingGroups',
+        'Roles',
+        'Users',
+        'Tags',
+        'UserSettings',
+        'Events',
+        'Noticelists',
     ];
 
     public function initialize(array $config): void
@@ -199,16 +210,7 @@ class NavigationComponent extends Component
     public function getFullConfig($bcf, $request)
     {
         $navigationClasses = $this->loadNavigationClasses($bcf, $request);
-        $CRUDControllers = [
-            //'Individuals',
-            'Organisations',
-            'SharingGroups',
-            'Roles',
-            'Users',
-            'Tags',
-            'UserSettings',
-            'Events',
-        ];
+        $CRUDControllers = $this->defaultCRUDControllers;
         foreach ($CRUDControllers as $controller) {
             $bcf->setDefaultCRUDForModel($controller);
         }

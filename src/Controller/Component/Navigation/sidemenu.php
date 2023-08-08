@@ -145,7 +145,7 @@ class Sidemenu {
                         ],
                         'NoticeLists' => [
                             'label' => __('NoticeLists'),
-                            'icon' => $this->iconTable['NoticeLists'],
+                            'icon' => $this->iconTable['Noticelists'],
                             'url' => '/noticelists/index',
                         ],
                     ]
