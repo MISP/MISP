@@ -1,4 +1,7 @@
 <?php
+
+use Cake\Utility\Inflector;
+
 $chartOptions = $chartOptions ?? [];
 $seed = mt_rand();
 $chartId = "chart-{$seed}";
@@ -19,6 +22,9 @@ $totalValue = 0;
 foreach ($data as $combined) {
     $combinedValues = array_values($combined);
     $label = strval($combinedValues[0]);
+    if (is_bool($combinedValues[0])) {
+        $label = sprintf('%s: %s', h(Inflector::humanize(array_key_first($combined))), empty($combinedValues[0]) ? __('False') : __('True'));
+    }
     $value = $combinedValues[1];
     $labels[] = $label;
     $series[] = $value;
