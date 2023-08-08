@@ -68,6 +68,7 @@ class SharingGroupsController extends AppController
             ]
         ],
     ];
+    public $wrapResponse = true;
 
     public function add()
     {

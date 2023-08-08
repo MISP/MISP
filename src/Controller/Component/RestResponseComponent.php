@@ -559,7 +559,8 @@ class RestResponseComponent extends Component
             $data['errors'] = $errors;
         }
         if (!$raw && is_object($data)) {
-            $data = $this->APIRearrange->rearrangeForAPI($data);
+            $shouldWrap = !empty($this->getController()->wrapResponse);
+            $data = $this->APIRearrange->rearrangeForAPI($data, $shouldWrap);
         }
         return $this->__sendResponse($data, 200, $format, $raw, $download, $headers);
     }
