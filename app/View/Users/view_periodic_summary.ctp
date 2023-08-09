@@ -4,6 +4,10 @@
         <a class="btn <?= $period === 'weekly' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/weekly' ?>"><?= __('Weekly') ?></a>
         <a class="btn <?= $period === 'monthly' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/monthly' ?>"><?= __('Monthly') ?></a>
     </div>
+    <div class="input-append" style="margin-bottom: 0;">
+        <input class="span2" id="appendedInputButton" type="number" min="1" step="1" placeholder="<?= __('Number of days from today') ?>">
+        <a class="btn <?= $period === 'custom' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/custom/lastdays:5' ?>"><?= __('Custom') ?></a>
+    </div>
 
     <h2><?= __('MISP %s summary', h($period)); ?></h2>
 
