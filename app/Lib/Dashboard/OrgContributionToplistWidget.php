@@ -13,6 +13,8 @@ class OrgContributionToplistWidget
         'year' => 'Which contributed most this year? (boolean)',
         'first_half_year' => 'Which contributed most the first half-year (between Jan and June)? (boolean)',
         'second_half_year' => 'Which contributed most the second half-year (between July and Dec)? (boolean)',
+        'start_date' => 'The ISO 8601 date format at which to start',
+        'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
         'filter' => 'A list of filters by organisation meta information (nationality, sector, type, name, uuid, local (- expects a boolean or a list of boolean values)) to include. (dictionary, prepending values with ! uses them as a negation)',
         'limit' => 'Limits the number of displayed tags. Default: 10'
     ];
@@ -54,6 +56,14 @@ class OrgContributionToplistWidget
         } else if (!empty($options['current_half'])) {
             $condition =  strtotime('first day of july this year 00:00:00', time());
             $end_condition = strtotime('last day of december this year 23:59:59', time());
+        } else if (!empty($options['start_date'])) {
+            $condition = strtotime($options['start_date'], time());
+            $end_condition = [];
+            if (empty($options['end_date'])) {
+                $end_condition = time();
+            } else {
+                $end_condition = strtotime($options['end_date'], time());
+            }
         } else {
             return null;
         }
@@ -61,12 +71,12 @@ class OrgContributionToplistWidget
         if (!empty($condition)) {
             $datetime = new DateTime();
             $datetime->setTimestamp($condition);
-            $conditions['Event.timestamp >='] = $datetime->format('Y-m-d H:i:s');
+            $conditions['Event.timestamp >='] = $datetime->getTimestamp();
         }
         if (!empty($end_condition)) {
             $datetime = new DateTime();
             $datetime->setTimestamp($end_condition);
-            $conditions['Event.timestamp <='] = $datetime->format('Y-m-d H:i:s');
+            $conditions['Event.timestamp <='] = $datetime->getTimestamp();
         }
         return $conditions;
     }
@@ -75,10 +85,6 @@ class OrgContributionToplistWidget
     public function handler($user, $options = array())
     {
         $params = ['conditions' => []];
-        $timeConditions = $this->timeConditions($options);
-        if ($timeConditions) {
-            $params['conditions']['AND'][] = $timeConditions;
-        }
         if (!empty($options['filter']) && is_array($options['filter'])) {
             foreach ($this->validFilterKeys as $filterKey) {
                 if (!empty($options['filter'][$filterKey])) {
@@ -108,7 +114,12 @@ class OrgContributionToplistWidget
             'fields' => ['Organisation.id', 'Organisation.name'],
             'conditions' => $params['conditions']
         ]);
-        $conditions = ['Event.orgc_id IN' => array_keys($org_ids)];
+        $conditions = [];
+        $conditions['AND'][] = ['Event.orgc_id IN' => array_keys($org_ids)];
+        $timeConditions = $this->timeConditions($options);
+        if ($timeConditions) {
+            $conditions['AND'][]['AND'] = $timeConditions;
+        }
         $this->Event = ClassRegistry::init('Event');
         $this->Event->virtualFields['frequency'] = 0;
         $orgs = $this->Event->find('all', [

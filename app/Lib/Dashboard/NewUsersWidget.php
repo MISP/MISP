@@ -17,6 +17,8 @@ class NewUsersWidget
         'month' => 'Which organisations have been added this month? (boolean)',
         'previous_month' => 'Who contributed most the previous, finished month? (boolean)',
         'year' => 'Which organisations have been added this year? (boolean)',
+        'start_date' => 'The ISO 8601 date format at which to start',
+        'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
         'fields' => 'Which fields should be displayed, by default all are selected. Pass a list with the following options: [id, email, Organisation.name, Role.name, date_created]'
     ];
     private $validFilterKeys = [
@@ -65,6 +67,15 @@ class NewUsersWidget
         } else if (!empty($options['year'])) {
             $condition = strtotime('first day of this year 00:00:00', time());
             $this->tableDescription = __('The %d newest users created during the current year', $limit);
+        } else if (!empty($options['start_date'])) {
+            $condition = strtotime($options['start_date'], time());
+            $end_condition = [];
+            if (empty($options['end_date'])) {
+                $end_condition = time();
+            } else {
+                $end_condition = strtotime($options['end_date'], time());
+            }
+            $this->tableDescription = __('The %d newest organisations created since %s', $limit, $options['start_date']);
         } else {
             $this->tableDescription = __('The %d newest users created', $limit);
             return null;
