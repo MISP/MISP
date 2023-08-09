@@ -18,6 +18,7 @@ declare(strict_types=1);
 
 use Cake\Core\Configure;
 use Cake\Datasource\ConnectionManager;
+use Cake\TestSuite\ConnectionHelper;
 use Migrations\TestSuite\Migrator;
 use \League\OpenAPIValidation\PSR7\ValidatorBuilder;
 
@@ -48,6 +49,9 @@ ConnectionManager::setConfig('test_debug_kit', [
 ]);
 
 ConnectionManager::alias('test_debug_kit', 'debug_kit');
+
+(new ConnectionHelper())->addTestAliases();
+
 
 // Fixate sessionid early on, as php7.2+
 // does not allow the sessionid to be set after stdout
