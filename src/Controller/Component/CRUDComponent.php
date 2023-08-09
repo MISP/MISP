@@ -885,10 +885,8 @@ class CRUDComponent extends Component
 
     public function delete($id = false, $params = []): void
     {
-        $ids = $this->getIdsOrFail(false);
-        $query = $this->Table->find()->where(function (QueryExpression $exp) use ($ids) {
-            return $exp->in($this->Table->getAlias() . '.id', $ids);
-        });
+        $ids = $this->getIds($id);
+        $query = $this->prepareQueryForIDOrUUID($id);
         if (!empty($params['conditions'])) {
             $query->where($params['conditions']);
         }
@@ -896,45 +894,38 @@ class CRUDComponent extends Component
             $query->contain($params['contain']);
         }
         $entities = $query->all()->toList();
+        if (isset($params['afterFind'])) {
+            foreach ($entities as $i => $entity) {
+                $entities[$i] = $params['afterFind']($entity, $params);
+            }
+        }
         if ($this->request->is('get')) {
             $this->Controller->set('entities', $entities);
             $this->Controller->set('tableFields', $params['tableFields'] ?? []);
             $this->Controller->viewBuilder()->setLayout('ajax');
-            if (count($ids) > 1) {
+            if (count($entities) > 1) {
                 $this->Controller->set('ids', $ids);
                 $this->Controller->render('/genericTemplates/massDelete');
             } else {
-                $this->Controller->set('id', $ids);
+                $this->Controller->set('id', $id);
                 $this->Controller->render('/genericTemplates/delete');
             }
         } else if ($this->request->is('post') || $this->request->is('delete')) {
-            $ids = $this->getIdsOrFail($id);
             $isBulk = count($ids) > 1;
             $bulkSuccesses = 0;
-            foreach ($ids as $id) {
-                $query = $this->Table->find()->where([$this->Table->getAlias() . '.id' => $id]);
-                if (!empty($params['conditions'])) {
-                    $query->where($params['conditions']);
-                }
-                if (!empty($params['contain'])) {
-                    $query->contain($params['contain']);
-                }
-                $data = $query->first();
-                if (isset($params['afterFind'])) {
-                    $data = $params['afterFind']($data, $params);
-                }
+            foreach ($entities as $i => $entity) {
                 if (isset($params['beforeSave'])) {
                     try {
-                        $data = $params['beforeSave']($data);
-                        if ($data === false) {
+                        $entity = $params['beforeSave']($entity);
+                        if ($entity === false) {
                             throw new NotFoundException(__('Could not save {0} due to the input failing to meet expectations. Your input is bad and you should feel bad.', $this->ObjectAlias));
                         }
                     } catch (\Exception $e) {
-                        $data = false;
+                        $entity = false;
                     }
                 }
-                if (!empty($data)) {
-                    $success = $this->Table->delete($data);
+                if (!empty($entity)) {
+                    $success = $this->Table->delete($entity);
                 } else {
                     $success = false;
                 }
@@ -1752,6 +1743,29 @@ class CRUDComponent extends Component
             }
         }
         return $filters;
+    }
+
+    /**
+     * Prepare a find query for either the provided id/uuid or a list of json-encoded ids 
+     *
+     * @param mixed $id Can be either ID, UUID or unset
+     * @return Query
+     * @throws NotFoundException
+     */
+    public function prepareQueryForIDOrUUID($id = false): Query
+    {
+        $query = $this->Table->find();
+        $ids = $this->getIds($id);
+        if (Validation::uuid($id) && $this->Table->getSchema()->hasColumn('uuid')) {
+            $query->where(["{$this->Table->getAlias()}.uuid" => $id,]);
+        } else if (count($ids) > 0) {
+            $query->where(function (QueryExpression $exp) use ($ids) {
+                return $exp->in($this->Table->getAlias() . '.id', $ids);
+            });
+        } else {
+            throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
+        }
+        return $query;
     }
 
     private function renderViewInVariable($templateRelativeName, $data)
