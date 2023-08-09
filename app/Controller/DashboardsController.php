@@ -207,13 +207,16 @@ class DashboardsController extends AppController
                     $csv = array_map(function($row) {
                         $flattened = array_values(Hash::flatten($row));
                         $stringified = array_map('strval', $flattened);
-                        return implode(',', $stringified);
+                        $quotified = array_map(function($item) { return sprintf('"%s"', $item); }, $stringified);
+                        return implode(',', $quotified);
                     }, $toConvert);
-                    $rowKey = implode(',', array_map('strval', array_keys(Hash::flatten($toConvert[0]))));
+                    $rowKey = implode(',', array_map(function ($item) {
+                        return sprintf('"%s"', $item);
+                    }, array_map('strval', array_keys(Hash::flatten($toConvert[0])))));
                     $csv = $rowKey . PHP_EOL .  implode(PHP_EOL, array_values($csv));
                 }
             }
-            return $this->RestResponse->viewData($csv, 'text/csv');
+            return $this->RestResponse->viewData($csv, 'text/csv', false, true);
         }
 
         $this->layout = false;
