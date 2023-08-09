@@ -68,7 +68,6 @@ class SharingGroupsController extends AppController
             ]
         ],
     ];
-    public $wrapResponse = true;
 
     public function add()
     {
@@ -358,6 +357,7 @@ class SharingGroupsController extends AppController
             'contain' => $containFields,
             'afterFind' => $afterFindHandler,
             'statisticsFields' => $this->statisticsFields,
+            'wrapResponse' => true,
         ]);
         $responsePayload = $this->CRUD->getResponsePayload();
         if (!empty($responsePayload)) {

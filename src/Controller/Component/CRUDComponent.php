@@ -38,6 +38,7 @@ class CRUDComponent extends Component
         $embedInModal = !empty($this->request->getQuery('embedInModal', false));
         $excludeStats = !empty($this->request->getQuery('excludeStats', false));
         $skipTableToolbar = !empty($this->request->getQuery('skipTableToolbar', false));
+        $wrapResponse = !empty($options['wrapResponse']);
 
         if (!empty($options['quickFilters'])) {
             if (empty($options['filters'])) {
@@ -129,7 +130,7 @@ class CRUDComponent extends Component
             }
             $this->Controller->restResponsePayload = $this->RestResponse->viewData($data, 'json', false, false, false, [
                 'X-Total-Count' => $totalCount,
-            ]);
+            ], $wrapResponse);
         } else {
             $this->Controller->setResponse($this->Controller->getResponse()->withHeader('X-Total-Count', $totalCount));
             if (isset($options['afterFind'])) {
