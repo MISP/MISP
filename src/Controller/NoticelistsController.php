@@ -201,6 +201,7 @@ class NoticelistsController extends AppController
     public function view($id)
     {
         $params = [
+            'contain' => $this->containFields,
         ];
         $this->CRUD->view($id, $params);
         $responsePayload = $this->CRUD->getResponsePayload();
