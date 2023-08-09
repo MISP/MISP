@@ -32,6 +32,14 @@ class LoginsWidget
             $end = date('Y-m-d H:i:s', strtotime('last day of last month 23:59:59', time()));
         } else if (!empty($options['year'])) {
             $begin = date('Y-m-d', strtotime('first day of this year 00:00:00', time()));
+        } else if (!empty($options['start_date'])) {
+            $begin = date($options['start_date']);
+            $end = [];
+            if (empty($options['end_date'])) {
+                $end = date(time());
+            } else {
+                $end = date($options['end_date']);
+            }
         } else {
             $begin = date('Y-m-d H:i:s', strtotime('-7 days', time()));
         }

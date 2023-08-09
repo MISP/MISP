@@ -18,6 +18,8 @@ class NewOrgsWidget
         'previous_month' => 'Who contributed most the previous, finished month? (boolean)',
         'first_half_year' => 'Who contributed most the first half-year (between Jan and June)? (boolean)',
         'second_half_year' => 'Who contributed most the second half-year (between July and Dec)? (boolean)',
+        'start_date' => 'The ISO 8601 date format at which to start',
+        'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
         'year' => 'Which organisations have been added this year? (boolean)',
         'local' => 'Should the list only show local organisations? (boolean or list of booleans, defaults to 1. To get both sets, use [0,1])',
         'fields' => 'Which fields should be displayed, by default all are selected. Pass a list with the following options: [id, uuid, name, sector, type, nationality, creation_date]'
@@ -69,6 +71,15 @@ class NewOrgsWidget
             $condition =  strtotime('first day of july this year 00:00:00', time());
             $end_condition = strtotime('last day of december this year 23:59:59', time());
             $this->tableDescription = __('The %d newest organisations created during the current half year', $limit);
+        } else if (!empty($options['start_date'])) {
+            $condition = strtotime($options['start_date'], time());
+            $end_condition = [];
+            if (empty($options['end_date'])) {
+                $end_condition = time();
+            } else {
+                $end_condition = strtotime($options['end_date'], time());
+            }
+            $this->tableDescription = __('The %d newest organisations created since %s', $limit, $options['start_date']);
         } else {
             $this->tableDescription = __('The %d newest organisations created', $limit);
             return null;

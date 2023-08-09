@@ -13,6 +13,8 @@ class APIActivityWidget
         'month' => 'Who contributed most this month? (boolean)',
         'previous_month' => 'Who contributed most the previous, finished month? (boolean)',
         'year' => 'Which contributed most this year? (boolean)',
+        'start_date' => 'The ISO 8601 date format at which to start',
+        'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
     ];
     public $description = 'Basic widget showing some server statistics in regards to MISP.';
     public $cacheLifetime = 10;
@@ -32,6 +34,14 @@ class APIActivityWidget
             $end = new DateTime(date('Y-m-d', strtotime('last day of last month 23:59:59', time())));
         } else if (!empty($options['year'])) {
             $begin = new DateTime(date('Y-m-d', strtotime('first day of this year 00:00:00', time())));
+        } else if (!empty($options['start_date'])) {
+            $begin = new DateTime($options['start_date']);
+            $end = [];
+            if (empty($options['end_date'])) {
+                $end = new DateTime();
+            } else {
+                $end = new DateTime($options['end_date']);
+            }
         } else {
             $begin = new DateTime(date('Y-m-d', strtotime('-7 days', time())));;
         }
