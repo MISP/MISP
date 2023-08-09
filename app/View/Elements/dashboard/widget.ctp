@@ -22,7 +22,7 @@
                 __('Export raw data'),
                 $this->FontAwesome->getClass('download'),
                 __('Export as JSON'),
-                __('Export as CSV'),
+                __('Export as CSV')
             ),
             sprintf(
                 '<span class="fas fa-edit edit-widget useCursorPointer" title="%s"></span>',
