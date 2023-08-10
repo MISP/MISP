@@ -2,17 +2,14 @@
 
 namespace App\Controller\Component;
 
-use Cake\Controller\Component;
 use App\Model\Entity\User;
-use Cake\Http\Exception\NotFoundException;
-use Cake\Http\Exception\MethodNotAllowedException;
-use Cake\Http\Exception\ForbiddenException;
-use Cake\Http\Exception\InternalErrorException;
-use Cake\ORM\TableRegistry;
+use Cake\Controller\Component;
 use Cake\Core\Configure;
-use Cake\Core\Configure\Engine\PhpConfig;
+use Cake\Http\Exception\InternalErrorException;
+use Cake\Http\Exception\MethodNotAllowedException;
+use Cake\Http\Exception\NotFoundException;
+use Cake\ORM\TableRegistry;
 use Cake\Utility\Inflector;
-use Cake\Routing\Router;
 
 class ACLComponent extends Component
 {
@@ -268,6 +265,20 @@ class ACLComponent extends Component
             'view' => ['*'],
             'preview_entries' => ['*']
         ],
+        'ObjectTemplates' => [
+            'activate' => [],
+            'add' => ['perm_object_template'],
+            'edit' => ['perm_object_template'],
+            'delete' => ['perm_object_template'],
+            'getToggleField' => [],
+            'getRaw' => ['perm_object_template'],
+            'objectChoice' => ['*'],
+            'objectMetaChoice' => ['perm_add'],
+            'view' => ['*'],
+            'index' => ['*'],
+            'update' => [],
+            'possibleObjectTemplates' => ['*'],
+        ],
         'Api' => [
             'index' => ['*']
         ]
@@ -332,13 +343,13 @@ class ACLComponent extends Component
                         $this->Log->create();
                         $this->Log->save(
                             [
-                            'org' => 'SYSTEM',
-                            'model' => 'User',
-                            'model_id' => $user['id'],
-                            'email' => $user['email'],
-                            'action' => 'security',
-                            'user_id' => $user['id'],
-                            'title' => __('User triggered security alert by attempting to access /%s/%s. Reason why this endpoint is of interest: %s', $controller, $action, $message),
+                                'org' => 'SYSTEM',
+                                'model' => 'User',
+                                'model_id' => $user['id'],
+                                'email' => $user['email'],
+                                'action' => 'security',
+                                'user_id' => $user['id'],
+                                'title' => __('User triggered security alert by attempting to access /%s/%s. Reason why this endpoint is of interest: %s', $controller, $action, $message),
                             ]
                         );
                     }
@@ -556,8 +567,8 @@ class ACLComponent extends Component
         $roles = $this->Role->find(
             'all',
             [
-            'recursive' => -1,
-            'conditions' => $conditions
+                'recursive' => -1,
+                'conditions' => $conditions
             ]
         );
         if (empty($roles)) {

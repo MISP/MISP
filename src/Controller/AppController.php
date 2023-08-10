@@ -262,4 +262,15 @@ class AppController extends Controller
     {
         return $this->ACL->getUser()->Role->perm_site_admin;
     }
+
+    /**
+     * Close session without writing changes to them and return current user.
+     * @return array
+     */
+    protected function closeSession()
+    {
+        $user = $this->Auth->user();
+        session_abort();
+        return $user;
+    }
 }
