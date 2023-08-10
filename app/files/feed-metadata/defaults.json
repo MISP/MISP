@@ -1691,23 +1691,25 @@
     }
   },
   {
-    "name": "List of malicious domains in Poland",
-    "provider": "CERT-PL",
-    "url": "https://hole.cert.pl/domains/domains.txt",
-    "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
-    "enabled": true,
-    "distribution": "0",
-    "sharing_group_id": "0",
-    "default": false,
-    "source_format": "freetext",
-    "fixed_event": true,
-    "delta_merge": true,
-    "publish": false,
-    "override_ids": false,
-    "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
-    "input_source": "network",
-    "delete_local_file": false,
-    "lookup_visible": true,
-    "caching_enabled": true
+    "Feed": {
+      "name": "List of malicious domains in Poland",
+      "provider": "CERT-PL",
+      "url": "https://hole.cert.pl/domains/domains.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+      "enabled": true,
+      "distribution": "0",
+      "sharing_group_id": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "caching_enabled": true
+    }
   }
 ]
