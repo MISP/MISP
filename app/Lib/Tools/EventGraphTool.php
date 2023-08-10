@@ -372,6 +372,8 @@
                         'id' => 'tag_edge_id_' . $i,
                         'from' => $attr['id'],
                         'to' => $tag['name'],
+                        'type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                        'comment' => '',
                     );
                     $tagSet[$tag['name']] = $tag;
                     array_push($this->__json['relations'], $toPush);
@@ -410,6 +412,8 @@
                                 'id' => "tag_edge_id_" . $i,
                                 'from' => sprintf('o-%s', $obj['id']),
                                 'to' => $tag['name'],
+                                'type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                                'comment' => '',
                             );
                             $tagSet[$tag['name']] = $tag;
                             array_push($added_value, $tag['name']);
