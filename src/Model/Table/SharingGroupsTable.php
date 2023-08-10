@@ -701,7 +701,7 @@ class SharingGroupsTable extends AppTable
      * @param array $server
      * @return int || false
      */
-    public function captureSG($sg, $user, $server = false)
+    public function captureSG(array $sg, array $user, $server = false)
     {
         $syncLocal = false;
         if (!empty($server) && !empty($server['Server']['local'])) {
@@ -718,7 +718,7 @@ class SharingGroupsTable extends AppTable
                     'SharingGroupOrgs' => ['Organisations']
                 ]
             ]
-        )->disableHydration()->first();
+        )->first();
         $forceUpdate = false;
         if (empty($existingSG)) {
             if (!$user['Role']['perm_sharing_group']) {
@@ -759,7 +759,7 @@ class SharingGroupsTable extends AppTable
      * @param array $sg
      * @return int || false || true
      */
-    private function captureSGExisting($user, $existingSG, $sg)
+    private function captureSGExisting(array $user, SharingGroup $existingSG, array $sg)
     {
         if (!$this->checkIfAuthorised($user, $existingSG['id']) && !$user['Role']['perm_sync']) {
             return false;
@@ -771,14 +771,8 @@ class SharingGroupsTable extends AppTable
             // We need a mechanism to check whether we're in sync context.
             $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['org_id'] == $user['org_id'];
             if ($isUpdatableBySync || $isSGOwner || $user['Role']['perm_site_admin']) {
-                $editedSG = $existingSG;
                 $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming'];
-                foreach ($attributes as $a) {
-                    if (isset($sg[$a])) {
-                        $editedSG[$a] = $sg[$a];
-                    }
-                }
-                $editedSGEntity = $this->newEntity($editedSG);
+                $editedSGEntity = $this->patchEntity($existingSG, $sg, ['fields' => $attributes]);
                 $this->save($editedSGEntity);
                 return true;
             } else {
