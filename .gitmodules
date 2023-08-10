@@ -1,6 +1,6 @@
-[submodule "libraries/noticelists"]
-	path = libraries/noticelists
+[submodule "libraries/misp-noticelist"]
+	path = libraries/misp-noticelist
 	url = https://github.com/MISP/misp-noticelist.git
-[submodule "libraries/object-templates"]
-	path = libraries/object-templates
+[submodule "libraries/misp-objects"]
+	path = libraries/misp-objects
 	url = https://github.com/MISP/misp-objects.git

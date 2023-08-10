@@ -43,7 +43,7 @@ class NoticelistsTable extends AppTable
 
     public function update()
     {
-        $directories = glob(APP . '..' . DS . 'libraries' . DS . 'noticelists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
+        $directories = glob(APP . '..' . DS . 'libraries' . DS . 'misp-noticelists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
         $updated = [];
         foreach ($directories as $dir) {
             $list = FileAccessTool::readJsonFromFile($dir . DS . 'list.json');

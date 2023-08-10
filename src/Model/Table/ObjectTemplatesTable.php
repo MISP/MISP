@@ -2,10 +2,9 @@
 
 namespace App\Model\Table;
 
-use App\Model\Table\AppTable;
-use Cake\Filesystem\Folder;
-use Cake\Validation\Validation;
 use App\Lib\Tools\FileAccessTool;
+use App\Model\Table\AppTable;
+use Cake\Validation\Validation;
 use DirectoryIterator;
 
 class ObjectTemplatesTable extends AppTable
@@ -15,23 +14,26 @@ class ObjectTemplatesTable extends AppTable
         parent::initialize($config);
         $this->addBehavior('UUID');
         $this->addBehavior('AuditLog');
-        $this->addBehavior('JsonFields', [
+        $this->addBehavior(
+            'JsonFields',
+            [
             'fields' => ['requirements'],
-        ]);
+            ]
+        );
         $this->belongsTo(
             'Users',
             [
                 'foreignKey' => 'user_id',
                 'propertyName' => 'User',
                 ]
-            );
+        );
             $this->belongsTo(
                 'Organisations',
                 [
                     'foreignKey' => 'org_id',
                     'propertyName' => 'Organisation',
-            ]
-        );
+                ]
+            );
         $this->hasMany(
             'ObjectTemplateElements',
             [
@@ -43,12 +45,12 @@ class ObjectTemplatesTable extends AppTable
         $this->setDisplayField('name');
     }
 
-    const OBJECTS_DIR = APP . '../libraries/object-templates/objects';
+    const OBJECTS_DIR = APP . '../libraries/misp-objects/objects';
 
     public function update($user = false, $type = false, $force = false)
     {
         $directories = $this->getTemplateDirectoryPaths();
-        $updated = array();
+        $updated = [];
         foreach ($directories as $dir) {
             if ($type && '/' . $type != $dir) {
                 continue;
@@ -60,25 +62,28 @@ class ObjectTemplatesTable extends AppTable
             if (!isset($template['version'])) {
                 $template['version'] = 1;
             }
-            $current = $this->find('all', array(
-                'fields' => array('version' => 'MAX(version)', 'uuid'),
-                'conditions' => array('uuid' => $template['uuid']),
+            $current = $this->find(
+                'all',
+                [
+                'fields' => ['version' => 'MAX(version)', 'uuid'],
+                'conditions' => ['uuid' => $template['uuid']],
                 'recursive' => -1,
-                'group' => array('uuid')
-            ))->first();
+                'group' => ['uuid']
+                ]
+            )->first();
             if (!empty($current)) {
                 $current['version'] = $current['version'];
             }
             if ($force || empty($current) || $template['version'] > $current['version']) {
                 $result = $this->__updateObjectTemplate($template, $current, $user);
                 if ($result === true) {
-                    $temp = array('name' => $template['name'], 'new' => $template['version']);
+                    $temp = ['name' => $template['name'], 'new' => $template['version']];
                     if (!empty($current)) {
                         $temp['old'] = $current['version'];
                     }
                     $updated['success'][] = $temp;
                 } else {
-                    $updated['fails'][] = array('name' => $template['name'], 'fail' => json_encode($result));
+                    $updated['fails'][] = ['name' => $template['name'], 'fail' => json_encode($result)];
                 }
             }
         }
@@ -87,8 +92,8 @@ class ObjectTemplatesTable extends AppTable
 
     private function __updateObjectTemplate($template, $current, $user = false)
     {
-        $template['requirements'] = array();
-        $requirementFields = array('required', 'requiredOneOf');
+        $template['requirements'] = [];
+        $requirementFields = ['required', 'requiredOneOf'];
         foreach ($requirementFields as $field) {
             if (isset($template[$field])) {
                 $template['requirements'][$field] = $template[$field];
@@ -124,8 +129,8 @@ class ObjectTemplatesTable extends AppTable
 
     private function __convertJSONToElement($attribute)
     {
-        $result = array();
-        $translation_table = array(
+        $result = [];
+        $translation_table = [
             'misp-usage-frequency' => 'frequency',
             'misp-attribute' => 'type',
             'description' => 'description',
@@ -137,7 +142,7 @@ class ObjectTemplatesTable extends AppTable
             'sane_default' => 'sane_default',
             'values_list' => 'values_list',
             'multiple' => 'multiple'
-        );
+        ];
         foreach ($translation_table as $from => $to) {
             if (isset($attribute[$from])) {
                 $result[$to] = $attribute[$from];
@@ -181,7 +186,7 @@ class ObjectTemplatesTable extends AppTable
         // check the multiple flag is adhered to
         foreach ($template['ObjectTemplateElement'] as $template_attribute) {
             if ($template_attribute['multiple'] !== true) {
-                $found_relations = array();
+                $found_relations = [];
                 foreach ($attributes['Attribute'] as $attribute) {
                     if ($attribute['object_relation'] == $template_attribute['object_relation']) {
                         if (!isset($found_relations[$attribute['object_relation']])) {
@@ -203,32 +208,38 @@ class ObjectTemplatesTable extends AppTable
     public function fetchPossibleTemplatesBasedOnTypes(array $attributeTypes)
     {
         $uniqueAttributeTypes = array_unique($attributeTypes, SORT_REGULAR);
-        $potentialTemplateIds = $this->find('column', array(
+        $potentialTemplateIds = $this->find(
+            'column',
+            [
             'recursive' => -1,
-            'fields' => array(
+            'fields' => [
                 'ObjectTemplate.id',
-            ),
-            'conditions' => array(
+            ],
+            'conditions' => [
                 'ObjectTemplate.active' => true,
                 'ObjectTemplateElements.type' => $uniqueAttributeTypes,
-            ),
-            'joins' => array(
-                array(
+            ],
+            'joins' => [
+                [
                     'table' => 'object_template_elements',
                     'alias' => 'ObjectTemplateElements',
                     'type' => 'RIGHT',
-                    'fields' => array('ObjectTemplateElements.object_relation', 'ObjectTemplateElements.type'),
-                    'conditions' => array('ObjectTemplate.id = ObjectTemplateElements.object_template_id')
-                )
-            ),
+                    'fields' => ['ObjectTemplateElements.object_relation', 'ObjectTemplateElements.type'],
+                    'conditions' => ['ObjectTemplate.id = ObjectTemplateElements.object_template_id']
+                ]
+            ],
             'group' => 'ObjectTemplate.id',
-        ));
+            ]
+        );
 
-        $templates = $this->find('all', [
+        $templates = $this->find(
+            'all',
+            [
             'recursive' => -1,
             'conditions' => ['id' => $potentialTemplateIds],
             'contain' => ['ObjectTemplateElements' => ['fields' => ['object_relation', 'type', 'multiple']]]
-        ]);
+            ]
+        );
 
         foreach ($templates as $i => $template) {
             $res = $this->checkTemplateConformityBasedOnTypes($template, $attributeTypes);
@@ -237,7 +248,9 @@ class ObjectTemplatesTable extends AppTable
             $templates[$i]['invalidTypesMultiple'] = $res['invalidTypesMultiple'];
         }
 
-        usort($templates->toArray(), function ($a, $b) {
+        usort(
+            $templates->toArray(),
+            function ($a, $b) {
             if ($a['id'] == $b['id']) {
                 return 0;
             } else if (is_array($a['compatibility']) && is_array($b['compatibility'])) {
@@ -249,9 +262,10 @@ class ObjectTemplatesTable extends AppTable
             } else { // sort based on invalidTypes count
                 return count($a['invalidTypes']) > count($b['invalidTypes']) ? 1 : -1;
             }
-        });
+            }
+        );
 
-        return array('templates' => $templates, 'types' => $uniqueAttributeTypes);
+        return ['templates' => $templates, 'types' => $uniqueAttributeTypes];
     }
 
     /**
@@ -261,7 +275,7 @@ class ObjectTemplatesTable extends AppTable
      */
     public function checkTemplateConformityBasedOnTypes(array $template, array $attributeTypes)
     {
-        $to_return = array('valid' => true, 'missingTypes' => array());
+        $to_return = ['valid' => true, 'missingTypes' => []];
         if (!empty($template['requirements'])) {
             // construct array containing ObjectTemplateElement with object_relation as key for faster search
             $elementsByObjectRelationName = array_column($template['ObjectTemplateElement'], null, 'object_relation');
@@ -272,14 +286,14 @@ class ObjectTemplatesTable extends AppTable
                     $requiredType = $elementsByObjectRelationName[$requiredField]['type'];
                     $found = in_array($requiredType, $attributeTypes, true);
                     if (!$found) {
-                        $to_return = array('valid' => false, 'missingTypes' => array($requiredType));
+                        $to_return = ['valid' => false, 'missingTypes' => [$requiredType]];
                     }
                 }
             }
             // check for all required one of attributes
             if (!empty($template['requirements']['requiredOneOf'])) {
                 $found = false;
-                $allRequiredTypes = array();
+                $allRequiredTypes = [];
                 foreach ($template['requirements']['requiredOneOf'] as $requiredField) {
                     $requiredType = $elementsByObjectRelationName[$requiredField]['type'] ?? null;
                     $allRequiredTypes[] = $requiredType;
@@ -288,19 +302,19 @@ class ObjectTemplatesTable extends AppTable
                     }
                 }
                 if (!$found) {
-                    $to_return = array('valid' => false, 'missingTypes' => $allRequiredTypes);
+                    $to_return = ['valid' => false, 'missingTypes' => $allRequiredTypes];
                 }
             }
         }
 
         // at this point, an object could created; checking if all attribute are valid
-        $valid_types = array();
-        $to_return['invalidTypes'] = array();
-        $to_return['invalidTypesMultiple'] = array();
+        $valid_types = [];
+        $to_return['invalidTypes'] = [];
+        $to_return['invalidTypesMultiple'] = [];
         foreach ($template['ObjectTemplateElement'] as $templateElement) {
             $valid_types[$templateElement['type']] = $templateElement['multiple'];
         }
-        $check_for_multiple_type = array();
+        $check_for_multiple_type = [];
         foreach ($attributeTypes as $attributeType) {
             if (isset($valid_types[$attributeType])) {
                 if (!$valid_types[$attributeType]) { // is not multiple
@@ -332,11 +346,14 @@ class ObjectTemplatesTable extends AppTable
 
     public function setActive($id)
     {
-        $template = $this->find('all', array(
+        $template = $this->find(
+            'all',
+            [
             'recursive' => -1,
-            'conditions' => array('ObjectTemplates.id' => $id),
+            'conditions' => ['ObjectTemplates.id' => $id],
             'fields' => ['ObjectTemplates.id', 'ObjectTemplates.uuid', 'ObjectTemplates.active'],
-        ))->first();
+            ]
+        )->first();
         if (empty($template)) {
             return false;
         }
@@ -345,16 +362,19 @@ class ObjectTemplatesTable extends AppTable
             $this->save($template, true, ['active']);
             return 0;
         }
-        $similar_templates = $this->find('all', array(
+        $similar_templates = $this->find(
+            'all',
+            [
             'recursive' => -1,
             'fields' => ['ObjectTemplates.id'],
-            'conditions' => array(
+            'conditions' => [
                 'ObjectTemplates.uuid' => $template['uuid'],
-                'NOT' => array(
+                'NOT' => [
                     'ObjectTemplates.id' => $template['id']
-                )
-            )
-        ));
+                ]
+            ]
+            ]
+        );
         $template['active'] = 1;
         $this->save($template, true, ['active']);
         foreach ($similar_templates as $st) {
