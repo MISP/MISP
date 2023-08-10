@@ -108,6 +108,7 @@ class ObjectTemplatesTable extends AppTable
         }
         $template['fixed'] = 1;
         $templateEntity = $this->newEntity($template);
+        $templateEntity->requirements = $template['requirements'];
         $result = $this->save($templateEntity);
         if (!$result) {
             return $this->validationErrors;

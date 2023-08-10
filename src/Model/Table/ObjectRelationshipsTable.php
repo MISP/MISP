@@ -2,11 +2,10 @@
 
 namespace App\Model\Table;
 
-use App\Model\Table\AppTable;
-use Cake\Validation\Validator;
 use App\Lib\Tools\FileAccessTool;
+use App\Model\Table\AppTable;
 use Cake\ORM\RulesChecker;
-use Cake\ORM\Rule\IsUnique;
+use Cake\Validation\Validator;
 
 class ObjectRelationshipsTable extends AppTable
 {
@@ -14,9 +13,12 @@ class ObjectRelationshipsTable extends AppTable
     {
         parent::initialize($config);
         $this->addBehavior('AuditLog');
-        $this->addBehavior('JsonFields', [
+        $this->addBehavior(
+            'JsonFields',
+            [
             'fields' => ['format'],
-        ]);
+            ]
+        );
         $this->setDisplayField('name');
     }
 
@@ -36,13 +38,13 @@ class ObjectRelationshipsTable extends AppTable
 
     public function update()
     {
-        $relationsFile = APP . '../libraries/object-templates/relationships/definition.json';
+        $relationsFile = APP . '../libraries/misp-objects/relationships/definition.json';
         if (file_exists($relationsFile)) {
             $relations = FileAccessTool::readJsonFromFile($relationsFile, true);
             if (!isset($relations['version'])) {
                 $relations['version'] = 1;
             }
-            $this->deleteAll(array('version <' => $relations['version']));
+            $this->deleteAll(['version <' => $relations['version']]);
             foreach ($relations['values'] as $relation) {
                 $relation['version'] = $relations['version'];
                 $relationEntity = $this->newEntity($relation);
