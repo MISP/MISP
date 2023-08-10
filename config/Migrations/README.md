@@ -5,7 +5,7 @@
 ### Updating
 
 - Use the build in migration tool of Cerebrate via the UI / API
-- Alternatively, run `/var/www/cerebrate/bin/cake Migration migrate` to execute the updates.
+- Alternatively, run `bin/cake migrations migrate` to execute the updates.
 
 ## For developers
 
