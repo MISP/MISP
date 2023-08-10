@@ -2,7 +2,6 @@
 
 namespace App\Model\Table;
 
-use App\Model\Entity\Log;
 use App\Model\Entity\SharingGroup;
 use App\Model\Entity\SharingGroupOrg;
 use App\Model\Entity\SharingGroupServer;
@@ -1038,7 +1037,7 @@ class SharingGroupsTable extends AppTable
             if (!isset($syncUsers[$sg['sync_user_id']])) {
                 $syncUsers[$sg['sync_user_id']] = $UsersTable->getAuthUser($sg['sync_user_id']);
                 if (empty($syncUsers[$sg['sync_user_id']])) {
-                    $entry = new Log(
+                    $entry = $LogsTable->newEntity(
                         [
                             'org' => 'SYSTEM',
                             'model' => 'SharingGroup',
@@ -1058,7 +1057,7 @@ class SharingGroupsTable extends AppTable
                 $sharingGroupOrg = ['sharing_group_id' => $sg['id'], 'org_id' => $syncUsers[$sg['sync_user_id']]['org_id'], 'extend' => 0];
                 $result = $this->SharingGroupOrgs->save($sharingGroupOrg);
                 if (!$result) {
-                    $entry = new Log(
+                    $entry = $LogsTable->newEntity(
                         [
                             'org' => 'SYSTEM',
                             'model' => 'SharingGroup',
