@@ -62,6 +62,7 @@ class ObjectTemplatesTable extends AppTable
             if (!isset($template['version'])) {
                 $template['version'] = 1;
             }
+            $template['meta_category'] = $template['meta-category'] ?? '';
             $current = $this->find(
                 'all',
                 [
