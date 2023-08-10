@@ -5,8 +5,8 @@
         <a class="btn <?= $period === 'monthly' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/monthly' ?>"><?= __('Monthly') ?></a>
     </div>
     <div class="input-append" style="margin-bottom: 0;">
-        <input class="span2" id="appendedInputButton" type="number" min="1" step="1" placeholder="<?= __('Number of days from today') ?>">
-        <a class="btn <?= $period === 'custom' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/custom/lastdays:5' ?>"><?= __('Custom') ?></a>
+        <input class="span2" id="btn-custom" type="number" min="1" step="1" placeholder="<?= __('Number of days from today') ?>">
+        <a id="link-custom" class="btn <?= $period === 'custom' ? 'btn-primary' : 'btn-inverse' ?>" href="<?= $baseurl . '/users/viewPeriodicSummary/custom/lastdays:5' ?>"><?= __('Custom') ?></a>
     </div>
 
     <h2><?= __('MISP %s summary', h($period)); ?></h2>
@@ -24,4 +24,14 @@
         <?= $summary ?: __('No new events for this period'); ?>
     </div>
 </div>
-<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewPeriodicSummary'));
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewPeriodicSummary')); ?>
+
+
+<script>
+    var link = document.getElementById('link-custom');
+    var input = document.getElementById('btn-custom');
+    input.onchange = input.onkeyup = function() {
+        var ressource = '<?= $baseurl ?>/users/viewPeriodicSummary/custom/lastdays:' + encodeURIComponent(this.value)
+        link.setAttribute('href', ressource)
+    };
+</script>
