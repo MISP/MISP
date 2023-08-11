@@ -37,9 +37,7 @@ class LoginsWidget
         } else if (!empty($options['start_date'])) {
             $begin = date($options['start_date']);
             $end = [];
-            if (empty($options['end_date'])) {
-                $end = date(time());
-            } else {
+            if (!empty($options['end_date'])) {
                 $end = date($options['end_date']);
             }
         } else {
