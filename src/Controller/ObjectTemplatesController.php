@@ -4,11 +4,11 @@ namespace App\Controller;
 
 use App\Controller\AppController;
 use Cake\Event\EventInterface;
-use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Exception\MethodNotAllowedException;
-use Cake\Validation\Validation;
-use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Response;
+use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\Validation\Validation;
 
 class ObjectTemplatesController extends AppController
 {
@@ -19,11 +19,11 @@ class ObjectTemplatesController extends AppController
 
     public $paginate = [
         'limit' => 60,
-        'order' => array(
+        'order' => [
             'Object.id' => 'desc'
-        ),
+        ],
         'contain' => [
-            'Organisations' => array('fields' => array('Organisations.id', 'Organisations.name', 'Organisations.uuid'))
+            'Organisations' => ['fields' => ['Organisations.id', 'Organisations.name', 'Organisations.uuid']]
         ],
         'recursive' => -1
     ];
@@ -41,28 +41,34 @@ class ObjectTemplatesController extends AppController
     {
         session_abort();
 
-        $metas = $this->ObjectTemplate->find('column', array(
-            'conditions' => array('ObjectTemplate.active' => 1),
-            'fields' => array('ObjectTemplate.meta_category'),
-            'order' => array('ObjectTemplate.meta_category asc'),
+        $metas = $this->ObjectTemplate->find(
+            'column',
+            [
+            'conditions' => ['ObjectTemplate.active' => 1],
+            'fields' => ['ObjectTemplate.meta_category'],
+            'order' => ['ObjectTemplate.meta_category asc'],
             'unique' => true,
-        ));
+            ]
+        );
 
         $items = [[
             'name' => __('All Objects'),
             'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/0"
         ]];
         foreach ($metas as $meta) {
-            $items[] = array(
+            $items[] = [
                 'name' => $meta,
                 'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/$meta",
-            );
+            ];
         }
 
         $this->set('items', $items);
-        $this->set('options', array(
+        $this->set(
+            'options',
+            [
             'multiple' => 0,
-        ));
+            ]
+        );
         $this->render('/Elements/generic_picker');
     }
 
@@ -70,51 +76,60 @@ class ObjectTemplatesController extends AppController
     {
         $user = $this->closeSession();
         $this->ObjectTemplate->populateIfEmpty($user);
-        $conditions = array('ObjectTemplate.active' => 1);
+        $conditions = ['ObjectTemplate.active' => 1];
         if ($category !== false && $category !== "0") {
             $conditions['meta_category'] = $category;
         }
-        $templates_raw = $this->ObjectTemplate->find('all', array(
+        $templates_raw = $this->ObjectTemplate->find(
+            'all',
+            [
             'recursive' => -1,
             'conditions' => $conditions,
-            'fields' => array('id', 'meta_category', 'name', 'description'),
-            'order' => array('ObjectTemplate.name asc')
-        ));
+            'fields' => ['id', 'meta_category', 'name', 'description'],
+            'order' => ['ObjectTemplate.name asc']
+            ]
+        );
 
-        $items = array();
+        $items = [];
         foreach ($templates_raw as $template) {
             $template = $template['ObjectTemplate'];
-            $items[] = array(
+            $items[] = [
                 'name' => $template['name'],
                 'value' => $template['id'],
-                'template' => array(
+                'template' => [
                     'name' => $template['name'],
                     'infoExtra' => $template['description'],
                     'infoContextual' => $template['meta_category']
-                )
-            );
+                ]
+            ];
         }
 
         $this->set('items', $items);
-        $this->set('options', array(
+        $this->set(
+            'options',
+            [
             'functionName' => 'redirectAddObject',
             'multiple' => 0,
-            'select_options' => array(
-                'additionalData' => array('event_id' => $event_id),
-            ),
-        ));
+            'select_options' => [
+                'additionalData' => ['event_id' => $event_id],
+            ],
+            ]
+        );
         $this->render('/Elements/generic_picker');
     }
 
     public function view($id)
     {
         if (Validation::uuid($id)) {
-            $temp = $this->ObjectTemplates->find('all', array(
+            $temp = $this->ObjectTemplates->find(
+                'all',
+                [
                 'recursive' => -1,
-                'conditions' => array('ObjectTemplates.uuid' => $id),
-                'fields' => array('ObjectTemplates.id', 'ObjectTemplates.uuid'),
-                'order' => array('ObjectTemplates.version desc')
-            ))->first();
+                'conditions' => ['ObjectTemplates.uuid' => $id],
+                'fields' => ['ObjectTemplates.id', 'ObjectTemplates.uuid'],
+                'order' => ['ObjectTemplates.version desc']
+                ]
+            )->first();
             if (empty($temp)) {
                 throw new NotFoundException(__('Invalid object template'));
             }
@@ -122,18 +137,18 @@ class ObjectTemplatesController extends AppController
         } elseif (!is_numeric($id)) {
             throw new NotFoundException(__('Invalid object template id.'));
         }
-        $params = array(
+        $params = [
             'recursive' => -1,
-            'contain' => array(
-                'Organisations' => array('fields' => array('Organisations.id', 'Organisations.name', 'Organisations.uuid'))
-            ),
-            'conditions' => array('ObjectTemplates.id' => $id)
-        );
+            'contain' => [
+                'Organisations' => ['fields' => ['Organisations.id', 'Organisations.name', 'Organisations.uuid']]
+            ],
+            'conditions' => ['ObjectTemplates.id' => $id]
+        ];
         if ($this->ParamHandler->isRest()) {
             $params['contain'][] = 'ObjectTemplateElements';
         }
         if ($this->isSiteAdmin()) {
-            $params['contain']['Users'] = array('fields' => array('Users.id', 'Users.email'));
+            $params['contain']['Users'] = ['fields' => ['Users.id', 'Users.email']];
         }
         $objectTemplate = $this->ObjectTemplates->find('all', $params)->first();
         if (empty($objectTemplate)) {
@@ -152,11 +167,13 @@ class ObjectTemplatesController extends AppController
         if (!$this->request->is('post') && !$this->request->is('put') && !$this->request->is('delete')) {
             throw new MethodNotAllowedException();
         }
-        $this->ObjectTemplate->id = $id;
-        if (!$this->ObjectTemplate->exists()) {
+
+        $objectTemplate = $this->ObjectTemplates->get($id);
+
+        if (empty($objectTemplate)) {
             throw new NotFoundException('Invalid Object Template');
         }
-        if ($this->ObjectTemplate->delete()) {
+        if ($this->ObjectTemplates->delete($objectTemplate)) {
             if ($this->ParamHandler->isRest()) {
                 return $this->RestResponse->saveSuccessResponse('ObjectTemplates', 'admin_delete', $id);
             } else {
@@ -180,12 +197,14 @@ class ObjectTemplatesController extends AppController
             $conditions['ObjectTemplates.active'] = 1;
         }
 
-        $this->CRUD->index([
+        $this->CRUD->index(
+            [
             'filters' => $this->filterFields,
             'quickFilters' => $this->quickFilterFields,
             'quickFilterForMetaField' => ['enabled' => true, 'wildcard_search' => true],
             'conditions' => $conditions
-        ]);
+            ]
+        );
 
         $responsePayload = $this->CRUD->getResponsePayload();
 
@@ -216,7 +235,8 @@ class ObjectTemplatesController extends AppController
                     } else {
                         $change = $success['name'] . ' v' . $success['new'] . ' installed';
                     }
-                    $logEntry = $this->Log->newEntity([
+                    $logEntry = $this->Log->newEntity(
+                        [
                         'org' => $this->ACL->getUser()->Organisation->name,
                         'model' => 'ObjectTemplate',
                         'model_id' => $id,
@@ -225,14 +245,16 @@ class ObjectTemplatesController extends AppController
                         'user_id' => $this->ACL->getUser()->id,
                         'title' => 'Object template updated',
                         'change' => $change,
-                    ]);
+                        ]
+                    );
                     $this->Log->save($logEntry);
                     $successes++;
                 }
             }
             if (isset($result['fails'])) {
                 foreach ($result['fails'] as $id => $fail) {
-                    $logEntry = $this->Log->newEntity([
+                    $logEntry = $this->Log->newEntity(
+                        [
                         'org' => $this->ACL->getUser()->Organisation->name,
                         'model' => 'ObjectTemplate',
                         'model_id' => $id,
@@ -241,13 +263,15 @@ class ObjectTemplatesController extends AppController
                         'user_id' => $this->Auth->user('id'),
                         'title' => 'Object template failed to update',
                         'change' => $fail['name'] . ' could not be installed/updated. Error: ' . $fail['fail'],
-                    ]);
+                        ]
+                    );
                     $this->Log->save($logEntry);
                     $fails++;
                 }
             }
         } else {
-            $logEntry = $this->Log->newEntity([
+            $logEntry = $this->Log->newEntity(
+                [
                 'org' => $this->ACL->getUser()->Organisation->name,
                 'model' => 'ObjectTemplate',
                 'model_id' => 0,
@@ -256,7 +280,8 @@ class ObjectTemplatesController extends AppController
                 'user_id' => $this->ACL->getUser()->id,
                 'title' => 'Object template update (nothing to update)',
                 'change' => 'Executed an update of the Object Template library, but there was nothing to update.',
-            ]);
+                ]
+            );
             $this->Log->save($logEntry);
         }
         if ($successes == 0 && $fails == 0) {
@@ -270,21 +295,21 @@ class ObjectTemplatesController extends AppController
             }
             $this->Flash->success($message);
         }
-        $this->redirect(array('controller' => 'ObjectTemplates', 'action' => 'index'));
+        $this->redirect(['controller' => 'ObjectTemplates', 'action' => 'index']);
     }
 
     public function activate()
     {
-        $id = $this->request->getData()['ObjectTemplate']['data'];
+        $id = $this->request->getData()['id'];
         if (!is_numeric($id)) {
-            return new Response(array('body' => json_encode(array('saved' => false, 'errors' => 'Template not found.')), 'status' => 200, 'type' => 'json'));
+            return new Response(['body' => json_encode(['saved' => false, 'errors' => 'Template not found.']), 'status' => 200, 'type' => 'json']);
         }
-        $result = $this->ObjectTemplate->setActive($id);
+        $result = $this->ObjectTemplates->setActive($id);
         if ($result === false) {
-            return new Response(array('body' => json_encode(array('saved' => false, 'errors' => 'Template\'s state could not be toggeled.')), 'status' => 200, 'type' => 'json'));
+            return new Response(['body' => json_encode(['saved' => false, 'errors' => 'Template\'s state could not be toggeled.']), 'status' => 200, 'type' => 'json']);
         }
         $message = (($result == 1) ? 'activated' : 'disabled');
-        return new Response(array('body' => json_encode(array('saved' => true, 'success' => 'Template ' . $message . '.')), 'status' => 200, 'type' => 'json'));
+        return new Response(['body' => json_encode(['saved' => true, 'success' => 'Template ' . $message . '.']), 'status' => 200, 'type' => 'json']);
     }
 
     public function getToggleField()
