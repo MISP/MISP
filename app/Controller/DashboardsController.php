@@ -93,6 +93,9 @@ class DashboardsController extends AppController
             if (empty($data['config'])) {
                 $data['config'] = '';
             }
+            if (!empty($data['id']) && !preg_match('/^[\w\d_]+$/i', $data['id'])) {
+                throw new BadRequestException(__('Invalid widget id provided.'));
+            }
             if ($action === 'add') {
                 $data['widget_options'] = $this->Dashboard->loadAllWidgets($this->Auth->user());
             } else if ($action === 'edit') {

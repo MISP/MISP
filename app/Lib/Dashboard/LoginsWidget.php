@@ -13,6 +13,8 @@ class LoginsWidget
         'month' => 'Who contributed most this month? (boolean)',
         'previous_month' => 'Who contributed most the previous, finished month? (boolean)',
         'year' => 'Which contributed most this year? (boolean)',
+        'start_date' => 'The ISO 8601 date format at which to start',
+        'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
     ];
     public $description = 'Basic widget showing some server statistics in regards to MISP.';
     public $cacheLifetime = 10;
@@ -35,9 +37,7 @@ class LoginsWidget
         } else if (!empty($options['start_date'])) {
             $begin = date($options['start_date']);
             $end = [];
-            if (empty($options['end_date'])) {
-                $end = date(time());
-            } else {
+            if (!empty($options['end_date'])) {
                 $end = date($options['end_date']);
             }
         } else {
