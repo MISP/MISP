@@ -37,9 +37,7 @@ class APIActivityWidget
         } else if (!empty($options['start_date'])) {
             $begin = new DateTime($options['start_date']);
             $end = [];
-            if (empty($options['end_date'])) {
-                $end = new DateTime();
-            } else {
+            if (!empty($options['end_date'])) {
                 $end = new DateTime($options['end_date']);
             }
         } else {
