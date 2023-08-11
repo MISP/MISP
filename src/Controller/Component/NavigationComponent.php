@@ -303,6 +303,7 @@ class BreadcrumbFactory
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'badge');
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'variant');
         $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'is-go-to');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'isPOST');
         return $routeConfig;
     }
 
