@@ -36,7 +36,6 @@ class APIActivityWidget
             $begin = new DateTime(date('Y-m-d', strtotime('first day of this year 00:00:00', time())));
         } else if (!empty($options['start_date'])) {
             $begin = new DateTime($options['start_date']);
-            $end = [];
             if (!empty($options['end_date'])) {
                 $end = new DateTime($options['end_date']);
             }
