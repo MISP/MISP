@@ -122,7 +122,12 @@ class ObjectTemplatesTable extends AppTable
             $attribute = $this->__convertJSONToElement($attribute);
             $attribute['object_relation'] = $k;
             $attribute['object_template_id'] = $id;
-            $attributes[] = $this->ObjectTemplateElements->newEntity($attribute);
+            $attributeEntity = $this->ObjectTemplateElements->newEntity($attribute);
+            $attributeEntity->categories = $attribute['categories'] ?? [];
+            $attributeEntity->values_list = $attribute['values_list'] ?? [];
+            $attributeEntity->sane_default = $attribute['sane_default'] ?? [];
+
+            $attributes[] = $attributeEntity;
         }
         $this->ObjectTemplateElements->saveMany($attributes);
 
