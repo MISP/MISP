@@ -2,7 +2,7 @@
 
 MISP project is a large free software project composed of multiple sub-projects which are contributed by different contributors who are generally active users of the MISP project. MISP project fully supports the [Contributor Covenant Code of Conduct](https://github.com/MISP/MISP/blob/2.4/code_of_conduct.md) to foster an open and dynamic environment for contributing and the exchange in the threat intelligence and information exchange field.
 
-The [MISP roadmap](/roadmap.md) is mostly based on the user communities (e.g. private communities, CSIRTs communities, security researchers, ISACs - Information Sharing and Analysis Center, security providers, governmental or military organisations) relying on MISP to perform their duties of information sharing and analysis. 
+The [MISP roadmap](/ROADMAP.md) is mostly based on the user communities (e.g. private communities, CSIRTs communities, security researchers, ISACs - Information Sharing and Analysis Center, security providers, governmental or military organisations) relying on MISP to perform their duties of information sharing and analysis.
 
 Participating in the MISP project is easy and everyone can contribute following their ability. 
 Get familiar with [how we use GitHub at MISP Project](/GITWORKFLOW.md), then read on for details on some ways you can contribute:
