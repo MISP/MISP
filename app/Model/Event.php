@@ -3573,7 +3573,7 @@ class Event extends AppModel
         if (isset($dataArray['Event'])) {
             $dataArray['response']['Event'] = $dataArray['Event'];
             unset($dataArray['Event']);
-        } else {
+        } elseif (!isset($dataArray['response'])){
             // Accept an event not containing the `Event` key
             $dataArray['response']['Event'] = $dataArray;
         }
