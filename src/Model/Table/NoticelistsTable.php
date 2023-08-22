@@ -89,8 +89,10 @@ class NoticelistsTable extends AppTable
         foreach ($fieldsToSave as $fieldToSave) {
             $noticelist[$fieldToSave] = $list[$fieldToSave];
         }
-        $noticelist = $this->newEntity($noticelist);
-        $result = $this->save($noticelist);
+        $noticelistEntity = $this->newEntity($noticelist);
+        $noticelistEntity->ref = $noticelist['ref'];
+        $noticelistEntity->geographical_area = $noticelist['geographical_area'];
+        $result = $this->save($noticelistEntity);
         if ($result) {
             $values = [];
             foreach ($list['notice'] as $value) {
