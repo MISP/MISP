@@ -19,7 +19,7 @@
     $entity = isset($entity) ? $entity : null;
     $fieldsString = '';
     $simpleFieldWhitelist = [
-        'default', 'type', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'templates', 'options', 'value', 'checked',
+        'default', 'type', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'templates', 'options', 'value', 'checked', 'div',
     ];
     if (empty($data['url'])) {
         $data['url'] = ["controller" => $this->request->getParam('controller'), "action" => $this->request->getParam('url')];
@@ -62,8 +62,8 @@
                 $formTemplate['formGroup'] = '{{input}}{{label}}';
                 $fieldData['placeholder'] = !empty($fieldData['label']) ? $fieldData['label'] : h($fieldData['field']);
             }
-            if (!empty($data['templates'])) {
-                $formTemplate = array_merge($formTemplate, $data['templates']);
+            if (!empty($fieldData['templates'])) {
+                $formTemplate = array_merge($formTemplate, $fieldData['templates']);
             }
             // we reset the template each iteration as individual fields might override the defaults.
             $this->Form->setConfig($formTemplate);
@@ -107,7 +107,7 @@
     $formEnd = $this->Form->end();
     $actionName = h(\Cake\Utility\Inflector::humanize($this->request->getParam('action')));
     $modelName = h(\Cake\Utility\Inflector::humanize(\Cake\Utility\Inflector::singularize($this->request->getParam('controller'))));
-    if (!empty($ajax)) {
+    if (empty($raw) && !empty($ajax)) {
         $seedModal = 'mseed-' . mt_rand();
         echo $this->Bootstrap->modal([
             'title' => empty($data['title']) ? sprintf('%s %s', $actionName, $modelName) : h($data['title']),
@@ -124,7 +124,7 @@
             'modalClass' => $seedModal,
         ]);
     } else if (!empty($raw)) {
-        echo $this->element('genericElements/Form/formLayouts/formDefault', [
+        echo $this->element('genericElements/Form/formLayouts/formRaw', [
             'data' => $data,
             'actionName' => $actionName,
             'modelName' => $modelName,

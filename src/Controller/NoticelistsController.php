@@ -9,6 +9,7 @@ use Cake\Http\Response;
 use App\Lib\Tools\CustomPaginationTool;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use App\Model\Entity\Log;
+use Cake\Routing\Router;
 
 class NoticelistsController extends AppController
 {
@@ -22,97 +23,135 @@ class NoticelistsController extends AppController
         ],
     ];
 
+    public $quickFilterFields = [['name' => true], ['expanded_name' => true], ['geographical_area' => true],];
+    public $filterFields = [
+        'name', 'expanded_name', 'geographical_area', 'version', 'enabled',
+    ];
+    public $containFields = [
+        'NoticelistEntries'
+    ];
+    public $statisticsFields = ['enabled',];
+
+
     public function index()
     {
         $this->CRUD->index([
-            'quickFilters' => ['name', 'expanded_name'],
+            'filters' => $this->filterFields,
+            'quickFilters' => $this->quickFilterFields,
+            'quickFilterForMetaField' => ['enabled' => true, 'wildcard_search' => true],
+            'contain' => $this->containFields,
+            'statisticsFields' => $this->statisticsFields,
         ]);
-        if ($this->ParamHandler->isRest()) {
-            return $this->restResponsePayload;
+        $responsePayload = $this->CRUD->getResponsePayload();
+        if (!empty($responsePayload)) {
+            return $responsePayload;
         }
-        $this->set('menuData', array('menuList' => 'noticelist', 'menuItem' => 'list_noticelists'));
+    }
+
+
+    public function filtering()
+    {
+        $this->CRUD->filtering();
     }
 
     public function update()
     {
         $this->Log = $this->fetchTable('Logs');
-        //if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via POST requests.');
-        $result = $this->Noticelists->update();
-        $fails = 0;
-        $successes = 0;
-        if (!empty($result)) {
-            if (isset($result['success'])) {
-                foreach ($result['success'] as $id => $success) {
-                    if (isset($success['old'])) {
-                        $change = $success['name'] . ': updated from v' . $success['old'] . ' to v' . $success['new'];
-                    } else {
-                        $change = $success['name'] . ' v' . $success['new'] . ' installed';
+        if (!$this->request->is('get') && !$this->request->is('post')) {
+            throw new MethodNotAllowedException('This action is available via AJAX only.');
+        }
+        if ($this->request->is('get')) {
+            $this->set('title', __('Confirm updating Noticelists?'));
+            $this->set('actionName', __('Update Noticelists'));
+            $this->set('question', __('All eligible Noticelists will be updated. Proceed?'));
+            $this->viewBuilder()->setLayout('ajax');
+            $this->render('/genericTemplates/confirm');
+        } else if ($this->request->is('post')) {
+            $result = $this->Noticelists->update();
+            $fails = 0;
+            $successes = 0;
+            if (!empty($result)) {
+                if (isset($result['success'])) {
+                    foreach ($result['success'] as $id => $success) {
+                        if (isset($success['old'])) {
+                            $change = $success['name'] . ': updated from v' . $success['old'] . ' to v' . $success['new'];
+                        } else {
+                            $change = $success['name'] . ' v' . $success['new'] . ' installed';
+                        }
+                        $log = new Log([
+                            'org' => $this->ACL->getUser()->Organisation->name,
+                            'model' => 'Noticelist',
+                            'model_id' => $id,
+                            'email' => $this->ACL->getUser()->email,
+                            'action' => 'update',
+                            'user_id' => $this->ACL->getUser()->id,
+                            'title' => 'Notice list updated',
+                            'changes' => $change,
+                            'created' => date('Y-m-d H:i:s')
+                        ]);
+
+                        $this->Log->save($log);
+                        $successes++;
                     }
-                    $log = new Log([
-                        'org' => $this->ACL->getUser()->Organisation->name,
-                        'model' => 'Noticelist',
-                        'model_id' => $id,
-                        'email' => $this->ACL->getUser()->email,
-                        'action' => 'update',
-                        'user_id' => $this->ACL->getUser()->id,
-                        'title' => 'Notice list updated',
-                        'changes' => $change,
-                        'created' => date('Y-m-d H:i:s')
-                    ]);
+                }
+                if (isset($result['fails'])) {
+                    foreach ($result['fails'] as $id => $fail) {
+                        $log = new Log([
+                            'org' => $this->ACL->getUser()->Organisation->name,
+                            'model' => 'Noticelist',
+                            'model_id' => $id,
+                            'email' => $this->ACL->getUser()->email,
+                            'action' => 'update',
+                            'user_id' => $this->ACL->getUser()->id,
+                            'title' => 'Notice list failed to update',
+                            'changes' => $fail['name'] . ' could not be installed/updated. Error: ' . $fail['fail'],
+                            'created' => date('Y-m-d H:i:s')
+                        ]);
 
-                    $this->Log->save($log);
-                    $successes++;
+                        $this->Log->save($log);
+                        $fails++;
+                    }
+                }
+            } else {
+                $log = new Log([
+                    'org' => $this->ACL->getUser()->Organisation->name,
+                    'model' => 'Noticelist',
+                    'email' => $this->ACL->getUser()->email,
+                    'action' => 'update',
+                    'user_id' => $this->ACL->getUser()->id,
+                    'title' => 'Noticelist update (nothing to update)',
+                    'changes' => 'Executed an update of the notice lists, but there was nothing to update.',
+                    'created' => date('Y-m-d H:i:s')
+                ]);
+                $this->Log->save($log);
+            }
+
+            $isSuccess = false;
+            if ($successes == 0 && $fails == 0) {
+                $isSuccess = true;
+                $flashType = 'success';
+                $message = __('All noticelists are up to date already.');
+            } elseif ($successes == 0) {
+                $isSuccess = false;
+                $flashType = 'error';
+                $message = __('Could not update any of the notice lists');
+            } else {
+                $isSuccess = true;
+                $flashType = 'success';
+                $message = __('Successfully updated {0} noticelists.', $successes);
+                if ($fails != 0) {
+                    $message . __(' However, could not update {0} notice list.', $fails);
                 }
             }
-            if (isset($result['fails'])) {
-                foreach ($result['fails'] as $id => $fail) {
-                    $log = new Log([
-                        'org' => $this->ACL->getUser()->Organisation->name,
-                        'model' => 'Noticelist',
-                        'model_id' => $id,
-                        'email' => $this->ACL->getUser()->email,
-                        'action' => 'update',
-                        'user_id' => $this->ACL->getUser()->id,
-                        'title' => 'Notice list failed to update',
-                        'changes' => $fail['name'] . ' could not be installed/updated. Error: ' . $fail['fail'],
-                        'created' => date('Y-m-d H:i:s')
-                    ]);
-
-                    $this->Log->save($log);
-                    $fails++;
-                }
+            $additionalData = [];
+            if (!$this->ParamHandler->isAjax()) {
+                $additionalData['redirect'] = Router::url(['controller' => 'noticelists', 'action' => 'index']);
             }
-        } else {
-            $log = new Log([
-                'org' => $this->ACL->getUser()->Organisation->name,
-                'model' => 'Noticelist',
-                'email' => $this->ACL->getUser()->email,
-                'action' => 'update',
-                'user_id' => $this->ACL->getUser()->id,
-                'title' => 'Noticelist update (nothing to update)',
-                'changes' => 'Executed an update of the notice lists, but there was nothing to update.',
-                'created' => date('Y-m-d H:i:s')
-            ]);
-            $this->Log->save($log);
-        }
-        if ($successes == 0 && $fails == 0) {
-            $flashType = 'success';
-            $message = 'All noticelists are up to date already.';
-        } elseif ($successes == 0) {
-            $flashType = 'error';
-            $message = 'Could not update any of the notice lists';
-        } else {
-            $flashType = 'success';
-            $message = 'Successfully updated ' . $successes . ' noticelists.';
-            if ($fails != 0) {
-                $message . ' However, could not update ' . $fails . ' notice list.';
+            $this->CRUD->setResponseForController('update', $isSuccess, $message, [], [], $additionalData);
+            $responsePayload = $this->CRUD->getResponsePayload();
+            if (!empty($responsePayload)) {
+                return $responsePayload;
             }
-        }
-        if ($this->ParamHandler->isRest()) {
-            return $this->RestResponse->saveSuccessResponse('Noticelist', 'update', false, false, $message);
-        } else {
-            $this->Flash->{$flashType}($message);
-            $this->redirect(array('controller' => 'noticelists', 'action' => 'index'));
         }
     }
 
@@ -180,17 +219,14 @@ class NoticelistsController extends AppController
 
     public function view($id)
     {
-        $this->CRUD->view(
-            $id,
-            [
-                'contain' => ['NoticelistEntries']
-            ]
-        );
-        if ($this->ParamHandler->isRest()) {
-            return $this->restResponsePayload;
+        $params = [
+            'contain' => $this->containFields,
+        ];
+        $this->CRUD->view($id, $params);
+        $responsePayload = $this->CRUD->getResponsePayload();
+        if (!empty($responsePayload)) {
+            return $responsePayload;
         }
-        $this->set('id', $id);
-        $this->set('menuData', array('menuList' => 'noticelist', 'menuItem' => 'view_noticelist'));
     }
 
     public function delete($id)
@@ -217,20 +253,23 @@ class NoticelistsController extends AppController
 
     public function previewEntries($id)
     {
-        $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewNoticelistEntries']);
-
-        $noticelist = $this->Noticelists->find('all', array('contain' => array('NoticelistEntries'), 'conditions' => array('id' => $id)))->first();
+        $noticelist = $this->Noticelists->find()
+            ->contain(['NoticelistEntries'])
+            ->where(['id' => $id])
+            ->disableHydration(true)
+            ->first();
         if (empty($noticelist)) {
             throw new NotFoundException(__('Noticelist not found.'));
         }
-        $noticelistEntries = $noticelist['noticelist_entries'];
+        $noticelistEntries = $noticelist['NoticelistEntry'];
 
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($noticelistEntries);
         } else {
             $customPagination = new CustomPaginationTool();
-            $params = $this->request->getQueryParams();
-            $customPagination->truncateAndPaginate($noticelistEntries, $params, 'NoticelistEntry', true);
+            $passedParams = $this->request->getQueryParams();
+            $customPagination->truncateAndPaginate($noticelistEntries, $passedParams, 'NoticelistEntry', true);
+            $this->set('passedParams', $passedParams);
             $this->set('data', $noticelistEntries);
             $this->set('noticelist', $noticelist);
         }

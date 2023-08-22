@@ -43,7 +43,7 @@ echo $this->element(
         ],
         'children' => [
             [
-                'url' => '/noticelists/preview_entries/{{0}}/',
+                'url' => '/noticelists/preview_entries/{{0}}',
                 'url_params' => ['id'],
                 'title' => __('Values'),
                 'elementId' => 'preview_entries_container'

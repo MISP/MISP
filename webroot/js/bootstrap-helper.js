@@ -192,7 +192,11 @@ class UIFactory {
      * @return {Promise<Object>} Promise object resolving to the ModalFactory object
      */
     submissionModalAutoGuess(url, reloadUrl=false, $table=false) {
-        let currentAction = location.pathname.split('/')[2]
+        const explodedLocation = location.pathname.split('/').filter((i) => i.length > 0)
+        let currentAction = explodedLocation[1]
+        if (explodedLocation.length == 1 && currentAction === undefined) {
+            currentAction = 'index'
+        }
         if (currentAction !== undefined) {
             if (currentAction === 'index') {
                 return UI.submissionModalForIndex(url, reloadUrl, $table)

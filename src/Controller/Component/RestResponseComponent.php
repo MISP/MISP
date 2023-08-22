@@ -553,13 +553,13 @@ class RestResponseComponent extends Component
         return array('action' => $action, 'admin' => $admin);
     }
 
-    public function viewData($data, $format = false, $errors = false, $raw = false, $download = false, $headers = array())
+    public function viewData($data, $format = false, $errors = false, $raw = false, $download = false, $headers = array(), $wrapResponse = false)
     {
         if (!empty($errors)) {
             $data['errors'] = $errors;
         }
         if (!$raw && is_object($data)) {
-            $data = $this->APIRearrange->rearrangeForAPI($data);
+            $data = $this->APIRearrange->rearrangeForAPI($data, $wrapResponse);
         }
         return $this->__sendResponse($data, 200, $format, $raw, $download, $headers);
     }

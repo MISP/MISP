@@ -16,7 +16,12 @@ use Cake\Collection\Collection;
 
 class APIRearrangeComponent extends Component
 {
-    public function rearrangeForAPI(object $data)
+    public function rearrangeForAPI(object $data, bool $wrap=false)
+    {
+        return $wrap ? ['response' => $this->rearrange($data)] : $this->rearrange($data);
+    }
+
+    protected function rearrange(object $data)
     {
         if (is_subclass_of($data, 'Iterator')) {
             $newData = [];

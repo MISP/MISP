@@ -24,14 +24,15 @@
         'attrs' => [
             'data-bs-toggle' => 'popover',
             'data-bs-trigger' => 'hover',
+            'data-bs-placement' => 'right',
         ]
     ]);
 ?>
 <script type="text/javascript">
     $(document).ready(function() {
-        new bootstrap.Popover('#<?= $popoverID ?>', {
+        new bootstrap.Tooltip('#<?= $popoverID ?>', {
             html: true,
-            content: function() {
+            title: function() {
                 return $('<div>')
                     .append(
                         $('<span>')

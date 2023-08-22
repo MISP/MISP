@@ -16,6 +16,8 @@ class CustomPaginationTool
             'count' => count($items),
             'limit' => 60,
             'page' => 1,
+            'start' => 0,
+            'end' => 0,
             'sort' => $sort,
             'direction' => 'asc',
             'paramType' => 'named',
@@ -55,11 +57,13 @@ class CustomPaginationTool
         return $params;
     }
 
-    public function truncateByPagination(&$items, $params)
+    public function truncateByPagination(&$items, &$params)
     {
         if (empty($items)) {
             return;
         }
+        $params['start'] = $params['current'] - 1;
+        $params['end'] = ($params['current'] - 1) + min($params['count'], $params['limit']);
         $items = array_slice($items, $params['current'] - 1, $params['limit']);
     }
 
@@ -143,7 +147,7 @@ class CustomPaginationTool
         if (!empty($params['named']['searchall'])) {
             $this->truncateByQuickFilter($items, $params['named']['searchall']);
         }
-        $passedArgs = $this->applyRulesOnArray($items, $params['named'], $model, 'id', 'uuid', $escapeReindex);
+        $passedArgs = $this->applyRulesOnArray($items, $params['named'] ?? [], $model, 'id', 'uuid', $escapeReindex);
         $params['paging'] = array($model => $passedArgs);
     }
 

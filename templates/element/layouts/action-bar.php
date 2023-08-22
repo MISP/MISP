@@ -109,6 +109,7 @@ use Cake\Utility\Inflector;
                 } else {
                     $url = Router::url($linkEntry['url']);
                 }
+                $buttonBadge = !empty($linkEntry['badge']) ? $this->Bootstrap->badge($linkEntry['badge']) : '';
                 $buttonConfig = [
                     'nodeType' => 'a',
                     'text' => $linkEntry['label'],

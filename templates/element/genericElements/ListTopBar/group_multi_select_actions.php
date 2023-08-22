@@ -16,6 +16,7 @@
                     'text' => $child['text'],
                     'outline' => !empty($child['outline']),
                     'icon' => $child['icon'] ?? null,
+                    'class' => $child['class'] ?? '',
                     'attrs' => array_merge([
                         'onclick' => 'multiActionClickHandler(this)',
                         'data-onclick-function' => $child['onclick'] ?? '',
@@ -42,6 +43,7 @@
                     'text' => $child['text'],
                     'outline' => !empty($child['outline']),
                     'icon' => $child['icon'] ?? null,
+                    'class' => $child['class'] ?? '',
                     'onclick' => 'multiActionClickHandler(this)',
                     'attrs' => array_merge([
                         'data-onclick-function' => $child['onclick'] ?? '',

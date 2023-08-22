@@ -71,6 +71,7 @@ use App\View\Helper\BootstrapGeneric;
 class BootstrapTabs extends BootstrapGeneric
 {
     private $defaultOptions = [
+        'id' => '',
         'fill-header' => false,
         'justify-header' => false,
         'pills' => false,
@@ -242,10 +243,14 @@ class BootstrapTabs extends BootstrapGeneric
 
     private function genNav(): string
     {
-        $html = $this->nodeOpen('ul', [
+        $ulOptions = [
             'class' => array_merge(['nav'], $this->bsClasses['nav'], $this->options['nav-class']),
             'role' => 'tablist',
-        ]);
+        ];
+        if (!empty($this->options['id'])) {
+            $ulOptions['id'] = $this->options['id'];
+        }
+        $html = $this->nodeOpen('ul', $ulOptions);
         foreach ($this->data['navs'] as $navItem) {
             $html .= $this->genNavItem($navItem);
         }

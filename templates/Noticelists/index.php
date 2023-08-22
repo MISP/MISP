@@ -40,14 +40,14 @@ $fields = [
                 ]
             ]
         ],
-        'requirement' => $isSiteAdmin,
+        'requirement' => $loggedUser['Role']['perm_site_admin'],
     ],
     [
         'name' => __('Default'),
         'data_path' => 'enabled',
         'element' => 'boolean',
         'colors' => true,
-        'requirement' => !$isSiteAdmin,
+        'requirement' => !$loggedUser['Role']['perm_site_admin'],
     ],
 ];
 
@@ -56,13 +56,21 @@ echo $this->element('genericElements/IndexTable/index_table', [
     'data' => [
         'data' => $data,
         'top_bar' => [
-            'pull' => 'right',
             'children' => [
                 [
+                    'type' => 'context_filters',
+                ],
+                [
                     'type' => 'search',
-                    'button' => __('Filter'),
+                    'button' => __('Search'),
                     'placeholder' => __('Enter value to search'),
-                    'searchKey' => 'quickFilter',
+                    'data' => '',
+                    'searchKey' => 'value',
+                    'allowFilering' => true
+                ],
+                [
+                    'type' => 'table_action',
+                    'table_setting_id' => 'organisation_index',
                 ]
             ]
         ],

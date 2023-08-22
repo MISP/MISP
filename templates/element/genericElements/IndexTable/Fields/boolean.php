@@ -43,15 +43,29 @@
         }
         $rules_raw = implode('<br />', $rules_raw);
     }
-    echo sprintf(
-        '<i class="fa fa-%s"></i>%s',
-        (!empty($this->Hash->extract($row, $field['data_path'])[0])) ? 'check' : 'times',
-        empty($rules_raw) ? '' :
-        sprintf(
+
+    $value = !empty($this->Hash->extract($row, $field['data_path'])[0]);
+    $iconConfig = [];
+    $defaultColorMapping = [true => 'success', false => 'danger'];
+    if (!empty($field['colors'])) {
+        if ($field['colors'] === true) {
+            $textVariant = $defaultColorMapping[$value];
+        } else if (is_array($field['colors'])) {
+            $textVariant = $field['colors'][$value];
+        } else {
+            $textVariant = 'muted';
+        }
+        $iconConfig['class'] = "text-{$textVariant}";
+    }
+
+    $icon = $this->Bootstrap->icon($value ? 'check' : 'times', $iconConfig);
+    echo $icon;
+    if (!empty($rules_raw)) {
+        echo sprintf(
             ' <span data-bs-toggle="popover" title="%s" data-bs-content="%s">(%s)</span>',
             __('Filter rules'),
             $rules_raw,
             __('Rules')
-        )
-    );
+        );
+    }
 ?>

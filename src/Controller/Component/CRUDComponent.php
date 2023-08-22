@@ -7,6 +7,7 @@ use Cake\Error\Debugger;
 use Cake\Utility\Hash;
 use Cake\Utility\Inflector;
 use Cake\Utility\Text;
+use Cake\Validation\Validation;
 use Cake\View\ViewBuilder;
 use Cake\ORM\TableRegistry;
 use Cake\ORM\Query;
@@ -37,6 +38,7 @@ class CRUDComponent extends Component
         $embedInModal = !empty($this->request->getQuery('embedInModal', false));
         $excludeStats = !empty($this->request->getQuery('excludeStats', false));
         $skipTableToolbar = !empty($this->request->getQuery('skipTableToolbar', false));
+        $wrapResponse = !empty($options['wrapResponse']);
 
         if (!empty($options['quickFilters'])) {
             if (empty($options['filters'])) {
@@ -52,7 +54,8 @@ class CRUDComponent extends Component
         }
 
         $optionFilters = [];
-        $optionFilters += empty($options['filters']) ? [] : $options['filters'];
+        $optionValidFilters = empty($options['filters']) ? [] : $this->getFilterFieldsName($options['filters']);
+        $optionFilters += $optionValidFilters;
         foreach ($optionFilters as $i => $filter) {
             $optionFilters[] = "{$filter} !=";
             $optionFilters[] = "{$filter} >=";
@@ -127,7 +130,7 @@ class CRUDComponent extends Component
             }
             $this->Controller->restResponsePayload = $this->RestResponse->viewData($data, 'json', false, false, false, [
                 'X-Total-Count' => $totalCount,
-            ]);
+            ], $wrapResponse);
         } else {
             $this->Controller->setResponse($this->Controller->getResponse()->withHeader('X-Total-Count', $totalCount));
             if (isset($options['afterFind'])) {
@@ -811,11 +814,12 @@ class CRUDComponent extends Component
         }
     }
 
-    public function view(int $id, array $params = []): void
+    public function view($id, array $params = []): void
     {
         if (empty($id)) {
             throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
         }
+
 
         if ($this->taggingSupported()) {
             $params['contain'][] = 'Tags';
@@ -829,7 +833,15 @@ class CRUDComponent extends Component
             }
         }
 
-        $data = $this->Table->get($id, $params);
+        $data = false;
+        if (Validation::uuid($id) && $this->Table->getSchema()->hasColumn('uuid')) {
+            $data = $this->Table->find()->where([
+                "{$this->Table->getAlias()}.uuid" => $id,
+            ])->first();
+        } else {
+            $data = $this->Table->get($id, $params);
+        }
+
         if (empty($data)) {
             throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
         }
@@ -873,57 +885,47 @@ class CRUDComponent extends Component
 
     public function delete($id = false, $params = []): void
     {
+        $ids = $this->getIds($id);
+        $query = $this->prepareQueryForIDOrUUID($id);
+        if (!empty($params['conditions'])) {
+            $query->where($params['conditions']);
+        }
+        if (!empty($params['contain'])) {
+            $query->contain($params['contain']);
+        }
+        $entities = $query->all()->toList();
+        if (isset($params['afterFind'])) {
+            foreach ($entities as $i => $entity) {
+                $entities[$i] = $params['afterFind']($entity, $params);
+            }
+        }
         if ($this->request->is('get')) {
-            if (!empty($id)) {
-                $query = $this->Table->find()->where([$this->Table->getAlias() . '.id' => $id]);
-                if (!empty($params['conditions'])) {
-                    $query->where($params['conditions']);
-                }
-                if (!empty($params['contain'])) {
-                    $query->contain($params['contain']);
-                }
-                $data = $query->first();
-                if (isset($params['afterFind'])) {
-                    $data = $params['afterFind']($data, $params);
-                }
-                if (empty($data)) {
-                    throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
-                }
-                $this->Controller->set('id', $data['id']);
-                $this->Controller->set('data', $data);
-                $this->Controller->set('bulkEnabled', false);
+            $this->Controller->set('entities', $entities);
+            $this->Controller->set('tableFields', $params['tableFields'] ?? []);
+            $this->Controller->viewBuilder()->setLayout('ajax');
+            if (count($entities) > 1) {
+                $this->Controller->set('ids', $ids);
+                $this->Controller->render('/genericTemplates/massDelete');
             } else {
-                $this->Controller->set('bulkEnabled', true);
+                $this->Controller->set('id', $id);
+                $this->Controller->render('/genericTemplates/delete');
             }
         } else if ($this->request->is('post') || $this->request->is('delete')) {
-            $ids = $this->getIdsOrFail($id);
             $isBulk = count($ids) > 1;
             $bulkSuccesses = 0;
-            foreach ($ids as $id) {
-                $query = $this->Table->find()->where([$this->Table->getAlias() . '.id' => $id]);
-                if (!empty($params['conditions'])) {
-                    $query->where($params['conditions']);
-                }
-                if (!empty($params['contain'])) {
-                    $query->contain($params['contain']);
-                }
-                $data = $query->first();
-                if (isset($params['afterFind'])) {
-                    $data = $params['afterFind']($data, $params);
-                }
+            foreach ($entities as $i => $entity) {
                 if (isset($params['beforeSave'])) {
                     try {
-                        $data = $params['beforeSave']($data);
-                        if ($data === false) {
+                        $entity = $params['beforeSave']($entity);
+                        if ($entity === false) {
                             throw new NotFoundException(__('Could not save {0} due to the input failing to meet expectations. Your input is bad and you should feel bad.', $this->ObjectAlias));
                         }
                     } catch (\Exception $e) {
-                        $data = false;
+                        $entity = false;
                     }
                 }
-                if (!empty($data)) {
-                    $success = $this->Table->delete($data);
-                    $success = true;
+                if (!empty($entity)) {
+                    $success = $this->Table->delete($entity);
                 } else {
                     $success = false;
                 }
@@ -935,7 +937,7 @@ class CRUDComponent extends Component
                 $bulkSuccesses == count($ids),
                 $isBulk,
                 __('{0} deleted.', $this->ObjectAlias),
-                __('All {0} have been deleted.', Inflector::pluralize($this->ObjectAlias)),
+                __('All selected {0} have been deleted.', Inflector::pluralize($this->ObjectAlias)),
                 __('Could not delete {0}.', $this->ObjectAlias),
                 __(
                     '{0} / {1} {2} have been deleted.',
@@ -944,15 +946,8 @@ class CRUDComponent extends Component
                     Inflector::pluralize($this->ObjectAlias)
                 )
             );
-            $additionalData = [];
-            if ($bulkSuccesses > 0) {
-                $additionalData['redirect'] = Router::url(['controller' => $this->Controller->getName(), 'action' => 'index']);
-            }
-            $this->setResponseForController('delete', $bulkSuccesses, $message, $data, null, $additionalData);
+            $this->setResponseForController('massToggle', $bulkSuccesses == count($ids), $message, [], [], []);
         }
-        $this->Controller->set('scope', 'users');
-        $this->Controller->viewBuilder()->setLayout('ajax');
-        $this->Controller->render('/genericTemplates/delete');
     }
 
     public function tag($id = false): void
@@ -1149,22 +1144,26 @@ class CRUDComponent extends Component
      */
     public function getIdsOrFail($id = false): array
     {
+        $ids = $this->getIds($id);
+        if (empty($ids)) {
+            throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
+        }
+        return $ids;
+    }
+
+    public function getIds($id): array
+    {
         $params = $this->Controller->ParamHandler->harvestParams(['ids']);
         if (!empty($params['ids'])) {
             $params['ids'] = json_decode($params['ids']);
         }
         $ids = [];
-        if (empty($id)) {
-            if (empty($params['ids'])) {
-                throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
-            }
+        if (empty($id) && !empty($params['ids'])) {
             $ids = $params['ids'];
         } else {
             $id = $this->getInteger($id);
             if (!is_null($id)) {
                 $ids = [$id];
-            } else {
-                throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
             }
         }
         return $ids;
@@ -1359,6 +1358,11 @@ class CRUDComponent extends Component
     protected function setRelatedCondition($query, $modelName, $fieldName, $filterValue)
     {
         return $query->matching($modelName, function (\Cake\ORM\Query $q) use ($fieldName, $filterValue) {
+            if (is_array($filterValue)) {
+                return $this->setInCondition($q, $fieldName, $filterValue);
+            } else {
+                return $this->setValueCondition($q, $fieldName, $filterValue);
+            }
             return $this->setValueCondition($q, $fieldName, $filterValue);
         });
     }
@@ -1596,6 +1600,75 @@ class CRUDComponent extends Component
         $this->Controller->render('/genericTemplates/toggle');
     }
 
+    public function massToggle($fieldName, $params): void
+    {
+        $ids = $this->getIdsOrFail(false);
+        $query = $this->Table->find()->where(function (QueryExpression $exp) use ($ids) {
+            return $exp->in($this->Table->getAlias() . '.id', $ids);
+        });
+        if (!empty($params['conditions'])) {
+            $query->where($params['conditions']);
+        }
+        if (!empty($params['contain'])) {
+            $query->contain($params['contain']);
+        }
+        $entities = $query->all()->toList();
+        if ($this->request->is('get')) {
+            $this->Controller->set('ids', $ids);
+            $this->Controller->set('entities', $entities);
+            $this->Controller->set('fieldName', $fieldName);
+            $this->Controller->set('tableFields', $params['tableFields'] ?? []);
+            $this->Controller->viewBuilder()->setLayout('ajax');
+            $this->Controller->set('fieldName', $fieldName);
+            $this->Controller->render('/genericTemplates/massToggle');
+        } else if ($this->request->is('post') || $this->request->is('delete')) {
+            $bulkSuccesses = 0;
+            foreach ($entities as $entity) {
+                if (isset($params['afterFind'])) {
+                    $entity = $params['afterFind']($entity, $params);
+                }
+                if (isset($params['beforeSave'])) {
+                    try {
+                        $entity = $params['beforeSave']($entity);
+                        if ($entity === false) {
+                            throw new NotFoundException(__('Could not save {0} due to the input failing to meet expectations. Your input is bad and you should feel bad.', $this->ObjectAlias));
+                        }
+                    } catch (\Exception $e) {
+                        $entity = false;
+                    }
+                }
+                if (!empty($entity)) {
+                    if (isset($params['force_state'])) {
+                        $entity->{$fieldName} = $params['force_state'];
+                    } else {
+                        $entity->{$fieldName} = !$entity->{$fieldName};
+                    }
+                    $savedData = $this->Table->save($entity);
+                    $success = $savedData !== false;
+                } else {
+                    $success = false;
+                }
+                if ($success) {
+                    $bulkSuccesses++;
+                }
+            }
+            $message = $this->getMessageBasedOnResult(
+                $bulkSuccesses == count($ids),
+                true,
+                __('{0} updated.', $this->ObjectAlias),
+                __('All selected {0} have been updated.', Inflector::pluralize($this->ObjectAlias)),
+                __('Could not update {0}.', $this->ObjectAlias),
+                __(
+                    '{0} / {1} {2} have been updated.',
+                    $bulkSuccesses,
+                    count($ids),
+                    Inflector::pluralize($this->ObjectAlias)
+                )
+            );
+            $this->setResponseForController('massToggle', $bulkSuccesses == count($ids), $message, [], [], []);
+        }
+    }
+
     public function toggleEnabled(int $id, array $path, string $fieldName = 'enabled'): void
     {
         if (empty($id)) {
@@ -1670,6 +1743,29 @@ class CRUDComponent extends Component
             }
         }
         return $filters;
+    }
+
+    /**
+     * Prepare a find query for either the provided id/uuid or a list of json-encoded ids 
+     *
+     * @param mixed $id Can be either ID, UUID or unset
+     * @return Query
+     * @throws NotFoundException
+     */
+    public function prepareQueryForIDOrUUID($id = false): Query
+    {
+        $query = $this->Table->find();
+        $ids = $this->getIds($id);
+        if (Validation::uuid($id) && $this->Table->getSchema()->hasColumn('uuid')) {
+            $query->where(["{$this->Table->getAlias()}.uuid" => $id,]);
+        } else if (count($ids) > 0) {
+            $query->where(function (QueryExpression $exp) use ($ids) {
+                return $exp->in($this->Table->getAlias() . '.id', $ids);
+            });
+        } else {
+            throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
+        }
+        return $query;
     }
 
     private function renderViewInVariable($templateRelativeName, $data)
