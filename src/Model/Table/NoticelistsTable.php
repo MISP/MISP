@@ -19,7 +19,7 @@ class NoticelistsTable extends AppTable
         $this->addBehavior(
             'JsonFields',
             [
-            'fields' => ['ref', 'geographical_area'],
+                'fields' => ['ref', 'geographical_area'],
             ]
         );
 
@@ -53,8 +53,8 @@ class NoticelistsTable extends AppTable
             $current = $this->find(
                 'all',
                 [
-                'conditions' => ['name' => $list['name']],
-                'recursive' => -1
+                    'conditions' => ['name' => $list['name']],
+                    'recursive' => -1
                 ]
             )->first();
             if (empty($current) || $list['version'] > $current['version']) {
@@ -117,9 +117,9 @@ class NoticelistsTable extends AppTable
         $noticelists = $this->find(
             'all',
             [
-            'conditions' => ['enabled' => 1],
-            'recursive' => -1,
-            'contain' => 'NoticelistEntry'
+                'conditions' => ['enabled' => 1],
+                'recursive' => -1,
+                'contain' => 'NoticelistEntry'
             ]
         );
         $noticelist_triggers = [];
