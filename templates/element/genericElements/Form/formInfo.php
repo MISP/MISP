@@ -1,7 +1,7 @@
 <?php
     $seed = mt_rand();
     if (!is_array($fieldDesc)) {
-        $fieldDesc = array('info' => $fieldDesc);
+        $fieldDesc = ['info' => $fieldDesc];
         $default = 'info';
     } else {
         if (!empty($field['options'])) {
@@ -13,25 +13,29 @@
             }
         } else {
             reset($fieldDesc);
-            $fieldDesc = array('info' => key($fieldDesc));
+            $fieldDesc = ['info' => key($fieldDesc)];
             $default = 'info';
         }
     }
     $popoverID = sprintf("%sInfoPopover%s", h($field['field']), $seed);
-    echo $this->Bootstrap->icon('info-circle', [
+    echo $this->Bootstrap->icon(
+        'info-circle',
+        [
         'id' => $popoverID,
         'class' => ['ms-1'],
         'attrs' => [
             'data-bs-toggle' => 'popover',
             'data-bs-trigger' => 'hover',
+            'data-bs-placement' => 'right',
         ]
-    ]);
+        ]
+    );
 ?>
 <script type="text/javascript">
     $(document).ready(function() {
-        new bootstrap.Popover('#<?= $popoverID ?>', {
+        new bootstrap.Tooltip('#<?= $popoverID ?>', {
             html: true,
-            content: function() {
+            title: function() {
                 return $('<div>')
                     .append(
                         $('<span>')

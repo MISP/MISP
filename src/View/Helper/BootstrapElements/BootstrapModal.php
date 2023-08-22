@@ -162,7 +162,7 @@ class BootstrapModal extends BootstrapGeneric
     {
         $this->allowedOptionValues = [
             'size' => ['sm', 'lg', 'xl', ''],
-            'type' => ['ok-only', 'confirm', 'custom'],
+            'type' => ['ok-only', 'confirm', 'cancel', 'custom'],
             'header-variant' =>  array_merge(BootstrapGeneric::$variants, ['']),
             'body-variant' =>  array_merge(BootstrapGeneric::$variants, ['']),
             'footer-variant' =>  array_merge(BootstrapGeneric::$variants, ['']),
@@ -207,29 +207,39 @@ class BootstrapModal extends BootstrapGeneric
 
     private function encapsulateWithUIHelper(string $modal): string
     {
-        return $this->node('script', [], sprintf(
-            "$(document).ready(function() {
+        return $this->node(
+            'script',
+            [],
+            sprintf(
+                "$(document).ready(function() {
                 setTimeout(() => {
                     UI.modal({
                         rawHtml: \"%s\"
                     })
                 }, 1);
             })",
-            str_replace('"', '\"', $modal)
-        ));
+                str_replace('"', '\"', $modal)
+            )
+        );
     }
 
     private function genModal(): string
     {
-        $dialog = $this->nodeOpen('div', [
+        $dialog = $this->nodeOpen(
+            'div',
+            [
             'class' => array_merge(
                 ['modal-dialog', (!empty($this->options['size'])) ? "modal-{$this->options['size']}" : ''],
                 $this->options['modalClass']
             ),
-        ]);
-        $content = $this->nodeOpen('div', [
+            ]
+        );
+        $content = $this->nodeOpen(
+            'div',
+            [
             'class' => ['modal-content'],
-        ]);
+            ]
+        );
         $header = $this->genHeader();
         $body = $this->genBody();
         $footer = $this->genFooter();
@@ -260,10 +270,13 @@ class BootstrapModal extends BootstrapGeneric
 
     private function genFooter(): string
     {
-        $footer = $this->nodeOpen('div', [
+        $footer = $this->nodeOpen(
+            'div',
+            [
             'class' => array_merge(['modal-footer'], $this->options['footerClass']),
             'data-custom-footer' => $this->options['type'] == 'custom'
-        ]);
+            ]
+        );
         $footer .= $this->options['footerHtml'] ?? $this->getFooterBasedOnType();
         $footer .= $this->nodeClose('div');
         return $footer;
@@ -275,6 +288,8 @@ class BootstrapModal extends BootstrapGeneric
             return $this->getFooterOkOnly();
         } else if (str_contains($this->options['type'], 'confirm')) {
             return $this->getFooterConfirm();
+        } else if ($this->options['type'] == 'cancel') {
+            return $this->getFooterCancel();
         } else if ($this->options['type'] == 'custom') {
             return $this->getFooterCustom();
         } else {
@@ -284,14 +299,31 @@ class BootstrapModal extends BootstrapGeneric
 
     private function getFooterOkOnly(): string
     {
-        return (new BootstrapButton([
+        return (new BootstrapButton(
+            [
             'variant' => 'primary',
             'text' => __('Ok'),
             'onclick' => $this->options['confirmOnclick'],
             'attrs' => [
                 'data-bs-dismiss' => $this->options['confirmOnclick'] ?? 'modal',
             ],
-        ], $this->bsHelper))->button();
+            ],
+            $this->bsHelper
+        ))->button();
+    }
+
+    private function getFooterCancel(): string
+    {
+        return (new BootstrapButton(
+            [
+            'text' => __('Cancel'),
+            'variant' => 'secondary',
+            'attrs' => [
+                'data-bs-dismiss' => 'modal',
+            ]
+            ],
+            $this->bsHelper
+        ))->button();
     }
 
     private function getFooterConfirm(): string

@@ -3,9 +3,12 @@
 
     if (!isset($data['requirement']) || $data['requirement']) {
         $buttons = '';
-        $hasHeader = array_filter($data['children'], function($entry) {
+        $hasHeader = array_filter(
+            $data['children'],
+            function($entry) {
             return !empty($entry['is-header']);
-        });
+            }
+        );
         $data['force-dropdown'] = !empty($data['force-dropdown']) ? $data['force-dropdown'] : $hasHeader;
         if (!empty($data['force-dropdown']) || count($data['children']) > $dropdownTreshold) {
             $menuOptions = [];
@@ -16,14 +19,19 @@
                     'text' => $child['text'],
                     'outline' => !empty($child['outline']),
                     'icon' => $child['icon'] ?? null,
-                    'attrs' => array_merge([
+                    'class' => $child['class'] ?? '',
+                    'attrs' => array_merge(
+                        [
                         'onclick' => 'multiActionClickHandler(this)',
                         'data-onclick-function' => $child['onclick'] ?? '',
                         'data-table-random-value' => $tableRandomValue,
-                    ], $child['params'] ?? [])
+                        ],
+                        $child['params'] ?? []
+                    )
                 ];
             }
-            $buttons = $this->Bootstrap->dropdownMenu([
+            $buttons = $this->Bootstrap->dropdownMenu(
+                [
                 'button' => [
                     'text' => __('Actions'),
                     'icon' => 'check-square',
@@ -34,20 +42,27 @@
                     'data-table-random-value' => $tableRandomValue,
                 ],
                 'menu' => $menuOptions,
-            ]);
+                ]
+            );
         } else {
             foreach ($data['children'] as $child) {
-                $buttons .= $this->Bootstrap->button([
+                $buttons .= $this->Bootstrap->button(
+                    [
                     'variant' => $child['variant'] ?? 'primary',
                     'text' => $child['text'],
                     'outline' => !empty($child['outline']),
                     'icon' => $child['icon'] ?? null,
+                    'class' => $child['class'] ?? '',
                     'onclick' => 'multiActionClickHandler(this)',
-                    'attrs' => array_merge([
+                    'attrs' => array_merge(
+                        [
                         'data-onclick-function' => $child['onclick'] ?? '',
                         'data-table-random-value' => $tableRandomValue,
-                    ], $child['params'] ?? [])
-                ]);
+                        ],
+                        $child['params'] ?? []
+                    )
+                    ]
+                );
             }
         }
         echo sprintf(

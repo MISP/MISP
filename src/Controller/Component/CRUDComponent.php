@@ -2,20 +2,17 @@
 
 namespace App\Controller\Component;
 
+use App\Utility\UI\IndexSetting;
 use Cake\Controller\Component;
-use Cake\Error\Debugger;
+use Cake\Database\Expression\QueryExpression;
+use Cake\Http\Exception\NotFoundException;
+use Cake\ORM\Query;
+use Cake\ORM\TableRegistry;
 use Cake\Utility\Hash;
 use Cake\Utility\Inflector;
 use Cake\Utility\Text;
+use Cake\Validation\Validation;
 use Cake\View\ViewBuilder;
-use Cake\ORM\TableRegistry;
-use Cake\ORM\Query;
-use Cake\Database\Expression\QueryExpression;
-use Cake\Routing\Router;
-use Cake\Http\Exception\MethodNotAllowedException;
-use Cake\Http\Exception\NotFoundException;
-use Cake\Collection\Collection;
-use App\Utility\UI\IndexSetting;
 
 class CRUDComponent extends Component
 {
@@ -37,6 +34,7 @@ class CRUDComponent extends Component
         $embedInModal = !empty($this->request->getQuery('embedInModal', false));
         $excludeStats = !empty($this->request->getQuery('excludeStats', false));
         $skipTableToolbar = !empty($this->request->getQuery('skipTableToolbar', false));
+        $wrapResponse = !empty($options['wrapResponse']);
 
         if (!empty($options['quickFilters'])) {
             if (empty($options['filters'])) {
@@ -52,7 +50,8 @@ class CRUDComponent extends Component
         }
 
         $optionFilters = [];
-        $optionFilters += empty($options['filters']) ? [] : $options['filters'];
+        $optionValidFilters = empty($options['filters']) ? [] : $this->getFilterFieldsName($options['filters']);
+        $optionFilters += $optionValidFilters;
         foreach ($optionFilters as $i => $filter) {
             $optionFilters[] = "{$filter} !=";
             $optionFilters[] = "{$filter} >=";
@@ -96,55 +95,83 @@ class CRUDComponent extends Component
         if ($this->Controller->ParamHandler->isRest()) {
             $data = $this->Controller->paginate($query, $this->Controller->paginate ?? []);
             if (isset($options['hidden'])) {
-                $data->each(function ($value, $key) use ($options) {
+                $data->each(
+                    function ($value, $key) use ($options) {
                     $hidden = is_array($options['hidden']) ? $options['hidden'] : [$options['hidden']];
                     $value->setHidden($hidden);
                     return $value;
-                });
+                    }
+                );
             }
             if (isset($options['afterFind'])) {
                 $function = $options['afterFind'];
                 if (is_callable($function)) {
-                    $data = $data->map(function ($value, $key) use ($function) {
+                    $data = $data->map(
+                        function ($value, $key) use ($function) {
                         return $function($value);
-                    })->filter(function ($value) {
+                        }
+                    )->filter(
+                        function ($value) {
                         return $value !== false;
-                    });
+                        }
+                    );
                 } else {
                     $t = $this->Table;
-                    $data = $data->map(function ($value, $key) use ($t, $function) {
+                    $data = $data->map(
+                        function ($value, $key) use ($t, $function) {
                         return $t->$function($value);
-                    })->filter(function ($value) {
+                        }
+                    )->filter(
+                        function ($value) {
                         return $value !== false;
-                    });
+                        }
+                    );
                 }
             }
             if ($this->metaFieldsSupported()) {
                 $metaTemplates = $this->getMetaTemplates()->toArray();
-                $data = $data->map(function ($value, $key) use ($metaTemplates) {
+                $data = $data->map(
+                    function ($value, $key) use ($metaTemplates) {
                     return $this->attachMetaTemplatesIfNeeded($value, $metaTemplates);
-                });
+                    }
+                );
             }
-            $this->Controller->restResponsePayload = $this->RestResponse->viewData($data, 'json', false, false, false, [
+            $this->Controller->restResponsePayload = $this->RestResponse->viewData(
+                $data,
+                'json',
+                false,
+                false,
+                false,
+                [
                 'X-Total-Count' => $totalCount,
-            ]);
+                ],
+                $wrapResponse
+            );
         } else {
             $this->Controller->setResponse($this->Controller->getResponse()->withHeader('X-Total-Count', $totalCount));
             if (isset($options['afterFind'])) {
                 $function = $options['afterFind'];
                 if (is_callable($function)) {
-                    $data = $data->map(function ($value, $key) use ($function) {
+                    $data = $data->map(
+                        function ($value, $key) use ($function) {
                         return $function($value);
-                    })->filter(function ($value) {
+                        }
+                    )->filter(
+                        function ($value) {
                         return $value !== false;
-                    });
+                        }
+                    );
                 } else {
                     $t = $this->Table;
-                    $data = $data->map(function ($value, $key) use ($t, $function) {
+                    $data = $data->map(
+                        function ($value, $key) use ($t, $function) {
                         return $t->$function($value);
-                    })->filter(function ($value) {
+                        }
+                    )->filter(
+                        function ($value) {
                         return $value !== false;
-                    });
+                        }
+                    );
                 }
             }
             $this->setFilteringContext($options['contextFilters'] ?? [], $params);
@@ -155,9 +182,15 @@ class CRUDComponent extends Component
                     $data[$i] = $this->attachMetaTemplatesIfNeeded($row, $metaTemplates);
                 }
                 $this->Controller->set('meta_templates', $metaTemplates);
-                $this->Controller->set('meta_templates_enabled', array_filter($metaTemplates, function ($template) {
-                    return $template['enabled'];
-                }));
+                $this->Controller->set(
+                    'meta_templates_enabled',
+                    array_filter(
+                        $metaTemplates,
+                        function ($template) {
+                            return $template['enabled'];
+                        }
+                    )
+                );
             }
             if (empty($excludeStats)) { // check if stats are requested
                 $modelStatistics = [];
@@ -242,9 +275,13 @@ class CRUDComponent extends Component
             $this->Table->getSchema()->typeMap(),
             $associatedtypeMap
         );
-        $typeMap = array_filter($typeMap, function ($field) use ($filtersName) {
+        $typeMap = array_filter(
+            $typeMap,
+            function ($field) use ($filtersName) {
             return in_array($field, $filtersName);
-        }, ARRAY_FILTER_USE_KEY);
+            },
+            ARRAY_FILTER_USE_KEY
+        );
         if (!empty($options['afterFind'])) {
             $overrides = $options['afterFind']($filtersConfig, $typeMap);
             $filtersConfig = $overrides['filtersConfig'];
@@ -260,9 +297,12 @@ class CRUDComponent extends Component
     public function getFilterFieldsName(): array
     {
         $filters = !empty($this->Controller->filterFields) ? $this->Controller->filterFields : [];
-        $filters = array_map(function ($item) {
+        $filters = array_map(
+            function ($item) {
             return is_array($item) ? $item['name'] : $item;
-        }, $filters);
+            },
+            $filters
+        );
         return $filters;
     }
 
@@ -318,19 +358,25 @@ class CRUDComponent extends Component
         $metaQuery = $this->MetaTemplates->find();
         $metaQuery
             ->order(['is_default' => 'DESC'])
-            ->where(array_merge(
-                $metaTemplateConditions,
-                ['scope' => $metaFieldsBehavior->getScope(),]
-            ))
+            ->where(
+                array_merge(
+                    $metaTemplateConditions,
+                    ['scope' => $metaFieldsBehavior->getScope(),]
+                )
+            )
             ->contain('MetaTemplateFields')
-            ->formatResults(function (\Cake\Collection\CollectionInterface $metaTemplates) { // Set meta-template && meta-template-fields indexed by their ID
+            ->formatResults(
+                function (\Cake\Collection\CollectionInterface $metaTemplates) { // Set meta-template && meta-template-fields indexed by their ID
                 return $metaTemplates
-                    ->map(function ($metaTemplate) {
+                    ->map(
+                        function ($metaTemplate) {
                         $metaTemplate->meta_template_fields = Hash::combine($metaTemplate->meta_template_fields, '{n}.id', '{n}');
                         return $metaTemplate;
-                    })
+                        }
+                    )
                     ->indexBy('id');
-            });
+                }
+            );
         $metaTemplates = $metaQuery->all();
         return $metaTemplates;
     }
@@ -498,7 +544,9 @@ class CRUDComponent extends Component
                         foreach ($new_meta_fields as $new_value) {
                             if (!empty($new_value)) {
                                 $metaField = $metaFieldsTable->newEmptyEntity();
-                                $metaFieldsTable->patchEntity($metaField, [
+                                $metaFieldsTable->patchEntity(
+                                    $metaField,
+                                    [
                                     'value' => $new_value,
                                     'scope' => $this->Table->getBehavior('MetaFields')->getScope(),
                                     'field' => $rawMetaTemplateField->field,
@@ -507,7 +555,8 @@ class CRUDComponent extends Component
                                     'meta_template_directory_id' => $allMetaTemplates[$template_id]->meta_template_directory_id,
                                     'parent_id' => $entity->id,
                                     'uuid' => Text::uuid(),
-                                ]);
+                                    ]
+                                );
                                 $entity->meta_fields[] = $metaField;
                                 $entity->MetaTemplates[$template_id]->meta_template_fields[$meta_template_field_id]->metaFields[] = $metaField;
                             }
@@ -518,9 +567,13 @@ class CRUDComponent extends Component
                             if (isset($metaFieldsIndex[$meta_field_id])) {
                                 $index = $metaFieldsIndex[$meta_field_id];
                                 if ($entity->meta_fields[$index]->value != $new_value) { // nothing to do, value hasn't changed
-                                    $metaFieldsTable->patchEntity($entity->meta_fields[$index], [
+                                    $metaFieldsTable->patchEntity(
+                                        $entity->meta_fields[$index],
+                                        [
                                         'value' => $new_value, 'meta_template_field_id' => $rawMetaTemplateField->id
-                                    ], ['value']);
+                                        ],
+                                        ['value']
+                                    );
                                     $metaFieldsTable->patchEntity(
                                         $entity->MetaTemplates[$template_id]->meta_template_fields[$meta_template_field_id]->metaFields[$meta_field_id],
                                         ['value' => $new_value, 'meta_template_field_id' => $rawMetaTemplateField->id],
@@ -529,7 +582,9 @@ class CRUDComponent extends Component
                                 }
                             } else { // metafield comes from a second post where the temporary entity has already been created
                                 $metaField = $metaFieldsTable->newEmptyEntity();
-                                $metaFieldsTable->patchEntity($metaField, [
+                                $metaFieldsTable->patchEntity(
+                                    $metaField,
+                                    [
                                     'value' => $new_value,
                                     'scope' => $this->Table->getBehavior('MetaFields')->getScope(), // get scope from behavior
                                     'field' => $rawMetaTemplateField->field,
@@ -538,7 +593,8 @@ class CRUDComponent extends Component
                                     'meta_template_directory_id' => $template->meta_template_directory_id,
                                     'parent_id' => $entity->id,
                                     'uuid' => Text::uuid(),
-                                ]);
+                                    ]
+                                );
                                 $entity->meta_fields[] = $metaField;
                                 $entity->MetaTemplates[$template_id]->meta_template_fields[$meta_template_field_id]->metaFields[] = $metaField;
                             }
@@ -698,9 +754,11 @@ class CRUDComponent extends Component
         }
         $metaFieldScope = $this->Table->getBehavior('MetaFields')->getScope();
         $query = $this->MetaTemplates->find()->where(['MetaTemplates.scope' => $metaFieldScope]);
-        $query->contain(['MetaTemplateFields.MetaFields' => function ($q) use ($id, $metaFieldScope) {
+        $query->contain(
+            ['MetaTemplateFields.MetaFields' => function ($q) use ($id, $metaFieldScope) {
             return $q->where(['MetaFields.scope' => $metaFieldScope, 'MetaFields.parent_id' => $id]);
-        }]);
+            }]
+        );
         $query
             ->order(['MetaTemplates.is_default' => 'DESC'])
             ->order(['MetaTemplates.name' => 'ASC']);
@@ -795,11 +853,13 @@ class CRUDComponent extends Component
             }
         }
         $this->Controller->set('requestedMetaFields', $requestedMetaFields);
-        return $query->contain([
+        return $query->contain(
+            [
             'MetaFields' => [
                 'conditions' => $containConditions
             ]
-        ]);
+            ]
+        );
     }
 
     protected function setRequestedEntryAmount()
@@ -811,11 +871,12 @@ class CRUDComponent extends Component
         }
     }
 
-    public function view(int $id, array $params = []): void
+    public function view($id, array $params = []): void
     {
         if (empty($id)) {
             throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
         }
+
 
         if ($this->taggingSupported()) {
             $params['contain'][] = 'Tags';
@@ -829,15 +890,29 @@ class CRUDComponent extends Component
             }
         }
 
-        $data = $this->Table->get($id, $params);
+        $data = false;
+        if (Validation::uuid($id) && $this->Table->getSchema()->hasColumn('uuid')) {
+            $data = $this->Table->find()->where(
+                [
+                "{$this->Table->getAlias()}.uuid" => $id,
+                ]
+            )->first();
+        } else {
+            $data = $this->Table->get($id, $params);
+        }
+
         if (empty($data)) {
             throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
         }
         if ($this->metaFieldsSupported() && !empty($data['meta_fields'])) {
             $usedMetaTemplateIDs = array_values(array_unique(Hash::extract($data['meta_fields'], '{n}.meta_template_id')));
-            $data = $this->attachMetaTemplatesIfNeeded($data, null, [
+            $data = $this->attachMetaTemplatesIfNeeded(
+                $data,
+                null,
+                [
                 'id IN' => $usedMetaTemplateIDs
-            ]);
+                ]
+            );
         }
         if (isset($params['afterFind'])) {
             $data = $params['afterFind']($data);
@@ -859,11 +934,14 @@ class CRUDComponent extends Component
         if (!is_null($metaTemplates)) {
             // We might be in the case where $metaTemplates gets re-used in a while loop
             // We deep copy the meta-template so that the data attached is not preserved for the next iteration
-            $metaTemplates = array_map(function ($metaTemplate) {
+            $metaTemplates = array_map(
+                function ($metaTemplate) {
                 $tmpEntity = $this->MetaTemplates->newEntity($metaTemplate->toArray());
                 $tmpEntity['meta_template_fields'] = Hash::combine($tmpEntity['meta_template_fields'], '{n}.id', '{n}'); // newEntity resets array indexing, see https://github.com/cakephp/cakephp/blob/32e3c532fea8abe2db8b697f07dfddf4dfc134ca/src/ORM/Marshaller.php#L369
                 return $tmpEntity;
-            }, $metaTemplates);
+                },
+                $metaTemplates
+            );
         } else {
             $metaTemplates = $this->getMetaTemplates($metaTemplateConditions)->toArray();
         }
@@ -873,57 +951,47 @@ class CRUDComponent extends Component
 
     public function delete($id = false, $params = []): void
     {
+        $ids = $this->getIds($id);
+        $query = $this->prepareQueryForIDOrUUID($id);
+        if (!empty($params['conditions'])) {
+            $query->where($params['conditions']);
+        }
+        if (!empty($params['contain'])) {
+            $query->contain($params['contain']);
+        }
+        $entities = $query->all()->toList();
+        if (isset($params['afterFind'])) {
+            foreach ($entities as $i => $entity) {
+                $entities[$i] = $params['afterFind']($entity, $params);
+            }
+        }
         if ($this->request->is('get')) {
-            if (!empty($id)) {
-                $query = $this->Table->find()->where([$this->Table->getAlias() . '.id' => $id]);
-                if (!empty($params['conditions'])) {
-                    $query->where($params['conditions']);
-                }
-                if (!empty($params['contain'])) {
-                    $query->contain($params['contain']);
-                }
-                $data = $query->first();
-                if (isset($params['afterFind'])) {
-                    $data = $params['afterFind']($data, $params);
-                }
-                if (empty($data)) {
-                    throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
-                }
-                $this->Controller->set('id', $data['id']);
-                $this->Controller->set('data', $data);
-                $this->Controller->set('bulkEnabled', false);
+            $this->Controller->set('entities', $entities);
+            $this->Controller->set('tableFields', $params['tableFields'] ?? []);
+            $this->Controller->viewBuilder()->setLayout('ajax');
+            if (count($entities) > 1) {
+                $this->Controller->set('ids', $ids);
+                $this->Controller->render('/genericTemplates/massDelete');
             } else {
-                $this->Controller->set('bulkEnabled', true);
+                $this->Controller->set('id', $id);
+                $this->Controller->render('/genericTemplates/delete');
             }
         } else if ($this->request->is('post') || $this->request->is('delete')) {
-            $ids = $this->getIdsOrFail($id);
             $isBulk = count($ids) > 1;
             $bulkSuccesses = 0;
-            foreach ($ids as $id) {
-                $query = $this->Table->find()->where([$this->Table->getAlias() . '.id' => $id]);
-                if (!empty($params['conditions'])) {
-                    $query->where($params['conditions']);
-                }
-                if (!empty($params['contain'])) {
-                    $query->contain($params['contain']);
-                }
-                $data = $query->first();
-                if (isset($params['afterFind'])) {
-                    $data = $params['afterFind']($data, $params);
-                }
+            foreach ($entities as $i => $entity) {
                 if (isset($params['beforeSave'])) {
                     try {
-                        $data = $params['beforeSave']($data);
-                        if ($data === false) {
+                        $entity = $params['beforeSave']($entity);
+                        if ($entity === false) {
                             throw new NotFoundException(__('Could not save {0} due to the input failing to meet expectations. Your input is bad and you should feel bad.', $this->ObjectAlias));
                         }
                     } catch (\Exception $e) {
-                        $data = false;
+                        $entity = false;
                     }
                 }
-                if (!empty($data)) {
-                    $success = $this->Table->delete($data);
-                    $success = true;
+                if (!empty($entity)) {
+                    $success = $this->Table->delete($entity);
                 } else {
                     $success = false;
                 }
@@ -935,7 +1003,7 @@ class CRUDComponent extends Component
                 $bulkSuccesses == count($ids),
                 $isBulk,
                 __('{0} deleted.', $this->ObjectAlias),
-                __('All {0} have been deleted.', Inflector::pluralize($this->ObjectAlias)),
+                __('All selected {0} have been deleted.', Inflector::pluralize($this->ObjectAlias)),
                 __('Could not delete {0}.', $this->ObjectAlias),
                 __(
                     '{0} / {1} {2} have been deleted.',
@@ -944,15 +1012,8 @@ class CRUDComponent extends Component
                     Inflector::pluralize($this->ObjectAlias)
                 )
             );
-            $additionalData = [];
-            if ($bulkSuccesses > 0) {
-                $additionalData['redirect'] = Router::url(['controller' => $this->Controller->getName(), 'action' => 'index']);
-            }
-            $this->setResponseForController('delete', $bulkSuccesses, $message, $data, null, $additionalData);
+            $this->setResponseForController('massToggle', $bulkSuccesses == count($ids), $message, [], [], []);
         }
-        $this->Controller->set('scope', 'users');
-        $this->Controller->viewBuilder()->setLayout('ajax');
-        $this->Controller->render('/genericTemplates/delete');
     }
 
     public function tag($id = false): void
@@ -1045,9 +1106,12 @@ class CRUDComponent extends Component
                 $input = $this->request->getData();
                 $tagsToRemove = json_decode($input['tag_list']);
                 // patching will mirror tag in the DB, however, we only want to remove tags
-                $input['tags'] = array_filter($entity->tags, function ($existingTag) use ($tagsToRemove) {
+                $input['tags'] = array_filter(
+                    $entity->tags,
+                    function ($existingTag) use ($tagsToRemove) {
                     return !in_array($existingTag->name, $tagsToRemove);
-                });
+                    }
+                );
                 $patchEntityParams = [
                     'fields' => ['tags'],
                 ];
@@ -1149,22 +1213,26 @@ class CRUDComponent extends Component
      */
     public function getIdsOrFail($id = false): array
     {
+        $ids = $this->getIds($id);
+        if (empty($ids)) {
+            throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
+        }
+        return $ids;
+    }
+
+    public function getIds($id): array
+    {
         $params = $this->Controller->ParamHandler->harvestParams(['ids']);
         if (!empty($params['ids'])) {
             $params['ids'] = json_decode($params['ids']);
         }
         $ids = [];
-        if (empty($id)) {
-            if (empty($params['ids'])) {
-                throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
-            }
+        if (empty($id) && !empty($params['ids'])) {
             $ids = $params['ids'];
         } else {
             $id = $this->getInteger($id);
             if (!is_null($id)) {
                 $ids = [$id];
-            } else {
-                throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
             }
         }
         return $ids;
@@ -1221,10 +1289,13 @@ class CRUDComponent extends Component
         $quickFilterFields = $options['quickFilters'];
         $this->Controller->set('quickFilter', empty($quickFilterFields) ? [] : $quickFilterFields);
         if ($this->metaFieldsSupported() && !empty($options['quickFilterForMetaField']['enabled'])) {
-            $this->Controller->set('quickFilterForMetaField', [
+            $this->Controller->set(
+                'quickFilterForMetaField',
+                [
                 'enabled' => $options['quickFilterForMetaField']['enabled'] ?? false,
                 'wildcard_search' => $options['quickFilterForMetaField']['enabled'] ?? false,
-            ]);
+                ]
+            );
         }
         if (!empty($params['quickFilter']) && !empty($quickFilterFields)) {
             $this->Controller->set('quickFilterValue', $params['quickFilter']);
@@ -1331,10 +1402,13 @@ class CRUDComponent extends Component
     protected function setTagFilters($query, $tags)
     {
         $modelAlias = $this->Table->getAlias();
-        $subQuery = $this->Table->find('tagged', [
+        $subQuery = $this->Table->find(
+            'tagged',
+            [
             'name' => $tags,
             'OperatorAND' => true
-        ])->select($modelAlias . '.id');
+            ]
+        )->select($modelAlias . '.id');
         return $query->where([$modelAlias . '.id IN' => $subQuery]);
     }
 
@@ -1349,18 +1423,29 @@ class CRUDComponent extends Component
             $query = $this->setRelatedCondition($query, $modelName, $fieldName, $filterValue);
         } else {
             $filterParts = array_slice($filterParts, 1);
-            $query = $query->matching($modelName, function (\Cake\ORM\Query $q) use ($filterParts, $filterValue) {
+            $query = $query->matching(
+                $modelName,
+                function (\Cake\ORM\Query $q) use ($filterParts, $filterValue) {
                 return $this->setNestedRelatedCondition($q, $filterParts, $filterValue);
-            });
+                }
+            );
         }
         return $query;
     }
 
     protected function setRelatedCondition($query, $modelName, $fieldName, $filterValue)
     {
-        return $query->matching($modelName, function (\Cake\ORM\Query $q) use ($fieldName, $filterValue) {
+        return $query->matching(
+            $modelName,
+            function (\Cake\ORM\Query $q) use ($fieldName, $filterValue) {
+            if (is_array($filterValue)) {
+                return $this->setInCondition($q, $fieldName, $filterValue);
+            } else {
+                return $this->setValueCondition($q, $fieldName, $filterValue);
+            }
             return $this->setValueCondition($q, $fieldName, $filterValue);
-        });
+            }
+        );
     }
 
     protected function setValueCondition($query, $fieldName, $value)
@@ -1368,9 +1453,11 @@ class CRUDComponent extends Component
         if (strlen(trim($value, '%')) === strlen($value)) {
             return $query->where([$fieldName => $value]);
         } else {
-            return $query->where(function ($exp, \Cake\ORM\Query $q) use ($fieldName, $value) {
+            return $query->where(
+                function ($exp, \Cake\ORM\Query $q) use ($fieldName, $value) {
                 return $exp->like($fieldName, $value);
-            });
+                }
+            );
         }
     }
 
@@ -1385,13 +1472,17 @@ class CRUDComponent extends Component
             $operator = $split[1];
         }
         if ($operator == '=') {
-            return $query->where(function (QueryExpression $exp, Query $q) use ($field, $values) {
+            return $query->where(
+                function (QueryExpression $exp, Query $q) use ($field, $values) {
                 return $exp->in($field, $values);
-            });
+                }
+            );
         } else if ($operator == '!=') {
-            return $query->where(function (QueryExpression $exp, Query $q) use ($field, $values) {
+            return $query->where(
+                function (QueryExpression $exp, Query $q) use ($field, $values) {
                 return $exp->notIn($field, $values);
-            });
+                }
+            );
         }
     }
 
@@ -1455,10 +1546,13 @@ class CRUDComponent extends Component
 
     public function setParentConditionsForMetaFields($query, array $metaConditions)
     {
-        $metaTemplates = $this->MetaFields->MetaTemplates->find('list', [
+        $metaTemplates = $this->MetaFields->MetaTemplates->find(
+            'list',
+            [
             'keyField' => 'name',
             'valueField' => 'id'
-        ])->where(['name IN' => array_keys($metaConditions)])->all()->toArray();
+            ]
+        )->where(['name IN' => array_keys($metaConditions)])->all()->toArray();
         $fieldsConditions = [];
         foreach ($metaConditions as $templateName => $templateConditions) {
             $metaTemplateID = isset($metaTemplates[$templateName]) ? $metaTemplates[$templateName] : -1;
@@ -1596,6 +1690,77 @@ class CRUDComponent extends Component
         $this->Controller->render('/genericTemplates/toggle');
     }
 
+    public function massToggle($fieldName, $params): void
+    {
+        $ids = $this->getIdsOrFail(false);
+        $query = $this->Table->find()->where(
+            function (QueryExpression $exp) use ($ids) {
+            return $exp->in($this->Table->getAlias() . '.id', $ids);
+            }
+        );
+        if (!empty($params['conditions'])) {
+            $query->where($params['conditions']);
+        }
+        if (!empty($params['contain'])) {
+            $query->contain($params['contain']);
+        }
+        $entities = $query->all()->toList();
+        if ($this->request->is('get')) {
+            $this->Controller->set('ids', $ids);
+            $this->Controller->set('entities', $entities);
+            $this->Controller->set('fieldName', $fieldName);
+            $this->Controller->set('tableFields', $params['tableFields'] ?? []);
+            $this->Controller->viewBuilder()->setLayout('ajax');
+            $this->Controller->set('fieldName', $fieldName);
+            $this->Controller->render('/genericTemplates/massToggle');
+        } else if ($this->request->is('post') || $this->request->is('delete')) {
+            $bulkSuccesses = 0;
+            foreach ($entities as $entity) {
+                if (isset($params['afterFind'])) {
+                    $entity = $params['afterFind']($entity, $params);
+                }
+                if (isset($params['beforeSave'])) {
+                    try {
+                        $entity = $params['beforeSave']($entity);
+                        if ($entity === false) {
+                            throw new NotFoundException(__('Could not save {0} due to the input failing to meet expectations. Your input is bad and you should feel bad.', $this->ObjectAlias));
+                        }
+                    } catch (\Exception $e) {
+                        $entity = false;
+                    }
+                }
+                if (!empty($entity)) {
+                    if (isset($params['force_state'])) {
+                        $entity->{$fieldName} = $params['force_state'];
+                    } else {
+                        $entity->{$fieldName} = !$entity->{$fieldName};
+                    }
+                    $savedData = $this->Table->save($entity);
+                    $success = $savedData !== false;
+                } else {
+                    $success = false;
+                }
+                if ($success) {
+                    $bulkSuccesses++;
+                }
+            }
+            $message = $this->getMessageBasedOnResult(
+                $bulkSuccesses == count($ids),
+                true,
+                __('{0} updated.', $this->ObjectAlias),
+                __('All selected {0} have been updated.', Inflector::pluralize($this->ObjectAlias)),
+                __('Could not update {0}.', $this->ObjectAlias),
+                __(
+                    '{0} / {1} {2} have been updated.',
+                    $bulkSuccesses,
+                    count($ids),
+                    Inflector::pluralize($this->ObjectAlias)
+                )
+            );
+            $this->setResponseForController('massToggle', $bulkSuccesses == count($ids), $message, [], [], []);
+        }
+    }
+
     public function toggleEnabled(int $id, array $path, string $fieldName = 'enabled'): void
     {
         if (empty($id)) {
@@ -1633,9 +1798,11 @@ class CRUDComponent extends Component
                     [$this->Table->getAlias() => $this->Table->getTable()],
                     [sprintf('%s.id = %s.%s', $this->Table->getAlias(), $associatedTable->getAlias(), $association->getForeignKey())]
                 )
-                    ->where([
+                    ->where(
+                        [
                         ["$field IS NOT" => NULL]
-                    ]);
+                        ]
+                    );
             } else if ($associationType == 'manyToOne') {
                 $fieldToExtract = sprintf('%s.%s', Inflector::singularize(strtolower($model)), $subField);
                 $query = $this->Table->find()->contain($model);
@@ -1670,6 +1837,31 @@ class CRUDComponent extends Component
             }
         }
         return $filters;
+    }
+
+    /**
+     * Prepare a find query for either the provided id/uuid or a list of json-encoded ids 
+     *
+     * @param mixed $id Can be either ID, UUID or unset
+     * @return Query
+     * @throws NotFoundException
+     */
+    public function prepareQueryForIDOrUUID($id = false): Query
+    {
+        $query = $this->Table->find();
+        $ids = $this->getIds($id);
+        if (Validation::uuid($id) && $this->Table->getSchema()->hasColumn('uuid')) {
+            $query->where(["{$this->Table->getAlias()}.uuid" => $id,]);
+        } else if (count($ids) > 0) {
+            $query->where(
+                function (QueryExpression $exp) use ($ids) {
+                return $exp->in($this->Table->getAlias() . '.id', $ids);
+                }
+            );
+        } else {
+            throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
+        }
+        return $query;
     }
 
     private function renderViewInVariable($templateRelativeName, $data)

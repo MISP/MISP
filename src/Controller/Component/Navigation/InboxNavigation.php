@@ -1,7 +1,5 @@
 <?php
-namespace BreadcrumbNavigation;
-
-require_once(APP . 'Controller' . DS . 'Component' . DS . 'Navigation' . DS . 'base.php'); 
+namespace App\Controller\Component\Navigation;
 
 class InboxNavigation extends BaseNavigation
 {
@@ -9,18 +7,26 @@ class InboxNavigation extends BaseNavigation
     {
         $this->bcf->addRoute('Inbox', 'index', $this->bcf->defaultCRUD('Inbox', 'index'));
         $this->bcf->addRoute('Inbox', 'view', $this->bcf->defaultCRUD('Inbox', 'view'));
-        $this->bcf->addRoute('Inbox', 'discard', [
+        $this->bcf->addRoute(
+            'Inbox',
+            'discard',
+            [
             'label' => __('Discard request'),
             'icon' => 'trash',
             'url' => '/inbox/discard/{{id}}',
             'url_vars' => ['id' => 'id'],
-        ]);
-        $this->bcf->addRoute('Inbox', 'process', [
+            ]
+        );
+        $this->bcf->addRoute(
+            'Inbox',
+            'process',
+            [
             'label' => __('Process request'),
             'icon' => 'cogs',
             'url' => '/inbox/process/{{id}}',
             'url_vars' => ['id' => 'id'],
-        ]);
+            ]
+        );
     }
     
     public function addParents()

@@ -2,11 +2,10 @@
 
 namespace App\View\Helper\BootstrapElements;
 
-use Cake\Utility\Hash;
-use Cake\Utility\Inflector;
-
 use App\View\Helper\BootstrapGeneric;
 use App\View\Helper\BootstrapHelper;
+use Cake\Utility\Hash;
+use Cake\Utility\Inflector;
 
 /**
  * Creates a table from 2-dimensional data $items.
@@ -88,6 +87,10 @@ class BootstrapTable extends BootstrapGeneric
         'caption' => '',
         'elementsRootPath' => '/genericElements/SingleViews/Fields/',
     ];
+    private $fields = [];
+    private $items = [];
+    private $caption = [];
+    private $btHelper = [];
 
     function __construct(array $options, array $data, BootstrapHelper $btHelper)
     {
@@ -117,7 +120,9 @@ class BootstrapTable extends BootstrapGeneric
 
     private function genTable(): string
     {
-        $html = $this->nodeOpen('table', [
+        $html = $this->nodeOpen(
+            'table',
+            [
             'class' => [
                 'table',
                 "table-{$this->options['variant']}",
@@ -130,7 +135,8 @@ class BootstrapTable extends BootstrapGeneric
                 !empty($this->options['variant']) ? "table-{$this->options['variant']}" : '',
             ],
             'id' => $this->options['id'] ?? ''
-        ]);
+            ]
+        );
 
         $html .= $this->genCaption();
         $html .= $this->genHeader();
@@ -142,9 +148,12 @@ class BootstrapTable extends BootstrapGeneric
 
     private function genHeader(): string
     {
-        $head =  $this->nodeOpen('thead', [
+        $head =  $this->nodeOpen(
+            'thead',
+            [
             'class' => $this->options['headerClass'],
-        ]);
+            ]
+        );
         $head .= $this->nodeOpen('tr');
         foreach ($this->fields as $i => $field) {
             if (is_array($field)) {
@@ -167,9 +176,12 @@ class BootstrapTable extends BootstrapGeneric
 
     private function genBody(): string
     {
-        $body =  $this->nodeOpen('tbody', [
+        $body =  $this->nodeOpen(
+            'tbody',
+            [
             'class' => $this->options['bodyClass'],
-        ]);
+            ]
+        );
         foreach ($this->items as $i => $row) {
             $body .= $this->genRow($row, $i);
         }
@@ -179,11 +191,14 @@ class BootstrapTable extends BootstrapGeneric
 
     private function genRow(array $row, int $rowIndex): string
     {
-        $html = $this->nodeOpen('tr', [
+        $html = $this->nodeOpen(
+            'tr',
+            [
             'class' => [
                 !empty($row['_rowVariant']) ? "table-{$row['_rowVariant']}" : ''
             ]
-        ]);
+            ]
+        );
         if (array_keys($row) !== range(0, count($row) - 1)) { // associative array
             foreach ($this->fields as $i => $field) {
                 $cellValue = $this->getValueFromObject($row, $field);
@@ -203,21 +218,28 @@ class BootstrapTable extends BootstrapGeneric
         if (isset($field['formatter'])) {
             $cellContent = $field['formatter']($value, $row, $rowIndex);
         } else if (isset($field['element'])) {
-            $cellContent = $this->btHelper->getView()->element($this->getElementPath($field['element']), [
+            $cellContent = $this->btHelper->getView()->element(
+                $this->getElementPath($field['element']),
+                [
                 'data' => [$value],
                 'field' => ['path' => '0']
-            ]);
+                ]
+            );
         } else {
             $cellContent = h($value);
         }
-        return $this->node('td', [
+        return $this->node(
+            'td',
+            [
             'class' => array_merge(
                 [
                     !empty($field['columnVariant']) ? "table-{$field['columnVariant']}" : ''
                 ],
                 $field['class'] ?? []
             ),
-        ], $cellContent);
+            ],
+            $cellContent
+        );
     }
 
     private function getValueFromObject(array $row, $field)

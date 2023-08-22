@@ -5,6 +5,7 @@ namespace App\Model\Table;
 use App\Model\Entity\SharingGroup;
 use App\Model\Entity\SharingGroupOrg;
 use App\Model\Entity\SharingGroupServer;
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Core\Configure;
@@ -27,6 +28,7 @@ class SharingGroupsTable extends AppTable
     public function initialize(array $config): void
     {
         parent::initialize($config);
+        $this->addBehavior('Timestamp');
         $this->addBehavior('AuditLog');
 
         $this->belongsTo(
@@ -70,6 +72,7 @@ class SharingGroupsTable extends AppTable
     {
         $validator
             ->requirePresence(['name'], 'create')
+            ->notEmptyString('name')
             ->add(
                 'uuid',
                 'uuid',
@@ -656,6 +659,37 @@ class SharingGroupsTable extends AppTable
         return false;
     }
 
+    /**
+     * Add the `editable` and `deletable` properties on the passed entity based on the user
+     *
+     * @param SharingGroup $sg
+     * @param User $user
+     * @return SharingGroup
+     */
+    public function attachSharingGroupEditabilityForUser(SharingGroup $sg, User $user): SharingGroup
+    {
+        $editable = false;
+        $deletable = false;
+
+        $userOrganisationUuid = $user->Organisation->uuid;
+        if ($user->Role->perm_site_admin || ($user->Role->perm_sharing_group && $sg->Organisation->uuid === $userOrganisationUuid)) {
+            $editable = true;
+            $deletable = true;
+        } else if ($user->Role->perm_sharing_group) {
+            if (!empty($sg->SharingGroupOrgs)) {
+                foreach ($sg->SharingGroupOrgs as $sgo) {
+                    if ($sgo->extend && $sgo->org_id == $user->org_id) {
+                        $editable = true;
+                        break;
+                    }
+                }
+            }
+        }
+        $sg->editable = $editable;
+        $sg->deletable = $deletable;
+        return $sg;
+    }
+
     /*
      * Capture a sharing group
      * Return false if something goes wrong
@@ -666,7 +700,7 @@ class SharingGroupsTable extends AppTable
      * @param array $server
      * @return int || false
      */
-    public function captureSG($sg, $user, $server = false)
+    public function captureSG(array $sg, array $user, $server = false)
     {
         $syncLocal = false;
         if (!empty($server) && !empty($server['Server']['local'])) {
@@ -683,7 +717,7 @@ class SharingGroupsTable extends AppTable
                     'SharingGroupOrgs' => ['Organisations']
                 ]
             ]
-        )->disableHydration()->first();
+        )->first();
         $forceUpdate = false;
         if (empty($existingSG)) {
             if (!$user['Role']['perm_sharing_group']) {
@@ -724,7 +758,7 @@ class SharingGroupsTable extends AppTable
      * @param array $sg
      * @return int || false || true
      */
-    private function captureSGExisting($user, $existingSG, $sg)
+    private function captureSGExisting(array $user, SharingGroup $existingSG, array $sg)
     {
         if (!$this->checkIfAuthorised($user, $existingSG['id']) && !$user['Role']['perm_sync']) {
             return false;
@@ -736,14 +770,8 @@ class SharingGroupsTable extends AppTable
             // We need a mechanism to check whether we're in sync context.
             $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['org_id'] == $user['org_id'];
             if ($isUpdatableBySync || $isSGOwner || $user['Role']['perm_site_admin']) {
-                $editedSG = $existingSG;
                 $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming'];
-                foreach ($attributes as $a) {
-                    if (isset($sg[$a])) {
-                        $editedSG[$a] = $sg[$a];
-                    }
-                }
-                $editedSGEntity = new SharingGroup($editedSG);
+                $editedSGEntity = $this->patchEntity($existingSG, $sg, ['fields' => $attributes]);
                 $this->save($editedSGEntity);
                 return true;
             } else {
@@ -788,7 +816,7 @@ class SharingGroupsTable extends AppTable
             return false;
         }
         $date = date('Y-m-d H:i:s');
-        $newSG = new SharingGroup(
+        $newSG = $this->newEntity(
             [
                 'name' => $sg['name'],
                 'releasability' => !isset($sg['releasability']) ? '' : $sg['releasability'],
@@ -1142,5 +1170,38 @@ class SharingGroupsTable extends AppTable
                 'recursive' => -1,
             ]
         )->toArray();
+    }
+
+    /**
+     * Collect all sharing group IDs having one of the passed organisation name included
+     *
+     * @param array $orgNames
+     * @return array
+     */
+    public function fetchSharingGroupIDsForOrganisations(array $orgNames): array
+    {
+        $matchingOrgconditions = [];
+        foreach ($orgNames as $org) {
+            $exclude = $org[0] === '!';
+            if ($exclude) {
+                $org = substr($org, 1);
+            }
+            $org = $this->Organisations->fetchOrg($org);
+            if ($org) {
+                if ($exclude) {
+                    $matchingOrgconditions['AND'][] = ['org_id !=' => $org['id']];
+                } else {
+                    $matchingOrgconditions['OR'][] = ['org_id' => $org['id']];
+                }
+            }
+        }
+        $sgIds = $this->SharingGroupOrgs->find(
+            'column',
+            [
+                'conditions' => $matchingOrgconditions,
+                'fields' => ['SharingGroupOrgs.sharing_group_id'],
+            ]
+        )->all()->toList();
+        return $sgIds;
     }
 }

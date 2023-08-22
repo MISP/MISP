@@ -19,7 +19,7 @@
     $entity = isset($entity) ? $entity : null;
     $fieldsString = '';
     $simpleFieldWhitelist = [
-        'default', 'type', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'templates', 'options', 'value', 'checked',
+        'default', 'type', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'templates', 'options', 'value', 'checked', 'div',
     ];
     if (empty($data['url'])) {
         $data['url'] = ["controller" => $this->request->getParam('controller'), "action" => $this->request->getParam('url')];
@@ -42,7 +42,6 @@
         'nestingLabel' => '{{hidden}}<div class="col-sm-2 form-label">{{text}}</div><div class="col-sm-10">{{input}}</div>',
         'option' => '<option value="{{value}}"{{attrs}}>{{text}}</option>',
         'optgroup' => '<optgroup label="{{label}}"{{attrs}}>{{content}}</optgroup>',
-        'select' => '<select name="{{name}}"{{attrs}}>{{content}}</select>',
         'error' => '<div class="error-message invalid-feedback d-block">{{content}}</div>',
         'errorList' => '<ul>{{content}}</ul>',
         'errorItem' => '<li>{{text}}</li>',
@@ -62,8 +61,8 @@
                 $formTemplate['formGroup'] = '{{input}}{{label}}';
                 $fieldData['placeholder'] = !empty($fieldData['label']) ? $fieldData['label'] : h($fieldData['field']);
             }
-            if (!empty($data['templates'])) {
-                $formTemplate = array_merge($formTemplate, $data['templates']);
+            if (!empty($fieldData['templates'])) {
+                $formTemplate = array_merge($formTemplate, $fieldData['templates']);
             }
             // we reset the template each iteration as individual fields might override the defaults.
             $this->Form->setConfig($formTemplate);
@@ -107,24 +106,31 @@
     $formEnd = $this->Form->end();
     $actionName = h(\Cake\Utility\Inflector::humanize($this->request->getParam('action')));
     $modelName = h(\Cake\Utility\Inflector::humanize(\Cake\Utility\Inflector::singularize($this->request->getParam('controller'))));
-    if (!empty($ajax)) {
+    if (empty($raw) && !empty($ajax)) {
         $seedModal = 'mseed-' . mt_rand();
-        echo $this->Bootstrap->modal([
+        echo $this->Bootstrap->modal(
+            [
             'title' => empty($data['title']) ? sprintf('%s %s', $actionName, $modelName) : h($data['title']),
-            'bodyHtml' =>  $this->element('genericElements/Form/formLayouts/formRaw', [
+            'bodyHtml' =>  $this->element(
+                'genericElements/Form/formLayouts/formRaw',
+                [
                 'data' => $data,
                 'formCreate' => $formCreate,
                 'ajaxFlashMessage' => $ajaxFlashMessage,
                 'fieldsString' => $fieldsString,
                 'formEnd' => $formEnd,
                 'metaTemplateString' => $metaTemplateString,
-            ]),
+                ]
+            ),
             'size' => !empty($fieldsString) ? 'xl' : 'lg',
             'type' => 'confirm',
             'modalClass' => $seedModal,
-        ]);
+            ]
+        );
     } else if (!empty($raw)) {
-        echo $this->element('genericElements/Form/formLayouts/formDefault', [
+        echo $this->element(
+            'genericElements/Form/formLayouts/formRaw',
+            [
             'data' => $data,
             'actionName' => $actionName,
             'modelName' => $modelName,
@@ -134,9 +140,12 @@
             'fieldsString' => $fieldsString,
             'formEnd' => $formEnd,
             'metaTemplateString' => $metaTemplateString,
-        ]);
+            ]
+        );
     } else {
-        echo $this->element('genericElements/Form/formLayouts/formDefault', [
+        echo $this->element(
+            'genericElements/Form/formLayouts/formDefault',
+            [
             'data' => $data,
             'actionName' => $actionName,
             'modelName' => $modelName,
@@ -146,7 +155,8 @@
             'fieldsString' => $fieldsString,
             'formEnd' => $formEnd,
             'metaTemplateString' => $metaTemplateString,
-        ]);
+            ]
+        );
     }
 ?>
 <script type="text/javascript">

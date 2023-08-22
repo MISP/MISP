@@ -54,9 +54,12 @@ use Cake\Utility\Inflector;
                     ];
                     $actionMenuRootConfig = $actionMenu[$menuID] ?? [];
                     if (empty($actionMenuRootConfig)) {
-                        $primaryItem = array_filter($actions, function ($action) {
+                        $primaryItem = array_filter(
+                            $actions,
+                            function ($action) {
                             return !empty($action['_menu_primary']);
-                        });
+                            }
+                        );
                         if (!empty($primaryItem)) {
                             $actionMenuRootConfig = $primaryItem[0];
                             $actionMenuRootConfig['split'] = true;
@@ -64,11 +67,15 @@ use Cake\Utility\Inflector;
                     }
                     $menuConfig = array_merge($defaultMenuConfig, $actionMenuRootConfig);
                     $menuConfig['text'] = $menuConfig['label'] ?? $menuConfig['text'];
-                    $actions = array_map(function($action) {
+                    $actions = array_map(
+                        function($action) {
                         $action['outline'] = true;
                         return $action;
-                    }, $actions);
-                    echo $this->Bootstrap->dropdownMenu([
+                        },
+                        $actions
+                    );
+                    echo $this->Bootstrap->dropdownMenu(
+                        [
                         'dropdown-class' => '',
                         'alignment' => 'start',
                         'direction' => 'down',
@@ -76,7 +83,8 @@ use Cake\Utility\Inflector;
                         'submenu_direction' => 'end',
                         'attrs' => [],
                         'menu' => $actions,
-                    ]);
+                        ]
+                    );
                 }
             }
             echo '</div>';
@@ -109,6 +117,7 @@ use Cake\Utility\Inflector;
                 } else {
                     $url = Router::url($linkEntry['url']);
                 }
+                $buttonBadge = !empty($linkEntry['badge']) ? $this->Bootstrap->badge($linkEntry['badge']) : '';
                 $buttonConfig = [
                     'nodeType' => 'a',
                     'text' => $linkEntry['label'],
@@ -138,11 +147,15 @@ use Cake\Utility\Inflector;
                     ];
                     $menuConfig = array_merge($defaultMenuConfig, $linkMenu[$menuID] ?? []);
                     $menuConfig['text'] = $menuConfig['label'] ?: $menuConfig['text'];
-                    $links = array_map(function($link) {
+                    $links = array_map(
+                        function($link) {
                         $action['outline'] = true;
                         return $link;
-                    }, $links);
-                    echo $this->Bootstrap->dropdownMenu([
+                        },
+                        $links
+                    );
+                    echo $this->Bootstrap->dropdownMenu(
+                        [
                         'dropdown-class' => '',
                         'alignment' => 'end',
                         'direction' => 'down',
@@ -150,7 +163,8 @@ use Cake\Utility\Inflector;
                         'submenu_direction' => 'end',
                         'attrs' => [],
                         'menu' => $links,
-                    ]);
+                        ]
+                    );
                 }
             }
             echo '</div>';
@@ -158,7 +172,8 @@ use Cake\Utility\Inflector;
             if (!empty($goToLinks)) {
                 $menu = [];
                 foreach ($goToLinks as $menuID => $links) {
-                    $jumpToButtons = array_map(function($link) {
+                    $jumpToButtons = array_map(
+                        function($link) {
                         $url = Router::url($link['url']);
                         return [
                             'nodeType' => 'a',
@@ -170,7 +185,9 @@ use Cake\Utility\Inflector;
                                 'href' => h($url),
                             ],
                         ];
-                    }, $links);
+                        },
+                        $links
+                    );
                     if ($menuID === '_root') {
                         $menu = array_merge($menu, $jumpToButtons);
                     } else {
@@ -187,7 +204,8 @@ use Cake\Utility\Inflector;
                         $menu[] = $subMenu;
                     }
                 }
-                echo $this->Bootstrap->dropdownMenu([
+                echo $this->Bootstrap->dropdownMenu(
+                    [
                     'dropdown-class' => '',
                     'alignment' => 'end',
                     'direction' => 'down',
@@ -199,7 +217,8 @@ use Cake\Utility\Inflector;
                     'submenu_direction' => 'start',
                     'attrs' => [],
                     'menu' => $menu,
-                ]);
+                    ]
+                );
             }
             echo '</div>';
         }

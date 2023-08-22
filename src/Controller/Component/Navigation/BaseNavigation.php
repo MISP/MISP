@@ -1,5 +1,5 @@
 <?php
-namespace BreadcrumbNavigation;
+namespace App\Controller\Component\Navigation;
 
 class BaseNavigation
 {
