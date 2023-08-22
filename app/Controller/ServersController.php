@@ -503,7 +503,6 @@ class ServersController extends AppController
                     $this->Flash->error($error_msg);
                 }
             }
-
             if (!$fail && !empty($this->request->data['Server']['push_rules']) && !JsonTool::isValid($this->request->data['Server']['push_rules'])) {
                 $fail = true;
                 $error_msg = __('The push filter rules must be in valid JSON format.');
@@ -512,17 +511,22 @@ class ServersController extends AppController
                 } else {
                     $this->Flash->error($error_msg);
                 }
-            }
-            $pushRules = $this->_jsonDecode($this->request->data['Server']['push_rules']);
-            $this->loadModel('Tag');
-            foreach ($pushRules['tags'] as $operator => $list) {
-                foreach ($list as $i => $tagName) {
-                    if (!is_numeric($tagName)) { // tag added from freetext
-                        $tag_id = $this->Tag->captureTag(['name' => $tagName], $this->Auth->user());
-                        $list[$i] = $tag_id;
+            }            
+            if (!$fail && !empty($this->request->data['Server']['push_rules'])) {
+                $pushRules = $this->_jsonDecode($this->request->data['Server']['push_rules']);
+                if (!empty($pushRules['tags'])) {
+                    $this->loadModel('Tag');
+                    foreach ($pushRules['tags'] as $operator => $list) {
+                        foreach ($list as $i => $tagName) {
+                            if (!is_numeric($tagName)) { // tag added from freetext
+                                $tag_id = $this->Tag->captureTag(['name' => $tagName], $this->Auth->user());
+                                $list[$i] = $tag_id;
+                            }
+                        }
                     }
                 }
             }
+            
             if (!$fail) {
                 // say what fields are to be updated
                 $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
