@@ -1,3 +1,8 @@
+<?php
+    // If you want to force log scale, set the `forceLogarithm` option to true in the widget config: `{"widget_config": {"forceLogarithm": "1"}}`
+    // Or the widget already contains data in log, set `logarithmic` to 1
+
+?>
 <table style="border-spacing:0px;">
 <?php
     if (!empty($data['logarithmic'])) {
@@ -7,6 +12,7 @@
             $max = 0;
         } else {
             $max = max($data['data']);
+            $max = !empty($config['widget_config']['forceLogarithm']) ? log10($max) : $max;
         }
     }
     if (!empty($max)) {
@@ -14,6 +20,8 @@
             $value = $count;
             if (!empty($data['logarithmic'])) {
                 $value = $data['logarithmic'][$entry];
+            } else if (!empty($config['widget_config']['forceLogarithm'])) {
+                $value = log10($count);
             }
             $shortlabel = $entry;
             if (mb_strlen($shortlabel) > 30) {

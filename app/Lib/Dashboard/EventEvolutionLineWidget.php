@@ -92,7 +92,7 @@ class EventEvolutionLineWidget
             'recursive' => -1,
             'conditions' => $eparams['conditions'],
             'fields' => ['DATE_FORMAT(FROM_UNIXTIME(Event.publish_timestamp), "%Y-%m") AS date', 'count(id) AS count'],
-            'group' => 'MONTH(FROM_UNIXTIME(Event.publish_timestamp)), YEAR(FROM_UNIXTIME(Event.publish_timestamp))'
+            'group' => ['MONTH(FROM_UNIXTIME(Event.publish_timestamp)), YEAR(FROM_UNIXTIME(Event.publish_timestamp))',]
             
         ]);
 

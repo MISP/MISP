@@ -2984,7 +2984,8 @@ class UsersController extends AppController
     public function viewPeriodicSummary(string $period)
     {
         $userId = $this->Auth->user('id');
-        $summary = $this->User->generatePeriodicSummary($userId, $period);
+        $lastdays = $this->request->params['named']['lastdays'] ?? false;
+        $summary = $this->User->generatePeriodicSummary($userId, $period, true, $lastdays);
         $periodicSettings = $this->User->fetchPeriodicSettingForUser($userId);
         $this->set('periodic_settings', $periodicSettings);
         $this->set('summary', $summary);

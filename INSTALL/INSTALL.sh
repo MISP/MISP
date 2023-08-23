@@ -699,8 +699,9 @@ kaliOnTheR0ckz () {
   overlay=$(df -kh |grep overlay; echo $?) # if 1 overlay NOT present
 
   if [[ ${totalRoot} -lt 3059034 ]]; then
-    echo "(If?) You run Kali in LiveCD mode and we need more overlay disk space."
-    echo "This is defined by the total memory, you have: ${totalMem}kB which is not enough."
+    echo "(If?) You run Kali in LiveCD mode, you need more overlay disk space."
+    echo "This is defined by the total memory setting in you VM config."
+    echo "You currently have: ${totalMem}kB which is not enough."
     echo "6-8Gb should be fine. (need >3Gb overlayFS)"
     exit 1
   fi
@@ -3602,11 +3603,12 @@ x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
 x86_64-ubuntu-hirsute
 x86_64-ubuntu-jammy
-x86_64-kali-2021.4
 x86_64-kali-2022.1
 x86_64-kali-2022.2
 x86_64-kali-2022.3
 x86_64-kali-2022.4
+x86_64-kali-2023.1
+x86_64-kali-2023.2
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-raspbian-buster

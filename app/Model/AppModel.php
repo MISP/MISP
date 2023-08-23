@@ -3334,10 +3334,12 @@ class AppModel extends Model
             $filter = array();
             foreach ($temp as $f) {
                 $f = strval($f);
-                if ($f[0] === '!') {
-                    $filter['NOT'][] = substr($f, 1);
-                } else {
-                    $filter['OR'][] = $f;
+                if ($f !== '') {
+                    if ($f[0] === '!') {
+                        $filter['NOT'][] = substr($f, 1);
+                    } else {
+                        $filter['OR'][] = $f;
+                    }
                 }
             }
             return $filter;
