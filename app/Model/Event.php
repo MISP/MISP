@@ -3573,6 +3573,9 @@ class Event extends AppModel
         if (isset($dataArray['Event'])) {
             $dataArray['response']['Event'] = $dataArray['Event'];
             unset($dataArray['Event']);
+        } elseif (!isset($dataArray['response'])){
+            // Accept an event not containing the `Event` key
+            $dataArray['response']['Event'] = $dataArray;
         }
         if (!isset($dataArray['response']) || !isset($dataArray['response']['Event'])) {
             $exception = $isXml ? __('This is not a valid MISP XML file.') : __('This is not a valid MISP JSON file.');
