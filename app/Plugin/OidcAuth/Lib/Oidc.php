@@ -19,6 +19,8 @@ class Oidc
     {
         $oidc = $this->prepareClient();
 
+        $this->log(null, 'Authenticate');
+
         if (!$oidc->authenticate()) {
             throw new Exception("OIDC authentication was not successful.");
         }
@@ -133,13 +135,13 @@ class Oidc
         ];
 
         if (!$this->User->save($userData)) {
-            throw new RuntimeException("Could not save user `$mispUsername` to database.");
+            throw new RuntimeException("Could not create user `$mispUsername` in database.");
         }
 
         $refreshToken = $this->getConfig('offline_access', false) ? $oidc->getRefreshToken() : null;
         $this->storeMetadata($this->User->id, $claims, $refreshToken);
 
-        $this->log($mispUsername, "User saved in database with ID {$this->User->id}");
+        $this->log($mispUsername, "User created in database with ID {$this->User->id}");
         $this->log($mispUsername, 'Logged in.');
         $user = $this->_findUser($settings, ['User.id' => $this->User->id]);
 
@@ -514,11 +516,21 @@ class Oidc
     }
 
     /**
-     * @param string $username
+     * @param string|null $username
      * @param string $message
      */
     private function log($username, $message)
     {
-        CakeLog::info("OIDC: User `$username` – $message");
+        $sessionId = substr(session_id(), 0, 6);
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
+        $ip = isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
+
+        if ($username) {
+            $message = "OIDC user `$username` [$ip;$sessionId] – $message";
+        } else {
+            $message = "OIDC [$ip;$sessionId] – $message";
+        }
+
+        CakeLog::info($message);
     }
 }

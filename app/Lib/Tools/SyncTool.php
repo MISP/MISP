@@ -2,6 +2,9 @@
 
 class SyncTool
 {
+
+    const ALLOWED_CERT_FILE_EXTENSIONS = ['pem', 'crt'];
+
     /**
      * Take a server as parameter and return a HttpSocket object using the ssl options defined in the server settings
      * @param array|null $server
@@ -15,10 +18,10 @@ class SyncTool
         $params = ['compress' => true];
         if (!empty($server)) {
             if (!empty($server[$model]['cert_file'])) {
-                $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server[$model]['id'] . '.pem';
+                $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server[$model]['cert_file'];
             }
             if (!empty($server[$model]['client_cert_file'])) {
-                $params['ssl_local_cert'] = APP . "files" . DS . "certs" . DS . $server[$model]['id'] . '_client.pem';
+                $params['ssl_local_cert'] = APP . "files" . DS . "certs" . DS . $server[$model]['client_cert_file'];
             }
             if (!empty($server[$model]['self_signed'])) {
                 $params['ssl_allow_self_signed'] = true;

@@ -28,7 +28,7 @@
                     'data_path' => 'Correlation.count'
                 ]
             ],
-            'title' => empty($ajax) ? $title_for_layout : false,
+            'title' => empty($ajax) ? h($title_for_layout) : false,
             'description' => empty($ajax) ? __('The values with the most correlation entries.') : false,
             'pull' => 'right',
             'actions' => [

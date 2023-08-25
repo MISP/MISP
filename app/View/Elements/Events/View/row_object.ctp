@@ -81,7 +81,7 @@ $objectId = intval($object['id']);
       <?= nl2br(h($object['comment']), false); ?>
     </div>
   </td>
-  <td colspan="4"></td>
+  <td colspan="<?= $me['Role']['perm_view_feed_correlations'] ? 4 : 3 ?>"></td>
   <td class="shortish"<?= $quickEdit('distribution') ?>>
     <div class="inline-field-solid">
       <?php
@@ -111,6 +111,17 @@ $objectId = intval($object['id']);
   <td class="short action-links">
     <?php
       if ($mayModify) {
+          if (Configure::read('Plugin.Enrichment_services_enable') && ($isSiteAdmin || $mayModify) && (isset($modules) && isset($modules['types'][$object['name']]))) {
+            echo sprintf(
+              '<span class="fa fa-asterisk white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onclick="%2$s"></span> ',
+              __('Add enrichment'),
+              sprintf(
+                'simplePopup(\'%s/events/queryEnrichment/%s/0/Enrichment/Object\');',
+                  $baseurl, $objectId
+              )
+            );
+          }
+
           if (empty($object['deleted'])) {
             echo sprintf(
               '<a href="%s/objects/edit/%s" title="%s" aria-label="%s" class="fa fa-edit white"></a> ',

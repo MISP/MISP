@@ -10,6 +10,7 @@ class OverCorrelatingValue extends AppModel
 
     public static function truncate(string $value): string
     {
+        $value = mb_strtolower($value);
         return mb_substr($value, 0, 191);
     }
 
@@ -45,11 +46,15 @@ class OverCorrelatingValue extends AppModel
         if (!$this->isBlocked($value)) {
             $value = self::truncate($value);
             $this->create();
-            $this->save([
-                'value' => $value,
-                'occurrence' => 0
-            ]);
-            $this->blockedValues[$value] = true;
+            try {
+                $this->save([
+                    'value' => mb_strtolower($value),
+                    'occurrence' => 0
+                ]);
+                $this->blockedValues[$value] = true;
+            } catch (Exception $e) {
+                //most likely we ran into an issue with capitalisation, there's no reason to break the process for this
+            }
         }
     }
 

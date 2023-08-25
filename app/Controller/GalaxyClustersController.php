@@ -38,7 +38,15 @@ class GalaxyClustersController extends AppController
     public function index($galaxyId)
     {
         $galaxyId = $this->Toolbox->findIdByUuid($this->GalaxyCluster->Galaxy, $galaxyId);
-        $filters = $this->IndexFilter->harvestParameters(array('context', 'searchall'));
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => ['context', 'searchall'],
+            'ordered_url_params' => [],
+            'additional_delimiters' => PHP_EOL
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
         $aclConditions = $this->GalaxyCluster->buildConditions($this->Auth->user());
         $contextConditions = array();
         if (empty($filters['context'])) {

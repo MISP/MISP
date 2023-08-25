@@ -11,7 +11,7 @@
                             'children' => [
                                 'data' => [
                                     'type' => 'simple',
-                                    'text' => __('Add TaxiiServer'),
+                                    'text' => __('Add TAXII Server'),
                                     'class' => 'btn btn-primary',
                                     'onClick' => 'openGenericModal',
                                     'onClickParams' => [
@@ -54,6 +54,11 @@
                         'data_path' => 'TaxiiServer.api_root'
                     ],
                     [
+                        'name' => __('Collection'),
+                        'sort' => 'TaxiiServer.collection',
+                        'data_path' => 'TaxiiServer.collection'
+                    ],
+                    [
                         'name' => __('Filters'),
                         'sort' => 'TaxiiServer.filters',
                         'data_path' => 'TaxiiServer.filters',
@@ -70,9 +75,14 @@
                         'data_path' => 'TaxiiServer.description'
                     ]
                 ],
-                'title' => empty($ajax) ? __('Linked Taxii Servers') : false,
-                'description' => empty($ajax) ? __('You can connect your MISP to one or several Taxii servers to push data to using a set of filters.') : false,
+                'title' => empty($ajax) ? __('Linked TAXII Servers') : false,
+                'description' => empty($ajax) ? __('You can connect your MISP to one or several TAXII servers to push data to using a set of filters.') : false,
                 'actions' => [
+                    [
+                        'url' => $baseurl . '/taxiiServers/view',
+                        'url_params_data_paths' => ['TaxiiServer.id'],
+                        'icon' => 'eye'
+                    ],
                     [
                         'onclick' => sprintf(
                             'openGenericModal(\'%s/taxiiServers/push/[onclick_params_data_path]\');',
@@ -83,15 +93,22 @@
                         'icon' => 'upload'
                     ],
                     [
-                        'url' => $baseurl . '/taxiiServers/edit',
-                        'url_params_data_paths' => ['TaxiiServer.id'],
+                        'onclick' => sprintf(
+                            'openGenericModal(\'%s/taxiiServers/edit/[onclick_params_data_path]\');',
+                            $baseurl
+                        ),
+                        'onclick_params_data_path' => 'TaxiiServer.id',
+                        'title' => __('Edit TAXII server configuration'),
                         'icon' => 'edit'
                     ],
                     [
-                        'url' => $baseurl . '/taxiiServers/delete',
-                        'url_params_data_paths' => ['TaxiiServer.id'],
+                        'onclick' => sprintf(
+                            'openGenericModal(\'%s/taxiiServers/delete/[onclick_params_data_path]\');',
+                            $baseurl
+                        ),
+                        'onclick_params_data_path' => 'TaxiiServer.id',
                         'icon' => 'trash'
-                    ],
+                    ]
                 ]
             ]
         ]

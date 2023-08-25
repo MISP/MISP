@@ -428,7 +428,7 @@ class Ls22Shell extends AppShell
         }
         $HttpSocket = $this->Server->setupHttpSocket($server, null);
         $request = $this->Server->setupSyncRequest($server);
-        $response = $HttpSocket->get($server['Server']['url'] . '/organisations/index/scope:all', false, $request);
+        $response = $HttpSocket->get($server['Server']['url'] . '/organisations/index/scope:local', false, $request);
         $orgs = json_decode($response->body(), true);
         $this->out(__('Organisations fetched. %d found.', count($orgs)), 1, Shell::VERBOSE);
         $org_mapping = [];
@@ -439,23 +439,31 @@ class Ls22Shell extends AppShell
             if ($org['Organisation']['name'] === 'YT') {
                 continue;
             }
+            if ($org['Organisation']['name'] === 'ORGNAME') {
+                continue;
+            }
             $org_mapping[$org['Organisation']['name']] = $org['Organisation']['id'];
         }
-        if (!empty($this->param['from'])) {
-            $time_range[] = $this->param['from'];
+        $time_range = [];
+        if (!empty($this->param('from'))) {
+            $time_range[] = $this->param('from');
         }
-        if (!empty($this->param['to'])) {
+        if (!empty($this->param('to'))) {
             if (empty($time_range)) {
                 $time_range[] = '365d';
             }
-            $time_range[] = $this->param['to'];
+            $time_range[] = $this->param('to');
+        } else {
+            if (!empty($time_range)) {
+                $time_range[] = '0h';
+            }
         }
         $event_extended_uuids = [];
         $event_uuid_per_org = [];
         foreach ($org_mapping as $org_name => $org_id) {
-            $time_range = [];
             $params = [
-                'org' => $org_id
+                'org' => $org_id,
+                'includeWarninglistHits' => true,
             ];
             if (!empty($time_range)) {
                 $params['publish_timestamp'] = $time_range;
@@ -480,9 +488,9 @@ class Ls22Shell extends AppShell
                 'extending_events' => 0,
             ];
             foreach ($events['response'] as $event) {
-                $event_uuid_per_org[$event['Event']['uuid']] = $org_name;
+                $event_uuid_per_org[$event['Event']['uuid']] = $event['Event']['Orgc']['name'];
                 if (!empty($event['Event']['extends_uuid'])) {
-                    $event_extended_uuids[$org_name] = $event['Event']['extends_uuid'];
+                    $event_extended_uuids[$event['Event']['Orgc']['name']][] = $event['Event']['extends_uuid'];
                 }
 
                 if (!empty($event['Event']['Tag'])) {
@@ -545,13 +553,17 @@ class Ls22Shell extends AppShell
             }
         }
 
-        foreach ($event_extended_uuids as $orgc => $uuid) {
-            $org_name =  $event_uuid_per_org[$uuid];
-            if ($orgc != $org_name) {
-                // Add point for org extending another event
-                $results[$orgc]['extending_events'] += 1;
-                // Add point for org getting their event extended
-                $results[$org_name]['events_extended'] += 1;
+        foreach ($event_extended_uuids as $orgc => $uuids) {
+            foreach ($uuids as $uuid) {
+                if (!empty($event_uuid_per_org[$uuid])) {
+                    $org_name =  $event_uuid_per_org[$uuid];
+                    if ($orgc != $org_name) {
+                        // Add point for org extending another event
+                        $results[$orgc]['extending_events'] += 1;
+                        // Add point for org getting their event extended
+                        $results[$org_name]['events_extended'] += 1;
+                    }
+                }
             }
         }
 
@@ -571,6 +583,7 @@ class Ls22Shell extends AppShell
                 $results[$k]['metrics']['attack_weight'] = 100 * (2*($result['attack']) + $result['attribute_attack']) / ($result['attribute_count'] + $result['object_count']);
                 $results[$k]['metrics']['other_weight'] = 100 * (2*($result['other']) + $result['attribute_other']) / ($result['attribute_count'] + $result['object_count']);
                 $results[$k]['metrics']['collaboration'] = 100 * ((2*$result['events_extended'] + $result['extending_events']) / $result['event_count']);
+                $results[$k]['metrics']['collaboration'] = 100 * (2*(2*$result['events_extended'] + $result['extending_events']) / $result['event_count']);
             }
             foreach (['connectedness', 'attack_weight', 'other_weight', 'warnings', 'collaboration'] as $metric) {
                 if (empty($results[$k]['metrics'][$metric])) {

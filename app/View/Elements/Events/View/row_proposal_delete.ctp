@@ -66,7 +66,7 @@
     }
   ?>
   </td>
-  <td colspan="<?php echo $fieldCount; ?>">&nbsp;</td>
+  <td colspan="<?= $me['Role']['perm_view_feed_correlations'] ? $fieldCount : $fieldCount -1 ?>">&nbsp;</td>
   <td class="short action-links">
     <?php
         if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin) {

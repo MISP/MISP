@@ -102,34 +102,36 @@
       ?>
     </ul>
   </td>
-  <td class="shortish">
-    <ul class="inline" style="margin:0px;">
-      <?php
-        if (!empty($object['Feed'])):
-          foreach ($object['Feed'] as $feed):
-            $popover = '';
-            foreach ($feed as $k => $v):
-              if ($k == 'id') continue;
-              $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . h($v) . '</span><br />';
-            endforeach;
-          ?>
-            <li style="padding-right: 0px; padding-left:0px;" data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover"><span>
-              <?php
-                if ($isSiteAdmin):
-                  echo $this->Html->link($feed['id'], array('controller' => 'feeds', 'action' => 'previewIndex', $feed['id']), array('style' => 'margin-right:3px;'));
-                else:
-              ?>
-                <span style="margin-right:3px;"><?php echo h($feed['id']);?></span>
-              <?php
-                endif;
+  <?php if ($me['Role']['perm_view_feed_correlations']): ?>
+    <td class="shortish">
+      <ul class="inline" style="margin:0px;">
+        <?php
+          if (!empty($object['Feed'])):
+            foreach ($object['Feed'] as $feed):
+              $popover = '';
+              foreach ($feed as $k => $v):
+                if ($k == 'id') continue;
+                $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . h($v) . '</span><br />';
               endforeach;
-              ?>
-            </li>
-      <?php
-        endif;
-      ?>
-    </ul>
-  </td>
+            ?>
+              <li style="padding-right: 0px; padding-left:0px;" data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover"><span>
+                <?php
+                  if ($isSiteAdmin):
+                    echo $this->Html->link($feed['id'], array('controller' => 'feeds', 'action' => 'previewIndex', $feed['id']), array('style' => 'margin-right:3px;'));
+                  else:
+                ?>
+                  <span style="margin-right:3px;"><?php echo h($feed['id']);?></span>
+                <?php
+                  endif;
+                endforeach;
+                ?>
+              </li>
+        <?php
+          endif;
+        ?>
+      </ul>
+    </td>
+  <?php endif; ?>
   <td class="short">
       <?= $object['to_ids'] ? __('Yes') : __('No') ?>
   </td>

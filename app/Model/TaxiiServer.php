@@ -4,6 +4,8 @@ App::uses('EncryptedValue', 'Tools');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('RandomTool', 'Tools');
+App::uses('JSONConverterTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 class TaxiiServer extends AppModel
 {
@@ -16,6 +18,10 @@ class TaxiiServer extends AppModel
         ],
         'Containable'
     ];
+
+    private $Job = null;
+    private $Event = null;
+    private $Allowedlist = null;
 
     public function beforeValidate($options = array())
     {
@@ -53,12 +59,13 @@ class TaxiiServer extends AppModel
     public function push($id, $user, $jobId = null)
     {
         $this->Event = ClassRegistry::init('Event');
+        $this->Job = ClassRegistry::init('Job');
         $taxii_server = $this->find('first', [
             'recursive' => -1,
             'conditions' => ['TaxiiServer.id' => $id]
         ]);
         $filters = $this->__setPushFilters($taxii_server);
-
+        $elementCounter = 0;
         $eventid = $this->Event->filterEventIds($user, $filters, $elementCounter);
         $eventCount = count($eventid);
 
@@ -72,6 +79,7 @@ class TaxiiServer extends AppModel
             $this->__pushEvents($user, $taxii_server, $filters, $eventids, $i, $jobId, $eventCount);
         }
         unset($eventid);
+        return true;
     }
 
     private function __setPushFilters($taxii_server)
@@ -93,9 +101,14 @@ class TaxiiServer extends AppModel
         $result = $this->Allowedlist->removeAllowedlistedFromArray($result, false);
         $temporaryFolder = $this->temporaryFolder();
         $temporaryFolderPath = $temporaryFolder['dir']->path;
+        $this->Job->id = $jobId;
         foreach ($result as $event) {
             $temporaryFile = $this->temporaryFile($temporaryFolderPath);
-            $temporaryFile->write(json_encode($event));
+            $temporaryFile->write(
+                JsonTool::encode(
+                    JSONConverterTool::convert($event, false, true)
+                )
+            );
             $temporaryFile->close();
             if ($jobId && $i % 10 == 0) {
                 $this->Job->saveField('progress', intval((100 * $i) / $eventCount));
@@ -112,7 +125,7 @@ class TaxiiServer extends AppModel
             '--baseurl',  $taxii_server['TaxiiServer']['baseurl'],
             '--api_root', $taxii_server['TaxiiServer']['api_root'],
             '--key', $taxii_server['TaxiiServer']['api_key'],
-            '--collection', '01f156b1-703b-4ce9-bf5a-7c15b510cfea'
+            '--collection', $taxii_server['TaxiiServer']['collection']
         ];
         $result = ProcessTool::execute($command, null, true);
         $temporaryFolder['dir']->delete();
@@ -157,9 +170,12 @@ class TaxiiServer extends AppModel
             if (!empty($options['type']) && $options['type'] === 'post') {
                 $response = $HttpSocket->post($url, json_encode($options['body']), $request);
             } else {
+                if (empty($options['query'])) {
+                    $options['query'] = null;
+                }
                 $response = $HttpSocket->get(
                     $url,
-                    null,
+                    $options['query'],
                     $request
                 );
             }
@@ -173,5 +189,63 @@ class TaxiiServer extends AppModel
             throw new ForbiddenException(__('Authentication failed.'));
         }
         throw new BadRequestException(__('Something went wrong with the request or the remote side is having issues.'));
+    }
+
+    public function getCollections($id)
+    {
+        $taxii_server = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['TaxiiServer.id' => $id]
+        ]);
+        $taxii_server['TaxiiServer']['uri'] = '/' . $taxii_server['TaxiiServer']['api_root'] . '/collections/';
+        $response = $this->queryInstance([
+            'TaxiiServer' => $taxii_server['TaxiiServer'],
+            'type' => 'get'
+        ]);
+        if (empty($response['collections'])) {
+            throw new BadRequestException(__('No collections found.'));
+        }
+        return $response['collections'];
+    }
+
+    public function getObjects($id, $collection_id = null, $next = null)
+    {
+        $taxii_server = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['TaxiiServer.id' => $id]
+        ]);
+        if (empty($collection_id)) {
+            $collection_id = $taxii_server['TaxiiServer']['collection'];
+        }
+        $taxii_server['TaxiiServer']['uri'] = '/' . $taxii_server['TaxiiServer']['api_root'] . '/collections/' . $collection_id . '/objects/';
+        $response = $this->queryInstance([
+            'TaxiiServer' => $taxii_server['TaxiiServer'],
+            'type' => 'get',
+            'query' => [
+                'limit' => 50,
+                'next' => $next
+            ]
+        ]);
+        if (empty($response['objects'])) {
+            throw new BadRequestException(__('No objects found in collection with the given query parameters.'));
+        }
+        return $response;
+    }
+
+    public function getObject($id, $server_id, $collection_id)
+    {
+        $taxii_server = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['TaxiiServer.id' => $server_id]
+        ]);
+        $taxii_server['TaxiiServer']['uri'] = '/' . $taxii_server['TaxiiServer']['api_root'] . '/collections/' . $collection_id . '/objects/' . $id . '/';
+        $response = $this->queryInstance([
+            'TaxiiServer' => $taxii_server['TaxiiServer'],
+            'type' => 'get'
+        ]);
+        if (empty($response['objects'])) {
+            throw new BadRequestException(__('Invalid object or object not found in the given collection.'));
+        }
+        return $response['objects'][0];
     }
 }

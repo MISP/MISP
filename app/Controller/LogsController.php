@@ -377,7 +377,7 @@ class LogsController extends AppController
                 $this->set('list', $list);
 
                 // set the same view as the index page
-                $this->render('admin_index');
+                $this->render('index');
             }
         } else {
             // no search keyword is given, show the search form

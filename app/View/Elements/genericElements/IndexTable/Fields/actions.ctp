@@ -40,6 +40,16 @@
         }
         $url_param_data_paths = '';
         $url = empty($action['url']) ? '#' : h($action['url']);
+        if (!empty($action['url_replace'])) {
+            if (!is_array($action['url_replace'])) {
+                $action['url_replace'] = [$action['url_replace']];
+            }
+            $replacementStrings = [];
+            foreach ($action['url_replace'] as $path) {
+                $replacementStrings[] = h(Hash::extract($row, $path)[0]);
+            }
+            $url = vsprintf($action['url'], $replacementStrings);
+        }
         if (!empty($action['url_params_data_paths'])) {
             if (is_array($action['url_params_data_paths'])) {
                 $temp = array();
@@ -98,6 +108,16 @@
                 empty($action['postLinkConfirm'])? '' : $action['postLinkConfirm']
             ) . ' ';
         } else {
+            if (!empty($action['onclick']) && !empty($action['onclick_replace'])) {
+                if (!is_array($action['onclick_replace'])) {
+                    $action['onclick_replace'] = [$action['onclick_replace']];
+                }
+                $replacementStrings = [];
+                foreach ($action['onclick_replace'] as $path) {
+                    $replacementStrings[] = h(Hash::extract($row, $path)[0]);
+                }
+                $action['onclick'] = vsprintf($action['onclick'], $replacementStrings);
+            }
             if (!empty($action['onclick']) && !empty($action['onclick_params_data_path'])) {
                 if (is_array($action['onclick_params_data_path'])) {
                     $temp = array();

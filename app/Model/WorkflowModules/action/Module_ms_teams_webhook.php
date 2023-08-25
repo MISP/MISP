@@ -5,7 +5,7 @@ class Module_ms_teams_webhook extends Module_webhook
 {
     public $id = 'ms-teams-webhook';
     public $name = 'MS Teams Webhook';
-    public $version = '0.2';
+    public $version = '0.4';
     public $description = 'Perform callbacks to the MS Teams webhook provided by the "Incoming Webhook" connector';
     public $icon_path = 'MS_Teams.png';
 
@@ -31,7 +31,7 @@ class Module_ms_teams_webhook extends Module_webhook
             [
                 'id' => 'data_extraction_path',
                 'label' => 'Data extraction path',
-                'type' => 'input',
+                'type' => 'hashpath',
                 'default' => '',
                 'placeholder' => 'Attribute.{n}.AttributeTag.{n}.Tag.name',
             ],
@@ -40,7 +40,7 @@ class Module_ms_teams_webhook extends Module_webhook
 
     protected function doRequest($url, $contentType, $data, $headers = [], $serverConfig = null)
     {
-        $data = '{"text":"' . implode($data) . '"}';
+        $data = ['text' => JsonTool::encode($data)];
         return parent::doRequest($url, $contentType, $data);
     }
 }

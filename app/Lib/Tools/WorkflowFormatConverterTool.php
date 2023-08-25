@@ -44,12 +44,16 @@ class WorkflowFormatConverterTool
     {
         $converted = [];
         $converted = JSONConverterTool::convert($event, false, true);
-        $eventTags = $converted['Event']['Tag'];
-        foreach ($converted['Event']['Attribute'] as $i => $attribute) {
-            $converted['Event']['Attribute'][$i] = self::__propagateTagToAttributes($attribute, $eventTags);
+        $eventTags = !empty($converted['Event']['Tag']) ? $converted['Event']['Tag'] : [];
+        if (!empty($converted['Event']['Attribute'])) {
+            foreach ($converted['Event']['Attribute'] as $i => $attribute) {
+                $converted['Event']['Attribute'][$i] = self::__propagateTagToAttributes($attribute, $eventTags);
+            }
         }
-        foreach ($converted['Event']['Object'] as $i => $object) {
-            $converted['Event']['Object'][$i] = self::__propagateTagToObjectAttributes($object, $eventTags);
+        if (!empty($converted['Event']['Object'])) {
+            foreach ($converted['Event']['Object'] as $i => $object) {
+                $converted['Event']['Object'][$i] = self::__propagateTagToObjectAttributes($object, $eventTags);
+            }
         }
         return $converted;
     }
@@ -146,12 +150,11 @@ class WorkflowFormatConverterTool
         if (empty($event)) {
             return [];
         }
-        $event = self::__convertEvent($event);
-        $event = $event['Event'];
         reset($data);
         $entityType = key($data);
-        $event[$entityType][] = $data[$entityType];
-        return ['Event' => $event];
+        $event['Event'][$entityType][] = $data[$entityType];
+        $event = self::__convertEvent($event);
+        return $event;
     }
 
     private static function __includeFlattenedAttributes(array $event): array

@@ -130,7 +130,7 @@ class Module_tag_operation extends WorkflowBaseActionModule
         return $result;
     }
 
-    private function __addTagsToAttributes(array $attributes, array $options, array $user): bool
+    protected function __addTagsToAttributes(array $attributes, array $options, array $user): bool
     {
         $success = false;
         foreach ($attributes as $attribute) {
@@ -140,7 +140,7 @@ class Module_tag_operation extends WorkflowBaseActionModule
         return $success;
     }
     
-    private function __removeTagsFromAttributes(array $attributes, array $options): bool
+    protected function __removeTagsFromAttributes(array $attributes, array $options): bool
     {
         $success = false;
         foreach ($attributes as $attribute) {
@@ -150,12 +150,12 @@ class Module_tag_operation extends WorkflowBaseActionModule
         return $success;
     }
 
-    private function __addTagsToEvent(array $event, array $options, array $user): bool
+    protected function __addTagsToEvent(array $event, array $options, array $user): bool
     {
         return !empty($this->Event->attachTagsToEventAndTouch($event['Event']['id'], $options, $user));
     }
 
-    private function __removeTagsFromEvent(array $event, array $options): bool
+    protected function __removeTagsFromEvent(array $event, array $options): bool
     {
         return !empty($this->Event->detachTagsFromEventAndTouch($event['Event']['id'], $options));
     }

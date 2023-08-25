@@ -670,6 +670,25 @@ class EventsController extends AppController
                         ]
                     ];
                     break;
+                case 'value':
+                    if ($v == "") {
+                        continue 2;
+                    }
+                    $conditions['OR'] = [
+                        ['Attribute.value1' => $v],
+                        ['Attribute.value2' => $v],
+                    ];
+
+                    $eventIds = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                        'conditions' => $conditions,
+                        'flatten' => true,
+                        'event_ids' => true,
+                        'list' => true,
+                    ));
+
+                    $this->paginate['conditions']['AND'][] = array('Event.id' => $eventIds);
+
+                    break;
                 default:
                     continue 2;
             }
@@ -682,7 +701,7 @@ class EventsController extends AppController
     {
         // list the events
         $urlparams = "";
-        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
+        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value');
         $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
         $passedArgs = $this->passedArgs;
         if (!empty($this->request->data)) {
@@ -2374,12 +2393,42 @@ class EventsController extends AppController
         $this->set('title_for_layout', __('Import from MISP Export File'));
     }
 
-    public function upload_stix($stix_version = '1', $publish = false)
+    public function upload_stix($stix_version = '1', $publish = false, $galaxies_as_tags = true, $debug = false)
     {
+        $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        $initialDistribution = 0;
+        if (Configure::read('MISP.default_event_distribution') != null) {
+            $initialDistribution = Configure::read('MISP.default_event_distribution');
+        }
+        $distributionLevels = $this->Event->distributionLevels;
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 if (isset($this->params['named']['publish'])) {
                     $publish = $this->params['named']['publish'];
+                }
+                if (isset($this->params['named']['distribution'])) {
+                    $distribution = intval($this->params['named']['distribution']);
+                    if (array_key_exists($distribution, $distributionLevels)) {
+                        $initialDistribution = $distribution;
+                    } else {
+                        throw new MethodNotAllowedException(__('Wrong distribution level'));
+                    }
+                }
+                $sharingGroupId = null;
+                if ($initialDistribution == 4) {
+                    if (!isset($this->params['named']['sharing_group_id'])) {
+                        throw new MethodNotAllowedException(__('The sharing group id is needed when the distribution is set to 4 ("Sharing group").'));
+                    }
+                    $sharingGroupId = intval($this->params['named']['sharing_group_id']);
+                    if (!array_key_exists($sharingGroupId, $sgs)) {
+                        throw new MethodNotAllowedException(__('Please select a valid sharing group id.'));
+                    }
+                }
+                if (isset($this->params['named']['galaxies_as_tags'])) {
+                    $galaxies_as_tags = $this->params['named']['galaxies_as_tags'];
+                }
+                if (isset($this->params['named']['debugging'])) {
+                    $debug = $this->params['named']['debugging'];
                 }
                 $filePath = FileAccessTool::writeToTempFile($this->request->input());
                 $result = $this->Event->upload_stix(
@@ -2387,7 +2436,11 @@ class EventsController extends AppController
                     $filePath,
                     $stix_version,
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
-                    $publish
+                    $publish,
+                    $initialDistribution,
+                    $sharingGroupId,
+                    $galaxies_as_tags,
+                    $debug
                 );
                 if (is_numeric($result)) {
                     $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $result));
@@ -2406,12 +2459,19 @@ class EventsController extends AppController
                     if (!move_uploaded_file($this->data['Event']['stix']['tmp_name'], $filePath)) {
                         throw new Exception("Could not move uploaded STIX file.");
                     }
+                    if (isset($this->data['Event']['debug'])) {
+                        $debug = $this->data['Event']['debug'];
+                    }
                     $result = $this->Event->upload_stix(
                         $this->Auth->user(),
                         $filePath,
                         $stix_version,
                         $original_file,
-                        $this->data['Event']['publish']
+                        $this->data['Event']['publish'],
+                        $this->data['Event']['distribution'],
+                        $this->data['Event']['sharing_group_id'],
+                        !boolval($this->data['Event']['galaxies_parsing']),
+                        $debug
                     );
                     if (is_numeric($result)) {
                         $this->Flash->success(__('STIX document imported.'));
@@ -2429,6 +2489,20 @@ class EventsController extends AppController
             }
         }
         $this->set('stix_version', $stix_version == 2 ? '2.x JSON' : '1.x XML');
+        $this->set('initialDistribution', $initialDistribution);
+        $distributions = array_keys($this->Event->distributionDescriptions);
+        $distributions = $this->_arrayToValuesIndexArray($distributions);
+        $this->set('distributions', $distributions);
+        $fieldDesc = array();
+        if (empty($sgs)) {
+            unset($distributionLevels[4]);
+        }
+        $this->set('distributionLevels', $distributionLevels);
+        foreach ($distributionLevels as $key => $value) {
+            $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
+        }
+        $this->set('sharingGroups', $sgs);
+        $this->set('fieldDesc', $fieldDesc);
     }
 
     public function merge($target_id=null, $source_id=null)
@@ -4438,12 +4512,12 @@ class EventsController extends AppController
                 ),
                 'STIX' => array(
                     'url' => $this->baseurl . '/events/upload_stix',
-                    'text' => __('STIX 1.1.1 format (lossy)'),
+                    'text' => __('STIX 1.x format (lossy)'),
                     'ajax' => false,
                 ),
                 'STIX2' => array(
                     'url' => $this->baseurl . '/events/upload_stix/2',
-                    'text' => __('STIX 2.0 format (lossy)'),
+                    'text' => __('STIX 2.x format (lossy)'),
                     'ajax' => false,
                 )
             );
@@ -5136,42 +5210,82 @@ class EventsController extends AppController
         $this->render('index');
     }
 
-    // expects an attribute ID and the module to be used
-    public function queryEnrichment($attribute_id, $module = false, $type = 'Enrichment')
+    // expects a model ID, model type, the module to be used (optional) and the type of enrichment (optional)
+    public function queryEnrichment($id, $module = false, $type = 'Enrichment', $model = 'Attribute')
     {
         if (!Configure::read('Plugin.' . $type . '_services_enable')) {
             throw new MethodNotAllowedException(__('%s services are not enabled.', $type));
         }
-        $attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), [
-            'conditions' => [
-                'Attribute.id' => $attribute_id
-            ],
-            'flatten' => 1,
-            'includeEventTags' => 1,
-            'contain' => ['Event' => ['fields' => ['distribution', 'sharing_group_id']]],
-        ]);
-        if (empty($attribute)) {
-            throw new MethodNotAllowedException(__('Attribute not found or you are not authorised to see it.'));
+
+        if (!in_array($model, array('Attribute', 'ShadowAttribute', 'Object', 'Event'))) {
+            throw new MethodNotAllowedException(__('Invalid model.'));
         }
+
         $this->loadModel('Module');
         $enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
+        
         if (!is_array($enabledModules) || empty($enabledModules)) {
-            throw new MethodNotAllowedException(__('No valid %s options found for this attribute.', $type));
+            throw new MethodNotAllowedException(__('No valid %s options found for this %s.', $type, strtolower($model)));
         }
+
+        if ($model === 'Attribute' || $model === 'ShadowAttribute') {
+            $attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), [
+                'conditions' => [
+                    'Attribute.id' => $id
+                ],
+                'flatten' => 1,
+                'includeEventTags' => 1,
+                'contain' => ['Event' => ['fields' => ['distribution', 'sharing_group_id']]],
+            ]);
+            if (empty($attribute)) {
+                throw new MethodNotAllowedException(__('Attribute not found or you are not authorised to see it.'));
+            }
+        }
+
+        if ($model === 'Object') {
+            $object = $this->Event->Object->fetchObjects($this->Auth->user(), [
+                'conditions' => [
+                    'Object.id' => $id
+                ],
+                'flatten' => 1,
+                'includeEventTags' => 1,
+                'contain' => ['Event' => ['fields' => ['distribution', 'sharing_group_id']]],
+            ]);
+            if (empty($object)) {
+                throw new MethodNotAllowedException(__('Object not found or you are not authorised to see it.'));
+            }
+        }
+        
         if ($this->request->is('ajax')) {
-            $modules = array();
-            foreach ($enabledModules['modules'] as $module) {
-                if (in_array($attribute[0]['Attribute']['type'], $module['mispattributes']['input'])) {
-                    $modules[] = array('name' => $module['name'], 'description' => $module['meta']['description']);
+            $modules = [];
+
+            if ($model === 'Attribute' || $model === 'ShadowAttribute') {
+                foreach ($enabledModules['modules'] as $module) {
+                    if (in_array($attribute[0]['Attribute']['type'], $module['mispattributes']['input'])) {
+                        $modules[] = array('name' => $module['name'], 'description' => $module['meta']['description']);
+                    }
                 }
             }
-            foreach (array('attribute_id', 'modules') as $viewVar) {
-                $this->set($viewVar, $$viewVar);
+
+            if ($model === 'Object') {
+                foreach ($enabledModules['modules'] as $module) {
+                    if (
+                        in_array($object[0]['Object']['name'], $module['mispattributes']['input']) ||
+                        in_array($object[0]['Object']['uuid'], $module['mispattributes']['input'])
+                    ) {
+                        $modules[] = array('name' => $module['name'], 'description' => $module['meta']['description']);
+                    }
+                }
             }
+            
+            $this->set('id', $id);
+            $this->set('modules', $modules);
             $this->set('type', $type);
+            $this->set('model', $model);
             $this->render('ajax/enrichmentChoice');
         } else {
-            $options = array();
+            $options = [];
+            $format = 'simplified';
             foreach ($enabledModules['modules'] as $temp) {
                 if ($temp['name'] == $module) {
                     $format = !empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
@@ -5193,7 +5307,13 @@ class EventsController extends AppController
             $this->set('title_for_layout', __('Enrichment Results'));
             $this->set('title', __('Enrichment Results'));
             if ($format == 'misp_standard') {
-                $this->__queryEnrichment($attribute, $module, $options, $type);
+                if ($model === 'Attribute' || $model === 'ShadowAttribute') {
+                    $this->__queryEnrichment($attribute, $module, $options, $type);
+                }
+                
+                if ($model === 'Object') {
+                    $this->__queryObjectEnrichment($object, $module, $options, $type);
+                }
             } else {
                 $this->__queryOldEnrichment($attribute, $module, $options, $type);
             }
@@ -5227,6 +5347,57 @@ class EventsController extends AppController
             $importComment = !empty($result['comment']) ? $result['comment'] : $attribute[0]['Attribute']['value'] . __(': Enriched via the ') . $module . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
             $this->set('importComment', $importComment);
             $event['Event'] = $attribute[0]['Event'];
+            $org_name = $this->Event->Orgc->find('first', array(
+                'conditions' => array('Orgc.id' => $event['Event']['orgc_id']),
+                'fields' => array('Orgc.name')
+            ));
+            $event['Event']['orgc_name'] = $org_name['Orgc']['name'];
+            if ($attribute[0]['Object']['id']) {
+                $object_id = $attribute[0]['Object']['id'];
+                $initial_object = $this->Event->fetchInitialObject($event_id, $object_id);
+                if (!empty($initial_object)) {
+                    $event['initialObject'] = $initial_object;
+                }
+            }
+            $this->set('event', $event);
+            $this->set('menuItem', 'enrichmentResults');
+            $this->set('title_for_layout', __('Enrichment Results'));
+            $this->set('title', __('Enrichment Results'));
+            $this->render('resolved_misp_format');
+        }
+    }
+
+    private function __queryObjectEnrichment($object, $module, $options, $type)
+    {
+        $object[0]['Object']['Attribute'] = $object[0]['Attribute'];
+        foreach($object[0]['Object']['Attribute'] as &$attribute) {
+            if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
+                $attribute['data'] = $this->Event->Attribute->base64EncodeAttachment($attribute);
+            }
+        }
+
+        $event_id = $object[0]['Event']['id'];
+        $data = array('module' => $module, 'object' => $object[0]['Object'], 'event_id' => $event_id);
+        if (!empty($options)) {
+            $data['config'] = $options;
+        }
+        $result = $this->Module->queryModuleServer($data, false, $type, false, $object[0]);
+        if (!$result) {
+            throw new InternalErrorException(__('%s service not reachable.', $type));
+        }
+        if (isset($result['error'])) {
+            $this->Flash->error($result['error']);
+        }
+        if (!is_array($result)) {
+            throw new Exception($result);
+        }
+        $event = $this->Event->handleMispFormatFromModuleResult($result);
+        if (empty($event['Attribute']) && empty($event['Object'])) {
+            throw new NotImplementedException(__('No Attribute or Object returned by the module.'));
+        } else {
+            $importComment = !empty($result['comment']) ? $result['comment'] : $object[0]['Object']['value'] . __(': Enriched via the ') . $module . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
+            $this->set('importComment', $importComment);
+            $event['Event'] = $object[0]['Event'];
             $org_name = $this->Event->Orgc->find('first', array(
                 'conditions' => array('Orgc.id' => $event['Event']['orgc_id']),
                 'fields' => array('Orgc.name')

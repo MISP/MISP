@@ -699,8 +699,9 @@ kaliOnTheR0ckz () {
   overlay=$(df -kh |grep overlay; echo $?) # if 1 overlay NOT present
 
   if [[ ${totalRoot} -lt 3059034 ]]; then
-    echo "(If?) You run Kali in LiveCD mode and we need more overlay disk space."
-    echo "This is defined by the total memory, you have: ${totalMem}kB which is not enough."
+    echo "(If?) You run Kali in LiveCD mode, you need more overlay disk space."
+    echo "This is defined by the total memory setting in you VM config."
+    echo "You currently have: ${totalMem}kB which is not enough."
     echo "6-8Gb should be fine. (need >3Gb overlayFS)"
     exit 1
   fi
@@ -1509,8 +1510,16 @@ coreCAKE () {
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.homedir" "${PATH_TO_MISP}/.gnupg"
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.password" "${GPG_PASSPHRASE}"
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.obscure_subject" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.key_fetching_disabled" false
   # FIXME: what if we have not gpg binary but a gpg2 one?
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.binary" "$(which gpg)"
+
+  # LinOTP
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "LinOTPAuth.enabled" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "LinOTPAuth.baseUrl" "https://<your-linotp-baseUrl>"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "LinOTPAuth.realm" "lino"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "LinOTPAuth.verifyssl" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "LinOTPAuth.mixedauth" false
 
   # Enable installer org and tune some configurables
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.host_org_id" 1
@@ -1870,7 +1879,7 @@ mispmodules () {
 modulesCAKE () {
   # Enable Enrichment, set better timeouts
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_services_enable" true
-  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hover_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hover_enable" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hover_popover_only" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hover_timeout" 150
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_timeout" 300
@@ -2543,7 +2552,7 @@ apacheConfig_RHEL7 () {
   #sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
   sudo rm /etc/httpd/conf.d/ssl.conf
   sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
-  sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
+  sudo sed -i '/Listen 443/!s/Listen 80/a Listen 443/' /etc/httpd/conf/httpd.conf
 
   # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
   echo "The Common Name used below will be: ${OPENSSL_CN}"
@@ -2591,7 +2600,7 @@ apacheConfig_RHEL8 () {
   #sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
   sudo rm /etc/httpd/conf.d/ssl.conf
   sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
-  sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
+  sudo sed -i '/Listen 443/!s/Listen 80/a Listen 443/' /etc/httpd/conf/httpd.conf
 
   # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
   echo "The Common Name used below will be: ${OPENSSL_CN}"
@@ -3594,11 +3603,12 @@ x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
 x86_64-ubuntu-hirsute
 x86_64-ubuntu-jammy
-x86_64-kali-2021.4
 x86_64-kali-2022.1
 x86_64-kali-2022.2
 x86_64-kali-2022.3
 x86_64-kali-2022.4
+x86_64-kali-2023.1
+x86_64-kali-2023.2
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-raspbian-buster

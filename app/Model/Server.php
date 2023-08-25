@@ -746,13 +746,13 @@ class Server extends AppModel
     }
 
     /**
-     * getElligibleClusterIdsFromServerForPull Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
+     * Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
      *
      * @param ServerSyncTool $serverSync
      * @param bool $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
      * @param array $eligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
      * @param array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
-     * @return array List of cluster IDs to be pulled
+     * @return array List of cluster UUIDs to be pulled
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
@@ -760,25 +760,47 @@ class Server extends AppModel
     public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
     {
         $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for pull: " . JsonTool::encode($conditions), LOG_INFO);
+
+        if ($onlyUpdateLocalCluster && empty($eligibleClusters)) {
+            return []; // no clusters for update
+        }
+
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
         if (empty($clusterArray)) {
-            return [];
+            return []; // empty remote clusters
         }
+
+        /** @var GalaxyClusterBlocklist $GalaxyClusterBlocklist */
+        $GalaxyClusterBlocklist = ClassRegistry::init('GalaxyClusterBlocklist');
+
+        if (!$onlyUpdateLocalCluster) {
+            /** @var GalaxyCluster $GalaxyCluster */
+            $GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            // Do not fetch clusters with the same or newer version that already exists on local instance
+            $eligibleClusters = $GalaxyCluster->find('list', [
+                'conditions' => ['GalaxyCluster.uuid' => array_column(array_column($clusterArray, 'GalaxyCluster'), 'uuid')],
+                'fields' => ['GalaxyCluster.uuid', 'GalaxyCluster.version'],
+            ]);
+        }
+
+        $clustersForPull = [];
         foreach ($clusterArray as $cluster) {
-            if (isset($eligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
-                $localVersion = $eligibleClusters[$cluster['GalaxyCluster']['uuid']];
-                if ($localVersion >= $cluster['GalaxyCluster']['version']) {
-                    unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+            $clusterUuid = $cluster['GalaxyCluster']['uuid'];
+
+            if ($GalaxyClusterBlocklist->checkIfBlocked($clusterUuid)) {
+                continue; // skip blocked clusters
+            }
+
+            if (isset($eligibleClusters[$clusterUuid])) {
+                $localVersion = $eligibleClusters[$clusterUuid];
+                if ($localVersion < $cluster['GalaxyCluster']['version']) {
+                    $clustersForPull[] = $clusterUuid;
                 }
-            } else {
-                if ($onlyUpdateLocalCluster) {
-                    unset($eligibleClusters[$cluster['GalaxyCluster']['uuid']]);
-                } else {
-                    $eligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
-                }
+            } elseif (!$onlyUpdateLocalCluster) {
+                $clustersForPull[] = $clusterUuid;
             }
         }
-        return array_keys($eligibleClusters);
+        return $clustersForPull;
     }
 
     /**
@@ -2132,10 +2154,21 @@ class Server extends AppModel
         return true;
     }
 
-    public function otpBeforeHook($setting, $value)
+    public function email_otpBeforeHook($setting, $value)
     {
         if ($value && !empty(Configure::read('MISP.disable_emailing'))) {
             return __('Emailing is currently disabled. Enabling OTP without e-mailing being configured would lock all users out.');
+        }
+        return true;
+    }
+
+    public function otpBeforeHook($setting, $value)
+    {
+        if ($value && (!class_exists('\OTPHP\TOTP') || !class_exists('\BaconQrCode\Writer'))) {
+            return __('The TOTP and QR code generation libraries are not installed. Enabling OTP without those libraries installed would lock all users out.');
+        }
+        if ($value && Configure::read('LinOTPAuth.enabled')) {
+            return __('The TOTP and LinOTPAuth should not be used at the same time.');
         }
         return true;
     }
@@ -4102,7 +4135,11 @@ class Server extends AppModel
         $current = implode('.', $version_array);
 
         $upToDate = version_compare($current, substr($newest, 1));
-        if ($upToDate === 0) {
+        if ($newest === null && (Configure::read('MISP.online_version_check') || !Configure::check('MISP.online_version_check'))) {
+            $upToDate = 'error';
+        } elseif ($newest === null && (!Configure::read('MISP.online_version_check') && Configure::check('MISP.online_version_check'))) {
+            $upToDate = 'disabled';
+        } elseif ($upToDate === 0) {
             $upToDate = 'same';
         } else {
             $upToDate = $upToDate === -1 ? 'older' : 'newer';
@@ -4138,11 +4175,15 @@ class Server extends AppModel
      */
     public function getCurrentGitStatus($checkVersion = false)
     {
-        $HttpSocket = $this->setupHttpSocket(null, null, 3);
-        try {
-            $latestCommit = GitTool::getLatestCommit($HttpSocket);
-        } catch (Exception $e) {
-            $latestCommit = false;
+        $latestCommit = false;
+
+        if (Configure::read('MISP.online_version_check') || !Configure::check('MISP.online_version_check')) {
+            $HttpSocket = $this->setupHttpSocket(null, null, 3);
+            try {
+                $latestCommit = GitTool::getLatestCommit($HttpSocket);
+            } catch (Exception $e) {
+                $latestCommit = false;
+            }
         }
 
         $output = [
@@ -4151,7 +4192,7 @@ class Server extends AppModel
             'latestCommit' => $latestCommit,
         ];
         if ($checkVersion) {
-            $output['version'] = $latestCommit ? $this->checkRemoteVersion($HttpSocket) : false;
+            $output['version'] = $latestCommit ? $this->checkRemoteVersion($HttpSocket) : $this->checkVersion(null);
         }
         return $output;
     }
@@ -6075,11 +6116,29 @@ class Server extends AppModel
                 ],
                 'thumbnail_in_redis' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Store image thumbnails in Redis insteadof file system.'),
+                    'description' => __('Store image thumbnails in Redis instead of file system.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
+                ],
+                'self_update' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Enable the GUI button for MISP self-update on the Diagnostics page.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true,
+                ],
+                'online_version_check' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Enable the online MISP version check when loading the Diagnostics page.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true,
                 ],
             ),
             'GnuPG' => array(
@@ -6340,6 +6399,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'mandate_ip_allowlist_advanced_authkeys' => array(
+                    'level' => 2,
+                    'description' => __('If enabled, setting an ip allowlist will be mandatory when adding or editing an advanced authkey.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'disable_browser_cache' => array(
                     'level' => 0,
                     'description' => __('If enabled, HTTP headers that block browser cache will be send. Static files (like images or JavaScripts) will still be cached, but not generated pages.'),
@@ -6364,12 +6431,29 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                 ],
+                'otp_required' => array(
+                    'level' => 2,
+                    'description' => __('Require authentication with OTP. Users that do not have (T/H)OTP configured will be forced to create a token at first login. You cannot use it in combination with external authentication plugins.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'beforeHook' => 'otpBeforeHook',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'otp_issuer' => array(
+                    'level' => 2,
+                    'description' => __('If OTP is enabled, set the issuer string to an arbitrary value. Otherwise, MISP will default to "[MISP.org] MISP".'),
+                    'value' => false,
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
                 'email_otp_enabled' => array(
                     'level' => 2,
                     'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),
                     'value' => false,
                     'test' => 'testBool',
-                    'beforeHook' => 'otpBeforeHook',
+                    'beforeHook' => 'email_otpBeforeHook',
                     'type' => 'boolean',
                     'null' => true
                 ),
@@ -6410,6 +6494,14 @@ class Server extends AppModel
                 'allow_self_registration' => array(
                     'level' => 1,
                     'description' => __('Enabling this setting will allow users to have access to the pre-auth registration form. This will create an inbox entry for administrators to review.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'allow_password_forgotten' => array(
+                    'level' => 1,
+                    'description' => __('Enabling this setting will allow users to request automated password reset tokens via mail and initiate a reset themselves. Users with no encryption keys will not be able to use this feature.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6584,7 +6676,15 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                     'cli_only' => true
-                ]
+                ],
+                'disclose_user_emails' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting to allow for the user e-mail addresses to be shown to non site-admin users. Keep in mind that in broad communities this can be abused.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
             ),
             'SecureAuth' => array(
                 'branch' => 1,
@@ -7189,6 +7289,13 @@ class Server extends AppModel
                 'Sightings_sighting_db_enable' => array(
                     'level' => 1,
                     'description' => __('Enable SightingDB integration.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Sightings_enable_realtime_publish' => array(
+                    'level' => 1,
+                    'description' => __('By default, sightings will not be immediately pushed to connected instances, as this can have a heavy impact on the performance of sighting attributes. Enable realtime publishing to trigger the publishing of sightings immediately as they are added.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'

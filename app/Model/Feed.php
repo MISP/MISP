@@ -462,6 +462,9 @@ class Feed extends AppModel
      */
     public function attachFeedCorrelations(array $attributes, array $user, array &$event, $overrideLimit = false, $scope = 'Feed')
     {
+        if (!isset($user['Role']['perm_view_feed_correlations']) || $user['Role']['perm_view_feed_correlations'] != true) {
+            return $attributes;
+        }
         if (empty($attributes)) {
             return $attributes;
         }

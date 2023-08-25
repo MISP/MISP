@@ -176,9 +176,8 @@ class TaxiiServersController extends AppController
                         }
                         $versions = implode(', ', array_keys($versions));
                     }
-                    $url = $this->request->data['baseurl'] . $this->request->data['uri'] . $collection['id'] . '/';
                     $text = (empty($versions) ? '' : '[' . $versions . '] ') . $collection['title'];
-                    $results[$url] = $text;
+                    $results[$collection['id']] = $text;
                 }
             }
             return $this->RestResponse->viewData($results, 'json');
@@ -187,5 +186,46 @@ class TaxiiServersController extends AppController
                 'TaxiiServers', 'getRoot', null, $result, $this->response->type()
             );  
         }
+    }
+
+    public function collectionsIndex($id)
+    {
+        $result = $this->TaxiiServer->getCollections($id);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($result, $this->response->type());
+        } else {
+            App::uses('CustomPaginationTool', 'Tools');
+            $customPagination = new CustomPaginationTool();
+            $customPagination->truncateAndPaginate($result, $this->params, false, true);
+            $this->set('data', $result);
+            $this->set('id', $id);
+            $this->set('menuData', array('menuList' => 'sync', 'menuItem' => 'list_taxii_collections'));
+        }
+
+    }
+
+    public function objectsIndex($id, $collection_id, $next = null)
+    {
+        $result = $this->TaxiiServer->getObjects($id, $collection_id, $next);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($result, $this->response->type());
+        } else {
+            $this->set('data', $result['objects']);
+            $this->set('more', $result['more']);
+            $this->set('next', isset($result['next']) ? $result['next'] : null);
+            $this->set('id', $id);
+            $this->set('collection_id', $collection_id);
+            $this->set('menuData', array('menuList' => 'sync', 'menuItem' => 'list_taxii_collection_objects'));
+        }
+    }
+
+    public function objectView($server_id, $collection_id, $id)
+    {
+        $result = $this->TaxiiServer->getObject($id, $server_id, $collection_id);
+        $result = json_encode($result, JSON_PRETTY_PRINT);
+        $this->layout = false;
+        $this->set('title', h($id));
+        $this->set('json', $result);
+        $this->render('/genericTemplates/display');
     }
 }
