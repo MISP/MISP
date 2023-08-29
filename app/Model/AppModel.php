@@ -85,7 +85,7 @@ class AppModel extends Model
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
-        111 => false, 112 => false, 113 => true, 114 => false
+        111 => false, 112 => false, 113 => true, 114 => false, 115 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1972,6 +1972,10 @@ class AppModel extends Model
                 break;
             case 114:
                 $indexArray[] = ['object_references', 'uuid'];
+                break;
+            case 115:
+                $sqlArray[] = "ALTER TABLE `users` ADD COLUMN `last_pw_change` BIGINT(20) NULL DEFAULT NULL;";
+                $sqlArray[] = "UPDATE `users` SET last_pw_change=date_modified WHERE last_pw_change IS NULL";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
