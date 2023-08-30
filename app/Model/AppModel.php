@@ -3299,6 +3299,7 @@ class AppModel extends Model
                             $temp[] = array($key . ' NOT LIKE' => $f);
                         } else {
                             $temp[] = array($key . ' LIKE' => $f);
+                            $temp[] = array($key => $f);
                         }
                     }
                 } else {
