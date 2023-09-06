@@ -11,6 +11,8 @@ class UserContributionToplistWidget
         'month' => 'Who contributed most this month? (boolean)',
         'previous_month' => 'Who contributed most the previous, finished month? (boolean)',
         'year' => 'Which contributed most this year? (boolean)',
+        'start_date' => 'The ISO 8601 date format at which to start',
+        'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
         'filter' => 'A list of filters by organisation meta information (nationality, sector, type, name, uuid, local (- expects a boolean or a list of boolean values)) to include. (dictionary, prepending values with ! uses them as a negation)',
         'limit' => 'Limits the number of displayed tags. Default: 10'
     ];
@@ -47,6 +49,14 @@ class UserContributionToplistWidget
             $end_condition = strtotime('last day of last month 23:59:59', time());
         } else if (!empty($options['year'])) {
             $condition = strtotime('first day of this year 00:00:00', time());
+        } else if (!empty($options['start_date'])) {
+            $condition = strtotime($options['start_date'], time());
+            $end_condition = [];
+            if (empty($options['end_date'])) {
+                $end_condition = time();
+            } else {
+                $end_condition = strtotime($options['end_date'], time());
+            }
         } else {
             return null;
         }
@@ -54,12 +64,12 @@ class UserContributionToplistWidget
         if (!empty($condition)) {
             $datetime = new DateTime();
             $datetime->setTimestamp($condition);
-            $conditions['Event.timestamp >='] = $datetime->format('Y-m-d H:i:s');
+            $conditions['Event.timestamp >='] = $datetime->getTimestamp();
         }
         if (!empty($end_condition)) {
             $datetime = new DateTime();
             $datetime->setTimestamp($end_condition);
-            $conditions['Event.timestamp <='] = $datetime->format('Y-m-d H:i:s');
+            $conditions['Event.timestamp <='] = $datetime->getTimestamp();
         }
         return $conditions;
     }

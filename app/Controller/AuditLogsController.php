@@ -158,6 +158,7 @@ class AuditLogsController extends AppController
         }
 
         $this->paginate['conditions'] = $this->__createEventIndexConditions($event);
+        $this->set('passedArgsArray', ['eventId' => $eventId, 'org' => $org]);
 
         $params = $this->IndexFilter->harvestParameters(['created', 'org']);
         if ($org) {

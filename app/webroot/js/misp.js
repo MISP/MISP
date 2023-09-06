@@ -5515,26 +5515,29 @@ function resetDashboardGrid(grid, save = true) {
         grid.removeWidget(el);
         saveDashboardState();
     });
-    $('.export-widget').click(function() {
-        var $element = $(this).parent().parent().parent();
+    $('.widget-export-menu').find('a[data-exporttype]').click(function() {
+        var $element = $(this).closest('div[widget]');
         var container_id = $element.attr('id').substring(7);
+        var export_type = $(this).data('exporttype')
           $.ajax({
             type: 'POST',
-            url: baseurl + '/dashboards/renderWidget/' + container_id + '/exportjson:1',
+            url: baseurl + '/dashboards/renderWidget/' + container_id + '/export' + export_type + ':1',
             data: {
                 config: $element.attr('config'),
                 widget: $element.attr('widget')
             },
             success:function (data) {
-                data = JSON.stringify(data, null, 2);
-                var blob=new Blob([data], {type: 'application/json'});
+                if (export_type == 'json') {
+                    data = JSON.stringify(data, null, 2);
+                }
+                var blob = new Blob([data], { type: (export_type == 'json' ? 'application/json' : 'text/csv') });
                 var link=window.document.createElement('a');
                 link.href=window.URL.createObjectURL(blob);
-                link.download=$element.attr('widget') + "_" + container_id + "_export.json";
+                link.download=$element.attr('widget') + "_" + container_id + "_export." + export_type;
                 link.click();
             }
         });
-    });
+    })
 }
 
 function setHomePage() {

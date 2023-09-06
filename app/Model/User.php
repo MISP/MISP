@@ -845,6 +845,10 @@ class User extends AppModel
      */
     public function sendEmail(array $user, $body, $bodyNoEnc = false, $subject, $replyToUser = false)
     {
+        if (Configure::read('MISP.disable_emailing')) {
+            return true;
+        }
+
         if ($user['User']['disabled'] || !$this->checkIfUserIsValid($user['User'])) {
             return true;
         }
@@ -1716,10 +1720,10 @@ class User extends AppModel
      * @param string $period
      * @return array
      */
-    private function getUsablePeriodicSettingForUser(array $period_filters, $period='daily'): array
+    private function getUsablePeriodicSettingForUser(array $period_filters, $period='daily', $lastdays=7): array
     {
         $filters = [
-            'last' => $this->__genTimerangeFilter($period),
+            'last' => $this->__genTimerangeFilter($period, $lastdays),
             'published' => true,
         ];
         if (!empty($period_filters['orgc_id'])) {
@@ -1812,11 +1816,12 @@ class User extends AppModel
      * @throws InvalidArgumentException
      * @throws JsonException
      */
-    public function generatePeriodicSummary(int $userId, string $period, $rendered = true)
+    public function generatePeriodicSummary(int $userId, string $period, $rendered = true, $lastdays=7)
     {
         $allowedPeriods = array_map(function($period) {
             return substr($period, strlen('notification_'));
         }, self::PERIODIC_NOTIFICATIONS);
+        $allowedPeriods[] = 'custom';
         if (!in_array($period, $allowedPeriods, true)) {
             throw new InvalidArgumentException(__('Invalid period. Must be one of %s', JsonTool::encode(self::PERIODIC_NOTIFICATIONS)));
         }
@@ -1824,7 +1829,7 @@ class User extends AppModel
         $user = $this->getAuthUser($userId);
         App::import('Tools', 'SendEmail');
         $periodicSettings = $this->fetchPeriodicSettingForUser($userId, true);
-        $filters = $this->getUsablePeriodicSettingForUser($periodicSettings, $period);
+        $filters = $this->getUsablePeriodicSettingForUser($periodicSettings, $period, $lastdays);
         $filtersForRestSearch = $filters; // filters for restSearch are slightly different than fetchEvent
         $filters['last'] = $this->resolveTimeDelta($filters['last']);
         $filters['sgReferenceOnly'] = true;
@@ -1854,7 +1859,7 @@ class User extends AppModel
         $finalContext = JsonTool::decode($finalContext->intoString());
         $aggregated_context = $this->__renderAggregatedContext($finalContext);
         $rollingWindows = $periodicSettings['trending_period_amount'] ?: 2;
-        $trendAnalysis = $this->Event->getTrendsForTagsFromEvents($events, $this->periodToDays($period), $rollingWindows, $periodicSettings['trending_for_tags']);
+        $trendAnalysis = $this->Event->getTrendsForTagsFromEvents($events, $this->periodToDays($period, $lastdays), $rollingWindows, $periodicSettings['trending_for_tags']);
         $tagFilterPrefixes = $periodicSettings['trending_for_tags'] ?: array_keys($trendAnalysis['all_tags']);
         $trendData = [
             'trendAnalysis' => $trendAnalysis,
@@ -1866,12 +1871,13 @@ class User extends AppModel
         ];
         $security_recommendations = $this->__renderSecurityRecommendations($securityRecommendationsData);
 
-        $emailTemplate = $this->prepareEmailTemplate($period);
+        $templateName = $period == 'custom' ? 'daily' : $period;
+        $emailTemplate = $this->prepareEmailTemplate($templateName);
         $emailTemplate->set('baseurl', $this->Event->__getAnnounceBaseurl());
         $emailTemplate->set('events', $events);
         $emailTemplate->set('filters', $filters);
         $emailTemplate->set('periodicSettings', $periodicSettings);
-        $emailTemplate->set('period_days', $this->periodToDays($period));
+        $emailTemplate->set('period_days', $this->periodToDays($period, $lastdays));
         $emailTemplate->set('period', $period);
         $emailTemplate->set('aggregated_context', $aggregated_context);
         $emailTemplate->set('trending_summary', $trending_summary);
@@ -1937,13 +1943,19 @@ class User extends AppModel
         }
         return $filters;
     }
-    private function __genTimerangeFilter(string $period='daily'): string
+    private function __genTimerangeFilter(string $period='daily', $lastdays = 7): string
     {
+        if ($period == 'custom') {
+            return strval($lastdays) . 'd';
+        }
         return $this->periodToDays($period) . 'd';
     }
 
-    private function periodToDays(string $period='daily'): int
+    private function periodToDays(string $period='daily', $lastdays = false): int
     {
+        if ($lastdays !== false) {
+            return $lastdays;
+        }
         if ($period === 'daily') {
             return 1;
         } else if ($period === 'weekly') {
