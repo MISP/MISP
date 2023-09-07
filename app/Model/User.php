@@ -845,6 +845,10 @@ class User extends AppModel
      */
     public function sendEmail(array $user, $body, $bodyNoEnc = false, $subject, $replyToUser = false)
     {
+        if (Configure::read('MISP.disable_emailing')) {
+            return true;
+        }
+
         if ($user['User']['disabled'] || !$this->checkIfUserIsValid($user['User'])) {
             return true;
         }

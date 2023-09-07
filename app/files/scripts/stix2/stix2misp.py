@@ -33,6 +33,17 @@ from misp_stix_converter import (
 from stix2.parsing import parse as stix2_parser
 
 
+def _handle_return_message(traceback):
+    if isinstance(traceback, dict):
+        messages = []
+        for key, values in traceback.items():
+            messages.append(f'- {key}')
+            for value in values:
+                messages.append(f'  - {value}')
+        return '\n '.join(messages)
+    return '\n - '.join(traceback)
+
+
 def _process_stix_file(args: argparse.ArgumentParser):
     try:
         with open(args.input, 'rt', encoding='utf-8') as f:
@@ -63,11 +74,10 @@ def _process_stix_file(args: argparse.ArgumentParser):
         if args.debug:
             for feature in ('errors', 'warnings'):
                 if getattr(parser, feature):
-                    print(getattr(parser, feature), file=sys.stderr)
-                    message = '\n - '.join(getattr(parser, feature).values())
+                    message = _handle_return_message(getattr(parser, feature))
                     print(
                         f'{feature.title()} encountered while importing '
-                        f'STIX {stix_version} content:\n - {message}',
+                        f'STIX {stix_version} content:\n {message}',
                         file=sys.stderr
                     )
     except Exception as e:
