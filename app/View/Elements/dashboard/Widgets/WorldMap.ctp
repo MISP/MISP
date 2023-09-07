@@ -37,7 +37,13 @@
                     values: mapData,
                     scale:
                     <?= $data['colour_scale'] ?>, //  gradient blue->green->yellow->red
-                    normalizeFunction: 'polynomial'
+                    normalizeFunction: 'polynomial',
+                    legend: {
+                        vertical: false,
+                        labelRender: function(v){
+                            return Math.round(v);
+                        }
+                    }
                 }]
             },
             onRegionTipShow: function(e, el, code) {
