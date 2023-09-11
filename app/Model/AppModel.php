@@ -3989,4 +3989,32 @@ class AppModel extends Model
         }
         return $_SERVER['REMOTE_ADDR'] ?? null;
     }
+
+    public function find($type = 'first', $query = array()) {
+        if (!empty($query['order']) && $this->validOrderClause($query['order']) === false) {
+            throw new InvalidArgumentException('Invalid order clause');
+        }
+
+        return parent::find($type, $query);
+    }
+
+    private function validOrderClause($order){
+        $pattern = '/^[\w\_\-\.\(\) ]+$/';
+        if(is_string($order) && preg_match($pattern, $order)){
+            return true;
+        }
+
+        if (is_array($order)) {
+            foreach ($order as $key => $value) {
+                if (is_string($key) && is_string($value) && preg_match($pattern, $key) && in_array(strtolower($value), ['asc', 'desc'])) {
+                    return true;
+                }
+                if(is_numeric($key) && is_string($value) && preg_match($pattern, $value)){
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }
