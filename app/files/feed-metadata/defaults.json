@@ -1,7 +1,7 @@
 [
   {
     "Feed": {
-      "name": "Ellio:Threat List",
+      "name": "ELLIO: IP Feed (Community version)",
       "provider": "ellio.tech",
       "url": "https://cdn.ellio.tech/community-feed",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
