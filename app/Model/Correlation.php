@@ -141,11 +141,10 @@ class Correlation extends AppModel
         if (Configure::read('MISP.background_jobs') && $jobId) {
             $this->Job = ClassRegistry::init('Job');
             $this->Job->id = $jobId;
+            if (!$this->Job->exists()) {
+                $jobId = false;
+            }
         } else {
-            $jobId = false;
-        }
-
-        if(!$this->Job->exists()){
             $jobId = false;
         }
 
