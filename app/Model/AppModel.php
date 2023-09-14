@@ -3292,26 +3292,32 @@ class AppModel extends Model
             foreach ($filters as $f) {
                 if ($f === -1) {
                     foreach ($keys as $key) {
-                        $temp['OR'][$key][] = -1;
+                        if ($this->checkParam($key)) {
+                            $temp['OR'][$key][] = -1;
+                        }
                     }
                     continue;
                 }
                 // split the filter params into two lists, one for substring searches one for exact ones
                 if (is_string($f) && ($f[strlen($f) - 1] === '%' || $f[0] === '%')) {
                     foreach ($keys as $key) {
-                        if ($operator === 'NOT') {
-                            $temp[] = array($key . ' NOT LIKE' => $f);
-                        } else {
-                            $temp[] = array($key . ' LIKE' => $f);
-                            $temp[] = array($key => $f);
+                        if ($this->checkParam($key)) {
+                            if ($operator === 'NOT') {
+                                $temp[] = array($key . ' NOT LIKE' => $f);
+                            } else {
+                                $temp[] = array($key . ' LIKE' => $f);
+                                $temp[] = array($key => $f);
+                            }
                         }
                     }
                 } else {
                     foreach ($keys as $key) {
-                        if ($operator === 'NOT') {
-                            $temp[$key . ' !='][] = $f;
-                        } else {
-                            $temp['OR'][$key][] = $f;
+                        if ($this->checkParam($key)) {
+                            if ($operator === 'NOT') {
+                                $temp[$key . ' !='][] = $f;
+                            } else {
+                                $temp['OR'][$key][] = $f;
+                            }
                         }
                     }
                 }
