@@ -4021,4 +4021,9 @@ class AppModel extends Model
 
         return false;
     }
+
+    public function checkParam($param)
+    {
+        return preg_match('/^[\w\_\-\. ]+$/', $param);
+    }
 }
