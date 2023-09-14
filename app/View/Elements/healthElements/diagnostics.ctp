@@ -94,15 +94,11 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     </div>
 
     <h3><?php echo __('Update MISP');?></h3>
-    <p>
     <?php if (Configure::read('MISP.self_update') || !Configure::check('MISP.self_update')): ?>
+    <p>
         <button title="<?php echo __('Pull the latest MISP version from GitHub');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
         <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" style="margin-left: 5px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><i class="fas fa-tasks"></i> <?php echo __('View Update Progress');?></a>
-    <?php else: ?>
-      You are using a MISP installation method that does not support or recommend using the MISP self-update, such as a Docker container. Please update using the appropriate update mechanism.
-    <?php endif; ?>
     </p>
-
     <h3><?php echo __('Submodules version');?>
         <it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Refresh submodules version.'); ?>"></it>
     </h3>
@@ -110,6 +106,9 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     <span id="updateAllJson" class="btn btn-inverse" title="<?php echo __('Load all JSON into the database.'); ?>">
         <it class="fas fa-file-upload"></it> <?php echo __("Load JSON into database"); ?>
     </span>
+    <?php else: ?>
+      You are using a MISP installation method that does not support or recommend using the MISP self-update, such as a Docker container. Please update using the appropriate update mechanism.
+    <?php endif; ?>
 
     <h3><?php echo __('Writeable Directories and files');?></h3>
     <p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
@@ -604,13 +603,13 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Recover deleted events');?>" title="<?php echo __('Recover deleted events');?>" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/events/restoreDeletedEvents';"><?php echo __('Recover deleted events');?></span>
 </div>
 
+<?php if (Configure::read('MISP.self_update') || !Configure::check('MISP.self_update')): ?>
 <script>
     $(function() {
         updateSubModulesStatus();
         $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
         $('#updateAllJson').click(function() { updateAllJson(); });
     });
-
     function updateSubModulesStatus(message, job_sent, sync_result) {
         job_sent = job_sent === undefined ? false : job_sent;
         sync_result = sync_result === undefined ? '' : sync_result;
@@ -655,3 +654,4 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
         });
     }
 </script>
+<?php endif; ?>
