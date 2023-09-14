@@ -962,6 +962,14 @@ class AppController extends Controller
         return $user;
     }
 
+    private function __captureParam($data, $param, $value)
+    {
+        if ($this->modelClass->checkParam($param)) {
+            $data[$param] = $value;
+        }
+        return $data;
+    }
+
     /**
      * generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
      * @param array $options
@@ -982,9 +990,21 @@ class AppController extends Controller
                 return false;
             } else {
                 if (isset($request->data['request'])) {
-                    $data = array_merge($data, $request->data['request']);
+                    $temp = $request->data['request'];
                 } else {
-                    $data = array_merge($data, $request->data);
+                    $temp = $request->data;
+                }
+                if (empty($options['paramArray'])) {
+                    foreach ($options['paramArray'] as $param => $value) {
+                        $data = $this->__captureParam($data, $param, $value);
+                    }
+                    $data = array_merge($data, $temp);
+                } else {
+                    foreach ($options['paramArray'] as $param) {
+                        if (isset($temp[$param])) {
+                            $data[$param] = $temp[$param];
+                        }
+                    }
                 }
             }
         }
