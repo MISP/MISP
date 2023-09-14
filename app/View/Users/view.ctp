@@ -157,6 +157,10 @@ if ($admin_view && $isSiteAdmin && $isTotp) {
         'key' => __('Created'),
         'html' => $user['User']['date_created'] ? $this->Time->time($user['User']['date_created']) : __('N/A')
     );
+    $table_data[] = array(
+        'key' => __('Last password change'),
+        'html' => $user['User']['last_pw_change'] ? $this->Time->time($user['User']['last_pw_change']) : __('N/A')
+    );
     if ($admin_view) {
         $table_data[] = array(
             'key' => __('News read at'),
