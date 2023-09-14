@@ -285,6 +285,12 @@ class LogsController extends AppController
                 $filters['model'] = $this->request->data['Log']['model'];
                 $filters['model_id'] = $this->request->data['Log']['model_id'];
                 $filters['title'] = $this->request->data['Log']['title'];
+                if (!empty ($this->request->data['Log']['from'])) {
+                    $filters['from'] = $this->request->data['Log']['from'];
+                }
+                if (!empty ($this->request->data['Log']['to'])) {
+                    $filters['to'] = $this->request->data['Log']['to'];
+                }
                 $filters['change'] = $this->request->data['Log']['change'];
                 if (Configure::read('MISP.log_client_ip')) {
                     $filters['ip'] = $this->request->data['Log']['ip'];
@@ -297,6 +303,8 @@ class LogsController extends AppController
                 $this->set('modelSearch', $filters['model']);
                 $this->set('model_idSearch', $filters['model_id']);
                 $this->set('titleSearch', $filters['title']);
+                $this->set('fromSearch', $filters['from'] ?? null);
+                $this->set('toSearch', $filters['to'] ?? null);
                 $this->set('changeSearch', $filters['change']);
                 if (Configure::read('MISP.log_client_ip')) {
                     $this->set('ipSearch', $filters['ip']);
@@ -329,6 +337,8 @@ class LogsController extends AppController
                     $this->Session->write('paginate_conditions_log_model_id', $filters['model_id']);
                     $this->Session->write('paginate_conditions_log_title', $filters['title']);
                     $this->Session->write('paginate_conditions_log_change', $filters['change']);
+                    $this->Session->write('paginate_conditions_log_change', $filters['from'] ?? null);
+                    $this->Session->write('paginate_conditions_log_change', $filters['to'] ?? null);
                     if (Configure::read('MISP.log_client_ip')) {
                         $this->Session->write('paginate_conditions_log_ip', $filters['ip']);
                     }
@@ -345,6 +355,8 @@ class LogsController extends AppController
                 $filters['model_id'] = $this->Session->read('paginate_conditions_log_model_id');
                 $filters['title'] = $this->Session->read('paginate_conditions_log_title');
                 $filters['change'] = $this->Session->read('paginate_conditions_log_change');
+                $filters['change'] = $this->Session->read('paginate_conditions_log_from') ?? null;
+                $filters['change'] = $this->Session->read('paginate_conditions_log_to') ?? null;
                 if (Configure::read('MISP.log_client_ip')) {
                     $filters['ip'] = $this->Session->read('paginate_conditions_log_ip');
                 }
@@ -357,6 +369,8 @@ class LogsController extends AppController
                 $this->set('model_idSearch', $filters['model_id']);
                 $this->set('titleSearch', $filters['title']);
                 $this->set('changeSearch', $filters['change']);
+                $this->set('changeSearch', $filters['from'] ?? null);
+                $this->set('changeSearch', $filters['to'] ?? null);
                 if (Configure::read('MISP.log_client_ip')) {
                     $this->set('ipSearch', $filters['ip']);
                 }
@@ -448,6 +462,12 @@ class LogsController extends AppController
         }
         if (isset($filters['change']) && !empty($filters['change'])) {
             $conditions['LOWER(Log.change) LIKE'] = '%' . strtolower($filters['change']) . '%';
+        }
+        if (isset($filters['from']) && !empty($filters['from'])) {
+            $conditions['Log.created >='] = $filters['from'];
+        }
+        if (isset($filters['to']) && !empty($filters['to'])) {
+            $conditions['Log.created <='] = $filters['to'];
         }
         if (Configure::read('MISP.log_client_ip') && isset($filters['ip']) && !empty($filters['ip'])) {
             $conditions['Log.ip LIKE'] = '%' . $filters['ip'] . '%';
