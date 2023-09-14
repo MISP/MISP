@@ -209,6 +209,11 @@ class TrainingShell extends AppShell {
         $this->createRemoteServersFromConfig($createdOrgs, $createdUsers);
     }
 
+    public function deleteAllSyncs()
+    {
+        $this->Server->deleteAll(['Server.id' > 0]);
+    }
+
     private function __createOrgFromBlueprint($id)
     {
         $org = str_replace('$ID', $id, $this->__config['org_blueprint']);
