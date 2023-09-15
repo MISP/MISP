@@ -211,17 +211,17 @@ class TrainingShell extends AppShell {
 
     public function WipeAllSyncs()
     {
-        $this->Server->deleteAll(['Server.id' > 0]);
+        $this->Server->deleteAll(['Server.id !=' => 0]);
     }
 
     public function WipeAllUsers()
     {
-        $this->User->deleteAll(['User.id' > 1]);
+        $this->User->deleteAll(['User.email !=' => 'admin@admin.test']);
     }
 
     public function WipeAllOrgs()
     {
-        $this->Organisation->deleteAll(['Organisation.id' > 1]);
+        $this->Organisation->deleteAll(['Organisation.name !=' => 'ORGNAME']);
     }
 
     private function __createOrgFromBlueprint($id)
