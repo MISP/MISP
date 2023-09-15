@@ -140,9 +140,14 @@ class Correlation extends AppModel
         $attributeCount = 0;
         if (Configure::read('MISP.background_jobs') && $jobId) {
             $this->Job = ClassRegistry::init('Job');
+            $this->Job->id = $jobId;
+            if (!$this->Job->exists()) {
+                $jobId = false;
+            }
         } else {
             $jobId = false;
         }
+
         if (!empty($eventIds)) {
             $eventCount = count($eventIds);
             foreach ($eventIds as $j => $currentEventId) {

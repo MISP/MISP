@@ -60,9 +60,9 @@ class OrganisationMapWidget
                 }
             }
         }
-        if ($options['start_date']) {
+        if (!empty($options['start_date'])) {
             $params['conditions']['AND']['Organisation.date_created >='] = (new DateTime($options['start_date']))->format('Y-m-d H:i:s');
-            if (empty($options['end_date'])) {
+            if (!empty($options['end_date'])) {
                 $params['conditions']['AND']['Organisation.date_created <='] = (new DateTime($options['end_date']))->format('Y-m-d H:i:s');
             }
         }
