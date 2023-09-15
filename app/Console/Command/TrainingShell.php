@@ -216,12 +216,12 @@ class TrainingShell extends AppShell {
 
     public function WipeAllUsers()
     {
-        $this->Users->deleteAll(['User.id' > 1]);
+        $this->User->deleteAll(['User.id' > 1]);
     }
 
     public function WipeAllOrgs()
     {
-        $this->Users->deleteAll(['Organisation.id' > 1]);
+        $this->Organsation->deleteAll(['Organisation.id' > 1]);
     }
 
     private function __createOrgFromBlueprint($id)
