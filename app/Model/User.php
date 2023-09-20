@@ -984,6 +984,7 @@ class User extends AppModel
         if ($result) {
             $this->id = $user['User']['id'];
             $this->saveField('password', $password);
+            $this->saveField('last_pw_change', time());
             $this->updateField($user['User'], 'change_pw', 1);
             if ($simpleReturn) {
                 return true;

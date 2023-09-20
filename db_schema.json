@@ -8612,6 +8612,17 @@
                 "column_type": "int(11)",
                 "column_default": "NULL",
                 "extra": ""
+            },
+            {
+                "column_name": "last_pw_change",
+                "is_nullable": "YES",
+                "data_type": "bigint",
+                "character_maximum_length": null,
+                "numeric_precision": "19",
+                "collation_name": null,
+                "column_type": "bigint(20)",
+                "column_default": "NULL",
+                "extra": ""
             }
         ],
         "user_settings": [
@@ -9549,5 +9560,5 @@
             "uuid": false
         }
     },
-    "db_version": "114"
+    "db_version": "115"
 }
