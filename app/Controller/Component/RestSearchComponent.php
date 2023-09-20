@@ -13,13 +13,13 @@ class RestSearchComponent extends Component
             'includeProposals', 'returnFormat', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless',
             'includeWarninglistHits', 'attackGalaxy', 'object_relation', 'includeSightings', 'includeCorrelations', 'includeDecayScore',
             'decayingModel', 'excludeDecayed', 'modelOverrides', 'includeFullModel', 'score', 'attribute_timestamp', 'first_seen', 'last_seen',
-            'threat_level_id'
+            'threat_level_id', 'eventinfo'
         ),
         'Event' => array(
             'returnFormat', 'value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
             'metadata', 'uuid', 'publish_timestamp', 'timestamp', 'published', 'enforceWarninglist', 'sgReferenceOnly',
             'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'includeWarninglistHits', 'attackGalaxy', 'to_ids', 'deleted',
-            'excludeLocalTags', 'date', 'includeSightingdb', 'tag', 'object_relation', 'threat_level_id'
+            'excludeLocalTags', 'date', 'includeSightingdb', 'tag', 'object_relation', 'threat_level_id', 'eventinfo'
         ),
         'Object' => array(
             'returnFormat', 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp',
