@@ -26,7 +26,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
@@ -243,6 +243,13 @@ jobs:
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
               sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
 
+      - name: Clone test files
+        uses: actions/checkout@v4
+        with:
+          repository: viper-framework/viper-test-files
+          path: PyMISP/tests/viper-test-files
+
+
       - name: Run tests
         run: |
               pushd tests
@@ -253,6 +260,9 @@ jobs:
 
               . ./venv/bin/activate
               pushd PyMISP
+              ls
+              ls tests
+              ls tests/viper-test-files
               python tests/testlive_comprehensive.py
               python tests/test_mispevent.py
               popd

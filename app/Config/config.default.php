@@ -106,7 +106,7 @@ $config = array(
         'user_email_notification_ban_time_threshold' => 120,
         'user_email_notification_ban_amount_threshold' => 10,
         'user_email_notification_ban_refresh_on_retry' => true,
-        'warning_for_all'                => true,
+        'warning_for_all'                => false,
         'enable_synchronisation_filtering_on_type' => false,
     ),
     'GnuPG' => array(
