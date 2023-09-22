@@ -157,7 +157,15 @@ class TrainingShell extends AppShell {
         $createdUsers = [];
         foreach ($config as $user) {
             $user['org_id'] = $createdOrgs[$user['org_uuid']]['id'];
-            $this->User->create();
+            $existingUser = $this->User->find('first', [
+                'recursive' => -1,
+                'conditions' => ['User.email' => $user['email']],
+            ]);
+            if (empty($existingUser)) {
+                $this->User->create();
+            } else {
+                $user['id'] = $existingUser['User']['id'];
+            }
             $this->User->save($user);
             $createdUser = $this->User->find('first', ['id' => $this->User->id]);
             $createdUsers[] = $createdUser;
@@ -209,9 +217,19 @@ class TrainingShell extends AppShell {
         $this->createRemoteServersFromConfig($createdOrgs, $createdUsers);
     }
 
-    public function deleteAllSyncs()
+    public function WipeAllSyncs()
     {
-        $this->Server->deleteAll(['Server.id' > 0]);
+        $this->Server->deleteAll(['Server.id !=' => 0]);
+    }
+
+    public function WipeAllUsers()
+    {
+        $this->User->deleteAll(['User.email !=' => 'admin@admin.test']);
+    }
+
+    public function WipeAllOrgs()
+    {
+        $this->Organisation->deleteAll(['Organisation.name !=' => 'ORGNAME']);
     }
 
     private function __createOrgFromBlueprint($id)

@@ -372,6 +372,8 @@
                         'id' => 'tag_edge_id_' . $i,
                         'from' => $attr['id'],
                         'to' => $tag['name'],
+                        'type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                        'comment' => '',
                     );
                     $tagSet[$tag['name']] = $tag;
                     array_push($this->__json['relations'], $toPush);
@@ -379,6 +381,7 @@
                 }
             }
 
+            $j = 0;
             foreach ($object as $obj) {
                 $toPush = array(
                     'id' => sprintf('o-%s', $obj['id']),
@@ -393,23 +396,44 @@
                     'comment' => $obj['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
-
-                // Record existing object_relation
-                foreach ($obj['Attribute'] as $attr) {
-                    $this->__json['existing_object_relation'][$attr['object_relation']] = 0; // set-alike
-                }
-
-                // get all tags in the Object's Attributes
+                
+                
+                // get all  attributes and tags in the Object's Attributes
                 $added_value = array();
                 foreach ($obj['Attribute'] as $ObjAttr) {
+                    // Record existing object_relation
+                    $this->__json['existing_object_relation'][$attr['object_relation']] = 0; // set-alike
                     $Tags = $ObjAttr['AttributeTag'];
                     foreach ($Tags as $tag) {
                         $tag = $tag['Tag'];
                         if (!in_array($tag['name'], $added_value)) {
                             $toPush = array(
-                                'id' => "tag_edge_id_" . $i,
+                                'id' => $ObjAttr['id'],
+                                'uuid' => $ObjAttr['uuid'],
+                                'type' => $ObjAttr['type'],
+                                'label' => $ObjAttr['value'],
+                                'event_id' => $ObjAttr['event_id'],
+                                'node_type' => 'attribute',
+                                'comment' => $ObjAttr['comment'],
+                            );
+                            array_push($this->__json['items'], $toPush);
+                            
+                            $toPush = array(
+                                'id' => 'obj_edge_id_' . $j,
                                 'from' => sprintf('o-%s', $obj['id']),
+                                'to' => $ObjAttr['id'],
+                                'type' => '',
+                                'comment' => '',
+                            );
+                            $j = $j + 1;
+                            array_push($this->__json['relations'], $toPush);
+
+                            $toPush = array(
+                                'id' => "tag_edge_id_" . $i,
+                                'from' => $ObjAttr['id'],
                                 'to' => $tag['name'],
+                                'type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                                'comment' => '',
                             );
                             $tagSet[$tag['name']] = $tag;
                             array_push($added_value, $tag['name']);

@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '155';
-    public $pyMispVersion = '2.4.175';
+    public $pyMispVersion = '2.4.176';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -1104,7 +1104,7 @@ class AppController extends Controller
     {
         $result = false;
         if (Configure::read('Plugin.CustomAuth_enable')) {
-            $header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
+            $header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'AUTHORIZATION';
             $authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
             if (
                 !Configure::check('Plugin.CustomAuth_use_header_namespace') ||

@@ -7312,7 +7312,7 @@ class Server extends AppModel
                 'CustomAuth_header' => array(
                     'level' => 2,
                     'description' => __('Set the header that MISP should look for here. If left empty it will default to the Authorization header.'),
-                    'value' => 'Authorization',
+                    'value' => 'AUTHORIZATION',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true

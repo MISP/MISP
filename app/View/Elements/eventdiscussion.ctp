@@ -127,6 +127,7 @@
         </div>
     <?php endif; ?>
     <div class="comment">
+    <?php if ($this->Acl->canAccess('posts', 'add')): ?>
     <?php
         if (isset($currentEvent)) $url = $baseurl . '/posts/add/event/' . $currentEvent;
         else $url = $baseurl . '/posts/add/thread/' . $thread['Thread']['id'];
@@ -153,6 +154,7 @@
     <?php
         echo $this->Form->end();
     ?>
+    <?php endif; ?>
     </div>
 </div>
 <script type="text/javascript">
