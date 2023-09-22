@@ -260,9 +260,9 @@ jobs:
 
               . ./venv/bin/activate
               pushd PyMISP
-              ls
-              ls tests
-              ls tests/viper-test-files
+              ls -la .
+              ls -la tests
+              ls -la tests/viper-test-files
               python tests/testlive_comprehensive.py
               python tests/test_mispevent.py
               popd
