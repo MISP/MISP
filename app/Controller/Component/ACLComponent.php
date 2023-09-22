@@ -484,9 +484,9 @@ class ACLComponent extends Component
                 'display' => array('*'),
             ),
             'posts' => array(
-                'add' => ['AND' => ['not_read_only_authkey', 'discussion_enabled']],
-                'delete' => ['AND' => ['not_read_only_authkey', 'discussion_enabled']],
-                'edit' => ['AND' => ['not_read_only_authkey', 'discussion_enabled']],
+                'add' => ['AND' => ['not_read_only_authkey', 'discussion_enabled', 'perm_add']],
+                'delete' => ['AND' => ['not_read_only_authkey', 'discussion_enabled', 'perm_add']],
+                'edit' => ['AND' => ['not_read_only_authkey', 'discussion_enabled', 'perm_add']],
                 'pushMessageToZMQ' => array()
             ),
             'regexp' => array(
