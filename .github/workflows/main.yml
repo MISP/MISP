@@ -253,6 +253,7 @@ jobs:
 
               . ./venv/bin/activate
               pushd PyMISP
+              git clone https://github.com/viper-framework/viper-test-files.git tests/viper-test-files
               python tests/testlive_comprehensive.py
               python tests/test_mispevent.py
               popd
