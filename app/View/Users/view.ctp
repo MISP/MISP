@@ -90,7 +90,7 @@ if ($admin_view && $isSiteAdmin && $isTotp) {
     }
 
     if (Configure::read('Plugin.CustomAuth_enable') && !empty($user['User']['external_auth_key'])) {
-        $header = Configure::read('Plugin.CustomAuth_header') ?: 'Authorization';
+        $header = Configure::read('Plugin.CustomAuth_header') ?: 'AUTHORIZATION';
         $table_data[] = array(
             'key' => __('Customauth header'),
             'html' => sprintf(

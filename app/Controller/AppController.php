@@ -1104,7 +1104,7 @@ class AppController extends Controller
     {
         $result = false;
         if (Configure::read('Plugin.CustomAuth_enable')) {
-            $header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
+            $header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'AUTHORIZATION';
             $authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
             if (
                 !Configure::check('Plugin.CustomAuth_use_header_namespace') ||
