@@ -7,6 +7,7 @@
   } else {
       $objectEvent = $event;
   }
+  $isNew = $object['timestamp'] > $event['Event']['publish_timestamp'];
   if ($object['deleted']) $tr_class .= ' lightBlueRow';
   else $tr_class .= ' blueRow';
   if (!empty($k)) {
@@ -33,7 +34,7 @@ $objectId = intval($object['id']);
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
-  <td class="short timestamp"><?= $this->Time->date($object['timestamp']) ?></td>
+  <td class="short timestamp <?= $isNew ? 'bold red' : '' ?>" <?= $isNew ? 'title="' . __('Element or modification to an existing element has not been published yet.') . '"' : '' ?>><?= $this->Time->date($object['timestamp']) . ($isNew ? '*' : '') ?></td>
   <?php
     if ($extended):
   ?>

@@ -301,6 +301,7 @@ class UsersController extends AppController
             // What fields should be saved (allowed to be saved)
             $user['User']['change_pw'] = 0;
             $user['User']['password'] = $this->request->data['User']['password'];
+            $user['User']['last_pw_change'] = time();
             if ($this->_isRest()) {
                 $user['User']['confirm_password'] = $this->request->data['User']['password'];
             } else {
@@ -475,7 +476,8 @@ class UsersController extends AppController
                     'last_api_access',
                     'force_logout',
                     'date_created',
-                    'date_modified'
+                    'date_modified',
+                    'last_pw_change'
                 ),
                 'contain' => array(
                     'Organisation' => array('id', 'name'),
@@ -687,6 +689,7 @@ class UsersController extends AppController
                 }
             }
             $this->request->data['User']['date_created'] = time();
+            $this->request->data['User']['last_pw_change'] = $this->request->data['User']['date_created'];
             if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) {
                 $this->request->data['User']['server_id'] = 0;
             }
@@ -758,7 +761,7 @@ class UsersController extends AppController
                         $this->Flash->error(__('The user could not be saved. Invalid organisation.'));
                     }
                 } else {
-                    $fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread', 'date_created', 'date_modified');
+                    $fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread', 'date_created', 'date_modified', 'last_pw_change');
                     if ($this->User->save($this->request->data, true, $fieldList)) {
                         $notification_message = '';
                         if (!empty($this->request->data['User']['notify'])) {
@@ -953,6 +956,8 @@ class UsersController extends AppController
                     $this->__canChangePassword()
                 ) {
                     $fields[] = 'password';
+                    $fields[] = 'last_pw_change';
+                    $this->request->data['User']['last_pw_change'] = time();
                     if ($this->_isRest() && !isset($this->request->data['User']['confirm_password'])) {
                         $this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
                         $fields[] = 'confirm_password';
