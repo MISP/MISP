@@ -209,9 +209,19 @@ class TrainingShell extends AppShell {
         $this->createRemoteServersFromConfig($createdOrgs, $createdUsers);
     }
 
-    public function deleteAllSyncs()
+    public function WipeAllSyncs()
     {
-        $this->Server->deleteAll(['Server.id' > 0]);
+        $this->Server->deleteAll(['Server.id !=' => 0]);
+    }
+
+    public function WipeAllUsers()
+    {
+        $this->User->deleteAll(['User.email !=' => 'admin@admin.test']);
+    }
+
+    public function WipeAllOrgs()
+    {
+        $this->Organisation->deleteAll(['Organisation.name !=' => 'ORGNAME']);
     }
 
     private function __createOrgFromBlueprint($id)
