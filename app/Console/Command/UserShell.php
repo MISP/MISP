@@ -112,6 +112,10 @@ class UserShell extends AppShell
                 ],
             ]
         ]);
+
+        $parser->addSubcommand('expire_authkeys_without_ip_allowlist', [
+            'help' => __('Expire all active authkeys that do not have an IP allowlist set.'),
+        ]);
         return $parser;
     }
 
@@ -439,7 +443,8 @@ class UserShell extends AppShell
         }
     }
 
-    public function require_password_change_for_old_passwords(){
+    public function require_password_change_for_old_passwords()
+    {
         list($days) = $this->args;
         if(!is_numeric($days)){
             $this->error("The amount of days after which a password change is required (the argument) should be numeric.");
@@ -463,6 +468,31 @@ class UserShell extends AppShell
             if (!$this->User->save($user['User'], true, ["change_pw"])) {
                 $this->out("Could not update user $userId.");
                 $this->out($this->json($this->User->validationErrors));
+                $this->_stop(self::CODE_ERROR);
+            }
+        }
+    }
+
+    public function expire_authkeys_without_ip_allowlist()
+    {
+        $time = time();
+        $authkeys = $this->User->AuthKey->find('all', [
+            'conditions' => [
+                'OR' => [
+                    'AuthKey.expiration >' => $time,
+                    'AuthKey.expiration' => 0
+                ],
+                'allowed_ips' => NULL
+            ],
+            'fields' => ['id', 'user_id'],
+            'recursive' => 0
+        ]);
+        foreach ($authkeys as $authkey) {
+            $authkey['AuthKey']['expiration'] = $time;
+            $authkeyId = $authkey['AuthKey']['id'];
+            if (!$this->User->AuthKey->save($authkey['AuthKey'])) {
+                $this->out("Could not update authkey $authkeyId.");
+                $this->out($this->json($this->User->AuthKey->validationErrors));
                 $this->_stop(self::CODE_ERROR);
             }
         }
