@@ -218,7 +218,7 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
               export PYTHONPATH=$PYTHONPATH:./app/files/scripts
-              pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 pyzmq redis plyara
+              pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 pyzmq redis plyara pytest
               deactivate
 
       - name: Test if apache is working
@@ -260,9 +260,9 @@ jobs:
 
               . ./venv/bin/activate
               pushd PyMISP
-              pip install pytest
-              python -m pytest -v --durations=0 tests/testlive_comprehensive.py
+              cp tests/keys.py .
               python -m pytest -v --durations=0 tests/test_mispevent.py
+              python -m pytest -v --durations=0 tests/testlive_comprehensive.py
               popd
               python tests/testlive_security.py -v
               python tests/testlive_sync.py
