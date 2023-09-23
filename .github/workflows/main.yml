@@ -261,8 +261,8 @@ jobs:
               . ./venv/bin/activate
               pushd PyMISP
               pip install pytest
-              ./venv/bin/pytest -v --durations=0 tests/testlive_comprehensive.py
-              ./venv/bin/pytest -v --durations=0 tests/test_mispevent.py
+              python -m pytest -v --durations=0 tests/testlive_comprehensive.py
+              python -m pytest -v --durations=0 tests/test_mispevent.py
               popd
               python tests/testlive_security.py -v
               python tests/testlive_sync.py
