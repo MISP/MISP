@@ -100,7 +100,7 @@ class DevShell extends AppShell {
         foreach ($paramArray as $scope => $fields) {
             echo "'" . $scope ."' => [" . PHP_EOL . "    '";
             echo implode("'," . PHP_EOL . "    '", $fields) . "'" . PHP_EOL;
-            echo "];" . PHP_EOL;
+            echo "]," . PHP_EOL;
         }
     }
 }

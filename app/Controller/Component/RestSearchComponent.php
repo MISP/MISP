@@ -57,7 +57,7 @@ class RestSearchComponent extends Component
             'includeAllTags',
             'includeAttributeUuid',
             'includeGalaxy'
-        ];
+        ],
         'Event' => [
             'returnFormat',
             'value',
@@ -117,7 +117,7 @@ class RestSearchComponent extends Component
             'noShadowAttributes',
             'order',
             'protected'
-        ];
+        ],
         'Object' => [
             'returnFormat',
             'value',
@@ -152,7 +152,7 @@ class RestSearchComponent extends Component
             'object_relation',
             'metadata',
             'includeAllTags'
-        ];
+        ],
         'Sighting' => [
             'context',
             'returnFormat',
@@ -165,7 +165,7 @@ class RestSearchComponent extends Component
             'source',
             'includeAttribute',
             'includeEvent'
-        ];
+        ],
         'GalaxyCluster' => [
             'page',
             'limit',
@@ -184,7 +184,7 @@ class RestSearchComponent extends Component
             'list',
             'first',
             'count'
-        ];
+        ],
     );
 
     public function getFilename($filters, $scope, $responseType)
