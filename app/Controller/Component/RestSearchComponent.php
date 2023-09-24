@@ -75,6 +75,7 @@ class RestSearchComponent extends Component
             'uuid',
             'publish_timestamp',
             'timestamp',
+            'event_timestamp', // redundant, but kept for backwards compatibility
             'published',
             'enforceWarninglist',
             'sgReferenceOnly',
