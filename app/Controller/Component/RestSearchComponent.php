@@ -9,6 +9,8 @@ class RestSearchComponent extends Component
         'Attribute' => [
             'returnFormat',
             'value',
+            'value1',
+            'value2',
             'type',
             'category',
             'org',
