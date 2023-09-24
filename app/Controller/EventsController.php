@@ -31,7 +31,7 @@ class EventsController extends AppController
         'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'page',
         'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
         'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'feed', 'server', 'toIDS',
-        'sighting', 'includeSightingdb', 'warninglistId', 'correlationId',
+        'sighting', 'includeSightingdb', 'warninglistId', 'correlationId', 'email', 'eventid', 'datefrom', 'dateuntil'
     );
 
     // private
@@ -1117,7 +1117,7 @@ class EventsController extends AppController
             'attribute' => array('OR' => array(), 'NOT' => array()),
             'hasproposal' => 2,
             'timestamp' => array('from' => "", 'until' => ""),
-            'publishtimestamp' => array('from' => "", 'until' => ""),
+            'publishtimestamp' => array('from' => "", 'until' => "")
         );
 
         if ($this->_isSiteAdmin()) {

@@ -126,6 +126,47 @@ class Event extends AppModel
         'yara-json' => array('json', 'YaraExport', 'json')
     );
 
+    public $possibleOptions = array(
+        'eventid',
+        'idList',
+        'tags',
+        'from',
+        'to',
+        'last',
+        'to_ids',
+        'includeAllTags', // include also non exportable tags, default `false`
+        'includeAttachments',
+        'event_uuid',
+        'distribution',
+        'sharing_group_id',
+        'disableSiteAdmin',
+        'metadata',
+        'enforceWarninglist', // return just attributes that contains no warnings
+        'sgReferenceOnly', // do not fetch additional information about sharing groups
+        'flatten',
+        'blockedAttributeTags',
+        'eventsExtendingUuid',
+        'extended',
+        'extensionList',
+        'excludeGalaxy',
+        // 'includeCustomGalaxyCluster', // not used
+        'includeRelatedTags',
+        'excludeLocalTags',
+        'includeDecayScore',
+        'includeScoresOnEvent',
+        'includeSightingdb',
+        'includeFeedCorrelations',
+        'includeServerCorrelations',
+        'includeWarninglistHits',
+        'noEventReports', // do not include event report in event data
+        'noShadowAttributes', // do not fetch proposals,
+        'limit',
+        'page',
+        'order',
+        'protected',
+        'published',
+    );
+
     public $validate = array(
         'org_id' => array(
             'rule' => 'numeric',
@@ -1684,46 +1725,6 @@ class Event extends AppModel
         if (isset($options['Event.id'])) {
             $options['eventid'] = $options['Event.id'];
         }
-        $possibleOptions = array(
-            'eventid',
-            'idList',
-            'tags',
-            'from',
-            'to',
-            'last',
-            'to_ids',
-            'includeAllTags', // include also non exportable tags, default `false`
-            'includeAttachments',
-            'event_uuid',
-            'distribution',
-            'sharing_group_id',
-            'disableSiteAdmin',
-            'metadata',
-            'enforceWarninglist', // return just attributes that contains no warnings
-            'sgReferenceOnly', // do not fetch additional information about sharing groups
-            'flatten',
-            'blockedAttributeTags',
-            'eventsExtendingUuid',
-            'extended',
-            'extensionList',
-            'excludeGalaxy',
-            // 'includeCustomGalaxyCluster', // not used
-            'includeRelatedTags',
-            'excludeLocalTags',
-            'includeDecayScore',
-            'includeScoresOnEvent',
-            'includeSightingdb',
-            'includeFeedCorrelations',
-            'includeServerCorrelations',
-            'includeWarninglistHits',
-            'noEventReports', // do not include event report in event data
-            'noShadowAttributes', // do not fetch proposals,
-            'limit',
-            'page',
-            'order',
-            'protected',
-            'published',
-        );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
         }
@@ -1736,7 +1737,7 @@ class Event extends AppModel
         if (!isset($options['fetchFullClusterRelationship'])) {
             $options['fetchFullClusterRelationship'] = false;
         }
-        foreach ($possibleOptions as $opt) {
+        foreach ($this->possibleOptions as $opt) {
             if (!isset($options[$opt])) {
                 $options[$opt] = false;
             }
