@@ -1019,6 +1019,7 @@ class TestLastPwChange(unittest.TestCase):
 
     def test_new_user_last_pw_change_is_date_created(self):
         self.assertEqual(self.test_usr.last_pw_change, self.test_usr.date_created)
+        time.sleep(1)
 
     def test_admin_edit_password_updates_last_pw_change(self):
         old_last_pw_change = self.test_usr.last_pw_change
@@ -1031,6 +1032,7 @@ class TestLastPwChange(unittest.TestCase):
         check_response(self.updated_test_usr)
 
         self.check_last_pw_change_timestamp(old_last_pw_change, time_just_before_update, time_just_after_update)
+        time.sleep(1)
 
     def test_user_change_password_updates_last_pw_change(self):
         old_last_pw_change = self.test_usr.last_pw_change
@@ -1044,6 +1046,7 @@ class TestLastPwChange(unittest.TestCase):
         check_response(self.updated_test_usr)
 
         self.check_last_pw_change_timestamp(old_last_pw_change, time_just_before_update, time_just_after_update)
+        time.sleep(1)
 
     def test_reset_user_password_updates_last_pw_change(self):
         old_last_pw_change = self.test_usr.last_pw_change
@@ -1057,6 +1060,7 @@ class TestLastPwChange(unittest.TestCase):
         check_response(self.updated_test_usr)
 
         self.check_last_pw_change_timestamp(old_last_pw_change, time_just_before_update, time_just_after_update)
+        time.sleep(1)
 
     def last_pw_change_almost_equal_to_date_modified(self):
         date_modified = datetime.fromtimestamp(int(self.updated_test_usr.date_modified))
