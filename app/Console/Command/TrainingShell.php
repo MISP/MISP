@@ -156,7 +156,9 @@ class TrainingShell extends AppShell {
         $config = json_decode($rawConfig, true);
         $createdUsers = [];
         foreach ($config as $user) {
-            $user['org_id'] = $createdOrgs[$user['org_uuid']]['id'];
+            if (!empty($user['org_uuid'])) {
+                $user['org_id'] = $createdOrgs[$user['org_uuid']]['id'];
+            }
             $existingUser = $this->User->find('first', [
                 'recursive' => -1,
                 'conditions' => ['User.email' => $user['email']],
