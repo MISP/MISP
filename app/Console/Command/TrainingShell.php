@@ -236,7 +236,7 @@ class TrainingShell extends AppShell {
 
     public function WipeAllAuthkeys()
     {
-        $this->Authkey->deleteAll(['Authkey.id !=' => 0]);
+        $this->Authkey->deleteAll(['AuthKey.id !=' => 0]);
     }
 
     private function __createOrgFromBlueprint($id)
