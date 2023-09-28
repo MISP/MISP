@@ -11,7 +11,7 @@ App::uses('File', 'Utility');
 
 class TrainingShell extends AppShell {
 
-    public $uses = array('User', 'Organisation', 'Server', 'Authkey');
+    public $uses = array('User', 'Organisation', 'Server', 'AuthKey');
 
     private $__currentUrl = false;
     private $__currentAuthKey = false;
@@ -156,7 +156,9 @@ class TrainingShell extends AppShell {
         $config = json_decode($rawConfig, true);
         $createdUsers = [];
         foreach ($config as $user) {
-            $user['org_id'] = $createdOrgs[$user['org_uuid']]['id'];
+            if (!empty($user['org_uuid'])) {
+                $user['org_id'] = $createdOrgs[$user['org_uuid']]['id'];
+            }
             $existingUser = $this->User->find('first', [
                 'recursive' => -1,
                 'conditions' => ['User.email' => $user['email']],
@@ -230,6 +232,11 @@ class TrainingShell extends AppShell {
     public function WipeAllOrgs()
     {
         $this->Organisation->deleteAll(['Organisation.name !=' => 'ORGNAME']);
+    }
+
+    public function WipeAllAuthkeys()
+    {
+        $this->AuthKey->deleteAll(['AuthKey.id !=' => 0]);
     }
 
     private function __createOrgFromBlueprint($id)
