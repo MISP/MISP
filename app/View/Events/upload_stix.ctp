@@ -52,17 +52,39 @@
         'label' => __('Include the original imported file as attachment')
     ));
     if ($me['Role']['perm_site_admin'] || $me['Role']['perm_galaxy_editor']) {
+        $galaxiesFormInfo = $this-> element(
+            'genericElements/Form/formInfo',
+            [
+                'field' => [
+                    'field' => 'galaxies_handling'
+                ],
+                'modelForForm' => 'Event',
+                'fieldDesc' => $fieldDesc['galaxies_handling']
+            ]
+        );
         echo '<div class="input clear"></div>';
-        echo $this->Form->input('galaxies_parsing', array(
-            'checked' => false,
-            'label' => __('Use Galaxies 2.0')
+        echo $this->Form->input('galaxies_handling', array(
+            'options' => array($galaxiesOptions),
+            'label' => __('How to handle Galaxies and Clusters') . $galaxiesFormInfo,
+            'selected' => 0
         ));
     }
-    if ($me['Role']['perm_site_admin']) {
+    if ($me['Role']['perm_site_admin'] && Configure::read('debug') > 0) {
+        $debugFormInfo = $this->element(
+            'genericElements/Form/formInfo',
+            [
+                'field' => [
+                    'field' => 'debug'
+                ],
+                'modelForForm' => 'Event',
+                'fieldDesc' => $fieldDesc['debug'],
+            ]
+        );
         echo '<div class="input clear"></div>';
         echo $this->Form->input('debug', array(
-            'checked' => true,
-            'label' => __('Advanced conversion debugging')
+            'options' => array($debugOptions),
+            'label' => __('Debugging option') . $debugFormInfo,
+            'selected' => 0
         ));
     }
 ?>

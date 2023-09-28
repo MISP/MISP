@@ -2501,6 +2501,16 @@ class EventsController extends AppController
         foreach ($distributionLevels as $key => $value) {
             $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
         }
+        $debugOptions = $this->Event->debugOptions;
+        $this->set('debugOptions', $debugOptions);
+        foreach ($debugOptions as $key => $value) {
+            $fieldDesc['debug'][$key] = $this->Event->debugDescriptions[$key];
+        }
+        $galaxiesOptions = $this->Event->galaxiesOptions;
+        $this->set('galaxiesOptions', $galaxiesOptions);
+        foreach ($galaxiesOptions as $key => $value) {
+            $fieldDesc['galaxies_handling'][$key] = $this->Event->galaxiesOptionsDescriptions[$key];
+        }
         $this->set('sharingGroups', $sgs);
         $this->set('fieldDesc', $fieldDesc);
     }
