@@ -279,6 +279,7 @@ class AuthKeysController extends AppController
             'conditions' => [
                 'AuthKey.id' => $key_id
             ]]);
+        if(!empty($user_id)) $user_id = $user_id[0];
         return $this->__canCreateAuthKeyForUser($user_id);
     }
 }
