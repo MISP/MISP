@@ -91,8 +91,8 @@ class EventShell extends AppShell
         }
 
         $isXml = $extension === 'xml';
-        $takeOwnership = $this->param('take_ownership');
-        $publish = $this->param('publish');
+        $takeOwnership = $this->params['take-ownership'];
+        $publish = $this->params['publish'];
         $results = $this->Event->addMISPExportFile($user, $content, $isXml, $takeOwnership, $publish);
 
         foreach ($results as $result) {
