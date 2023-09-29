@@ -97,6 +97,8 @@ class EventShell extends AppShell
 
         foreach ($results as $result) {
             if (is_numeric($result['result'])) {
+                $this->out("Event `{$result['info']}` already exists at ({$result['result']}).");
+            } else if ($result['result'] === true) {
                 $this->out("Event #{$result['id']}: {$result['info']} imported.");
             } else {
                 $this->out("Could not import event because of validation errors: " . json_encode($result['validationIssues']));
