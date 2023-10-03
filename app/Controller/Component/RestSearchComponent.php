@@ -52,6 +52,7 @@ class RestSearchComponent extends Component
             'first_seen',
             'last_seen',
             'eventinfo',
+            'sharinggroup',
             'allow_proposal_blocking',
             'flatten',
             'list',
