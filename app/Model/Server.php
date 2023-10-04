@@ -5615,7 +5615,7 @@ class Server extends AppModel
                 ),
                 'store_api_access_time' => array(
                     'level' => 1,
-                    'description' => __('If enabled, MISP will capture the last API access time following a successful authentication using API keys, stored against a user under the last_api_access field.'),
+                    'description' => __('If enabled, MISP will capture a users\' last API access time following every successful authentication using API keys (as opposed to once max per hour by default). Stored as last_api_access time for the user.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
