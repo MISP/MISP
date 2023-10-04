@@ -6407,6 +6407,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'limit_site_admins_to_host_org' => array(
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('If enabled, it will only be possible to assign site admin roles to users belonging to the instance\'s host org.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'disable_browser_cache' => array(
                     'level' => 0,
                     'description' => __('If enabled, HTTP headers that block browser cache will be send. Static files (like images or JavaScripts) will still be cached, but not generated pages.'),
