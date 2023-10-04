@@ -1,8 +1,10 @@
+ARG DOCKER_HUB_PROXY=""
+
 # Install Composer
-FROM composer:latest AS composer
+FROM "${DOCKER_HUB_PROXY}composer:latest" AS composer
 
 # Base image with necessary extensions and configurations
-FROM php:8.2-fpm AS base
+FROM "${DOCKER_HUB_PROXY}php:8.2-fpm" AS base
 ARG MISP_TAG_OR_BRANCH
 
 USER root

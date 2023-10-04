@@ -1,4 +1,6 @@
-FROM nginx:1.23
+ARG DOCKER_HUB_PROXY=""
+
+FROM "${DOCKER_HUB_PROXY}nginx:1.23"
 
 # Copy nginx.conf to container
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
