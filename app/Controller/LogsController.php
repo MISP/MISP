@@ -273,7 +273,7 @@ class LogsController extends AppController
             $this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
 
             // reset the paginate_conditions
-            $this->Session->write('paginate_conditions_log', array());
+            //$this->Session->write('paginate_conditions_log', array());
             if ($this->request->is('post')) {
                 $filters['email'] = $this->request->data['Log']['email'];
                 if (!$orgRestriction) {
@@ -337,12 +337,11 @@ class LogsController extends AppController
                     $this->Session->write('paginate_conditions_log_model_id', $filters['model_id']);
                     $this->Session->write('paginate_conditions_log_title', $filters['title']);
                     $this->Session->write('paginate_conditions_log_change', $filters['change']);
-                    $this->Session->write('paginate_conditions_log_change', $filters['from'] ?? null);
-                    $this->Session->write('paginate_conditions_log_change', $filters['to'] ?? null);
+                    $this->Session->write('paginate_conditions_log_from', $filters['from'] ?? null);
+                    $this->Session->write('paginate_conditions_log_to', $filters['to'] ?? null);
                     if (Configure::read('MISP.log_client_ip')) {
                         $this->Session->write('paginate_conditions_log_ip', $filters['ip']);
                     }
-
                     // set the same view as the index page
                     $this->render('index');
                 }
@@ -355,12 +354,11 @@ class LogsController extends AppController
                 $filters['model_id'] = $this->Session->read('paginate_conditions_log_model_id');
                 $filters['title'] = $this->Session->read('paginate_conditions_log_title');
                 $filters['change'] = $this->Session->read('paginate_conditions_log_change');
-                $filters['change'] = $this->Session->read('paginate_conditions_log_from') ?? null;
-                $filters['change'] = $this->Session->read('paginate_conditions_log_to') ?? null;
+                $filters['from'] = $this->Session->read('paginate_conditions_log_from') ?? null;
+                $filters['to'] = $this->Session->read('paginate_conditions_log_to') ?? null;
                 if (Configure::read('MISP.log_client_ip')) {
                     $filters['ip'] = $this->Session->read('paginate_conditions_log_ip');
                 }
-
                 // for info on what was searched for
                 $this->set('emailSearch', $filters['email']);
                 $this->set('orgSearch', $filters['org']);
@@ -378,7 +376,7 @@ class LogsController extends AppController
 
                 // re-get pagination
                 $this->{$this->defaultModel}->recursive = 0;
-                $this->paginate = array_merge_recursive($this->Session->read('paginate_conditions_log'), $this->paginate);
+                $this->paginate = array_replace_recursive($this->paginate, $this->Session->read('paginate_conditions_log'));
                 if (!isset($this->paginate['order'])) {
                     $this->paginate['order'] = array('Log.id' => 'DESC');
                 }
