@@ -18,6 +18,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Lib\Tools\BackgroundJobsTool;
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
@@ -41,6 +42,9 @@ class AppController extends Controller
     public $breadcrumb = [];
     public $request_ip = null;
 
+    /** @var BackgroundJobsTool */
+    private static $loadedBackgroundJobsTool;
+
     /**
      * Initialization hook method.
      *
@@ -60,7 +64,7 @@ class AppController extends Controller
         $this->loadComponent(
             'ParamHandler',
             [
-            'request' => $this->request
+                'request' => $this->request
             ]
         );
         $this->loadModel('MetaFields');
@@ -69,30 +73,30 @@ class AppController extends Controller
         $this->loadComponent(
             'CRUD',
             [
-            'request' => $this->request,
-            'table' => $table,
-            'MetaFields' => $this->MetaFields,
-            'MetaTemplates' => $this->MetaTemplates
+                'request' => $this->request,
+                'table' => $table,
+                'MetaFields' => $this->MetaFields,
+                'MetaTemplates' => $this->MetaTemplates
             ]
         );
         $this->loadComponent('Authentication.Authentication');
         $this->loadComponent(
             'ACL',
             [
-            'request' => $this->request,
-            'Authentication' => $this->Authentication
+                'request' => $this->request,
+                'Authentication' => $this->Authentication
             ]
         );
         $this->loadComponent(
             'Navigation',
             [
-            'request' => $this->request,
+                'request' => $this->request,
             ]
         );
         $this->loadComponent(
             'Notification',
             [
-            'request' => $this->request,
+                'request' => $this->request,
             ]
         );
         if (Configure::read('debug')) {
@@ -121,7 +125,7 @@ class AppController extends Controller
             $user = $this->Users->get(
                 $this->request->getAttribute('identity')->getIdentifier(),
                 [
-                'contain' => ['Roles', /*'UserSettings',*/ 'Organisations']
+                    'contain' => ['Roles', /*'UserSettings',*/ 'Organisations']
                 ]
             );
             if (!empty($user['disabled'])) {
@@ -204,11 +208,11 @@ class AppController extends Controller
                 $user = $this->Users->get($authKey['user_id']);
                 $logModel->insert(
                     [
-                    'request_action' => 'login',
-                    'model' => 'Users',
-                    'model_id' => $user['id'],
-                    'model_title' => $user['username'],
-                    'changed' => []
+                        'request_action' => 'login',
+                        'model' => 'Users',
+                        'model_id' => $user['id'],
+                        'model_title' => $user['username'],
+                        'changed' => []
                     ]
                 );
                 if (!empty($user)) {
@@ -218,11 +222,11 @@ class AppController extends Controller
                 $user = $logModel->userInfo();
                 $logModel->insert(
                     [
-                    'request_action' => 'login',
-                    'model' => 'Users',
-                    'model_id' => $user['id'],
-                    'model_title' => $user['name'],
-                    'changed' => []
+                        'request_action' => 'login',
+                        'model' => 'Users',
+                        'model_id' => $user['id'],
+                        'model_title' => $user['name'],
+                        'changed' => []
                     ]
                 );
             }
@@ -272,5 +276,17 @@ class AppController extends Controller
         $user = $this->Auth->user();
         session_abort();
         return $user;
+    }
+
+    /**
+     * @return BackgroundJobsTool
+     */
+    public function getBackgroundJobsTool(): BackgroundJobsTool
+    {
+        if (!self::$loadedBackgroundJobsTool) {
+            $backgroundJobsTool = new BackgroundJobsTool(Configure::read('BackgroundJobs'));
+            self::$loadedBackgroundJobsTool = $backgroundJobsTool;
+        }
+        return self::$loadedBackgroundJobsTool;
     }
 }

@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\Lib\Tools;
 
-use Cake\Utility\Text;
-
-use App\Model\Entity\Worker;
 use App\Model\Entity\BackgroundJob;
-use Redis;
-use Exception;
-use RuntimeException;
-use Cake\Log\LogTrait;
-use InvalidArgumentException;
-use Cake\ORM\Locator\LocatorAwareTrait;
+use App\Model\Entity\Worker;
+use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Http\Exception\NotFoundException;
+use Cake\Log\LogTrait;
+use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\Utility\Text;
+use Exception;
+use InvalidArgumentException;
+use Redis;
+use RuntimeException;
 
 /**
  * BackgroundJobs Tool
@@ -41,53 +41,52 @@ class BackgroundJobsTool
     /** @var \Supervisor\Supervisor */
     private $Supervisor;
 
-    const MISP_WORKERS_PROCESS_GROUP = 'misp-workers';
+    public const MISP_WORKERS_PROCESS_GROUP = 'misp-workers';
 
-    const
+    public const
         STATUS_RUNNING = 0,
         STATUS_NOT_ENABLED = 1,
         STATUS_REDIS_NOT_OK = 2,
         STATUS_SUPERVISOR_NOT_OK = 3,
         STATUS_REDIS_AND_SUPERVISOR_NOT_OK = 4;
 
-    const
+    public const
         DEFAULT_QUEUE = 'default',
         EMAIL_QUEUE = 'email',
         CACHE_QUEUE = 'cache',
         PRIO_QUEUE = 'prio',
-        UPDATE_QUEUE = 'update',
-        SCHEDULER_QUEUE = 'scheduler';
+        UPDATE_QUEUE = 'update';
 
-    const VALID_QUEUES = [
-        self::DEFAULT_QUEUE,
-        self::EMAIL_QUEUE,
-        self::CACHE_QUEUE,
-        self::PRIO_QUEUE,
-        self::UPDATE_QUEUE,
-        self::SCHEDULER_QUEUE,
-    ];
+    public const
+        VALID_QUEUES = [
+            self::DEFAULT_QUEUE,
+            self::EMAIL_QUEUE,
+            self::CACHE_QUEUE,
+            self::PRIO_QUEUE,
+            self::UPDATE_QUEUE
+        ];
 
-    const
+    public const
         CMD_EVENT = 'event',
         CMD_SERVER = 'server',
         CMD_ADMIN = 'admin',
         CMD_WORKFLOW = 'workflow';
 
-    const ALLOWED_COMMANDS = [
+    public const ALLOWED_COMMANDS = [
         self::CMD_EVENT,
         self::CMD_SERVER,
         self::CMD_ADMIN,
-        self::CMD_WORKFLOW,
+        self::CMD_WORKFLOW
     ];
 
-    const CMD_TO_SHELL_DICT = [
+    public const CMD_TO_SHELL_DICT = [
         self::CMD_EVENT => 'EventShell',
         self::CMD_SERVER => 'ServerShell',
         self::CMD_ADMIN => 'AdminShell',
-        self::CMD_WORKFLOW => 'WorkflowShell',
+        self::CMD_WORKFLOW => 'WorkflowShell'
     ];
 
-    const JOB_STATUS_PREFIX = 'job_status',
+    private const JOB_STATUS_PREFIX = 'job_status',
         DATA_CONTENT_PREFIX = 'data_content';
 
     /** @var array */
@@ -193,7 +192,8 @@ class BackgroundJobsTool
                 'id' => Text::uuid(),
                 'command' => $command,
                 'args' => $args,
-                'metadata' => $metadata
+                'metadata' => $metadata,
+                'worker' => $queue,
             ]
         );
 
@@ -203,7 +203,7 @@ class BackgroundJobsTool
         $this->RedisConnection->exec();
 
         if ($jobId) {
-            $this->updateJobProcessId($jobId, $backgroundJob->id());
+            $this->updateJobProcessId($jobId, $backgroundJob);
         }
 
         return $backgroundJob->id();
@@ -301,14 +301,16 @@ class BackgroundJobsTool
         foreach ($procs as $proc) {
             if ($proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP) {
                 if ($proc->offsetGet('pid') > 0) {
-                    $workers[] = new Worker([
-                        'pid' => $proc->offsetGet('pid'),
-                        'queue' => explode("_", $proc->offsetGet('name'))[0],
-                        'user' => $this->processUser((int) $proc->offsetGet('pid')),
-                        'createdAt' => $proc->offsetGet('start'),
-                        'updatedAt' => $proc->offsetGet('now'),
-                        'status' => $this->convertProcessStatus($proc->offsetGet('state'))
-                    ]);
+                    $workers[] = new Worker(
+                        [
+                            'pid' => $proc->offsetGet('pid'),
+                            'queue' => explode("_", $proc->offsetGet('name'))[0],
+                            'user' => $this->processUser((int) $proc->offsetGet('pid')),
+                            'createdAt' => $proc->offsetGet('start'),
+                            'updatedAt' => $proc->offsetGet('now'),
+                            'status' => $this->convertProcessStatus($proc->offsetGet('state'))
+                        ]
+                    );
                 }
             }
         }
@@ -672,11 +674,24 @@ class BackgroundJobsTool
         return new \Supervisor\Supervisor($client);
     }
 
-    private function updateJobProcessId(int $jobId, string $processId)
+    private function updateJobProcessId(int $jobId, BackgroundJob $backgroundJob)
     {
         $JobTable = $this->fetchTable('Jobs');
-        $jobEntity = $JobTable->get($jobId);
-        $jobEntity->set('process_id', $processId);
+        try {
+            $jobEntity = $JobTable->get($jobId);
+        } catch (RecordNotFoundException $e) {
+            $this->log("Job ID does not exist in the database, creating Job database record.", 'warning');
+            $jobEntity = $JobTable->newEntity(
+                [
+                    'id' => $jobId,
+                    'worker' => $backgroundJob->worker(),
+                    'job_type' => '?',
+                    'job_input' => '?',
+                    'message' => '?'
+                ]
+            );
+        }
+        $jobEntity->set('process_id', $backgroundJob->id());
         $JobTable->save($jobEntity);
     }
 

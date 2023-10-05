@@ -56,6 +56,9 @@ class BackgroundJob implements JsonSerializable
     /** @var integer */
     private $returnCode;
 
+    /** @var string */
+    private $worker;
+
     public function __construct(array $properties)
     {
         $this->id = $properties['id'];
@@ -67,6 +70,7 @@ class BackgroundJob implements JsonSerializable
         $this->error = $properties['error'] ?? null;
         $this->progress = $properties['progress'] ?? 0;
         $this->metadata = $properties['metadata'] ?? [];
+        $this->worker = $properties['worker'] ?? Job::WORKER_DEFAULT;
     }
 
     /**
@@ -114,7 +118,7 @@ class BackgroundJob implements JsonSerializable
         while (true) {
             $read = [$pipes[1], $pipes[2]];
             $write = null;
-            $fcept = null;
+            $except = null;
 
             if (false === ($changedStreams = stream_select($read, $write, $except, 5))) {
                 throw new RuntimeException("Could not select stream");
@@ -213,6 +217,11 @@ class BackgroundJob implements JsonSerializable
         return $this->returnCode;
     }
 
+    public function worker(): string
+    {
+        return $this->worker;
+    }
+
     public function setStatus(int $status)
     {
         $this->status = $status;
@@ -236,5 +245,10 @@ class BackgroundJob implements JsonSerializable
     public function setUpdatedAt(int $updatedAt)
     {
         $this->updatedAt = $updatedAt;
+    }
+
+    public function setWorker(string $worker)
+    {
+        $this->worker = $worker;
     }
 }
