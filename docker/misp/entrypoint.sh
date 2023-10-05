@@ -97,4 +97,14 @@ php-fpm -t
 # Finished bootstrapping, create ready flag file
 touch "${MISP_READY_STATUS_FLAG}"
 
+# Start Supervisor
+echo >&2 "Starting Supervisor..."
+supervisord -n -c /etc/supervisor/conf.d/supervisor.conf &
+sleep 5
+
+# # Start workers
+# echo >&2 "Starting workers..."
+# supervisorctl start misp-workers:*
+
+echo >&2 "Starting php-fpm..."
 exec php-fpm -F "$@"

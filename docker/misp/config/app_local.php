@@ -88,7 +88,7 @@ return [
      */
     'EmailTransport' => [
         'default' => [
-            'host' => 'localhost',
+            'host' => 'mail',
             'port' => 25,
             'username' => null,
             'password' => null,
@@ -98,5 +98,18 @@ return [
     ],
     'MISP' => [
         'dark' => 0
+    ],
+    'BackgroundJobs' => [
+        'enabled' => true,
+        'redis_host' => 'redis',
+        'redis_port' => 6379,
+        'redis_password' => '',
+        'redis_database' => 1,
+        'redis_namespace' => 'background_jobs',
+        'max_job_history_ttl' => 86400,
+        'supervisor_host' => 'localhost',
+        'supervisor_port' => '9001',
+        'supervisor_user' => 'supervisor',
+        'supervisor_password' => 'supervisor',
     ]
 ];
