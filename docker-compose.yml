@@ -85,8 +85,6 @@ services:
 
   redis:
     image: redis:7
-    ports:
-      - "6379:6379"
     networks:
       - backend-network
     healthcheck:
