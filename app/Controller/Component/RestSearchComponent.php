@@ -119,7 +119,8 @@ class RestSearchComponent extends Component
             'noEventReports',
             'noShadowAttributes',
             'order',
-            'protected'
+            'protected',
+            'includeGranularCorrelations'
         ],
         'Object' => [
             'returnFormat',

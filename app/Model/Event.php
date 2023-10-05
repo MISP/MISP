@@ -178,6 +178,7 @@ class Event extends AppModel
         'includeFeedCorrelations',
         'includeServerCorrelations',
         'includeWarninglistHits',
+        'includeGranularCorrelations',
         'noEventReports', // do not include event report in event data
         'noShadowAttributes', // do not fetch proposals,
         'limit',
