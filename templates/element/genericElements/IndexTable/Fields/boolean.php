@@ -1,15 +1,15 @@
 <?php
-    $rules_raw = array();
-    $typeOptions = array(
-        'OR' => array(
+    $rules_raw = [];
+    $typeOptions = [
+        'OR' => [
             'colour' => 'green',
             'text' => 'allowed'
-        ),
-        'NOT' => array(
+        ],
+        'NOT' => [
             'colour' => 'red',
             'text' => 'blocked'
-        )
-    );
+        ]
+    ];
     if (
         !empty($this->Hash->extract($row, $field['data_path'])[0]) &&
         !empty($field['rule_path'][0]) &&
@@ -68,4 +68,3 @@
             __('Rules')
         );
     }
-?>

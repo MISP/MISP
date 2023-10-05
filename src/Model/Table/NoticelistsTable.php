@@ -19,7 +19,7 @@ class NoticelistsTable extends AppTable
         $this->addBehavior(
             'JsonFields',
             [
-            'fields' => ['ref', 'geographical_area'],
+                'fields' => ['ref', 'geographical_area'],
             ]
         );
 
@@ -43,7 +43,7 @@ class NoticelistsTable extends AppTable
 
     public function update()
     {
-        $directories = glob(APP . '..' . DS . 'libraries' . DS . 'noticelists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
+        $directories = glob(APP . '..' . DS . 'libraries' . DS . 'misp-noticelist' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
         $updated = [];
         foreach ($directories as $dir) {
             $list = FileAccessTool::readJsonFromFile($dir . DS . 'list.json');
@@ -53,8 +53,8 @@ class NoticelistsTable extends AppTable
             $current = $this->find(
                 'all',
                 [
-                'conditions' => ['name' => $list['name']],
-                'recursive' => -1
+                    'conditions' => ['name' => $list['name']],
+                    'recursive' => -1
                 ]
             )->first();
             if (empty($current) || $list['version'] > $current['version']) {
@@ -89,8 +89,10 @@ class NoticelistsTable extends AppTable
         foreach ($fieldsToSave as $fieldToSave) {
             $noticelist[$fieldToSave] = $list[$fieldToSave];
         }
-        $noticelist = $this->newEntity($noticelist);
-        $result = $this->save($noticelist);
+        $noticelistEntity = $this->newEntity($noticelist);
+        $noticelistEntity->ref = $noticelist['ref'];
+        $noticelistEntity->geographical_area = $noticelist['geographical_area'];
+        $result = $this->save($noticelistEntity);
         if ($result) {
             $values = [];
             foreach ($list['notice'] as $value) {
@@ -115,9 +117,9 @@ class NoticelistsTable extends AppTable
         $noticelists = $this->find(
             'all',
             [
-            'conditions' => ['enabled' => 1],
-            'recursive' => -1,
-            'contain' => 'NoticelistEntry'
+                'conditions' => ['enabled' => 1],
+                'recursive' => -1,
+                'contain' => 'NoticelistEntry'
             ]
         );
         $noticelist_triggers = [];

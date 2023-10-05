@@ -2,13 +2,13 @@
 
 namespace App\Model\Behavior;
 
-use Cake\ORM\Behavior;
-use Cake\Event\EventInterface;
-use Cake\Datasource\EntityInterface;
+use App\Lib\Tools\JsonTool;
 use ArrayObject;
 use Cake\Collection\CollectionInterface;
+use Cake\Datasource\EntityInterface;
+use Cake\Event\EventInterface;
+use Cake\ORM\Behavior;
 use Cake\ORM\Query;
-use App\Lib\Tools\JsonTool;
 
 class JsonFieldsBehavior extends Behavior
 {
@@ -21,6 +21,9 @@ class JsonFieldsBehavior extends Behavior
         $config = $this->getConfig();
 
         foreach ($config['fields'] as $field) {
+            if (!$entity->has($field)) {
+                continue;
+            }
             $value = $entity->get($field);
             $entity->set($field, JsonTool::encode($value));
         }

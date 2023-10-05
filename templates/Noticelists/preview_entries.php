@@ -27,18 +27,24 @@ $fields = [
     ],
 ];
 
-echo $this->element('genericElements/IndexTable/index_table', [
+echo $this->element(
+    'genericElements/IndexTable/index_table',
+    [
     'data' => [
         'data' => $data,
         'fields' => $fields,
         'title' => 'Values',
-        'paginatorOptions' => array_merge([
+        'paginatorOptions' => array_merge(
+            [
             'url' => [$noticelist['id']]
-        ], $passedParams),
+            ],
+            $passedParams
+        ),
         'persistUrlParams' => [0, 'quickFilter']
     ],
     'containerId' => 'preview_entries_container'
-]);
+    ]
+);
 ?>
 <script type="text/javascript">
     var passedArgsArray = <?= json_encode([h($noticelist['id'])]) ?>;

@@ -1,0 +1,8 @@
+parameters:
+    level: 0
+    fileExtensions:
+      - php
+      - ctp
+    ignoreErrors:
+      - message: '#Undefined variable: \$this#'
+        path: %currentWorkingDirectory%/templates

@@ -324,7 +324,7 @@ class SharingGroupsController extends AppController
         $containFields = $this->containFields;
         $validFilterFields = $this->CRUD->getFilterFieldsName($this->filterFields);
         if (!$this->__showOrgs()) {
-            $validFilterFields = array_filter($validFilterFields, fn($filter) => $filter != 'Organisations.name' );
+            $validFilterFields = array_filter($validFilterFields, fn($filter) => $filter != 'Organisations.name');
             unset($containFields['SharingGroupOrgs']);
             unset($containFields['SharingGroupServers']);
         }
@@ -347,7 +347,8 @@ class SharingGroupsController extends AppController
             return $sg;
         };
 
-        $this->CRUD->index([
+        $this->CRUD->index(
+            [
             'filters' => $this->filterFields,
             'quickFilters' => $this->quickFilterFields,
             'conditions' => $conditions,
@@ -358,7 +359,8 @@ class SharingGroupsController extends AppController
             'afterFind' => $afterFindHandler,
             'statisticsFields' => $this->statisticsFields,
             'wrapResponse' => true,
-        ]);
+            ]
+        );
         $responsePayload = $this->CRUD->getResponsePayload();
         if (!empty($responsePayload)) {
             return $responsePayload;
@@ -480,14 +482,16 @@ class SharingGroupsController extends AppController
             }
             if (!empty($sg->sync_user_id)) {
                 $UserTable = $this->fetchTable('Users');
-                $syncUser = $UserTable->find()->where([
+                $syncUser = $UserTable->find()->where(
+                    [
                     'conditions' => ['Users.id' => $sg->sync_user_id],
                     'recursive' => -1,
                     'fields' => ['Users.id'],
                     'contain' => ['Organisations' => [
                         'fields' => ['Organisations.id', 'Organisations.name', 'Organisations.uuid'],
                     ]]
-                ])->first();
+                    ]
+                )->first();
                 if (empty($syncUser)) {
                     $sg['sync_org_name'] = __('N/A');
                 } else {

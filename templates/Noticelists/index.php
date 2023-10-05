@@ -52,7 +52,9 @@ $fields = [
 ];
 
 
-echo $this->element('genericElements/IndexTable/index_table', [
+echo $this->element(
+    'genericElements/IndexTable/index_table',
+    [
     'data' => [
         'data' => $data,
         'top_bar' => [
@@ -84,4 +86,5 @@ echo $this->element('genericElements/IndexTable/index_table', [
             ],
         ]
     ]
-]);
+    ]
+);

@@ -75,28 +75,42 @@ class BootstrapBadge extends BootstrapGeneric
 
     private function genBadge(): string
     {
-        $html = $this->node('span', array_merge([
-            'class' => array_merge($this->options['class'], [
-                'ms-1',
-                'badge',
-                self::getBGAndTextClassForVariant($this->options['variant']),
-                $this->options['pill'] ? 'rounded-pill' : '',
-            ]),
-            'title' => $this->options['title'],
-            'id' => $this->options['id'] ?? '',
-        ], $this->options['attrs']), [
+        $html = $this->node(
+            'span',
+            array_merge(
+                [
+                'class' => array_merge(
+                    $this->options['class'],
+                    [
+                    'ms-1',
+                    'badge',
+                    self::getBGAndTextClassForVariant($this->options['variant']),
+                    $this->options['pill'] ? 'rounded-pill' : '',
+                    ]
+                ),
+                'title' => $this->options['title'],
+                'id' => $this->options['id'] ?? '',
+                ],
+                $this->options['attrs']
+            ),
+            [
             $this->genIcon(),
             $this->options['html'] ?? h($this->options['text'])
-        ]);
+            ]
+        );
         return $html;
     }
 
     private function genIcon(): string
     {
         if (!empty($this->options['icon'])) {
-            $bsIcon = new BootstrapIcon($this->options['icon'], [
+            $bsIcon = new BootstrapIcon(
+                $this->options['icon'],
+                [
                 'class' => [(!empty($this->options['text']) ? 'me-1' : '')]
-            ], $this->bsHelper);
+                ],
+                $this->bsHelper
+            );
             return $bsIcon->icon();
         }
         return '';

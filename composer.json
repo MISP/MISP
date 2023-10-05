@@ -21,12 +21,14 @@
         "cakephp/cakephp-codesniffer": "^4.0",
         "cakephp/debug_kit": "^4.0",
         "cebe/php-openapi": "^1.6",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "fakerphp/faker": "^1.21",
         "josegonzalez/dotenv": "^3.2",
         "league/openapi-psr7-validator": "^0.17",
         "phpstan/phpstan": "^1.10",
         "phpunit/phpunit": "^9.5",
         "psy/psysh": "@stable",
+        "sirbrillig/phpcs-variable-analysis": "^2.11",
         "wiremock-php/wiremock-php": "^2.33"
     },
     "suggest": {

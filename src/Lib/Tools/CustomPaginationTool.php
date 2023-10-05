@@ -10,7 +10,7 @@ class CustomPaginationTool
 
     public function createPaginationRules($items, $options, $model, $sort = 'id', $focusKey = 'uuid')
     {
-        $params = array(
+        $params = [
             'model' => $model,
             'current' => 1,
             'count' => count($items),
@@ -23,9 +23,9 @@ class CustomPaginationTool
             'paramType' => 'named',
             'prevPage' => false,
             'nextPage' => false,
-            'options' => array(),
-        );
-        $validOptions = array('sort', 'direction', 'page', 'focus', 'limit');
+            'options' => [],
+        ];
+        $validOptions = ['sort', 'direction', 'page', 'focus', 'limit'];
         if ($model == 'events') {
             $validOptions[] = 'attributeFilter';
         }
@@ -80,7 +80,7 @@ class CustomPaginationTool
             $keep = false;
             foreach ($item as $field_name => $field_value) {
                 if (!is_array($field_value)) {
-                    $field_value = array($field_value);
+                    $field_value = [$field_value];
                 }
                 foreach ($field_value as $v) {
                     if (!is_array($v) && strpos(strtolower($v), $value) > -1) {
@@ -98,7 +98,7 @@ class CustomPaginationTool
     public function sortArray(array $items, $params, $escapeReindex = false)
     {
         if (isset($params['sort'])) {
-            $sortArray = array();
+            $sortArray = [];
             foreach ($items as $k => $item) {
                 $sortArray[$k] = !empty($item[$params['sort']]) ? $item[$params['sort']] : '';
             }
@@ -148,7 +148,7 @@ class CustomPaginationTool
             $this->truncateByQuickFilter($items, $params['named']['searchall']);
         }
         $passedArgs = $this->applyRulesOnArray($items, $params['named'] ?? [], $model, 'id', 'uuid', $escapeReindex);
-        $params['paging'] = array($model => $passedArgs);
+        $params['paging'] = [$model => $passedArgs];
     }
 
     public function cmp($a, $b)

@@ -18,14 +18,15 @@
         $fieldDescription = $fieldData['tooltip'] ?? ($fieldDesc[$fieldData['field']] ?? false);
         if (!empty($fieldDescription)) {
             $fieldData['tooltip'] = $this->element(
-                'genericElements/Form/formInfo', array(
+                'genericElements/Form/formInfo',
+                [
                     'field' => $fieldData,
                     'fieldDesc' => $fieldDescription,
                     'modelForForm' => $modelForForm
-                )
+                ]
             );
         }
-        $params = array();
+        $params = [];
         if (!empty($fieldData['class'])) {
             if (is_array($fieldData['class'])) {
                 $class = implode(' ', $fieldData['class']);
@@ -44,10 +45,13 @@
                 $params[$k] = $fd;
             }
         }
-        $temp = $this->element('genericElements/Form/Fields/' . $fieldTemplate, array(
+        $temp = $this->element(
+            'genericElements/Form/Fields/' . $fieldTemplate,
+            [
             'fieldData' => $fieldData,
             'params' => $params
-        ));
+            ]
+        );
         if (!empty($fieldData['hidden'])) {
             $temp = '<span class="hidden">' . $temp . '</span>';
         }

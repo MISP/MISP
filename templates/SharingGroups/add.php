@@ -1,18 +1,22 @@
 <?php
 
-use Cake\Utility\Hash;
 use Cake\Core\Configure;
+use Cake\Utility\Hash;
 ?>
 
 <?php
-$toggleNextTabButton = $this->Bootstrap->button([
+$toggleNextTabButton = $this->Bootstrap->button(
+    [
     'onclick' => 'toggleNextTab()',
     'text' => __('Next page'),
     'variant' => 'secondary',
-]);
+    ]
+);
 $toggleNextTabDiv = $this->Bootstrap->node('div', ['class' => 'mt-2'], $toggleNextTabButton);
 
-$formGeneral = $this->element('genericElements/Form/genericForm', [
+$formGeneral = $this->element(
+    'genericElements/Form/genericForm',
+    [
     'data' => [
         'model' => 'SharingGroups',
         'fields' => [
@@ -46,9 +50,12 @@ $formGeneral = $this->element('genericElements/Form/genericForm', [
         ],
     ],
     'raw' => true,
-]);
+    ]
+);
 
-$formOrgs = $this->element('genericElements/Form/genericForm', [
+$formOrgs = $this->element(
+    'genericElements/Form/genericForm',
+    [
     'data' => [
         'model' => 'SharingGroups',
         'fields' => [
@@ -85,7 +92,8 @@ $formOrgs = $this->element('genericElements/Form/genericForm', [
         ],
     ],
     'raw' => true,
-]);
+    ]
+);
 $orgTable = $this->Bootstrap->table(
     [
         'id' => 'organisations_table',
@@ -105,7 +113,9 @@ $orgTable = $this->Bootstrap->table(
     ]
 );
 
-$formServers = $this->element('genericElements/Form/genericForm', [
+$formServers = $this->element(
+    'genericElements/Form/genericForm',
+    [
     'data' => [
         'model' => 'SharingGroups',
         'fields' => [
@@ -138,7 +148,8 @@ $formServers = $this->element('genericElements/Form/genericForm', [
         ],
     ],
     'raw' => true,
-]);
+    ]
+);
 $serverTable = $this->Bootstrap->table(
     [
         'id' => 'servers_table',
@@ -157,7 +168,9 @@ $serverTable = $this->Bootstrap->table(
     ]
 );
 
-$formSummary = $this->element('genericElements/Form/genericForm', [
+$formSummary = $this->element(
+    'genericElements/Form/genericForm',
+    [
     'data' => [
         'model' => 'SharingGroups',
         'fields' => [
@@ -168,7 +181,8 @@ $formSummary = $this->element('genericElements/Form/genericForm', [
         ],
     ],
     'raw' => true,
-]);
+    ]
+);
 
 $summaryText = '<p>' . $this->Bootstrap->render(
     '<b>' . __('General') . '</b>: ' .
@@ -201,23 +215,32 @@ $summaryText .= '<p>' . $this->Bootstrap->render(
         'servers' => '<strong id="summaryservers" class="text-danger"></strong>',
     ]
 ) . '</p>';
-$summaryText .= $this->Bootstrap->alert([
+$summaryText .= $this->Bootstrap->alert(
+    [
     'text' => __('You can edit this information by going back to one of the previous pages.'),
     'dismissible' => false,
-]);
+    ]
+);
 
 $formSummary =  $this->Bootstrap->node('div', ['class' => 'd-none'], $formSummary);
 $formSummary .= $summaryText;
-$formSummary .=  $this->Bootstrap->node('div', ['class' => 'mt-2'], $this->Bootstrap->button([
-    'text' => $this->request->getParam('action') == 'edit' ? __('Edit sharing group') : __('Create sharing group'),
-    'onclick' => 'sgSubmitForm()',
-]));
+$formSummary .=  $this->Bootstrap->node(
+    'div',
+    ['class' => 'mt-2'],
+    $this->Bootstrap->button(
+        [
+        'text' => $this->request->getParam('action') == 'edit' ? __('Edit sharing group') : __('Create sharing group'),
+        'onclick' => 'sgSubmitForm()',
+        ]
+    )
+);
 
 $formGeneral .= $toggleNextTabDiv;
 $formOrgs .= $orgTable . $toggleNextTabDiv;
 $formServers .= $serverTable . $toggleNextTabDiv;
 
-$bsTabs = $this->Bootstrap->tabs([
+$bsTabs = $this->Bootstrap->tabs(
+    [
     'id' => 'tabs-sg-form',
     'card' => !false,
     'content-class' => ['p-3'],
@@ -235,17 +258,20 @@ $bsTabs = $this->Bootstrap->tabs([
             $formSummary,
         ],
     ]
-]);
+    ]
+);
 
 if (!empty($ajax)) {
     $seedModal = 'mseed-' . mt_rand();
-    echo $this->Bootstrap->modal([
+    echo $this->Bootstrap->modal(
+        [
         'title' => __('New Sharing group'),
         'bodyHtml' =>  $bsTabs,
         'size' => 'lg',
         'type' => 'cancel',
         'modalClass' => $seedModal,
-    ]);
+        ]
+    );
 } else {
     $page = sprintf('<h2 class="fw-light">%s</h2>', __('New Sharing Group'));
     $page .= $bsTabs;

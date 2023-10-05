@@ -47,13 +47,16 @@ if (!empty($data['title'])) {
             '<h2 class="fw-light">:title :help</h2>',
             [
                 'title' => h($this->ValueGetter->get($data['title'])),
-                'help' => $this->Bootstrap->icon('info', [
+                'help' => $this->Bootstrap->icon(
+                    'info',
+                    [
                     'class' => ['fs-6', 'align-text-top',],
                     'title' => empty($data['description']) ? '' : h($data['description']),
                     'attrs' => [
                         'data-bs-toggle' => 'tooltip',
                     ]
-                ]),
+                    ]
+                ),
             ]
         );
     } else {
@@ -66,9 +69,12 @@ if(!empty($notice)) {
 }
 
 if (!empty($modelStatistics)) {
-    $html .=  $this->element('genericElements/IndexTable/Statistics/index_statistic_scaffold', [
+    $html .=  $this->element(
+        'genericElements/IndexTable/Statistics/index_statistic_scaffold',
+        [
         'statistics' => $modelStatistics,
-    ]);
+        ]
+    );
 }
 
 
@@ -175,13 +181,15 @@ $html .= '</div>';
 $html .= '</div>';
 
 if (!empty($embedInModal)) {
-    echo $this->Bootstrap->modal([
+    echo $this->Bootstrap->modal(
+        [
         'titleHtml' => $pageTitle ?? '',
         'bodyHtml' =>  $html,
         'size' => 'xl',
         'type' => 'ok-only',
         'modalClass' => "modal-main-{$tableRandomValue}"
-    ]);
+        ]
+    );
 } else {
     echo $html;
 }

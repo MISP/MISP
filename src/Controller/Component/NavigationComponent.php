@@ -2,18 +2,12 @@
 
 namespace App\Controller\Component;
 
+use App\Controller\Component\Navigation\SidemenuNavigation;
 use Cake\Controller\Component;
-use Cake\Core\Configure;
-use Cake\Core\App;
-use Cake\Utility\Inflector;
-use Cake\Utility\Hash;
 use Cake\Filesystem\Folder;
-use Cake\Routing\Router;
 use Cake\ORM\TableRegistry;
-use Exception;
-
-use SidemenuNavigation\Sidemenu;
-require_once(APP . 'Controller' . DS . 'Component' . DS . 'Navigation' . DS . 'sidemenu.php');
+use Cake\Routing\Router;
+use Cake\Utility\Inflector;
 
 class NavigationComponent extends Component
 {
@@ -104,7 +98,7 @@ class NavigationComponent extends Component
 
     public function getSideMenu(): array
     {
-        $sidemenu = new Sidemenu($this->iconToTableMapping, $this->request);
+        $sidemenu = new SidemenuNavigation($this->iconToTableMapping, $this->request);
         $sidemenu = $sidemenu->get();
         $sidemenu = $this->addUserBookmarks($sidemenu);
         return $sidemenu;
@@ -115,9 +109,12 @@ class NavigationComponent extends Component
     {
         $bookmarks = null;
         //$bookmarks = $this->getUserBookmarks();
-        $sidemenu = array_merge([
+        $sidemenu = array_merge(
+            [
             '__bookmarks' => $bookmarks
-        ], $sidemenu);
+            ],
+            $sidemenu
+        );
         return $sidemenu;
     }
 
@@ -127,13 +124,16 @@ class NavigationComponent extends Component
         $setting = $userSettingTable->getSettingByName($this->request->getAttribute('identity'), 'ui.bookmarks');
         $bookmarks = is_null($setting) ? [] : json_decode($setting->value, true);
 
-        $links = array_map(function($bookmark) {
+        $links = array_map(
+            function($bookmark) {
             return [
                 'name' => $bookmark['name'],
                 'label' => $bookmark['label'],
                 'url' => $bookmark['url'],
             ];
-        }, $bookmarks);
+            },
+            $bookmarks
+        );
         return $links;
     }
 
@@ -194,12 +194,12 @@ class NavigationComponent extends Component
         $navigationDir = new Folder(APP . DS . 'Controller' . DS . 'Component' . DS . 'Navigation');
         $navigationFiles = $navigationDir->find('.*\.php', true);
         foreach ($navigationFiles as $navigationFile) {
-            if ($navigationFile == 'base.php' || $navigationFile == 'sidemenu.php') {
+            if ($navigationFile == 'BaseNavigation.php' || $navigationFile == 'SidemenuNavigation.php') {
                 continue;
             }
             $navigationClassname = str_replace('.php', '', $navigationFile);
             require_once(APP . 'Controller' . DS . 'Component' . DS . 'Navigation' . DS . $navigationFile);
-            $reflection = new \ReflectionClass("BreadcrumbNavigation\\{$navigationClassname}Navigation");
+            $reflection = new \ReflectionClass("App\\Controller\\Component\\Navigation\\{$navigationClassname}");
             $viewVars = $this->_registry->getController()->viewBuilder()->getVars();
             $navigationClasses[$navigationClassname] = $reflection->newInstance($bcf, $request, $viewVars);
             $navigationClasses[$navigationClassname]->setCurrentUser($this->currentUser);
@@ -246,42 +246,62 @@ class BreadcrumbFactory
         $table = TableRegistry::getTableLocator()->get($controller);
         $item = [];
         if ($action === 'index') {
-            $item = $this->genRouteConfig($controller, $action, [
+            $item = $this->genRouteConfig(
+                $controller,
+                $action,
+                [
                 'label' => __('{0} index', Inflector::humanize($controller)),
                 'url' => "/{$controller}/index",
                 'icon' => $this->iconToTableMapping[$controller]
-            ]);
+                ]
+            );
         } else if ($action === 'view') {
-            $item = $this->genRouteConfig($controller, $action, [
+            $item = $this->genRouteConfig(
+                $controller,
+                $action,
+                [
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => "/{$controller}/view/{{id}}",
                 'url_vars' => ['id' => 'id'],
                 'textGetter' => !empty($table->getDisplayField()) ? $table->getDisplayField() : 'id',
-            ]);
+                ]
+            );
         } else if ($action === 'add') {
-            $item = $this->genRouteConfig($controller, $action, [
+            $item = $this->genRouteConfig(
+                $controller,
+                $action,
+                [
                 'label' => __('Create {0}', $controller),
                 'icon' => 'plus',
                 'url' => "/{$controller}/add",
-            ]);
+                ]
+            );
         } else if ($action === 'edit') {
-            $item = $this->genRouteConfig($controller, $action, [
+            $item = $this->genRouteConfig(
+                $controller,
+                $action,
+                [
                 'label' => __('Edit'),
                 'icon' => 'edit',
                 'url' => "/{$controller}/edit/{{id}}",
                 'url_vars' => ['id' => 'id'],
                 'textGetter' => !empty($table->getDisplayField()) ? $table->getDisplayField() : 'id',
-            ]);
+                ]
+            );
         } else if ($action === 'delete') {
-            $item = $this->genRouteConfig($controller, $action, [
+            $item = $this->genRouteConfig(
+                $controller,
+                $action,
+                [
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => "/{$controller}/delete/{{id}}",
                 'url_vars' => ['id' => 'id'],
                 'textGetter' => !empty($table->getDisplayField()) ? $table->getDisplayField() : 'id',
                 'variant' => 'danger',
-            ]);
+                ]
+            );
         }
         $item['route_path'] = "{$controller}:{$action}";
         $item = array_merge($item, $overrides);
@@ -376,9 +396,18 @@ class BreadcrumbFactory
 
     public function addSelfLink(string $controller, string $action, array $options=[])
     {
-        $this->addLink($controller, $action, $controller, $action, array_merge($options, [
-            'selfLink' => true,
-        ]));
+        $this->addLink(
+            $controller,
+            $action,
+            $controller,
+            $action,
+            array_merge(
+                $options,
+                [
+                'selfLink' => true,
+                ]
+            )
+        );
     }
 
     public function addLink(string $sourceController, string $sourceAction, string $targetController, string $targetAction, $overrides = [])

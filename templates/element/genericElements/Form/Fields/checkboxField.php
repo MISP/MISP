@@ -5,4 +5,3 @@
         'inputContainer' => '<div class="form-check">{{content}}</div>'
     ];
     echo $this->FormFieldMassage->prepareFormElement($this->Form, $params, $fieldData);
-?>

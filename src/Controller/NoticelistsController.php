@@ -3,12 +3,12 @@
 namespace App\Controller;
 
 use App\Controller\AppController;
+use App\Lib\Tools\CustomPaginationTool;
+use App\Model\Entity\Log;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Response;
-use App\Lib\Tools\CustomPaginationTool;
 use Cake\ORM\Locator\LocatorAwareTrait;
-use App\Model\Entity\Log;
 use Cake\Routing\Router;
 
 class NoticelistsController extends AppController
@@ -35,13 +35,15 @@ class NoticelistsController extends AppController
 
     public function index()
     {
-        $this->CRUD->index([
+        $this->CRUD->index(
+            [
             'filters' => $this->filterFields,
             'quickFilters' => $this->quickFilterFields,
             'quickFilterForMetaField' => ['enabled' => true, 'wildcard_search' => true],
             'contain' => $this->containFields,
             'statisticsFields' => $this->statisticsFields,
-        ]);
+            ]
+        );
         $responsePayload = $this->CRUD->getResponsePayload();
         if (!empty($responsePayload)) {
             return $responsePayload;
@@ -78,7 +80,8 @@ class NoticelistsController extends AppController
                         } else {
                             $change = $success['name'] . ' v' . $success['new'] . ' installed';
                         }
-                        $log = new Log([
+                        $log = new Log(
+                            [
                             'org' => $this->ACL->getUser()->Organisation->name,
                             'model' => 'Noticelist',
                             'model_id' => $id,
@@ -88,7 +91,8 @@ class NoticelistsController extends AppController
                             'title' => 'Notice list updated',
                             'changes' => $change,
                             'created' => date('Y-m-d H:i:s')
-                        ]);
+                            ]
+                        );
 
                         $this->Log->save($log);
                         $successes++;
@@ -96,7 +100,8 @@ class NoticelistsController extends AppController
                 }
                 if (isset($result['fails'])) {
                     foreach ($result['fails'] as $id => $fail) {
-                        $log = new Log([
+                        $log = new Log(
+                            [
                             'org' => $this->ACL->getUser()->Organisation->name,
                             'model' => 'Noticelist',
                             'model_id' => $id,
@@ -106,14 +111,16 @@ class NoticelistsController extends AppController
                             'title' => 'Notice list failed to update',
                             'changes' => $fail['name'] . ' could not be installed/updated. Error: ' . $fail['fail'],
                             'created' => date('Y-m-d H:i:s')
-                        ]);
+                            ]
+                        );
 
                         $this->Log->save($log);
                         $fails++;
                     }
                 }
             } else {
-                $log = new Log([
+                $log = new Log(
+                    [
                     'org' => $this->ACL->getUser()->Organisation->name,
                     'model' => 'Noticelist',
                     'email' => $this->ACL->getUser()->email,
@@ -122,7 +129,8 @@ class NoticelistsController extends AppController
                     'title' => 'Noticelist update (nothing to update)',
                     'changes' => 'Executed an update of the notice lists, but there was nothing to update.',
                     'created' => date('Y-m-d H:i:s')
-                ]);
+                    ]
+                );
                 $this->Log->save($log);
             }
 
@@ -158,18 +166,21 @@ class NoticelistsController extends AppController
     public function toggleEnable($noticelist_id = false)
     {
         if ($this->request->is('post')) {
-            $noticelist = $this->Noticelists->find('all', array(
-                'conditions' => array('id' => $noticelist_id),
+            $noticelist = $this->Noticelists->find(
+                'all',
+                [
+                'conditions' => ['id' => $noticelist_id],
                 'recursive' => -1,
-                'fields' => array('id', 'enabled')
-            ))->first();
+                'fields' => ['id', 'enabled']
+                ]
+            )->first();
 
             if ($noticelist === null) {
                 $message = __('Noticelist not found.');
                 if ($this->ParamHandler->isRest()) {
                     return $this->RestResponse->saveFailResponse('Noticelists', 'toggleEnable', $noticelist_id, $message);
                 } else {
-                    return new Response(array('body' => json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => false, 'errors' => $message]), 'status' => 200, 'type' => 'json']);
                 }
             }
 
@@ -182,7 +193,7 @@ class NoticelistsController extends AppController
             if ($this->ParamHandler->isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Noticelists', 'toggleEnable', $noticelist_id, false, $message);
             } else {
-                return new Response(array('body' => json_encode(array('saved' => true, 'success' => $message)), 'status' => 200, 'type' => 'json'));
+                return new Response(['body' => json_encode(['saved' => true, 'success' => $message]), 'status' => 200, 'type' => 'json']);
             }
         } else {
             if ($this->ParamHandler->isRest()) {
@@ -205,7 +216,7 @@ class NoticelistsController extends AppController
         }
         $this->Noticelists->saveField('enabled', $enable);
         $this->Flash->info('Noticelist enabled');
-        $this->redirect(array('controller' => 'noticelists', 'action' => 'view', $id));
+        $this->redirect(['controller' => 'noticelists', 'action' => 'view', $id]);
     }
 
     public function getToggleField()
@@ -236,10 +247,10 @@ class NoticelistsController extends AppController
             $result = $this->Noticelists->quickDelete($id);
             if ($result) {
                 $this->Flash->success('Noticelist successfuly deleted.');
-                $this->redirect(array('controller' => 'noticelists', 'action' => 'index'));
+                $this->redirect(['controller' => 'noticelists', 'action' => 'index']);
             } else {
                 $this->Flash->error('Noticelists could not be deleted.');
-                $this->redirect(array('controller' => 'noticelists', 'action' => 'index'));
+                $this->redirect(['controller' => 'noticelists', 'action' => 'index']);
             }
         } else {
             if ($this->request->is('ajax')) {

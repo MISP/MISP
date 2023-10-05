@@ -151,7 +151,7 @@ use App\Model\Entity\SharingGroup;
                             h($sharingGroup['releasability'])
         ?>
     </span>
-<?php
+    <?php
                     },
                 ],
                 [

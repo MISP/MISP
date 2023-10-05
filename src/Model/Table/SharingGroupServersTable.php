@@ -32,11 +32,11 @@ class SharingGroupServersTable extends AppTable
         // Check first if we need to handle the servers at all, or if we should just delete all servers from the SG (depending on the checkbox in the "MISP instances" tab).
         if (!$roaming) {
             foreach ($new_servers as $server) {
-                $SgS = array(
+                $SgS = [
                     'sharing_group_id' => $id,
                     'server_id' => $server['id'],
                     'all_orgs' => $server['all_orgs']
-                );
+                ];
                 $server_name = 'server (' . $server['id'] . ')';
                 if ($server['id'] == 0) {
                     $server_name = 'the local server';
@@ -88,7 +88,7 @@ class SharingGroupServersTable extends AppTable
                 }
             }
         } else {
-            $this->deleteAll(array('sharing_group_id' => $id), false);
+            $this->deleteAll(['sharing_group_id' => $id], false);
         }
     }
 }

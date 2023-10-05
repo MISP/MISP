@@ -69,15 +69,15 @@ echo $this->element(
                 'requirement' => isset($entity['SharingGroupOrg']),
                 'function' => function (SharingGroup $sharingGroup) {
                     $table = $this->Bootstrap->table(
-                       ['hover' => true, 'striped' => true, 'condensed' => true, 'variant' => 'secondary'],
-                       [
+                        ['hover' => true, 'striped' => true, 'condensed' => true, 'variant' => 'secondary'],
+                        [
                            'items' => array_map(fn ($entity) => $entity->toArray(), $sharingGroup->SharingGroupOrg),
                            'fields' => [
                                 [ 'label' => __('Name'), 'path' => 'Organisation', 'element' => 'org'], // TODO: [3.x-MIGRATION] $this->OrgImg->getNameWithImg($sgo)
                                 [ 'label' => __('Is local'), 'path' => 'Organisation.local', 'element' => 'boolean',],
                                 [ 'label' => __('Can extend'), 'path' => 'extend', 'element' => 'boolean',],
                             ],
-                       ]
+                        ]
                     );
                     echo $table;
                 }
@@ -86,7 +86,7 @@ echo $this->element(
                 'key' => __('Instances'),
                 'type' => 'custom',
                 'requirement' => isset($entity->SharingGroupServer),
-                'function' => function (SharingGroup $sharingGroup) {
+                'function' => function (SharingGroup $sharingGroup){
                     if (empty($sharingGroup->roaming)) {
                         $cell = $this->Bootstrap->table(
                             ['hover' => true, 'striped' => true, 'condensed' => true, 'variant' => 'secondary'],
@@ -100,11 +100,13 @@ echo $this->element(
                             ]
                         );
                     } else {
-                        $cell = $this->Bootstrap->badge([
+                        $cell = $this->Bootstrap->badge(
+                            [
                             'text' => __('Roaming mode'),
                             'variant' => 'primary',
                             'size' => 'md',
-                        ]);
+                            ]
+                        );
                     }
                     echo $cell;
                 }

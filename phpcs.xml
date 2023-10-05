@@ -55,7 +55,13 @@
         </properties>
     </rule>
 
+    <rule ref="Generic.Arrays.ArrayIndent" />
+
     <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes">
         <severity>0</severity>
     </rule>
+
+    <!-- VariableAnalysis https://github.com/sirbrillig/phpcs-variable-analysis -->
+    <rule ref="VariableAnalysis" />
+
 </ruleset>

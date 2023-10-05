@@ -4,138 +4,142 @@ namespace App\Controller\Component;
 
 use Cake\Controller\Component;
 use Cake\Core\Configure;
+use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\Utility\Inflector;
+use Cake\Utility\Xml;
 
 class RestResponseComponent extends Component
 {
+    use LocatorAwareTrait;
+
     public $components = ['ACL', 'APIRearrange'];
 
     public $headers = [];
 
-    private $__convertActionToMessage = array(
-        'SharingGroup' => array(
+    private $__convertActionToMessage = [
+        'SharingGroup' => [
             'addOrg' => 'add Organisation to',
             'removeOrg' => 'remove Organisation from',
             'addServer' => 'add Server to',
             'removeServer' => 'remove Server from'
-        )
-    );
+        ]
+    ];
 
     private $___setup = false;
 
-    private $__descriptions = array(
-        'Attribute' => array(
-            'add' => array(
+    private $__descriptions = [
+        'Attribute' => [
+            'add' => [
                 'description' => "POST a MISP Attribute JSON to this API to create an Attribute.",
-                'mandatory' => array('value', 'type'),
-                'optional' => array('category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'data', 'encrypt', 'first_seen', 'last_seen'),
-                'params' => array('event_id')
-            ),
-            'edit' => array(
+                'mandatory' => ['value', 'type'],
+                'optional' => ['category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'data', 'encrypt', 'first_seen', 'last_seen'],
+                'params' => ['event_id']
+            ],
+            'edit' => [
                 'description' => "POST a MISP Attribute JSON to this API to update an Attribute. If the timestamp is set, it has to be newer than the existing Attribute.",
-                'mandatory' => array(),
-                'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'date', 'encrypt', 'first_seen', 'last_seen'),
-                'params' => array('attribute_id')
-            ),
-            'deleteSelected' => array(
+                'mandatory' => [],
+                'optional' => ['value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'date', 'encrypt', 'first_seen', 'last_seen'],
+                'params' => ['attribute_id']
+            ],
+            'deleteSelected' => [
                 'description' => "POST a list of attribute IDs in JSON format to this API to delete the given attributes. This API also expects an event ID passed via the URL or via the event_id key. The id key also takes 'all' as a parameter for a wildcard search to mass delete attributes. If you want the function to also hard-delete already soft-deleted attributes, pass the allow_hard_delete key.",
-                'mandatory' => array('id'),
-                'optional' => array('event_id', 'allow_hard_delete'),
-                'params' => array('event_id')
-            ),
-            'restSearch' => array(
+                'mandatory' => ['id'],
+                'optional' => ['event_id', 'allow_hard_delete'],
+                'params' => ['event_id']
+            ],
+            'restSearch' => [
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
-                'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
-                'params' => array()
-            )
-        ),
-        'Community' => array(
-            'requestAccess' => array(
+                'mandatory' => ['returnFormat'],
+                'optional' => ['page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'],
+                'params' => []
+            ]
+        ],
+        'Community' => [
+            'requestAccess' => [
                 'description' => "POST a request object describing yourself and your organisation to request access to the desired community.",
-                'mandatory' => array(),
-                'optional' => array('org_name', 'org_uuid', 'sync', 'org_description', 'email', 'message', 'anonymise', 'gpgkey', 'mock'),
-                'params' => array('uuid')
-            )
-        ),
-        'Event' => array(
-            'add' => array(
+                'mandatory' => [],
+                'optional' => ['org_name', 'org_uuid', 'sync', 'org_description', 'email', 'message', 'anonymise', 'gpgkey', 'mock'],
+                'params' => ['uuid']
+            ]
+        ],
+        'Event' => [
+            'add' => [
                 'description' => "POST a MISP Event JSON to this API to create an Event. Contained objects can also be included (such as attributes, objects, tags, etc).",
-                'mandatory' => array('info'),
-                'optional' => array('threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag'),
-                'params' => array()
-            ),
-            'edit' => array(
+                'mandatory' => ['info'],
+                'optional' => ['threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag'],
+                'params' => []
+            ],
+            'edit' => [
                 'description' => "POST a MISP Event JSON to this API to update an Event. Contained objects can also be included (such as attributes, objects, tags, etc). If the timestamp is set, it has to be newer than the existing Attribute.",
-                'mandatory' => array(),
-                'optional' => array('info', 'threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag'),
-                'params' => array('event_id')
-            ),
-            'index' => array(
+                'mandatory' => [],
+                'optional' => ['info', 'threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag'],
+                'params' => ['event_id']
+            ],
+            'index' => [
                 'description' => 'POST a JSON filter object to this API to get the meta-data about matching events.',
-                'optional' => array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal')
-            ),
-            'restSearch' => array(
+                'optional' => ['all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal']
+            ],
+            'restSearch' => [
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
-                'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags', 'threat_level_id'),
-                'params' => array()
-            )
-        ),
-        'EventGraph' => array(
-            'add' => array(
+                'mandatory' => ['returnFormat'],
+                'optional' => ['page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags', 'threat_level_id'],
+                'params' => []
+            ]
+        ],
+        'EventGraph' => [
+            'add' => [
                 'description' => "POST a network in JSON format to this API to to keep an history of it",
-                'mandatory' => array('event_id', 'network_json'),
-                'optional' => array('network_name')
-            )
-        ),
-        'Feed' => array(
-            'add' => array(
+                'mandatory' => ['event_id', 'network_json'],
+                'optional' => ['network_name']
+            ]
+        ],
+        'Feed' => [
+            'add' => [
                 'description' => "POST a MISP Feed descriptor JSON to this API to add a Feed.",
-                'mandatory' => array('source_format', 'url', 'name', 'input_source', 'provider'),
-                'optional' => array('enabled', 'caching_enabled', 'lookup_visible', 'delete_local_file', 'headers', 'fixed_event', 'target_event', 'settings', 'publish', 'override_ids', 'delta_merge', 'distribution', 'sharing_group_id', 'tag_id', 'pull_rules', 'rules', 'event_id'),
-                'params' => array()
-            ),
-            'edit' => array(
+                'mandatory' => ['source_format', 'url', 'name', 'input_source', 'provider'],
+                'optional' => ['enabled', 'caching_enabled', 'lookup_visible', 'delete_local_file', 'headers', 'fixed_event', 'target_event', 'settings', 'publish', 'override_ids', 'delta_merge', 'distribution', 'sharing_group_id', 'tag_id', 'pull_rules', 'rules', 'event_id'],
+                'params' => []
+            ],
+            'edit' => [
                 'description' => "POST a MISP Feed descriptor JSON to this API to edit a Feed.",
-                'mandatory' => array(),
-                'optional' => array('source_format', 'url', 'name', 'enabled', 'caching_enabled', 'lookup_visible', 'provider', 'input_source', 'delete_local_file', 'headers', 'fixed_event', 'target_event', 'settings', 'publish', 'override_ids', 'delta_merge', 'distribution', 'sharing_group_id', 'tag_id', 'pull_rules', 'rules', 'event_id'),
-                'params' => array('feed_id')
-            ),
-            'previewIndex' => array(
+                'mandatory' => [],
+                'optional' => ['source_format', 'url', 'name', 'enabled', 'caching_enabled', 'lookup_visible', 'provider', 'input_source', 'delete_local_file', 'headers', 'fixed_event', 'target_event', 'settings', 'publish', 'override_ids', 'delta_merge', 'distribution', 'sharing_group_id', 'tag_id', 'pull_rules', 'rules', 'event_id'],
+                'params' => ['feed_id']
+            ],
+            'previewIndex' => [
                 'description' => 'Sending a GET request to this endpoint will show the parsed feed in JSON format.',
-                'mandatory' => array(),
-                'optional' => array(),
-                'params' => array('feed_id'),
+                'mandatory' => [],
+                'optional' => [],
+                'params' => ['feed_id'],
                 'http_method' => 'GET'
-            )
-        ),
-        'Log' => array(
-            'admin_index' => array(
+            ]
+        ],
+        'Log' => [
+            'admin_index' => [
                 'description' => "POST a filter object to receive a JSON with the log entries matching the query. A simple get request will return the entire DB. You can use the filter parameters as url parameters with a GET request such as: https://path.to.my.misp/admin/logs/page:1/limit:200 - to run substring queries simply append/prepend/encapsulate the search term with %. All restSearch rules apply.",
-                "optional" => array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip')
-            ),
-            'event_index' => array(
+                "optional" => ['id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip']
+            ],
+            'event_index' => [
                 'description' => "Simply run a get request on this endpoint to get the relevant log entries for a given event. This functionality is open to any user having access to a given event."
-            )
-        ),
-        'Organisation' => array(
-            'admin_add' => array(
+            ]
+        ],
+        'Organisation' => [
+            'admin_add' => [
                 'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
-                'mandatory' => array('name'),
-                'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
-            ),
-            'admin_edit' => array(
+                'mandatory' => ['name'],
+                'optional' => ['description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local']
+            ],
+            'admin_edit' => [
                 'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
-                'mandatory' => array('name'),
-                'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
-            )
-        ),
-        'Role' => array(
-            'admin_add' => array(
+                'mandatory' => ['name'],
+                'optional' => ['description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local']
+            ]
+        ],
+        'Role' => [
+            'admin_add' => [
                 'description' => "POST a Role object in JSON format to this API to create a new role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
-                'mandatory' => array('name'),
-                'optional' => array(
+                'mandatory' => ['name'],
+                'optional' => [
                     'perm_delegate',
                     'perm_sync',
                     'perm_admin',
@@ -150,12 +154,12 @@ class RestResponseComponent extends Component
                     'default_role',
                     'perm_sighting',
                     'permission'
-                )
-            ),
-            'admin_edit' => array(
+                ]
+            ],
+            'admin_edit' => [
                 'description' => "POST a Role object in JSON format to this API to edit a role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
-                'mandatory' => array('name'),
-                'optional' => array(
+                'mandatory' => ['name'],
+                'optional' => [
                     'perm_delegate',
                     'perm_sync',
                     'perm_admin',
@@ -170,117 +174,117 @@ class RestResponseComponent extends Component
                     'default_role',
                     'perm_sighting',
                     'permission'
-                )
-            )
-        ),
-        'Server' => array(
-            'add' => array(
+                ]
+            ]
+        ],
+        'Server' => [
+            'add' => [
                 'description' => "POST an Server object in JSON format to this API to add a server.",
-                'mandatory' => array('url', 'name', 'remote_org_id', 'authkey'),
-                'optional' => array('push', 'pull', 'push_sightings', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'json')
-            ),
-            'edit' => array(
+                'mandatory' => ['url', 'name', 'remote_org_id', 'authkey'],
+                'optional' => ['push', 'pull', 'push_sightings', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'json']
+            ],
+            'edit' => [
                 'description' => "POST an Server object in JSON format to this API to edit a server.",
-                'optional' => array('url', 'name', 'authkey', 'json', 'push', 'pull', 'push_sightings', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'remote_org_id')
-            ),
-            'serverSettings' => array(
+                'optional' => ['url', 'name', 'authkey', 'json', 'push', 'pull', 'push_sightings', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'remote_org_id']
+            ],
+            'serverSettings' => [
                 'description' => "Send a GET request to this endpoint to get a full diagnostic along with all currently set settings of the current instance. This will also include the worker status"
-            )
-        ),
-        'Sighting' => array(
-            'add' => array(
+            ]
+        ],
+        'Sighting' => [
+            'add' => [
                 'description' => "POST a simplified sighting object in JSON format to this API to add a or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
-                'mandatory' => array('OR' => array('values', 'id')),
-                'optional' => array('type', 'source', 'timestamp', 'date', 'time')
-            ),
-            'restSearch' => array(
+                'mandatory' => ['OR' => ['values', 'id']],
+                'optional' => ['type', 'source', 'timestamp', 'date', 'time']
+            ],
+            'restSearch' => [
                 'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id MUST be provided if context is set.",
-                'mandatory' => array('returnFormat'),
-                'optional' => array('id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
-                'params' => array('context')
-            ),
-        ),
-        'SharingGroup' => array(
-            'add' => array(
+                'mandatory' => ['returnFormat'],
+                'optional' => ['id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'],
+                'params' => ['context']
+            ],
+        ],
+        'SharingGroup' => [
+            'add' => [
                 'description' => "POST a Sharing Group object in JSON format to this API to add a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
-                'mandatory' => array('name', 'releasability'),
-                'optional' => array('description', 'uuid', 'organisation_uuid', 'active', 'created', 'modified', 'roaming', 'Server' => array('url', 'name', 'all_orgs'), 'Organisation' => array('uuid', 'name', 'extend'))
-            ),
-            'edit' => array(
+                'mandatory' => ['name', 'releasability'],
+                'optional' => ['description', 'uuid', 'organisation_uuid', 'active', 'created', 'modified', 'roaming', 'Server' => ['url', 'name', 'all_orgs'], 'Organisation' => ['uuid', 'name', 'extend']]
+            ],
+            'edit' => [
                 'description' => "POST a Sharing Group object in JSON format to this API to edit a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
-                'mandatory' => array(),
-                'optional' => array('name', 'releasability', 'description', 'uuid', 'organisation_uuid', 'active', 'created', 'modified', 'roaming', 'SharingGroupServer' => array('url', 'name', 'all_orgs'), 'SharingGroupOrg' => array('uuid', 'name', 'extend'))
-            )
-        ),
-        'Tag' => array(
-            'add' => array(
+                'mandatory' => [],
+                'optional' => ['name', 'releasability', 'description', 'uuid', 'organisation_uuid', 'active', 'created', 'modified', 'roaming', 'SharingGroupServer' => ['url', 'name', 'all_orgs'], 'SharingGroupOrg' => ['uuid', 'name', 'extend']]
+            ]
+        ],
+        'Tag' => [
+            'add' => [
                 'description' => "POST a Tag object in JSON format to this API to create a new tag.",
-                'mandatory' => array('name'),
-                'optional' => array('colour', 'exportable', 'hide_tag', 'org_id', 'user_id')
-            ),
-            'edit' => array(
+                'mandatory' => ['name'],
+                'optional' => ['colour', 'exportable', 'hide_tag', 'org_id', 'user_id']
+            ],
+            'edit' => [
                 'description' => "POST or PUT a Tag object in JSON format to this API to create a edit an existing tag.",
-                'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
-                'params' => array('tag_id')
-            ),
-            'removeTag' => array(
+                'optional' => ['name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'],
+                'params' => ['tag_id']
+            ],
+            'removeTag' => [
                 'description' => "POST a request object in JSON format to this API to create detach a tag from an event. #FIXME Function does not exists",
-                'mandatory' => array('event', 'tag'),
-                'params' => array('tag_id')
-            ),
-            'attachTagToObject' => array(
+                'mandatory' => ['event', 'tag'],
+                'params' => ['tag_id']
+            ],
+            'attachTagToObject' => [
                 'description' => "Attach a Tag to an object, refenced by an UUID. Tag can either be a tag id or a tag name.",
-                'mandatory' => array('uuid', 'tag'),
-            )
-        ),
-        'User' => array(
-            'admin_add' => array(
+                'mandatory' => ['uuid', 'tag'],
+            ]
+        ],
+        'User' => [
+            'admin_add' => [
                 'description' => "POST a User object in JSON format to this API to create a new user.",
-                'mandatory' => array('email', 'org_id', 'role_id'),
-                'optional' => array('password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread')
-            ),
-            'admin_edit' => array(
+                'mandatory' => ['email', 'org_id', 'role_id'],
+                'optional' => ['password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread']
+            ],
+            'admin_edit' => [
                 'description' => "POST a User object in JSON format to this API to edit a user.",
-                'optional' => array('email', 'org_id', 'role_id', 'password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread')
-            ),
-            'admin_quickEmail' => array(
+                'optional' => ['email', 'org_id', 'role_id', 'password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread']
+            ],
+            'admin_quickEmail' => [
                 'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
-                'mandatory' => array('subject', 'body')
-            ),
-            'change_pw' => array(
+                'mandatory' => ['subject', 'body']
+            ],
+            'change_pw' => [
                 'description' => "POST a password via a JSON object containing the password key to reset the given user\'s password.",
-                'mandatory' => array('password')
-            ),
-            'statistics' => array(
+                'mandatory' => ['password']
+            ],
+            'statistics' => [
                 'description' => 'Simply GET the url endpoint to view the API output of the statistics API. Additional statistics are available via the following tab-options similar to the UI: data, orgs, users, tags, attributehistogram, sightings, attackMatrix',
-                'params' => array('tab'),
+                'params' => ['tab'],
                 'http_method' => 'GET'
-            )
-        ),
-        'UserSetting' => array(
-            'setSetting' => array(
+            ]
+        ],
+        'UserSetting' => [
+            'setSetting' => [
                 'description' => "POST a User setting object in JSON format to this API to create a new setting or update the equivalent existing setting. Admins/site admins can specify a user ID besides their own.",
-                'mandatory' => array('setting', 'value'),
-                'optional' => array('user_id')
-            ),
-            'delete' => array(
+                'mandatory' => ['setting', 'value'],
+                'optional' => ['user_id']
+            ],
+            'delete' => [
                 'description' => "POST or DELETE to this API to delete an existing setting.",
-                'params' => array('id')
-            )
-        ),
-        'Warninglist' => array(
-            'checkValue' => array(
+                'params' => ['id']
+            ]
+        ],
+        'Warninglist' => [
+            'checkValue' => [
                 'description' => "POST a JSON list with value(s) to check against the warninglists to get a JSON dictionary as a response with any hits, if there are any (with the key being the passed value triggering a warning).",
-                'mandatory' => array('[]')
-            ),
-            'toggleEnable' => array(
-                'description' => "POST a json object with a single or a list of warninglist IDsIDs, or alternatively a (list of) substring(s) that match the names of warninglist(s) to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",'mandatory' => array('id'),
-                'optional' => array('id', 'name', 'enabled')
-            )
-        )
-    );
+                'mandatory' => ['[]']
+            ],
+            'toggleEnable' => [
+                'description' => "POST a json object with a single or a list of warninglist IDsIDs, or alternatively a (list of) substring(s) that match the names of warninglist(s) to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",'mandatory' => ['id'],
+                'optional' => ['id', 'name', 'enabled']
+            ]
+        ]
+    ];
 
-    private $__scopedFieldsConstraint = array();
+    private $__scopedFieldsConstraint = [];
 
     public function initialize(array $config): void {
         $this->__configureFieldConstraints();
@@ -290,7 +294,7 @@ class RestResponseComponent extends Component
     public function getAllApisFieldsConstraint($user)
     {
         $this->__setup();
-        $result = array();
+        $result = [];
         foreach ($this->__scopedFieldsConstraint as $controller => $actions) {
             $controller = Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
@@ -311,7 +315,7 @@ class RestResponseComponent extends Component
     public function getAllApis($user)
     {
         $this->__setup();
-        $result = array();
+        $result = [];
         foreach ($this->__descriptions as $controller => $actions) {
             $controller = Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
@@ -324,19 +328,19 @@ class RestResponseComponent extends Component
                     $data['api_name'] = '[' . $controller . '] ' . $action;
                     $data['controller'] = $controller;
                     $data['action'] = $action;
-                    $data['body'] = array();
-                    $filter_types = array('mandatory', 'optional');
+                    $data['body'] = [];
+                    $filter_types = ['mandatory', 'optional'];
                     foreach ($filter_types as $filter_type) {
                         if (!empty($data[$filter_type])) {
                             foreach ($data[$filter_type] as $filter_items) {
                                 if (!is_array($filter_items)) {
-                                    $filter_items = array($filter_items);
+                                    $filter_items = [$filter_items];
                                 }
                                 foreach ($filter_items as $filter) {
                                     if ($filter === lcfirst($filter)) {
                                         $data['body'][$filter] = $filter_type;
                                     } else {
-                                        $data['body'][$filter] = array($filter_type);
+                                        $data['body'][$filter] = [$filter_type];
                                     }
                                 }
                             }
@@ -379,12 +383,12 @@ class RestResponseComponent extends Component
             if (isset($this->__descriptions[$relative_path[0]][$relative_path[1]])) {
                 $temp = $this->__descriptions[$relative_path[0]][$relative_path[1]];
             } else {
-                $temp = array();
+                $temp = [];
             }
             if (empty($temp)) {
                 return '[]';
             }
-            return json_encode(array('api_info' => $temp), JSON_PRETTY_PRINT);
+            return json_encode(['api_info' => $temp], JSON_PRETTY_PRINT);
         }
         return '[]';
     }
@@ -392,7 +396,7 @@ class RestResponseComponent extends Component
     public function saveFailResponse($controller, $action, $id, $validationErrors, $format = false)
     {
         $this->autoRender = false;
-        $response = array();
+        $response = [];
         $action = $this->__dissectAdminRouting($action);
         $stringifiedAction = $action['action'];
         if (isset($this->__convertActionToMessage[$controller][$action['action']])) {
@@ -449,22 +453,22 @@ class RestResponseComponent extends Component
         return $this->viewData($response);
     }
 
-    private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
+    private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = [])
     {
         if (strtolower($format) === 'application/xml' || strtolower($format) === 'xml') {
             if (!$raw) {
                 if (isset($response[0])) {
                     if (count(array_keys($response[0])) == 1) {
                         $key = array_keys($response[0])[0];
-                        $rearrange = array();
+                        $rearrange = [];
                         foreach ($response as $k => $v) {
                             $rearrange[$key][] = $v[$key];
                         }
                         $response = $rearrange;
                     }
                 }
-                $response = array('response' => $response);
-                $response = Xml::fromArray($response, array('format' => 'tags'));
+                $response = ['response' => $response];
+                $response = Xml::fromArray($response, ['format' => 'tags']);
                 $response = $response->asXML();
             }
             $type = 'xml';
@@ -480,12 +484,12 @@ class RestResponseComponent extends Component
             }
             if (!$raw) {
                 if (is_string($response)) {
-                    $response = array('message' => $response);
+                    $response = ['message' => $response];
                 }
                 if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
-                    $this->Log = ClassRegistry::init('Log');
+                    $this->Log = $this->fetchTable('Logs');
                     if ($this->Controller->sql_dump === 2) {
-                        $response = array('sql_dump' => $this->Log->getDataSource()->getLog(false, false));
+                        $response = ['sql_dump' => $this->Log->getDataSource()->getLog(false, false)];
                     } else {
                         $response['sql_dump'] = $this->Log->getDataSource()->getLog(false, false);
                     }
@@ -493,9 +497,9 @@ class RestResponseComponent extends Component
                 $response = json_encode($response, JSON_PRETTY_PRINT);
             } else {
                 if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
-                    $this->Log = ClassRegistry::init('Log');
+                    $this->Log = $this->fetchTable('Logs');
                     if ($this->Controller->sql_dump === 2) {
-                        $response = json_encode(array('sql_dump' => $this->Log->getDataSource()->getLog(false, false)));
+                        $response = json_encode(['sql_dump' => $this->Log->getDataSource()->getLog(false, false)]);
                     } else {
                         $response = substr_replace(
                             $response,
@@ -550,10 +554,10 @@ class RestResponseComponent extends Component
             $action = substr($action, 6);
             $admin = true;
         }
-        return array('action' => $action, 'admin' => $admin);
+        return ['action' => $action, 'admin' => $admin];
     }
 
-    public function viewData($data, $format = false, $errors = false, $raw = false, $download = false, $headers = array(), $wrapResponse = false)
+    public function viewData($data, $format = false, $errors = false, $raw = false, $download = false, $headers = [], $wrapResponse = false)
     {
         if (!empty($errors)) {
             $data['errors'] = $errors;
@@ -569,17 +573,17 @@ class RestResponseComponent extends Component
         $cakeResponse = new \Cake\Http\Response();
         $cakeResponse = $cakeResponse->withStatus = 200;
         $cakeResponse = $cakeResponse->withType = $format;
-        $cakeResponse = $cakeResponse->withDownload($path, array('download' => true, 'name' => $name));
+        $cakeResponse = $cakeResponse->withDownload($path, ['download' => true, 'name' => $name]);
         return $cakeResponse;
     }
 
-    public function throwException($code, $message, $url = '', $format = false, $raw = false, $headers = array())
+    public function throwException($code, $message, $url = '', $format = false, $raw = false, $headers = [])
     {
-        $message = array(
+        $message = [
             'name' => $message,
             'message' => $message,
             'url' => $url
-        );
+        ];
         return $this->__sendResponse($message, $code, $format, $raw, false, $headers);
     }
 
@@ -613,1054 +617,1054 @@ class RestResponseComponent extends Component
     private function __setup()
     {
         if (!$this->__setup) {
-            $scopes = array('Event', 'Attribute', 'Sighting');
+            $scopes = ['Event', 'Attribute', 'Sighting'];
             foreach ($scopes as $scope) {
-                $this->{$scope} = ClassRegistry::init($scope);
-                $this->__descriptions[$scope]['restSearch'] = array(
+                $this->{$scope} = $this->fetchTable($scope);
+                $this->__descriptions[$scope]['restSearch'] = [
                     'description' => $this->__descriptions[$scope]['restSearch']['description'],
                     'returnFormat' => array_keys($this->{$scope}->validFormats),
                     'mandatory' => $this->__descriptions[$scope]['restSearch']['mandatory'],
                     'optional' => $this->__descriptions[$scope]['restSearch']['optional'],
                     'params' => $this->__descriptions[$scope]['restSearch']['params']
-                );
+                ];
             }
             $this->__setupFieldsConstraint();
         }
         return true;
     }
 
-    private $__fieldConstraint = array();
+    private $__fieldConstraint = [];
 
     // default value and input for API field
     private function __configureFieldConstraints()
     {
-        $this->__fieldsConstraint = array(
-            'action' => array(
+        $this->__fieldsConstraint = [
+            'action' => [
                 'input' => 'select',
                 'type' => 'string',
-                'operators' => array('equal'),
-                'values' => array('action1'),
+                'operators' => ['equal'],
+                'values' => ['action1'],
                 'help' => __('The action that the user performed')
-            ),
-            'active' => array(
+            ],
+            'active' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Is the sharing group selectable (active) when chosing distribution')
-            ),
-            'all' => array(
+            ],
+            'all' => [
                 'input' => 'text',
                 'type' => 'string',
                 'help' => __('Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields')
-            ),
-            'all_orgs' => array(
+            ],
+            'all_orgs' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('All organisations contained on the instance will be part of the sharing group')
-            ),
-            'allow_hard_delete' => array(
+            ],
+            'allow_hard_delete' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('hard-delete already soft-deleted attributes')
-            ),
-            'analysis' => array(
-                'input' => 'select',
-                'type' => 'integer',
-                'operators' => array('equal', 'not_equal'),
-                'values' => array( 0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'),
-                'help' => __('Maturity of the event')
-            ),
-            'anonymise' => array(
-                'input' => 'radio',
-                'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'operators' => array('equal'),
-                'help' => __('Anonymise the information regarding the server on which the request was issued')
-            ),
-            'attribute' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-                'help' => __('Filter on attribute value')
-            ),
-            'authkey' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-                'help' => __('The authorisation key found on the external server')
-            ),
-            'autoalert' => array(
-                'input' => 'radio',
-                'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('The user receive alerts when events are published')
-            ),
-            'body' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-                'help' => __('The email\'s body')
-            ),
-            'caching_enabled' => array(
-                'input' => 'radio',
-                'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('The feed is cached')
-            ),
-            'category' => array(
-                'input' => 'select',
-                'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
-                'values' => array('categ1'),
-            ),
-            'certif_public' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-                'help' => __('A valid x509 certificate ')
-            ),
-            'changed' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-                'help' => __('The text contained in the changed field')
-            ),
-            'change_pw' => array(
-                'input' => 'radio',
-                'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('The user will be prompted the change the password')
-            ),
-            'colour' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-                'help' => __('A valid hexadecimal colour `#ffffff`')
-            ),
-            'comment' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal', 'not_equal')
-            ),
-            'contacts' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-                'help' => __('Contact details for the organisation')
-            ),
-            'contactalert' => array(
-                'input' => 'radio',
-                'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('The user receive alerts from `contact reporter` requests')
-            ),
-            'created' => array(
-                'type' => 'date',
-                'validation' => array( 'format' => 'YYYY-MM-DD' ),
-                'plugin' => 'datepicker',
-                'plugin_config' => array(
-                    'format' => 'yyyy/mm/dd',
-                    'todayBtn' => 'linked',
-                    'todayHighlight' => true,
-                    'autoclose' => true
-                ),
-            ),
-            'data' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-                'help' => __('Base64 encoded file contents')
-            ),
-            'date' => array(
-                'type' => 'date',
-                'validation' => array( 'format' => 'YYYY-MM-DD' ),
-                'plugin' => 'datepicker',
-                'plugin_config' => array(
-                    'format' => 'yyyy/mm/dd',
-                    'todayBtn' => 'linked',
-                    'todayHighlight' => true,
-                    'autoclose' => true
-                ),
-                'help' => __('The user set date field on the event level. If you are using restSearch, you can use any of the valid time related filters (examples: 7d, timestamps, [14d, 7d] for ranges, etc.)')
-            ),
-            'datefrom' => array(
-                'type' => 'date',
-                'validation' => array( 'format' => 'YYYY-MM-DD' ),
-                'plugin' => 'datepicker',
-                'plugin_config' => array(
-                    'format' => 'yyyy/mm/dd',
-                    'todayBtn' => 'linked',
-                    'todayHighlight' => true,
-                    'autoclose' => true
-                ),
-            ),
-            'dateuntil' => array(
-                'type' => 'date',
-                'validation' => array( 'format' => 'YYYY-MM-DD' ),
-                'plugin' => 'datepicker',
-                'plugin_config' => array(
-                    'format' => 'yyyy/mm/dd',
-                    'todayBtn' => 'linked',
-                    'todayHighlight' => true,
-                    'autoclose' => true
-                ),
-            ),
-            'decayingModel' => array(
-                'input' => 'select',
-                'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
-                'unique' => true,
-                'help' => 'Specify the decaying model from which the decaying score should be calculated'
-            ),
-            'default_role' => array(
-                'input' => 'radio',
-                'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('The role is a default role (selected by default)')
-            ),
-            'delete_local_file' => array(
-                'input' => 'radio',
-                'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Remove file after ingestion')
-            ),
-            'deleted' => array(
-                'input' => 'radio',
-                'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Include deleted elements')
-            ),
-            'delta_merge' => array(
-                'input' => 'radio',
-                'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Merge attributes (only add new attribute, remove revoked attributes)')
-            ),
-            'description' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-            ),
-            'disabled' => array(
-                'input' => 'radio',
-                'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Disable the user account')
-            ),
-            'distribution' => array(
+            ],
+            'analysis' => [
                 'input' => 'select',
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
-                'values' => array(0 => 'dist1'),
-            ),
-            'email' => array(
+                'values' => [ 0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'],
+                'help' => __('Maturity of the event')
+            ],
+            'anonymise' => [
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => [1 => 'True', 0 => 'False' ],
+                'operators' => ['equal'],
+                'help' => __('Anonymise the information regarding the server on which the request was issued')
+            ],
+            'attribute' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
+                'operators' => ['equal'],
+                'help' => __('Filter on attribute value')
+            ],
+            'authkey' => [
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => ['equal'],
+                'help' => __('The authorisation key found on the external server')
+            ],
+            'autoalert' => [
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => [1 => 'True', 0 => 'False' ],
+                'help' => __('The user receive alerts when events are published')
+            ],
+            'body' => [
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => ['equal'],
+                'help' => __('The email\'s body')
+            ],
+            'caching_enabled' => [
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => [1 => 'True', 0 => 'False' ],
+                'help' => __('The feed is cached')
+            ],
+            'category' => [
+                'input' => 'select',
+                'type' => 'string',
+                'operators' => ['equal', 'not_equal'],
+                'values' => ['categ1'],
+            ],
+            'certif_public' => [
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => ['equal'],
+                'help' => __('A valid x509 certificate ')
+            ],
+            'changed' => [
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => ['equal'],
+                'help' => __('The text contained in the changed field')
+            ],
+            'change_pw' => [
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => [1 => 'True', 0 => 'False' ],
+                'help' => __('The user will be prompted the change the password')
+            ],
+            'colour' => [
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => ['equal'],
+                'help' => __('A valid hexadecimal colour `#ffffff`')
+            ],
+            'comment' => [
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => ['equal', 'not_equal']
+            ],
+            'contacts' => [
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => ['equal'],
+                'help' => __('Contact details for the organisation')
+            ],
+            'contactalert' => [
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => [1 => 'True', 0 => 'False' ],
+                'help' => __('The user receive alerts from `contact reporter` requests')
+            ],
+            'created' => [
+                'type' => 'date',
+                'validation' => [ 'format' => 'YYYY-MM-DD' ],
+                'plugin' => 'datepicker',
+                'plugin_config' => [
+                    'format' => 'yyyy/mm/dd',
+                    'todayBtn' => 'linked',
+                    'todayHighlight' => true,
+                    'autoclose' => true
+                ],
+            ],
+            'data' => [
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => ['equal'],
+                'help' => __('Base64 encoded file contents')
+            ],
+            'date' => [
+                'type' => 'date',
+                'validation' => [ 'format' => 'YYYY-MM-DD' ],
+                'plugin' => 'datepicker',
+                'plugin_config' => [
+                    'format' => 'yyyy/mm/dd',
+                    'todayBtn' => 'linked',
+                    'todayHighlight' => true,
+                    'autoclose' => true
+                ],
+                'help' => __('The user set date field on the event level. If you are using restSearch, you can use any of the valid time related filters (examples: 7d, timestamps, [14d, 7d] for ranges, etc.)')
+            ],
+            'datefrom' => [
+                'type' => 'date',
+                'validation' => [ 'format' => 'YYYY-MM-DD' ],
+                'plugin' => 'datepicker',
+                'plugin_config' => [
+                    'format' => 'yyyy/mm/dd',
+                    'todayBtn' => 'linked',
+                    'todayHighlight' => true,
+                    'autoclose' => true
+                ],
+            ],
+            'dateuntil' => [
+                'type' => 'date',
+                'validation' => [ 'format' => 'YYYY-MM-DD' ],
+                'plugin' => 'datepicker',
+                'plugin_config' => [
+                    'format' => 'yyyy/mm/dd',
+                    'todayBtn' => 'linked',
+                    'todayHighlight' => true,
+                    'autoclose' => true
+                ],
+            ],
+            'decayingModel' => [
+                'input' => 'select',
+                'type' => 'string',
+                'operators' => ['equal', 'not_equal'],
+                'unique' => true,
+                'help' => 'Specify the decaying model from which the decaying score should be calculated'
+            ],
+            'default_role' => [
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => [1 => 'True', 0 => 'False' ],
+                'help' => __('The role is a default role (selected by default)')
+            ],
+            'delete_local_file' => [
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => [1 => 'True', 0 => 'False' ],
+                'help' => __('Remove file after ingestion')
+            ],
+            'deleted' => [
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => [1 => 'True', 0 => 'False' ],
+                'help' => __('Include deleted elements')
+            ],
+            'delta_merge' => [
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => [1 => 'True', 0 => 'False' ],
+                'help' => __('Merge attributes (only add new attribute, remove revoked attributes)')
+            ],
+            'description' => [
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => ['equal'],
+            ],
+            'disabled' => [
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => [1 => 'True', 0 => 'False' ],
+                'help' => __('Disable the user account')
+            ],
+            'distribution' => [
+                'input' => 'select',
+                'type' => 'integer',
+                'operators' => ['equal', 'not_equal'],
+                'values' => [0 => 'dist1'],
+            ],
+            'email' => [
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => ['equal', 'not_equal'],
                 'help' => __('Filter on user email')
-            ),
-            'enable_password' => array(
+            ],
+            'enable_password' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Set the password manually')
-            ),
-            'enabled' => array(
+            ],
+            'enabled' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'encrypt' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'encrypt' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('When uploading malicious samples, set this flag to tell MISP to encrpyt the sample and extract the file hashes. This will create a MISP object with the appropriate attributes.')
-            ),
+            ],
             //'enforceWarningList' => array(
             //    'input' => 'radio',
             //    'type' => 'integer',
             //    'values' => array(1 => 'True', 0 => 'False' )
             //),
-            'enforceWarninglist' => array(
+            'enforceWarninglist' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Should the warning list be enforced. Adds `blocked` field for matching attributes')
-            ),
-            'event_id' => array(
+            ],
+            'event_id' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal', 'not_equal'),
-                'validation' => array('min' => 0, 'step' => 1)
-            ),
-            'event_timestamp' => array(
+                'operators' => ['equal', 'not_equal'],
+                'validation' => ['min' => 0, 'step' => 1]
+            ],
+            'event_timestamp' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal', 'not_equal'),
-                'validation' => array('min' => 0, 'step' => 1),
+                'operators' => ['equal', 'not_equal'],
+                'validation' => ['min' => 0, 'step' => 1],
                 'help' => __('The timestamp at which the event was last modified')
-            ),
-            'attribute_timestamp' => array(
+            ],
+            'attribute_timestamp' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal', 'not_equal'),
-                'validation' => array('min' => 0, 'step' => 1),
+                'operators' => ['equal', 'not_equal'],
+                'validation' => ['min' => 0, 'step' => 1],
                 'help' => __('The timestamp at which the attribute was last modified')
-            ),
-            'eventid' => array(
+            ],
+            'eventid' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal', 'not_equal'),
-                'validation' => array('min' => 0, 'step' => 1)
-            ),
-            'eventinfo' => array(
+                'operators' => ['equal', 'not_equal'],
+                'validation' => ['min' => 0, 'step' => 1]
+            ],
+            'eventinfo' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
+                'operators' => ['equal', 'not_equal'],
                 'help' => __('Quick event description')
-            ),
-            'exportable' => array(
+            ],
+            'exportable' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('The tag is exported when synchronising with other instances')
-            ),
-            'excludeDecayed' => array(
+            ],
+            'excludeDecayed' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => 'Should the decayed elements by excluded'
-            ),
-            'excludeLocalTags' => array(
+            ],
+            'excludeLocalTags' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Exclude local tags from the export')
-            ),
-            'extend' => array(
+            ],
+            'extend' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('The organisation have write access to this sharing group (they can add/remove other organisation)')
-            ),
-            'external_auth_required' => array(
+            ],
+            'external_auth_required' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('An external authorisation is required for this user')
-            ),
-            'external_auth_key' => array(
+            ],
+            'external_auth_key' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('A valid external auth key')
-            ),
-            'first_seen' => array(
+            ],
+            'first_seen' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => 'A valid ISO 8601 datetime format, up to milli-seconds. i.e.: 2019-06-13T15:56:56.856074+02:00'
-            ),
-            'fixed_event' => array(
+            ],
+            'fixed_event' => [
                 'input' => 'select',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'values' => array( 0 => 'New Event Each Pull', 1 => 'Fixed Event'),
+                'operators' => ['equal'],
+                'values' => [ 0 => 'New Event Each Pull', 1 => 'Fixed Event'],
                 'help' => __('target_event option might be considered')
-            ),
-            'from' => array(
+            ],
+            'from' => [
                 'type' => 'date',
-                'validation' => array( 'format' => 'YYYY-MM-DD' ),
+                'validation' => [ 'format' => 'YYYY-MM-DD' ],
                 'plugin' => 'datepicker',
-                'plugin_config' => array(
+                'plugin_config' => [
                     'format' => 'yyyy/mm/dd',
                     'todayBtn' => 'linked',
                     'todayHighlight' => true,
                     'autoclose' => true
-                ),
+                ],
                 'help' => __('The date from which the event was published')
-             ),
-            'gpgkey' => array(
+             ],
+            'gpgkey' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('A valid GPG key')
-            ),
-            'hasproposal' => array(
+            ],
+            'hasproposal' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('The event contains proposals')
-            ),
-            'headers' => array(
+            ],
+            'headers' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Headers to be passed with the requests. All separated by `\n`')
-            ),
-            'hide_tag' => array(
+            ],
+            'hide_tag' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('The tag is hidden (not selectable)')
-            ),
-            'id' => array(
+            ],
+            'id' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal', 'not_equal'),
-                'validation' => array('min' => 0, 'step' => 1)
-            ),
-            'includeAttribute' => array(
+                'operators' => ['equal', 'not_equal'],
+                'validation' => ['min' => 0, 'step' => 1]
+            ],
+            'includeAttribute' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Include matching attributes in the response')
-            ),
-            'includeDecayScore' => array(
+            ],
+            'includeDecayScore' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => 'Include all enabled decaying score'
-            ),
-            'includeEvent' => array(
+            ],
+            'includeEvent' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Include matching events in the response')
-            ),
-            'includeEventUuid' => array(
+            ],
+            'includeEventUuid' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Include matching eventUuids in the response')
-            ),
-            'includeEventTags' => array(
+            ],
+            'includeEventTags' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Include tags of matching events in the response')
-            ),
-            'includeFullModel' => array(
+            ],
+            'includeFullModel' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => 'Include all model information of matching events in the response'
-            ),
-            'includeProposals' => array(
+            ],
+            'includeProposals' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Include proposals of matching events in the response')
-            ),
-            'info' => array(
+            ],
+            'info' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
+                'operators' => ['equal', 'not_equal'],
                 'help' => __('Quick event description')
-            ),
-            'input_source' => array(
+            ],
+            'input_source' => [
                 'input' => 'select',
                 'type' => 'string',
-                'operators' => array('equal'),
-                'values' => array( 'network' => 'Network', 'local' => 'Local'),
+                'operators' => ['equal'],
+                'values' => [ 'network' => 'Network', 'local' => 'Local'],
                 'help' => __('Specify whether the source (url field) is a directory (local) or an geniun url (network)')
-            ),
-            'ip' => array(
+            ],
+            'ip' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('The IP of a login attempt')
-            ),
-            'json' => array(
+            ],
+            'json' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('JSON containing ID, UUID and name')
-            ),
-            'last' => array(
+            ],
+            'last' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
+                'operators' => ['equal', 'not_equal'],
                 'help' => __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)')
-            ),
-            'last_seen' => array(
+            ],
+            'last_seen' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => 'A valid ISO 8601 datetime format, up to milli-seconds. i.e.: 2019-06-13T15:56:56.856074+02:00'
-            ),
-            'limit' => array(
+            ],
+            'limit' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1),
+                'operators' => ['equal'],
+                'validation' => ['min' => 0, 'step' => 1],
                 'help' => __('Limit on the pagination')
-            ),
-            'local' => array(
+            ],
+            'local' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('If the organisation should have access to this instance, make sure that the Local organisation setting is checked. If you would only like to add a known external organisation for inclusion in sharing groups, uncheck the Local organisation setting.')
-            ),
-            'lookup_visible' => array(
+            ],
+            'lookup_visible' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('The lookup will not be visible in the feed correlation')
-            ),
-            'message' => array(
+            ],
+            'message' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
+                'operators' => ['equal', 'not_equal'],
                 'help' => __('Message to be included')
-            ),
-            'metadata' => array(
+            ],
+            'metadata' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Will only return the metadata of the given query scope, contained data is omitted.')
-            ),
-            'minimal' => array(
+            ],
+            'minimal' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Will only return  id, timestamp, published and uuid')
-            ),
-            'mock' => array(
+            ],
+            'mock' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'operators' => array('equal'),
+                'values' => [1 => 'True', 0 => 'False' ],
+                'operators' => ['equal'],
                 'help' => __('Mock the query')
-            ),
-            'model' => array(
+            ],
+            'model' => [
                 'input' => 'select',
                 'type' => 'string',
-                'operators' => array('equal'),
-                'values' => array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist'),
-            ),
-            'model_id' => array(
+                'operators' => ['equal'],
+                'values' => ['Attribute', 'Event', 'EventBlacklist', 'EventTag', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist'],
+            ],
+            'model_id' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1),
-            ),
-            'modified' => array(
+                'operators' => ['equal'],
+                'validation' => ['min' => 0, 'step' => 1],
+            ],
+            'modified' => [
                 'type' => 'date',
-                'validation' => array( 'format' => 'YYYY-MM-DD' ),
+                'validation' => [ 'format' => 'YYYY-MM-DD' ],
                 'plugin' => 'datepicker',
-                'plugin_config' => array(
+                'plugin_config' => [
                     'format' => 'yyyy/mm/dd',
                     'todayBtn' => 'linked',
                     'todayHighlight' => true,
                     'autoclose' => true
-                ),
+                ],
                 'help' => __('The last time the sharing group was modified')
-            ),
-            'name' => array(
+            ],
+            'name' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
-            ),
-            'nationality' => array(
+                'operators' => ['equal', 'not_equal'],
+            ],
+            'nationality' => [
                 'input' => 'select',
                 'type' => 'string',
-                'operators' => array('equal'),
-                'values' => array('nat1'),
-            ),
-            'newsread' => array(
+                'operators' => ['equal'],
+                'values' => ['nat1'],
+            ],
+            'newsread' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1),
+                'operators' => ['equal'],
+                'validation' => ['min' => 0, 'step' => 1],
                 'help' => __('The news are read')
-            ),
-            'nids_sid' => array(
+            ],
+            'nids_sid' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1),
+                'operators' => ['equal'],
+                'validation' => ['min' => 0, 'step' => 1],
                 'help' => __('The unique Signature Identification')
-            ),
-            'org' => array(
+            ],
+            'org' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
+                'operators' => ['equal', 'not_equal'],
                 'help' => __('Can be either the ORG_ID or the ORG_NAME')
-            ),
-            'org_description' => array(
+            ],
+            'org_description' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
+                'operators' => ['equal', 'not_equal'],
                 'help' => __('Describe the organisation')
-            ),
-            'org_name' => array(
+            ],
+            'org_name' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
+                'operators' => ['equal', 'not_equal'],
                 'help' => __('Organisation identifier (name)')
-            ),
-            'org_id' => array(
+            ],
+            'org_id' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1),
-            ),
-            'org_uuid' => array(
+                'operators' => ['equal'],
+                'validation' => ['min' => 0, 'step' => 1],
+            ],
+            'org_uuid' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Globally used uuid of an organisation')
-            ),
-            'organisation_uuid' => array(
+            ],
+            'organisation_uuid' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Globally used uuid of an organisation')
-            ),
-            'override_ids' => array(
+            ],
+            'override_ids' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('The IDS flags will be set to off for this feed')
-            ),
-            'page' => array(
+            ],
+            'page' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 1, 'step' => 1),
+                'operators' => ['equal'],
+                'validation' => ['min' => 1, 'step' => 1],
                 'help' => __('Page number for the pagination')
-            ),
-            'password' => array(
+            ],
+            'password' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('The hardcoded password')
-            ),
-            'perm_admin' => array(
+            ],
+            'perm_admin' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'perm_audit' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'perm_audit' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'perm_auth' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'perm_auth' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'perm_delegate' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'perm_delegate' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'perm_regexp_access' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'perm_regexp_access' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'perm_sharing_group' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'perm_sharing_group' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'perm_sighting' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'perm_sighting' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'perm_site_admin' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'perm_site_admin' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'perm_sync' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'perm_sync' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'perm_tag_editor' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'perm_tag_editor' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'perm_tagger' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'perm_tagger' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'perm_template' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'perm_template' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'permission' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'permission' => [
                 'input' => 'select',
                 'type' => 'string',
-                'operators' => array('equal'),
-                'values' => array(0 =>'Read Only', 1 => 'Manage Own Events', 2 => 'Manage Organisation Events', 3 => 'Manage and Publish Organisation Events'),
-            ),
-            'provider' => array(
+                'operators' => ['equal'],
+                'values' => [0 =>'Read Only', 1 => 'Manage Own Events', 2 => 'Manage Organisation Events', 3 => 'Manage and Publish Organisation Events'],
+            ],
+            'provider' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
+                'operators' => ['equal', 'not_equal'],
                 'help' => __('The name of the feed provider')
-            ),
-            'publish' => array(
+            ],
+            'publish' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('The event will be published')
-            ),
-            'publish_timestamp' => array(
+            ],
+            'publish_timestamp' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal', 'not_equal'),
-                'validation' => array('min' => 0, 'step' => 1)
-            ),
-            'published' => array(
+                'operators' => ['equal', 'not_equal'],
+                'validation' => ['min' => 0, 'step' => 1]
+            ],
+            'published' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'publishtimestamp' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'publishtimestamp' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal', 'not_equal'),
-                'validation' => array('min' => 0, 'step' => 1)
-            ),
-            'pull' => array(
+                'operators' => ['equal', 'not_equal'],
+                'validation' => ['min' => 0, 'step' => 1]
+            ],
+            'pull' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Allow the download of events and their attribute from the server')
-            ),
-            'push' => array(
+            ],
+            'push' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Allow the upload of events and their attribute to the server')
-            ),
-            'push_sightings' => array(
+            ],
+            'push_sightings' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Allow the upload of sightings to the server')
-            ),
-            'releasability' => array(
+            ],
+            'releasability' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Concise summary for who this sharing group is releasable to')
-            ),
-            'remote_org_id' => array(
+            ],
+            'remote_org_id' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1),
-            ),
-            'returnFormat' => array(
+                'operators' => ['equal'],
+                'validation' => ['min' => 0, 'step' => 1],
+            ],
+            'returnFormat' => [
                 'input' => 'select',
                 'type' => 'string',
-                'operators' => array('equal'),
-                'values' => array('json', 'openioc', 'xml', 'suricata', 'snort', 'text', 'rpz', 'csv', 'cache', 'stix', 'stix2'),
-            ),
-            'roaming' => array(
+                'operators' => ['equal'],
+                'values' => ['json', 'openioc', 'xml', 'suricata', 'snort', 'text', 'rpz', 'csv', 'cache', 'stix', 'stix2'],
+            ],
+            'roaming' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Pass the event to any connected instance where the sync connection is tied to an organisation contained in the SG organisation list')
-            ),
-            'role_id' => array(
+            ],
+            'role_id' => [
                 'input' => 'select',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array(0 => 'role1'),
-            ),
-            'score' => array(
+                'operators' => ['equal'],
+                'validation' => [0 => 'role1'],
+            ],
+            'score' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1, 'max' => 100),
+                'operators' => ['equal'],
+                'validation' => ['min' => 0, 'step' => 1, 'max' => 100],
                 'help' => 'An alias to override on-the-fly the threshold of the decaying model'
-            ),
-            'searchall' => array(
+            ],
+            'searchall' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields')
-            ),
-            'sector' => array(
+            ],
+            'sector' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('The sector of the organisation')
-            ),
-            'server_id' => array(
+            ],
+            'server_id' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1),
-            ),
-            'sgReferenceOnly' => array(
+                'operators' => ['equal'],
+                'validation' => ['min' => 0, 'step' => 1],
+            ],
+            'sgReferenceOnly' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
+                'values' => [1 => 'True', 0 => 'False' ],
                 'help' => __('Will only return the sharing group ID')
-            ),
-            'sharing_group_id' => array(
+            ],
+            'sharing_group_id' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal', 'not_equal'),
-                'validation' => array('min' => 0, 'step' => 1)
-            ),
-            'sharinggroup' => array(
+                'operators' => ['equal', 'not_equal'],
+                'validation' => ['min' => 0, 'step' => 1]
+            ],
+            'sharinggroup' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal', 'not_equal'),
-                'validation' => array('min' => 0, 'step' => 1),
+                'operators' => ['equal', 'not_equal'],
+                'validation' => ['min' => 0, 'step' => 1],
                 'help' => __('Sharing group ID')
-            ),
-            'source' => array(
+            ],
+            'source' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('The source of the Sighting (e.g. honeypot_1)')
-            ),
-            'source_format' => array(
+            ],
+            'source_format' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
-                'values' => array( 'misp' => 'MISP Feed', 'freetext' => 'Freetext Parsed Feed', 'csv' => 'CSV Parsed Feed')
-            ),
-            'subject' => array(
+                'operators' => ['equal'],
+                'values' => [ 'misp' => 'MISP Feed', 'freetext' => 'Freetext Parsed Feed', 'csv' => 'CSV Parsed Feed']
+            ],
+            'subject' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('The email\'s subject')
-            ),
-            'submitted_cert' => array(
+            ],
+            'submitted_cert' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Base64 encoded certificate')
-            ),
-            'submitted_client_cert' => array(
+            ],
+            'submitted_client_cert' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Base64 encoded certificate')
-            ),
-            'sync' => array(
+            ],
+            'sync' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' ),
-                'operators' => array('equal')
-            ),
-            'tag' => array(
+                'values' => [1 => 'True', 0 => 'False' ],
+                'operators' => ['equal']
+            ],
+            'tag' => [
                 'input' => 'select',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
-            ),
-            'tag_id' => array(
+                'operators' => ['equal', 'not_equal'],
+            ],
+            'tag_id' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1),
+                'operators' => ['equal'],
+                'validation' => ['min' => 0, 'step' => 1],
                 'help' => __('A tad ID to attach to created events')
-            ),
-            'tags' => array(
+            ],
+            'tags' => [
                 'input' => 'select',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
+                'operators' => ['equal', 'not_equal'],
                 'unique' => false,
-            ),
-            'target_event' => array(
+            ],
+            'target_event' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1),
+                'operators' => ['equal'],
+                'validation' => ['min' => 0, 'step' => 1],
                 'help' => __('The provided ID will be reused as an existing event')
-            ),
-            'termsaccepted' => array(
+            ],
+            'termsaccepted' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
-            'threat_level_id' => array(
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
+            'threat_level_id' => [
                 'input' => 'select',
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
-                'values' => array( 1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
-            ),
-            'threatlevel' => array(
+                'values' => [ 1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined']
+            ],
+            'threatlevel' => [
                 'input' => 'select',
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
-                'values' => array( 1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
-            ),
-            'time' => array(
+                'values' => [ 1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined']
+            ],
+            'time' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Time of the sighting with the form `h:i:s`')
-            ),
-            'timestamp' => array(
+            ],
+            'timestamp' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal', 'not_equal'),
-                'validation' => array('min' => 0, 'step' => 1)
-            ),
-            'title' => array(
+                'operators' => ['equal', 'not_equal'],
+                'validation' => ['min' => 0, 'step' => 1]
+            ],
+            'title' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('The title of the log')
-            ),
-            'to' => array(
+            ],
+            'to' => [
                 'type' => 'date',
-                'validation' => array( 'format' => 'YYYY-MM-DD' ),
+                'validation' => [ 'format' => 'YYYY-MM-DD' ],
                 'plugin' => 'datepicker',
-                'plugin_config' => array(
+                'plugin_config' => [
                     'format' => 'yyyy/mm/dd',
                     'todayBtn' => 'linked',
                     'todayHighlight' => true,
                     'autoclose' => true
-                ),
+                ],
                 'help' => __('The date to which the event was published')
-            ),
-            'to_ids' => array(
+            ],
+            'to_ids' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False'),
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The state of the `to_ids` flag')
-            ),
-            'type' => array(
+            ],
+            'type' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
+                'operators' => ['equal', 'not_equal'],
                 'help' => __('The type of the attribute')
-            ),
-            'url' => array(
+            ],
+            'url' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal'),
-            ),
-            'user_id' => array(
+                'operators' => ['equal', 'not_equal'],
+            ],
+            'user_id' => [
                 'input' => 'number',
                 'type' => 'integer',
-                'operators' => array('equal'),
-                'validation' => array('min' => 0, 'step' => 1),
-            ),
-            'uuid' => array(
+                'operators' => ['equal'],
+                'validation' => ['min' => 0, 'step' => 1],
+            ],
+            'uuid' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal')
-            ),
-            'value' => array(
+                'operators' => ['equal', 'not_equal']
+            ],
+            'value' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal', 'not_equal')
-            ),
-            'values' => array(
+                'operators' => ['equal', 'not_equal']
+            ],
+            'values' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'unique' => false,
                 'help' => __('Placeholder containing values to sight')
-            ),
-            'withAttachments' => array(
+            ],
+            'withAttachments' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => array(1 => 'True', 0 => 'False' )
-            ),
+                'values' => [1 => 'True', 0 => 'False' ]
+            ],
 
             // Not supported yet
-            '[]' => array(
+            '[]' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Not supported (warninglist->checkvalues) expect an array')
-            ),
-            'event' => array(
+            ],
+            'event' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Not supported (removeTag)')
-            ),
-            'push_rules' => array(
+            ],
+            'push_rules' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Not supported')
-            ),
-            'pull_rules' => array(
+            ],
+            'pull_rules' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Not supported')
-            ),
-            'rules' => array(
+            ],
+            'rules' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Not supported')
-            ),
+            ],
 
-            'settings' => array(
+            'settings' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Not supported')
-            ),
-            'network_name' => array(
+            ],
+            'network_name' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Not supported')
-            ),
-            'network_json' => array(
+            ],
+            'network_json' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Not supported')
-            ),
-            'Attribute' => array(
+            ],
+            'Attribute' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Not supported')
-            ),
-            'Object' => array(
+            ],
+            'Object' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Not supported')
-            ),
-            'EventTag' => array(
+            ],
+            'EventTag' => [
                 'input' => 'select',
                 'type' => 'string',
-                'operators' => array('equal'),
-            ),
-            'Shadow_Attribute' => array(
+                'operators' => ['equal'],
+            ],
+            'Shadow_Attribute' => [
                 'input' => 'text',
                 'type' => 'string',
-                'operators' => array('equal'),
+                'operators' => ['equal'],
                 'help' => __('Not supported')
-            ),
-        );
+            ],
+        ];
     }
 
     // create dictionnary mapping between fields constraints and scope->action
     private function __setupFieldsConstraint() {
         foreach ($this->__descriptions as $scope => $desc) {
             foreach ($desc as $action => $params) {
-                $fieldsConstraint = array();
+                $fieldsConstraint = [];
                 foreach ($params as $paramType => $field) {
                     if ($paramType == 'optional' || $paramType == 'mandatory') {
                         $fields = array_values($field);
@@ -1734,10 +1738,10 @@ class RestResponseComponent extends Component
     private function __overwriteReturnFormat($scope, $action, &$field) {
         switch($scope) {
             case "Attribute":
-                $field['values'] = array_keys(ClassRegistry::init($scope)->validFormats);
+                $field['values'] = array_keys($this->fetchTable($scope)->validFormats);
                 break;
             case "Event":
-                $field['values'] = array_keys(ClassRegistry::init($scope)->validFormats);
+                $field['values'] = array_keys($this->fetchTable($scope)->validFormats);
                 break;
         }
     }
@@ -1745,13 +1749,13 @@ class RestResponseComponent extends Component
         $field['input'] = 'select';
         switch($scope) {
             case "Attribute":
-                $field['values'] = array_keys(ClassRegistry::init($scope)->typeDefinitions);
+                $field['values'] = array_keys($this->fetchTable($scope)->typeDefinitions);
                 break;
             case "Event":
-                $field['values'] = array_keys(ClassRegistry::init("Attribute")->typeDefinitions);
+                $field['values'] = array_keys($this->fetchTable("Attribute")->typeDefinitions);
                 break;
             case "Sighting":
-                $field['values'] = ClassRegistry::init($scope)->type;
+                $field['values'] = $this->fetchTable($scope)->type;
                 break;
             default:
                 $field['input'] = 'text';
@@ -1760,31 +1764,37 @@ class RestResponseComponent extends Component
     }
 
     private function __overwriteCategory($scope, $action, &$field) {
-        $field['values'] = array_keys(ClassRegistry::init("Attribute")->categoryDefinitions);
+        $field['values'] = array_keys($this->fetchTable("Attribute")->categoryDefinitions);
     }
     private function __overwriteDistribution($scope, $action, &$field) {
-        $field['values'] = array();
-        foreach(ClassRegistry::init("Attribute")->distributionLevels as $d => $text) {
-            $field['values'][] = array('label' => $text, 'value' => $d);
+        $field['values'] = [];
+        foreach($this->fetchTable("Attribute")->distributionLevels as $d => $text) {
+            $field['values'][] = ['label' => $text, 'value' => $d];
         }
     }
     private function __overwriteDecayingModel($scope, &$field) {
-        $this->{$scope} = ClassRegistry::init("DecayingModel");
-        $models = $this->{$scope}->find('list', array(
+        $this->{$scope} = $this->fetchTable("DecayingModel");
+        $models = $this->{$scope}->find(
+            'list',
+            [
             'recursive' => -1,
-            'fields' => array('name')
-        ));
-        $field['values'] = array();
+            'fields' => ['name']
+            ]
+        );
+        $field['values'] = [];
         foreach($models as $i => $model_name) {
-            $field['values'][] = array('label' => h($model_name), 'value' => $i);
+            $field['values'][] = ['label' => h($model_name), 'value' => $i];
         }
     }
     private function __overwriteTags($scope, $action, &$field) {
-        $this->{$scope} = ClassRegistry::init("Tag");
-        $tags = $this->{$scope}->find('list', array(
+        $this->{$scope} = $this->fetchTable("Tag");
+        $tags = $this->{$scope}->find(
+            'list',
+            [
             'recursive' => -1,
-            'fields' => array('name')
-        ));
+            'fields' => ['name']
+            ]
+        );
         foreach($tags as $i => $tag) {
             $tagname = htmlspecialchars($tag);
             $tags[$tagname] = $tagname;
@@ -1793,17 +1803,20 @@ class RestResponseComponent extends Component
         $field['values'] = $tags;
     }
     private function __overwriteNationality($scope, $action, &$field) {
-        $field['values'] = ClassRegistry::init("Organisation")->countries;
+        $field['values'] = $this->fetchTable("Organisation")->countries;
     }
     private function __overwriteAction($scope, $action, &$field) {
-        $field['values'] = array_keys(ClassRegistry::init("Log")->actionDefinitions);
+        $field['values'] = array_keys($this->fetchTable("Log")->actionDefinitions);
     }
     private function __overwriteRoleId($scope, $action, &$field) {
-        $this->{$scope} = ClassRegistry::init("Role");
-        $roles = $this->{$scope}->find('list', array(
+        $this->{$scope} = $this->fetchTable("Role");
+        $roles = $this->{$scope}->find(
+            'list',
+            [
             'recursive' => -1,
-            'fields' => array('name')
-        ));
+            'fields' => ['name']
+            ]
+        );
         $field['values'] = $roles;
     }
     private function __overwriteSeen($scope, $action, &$field) {

@@ -2,9 +2,9 @@
 
 namespace App\View\Helper\BootstrapElements;
 
-use Cake\Utility\Security;
-
 use App\View\Helper\BootstrapGeneric;
+use Cake\Utility\Security;
+use InvalidArgumentException;
 
 /**
  * Creates a bootstrap panel with navigation component.
@@ -92,6 +92,7 @@ class BootstrapTabs extends BootstrapGeneric
         ],
     ];
     private $bsClasses = null;
+    private $data;
 
     function __construct(array $options)
     {
@@ -209,35 +210,46 @@ class BootstrapTabs extends BootstrapGeneric
 
     private function genVerticalTabs(): string
     {
-        $header = $this->node('div', ['class' => array_merge(
-            [
-                ($this->options['vertical-size'] != 'auto' ? 'col-' . $this->options['vertical-size'] : ''),
-                ($this->options['card'] ? 'card-header border-end' : '')
-            ],
-            [
-                "bg-{$this->options['header-variant']}",
-            ]
-        )], $this->genNav());
-        $content = $this->node('div', ['class' => array_merge(
-            [
-                ($this->options['vertical-size'] != 'auto' ? 'col-' . (12 - $this->options['vertical-size']) : ''),
-                ($this->options['card'] ? 'card-body2' : '')
-            ],
-            [
-                "bg-{$this->options['body-variant']}",
-            ]
-        )], $this->genContent());
+        $header = $this->node(
+            'div',
+            ['class' => array_merge(
+                [
+                    ($this->options['vertical-size'] != 'auto' ? 'col-' . $this->options['vertical-size'] : ''),
+                    ($this->options['card'] ? 'card-header border-end' : '')
+                ],
+                [
+                    "bg-{$this->options['header-variant']}",
+                ]
+            )],
+            $this->genNav()
+        );
+        $content = $this->node(
+            'div',
+            ['class' => array_merge(
+                [
+                    ($this->options['vertical-size'] != 'auto' ? 'col-' . (12 - $this->options['vertical-size']) : ''),
+                    ($this->options['card'] ? 'card-body2' : '')
+                ],
+                [
+                    "bg-{$this->options['body-variant']}",
+                ]
+            )],
+            $this->genContent()
+        );
 
         $containerContent = $this->options['vertical-position'] === 'start' ? [$header, $content] : [$content, $header];
-        $container = $this->node('div', ['class' => array_merge(
-            [
-                'row',
-                ($this->options['card'] ? 'card flex-row' : ''),
-                ($this->options['vertical-size'] == 'auto' ? 'flex-nowrap' : '')
-            ],
-            [
-            ]
-        )], $containerContent);
+        $container = $this->node(
+            'div',
+            ['class' => array_merge(
+                [
+                    'row',
+                    ($this->options['card'] ? 'card flex-row' : ''),
+                    ($this->options['vertical-size'] == 'auto' ? 'flex-nowrap' : '')
+                ],
+                []
+            )],
+            $containerContent
+        );
         return $container;
     }
 
@@ -260,23 +272,29 @@ class BootstrapTabs extends BootstrapGeneric
 
     private function genNavItem(array $navItem): string
     {
-        $html = $this->nodeOpen('li', [
-            'class' => array_merge(['nav-item'], $this->bsClasses['nav-item'], $this->options['nav-item-class']),
-            'role' => 'presentation',
-        ]);
-        $html .= $this->nodeOpen('a', [
-            'class' => array_merge(
-                ['nav-link'],
-                [!empty($navItem['active']) ? 'active' : ''],
-                [!empty($navItem['disabled']) ? 'disabled' : '']
-            ),
-            'data-bs-toggle' => $this->options['pills'] ? 'pill' : 'tab',
-            'id' => $navItem['id'] . '-tab',
-            'href' => '#' . $navItem['id'],
-            'aria-controls' => $navItem['id'],
-            'aria-selected' => !empty($navItem['active']),
-            'role' => 'tab',
-        ]);
+        $html = $this->nodeOpen(
+            'li',
+            [
+                'class' => array_merge(['nav-item'], $this->bsClasses['nav-item'], $this->options['nav-item-class']),
+                'role' => 'presentation',
+            ]
+        );
+        $html .= $this->nodeOpen(
+            'a',
+            [
+                'class' => array_merge(
+                    ['nav-link'],
+                    [!empty($navItem['active']) ? 'active' : ''],
+                    [!empty($navItem['disabled']) ? 'disabled' : '']
+                ),
+                'data-bs-toggle' => $this->options['pills'] ? 'pill' : 'tab',
+                'id' => $navItem['id'] . '-tab',
+                'href' => '#' . $navItem['id'],
+                'aria-controls' => $navItem['id'],
+                'aria-selected' => !empty($navItem['active']),
+                'role' => 'tab',
+            ]
+        );
         $html .= $navItem['html'] ?? h($navItem['text']);
         $html .= $this->nodeClose('a');
         $html .= $this->nodeClose('li');
@@ -285,9 +303,12 @@ class BootstrapTabs extends BootstrapGeneric
 
     private function genContent(): string
     {
-        $html = $this->nodeOpen('div', [
-            'class' => array_merge(['tab-content'], $this->options['content-class']),
-        ]);
+        $html = $this->nodeOpen(
+            'div',
+            [
+                'class' => array_merge(['tab-content'], $this->options['content-class']),
+            ]
+        );
         foreach ($this->data['content'] as $i => $content) {
             $navItem = $this->data['navs'][$i];
             $html .= $this->genContentItem($navItem, $content);
@@ -298,11 +319,15 @@ class BootstrapTabs extends BootstrapGeneric
 
     private function genContentItem(array $navItem, string $content): string
     {
-        return $this->node('div', [
-            'class' => array_merge(['tab-pane', 'fade'], [!empty($navItem['active']) ? 'show active' : '']),
-            'role' => 'tabpanel',
-            'id' => $navItem['id'],
-            'aria-labelledby' => $navItem['id'] . '-tab'
-        ], $content);
+        return $this->node(
+            'div',
+            [
+                'class' => array_merge(['tab-pane', 'fade'], [!empty($navItem['active']) ? 'show active' : '']),
+                'role' => 'tabpanel',
+                'id' => $navItem['id'],
+                'aria-labelledby' => $navItem['id'] . '-tab'
+            ],
+            $content
+        );
     }
 }

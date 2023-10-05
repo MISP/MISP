@@ -31,11 +31,11 @@ class SharingGroupOrgsTable extends AppTable
     {
         // Loop through all of the organisations we want to add.
         foreach ($new_orgs as $org) {
-            $SgO = array(
+            $SgO = [
                 'sharing_group_id' => $id,
                 'org_id' => $org['id'],
                 'extend' => $org['extend']
-            );
+            ];
             $found = false;
             // If there is a match between a new org and an old org, keep the org in $found and unset it in the old org array.
             foreach ($old_orgs as $k => $old_org) {

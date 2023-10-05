@@ -1,8 +1,10 @@
 <?php
-namespace SidemenuNavigation;
+
+namespace App\Controller\Component\Navigation;
 
 
-class Sidemenu {
+class SidemenuNavigation
+{
     private $iconTable;
     private $request;
 
@@ -14,7 +16,7 @@ class Sidemenu {
 
     public function get(): array
     {
-       return [
+        return [
             __('Threat intelligence') => [
                 'Events' => [
                     'label' => __('List Events'),
@@ -93,7 +95,7 @@ class Sidemenu {
                         'ObjectTemplates' => [
                             'label' => __('Object Templates'),
                             'icon' => $this->iconTable['ObjectTemplates'],
-                            'url' => '/objectTemplates/index',
+                            'url' => '/object-templates/index',
                         ],
                         'TagCollections' => [
                             'label' => __('Tag Collections'),
@@ -275,7 +277,7 @@ class Sidemenu {
                     'url' => '/users/terms',
                 ],
             ]
-        ]; 
+        ];
     }
 
     #public function get(): array
