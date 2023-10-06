@@ -346,7 +346,7 @@
               endif;
               if (isset($cortex_modules) && isset($cortex_modules['types'][$object['type']])):
         ?>
-          <span class="icon-eye-open useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query Cortex');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Enrichment/0/ShadowAttribute/Cortex');" title="<?php echo __('Propose enrichment through Cortex');?>"></span>
+          <span class="icon-eye-open useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query Cortex');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/0/Enrichment/ShadowAttribute/Cortex');" title="<?php echo __('Propose enrichment through Cortex');?>"></span>
         <?php
               endif;
         ?>
