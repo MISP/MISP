@@ -3,12 +3,12 @@
 namespace App\Command;
 
 use App\Model\Entity\Server;
+use Cake\Command\Command;
 use Cake\Console\Arguments;
-use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\ORM\Locator\LocatorAwareTrait;
 
-class AdminCommand extends BaseCommand
+class AdminCommand extends Command
 {
     use LocatorAwareTrait;
 
