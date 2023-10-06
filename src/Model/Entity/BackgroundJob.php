@@ -94,7 +94,7 @@ class BackgroundJob implements JsonSerializable
             $descriptorSpec,
             $pipes,
             null,
-            ['BACKGROUND_JOB_ID' => $this->id]
+            array_merge($_ENV, ['BACKGROUND_JOB_ID' => $this->id]),
         );
 
         $this->pool($process, $pipes);
