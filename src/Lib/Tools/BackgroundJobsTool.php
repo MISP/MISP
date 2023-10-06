@@ -6,6 +6,7 @@ namespace App\Lib\Tools;
 
 use App\Model\Entity\BackgroundJob;
 use App\Model\Entity\Worker;
+use Cake\Core\Configure;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Http\Exception\NotFoundException;
 use Cake\Log\LogTrait;
@@ -34,6 +35,9 @@ class BackgroundJobsTool
 {
     use LogTrait;
     use LocatorAwareTrait;
+
+    /** @var BackgroundJobsTool */
+    private static $instance;
 
     /** @var Redis */
     private $RedisConnection;
@@ -77,13 +81,6 @@ class BackgroundJobsTool
         self::CMD_SERVER,
         self::CMD_ADMIN,
         self::CMD_WORKFLOW
-    ];
-
-    public const CMD_TO_SHELL_DICT = [
-        self::CMD_EVENT => 'EventShell',
-        self::CMD_SERVER => 'ServerShell',
-        self::CMD_ADMIN => 'AdminShell',
-        self::CMD_WORKFLOW => 'WorkflowShell'
     ];
 
     private const JOB_STATUS_PREFIX = 'job_status',
@@ -751,5 +748,13 @@ class BackgroundJobsTool
         } else {
             return trim(shell_exec(sprintf("ps -o uname='' -p %s", $pid)) ?? '');
         }
+    }
+
+    static function getInstance()
+    {
+        if (!self::$instance) {
+            self::$instance = new BackgroundJobsTool(Configure::read('BackgroundJobs'));
+        }
+        return self::$instance;
     }
 }
