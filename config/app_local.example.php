@@ -16,58 +16,16 @@ $base = empty($temp['path']) ? false : $temp['path'];
 // end of block
 
 return [
-    /*
-     * Debug Level:
-     *
-     * Production Mode:
-     * false: No error messages, errors, or warnings shown.
-     *
-     * Development Mode:
-     * true: Errors and warnings shown.
-     */
-    'debug' => filter_var(env('DEBUG', false), FILTER_VALIDATE_BOOLEAN),
-
-    /*
-     * Security and encryption configuration
-     *
-     * - salt - A random string used in security hashing methods.
-     *   The salt value is also used as the encryption key.
-     *   You should treat it as extremely sensitive data.
-     */
+    'debug' => false,
     'Security' => [
         'salt' => env('SECURITY_SALT', '__SALT__'),
     ],
-
-    /*
-     * Connection information used by the ORM to connect
-     * to your application's datastores.
-     *
-     * See app.php for more configuration options.
-     */
     'Datasources' => [
         'default' => [
-            'host' => 'localhost',
-            /*
-             * CakePHP will use the default DB port based on the driver selected
-             * MySQL on MAMP uses port 8889, MAMP users will want to uncomment
-             * the following line and set the port accordingly
-             */
-            //'port' => 'non_standard_port_number',
-
-            'username' => 'my_app',
-            'password' => 'secret',
-
-            'database' => 'my_app',
-            /**
-             * If not using the default 'public' schema with the PostgreSQL driver
-             * set it here.
-             */
-            //'schema' => 'myapp',
-
-            /**
-             * You can use a DSN string to set the entire configuration
-             */
-            'url' => env('DATABASE_URL', null),
+            'host' => '127.0.0.1',
+            'username' => 'misp',
+            'password' => 'misp',
+            'database' => 'misp3_test',
         ],
         /*
          * The test connection is used during the test suite.
@@ -76,20 +34,12 @@ return [
             'host' => '127.0.0.1',
             'username' => 'misp',
             'password' => 'misp',
-            'database' => 'misp_test',
+            'database' => 'misp3_test',
         ],
     ],
-
-    /*
-     * Email configuration.
-     *
-     * Host and credential configuration in case you are using SmtpTransport
-     *
-     * See app.php for more configuration options.
-     */
     'EmailTransport' => [
         'default' => [
-            'host' => 'localhost',
+            'host' => '127.0.0.1',
             'port' => 25,
             'username' => null,
             'password' => null,
@@ -99,5 +49,18 @@ return [
     ],
     'MISP' => [
         'dark' => 0
+    ],
+    'BackgroundJobs' => [
+        'enabled' => true,
+        'redis_host' => '127.0.0.1',
+        'redis_port' => 6379,
+        'redis_password' => '',
+        'redis_database' => 1,
+        'redis_namespace' => 'background_jobs',
+        'max_job_history_ttl' => 86400,
+        'supervisor_host' => '127.0.0.1',
+        'supervisor_port' => '9001',
+        'supervisor_user' => 'supervisor',
+        'supervisor_password' => 'supervisor',
     ]
 ];

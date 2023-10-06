@@ -2,33 +2,36 @@
 
 namespace App\Model\Table;
 
+use App\Lib\Tools\BackgroundJobsTool;
+use App\Lib\Tools\ElasticSearchClient;
+use App\Model\Entity\Job;
 use App\Model\Table\AppTable;
-use Cake\Core\Configure;
-use Cake\Validation\Validator;
-use Cake\Event\EventInterface;
-use Cake\Datasource\EntityInterface;
 use ArrayObject;
+use Cake\Core\Configure;
+use Cake\Datasource\EntityInterface;
 use Cake\Event\Event;
-use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\Event\EventInterface;
 use Cake\Http\Exception\MethodNotAllowedException;
-use InvalidArgumentException;
-use Exception;
 use Cake\Log\Engine\SyslogLog;
+use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\Validation\Validator;
+use Exception;
+use InvalidArgumentException;
 
 class LogsTable extends AppTable
 {
     use LocatorAwareTrait;
 
-    const WARNING_ACTIONS = array(
+    const WARNING_ACTIONS = [
         'warning',
         'change_pw',
         'login_fail',
         'version_warning',
         'auth_fail'
-    );
-    const ERROR_ACTIONS = array(
+    ];
+    const ERROR_ACTIONS = [
         'error'
-    );
+    ];
 
     /** @var OrganisationsTable */
     protected $Organisation;
@@ -73,71 +76,73 @@ class LogsTable extends AppTable
                 'type',
                 'inList',
                 [
-                    'rule' => ['inList', array( // ensure that the length of the rules is < 20 in length
-                        'accept',
-                        'accept_delegation',
-                        'acceptRegistrations',
-                        'add',
-                        'admin_email',
-                        'attachTags',
-                        'auth',
-                        'auth_fail',
-                        'blocklisted',
-                        'captureRelations',
-                        'change_pw',
-                        'delete',
-                        'disable',
-                        'discard',
-                        'discardRegistrations',
-                        'edit',
-                        'email',
-                        'enable',
-                        'enrichment',
-                        'error',
-                        'execute_blueprint',
-                        'execute_workflow',
-                        'exec_module',
-                        'export',
-                        'fetchEvent',
-                        'file_upload',
-                        'forgot',
-                        'galaxy',
-                        'include_formula',
-                        'load_module',
-                        'login',
-                        'login_fail',
-                        'logout',
-                        'merge',
-                        'password_reset',
-                        'pruneUpdateLogs',
-                        'publish',
-                        'publish_sightings',
-                        'publish alert',
-                        'pull',
-                        'purge_events',
-                        'push',
-                        'registration',
-                        'registration_error',
-                        'remove_dead_workers',
-                        'request',
-                        'request_delegation',
-                        'reset_auth_key',
-                        'send_mail',
-                        'security',
-                        'serverSettingsEdit',
-                        'tag',
-                        'undelete',
-                        'update',
-                        'update_database',
-                        'update_db_worker',
-                        'updateCryptoKeys',
-                        'upgrade_24',
-                        'upload_sample',
-                        'validateSig',
-                        'version_warning',
-                        'warning',
-                        'wipe_default'
-                    )],
+                    'rule' => [
+                        'inList', [ // ensure that the length of the rules is < 20 in length
+                            'accept',
+                            'accept_delegation',
+                            'acceptRegistrations',
+                            'add',
+                            'admin_email',
+                            'attachTags',
+                            'auth',
+                            'auth_fail',
+                            'blocklisted',
+                            'captureRelations',
+                            'change_pw',
+                            'delete',
+                            'disable',
+                            'discard',
+                            'discardRegistrations',
+                            'edit',
+                            'email',
+                            'enable',
+                            'enrichment',
+                            'error',
+                            'execute_blueprint',
+                            'execute_workflow',
+                            'exec_module',
+                            'export',
+                            'fetchEvent',
+                            'file_upload',
+                            'forgot',
+                            'galaxy',
+                            'include_formula',
+                            'load_module',
+                            'login',
+                            'login_fail',
+                            'logout',
+                            'merge',
+                            'password_reset',
+                            'pruneUpdateLogs',
+                            'publish',
+                            'publish_sightings',
+                            'publish alert',
+                            'pull',
+                            'purge_events',
+                            'push',
+                            'registration',
+                            'registration_error',
+                            'remove_dead_workers',
+                            'request',
+                            'request_delegation',
+                            'reset_auth_key',
+                            'send_mail',
+                            'security',
+                            'serverSettingsEdit',
+                            'tag',
+                            'undelete',
+                            'update',
+                            'update_database',
+                            'update_db_worker',
+                            'updateCryptoKeys',
+                            'upgrade_24',
+                            'upload_sample',
+                            'validateSig',
+                            'version_warning',
+                            'warning',
+                            'wipe_default'
+                        ]
+                    ],
                     'message' => 'Options : ...'
                 ]
             );
@@ -145,27 +150,27 @@ class LogsTable extends AppTable
         return $validator;
     }
 
-    public $actionDefinitions = array(
-        'login' => array('desc' => 'Login action', 'formdesc' => "Login action"),
-        'logout' => array('desc' => 'Logout action', 'formdesc' => "Logout action"),
-        'add' => array('desc' => 'Add action', 'formdesc' => "Add action"),
-        'edit' => array('desc' => 'Edit action', 'formdesc' => "Edit action"),
-        'change_pw' => array('desc' => 'Change_pw action', 'formdesc' => "Change_pw action"),
-        'delete' => array('desc' => 'Delete action', 'formdesc' => "Delete action"),
-        'publish' => array('desc' => "Publish action", 'formdesc' => "Publish action")
-    );
+    public $actionDefinitions = [
+        'login' => ['desc' => 'Login action', 'formdesc' => "Login action"],
+        'logout' => ['desc' => 'Logout action', 'formdesc' => "Logout action"],
+        'add' => ['desc' => 'Add action', 'formdesc' => "Add action"],
+        'edit' => ['desc' => 'Edit action', 'formdesc' => "Edit action"],
+        'change_pw' => ['desc' => 'Change_pw action', 'formdesc' => "Change_pw action"],
+        'delete' => ['desc' => 'Delete action', 'formdesc' => "Delete action"],
+        'publish' => ['desc' => "Publish action", 'formdesc' => "Publish action"]
+    ];
 
-    public $logMeta = array(
-        'email' => array('values' => array('email'), 'name' => 'Emails'),
-        'auth_issues' => array('values' => array('login_fail', 'auth_fail'), 'name' => 'Authentication issues')
-    );
+    public $logMeta = [
+        'email' => ['values' => ['email'], 'name' => 'Emails'],
+        'auth_issues' => ['values' => ['login_fail', 'auth_fail'], 'name' => 'Authentication issues']
+    ];
 
-    public $logMetaAdmin = array(
-        'update' => array('values' => array('update_database'), 'name' => 'MISP Update results'),
-        'settings' => array('values' => array('serverSettingsEdit', 'remove_dead_workers'), 'name' => 'Setting changes'),
-        'errors' => array('values' => array('warning', 'error', 'version_warning'), 'name' => 'Warnings and errors'),
-        'email' => array('values' => array('admin_email'))
-    );
+    public $logMetaAdmin = [
+        'update' => ['values' => ['update_database'], 'name' => 'MISP Update results'],
+        'settings' => ['values' => ['serverSettingsEdit', 'remove_dead_workers'], 'name' => 'Setting changes'],
+        'errors' => ['values' => ['warning', 'error', 'version_warning'], 'name' => 'Warnings and errors'],
+        'email' => ['values' => ['admin_email']]
+    ];
 
     public $actsAs = ['LightPaginator'];
 
@@ -185,7 +190,7 @@ class LogsTable extends AppTable
         if (Configure::read('MISP.log_client_ip')) {
             $entity->ip = $this->_remoteIp();
         }
-        $setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '', 'ip' => '');
+        $setEmpty = ['title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '', 'ip' => ''];
         foreach ($setEmpty as $field => $empty) {
             if (empty($entity[$field])) {
                 $entity[$field] = $empty;
@@ -197,7 +202,7 @@ class LogsTable extends AppTable
         if (empty($entity['org'])) {
             $entity['org'] = 'SYSTEM';
         }
-        $truncate_fields = array('title', 'change', 'description');
+        $truncate_fields = ['title', 'change', 'description'];
         foreach ($truncate_fields as $tf) {
             if (strlen($entity[$tf]) >= 65535) {
                 $entity[$tf] = substr($entity[$tf], 0, 65532) . '...';
@@ -229,7 +234,7 @@ class LogsTable extends AppTable
 
     public function returnDates($org = 'all')
     {
-        $conditions = array();
+        $conditions = [];
         $this->Organisation = $this->fetchTable('Organisations');
         if ($org !== 'all') {
             $org = $this->Organisation->fetchOrg($org);
@@ -238,14 +243,17 @@ class LogsTable extends AppTable
             }
             $conditions['org'] = $org['name'];
         }
-        $conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
+        $conditions['AND']['NOT'] = ['action' => ['login', 'logout', 'changepw']];
         if ($this->isMysql()) {
-            $validDates = $this->find('all', array(
-                'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
-                'conditions' => $conditions,
-                'group' => array('Date'),
-                'order' => array('Date')
-            ));
+            $validDates = $this->find(
+                'all',
+                [
+                    'fields' => ['DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'],
+                    'conditions' => $conditions,
+                    'group' => ['Date'],
+                    'order' => ['Date']
+                ]
+            );
         } else {
             // manually generate the query for Postgres
             // cakephp ORM would escape "DATE" datatype in CAST expression
@@ -263,7 +271,7 @@ class LogsTable extends AppTable
                     GROUP BY "Date" ORDER BY "Date"';
             $validDates = $this->query($sql);
         }
-        $data = array();
+        $data = [];
         foreach ($validDates as $k => $date) {
             $data[$date[0]['Date']] = intval($date[0]['count']);
         }
@@ -306,16 +314,18 @@ class LogsTable extends AppTable
             $change = implode(", ", $output);
         }
 
-        $logEntry = $this->newEntity([
-            'org' => $user['Organisation']['name'],
-            'email' => $user['email'],
-            'user_id' => $user['id'],
-            'action' => $action,
-            'title' => $title,
-            'change' => $change,
-            'model' => $model,
-            'model_id' => $modelId,
-        ]);
+        $logEntry = $this->newEntity(
+            [
+                'org' => $user['Organisation']['name'],
+                'email' => $user['email'],
+                'user_id' => $user['id'],
+                'action' => $action,
+                'title' => $title,
+                'change' => $change,
+                'model' => $model,
+                'model_id' => $modelId,
+            ]
+        );
         $result = $this->save($logEntry);
 
         if (!$result) {
@@ -352,54 +362,60 @@ class LogsTable extends AppTable
     // this function remedies a fixed upgrade bug instance by eliminating the massive number of erroneous upgrade log entries
     public function pruneUpdateLogs($user, $jobId = false)
     {
-        $max = $this->find('all', array('fields' => array('MAX(id) AS lastid')))->first();
-        if (!empty($max)) {
-            $max = $max[0]['lastid'];
-        }
+        $max = $this->find('all')->max('id');
+        $max = $max->id ?? 0;
+
         if ($jobId) {
-            $this->Job = $this->loadModel('Jobs');
-            $this->Job->id = $jobId;
-            if (!$this->Job->exists()) {
+            $JobsTable = $this->fetchTable('Jobs');
+            /** @var Job $job */
+            $job = $JobsTable->get($jobId);
+            if ($job === false) {
                 $jobId = false;
             }
         }
         $iterations = ($max / 1000);
         for ($i = 0; $i < $iterations; $i++) {
-            $this->deleteAll(array(
-                'OR' => array(
-                    'action' => 'update_database',
-                    'AND' => array(
-                        'action' => 'edit',
-                        'model' => 'AdminSetting'
-                    )
-                ),
-                'id >' => $i * 1000,
-                'id <' => ($i + 1) * 1000
-            ));
+            $this->deleteAll(
+                [
+                    'OR' => [
+                        'action' => 'update_database',
+                        'AND' => [
+                            'action' => 'edit',
+                            'model' => 'AdminSetting'
+                        ]
+                    ],
+                    'id >' => $i * 1000,
+                    'id <' => ($i + 1) * 1000
+                ]
+            );
             if ($jobId) {
-                $this->Job->saveField('progress', $i * 100 / $iterations);
+                $job->progress = ($i * 100 / $iterations);
+                $JobsTable->get($jobId);
+                $JobsTable->save($job);
             }
         }
-        $logEntry = $this->newEntity(array(
-            'org' => $user['Organisation']['name'],
-            'email' => $user['email'],
-            'user_id' => $user['id'],
-            'action' => 'pruneUpdateLogs',
-            'title' => 'Pruning updates',
-            'change' => 'Pruning completed in ' . $i . ' iteration(s).',
-            'model' => 'Log',
-            'model_id' => 0
-        ));
+        $logEntry = $this->newEntity(
+            [
+                'org' => $user['email'],
+                'email' => $user['email'],
+                'user_id' => $user['id'],
+                'action' => 'pruneUpdateLogs',
+                'title' => 'Pruning updates',
+                'change' => 'Pruning completed in ' . $i . ' iteration(s).',
+                'model' => 'Log',
+                'model_id' => 0
+            ]
+        );
         $this->save($logEntry);
     }
 
     public function pruneUpdateLogsRouter($user)
     {
-        if (Configure::read('MISP.background_jobs')) {
+        if (Configure::read('BackgroundJobs.enabled')) {
 
-            /** @var Job $job */
-            $job = $this->fetchTable('Jobs');
-            $jobId = $job->createJob(
+            /** @var JobTable $job */
+            $jobsTable = $this->fetchTable('Jobs');
+            $jobId = $jobsTable->createJob(
                 $user,
                 Job::WORKER_DEFAULT,
                 'prune_update_logs',
@@ -407,7 +423,7 @@ class LogsTable extends AppTable
                 'Purging the heretic.'
             );
 
-            return $this->getBackgroundJobsTool()->enqueue(
+            return BackgroundJobsTool::getInstance()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [
@@ -428,9 +444,9 @@ class LogsTable extends AppTable
     {
         // TODO: [3.x-MIGRATION] ZMQ pubsub
         // if ($this->pubToZmq('audit')) {
-            //     $this->getPubSubTool()->publish($data, 'audit', 'log');
-            // }
-            
+        //     $this->getPubSubTool()->publish($data, 'audit', 'log');
+        // }
+
         // TODO: [3.x-MIGRATION] Kafka pubsub
         // $this->publishKafkaNotification('audit', $data, 'log');
 
@@ -491,23 +507,29 @@ class LogsTable extends AppTable
     public function filterSiteAdminSensitiveLogs($list)
     {
         $this->User = $this->fetchTable('Users');
-        $site_admin_roles = $this->User->Role->find('list', array(
-            'recursive' => -1,
-            'conditions' => array('Role.perm_site_admin' => 1),
-            'fields' => array('Role.id', 'Role.id')
-        ));
-        $site_admins = $this->User->find('list', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'User.role_id' => array_values($site_admin_roles)
-            ),
-            'fields' => array('User.id', 'User.id')
-        ))->disableHydration()->toArray();
+        $site_admin_roles = $this->User->Role->find(
+            'list',
+            [
+                'recursive' => -1,
+                'conditions' => ['Role.perm_site_admin' => 1],
+                'fields' => ['Role.id', 'Role.id']
+            ]
+        );
+        $site_admins = $this->User->find(
+            'list',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'User.role_id' => array_values($site_admin_roles)
+                ],
+                'fields' => ['User.id', 'User.id']
+            ]
+        )->disableHydration()->toArray();
         foreach ($list as $k => $v) {
             if (
                 $v['model'] === 'User' &&
                 in_array($v['model_id'], array_values($site_admins)) &&
-                in_array($v['action'], array('add', 'edit', 'reset_auth_key'))
+                in_array($v['action'], ['add', 'edit', 'reset_auth_key'])
             ) {
                 $list[$k]['change'] = __('Redacted');
             }
@@ -539,11 +561,14 @@ class LogsTable extends AppTable
         $conditions['model'] = 'Event';
         $conditions['action'] = 'delete';
         $this->Event = $this->fetchTable('Events');
-        $deletions = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'order' => ['Log.id']
-        ]);
+        $deletions = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => $conditions,
+                'order' => ['Log.id']
+            ]
+        );
         $deleted_events = [];
         $users = [];
         $orgs = [];
@@ -554,11 +579,14 @@ class LogsTable extends AppTable
             } else {
                 $deleted_event_ids[$deletion_entry['model_id']] = true;
             }
-            $event = $this->Event->find('all', [
-                'conditions' => ['Event.id' => $deletion_entry['model_id']],
-                'recursive' => -1,
-                'fields' => ['Event.id']
-            ])->first();
+            $event = $this->Event->find(
+                'all',
+                [
+                    'conditions' => ['Event.id' => $deletion_entry['model_id']],
+                    'recursive' => -1,
+                    'fields' => ['Event.id']
+                ]
+            )->first();
             if (!empty($event)) {
                 // event is already restored / not deleted
                 continue;
@@ -568,14 +596,17 @@ class LogsTable extends AppTable
                 'user_id' => $deletion_entry['user_id'],
                 'created' => $deletion_entry['created']
             ];
-            $event_creation_entry = $this->find('all', [
-                'recursive' => -1,
-                'conditions' => [
-                    'model_id' => $temp['event_id'],
-                    'model' => 'Event',
-                    'action' => 'add'
+            $event_creation_entry = $this->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'model_id' => $temp['event_id'],
+                        'model' => 'Event',
+                        'action' => 'add'
+                    ]
                 ]
-            ])->first();
+            )->first();
             $event = $this->changeParser($event_creation_entry['change']);
             $temp['event_info'] = $event['info'];
             $temp['event_org_id'] = $event['org_id'];
@@ -585,25 +616,40 @@ class LogsTable extends AppTable
             $temp['event_created'] = $event_creation_entry['created'];
             foreach (['org', 'orgc'] as $scope) {
                 if (empty($orgs[$temp['event_' . $scope . '_id']])) {
-                    $orgs[$temp['event_' . $scope . '_id']] = array_values($this->Event->Orgc->find('list', [
-                        'recursive' => -1,
-                        'conditions' => array('id' => $temp['event_' . $scope . '_id']),
-                        'fields' => array('id', 'name')
-                    ]))[0];
+                    $orgs[$temp['event_' . $scope . '_id']] = array_values(
+                        $this->Event->Orgc->find(
+                            'list',
+                            [
+                                'recursive' => -1,
+                                'conditions' => ['id' => $temp['event_' . $scope . '_id']],
+                                'fields' => ['id', 'name']
+                            ]
+                        )
+                    )[0];
                 }
                 $temp['event_' . $scope . '_name'] = $orgs[$temp['event_' . $scope . '_id']];
             }
-            $users[$temp['user_id']] = array_values($this->Event->User->find('list', [
-                'recursive' => -1,
-                'conditions' => array('id' => $temp['user_id']),
-                'fields' => array('id', 'email')
-            ]))[0];
+            $users[$temp['user_id']] = array_values(
+                $this->Event->User->find(
+                    'list',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['id' => $temp['user_id']],
+                        'fields' => ['id', 'email']
+                    ]
+                )
+            )[0];
             $temp['user_name'] = $users[$temp['user_id']];
-            $users[$temp['event_user_id']] = array_values($this->Event->User->find('list', [
-                'recursive' => -1,
-                'conditions' => array('id' => $temp['event_user_id']),
-                'fields' => array('id', 'email')
-            ]))[0];
+            $users[$temp['event_user_id']] = array_values(
+                $this->Event->User->find(
+                    'list',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['id' => $temp['event_user_id']],
+                        'fields' => ['id', 'email']
+                    ]
+                )
+            )[0];
             $temp['event_user_name'] = $users[$temp['event_user_id']];
             $deleted_events[] = $temp;
         }
@@ -635,14 +681,17 @@ class LogsTable extends AppTable
 
     private function __recoverDeletedEventContainer($id, &$objectMap, &$logEntries)
     {
-        $logs = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'model' => 'Event',
-                'model_id' => $id,
-                'action' => ['add', 'edit', 'publish', 'alert']
+        $logs = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'model' => 'Event',
+                    'model_id' => $id,
+                    'action' => ['add', 'edit', 'publish', 'alert']
+                ]
             ]
-        ]);
+        );
         if (empty($logs)) {
             return;
         }
@@ -665,28 +714,34 @@ class LogsTable extends AppTable
 
     private function __recoverDeletedObjects($id, &$objectMap, &$logEntries)
     {
-        $logs = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'model' => 'MispObject',
-                'change LIKE ' => '%event_id () => (' . $id . ')%',
-                'action' => ['add']
+        $logs = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'model' => 'MispObject',
+                    'change LIKE ' => '%event_id () => (' . $id . ')%',
+                    'action' => ['add']
+                ]
             ]
-        ]);
+        );
         if (empty($logs)) {
             return;
         }
         foreach ($logs as $log) {
             $objectMap['MispObject'][$log['model_id']] = true;
         }
-        $logs = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'model' => 'MispObject',
-                'model_id' => array_keys($objectMap['MispObject']),
-                'action' => ['add', 'edit', 'delete']
+        $logs = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'model' => 'MispObject',
+                    'model_id' => array_keys($objectMap['MispObject']),
+                    'action' => ['add', 'edit', 'delete']
+                ]
             ]
-        ]);
+        );
         foreach ($logs as $log) {
             $logEntries[$log['id']] = [
                 'model_id' => $log['model_id'],
@@ -705,28 +760,34 @@ class LogsTable extends AppTable
 
     private function __recoverDeletedObjectReferences($id, &$objectMap, &$logEntries)
     {
-        $logs = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'model' => 'ObjectReference',
-                'change LIKE ' => '%event_id () => (' . $id . ')%',
-                'action' => ['add']
+        $logs = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'model' => 'ObjectReference',
+                    'change LIKE ' => '%event_id () => (' . $id . ')%',
+                    'action' => ['add']
+                ]
             ]
-        ]);
+        );
         if (empty($logs)) {
             return;
         }
         foreach ($logs as $log) {
             $objectMap['ObjectReference'][$log['model_id']] = true;
         }
-        $logs = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'model' => 'ObjectReference',
-                'model_id' => array_keys($objectMap['ObjectReference']),
-                'action' => ['add', 'edit']
+        $logs = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'model' => 'ObjectReference',
+                    'model_id' => array_keys($objectMap['ObjectReference']),
+                    'action' => ['add', 'edit']
+                ]
             ]
-        ]);
+        );
         foreach ($logs as $log) {
             $logEntries[$log['id']] = [
                 'model_id' => $log['model_id'],
@@ -749,14 +810,17 @@ class LogsTable extends AppTable
             // example: we have no attributes, so we return
             return;
         }
-        $logs = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'model' => $scope,
-                'action' => ['tag', 'galaxy'],
-                'model_id' => array_keys($objectMap[$scope])
+        $logs = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'model' => $scope,
+                    'action' => ['tag', 'galaxy'],
+                    'model_id' => array_keys($objectMap[$scope])
+                ]
             ]
-        ]);
+        );
         if (empty($logs)) {
             return;
         }
@@ -792,28 +856,34 @@ class LogsTable extends AppTable
 
     private function __recoverDeletedAttributes($id, &$objectMap, &$logEntries)
     {
-        $logs = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'model' => 'Attribute',
-                'title LIKE ' => '%from Event (' . $id . ')%',
-                'action' => ['add']
+        $logs = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'model' => 'Attribute',
+                    'title LIKE ' => '%from Event (' . $id . ')%',
+                    'action' => ['add']
+                ]
             ]
-        ]);
+        );
         if (empty($logs)) {
             return;
         }
         foreach ($logs as $log) {
             $objectMap['Attribute'][$log['model_id']] = true;
         }
-        $logs = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'model' => 'Attribute',
-                'model_id' => array_keys($objectMap['Attribute']),
-                'action' => ['add', 'edit', 'delete']
+        $logs = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'model' => 'Attribute',
+                    'model_id' => array_keys($objectMap['Attribute']),
+                    'action' => ['add', 'edit', 'delete']
+                ]
             ]
-        ]);
+        );
         foreach ($logs as $log) {
             $logEntries[$log['id']] = [
                 'model_id' => $log['model_id'],
@@ -833,28 +903,34 @@ class LogsTable extends AppTable
 
     private function __recoverDeletedProposals($id, &$objectMap, &$logEntries)
     {
-        $logs = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'model' => 'ShadowAttribute',
-                'title LIKE ' => '%: to Event (' . $id . '): %',
-                'action' => ['add']
+        $logs = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'model' => 'ShadowAttribute',
+                    'title LIKE ' => '%: to Event (' . $id . '): %',
+                    'action' => ['add']
+                ]
             ]
-        ]);
+        );
         if (empty($logs)) {
             return;
         }
         foreach ($logs as $log) {
             $objectMap['ShadowAttribute'][$log['model_id']] = true;
         }
-        $logs = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'model' => 'ShadowAttribute',
-                'model_id' => array_keys($objectMap['ShadowAttribute']),
-                'action' => ['add', 'accept', 'delete']
+        $logs = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'model' => 'ShadowAttribute',
+                    'model_id' => array_keys($objectMap['ShadowAttribute']),
+                    'action' => ['add', 'accept', 'delete']
+                ]
             ]
-        ]);
+        );
         foreach ($logs as $log) {
             $logEntries[$log['id']] = [
                 'model_id' => $log['model_id'],
@@ -891,10 +967,13 @@ class LogsTable extends AppTable
                 } else {
                     $this->Event->create();
                     $this->Event->save($logEntry['data']);
-                    $blockListEntry = $this->EventBlocklist->find('all', array(
-                        'conditions' => array('event_uuid' => $logEntry['data']['uuid']),
-                        'fields' => 'id'
-                    ))->first();
+                    $blockListEntry = $this->EventBlocklist->find(
+                        'all',
+                        [
+                            'conditions' => ['event_uuid' => $logEntry['data']['uuid']],
+                            'fields' => 'id'
+                        ]
+                    )->first();
                     if (!empty($blockListEntry)) {
                         $this->EventBlocklist->delete($blockListEntry['EventBlocklist']['id']);
                     }
@@ -902,10 +981,13 @@ class LogsTable extends AppTable
                 break;
             case 'edit':
             case 'publish':
-                $event = $this->Event->find('all', [
-                    'recursive' => -1,
-                    'conditions' => ['Event.id' => $logEntry['model_id']]
-                ])->first();
+                $event = $this->Event->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['Event.id' => $logEntry['model_id']]
+                    ]
+                )->first();
                 if (!empty($event)) {
                     if ($logEntry['action'] === 'publish' || $logEntry['action'] === 'alert') {
                         $event['published'] = 1;
@@ -928,28 +1010,35 @@ class LogsTable extends AppTable
                 $this->Event->EventTag->create();
                 $this->Event->create();
                 if (!empty($this->mockRecovery)) {
-                    $this->mockLog[] = ['model' => 'EventTag', 'action' => 'add', 'data' => [
-                        'tag_id' => $tag_id,
-                        'event_id' => $logEntry['data']['id'],
-                        'local' => !empty($logEntry['data']['local'])
-                    ]];
+                    $this->mockLog[] = [
+                        'model' => 'EventTag', 'action' => 'add', 'data' => [
+                            'tag_id' => $tag_id,
+                            'event_id' => $logEntry['data']['id'],
+                            'local' => !empty($logEntry['data']['local'])
+                        ]
+                    ];
                 } else {
-                    $this->Event->EventTag->save([
-                        'tag_id' => $tag_id,
-                        'event_id' => $logEntry['data']['id'],
-                        'local' => !empty($logEntry['data']['local'])
-                    ]);
+                    $this->Event->EventTag->save(
+                        [
+                            'tag_id' => $tag_id,
+                            'event_id' => $logEntry['data']['id'],
+                            'local' => !empty($logEntry['data']['local'])
+                        ]
+                    );
                 }
                 break;
             case 'remove_tag':
                 $tag_id = $logEntry['data']['tag_type'] === 'galaxy' ? $this->GalaxyCluster->getTagIdByClusterId($logEntry['data']['tag_id']) : $logEntry['data']['tag_id'];
-                $et = $this->Event->EventTag->find('all', [
-                    'recursive' => -1,
-                    'conditions' => [
-                        'tag_id' => $tag_id,
-                        'event_id' => $logEntry['data']['id']
+                $et = $this->Event->EventTag->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => [
+                            'tag_id' => $tag_id,
+                            'event_id' => $logEntry['data']['id']
+                        ]
                     ]
-                ])->first();
+                )->first();
                 if (!empty($et)) {
                     if (!empty($this->mockRecovery)) {
                         $this->mockLog[] = ['model' => 'EventTag', 'action' => 'delete', 'data' => $et['EventTag']['id']];
@@ -990,10 +1079,13 @@ class LogsTable extends AppTable
                 }
                 break;
             case 'edit':
-                $attribute = $this->Attribute->find('all', [
-                    'recursive' => -1,
-                    'conditions' => ['Attribute.id' => $logEntry['model_id']]
-                ])->first();
+                $attribute = $this->Attribute->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['Attribute.id' => $logEntry['model_id']]
+                    ]
+                )->first();
                 if (!empty($attribute)) {
                     $logEntry['data'] = $this->Attribute->UTCToISODatetime(['Attribute' => $logEntry['data']], 'Attribute');
                     $logEntry['data'] = $logEntry['data']['Attribute'];
@@ -1008,10 +1100,13 @@ class LogsTable extends AppTable
                 }
                 break;
             case 'delete':
-                $attribute = $this->Attribute->find('all', [
-                    'recursive' => -1,
-                    'conditions' => ['Attribute.id' => $logEntry['model_id']]
-                ])->first();
+                $attribute = $this->Attribute->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['Attribute.id' => $logEntry['model_id']]
+                    ]
+                )->first();
                 if (!empty($attribute)) {
                     $attribute['deleted'] = 1;
                     $attribute['timestamp'] = $logEntry['data']['timestamp'];
@@ -1025,32 +1120,39 @@ class LogsTable extends AppTable
             case 'add_tag':
                 $tag_id = $logEntry['data']['tag_type'] === 'galaxy' ? $this->GalaxyCluster->getTagIdByClusterId($logEntry['data']['tag_id']) : $logEntry['data']['tag_id'];
                 if (!empty($this->mockRecovery)) {
-                    $this->mockLog[] = ['model' => 'AttributeTag', 'action' => 'add', 'data' => [
-                        'tag_id' => $tag_id,
-                        'attribute_id' => $logEntry['data']['id'],
-                        'event_id' => $id,
-                        'local' => !empty($logEntry['data']['local'])
-                    ]];
+                    $this->mockLog[] = [
+                        'model' => 'AttributeTag', 'action' => 'add', 'data' => [
+                            'tag_id' => $tag_id,
+                            'attribute_id' => $logEntry['data']['id'],
+                            'event_id' => $id,
+                            'local' => !empty($logEntry['data']['local'])
+                        ]
+                    ];
                 } else {
                     $this->Attribute->AttributeTag->create();
-                    $this->Attribute->AttributeTag->save([
-                        'tag_id' => $tag_id,
-                        'attribute_id' => $logEntry['data']['id'],
-                        'event_id' => $id,
-                        'local' => !empty($logEntry['data']['local'])
-                    ]);
+                    $this->Attribute->AttributeTag->save(
+                        [
+                            'tag_id' => $tag_id,
+                            'attribute_id' => $logEntry['data']['id'],
+                            'event_id' => $id,
+                            'local' => !empty($logEntry['data']['local'])
+                        ]
+                    );
                 }
                 break;
             case 'remove_tag':
                 $tag_id = $logEntry['data']['tag_type'] === 'galaxy' ? $this->GalaxyCluster->getTagIdByClusterId($logEntry['data']['tag_id']) : $logEntry['data']['tag_id'];
-                $at = $this->Attribute->AttributeTag->find('all', [
-                    'recursive' => -1,
-                    'conditions' => [
-                        'tag_id' => $tag_id,
-                        'attribute_id' => $logEntry['data']['id'],
-                        'event_id' => $id
+                $at = $this->Attribute->AttributeTag->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => [
+                            'tag_id' => $tag_id,
+                            'attribute_id' => $logEntry['data']['id'],
+                            'event_id' => $id
+                        ]
                     ]
-                ])->first();
+                )->first();
                 if (!empty($at)) {
                     if (!empty($this->mockRecovery)) {
                         $this->mockLog[] = ['model' => 'AttributeTag', 'action' => 'delete', 'data' => $at['AttributeTag']['id']];
@@ -1091,10 +1193,13 @@ class LogsTable extends AppTable
                 }
                 break;
             case 'delete':
-                $shadow_attribute = $this->ShadowAttribute->find('all', [
-                    'recursive' => -1,
-                    'conditions' => ['ShadowAttribute.id' => $logEntry['model_id']]
-                ])->first();
+                $shadow_attribute = $this->ShadowAttribute->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['ShadowAttribute.id' => $logEntry['model_id']]
+                    ]
+                )->first();
                 if (!empty($shadow_attribute)) {
                     $shadow_attribute['deleted'] = 1;
                     $shadow_attribute['timestamp'] = $logEntry['data']['timestamp'];
@@ -1106,15 +1211,21 @@ class LogsTable extends AppTable
                 }
                 break;
             case 'accept':
-                $shadow_attribute = $this->ShadowAttribute->find('all', [
-                    'recursive' => -1,
-                    'conditions' => ['ShadowAttribute.id' => $logEntry['model_id']]
-                ])->first();
+                $shadow_attribute = $this->ShadowAttribute->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['ShadowAttribute.id' => $logEntry['model_id']]
+                    ]
+                )->first();
                 if (!empty($shadow_attribute['old_id'])) {
-                    $attribute = $this->Attribute->find('all', [
-                        'conditions' => ['Attribute.id' => $shadow_attribute['old_id']],
-                        'recursive' => -1
-                    ])->first();
+                    $attribute = $this->Attribute->find(
+                        'all',
+                        [
+                            'conditions' => ['Attribute.id' => $shadow_attribute['old_id']],
+                            'recursive' => -1
+                        ]
+                    )->first();
                     if (!empty($shadow_attribute['proposal_to_delete'])) {
                         $attribute['deleted'] = 1;
                     } else {
@@ -1167,10 +1278,13 @@ class LogsTable extends AppTable
                 }
                 break;
             case 'edit':
-                $objectRef = $this->ObjectReference->find('all', [
-                    'recursive' => -1,
-                    'conditions' => ['ObjectReference.id' => $logEntry['model_id']]
-                ])->first();
+                $objectRef = $this->ObjectReference->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['ObjectReference.id' => $logEntry['model_id']]
+                    ]
+                )->first();
                 if (!empty($objectRef)) {
                     foreach ($logEntry['data'] as $field => $value) {
                         $objectRef[$field] = $value;
@@ -1207,10 +1321,13 @@ class LogsTable extends AppTable
             case 'edit':
                 $logEntry['data'] = $this->MispObject->Attribute->UTCToISODatetime(['Object' => $logEntry['data']], 'Object');
                 $logEntry['data'] = $logEntry['data']['Object'];
-                $object = $this->MispObject->find('all', [
-                    'recursive' => -1,
-                    'conditions' => ['Object.id' => $logEntry['model_id']]
-                ])->first();
+                $object = $this->MispObject->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['Object.id' => $logEntry['model_id']]
+                    ]
+                )->first();
                 if (!empty($object)) {
                     foreach ($logEntry['data'] as $field => $value) {
                         $object['Object'][$field] = $value;

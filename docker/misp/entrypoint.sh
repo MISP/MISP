@@ -97,4 +97,22 @@ php-fpm -t
 # Finished bootstrapping, create ready flag file
 touch "${MISP_READY_STATUS_FLAG}"
 
+if [ -z "$DISABLE_BACKGROUND_WORKERS" ]; then
+	DISABLE_BACKGROUND_WORKERS=0
+fi
+
+if [ "$DISABLE_BACKGROUND_WORKERS" -eq 1 ]; then
+	echo >&2 "Background workers disabled, skipping..."
+else
+	# Start Supervisor
+	echo >&2 "Starting Supervisor..."
+	supervisord -n -c /etc/supervisor/conf.d/supervisor.conf &
+	sleep 5
+
+	# Start workers
+	echo >&2 "Starting workers..."
+	supervisorctl start misp-workers:*
+fi
+
+echo >&2 "Starting php-fpm..."
 exec php-fpm -F "$@"
