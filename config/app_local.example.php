@@ -18,7 +18,7 @@ $base = empty($temp['path']) ? false : $temp['path'];
 return [
     'debug' => false,
     'Security' => [
-        'salt' => 'foobar',
+        'salt' => env('SECURITY_SALT', '__SALT__'),
     ],
     'Datasources' => [
         'default' => [
