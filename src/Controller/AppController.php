@@ -41,9 +41,6 @@ class AppController extends Controller
     public $breadcrumb = [];
     public $request_ip = null;
 
-    /** @var BackgroundJobsTool */
-    private static $loadedBackgroundJobsTool;
-
     /**
      * Initialization hook method.
      *
