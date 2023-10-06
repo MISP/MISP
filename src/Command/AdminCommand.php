@@ -2,13 +2,13 @@
 
 namespace App\Command;
 
+use App\Model\Entity\Server;
 use Cake\Console\Arguments;
-use Cake\Console\Command;
+use Cake\Console\BaseCommand;
 use Cake\Console\ConsoleIo;
 use Cake\ORM\Locator\LocatorAwareTrait;
-use App\Model\Entity\Server;
 
-class AdminCommand extends Command
+class AdminCommand extends BaseCommand
 {
     use LocatorAwareTrait;
 
@@ -35,8 +35,6 @@ class AdminCommand extends Command
     private function pruneUpdateLogs($jobId, $userId)
     {
         $this->io->out('Pruning update logs...');
-
-        $this->io->out(print_r($_ENV, true));
 
         if (empty($jobId) || empty($userId)) {
             die('Usage: ' . (new Server())->command_line_functions['console_admin_tasks']['data']['Prune update logs'] . PHP_EOL);
