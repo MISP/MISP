@@ -18,7 +18,6 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Lib\Tools\BackgroundJobsTool;
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
@@ -276,17 +275,5 @@ class AppController extends Controller
         $user = $this->Auth->user();
         session_abort();
         return $user;
-    }
-
-    /**
-     * @return BackgroundJobsTool
-     */
-    public function getBackgroundJobsTool(): BackgroundJobsTool
-    {
-        if (!self::$loadedBackgroundJobsTool) {
-            $backgroundJobsTool = new BackgroundJobsTool(Configure::read('BackgroundJobs'));
-            self::$loadedBackgroundJobsTool = $backgroundJobsTool;
-        }
-        return self::$loadedBackgroundJobsTool;
     }
 }

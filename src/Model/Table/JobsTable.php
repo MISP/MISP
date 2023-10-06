@@ -54,7 +54,7 @@ class JobsTable extends AppTable
 
         if (in_array($type, array_keys($EventsTable->exportTypes())) && $type !== 'bro') {
 
-            $this->getBackgroundJobsTool()->enqueue(
+            BackgroundJobsTool::getInstance()->enqueue(
                 BackgroundJobsTool::CACHE_QUEUE,
                 BackgroundJobsTool::CMD_EVENT,
                 [
@@ -68,7 +68,7 @@ class JobsTable extends AppTable
             );
         } elseif ($type === 'bro') {
 
-            $this->getBackgroundJobsTool()->enqueue(
+            BackgroundJobsTool::getInstance()->enqueue(
                 BackgroundJobsTool::CACHE_QUEUE,
                 BackgroundJobsTool::CMD_EVENT,
                 [

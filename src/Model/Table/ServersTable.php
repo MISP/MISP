@@ -2,6 +2,7 @@
 
 namespace App\Model\Table;
 
+use App\Lib\Tools\BackgroundJobsTool;
 use App\Lib\Tools\ProcessTool;
 use App\Model\Table\AppTable;
 use Cake\Core\Configure;
@@ -119,7 +120,7 @@ class ServersTable extends AppTable
                 }
             }
 
-            $worker_array[$k]['jobCount'] = $this->getBackgroundJobsTool()->getQueueSize($k);
+            $worker_array[$k]['jobCount'] = BackgroundJobsTool::getInstance()->getQueueSize($k);
 
             if (!isset($queue['workers'])) {
                 $workerIssueCount++;
@@ -134,7 +135,7 @@ class ServersTable extends AppTable
 
         if (Configure::read('BackgroundJobs.enabled')) {
             try {
-                $worker_array['supervisord_status'] = $this->getBackgroundJobsTool()->getSupervisorStatus();
+                $worker_array['supervisord_status'] = BackgroundJobsTool::getInstance()->getSupervisorStatus();
             } catch (Exception $exception) {
                 $this->logException('Error getting supervisor status.', $exception);
                 $worker_array['supervisord_status'] = false;

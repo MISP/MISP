@@ -2,15 +2,14 @@
 
 namespace App\Command;
 
+use App\Lib\Tools\BackgroundJobsTool;
+use App\Lib\Tools\ProcessTool;
+use App\Model\Entity\BackgroundJob;
+use App\Model\Entity\Worker;
 use Cake\Command\Command;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
-use Cake\Core\Configure;
-use App\Lib\Tools\BackgroundJobsTool;
-use App\Lib\Tools\ProcessTool;
-use App\Model\Entity\Worker;
-use App\Model\Entity\BackgroundJob;
 use Cake\Log\LogTrait;
 use Exception;
 
@@ -33,11 +32,14 @@ class StartWorkerCommand extends Command
     {
         $parser->setDescription("Start a worker queue.");
         $parser
-            ->addArgument('queue', [
-                'help' => 'Name of the queue to process.',
-                'choices' => $this->getBackgroundJobsTool()->getQueues(),
-                'required' => true
-            ])
+            ->addArgument(
+                'queue',
+                [
+                    'help' => 'Name of the queue to process.',
+                    'choices' => BackgroundJobsTool::getInstance()->getQueues(),
+                    'required' => true
+                ]
+            )
             ->addOption(
                 'maxExecutionTime',
                 [
@@ -67,7 +69,7 @@ class StartWorkerCommand extends Command
         while (true) {
             $this->checkMaxExecutionTime();
 
-            $job = $this->getBackgroundJobsTool()->dequeue($this->worker->queue());
+            $job = BackgroundJobsTool::getInstance()->dequeue($this->worker->queue());
             if ($job) {
                 $this->runJob($job);
             }
@@ -86,7 +88,7 @@ class StartWorkerCommand extends Command
 
             $command = implode(' ', array_merge([$job->command()], $job->args()));
             $this->log("[JOB ID: {$job->id()}] - started command `$command`.", 'info');
-            $this->getBackgroundJobsTool()->update($job);
+            BackgroundJobsTool::getInstance()->update($job);
 
             $job->run();
 
@@ -99,7 +101,7 @@ class StartWorkerCommand extends Command
             $this->log("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - job ID: {$job->id()} failed with exception: {$exception->getMessage()}", 'error');
             $job->setStatus(BackgroundJob::STATUS_FAILED);
         }
-        $this->getBackgroundJobsTool()->update($job);
+        BackgroundJobsTool::getInstance()->update($job);
     }
 
     /**
@@ -116,17 +118,5 @@ class StartWorkerCommand extends Command
             $this->log("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - worker max execution time reached, exiting gracefully worker...", 'info');
             exit;
         }
-    }
-
-    /**
-     * @return BackgroundJobsTool
-     * @throws Exception
-     */
-    protected function getBackgroundJobsTool()
-    {
-        if (!isset($this->BackgroundJobsTool)) {
-            $this->BackgroundJobsTool = new BackgroundJobsTool(Configure::read('BackgroundJobs'));
-        }
-        return $this->BackgroundJobsTool;
     }
 }

@@ -3,12 +3,13 @@
 namespace App\Controller;
 
 use App\Controller\AppController;
+use App\Lib\Tools\BackgroundJobsTool;
+use Cake\Core\Configure;
+use Cake\Event\EventInterface;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Response;
 use Cake\ORM\Locator\LocatorAwareTrait;
-use Cake\Core\Configure;
-use Cake\Event\EventInterface;
 
 class JobsController extends AppController
 {
@@ -71,11 +72,11 @@ class JobsController extends AppController
 
     public function getError($id)
     {
-        $fields = array(
+        $fields = [
             'Failed at' => 'failed_at',
             'Exception' => 'exception',
             'Error' => 'error'
-        );
+        ];
         $this->set('fields', $fields);
         $this->set('response', $this->getFailedJobLog($id));
         $this->render('/Jobs/ajax/error');
@@ -102,11 +103,14 @@ class JobsController extends AppController
         $this->closeSession();
 
         $ids = explode(",", $ids);
-        $jobs = $this->Jobs->find('all', [
-            'fields' => ['id', 'progress', 'process_id'],
-            'conditions' => ['id' => $ids],
-            'recursive' => -1,
-        ]);
+        $jobs = $this->Jobs->find(
+            'all',
+            [
+                'fields' => ['id', 'progress', 'process_id'],
+                'conditions' => ['id' => $ids],
+                'recursive' => -1,
+            ]
+        );
         if (empty($jobs)) {
             throw new NotFoundException('No jobs found');
         }
@@ -129,23 +133,29 @@ class JobsController extends AppController
         }
 
         if (is_numeric($type)) {
-            $progress = $this->Jobs->find('first', array(
-                'conditions' => array(
-                    'Job.id' => $type,
-                    'org_id' => $org_id
-                ),
-                'fields' => array('id', 'progress'),
-                'order' => array('Job.id' => 'desc'),
-            ));
+            $progress = $this->Jobs->find(
+                'first',
+                [
+                    'conditions' => [
+                        'Job.id' => $type,
+                        'org_id' => $org_id
+                    ],
+                    'fields' => ['id', 'progress'],
+                    'order' => ['Job.id' => 'desc'],
+                ]
+            );
         } else {
-            $progress = $this->Jobs->find('first', array(
-                'conditions' => array(
-                    'job_type' => $type,
-                    'org_id' => $org_id
-                ),
-                'fields' => array('id', 'progress'),
-                'order' => array('Job.id' => 'desc'),
-            ));
+            $progress = $this->Jobs->find(
+                'first',
+                [
+                    'conditions' => [
+                        'job_type' => $type,
+                        'org_id' => $org_id
+                    ],
+                    'fields' => ['id', 'progress'],
+                    'order' => ['Job.id' => 'desc'],
+                ]
+            );
         }
         if (!$progress) {
             $progress = 0;
@@ -153,9 +163,9 @@ class JobsController extends AppController
             $progress = $progress['progress'];
         }
         if ($this->ParamHandler->isRest()) {
-            return $this->RestResponse->viewData(array('progress' => $progress . '%'));
+            return $this->RestResponse->viewData(['progress' => $progress . '%']);
         } else {
-            return new Response(array('body' => json_encode($progress), 'type' => 'json'));
+            return new Response(['body' => json_encode($progress), 'type' => 'json']);
         }
     }
 
@@ -171,9 +181,9 @@ class JobsController extends AppController
         }
         $id = $this->Job->cache($type, $this->Auth->user());
         if ($this->ParamHandler->isRest()) {
-            return $this->RestResponse->viewData(array('job_id' => $id));
+            return $this->RestResponse->viewData(['job_id' => $id]);
         } else {
-            return new Response(array('body' => json_encode($id), 'type' => 'json'));
+            return new Response(['body' => json_encode($id), 'type' => 'json']);
         }
     }
 
@@ -181,15 +191,15 @@ class JobsController extends AppController
     {
         if ($this->request->is('post')) {
             if ($type === 'all') {
-                $conditions = array('Job.id !=' => 0);
+                $conditions = ['Job.id !=' => 0];
                 $message = __('All jobs have been purged');
             } else {
-                $conditions = array('Job.progress' => 100);
+                $conditions = ['Job.progress' => 100];
                 $message = __('All completed jobs have been purged');
             }
             $this->Jobs->deleteAll($conditions, false);
             $this->Flash->success($message);
-            $this->redirect(array('action' => 'index'));
+            $this->redirect(['action' => 'index']);
         }
     }
 
@@ -197,7 +207,7 @@ class JobsController extends AppController
     {
         $status = null;
         if (!empty($id)) {
-            $job = $this->getBackgroundJobsTool()->getJob($id);
+            $job = BackgroundJobsTool::getInstance()->getJob($id);
             $status = $job ? $job->status() : $status;
         }
 
@@ -206,7 +216,7 @@ class JobsController extends AppController
 
     private function getFailedJobLog(string $id): array
     {
-        $job = $this->getBackgroundJobsTool()->getJob($id);
+        $job = BackgroundJobsTool::getInstance()->getJob($id);
         $output = $job ? $job->output() : __('Job status not found.');
         $backtrace = $job ? explode("\n", $job->error()) : [];
 
