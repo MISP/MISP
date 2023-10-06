@@ -97,13 +97,25 @@ class JSONConverterTool
         }
         if (isset($event['Event']['Object'])) {
             $event['Event']['Object'] = self::__cleanObjects($event['Event']['Object'], $tempSightings);
-        }
-        unset($tempSightings);
-        if (!empty($event['Event']['RelatedAttribute'])) {
-            foreach ($event['Event']['RelatedAttribute'] as $attribute_id => $relatedAttribute) {
-
+            if (!empty($event['Event']['RelatedAttribute'])) {
+                foreach ($event['Event']['Object'] as $k => $object) {
+                    foreach ($event['Event']['Attribute'] as $k2 => $attribute) {
+                        if (isset($event['Event']['RelatedAttribute'][$attribute['id']])) {
+                            foreach($event['Event']['RelatedAttribute'][$attribute['id']] as $correlation) {
+                                $event['Event']['Object'][$k]['Attribute'][$k2]['RelatedAttribute'][] = [
+                                    'id' => $correlation['attribute_id'],
+                                    'value' => $correlation['value'],
+                                    'org_id' => $correlation['org_id'],
+                                    'info' => $correlation['info'],
+                                    'event_id' => $correlation['id']
+                                ];
+                            }
+                        }
+                    }
+                }
             }
         }
+        unset($tempSightings);
         unset($event['Event']['RelatedAttribute']);
 
         // Remove information about user_id from JSON export
