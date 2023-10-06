@@ -68,6 +68,15 @@ class UsersTable extends AppTable
                 'propertyName' => 'UserSetting'
             ]
         );
+        $this->belongsTo(
+            'Servers',
+            [
+                'dependent' => false,
+                'cascadeCallbacks' => false,
+                'foreignKey' => 'server_id',
+                'propertyName' => 'Server'
+            ]
+        );
         $this->setDisplayField('email');
     }
 
@@ -155,39 +164,39 @@ class UsersTable extends AppTable
             ->add(
                 'password',
                 [
-                'password_complexity' => [
-                    'rule' => function ($value, $context) {
-                        if (!preg_match('/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/s', $value) || strlen($value) < 12) {
-                            return false;
-                        }
-                        return true;
-                    },
-                    'message' => __('Invalid password. Passwords have to be either 16 character long or 12 character long with 3/4 special groups.')
-                ],
-                'password_confirmation' => [
-                    'rule' => function ($value, $context) {
-                        if (isset($context['data']['confirm_password'])) {
-                            if ($context['data']['confirm_password'] !== $value) {
+                    'password_complexity' => [
+                        'rule' => function ($value, $context) {
+                            if (!preg_match('/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/s', $value) || strlen($value) < 12) {
                                 return false;
                             }
-                        }
-                        return true;
-                    },
-                    'message' => __('Password confirmation missing or not matching the password.')
-                ]
+                            return true;
+                        },
+                        'message' => __('Invalid password. Passwords have to be either 16 character long or 12 character long with 3/4 special groups.')
+                    ],
+                    'password_confirmation' => [
+                        'rule' => function ($value, $context) {
+                            if (isset($context['data']['confirm_password'])) {
+                                if ($context['data']['confirm_password'] !== $value) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        },
+                        'message' => __('Password confirmation missing or not matching the password.')
+                    ]
                 ]
             )
             ->add(
                 'username',
                 [
-                'username_policy' => [
-                    'rule' => function ($value, $context) {
-                        if (mb_strlen(trim($value)) < 5 || mb_strlen(trim($value)) > 50) {
-                            return __('Invalid username length. Make sure that you provide a username of at least 5 and up to 50 characters in length.');
+                    'username_policy' => [
+                        'rule' => function ($value, $context) {
+                            if (mb_strlen(trim($value)) < 5 || mb_strlen(trim($value)) > 50) {
+                                return __('Invalid username length. Make sure that you provide a username of at least 5 and up to 50 characters in length.');
+                            }
+                            return true;
                         }
-                        return true;
-                    }
-                ]
+                    ]
                 ]
             )
             ->requirePresence(['username'], 'create')
@@ -197,8 +206,8 @@ class UsersTable extends AppTable
                 'username',
                 'valid_email',
                 [
-                'rule' => 'email',
-                'message' => 'Username has to be a valid e-mail address.'
+                    'rule' => 'email',
+                    'message' => 'Username has to be a valid e-mail address.'
                 ]
             );
         }
@@ -267,7 +276,94 @@ class UsersTable extends AppTable
         if (empty($id)) {
             throw new InvalidArgumentException('Invalid user ID.');
         }
-        $conditions = ['User.id' => $id];
+        $conditions = ['Users.id' => $id];
         return $this->getAuthUserByConditions($conditions, $full);
+    }
+
+    /**
+     * Get user model with Role, Organisation and Server, but without PGP and S/MIME keys
+     * @param array $conditions
+     * @param bool $full When true, fetch all user fields.
+     * @return array|null
+     */
+    private function getAuthUserByConditions(array $conditions, $full = false)
+    {
+        $user = $this->find(
+            'all',
+            [
+                'conditions' => $conditions,
+                'fields' => $full ? [] : $this->describeAuthFields(),
+                'recursive' => -1,
+                'contain' => [
+                    'Organisations',
+                    'Roles',
+                    'Servers',
+                ],
+            ]
+        )->first();
+        if (empty($user)) {
+            return $user;
+        }
+
+        // return $this->rearrangeToAuthForm($user); // TODO: [3.x-MIGRATION] - is this still needed?
+        return $user;
+    }
+
+    /**
+     * Returns fields that should be fetched from database.
+     * @return array
+     */
+    public function describeAuthFields()
+    {
+        // TODO: [3.x-MIGRATION] - is this still needed?
+        // $fields = $this->schema();
+        // // Do not include keys, because they are big and usually not necessary
+        // unset($fields['gpgkey']);
+        // unset($fields['certif_public']);
+        // // Do not fetch password from db, it is automatically fetched by BaseAuthenticate::_findUser
+        // unset($fields['password']);
+        // // Do not fetch authkey from db, it is sensitive and not need
+        // unset($fields['authkey']);
+        // $fields = array_keys($fields);
+
+        // foreach ($this->belongsTo as $relatedModel => $foo) {
+        //     $fields[] = $relatedModel . '.*';
+        // }
+        // return $fields;
+
+        return [
+            "id",
+            "org_id",
+            "server_id",
+            "email",
+            "autoalert",
+            "invited_by",
+            "nids_sid",
+            "termsaccepted",
+            "newsread",
+            "role_id",
+            "change_pw",
+            "contactalert",
+            "disabled",
+            "expiration",
+            "current_login",
+            "last_login",
+            "force_logout",
+            "date_created",
+            "date_modified",
+            "sub",
+            "external_auth_required",
+            "external_auth_key",
+            "last_api_access",
+            "notification_daily",
+            "notification_weekly",
+            "notification_monthly",
+            // "totp", // TODO: [3.x-MIGRATION]
+            // "hotp_counter", // TODO: [3.x-MIGRATION]
+            // "last_pw_change", // TODO: [3.x-MIGRATION]
+            // "Roles.*", // TODO: [3.x-MIGRATION]
+            // "Organisations.*", v
+            // "Servers.*" // TODO: [3.x-MIGRATION]
+        ];
     }
 }
