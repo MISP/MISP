@@ -38,7 +38,7 @@ return [
     'EmailTransport' => [
         'default' => [
             'host' => env('EMAIL_HOST'),
-            'port' => 1025,
+            'port' => env('EMAIL_PORT'),
             'username' => env('EMAIL_USERNAME'),
             'password' => env('EMAIL_PASSWORD'),
             'className' => 'Smtp',
