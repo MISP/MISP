@@ -39,16 +39,17 @@ return [
     ],
     'EmailTransport' => [
         'default' => [
-            'host' => '127.0.0.1',
-            'port' => 25,
-            'username' => null,
-            'password' => null,
+            'host' => env('EMAIL_HOST'),
+            'port' => env('EMAIL_PORT'),
+            'username' => env('MAIL_USERNAME'),
+            'password' => env('MAIL_PASSWORD'),
             'client' => null,
             'url' => env('EMAIL_TRANSPORT_DEFAULT_URL', null),
         ],
     ],
     'MISP' => [
-        'dark' => 0
+        'dark' => 0,
+        'email' => 'email@example.com'
     ],
     'BackgroundJobs' => [
         'enabled' => true,

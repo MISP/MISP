@@ -16,6 +16,8 @@ services:
       - ./tests:/var/www/html/tests
       - ./tools:/var/www/html/tools
       - ./webroot:/var/www/html/webroot
+      - ./docker/misp/config/app_local.php:/var/www/html/config/app_local.php:delegated
+      - ./docker/misp/logs:/var/www/html/logs:delegated
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -37,3 +39,11 @@ services:
   redis:
     ports:
       - "6379:6379"
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - 1025:1025
+      - 8025:8025
+    networks:
+      - backend-network

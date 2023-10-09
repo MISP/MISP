@@ -24,6 +24,10 @@ services:
       NUM_WORKERS_EMAIL: ${NUM_WORKERS_EMAIL:-5}
       NUM_WORKERS_UPDATE: ${NUM_WORKERS_UPDATE:-5}
       NUM_WORKERS_CACHE: ${NUM_WORKERS_CACHE:-5}
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USERNAME: ${EMAIL_USERNAME}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
     healthcheck:
       interval: 10s
       timeout: 5s

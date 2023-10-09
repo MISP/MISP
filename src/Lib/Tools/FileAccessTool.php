@@ -1,10 +1,11 @@
 <?php
+
 namespace App\Lib\Tools;
 
-use Cake\Core\Exception\Exception;
-use Cake\Http\Exception\MethodNotAllowedException;
-use Cake\Http\Exception\InternalErrorException;
 use Cake\Core\Configure;
+use Cake\Http\Exception\InternalErrorException;
+use Cake\Http\Exception\MethodNotAllowedException;
+use Exception;
 
 class FileAccessTool
 {
