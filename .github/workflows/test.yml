@@ -43,7 +43,7 @@ jobs:
           tools: composer:v2
 
       - name: Install mysql client
-        run: sudo apt-get install -y mysql-client
+        run: sudo apt-get install -y mysql-client gpg
 
       - name: Install composer packages
         run: composer install --no-interaction --no-progress --no-suggest

@@ -63,5 +63,15 @@ return [
         'supervisor_port' => '9001',
         'supervisor_user' => 'supervisor',
         'supervisor_password' => 'supervisor',
+    ],
+    'GnuPG' => [
+        'onlyencrypted'     => false,
+        'email'             => env('MISP_EMAIL', env('ADMIN_EMAIL')),
+        'homedir'           => env('GPG_DIR', '/var/www/.gnupg'),
+        'password'          => env('GPG_PASSPHRASE', 'passphrase'),
+        'bodyonlyencrypted' => false,
+        'sign'              => true,
+        'obscure_subject'   => false,
+        'binary'            => '/usr/bin/gpg'
     ]
 ];

@@ -4,10 +4,8 @@ namespace App\Test\TestCase\Tool;
 
 use App\Lib\Tools\CryptGpgExtended;
 use App\Lib\Tools\TmpFileTool;
-use Cake\TestSuite\TestCase;
 use Cake\Core\Configure;
-
-// use PHPUnit\Framework\TestCase;
+use Cake\TestSuite\TestCase;
 
 class CryptGpgExtendedTest extends TestCase
 {
