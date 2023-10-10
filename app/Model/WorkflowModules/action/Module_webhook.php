@@ -8,7 +8,7 @@ class Module_webhook extends WorkflowBaseActionModule
 {
     public $id = 'webhook';
     public $name = 'Webhook';
-    public $version = '0.5';
+    public $version = '0.6';
     public $description = 'Allow to perform custom callbacks to the provided URL';
     public $icon_path = 'webhook.png';
     public $inputs = 1;
@@ -49,6 +49,16 @@ class Module_webhook extends WorkflowBaseActionModule
                     'get' => 'GET',
                     'put' => 'PUT',
                     'delete' => 'DELETE',
+                ],
+            ],
+            [
+                'id' => 'self_signed',
+                'label' => __('Self-signed certificates'),
+                'type' => 'select',
+                'default' => 'deny',
+                'options' => [
+                    'deny' => 'Deny self-signed certificates',
+                    'allow' => 'Allow self-signed certificates',
                 ],
             ],
             [
@@ -108,6 +118,7 @@ class Module_webhook extends WorkflowBaseActionModule
         }
         $tmpHeaders = explode(PHP_EOL, $params['headers']['value']);
         $headers = [];
+        $selfSignedAllowed = $params['self_signed']['value'] == 'allow';
         foreach ($tmpHeaders as $entry) {
             $entry = explode(':', $entry, 2);
             if (count($entry) == 2) {
@@ -115,7 +126,7 @@ class Module_webhook extends WorkflowBaseActionModule
             }
         }
         try {
-            $response = $this->doRequest($params['url']['value'], $params['content_type']['value'], $payload, $headers, $params['request_method']['value']);
+            $response = $this->doRequest($params['url']['value'], $params['content_type']['value'], $payload, $headers, $params['request_method']['value'], ['self_signed' => $selfSignedAllowed]);
             if ($response->isOk()) {
                 return true;
             }
