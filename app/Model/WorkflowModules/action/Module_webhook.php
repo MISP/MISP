@@ -110,7 +110,9 @@ class Module_webhook extends WorkflowBaseActionModule
         $headers = [];
         foreach ($tmpHeaders as $entry) {
             $entry = explode(':', $entry, 2);
-            $headers[trim($entry[0])] = trim($entry[1]);
+            if (count($entry) == 2) {
+                $headers[trim($entry[0])] = trim($entry[1]);
+            }
         }
         try {
             $response = $this->doRequest($params['url']['value'], $params['content_type']['value'], $payload, $headers, $params['request_method']['value']);
