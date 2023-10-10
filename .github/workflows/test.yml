@@ -13,47 +13,15 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
 
-    services:
-      db:
-        image: mariadb:10
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: misp3_test
-          MYSQL_USER: misp
-          MYSQL_PASSWORD: misp
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd "mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 3
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-        with:
-          submodules: recursive
+    - name: Checkout
+      uses: actions/checkout@v1
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.2"
-          extensions: pdo_mysql, pdo_sqlite, xml, mbstring, intl
-          tools: composer:v2
+    - name: Start test containers
+      run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" up -d --build
 
-      - name: Install mysql client
-        run: sudo apt-get install -y mysql-client gpg
+    - name: Run tests
+      run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" exec --no-TTY misp vendor/bin/phpunit
 
-      - name: Install composer packages
-        run: composer install --no-interaction --no-progress --no-suggest
-
-      - name: Copy config file
-        run: cp -Rf config/app_local.gh_action.php config/app_local.php
-
-      - name: Run tests
-        run: vendor/bin/phpunit --configuration phpunit.xml.dist
-
-      - name: Debug cli-error.log
-        if: failure()
-        run: tail -n 2000 logs/cli-error.log
+    - name: Stop containers
+      run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" down
