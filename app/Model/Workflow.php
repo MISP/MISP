@@ -532,6 +532,9 @@ class Workflow extends AppModel
         if (empty($blockingPathExecutionSuccess)) {
             $message = __('Execution stopped. %s', PHP_EOL . implode(', ', $blockingErrors));
             $this->logExecutionError($workflow, $message);
+        } else if (!empty($blockingErrors)) {
+            $message = __('Execution encountered an error but continued. %s', PHP_EOL . implode(', ', $blockingErrors));
+            $this->logExecutionError($workflow, $message);
         }
         $outcomeText = 'failure';
         if (!empty($blockingPathExecutionSuccess)) {
@@ -663,8 +666,12 @@ class Workflow extends AppModel
             return false;
         }
         if (!is_null($moduleClass)) {
+            $execErrors = [];
             try {
-                $success = $moduleClass->exec($node, $roamingData, $errors);
+                $success = $moduleClass->exec($node, $roamingData, $execErrors);
+                if (!empty($execErrors)) {
+                    $errors += $execErrors;
+                }
             } catch (Exception $e) {
                 $message = __('Error while executing module %s. Error: %s', $node['data']['id'], $e->getMessage());
                 $this->logExecutionError($roamingData->getWorkflow(), $message);
@@ -679,15 +686,23 @@ class Workflow extends AppModel
             $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $node['data']['id'], 'loading_error'), $roamingData->getData());
             return false;
         }
-        $message = __('Executed node `%s`' .  PHP_EOL . 'Node `%s` (%s) from Workflow `%s` (%s) executed successfully',
+        $sucessType = $success ? 'success' : 'partial-success';
+        $message = __('Executed node `%s`' .  PHP_EOL . 'Node `%s` (%s) from Workflow `%s` (%s) executed successfully with status: %s',
             $node['data']['id'],
             $node['data']['id'],
             $node['id'],
             $roamingData->getWorkflow()['Workflow']['name'],
-            $roamingData->getWorkflow()['Workflow']['id']
+            $roamingData->getWorkflow()['Workflow']['id'],
+            $sucessType
         );
         $this->logExecutionIfDebug($roamingData->getWorkflow(), $message);
-        $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'success'), $roamingData->getData());
+        $this->sendRequestToDebugEndpointIfDebug(
+            $roamingData->getWorkflow(),
+            $node,
+            sprintf('/exec/%s?result=%s', $moduleClass->id, $sucessType),
+            $roamingData->getData(),
+            $execErrors
+        );
         return $success;
     }
 
@@ -1495,14 +1510,14 @@ class Workflow extends AppModel
         return $saveSuccess;
     }
 
-    public function sendRequestToDebugEndpointIfDebug(array $workflow, array $node, $path='/', array $data=[])
+    public function sendRequestToDebugEndpointIfDebug(array $workflow, array $node, $path='/', array $data=[], array $errors=[])
     {
         if ($workflow['Workflow']['debug_enabled']) {
-            $this->sendRequestToDebugEndpoint($workflow, $node, $path, $data);
+            $this->sendRequestToDebugEndpoint($workflow, $node, $path, $data, $errors);
         }
     }
 
-    public function sendRequestToDebugEndpoint(array $workflow, array $node, $path='/', array $data=[])
+    public function sendRequestToDebugEndpoint(array $workflow, array $node, $path='/', array $data=[],  array $errors=[])
     {
         $debug_url = Configure::read('Plugin.Workflow_debug_url');
         App::uses('HttpSocket', 'Network/Http');
@@ -1520,6 +1535,9 @@ class Workflow extends AppModel
             'timestamp' => date("c"),
             'data' => $data,
         ];
+        if (!empty($errors)) {
+            $dataToPost['errors'] = $errors;
+        }
         $socket->post($uri, JsonTool::encode($dataToPost));
     }
     
