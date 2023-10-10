@@ -2,12 +2,12 @@
 
 namespace App\Lib\Tools;
 
-use Exception;
-use InvalidArgumentException;
-use Cake\Mailer\Mailer as CakeEmail;
 use Cake\Core\Configure;
 use Cake\I18n\FrozenTime;
+use Cake\Mailer\Mailer as CakeEmail;
 use Cake\Utility\Text;
+use Exception;
+use InvalidArgumentException;
 
 class SendEmailException extends Exception
 {
@@ -20,6 +20,9 @@ class CakeEmailBody
 
     /** @var string|null */
     public $text;
+
+    /** @var string|null */
+    protected $_boundary;
 
     public function __construct($text = null, $html = null)
     {
@@ -72,11 +75,14 @@ class CakeEmailExtended extends CakeEmail
      */
     private $body;
 
+    /** @var string|null */
+    protected $_boundary;
+
     /**
      * @param array $include
      * @return array
      */
-    public function getHeaders($include = array())
+    public function getHeaders($include = [])
     {
         $headers = parent::getHeaders($include);
 
@@ -84,7 +90,7 @@ class CakeEmailExtended extends CakeEmail
             $headers['Content-Type'] = $this->body->getContentType();
         } else if ($this->body instanceof MessagePart) {
             $headers = array_merge($headers, $this->body->getHeaders());
-        } else if ($this->_emailFormat !== 'both') { // generate correct content-type header for 'text' or 'html' format
+        } else if ($this->getEmailFormat() !== 'both') { // generate correct content-type header for 'text' or 'html' format
             $headers['Content-Type'] = 'multipart/mixed; boundary="' . $this->boundary() . '"';
         }
 
@@ -117,12 +123,12 @@ class CakeEmailExtended extends CakeEmail
     }
 
     /**
-     * @return array
+     * @return Message
      */
     public function render(string $content = '')
     {
         if ($this->body instanceof MimeMultipart) {
-            return $this->message->setBody($this->body->render());
+            return $this->message->setBody(['text' => $this->body->__toString()]);
         } else if ($this->body instanceof MessagePart) {
             return $this->message->setBody($this->body->render(false));
         } else if ($this->body instanceof CakeEmailBody) {
@@ -149,8 +155,8 @@ class CakeEmailExtended extends CakeEmail
         }
 
         foreach ($rendered as $type => $content) {
-            $content = str_replace(array("\r\n", "\r"), "\n", $content);
-            $content = $this->_encodeString($content, $this->charset);
+            $content = str_replace(["\r\n", "\r"], "\n", $content);
+            $content = $this->_encodeString($content, $this->getCharset());
             $content = $this->_wrap($content);
             $content = implode("\n", $content);
             $rendered[$type] = rtrim($content, "\n");
@@ -169,7 +175,7 @@ class CakeEmailExtended extends CakeEmail
             return $this->body->render(false);
         }
 
-        return parent::_render($content);
+        return parent::render($content);
     }
 
     public function send(?string $action = null, array $args = [], array $headers = []): array
@@ -179,7 +185,7 @@ class CakeEmailExtended extends CakeEmail
 
     public function __toString()
     {
-        return implode("\n", $this->render());
+        return implode("\n", $this->render()->getBody());
     }
 }
 
@@ -188,7 +194,7 @@ class MimeMultipart
     /**
      * @var MessagePart[]
      */
-    private $parts = array();
+    private $parts = [];
 
     /**
      * @var string
@@ -209,7 +215,7 @@ class MimeMultipart
      * @param string $subtype
      * @param array $additionalTypes
      */
-    public function __construct($subtype = 'mixed', $additionalTypes = array())
+    public function __construct($subtype = 'mixed', $additionalTypes = [])
     {
         $this->subtype = $subtype;
         $this->boundary = md5(mt_rand());
@@ -221,7 +227,7 @@ class MimeMultipart
      */
     public function getContentType()
     {
-        $contentType = array_merge(array('multipart/' . $this->subtype), $this->additionalTypes);
+        $contentType = array_merge(['multipart/' . $this->subtype], $this->additionalTypes);
         $contentType[] = 'boundary="' . $this->boundary . '"';
         return implode('; ', $contentType);
     }
@@ -241,7 +247,7 @@ class MimeMultipart
      */
     public function render()
     {
-        $msg = array('--' . $this->boundary);
+        $msg = ['--' . $this->boundary];
         foreach ($this->parts as $part) {
             $msg = array_merge($msg, $part->render());
             $msg[] = '--' . $this->boundary;
@@ -261,7 +267,7 @@ class MessagePart
     /**
      * @var array
      */
-    private $headers = array();
+    private $headers = [];
 
     /**
      * @var array
@@ -307,7 +313,7 @@ class MessagePart
      */
     public function render($withHeaders = true)
     {
-        $msg = array();
+        $msg = [];
         if ($withHeaders) {
             foreach ($this->headers as $name => $value) {
                 $msg[] = "$name: $value";
@@ -361,7 +367,7 @@ class SendEmail
      */
     public function sendExternal(array $params)
     {
-        foreach (array('body', 'reply-to', 'to', 'subject') as $requiredParam) {
+        foreach (['body', 'reply-to', 'to', 'subject'] as $requiredParam) {
             if (!isset($params[$requiredParam])) {
                 throw new InvalidArgumentException("Param '$requiredParam' is required, but not provided.");
             }
@@ -370,16 +376,16 @@ class SendEmail
         $body = str_replace('\n', PHP_EOL, $params['body']); // TODO: Why this?
         $body = new CakeEmailBody($body);
 
-        $attachments = array();
+        $attachments = [];
         if (!empty($params['requestor_gpgkey'])) {
-            $attachments['gpgkey.asc'] = array(
+            $attachments['gpgkey.asc'] = [
                 'data' => $params['requestor_gpgkey']
-            );
+            ];
         }
 
         if (!empty($params['attachments'])) {
             foreach ($params['attachments'] as $key => $value) {
-                $attachments[$key] = array('data' => $value);
+                $attachments[$key] = ['data' => $value];
             }
         }
 
@@ -447,7 +453,7 @@ class SendEmail
      * @throws \Crypt_GPG_Exception
      * @throws SendEmailException
      */
-    public function sendToUser(array $user, $subject, $body, $bodyWithoutEncryption = false, array $replyToUser = array())
+    public function sendToUser(array $user, $subject, $body, $bodyWithoutEncryption = false, array $replyToUser = [])
     {
         if ($body instanceof SendEmailTemplate && $bodyWithoutEncryption !== false) {
             throw new InvalidArgumentException("When body is instance of SendEmailTemplate, \$bodyWithoutEncryption must be false.");
@@ -499,10 +505,12 @@ class SendEmail
         if ($body instanceof SendEmailTemplate && $body->referenceId()) {
             $reference = sha1($body->referenceId() . '|' .  Configure::read('MISP.uuid'));
             $reference = "<$reference@{$email->getDomain()}>";
-            $email->addHeaders([
-                'In-Reply-To' => $reference,
-                'References' => $reference,
-            ]);
+            $email->addHeaders(
+                [
+                    'In-Reply-To' => $reference,
+                    'References' => $reference,
+                ]
+            );
         }
 
         if ($body instanceof SendEmailTemplate && $body->listUnsubscribe()) {
@@ -523,7 +531,7 @@ class SendEmail
 
                 $this->gpg->addSignKey($gnupgEmail, Configure::read('GnuPG.password'));
                 $this->signByGpg($email, $replyToUser);
-                $email->addHeaders(array('Autocrypt' => $this->generateAutocrypt($gnupgEmail)));
+                $email->addHeaders(['Autocrypt' => $this->generateAutocrypt($gnupgEmail)]);
                 $this->gpg->clearSignKeys();
 
                 $signed = true;
@@ -629,7 +637,7 @@ class SendEmail
      * @param array $replyToUser User model
      * @return CakeEmailExtended
      */
-    private function create(array $user, $subject, CakeEmailBody $body, array $attachments = array(), array $replyToUser = array())
+    private function create(array $user, $subject, CakeEmailBody $body, array $attachments = [], array $replyToUser = [])
     {
         $email = new CakeEmailExtended();
 
@@ -645,7 +653,7 @@ class SendEmail
         // getHeaders() method.
         $email->setMessageId($this->generateMessageId($email));
         // The same problem is with 'Date' header, that we need to protect by GPG signature.
-        $email->addHeaders(array('Date' => date(DATE_RFC2822)));
+        $email->addHeaders(['Date' => date(DATE_RFC2822)]);
 
         // If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender.
         // For this reason we should also attach the public key of the sender along with the message (if applicable).
@@ -671,7 +679,7 @@ class SendEmail
         $email->setBody($body);
 
         foreach ($attachments as $key => $value) {
-            $attachments[$key] = array('data' => $value);
+            $attachments[$key] = ['data' => $value];
         }
         $email->setAttachments($attachments);
 
@@ -685,20 +693,23 @@ class SendEmail
      * @throws \Crypt_GPG_Exception
      * @throws \Crypt_GPG_KeyNotFoundException
      */
-    private function signByGpg(CakeEmailExtended $email, array $replyToUser = array())
+    private function signByGpg(CakeEmailExtended $email, array $replyToUser = [])
     {
-        $renderedEmail = $email->render();
+        $renderedEmail = $email->render()->getBodyString();
 
         $messagePart = new MessagePart();
-        $messagePart->addHeader('Content-Type', array(
-            $email->emailFormat() === 'both' ? 'multipart/alternative' : 'multipart/mixed',
-            'boundary="' . $email->boundary() . '"',
-            'protected-headers="v1"',
-        ));
+        $messagePart->addHeader(
+            'Content-Type',
+            [
+                $email->getMessage()->getEmailFormat() === 'both' ? 'multipart/alternative' : 'multipart/mixed',
+                'boundary="' . $email->boundary() . '"',
+                'protected-headers="v1"',
+            ]
+        );
 
         // Protect User-Facing Headers and Structural Headers according to
         // https://tools.ietf.org/id/draft-autocrypt-lamps-protected-headers-02.html
-        $originalHeaders = $email->getHeaders(array('subject', 'from', 'to'));
+        $originalHeaders = $email->getHeaders(['subject', 'from', 'to']);
         $protectedHeaders = ['From', 'To', 'Date', 'Message-ID', 'Subject', 'Reply-To', 'In-Reply-To', 'References'];
         foreach ($protectedHeaders as $header) {
             if (isset($originalHeaders[$header])) {
@@ -725,18 +736,22 @@ class SendEmail
         // GPG message to sign must be delimited by <CR><LF>
         $messageToSign = implode("\r\n", $messagePart->render());
         $signature = $this->gpg->sign($messageToSign, \Crypt_GPG::SIGN_MODE_DETACHED);
+        # write to file
         $signatureInfo = $this->gpg->getLastSignatureInfo();
 
         $signaturePart = new MessagePart();
-        $signaturePart->addHeader('Content-Type', array('application/pgp-signature', 'name="signature.asc"'));
+        $signaturePart->addHeader('Content-Type', ['application/pgp-signature', 'name="signature.asc"']);
         $signaturePart->addHeader('Content-Description', 'OpenPGP digital signature');
-        $signaturePart->addHeader('Content-Disposition', array('attachment', 'filename="signature.asc"'));
+        $signaturePart->addHeader('Content-Disposition', ['attachment', 'filename="signature.asc"']);
         $signaturePart->setPayload($signature);
 
-        $output = new MimeMultipart('signed', array(
-            "micalg=pgp-{$signatureInfo->getHashAlgorithmName()}",
-            'protocol="application/pgp-signature"'
-        ));
+        $output = new MimeMultipart(
+            'signed',
+            [
+                "micalg=pgp-{$signatureInfo->getHashAlgorithmName()}",
+                'protocol="application/pgp-signature"'
+            ]
+        );
         $output->addPart($messagePart);
         $output->addPart($signaturePart);
 
@@ -755,7 +770,7 @@ class SendEmail
         $versionPart->addHeader('Content-Description', 'PGP/MIME version identification');
         $versionPart->setPayload("Version 1\n");
 
-        $rendered = $email->render();
+        $rendered = $email->getBodyString();
 
         $messagePart = new MessagePart();
         $messagePart->addHeader('Content-Type', $email->getHeaders()['Content-Type']);
@@ -766,12 +781,12 @@ class SendEmail
         $encrypted = $this->gpg->encrypt($messageToEncrypt, true);
 
         $encryptedPart = new MessagePart();
-        $encryptedPart->addHeader('Content-Type', array('application/octet-stream', 'name="encrypted.asc"'));
+        $encryptedPart->addHeader('Content-Type', ['application/octet-stream', 'name="encrypted.asc"']);
         $encryptedPart->addHeader('Content-Description', 'OpenPGP encrypted message');
-        $encryptedPart->addHeader('Content-Disposition', array('inline', 'filename="encrypted.asc"'));
+        $encryptedPart->addHeader('Content-Disposition', ['inline', 'filename="encrypted.asc"']);
         $encryptedPart->setPayload($encrypted);
 
-        $output = new MimeMultipart('encrypted', array('protocol="application/pgp-encrypted"'));
+        $output = new MimeMultipart('encrypted', ['protocol="application/pgp-encrypted"']);
         $output->addPart($versionPart);
         $output->addPart($encryptedPart);
 
@@ -787,19 +802,22 @@ class SendEmail
         $renderedEmail = $email->render();
 
         $messagePart = new MessagePart();
-        $messagePart->addHeader('Content-Type', array(
-            $email->emailFormat() === 'both' ? 'multipart/alternative' : 'multipart/mixed',
-            'boundary="' . $email->boundary() . '"',
-        ));
+        $messagePart->addHeader(
+            'Content-Type',
+            [
+                $email->getEmailFormat() === 'both' ? 'multipart/alternative' : 'multipart/mixed',
+                'boundary="' . $email->boundary() . '"',
+            ]
+        );
         $messagePart->setPayload($renderedEmail);
 
         $signaturePart = new MessagePart();
-        $signaturePart->addHeader('Content-Type', array('application/pkcs7-signature', 'name="smime.p7s"'));
+        $signaturePart->addHeader('Content-Type', ['application/pkcs7-signature', 'name="smime.p7s"']);
         $signaturePart->addHeader('Content-Transfer-Encoding', 'base64');
-        $signaturePart->addHeader('Content-Disposition', array('attachment', 'filename="smime.p7s"'));
+        $signaturePart->addHeader('Content-Disposition', ['attachment', 'filename="smime.p7s"']);
         $signaturePart->setPayload($this->signTextBySmime(implode("\r\n", $messagePart->render())));
 
-        $output = new MimeMultipart('signed', array('protocol="application/x-pkcs7-signature"', 'micalg="sha-256"'));
+        $output = new MimeMultipart('signed', ['protocol="application/x-pkcs7-signature"', 'micalg="sha-256"']);
         $output->addPart($messagePart);
         $output->addPart($signaturePart);
 
@@ -863,7 +881,7 @@ class SendEmail
         }
 
         list($inputFile, $outputFile) = $this->createInputOutputFiles($body);
-        $result = openssl_pkcs7_sign($inputFile->pwd(), $outputFile->pwd(), $certPublicSign, $keySign, array(), PKCS7_DETACHED);
+        $result = openssl_pkcs7_sign($inputFile->pwd(), $outputFile->pwd(), $certPublicSign, $keySign, [], PKCS7_DETACHED);
         $inputFile->delete();
 
         if ($result) {
@@ -891,7 +909,7 @@ class SendEmail
         }
 
         list($inputFile, $outputFile) = $this->createInputOutputFiles($body);
-        $result = openssl_pkcs7_encrypt($inputFile->pwd(), $outputFile->pwd(), $publicKey, array(), 0, OPENSSL_CIPHER_AES_256_CBC);
+        $result = openssl_pkcs7_encrypt($inputFile->pwd(), $outputFile->pwd(), $publicKey, [], 0, OPENSSL_CIPHER_AES_256_CBC);
         $inputFile->delete();
 
         if ($result) {
@@ -924,7 +942,7 @@ class SendEmail
         FileAccessTool::writeToFile($inputFile, $content);
 
         $outputFile = FileAccessTool::createTempFile($dir, 'SMIME');
-        return array(new \SplFileObject($inputFile), new \SplFileObject($outputFile));
+        return [new \SplFileObject($inputFile), new \SplFileObject($outputFile)];
     }
 
     /**
@@ -992,7 +1010,7 @@ class SendEmail
             }
         }
 
-        $parts = array("addr=$address");
+        $parts = ["addr=$address"];
         if ($preferEncrypt) {
             $parts[] = 'prefer-encrypt=mutual';
         }
