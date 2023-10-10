@@ -13,6 +13,11 @@ rm -f "${MISP_READY_STATUS_FLAG}"
 [ -z "$MISP_DB" ] && MISP_DB=misp3
 [ -z "$MYSQL_PWD" ] && MYSQL_PWD=$MISP_DB_PASSWORD
 [ -z "$MYSQLCMD" ] && MYSQLCMD="mysql --defaults-file=/etc/mysql/conf.d/misp.cnf -P $MYSQL_PORT -h $MYSQL_HOST -r -N $MISP_DB"
+[ -z "$GPG_PASSPHRASE" ] && GPG_PASSPHRASE="passphrase"
+[ -z "$GPG_DIR" ] && GPG_DIR="/var/www/.gnupg"
+
+# Switches to selectively disable configuration logic
+[ -z "$AUTOCONF_GPG" ] && AUTOCONF_GPG="true"
 
 # create mysql default config
 cat <<EOF >/etc/mysql/conf.d/misp.cnf
@@ -70,12 +75,55 @@ init_user() {
 	ADMIN_USER_ID=$(echo "SELECT id FROM users WHERE EMAIL='${ADMIN_EMAIL}';" | ${MYSQLCMD} | tr -d '\n')
 
 	# Insert Admin user API key
-	if [ -z "$ADMIN_USER_API_KEY" ]; then
+	if [ -z "$ADMIN_API_KEY" ]; then
 		echo >&2 "Creating admin user API key..."
-		ADMIN_USER_API_KEY_START=$(echo ${ADMIN_USER_API_KEY} | head -c 4)
-		ADMIN_USER_API_KEY_END=$(echo ${ADMIN_USER_API_KEY} | tail -c 5)
-		export ADMIN_USER_API_KEY_HASH=$(php -r "echo password_hash('${ADMIN_USER_API_KEY}', PASSWORD_DEFAULT);" | tr -d \')
-		echo "INSERT INTO auth_keys (uuid, authkey, authkey_start, authkey_end, created, expiration, user_id) VALUES ((SELECT uuid()), '${ADMIN_USER_API_KEY_HASH}', '${ADMIN_USER_API_KEY_START}', '${ADMIN_USER_API_KEY_END}', 0, 0, ${ADMIN_USER_ID});" | ${MYSQLCMD}
+		ADMIN_API_KEY_START=$(echo ${ADMIN_API_KEY} | head -c 4)
+		ADMIN_API_KEY_END=$(echo ${ADMIN_API_KEY} | tail -c 5)
+		export ADMIN_API_KEY_HASH=$(php -r "echo password_hash('${ADMIN_API_KEY}', PASSWORD_DEFAULT);" | tr -d \')
+		echo "INSERT INTO auth_keys (uuid, authkey, authkey_start, authkey_end, created, expiration, user_id) VALUES ((SELECT uuid()), '${ADMIN_API_KEY_HASH}', '${ADMIN_API_KEY_START}', '${ADMIN_API_KEY_END}', 0, 0, ${ADMIN_USER_ID});" | ${MYSQLCMD}
+	fi
+}
+
+configure_gnupg() {
+	if [ "$AUTOCONF_GPG" != "true" ]; then
+		echo "... GPG auto configuration disabled"
+		return
+	fi
+
+	GPG_DIR=/var/www/.gnupg
+	GPG_ASC=/var/www/html/webroot/gpg.asc
+	GPG_TMP=/tmp/gpg.tmp
+
+	if [ ! -f "${GPG_DIR}/trustdb.gpg" ]; then
+		echo "... generating new GPG key in ${GPG_DIR}"
+		cat >${GPG_TMP} <<GPGEOF
+%echo Generating a basic OpenPGP key
+Key-Type: RSA
+Key-Length: 3072
+Name-Real: MISP Admin
+Name-Email: ${MISP_EMAIL-$ADMIN_EMAIL}
+Expire-Date: 0
+Passphrase: $GPG_PASSPHRASE
+%commit
+%echo Done
+GPGEOF
+		mkdir -p ${GPG_DIR}
+		gpg --homedir ${GPG_DIR} --gen-key --batch ${GPG_TMP}
+		rm -f ${GPG_TMP}
+	else
+		echo "... found pre-generated GPG key in ${GPG_DIR}"
+	fi
+
+	# Fix permissions
+	chown -R www-data:www-data ${GPG_DIR}
+	find ${GPG_DIR} -type f -exec chmod 600 {} \;
+	find ${GPG_DIR} -type d -exec chmod 700 {} \;
+
+	if [ ! -f ${GPG_ASC} ]; then
+		echo "... exporting GPG key"
+		sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL-$ADMIN_EMAIL} >${GPG_ASC}
+	else
+		echo "... found exported key ${GPG_ASC}"
 	fi
 }
 
@@ -90,6 +138,8 @@ for try in 1 2 3 4 5 6; do
 done
 
 init_user
+
+configure_gnupg
 
 # Test php-fpm config
 php-fpm -t

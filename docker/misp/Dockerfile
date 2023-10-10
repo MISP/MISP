@@ -79,7 +79,7 @@ RUN pecl install -f xdebug pcov \
 # Install additional packages
 RUN apt-get update \
     && apt-get install -y \
-    git sendmail \
+    git sendmail sudo \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

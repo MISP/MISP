@@ -2,8 +2,7 @@
 
 namespace App\Lib\Tools;
 
-use Cake\Core\Exception\Exception;
-use Cake\Core\Configure;
+use Exception;
 
 class CryptGpgExtended extends \Crypt_GPG
 {
@@ -64,7 +63,7 @@ class CryptGpgExtended extends \Crypt_GPG
         $operation = '--export';
         $operation .= ' ' . escapeshellarg($fingerprint);
 
-        $arguments = array('--export-options', 'export-minimal');
+        $arguments = ['--export-options', 'export-minimal'];
         if ($armor) {
             $arguments[] = '--armor';
         }
