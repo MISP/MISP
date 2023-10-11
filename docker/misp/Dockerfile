@@ -44,7 +44,7 @@ WORKDIR /var/www/html
 RUN touch /var/run/php-fpm.pid /var/log/php-fpm.error.log /var/log/php-fpm.slow.log \
     && chown www-data:www-data /var/run/php-fpm.pid /var/log/php-fpm.error.log /var/log/php-fpm.slow.log
 
-# Create tmp directory
+# Create logs directory
 RUN mkdir /var/www/html/logs \
     && chown -R www-data:www-data /var/www/html/logs
 
@@ -79,7 +79,7 @@ RUN pecl install -f xdebug pcov \
 # Install additional packages
 RUN apt-get update \
     && apt-get install -y \
-    git \
+    git sendmail sudo \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

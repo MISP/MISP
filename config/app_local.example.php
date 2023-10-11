@@ -39,16 +39,17 @@ return [
     ],
     'EmailTransport' => [
         'default' => [
-            'host' => '127.0.0.1',
-            'port' => 25,
-            'username' => null,
-            'password' => null,
+            'host' => env('EMAIL_HOST'),
+            'port' => env('EMAIL_PORT'),
+            'username' => env('MAIL_USERNAME'),
+            'password' => env('MAIL_PASSWORD'),
             'client' => null,
             'url' => env('EMAIL_TRANSPORT_DEFAULT_URL', null),
         ],
     ],
     'MISP' => [
-        'dark' => 0
+        'dark' => 0,
+        'email' => 'email@example.com'
     ],
     'BackgroundJobs' => [
         'enabled' => true,
@@ -62,5 +63,15 @@ return [
         'supervisor_port' => '9001',
         'supervisor_user' => 'supervisor',
         'supervisor_password' => 'supervisor',
+    ],
+    'GnuPG' => [
+        'onlyencrypted'     => false,
+        'email'             => env('MISP_EMAIL', env('ADMIN_EMAIL')),
+        'homedir'           => env('GPG_DIR', '/var/www/.gnupg'),
+        'password'          => env('GPG_PASSPHRASE', 'passphrase'),
+        'bodyonlyencrypted' => false,
+        'sign'              => true,
+        'obscure_subject'   => false,
+        'binary'            => '/usr/bin/gpg'
     ]
 ];

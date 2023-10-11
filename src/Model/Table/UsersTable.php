@@ -2,6 +2,10 @@
 
 namespace App\Model\Table;
 
+use App\Lib\Tools\GpgTool;
+use App\Lib\Tools\LogExtendedTrait;
+use App\Lib\Tools\SendEmail;
+use App\Lib\Tools\SendEmailException;
 use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Core\Configure;
@@ -12,16 +16,22 @@ use Cake\Http\Exception\NotFoundException;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\ORM\RulesChecker;
 use Cake\Validation\Validator;
+use Exception;
 use InvalidArgumentException;
+
 
 class UsersTable extends AppTable
 {
     use LocatorAwareTrait;
+    use LogExtendedTrait;
 
     private const PERIODIC_USER_SETTING_KEY = 'periodic_notification_filters';
     public const PERIODIC_NOTIFICATIONS = ['notification_daily', 'notification_weekly', 'notification_monthly'];
 
     private $PermissionLimitations;
+
+    /** @var GpgTool */
+    private $gpg;
 
     public function initialize(array $config): void
     {
@@ -307,6 +317,168 @@ class UsersTable extends AppTable
 
         // return $this->rearrangeToAuthForm($user); // TODO: [3.x-MIGRATION] - is this still needed?
         return $user;
+    }
+
+    /**
+     * Check if user still valid at identity provider.
+     * @param array $user
+     * @return bool
+     * @throws Exception
+     */
+    public function checkIfUserIsValid(array $user)
+    {
+        static $oidc;
+
+        if ($oidc === null) {
+            $auth = Configure::read('Security.auth');
+            if (!$auth) {
+                return true;
+            }
+            if (!is_array($auth)) {
+                throw new Exception("`Security.auth` config value must be array.");
+            }
+            // TODO: [3.x-MIGRATION] - Oidc
+            // if (!in_array('OidcAuth.Oidc', $auth, true)) {
+            //     return true; // this method currently makes sense just for OIDC auth provider
+            // }
+            // $oidc = new Oidc($this);
+        }
+
+        // TODO: [3.x-MIGRATION] - Oidc
+        // return $oidc->isUserValid($user);
+        return false;
+    }
+
+    /**
+     * @param array $params
+     * @return array|bool
+     * @throws Crypt_GPG_Exception
+     * @throws SendEmailException
+     */
+    public function sendEmailExternal(array $params)
+    {
+        $gpg = $this->initializeGpg();
+        $sendEmail = new SendEmail($gpg);
+        return $sendEmail->sendExternal($params);
+    }
+
+    /**
+     * All e-mail sending is now handled by this method
+     * Just pass the user array that is the target of the e-mail along with the message body and the alternate message body if the message cannot be encrypted
+     * the remaining two parameters are the e-mail subject and a secondary user object which will be used as the replyto address if set. If it is set and an encryption key for the replyTo user exists, then his/her public key will also be attached
+     *
+     * @param array $user
+     * @param SendEmailTemplate|string $body
+     * @param string|false $bodyNoEnc
+     * @param string|null $subject
+     * @param array|false $replyToUser
+     * @return bool
+     * @throws Crypt_GPG_BadPassphraseException
+     * @throws Crypt_GPG_Exception
+     */
+    public function sendEmail(array $user, $body, $bodyNoEnc, $subject, $replyToUser = false)
+    {
+        if ($bodyNoEnc === null) {
+            $bodyNoEnc = false;
+        }
+
+        if (Configure::read('MISP.disable_emailing')) {
+            return true;
+        }
+
+        if ($user['disabled'] || !$this->checkIfUserIsValid($user)) {
+            return true;
+        }
+
+        $LogsTable = $this->fetchTable('Logs');
+        $replyToLog = $replyToUser ? ' from ' . $replyToUser['email'] : '';
+
+        $gpg = $this->initializeGpg();
+        $sendEmail = new SendEmail($gpg);
+        try {
+            $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc, $replyToUser ?: []);
+        } catch (SendEmailException $e) {
+            $this->logException("Exception during sending e-mail", $e);
+            $log = $LogsTable->newEntity(
+                [
+                    'org' => 'SYSTEM',
+                    'model' => 'User',
+                    'model_id' => $user['id'],
+                    'email' => $user['email'],
+                    'action' => 'email',
+                    'title' => 'Email' . $replyToLog . ' to ' . $user['email'] . ', titled "' . $subject . '" failed. Reason: ' . $e->getMessage(),
+                    'change' => null,
+                ]
+            );
+            $LogsTable->save($log);
+            return false;
+        }
+
+        $logTitle = $result['encrypted'] ? 'Encrypted email' : 'Email';
+        // Intentional two spaces to pass test :)
+        $logTitle .= $replyToLog  . '  to ' . $user['email'] . ' sent, titled "' . $result['subject'] . '".';
+
+        $log = $LogsTable->newEntity(
+            [
+                'org' => 'SYSTEM',
+                'model' => 'User',
+                'model_id' => $user['id'],
+                'email' => $user['email'],
+                'action' => 'email',
+                'title' => $logTitle,
+                'change' => null,
+            ]
+        );
+        $LogsTable->save($log);
+
+        return true;
+    }
+
+    /**
+     * Initialize GPG. Returns `null` if initialization failed.
+     *
+     * @return null|CryptGpgExtended
+     */
+    private function initializeGpg()
+    {
+        if ($this->gpg !== null) {
+            if ($this->gpg === false) { // initialization failed
+                return null;
+            }
+
+            return $this->gpg;
+        }
+
+        try {
+            $this->gpg = GpgTool::initializeGpg();
+            return $this->gpg;
+        } catch (Exception $e) {
+            $this->logException("GPG couldn't be initialized, GPG encryption and signing will be not available.", $e, LOG_NOTICE);
+            $this->gpg = false;
+            return null;
+        }
+    }
+
+    /**
+     * @param string $email
+     * @return array
+     * @throws Exception
+     */
+    public function searchGpgKey($email)
+    {
+        $gpgTool = new GpgTool(null);
+        return $gpgTool->searchGpgKey($email);
+    }
+
+    /**
+     * @param string $fingerprint
+     * @return string|null
+     * @throws Exception
+     */
+    public function fetchGpgKey($fingerprint)
+    {
+        $gpgTool = new GpgTool($this->initializeGpg());
+        return $gpgTool->fetchGpgKey($fingerprint);
     }
 
     /**
