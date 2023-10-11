@@ -8,7 +8,6 @@ services:
       target: dev
     volumes:
       - ./bin:/var/www/html/bin
-      - ./vendor:/var/www/html/vendor
       - ./config:/var/www/html/config
       - ./libraries:/var/www/html/libraries
       - ./plugins:/var/www/html/plugins
