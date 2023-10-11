@@ -3,8 +3,6 @@
 namespace App\Model\Table;
 
 use App\Model\Entity\SharingGroup;
-use App\Model\Entity\SharingGroupOrg;
-use App\Model\Entity\SharingGroupServer;
 use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use ArrayObject;
@@ -857,7 +855,8 @@ class SharingGroupsTable extends AppTable
                     'extend' => 1,
                     'uuid' => $user['Organisation']['uuid'],
                     'name' => $user['Organisation']['name'],
-                ]];
+                ]
+                ];
                 return $user['org_id'];
             } else {
                 foreach ($sg['SharingGroupOrg'] as $k => $org) {
@@ -893,7 +892,7 @@ class SharingGroupsTable extends AppTable
      */
     public function captureCreatorOrg(array $user, int $sg_id)
     {
-        $sharingGroupOrgEntity = new SharingGroupOrg(
+        $sharingGroupOrgEntity = $this->SharingGroupOrgs->newEntity(
             [
                 'sharing_group_id' => $sg_id,
                 'org_id' => $user['org_id'],
@@ -947,7 +946,7 @@ class SharingGroupsTable extends AppTable
                         ]
                     )->disableHydration()->first();
                     if (empty($temp)) {
-                        $sharingGroupOrgEntity = new SharingGroupOrg(
+                        $sharingGroupOrgEntity = $this->SharingGroupOrgs->newEntity(
                             [
                                 'sharing_group_id' => $sg_id,
                                 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'],
@@ -962,7 +961,7 @@ class SharingGroupsTable extends AppTable
                         }
                     }
                 } else {
-                    $sharingGroupOrgEntity = new SharingGroupOrg(
+                    $sharingGroupOrgEntity =$this->SharingGroupOrgs->newEntity(
                         [
                             'sharing_group_id' => $sg_id,
                             'org_id' => $sg['SharingGroupOrg'][$k]['org_id'],
@@ -1015,7 +1014,7 @@ class SharingGroupsTable extends AppTable
                             ]
                         )->disableHydration()->first();
                         if (empty($temp)) {
-                            $sharingGroupServerEntity = new SharingGroupServer(
+                            $sharingGroupServerEntity = $this->SharingGroupServers->newEntity(
                                 [
                                     'sharing_group_id' => $sg_id,
                                     'server_id' => $sg['SharingGroupServer'][$k]['server_id'],
@@ -1030,7 +1029,7 @@ class SharingGroupsTable extends AppTable
                             }
                         }
                     } else {
-                        $sharingGroupServerEntity = new SharingGroupServer(
+                        $sharingGroupServerEntity = $this->SharingGroupServers->newEntity(
                             [
                                 'sharing_group_id' => $sg_id,
                                 'server_id' => $sg['SharingGroupServer'][$k]['server_id'],

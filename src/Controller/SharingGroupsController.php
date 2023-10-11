@@ -4,8 +4,6 @@ namespace App\Controller;
 
 use App\Controller\AppController;
 use App\Model\Entity\SharingGroup;
-use App\Model\Entity\SharingGroupOrg;
-use App\Model\Entity\SharingGroupServer;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
 use Cake\Http\Exception\MethodNotAllowedException;
@@ -284,7 +282,8 @@ class SharingGroupsController extends AppController
                 ['path' => 'roaming', 'label' => __('Roaming'), 'element' => 'boolean',],
                 ['path' => 'org_count', 'label' => __('Org. count'), 'formatter' => function ($field, $row) {
                     return count($row['SharingGroupOrg']);
-                }],
+                }
+                ],
             ],
         ];
         $currentUser = $this->ACL->getUser();
@@ -349,16 +348,16 @@ class SharingGroupsController extends AppController
 
         $this->CRUD->index(
             [
-            'filters' => $this->filterFields,
-            'quickFilters' => $this->quickFilterFields,
-            'conditions' => $conditions,
-            'contextFilters' => [
-                'custom' => $customContextFilters,
-            ],
-            'contain' => $containFields,
-            'afterFind' => $afterFindHandler,
-            'statisticsFields' => $this->statisticsFields,
-            'wrapResponse' => true,
+                'filters' => $this->filterFields,
+                'quickFilters' => $this->quickFilterFields,
+                'conditions' => $conditions,
+                'contextFilters' => [
+                    'custom' => $customContextFilters,
+                ],
+                'contain' => $containFields,
+                'afterFind' => $afterFindHandler,
+                'statisticsFields' => $this->statisticsFields,
+                'wrapResponse' => true,
             ]
         );
         $responsePayload = $this->CRUD->getResponsePayload();
@@ -405,7 +404,8 @@ class SharingGroupsController extends AppController
                 ['path' => 'roaming', 'label' => __('Roaming'), 'element' => 'boolean',],
                 ['path' => 'org_count', 'label' => __('Org. count'), 'formatter' => function ($field, $row) {
                     return count($row['SharingGroupOrg']);
-                }],
+                }
+                ],
             ],
         ];
         $requestParams = $this->ParamHandler->harvestParams($validFields);
@@ -484,12 +484,13 @@ class SharingGroupsController extends AppController
                 $UserTable = $this->fetchTable('Users');
                 $syncUser = $UserTable->find()->where(
                     [
-                    'conditions' => ['Users.id' => $sg->sync_user_id],
-                    'recursive' => -1,
-                    'fields' => ['Users.id'],
-                    'contain' => ['Organisations' => [
-                        'fields' => ['Organisations.id', 'Organisations.name', 'Organisations.uuid'],
-                    ]]
+                        'conditions' => ['Users.id' => $sg->sync_user_id],
+                        'recursive' => -1,
+                        'fields' => ['Users.id'],
+                        'contain' => ['Organisations' => [
+                            'fields' => ['Organisations.id', 'Organisations.name', 'Organisations.uuid'],
+                        ]
+                        ]
                     ]
                 )->first();
                 if (empty($syncUser)) {
@@ -597,7 +598,7 @@ class SharingGroupsController extends AppController
         if (!$addOrg) {
             return $this->RestResponse->saveFailResponse('SharingGroup', 'addOrg', false, 'Organisation is already in the sharing group.');
         }
-        $sharingGroupOrgEntity = new SharingGroupOrg(
+        $sharingGroupOrgEntity = $this->SharingGroups->SharingGroupOrgs->newEntity(
             [
                 'org_id' => $org['id'],
                 'sharing_group_id' => $sg['id'],
@@ -657,7 +658,7 @@ class SharingGroupsController extends AppController
         if (!$addServer) {
             return $this->RestResponse->saveFailResponse('SharingGroup', 'addServer', false, 'Server is already in the sharing group.');
         }
-        $sharingGroupServerEntity = new SharingGroupServer(
+        $sharingGroupServerEntity = $this->SharingGroups->SharingGroupServers->newEntity(
             [
                 'server_id' => $server['id'],
                 'sharing_group_id' => $sg['id'],
