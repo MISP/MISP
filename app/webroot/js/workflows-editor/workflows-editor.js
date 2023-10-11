@@ -1649,10 +1649,30 @@ function enableHashpathPicker() {
     })
 }
 
+function redrawFormatPicker(json, associatedParamId) {
+    var jsonData = JSON.parse(json)
+    var $customDataInput = genCustomDataInputForHashpathPicker(associatedParamId)
+    var UIPicker = generateCoreFormatUI(jsonData, associatedParamId)
+    var $modalBody = $('<div>').attr('style', 'display: flex; flex-direction: column').append($customDataInput, UIPicker)
+    $('#core-format-picker').parent().html($modalBody[0])
+}
+
+function genCustomDataInputForHashpathPicker(associatedParamId) {
+    return $('<input>')
+        .attr({
+            id: 'hashpath-custom-format-input',
+            type: 'text',
+            placeholder: 'Provide a custom JSON',
+            onchange: 'redrawFormatPicker(this.value, "' + associatedParamId + '")',
+            style: 'flex-grow: 1; width: unset;'
+        })
+}
+
 function toggleCoreFormatPicker(btn) {
     var associatedParamId = $(btn).closest('.input-append').find('input').data('paramid')
     var sample = JSON.parse($('#misp-core-format-sample').text())
     var UIPicker = generateCoreFormatUI(sample, associatedParamId)
+    var $customDataInput = genCustomDataInputForHashpathPicker(associatedParamId)
     var $selectedPath = $('<input>')
         .attr({
             id: 'selected-hashpath-input',
@@ -1690,7 +1710,8 @@ function toggleCoreFormatPicker(btn) {
         .append($selectedPathOperators, $selectedPath)
     var $closeButton = $('<div>').append($('<a href="#" class="btn" data-dismiss="modal">Close</a>'))
     var $footer = $('<div>').css({display: 'flex'}).append($pathGroup, $closeButton)
-    openModal('Pick Hash path', UIPicker[0].outerHTML, $footer[0].outerHTML, undefined, undefined, 'max-height: 70vh;', 'modal-lg')
+    var $modalBody = $('<div>').attr('style', 'display: flex; flex-direction: column').append($customDataInput, UIPicker)
+    openModal('Pick Hash path', $modalBody[0].outerHTML, $footer[0].outerHTML, undefined, undefined, 'max-height: 70vh;', 'modal-lg')
 }
 
 function genParameterWarning(options) {
