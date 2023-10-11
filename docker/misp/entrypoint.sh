@@ -119,12 +119,8 @@ GPGEOF
 	find ${GPG_DIR} -type f -exec chmod 600 {} \;
 	find ${GPG_DIR} -type d -exec chmod 700 {} \;
 
-	if [ ! -f ${GPG_ASC} ]; then
-		echo "... exporting GPG key"
-		sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL-$ADMIN_EMAIL} >${GPG_ASC}
-	else
-		echo "... found exported key ${GPG_ASC}"
-	fi
+	echo "... exporting GPG key"
+	sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL-$ADMIN_EMAIL} >${GPG_ASC}
 }
 
 delete_model_cache
