@@ -397,7 +397,7 @@ class SendEmail
         $email->setSubject($params['subject']);
         $email->setEmailFormat($body->format());
         $email->setBody($body);
-        $email->attachments($attachments);
+        $email->addAttachments($attachments);
 
         if ($this->transport) {
             $email->transport($this->transport);

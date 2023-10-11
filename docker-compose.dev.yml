@@ -28,6 +28,8 @@ services:
       ADMIN_ORG: ${ADMIN_ORG:-ORGNAME}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@admin.test}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-admin}
+      XDEBUG_MODE: "debug"
+      XDEBUG_SESSION: 1
 
   webserver:
     volumes:

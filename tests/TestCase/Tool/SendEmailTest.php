@@ -25,7 +25,7 @@ class SendEmailTest extends TestCase
             'certif_public' => null
         ];
 
-        $subject = 'Test Encrypted';
+        $subject = 'Test (GPG Encrypted)';
         $body = 'Test Encrypted Body';
         $bodyNoEnc = false;
 
@@ -35,6 +35,7 @@ class SendEmailTest extends TestCase
         $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc);
 
         $this->assertMailSentTo($to);
+        $this->assertMailSubjectContains($subject);
 
         $messages = TestEmailTransport::getMessages();
         $this->assertCount(1, $messages);
@@ -56,7 +57,7 @@ class SendEmailTest extends TestCase
             'certif_public' => null
         ];
 
-        $subject = 'Test Signed';
+        $subject = 'Test (PGP Signed)';
         $body = 'Test Signed Body';
         $bodyNoEnc = true;
 
@@ -102,20 +103,10 @@ class SendEmailTest extends TestCase
         $this->assertTrue($verified[0]->isValid());
     }
 
-    public function testSendPlaintextEmailToExternal()
-    {
-    }
-
     private function initializeGpg(): CryptGpgExtended
     {
         $config = Configure::read('GnuPG');
 
-        $options = [
-            'homedir' => $config['homedir'],
-            'gpgconf' => $config['gpgconf'] ?? null,
-            'binary' => $config['binary'] ?? '/usr/bin/gpg',
-        ];
-
-        return new CryptGpgExtended($options);
+        return new CryptGpgExtended($config);
     }
 }
