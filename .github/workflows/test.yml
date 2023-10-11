@@ -20,10 +20,8 @@ jobs:
       - name: Start test containers
         run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" up -d --build
 
-      # - name: Run tests
-      #   run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" exec --no-TTY misp vendor/bin/phpunit
       - name: Run tests
-        run: vendor/bin/phpunit
+        run: vendor/bin/phpunit --configuration phpunit.xml.dist --testdox
 
       - name: Stop containers
-        run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" down
+        run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" down --remove-orphans --volumes
