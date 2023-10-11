@@ -18,6 +18,7 @@ services:
       - ./webroot:/var/www/html/webroot
       - ./docker/misp/config/app_local.php:/var/www/html/config/app_local.php:delegated
       - ./docker/misp/logs:/var/www/html/logs:delegated
+      - ./tmp:/var/www/html/tmp:delegated
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
