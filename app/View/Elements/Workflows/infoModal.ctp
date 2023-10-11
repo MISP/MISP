@@ -252,6 +252,9 @@ $data_passed_to_if_module = [
                         "relationship_type": null,
                         "inherited": false
                     }
+                ],
+                "enrichment": [
+                    {}
                 ]
             }
         ],
@@ -580,6 +583,9 @@ $data_passed_to_if_module = [
                         "relationship_type": null,
                         "inherited": false
                     }
+                ],
+                "enrichment": [
+                    {}
                 ]
             },
             {

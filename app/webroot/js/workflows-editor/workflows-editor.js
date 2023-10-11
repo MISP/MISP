@@ -143,10 +143,17 @@ var iconBySeverity = {
     'error': 'fa-exclamation-circle',
 }
 var severities = ['info', 'warning', 'error']
-var haspathQuickPickMenu = [
+var haspathQuickPickMenuElementSelector = [
     { 'name': 'All Attributes', 'path': 'Event._AttributeFlattened.{n}' },
     { 'name': 'All tags attached to all Attributes', 'path': 'Event._AttributeFlattened.{n}.Tag.{n}.name' },
     { 'name': 'All tags attached to the Event', 'path': 'Event.Tag.{n}.name' },
+]
+var haspathQuickPickMenuSubElementSelector = [
+    { 'name': 'Attribute type', 'path': 'type' },
+    { 'name': 'All tags', 'path': 'Tag.{n}.name' },
+    { 'name': 'Warnings from warninglists', 'path': 'warnings.{n}.warninglist_category' },
+    { 'name': 'Feed correlation', 'path': 'Feed.{n}.name' },
+    { 'name': 'All enrichments', 'path': 'enrichment.{n}' },
 ]
 
 var workflow_id = 0
@@ -1852,7 +1859,8 @@ function genInput(options, isTextArea, forNode = true) {
 }
 
 function genHashpathInput(options, forNode = true) {
-    function hashPathGenDropdownMenu() {
+    function hashPathGenDropdownMenu(hashpathOptions) {
+        var haspathQuickPickMenu = hashpathOptions.is_sub_selector ? haspathQuickPickMenuSubElementSelector : haspathQuickPickMenuElementSelector
         var $divider = $('<li>').addClass('divider')
         var $dropdownMenu = $('<ul>').addClass('dropdown-menu pull-right')
         var $liPicker = $('<li>').append(
@@ -1921,7 +1929,7 @@ function genHashpathInput(options, forNode = true) {
         .attr('data-toggle', 'dropdown')
         .text('Pick ')
         .append($('<span>').addClass('caret'))
-    var $dropdownMenu = hashPathGenDropdownMenu()
+    var $dropdownMenu = hashPathGenDropdownMenu(options.hashpath ? options.hashpath : {})
     $dropdownContainer.append($dropdownButton, $dropdownMenu)
     $addonContainer.append($input, $dropdownContainer)
     $container.append($label, $addonContainer)
