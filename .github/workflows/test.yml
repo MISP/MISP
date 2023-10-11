@@ -14,14 +14,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v1
+      - name: Checkout
+        uses: actions/checkout@v1
 
-    - name: Start test containers
-      run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" up -d --build
+      - name: Start test containers
+        run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" up -d --build
 
-    - name: Run tests
-      run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" exec --no-TTY misp vendor/bin/phpunit
+      # - name: Run tests
+      #   run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" exec --no-TTY misp vendor/bin/phpunit
+      - name: Run tests
+        run: vendor/bin/phpunit
 
-    - name: Stop containers
-      run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" down
+      - name: Stop containers
+        run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" down
