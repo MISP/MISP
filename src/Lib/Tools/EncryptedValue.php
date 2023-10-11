@@ -2,8 +2,8 @@
 
 namespace App\Lib\Tools;
 
-use JsonSerializable;
 use Cake\Core\Configure;
+use JsonSerializable;
 
 /**
  * Class for ondemand encryption of JSON serialized value
@@ -40,7 +40,7 @@ class EncryptedValue implements JsonSerializable
         return $this->decrypt();
     }
 
-    public function jsonSerialize()
+    public function jsonSerialize(): mixed
     {
         return $this->decrypt();
     }

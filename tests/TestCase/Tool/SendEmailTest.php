@@ -15,7 +15,7 @@ class SendEmailTest extends TestCase
     # this trait prevents the emails from actually being sent (won't reach MailHog)
     use EmailTrait;
 
-    public function testSendPlaintextEmailToUserEncrypted()
+    public function testSendPlaintextEmailToUserEncryptedByGpg()
     {
         $gpgkey = file_get_contents('/var/www/html/webroot/gpg.asc');
         $to = 'admin@admin.test';
@@ -47,7 +47,7 @@ class SendEmailTest extends TestCase
         $this->assertStringContainsString($body, $decrypted);
     }
 
-    public function testSendPlaintextEmailToUserSigned()
+    public function testSendPlaintextEmailToUserSignedByGpg()
     {
         $to = 'admin@admin.test';
         $user = [
@@ -100,6 +100,10 @@ class SendEmailTest extends TestCase
         $this->assertIsArray($verified);
         $this->assertCount(1, $verified);
         $this->assertTrue($verified[0]->isValid());
+    }
+
+    public function testSendPlaintextEmailToExternal()
+    {
     }
 
     private function initializeGpg(): CryptGpgExtended
