@@ -2,51 +2,52 @@
 
 namespace App\Test\TestCase\Tool;
 
-use Cake\TestSuite\TestCase;
 use App\Lib\Tools\CryptGpgExtended;
 use App\Lib\Tools\SendEmail;
 use Cake\Core\Configure;
 use Cake\TestSuite\EmailTrait;
+use Cake\TestSuite\TestCase;
 use Cake\TestSuite\TestEmailTransport;
 
 class SendEmailTest extends TestCase
 {
     # see: https://book.cakephp.org/4/en/core-libraries/email.html#testing-mailers
+    # this trait prevents the emails from actually being sent (won't reach MailHog)
     use EmailTrait;
 
-    // public function testSendToUserEncrypted()
-    // {
-    //     $gpgkey = file_get_contents('/var/www/html/webroot/gpg.asc');
-    //     $to = 'admin@admin.test';
-    //     $user = [
-    //         'email' => $to,
-    //         'gpgkey' => $gpgkey,
-    //         'certif_public' => null
-    //     ];
+    public function testSendPlaintextEmailToUserEncrypted()
+    {
+        $gpgkey = file_get_contents('/var/www/html/webroot/gpg.asc');
+        $to = 'admin@admin.test';
+        $user = [
+            'email' => $to,
+            'gpgkey' => $gpgkey,
+            'certif_public' => null
+        ];
 
-    //     $subject = 'Test Encrypted';
-    //     $body = 'Test Encrypted Body';
-    //     $bodyNoEnc = false;
+        $subject = 'Test Encrypted';
+        $body = 'Test Encrypted Body';
+        $bodyNoEnc = false;
 
-    //     $gpg = $this->initializeGpg();
-    //     $sendEmail = new SendEmail($gpg);
+        $gpg = $this->initializeGpg();
+        $sendEmail = new SendEmail($gpg);
 
-    //     $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc);
+        $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc);
 
-    //     $this->assertMailSentTo($to);
+        $this->assertMailSentTo($to);
 
-    //     $messages = TestEmailTransport::getMessages();
-    //     $this->assertCount(1, $messages);
+        $messages = TestEmailTransport::getMessages();
+        $this->assertCount(1, $messages);
 
-    //     $rawEmailBody = $messages[0]->getBodyString();
+        $rawEmailBody = $messages[0]->getBodyString();
 
-    //     # decrypt message
-    //     $decrypted = $gpg->decrypt($rawEmailBody);
-    //     $this->assertIsString($decrypted);
-    //     $this->assertStringContainsString($body, $decrypted);
-    // }
+        # decrypt message
+        $decrypted = $gpg->decrypt($rawEmailBody);
+        $this->assertIsString($decrypted);
+        $this->assertStringContainsString($body, $decrypted);
+    }
 
-    public function testSendToUserSigned()
+    public function testSendPlaintextEmailToUserSigned()
     {
         $to = 'admin@admin.test';
         $user = [
@@ -92,7 +93,7 @@ class SendEmailTest extends TestCase
         }
         $rawEmailBody = $parts[0] . "\r\n";
 
-        $this->markTestIncomplete('TODO: verify signature, line breaks are not correct');
+        $this->markTestIncomplete('TODO: verify signature properly, the email body line breaks are modified by CakePHP (Message::getBodyString()) and breaks the signature verification');
 
         $verified = $gpg->verify($rawEmailBody, $signature);
         $this->assertIsString($signature);
