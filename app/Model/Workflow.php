@@ -686,7 +686,11 @@ class Workflow extends AppModel
             $this->sendRequestToDebugEndpointIfDebug($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $node['data']['id'], 'loading_error'), $roamingData->getData());
             return false;
         }
-        $sucessType = $success ? 'success' : 'partial-success';
+        if (!empty($this->loaded_modules['logic'][$moduleClass->id])) { // IF module return false for the 2 output.
+            $sucessType = 'success';
+        } else {
+            $sucessType = $success ? 'success' : 'partial-success';
+        }
         $message = __('Executed node `%s`' .  PHP_EOL . 'Node `%s` (%s) from Workflow `%s` (%s) executed successfully with status: %s',
             $node['data']['id'],
             $node['data']['id'],
