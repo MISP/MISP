@@ -4,16 +4,29 @@ on:
   push:
     branches:
       - 3.x
+      - gh-actions-cache-docker-build
   pull_request:
     branches:
       - 3.x
 
+env:
+  IMAGE_CACHE_DIR: /tmp/cache/docker-image
+  IMAGE_CACHE_KEY: cache-image
+
 jobs:
   test:
-    timeout-minutes: 10
+    timeout-minutes: 20
     runs-on: ubuntu-latest
 
     steps:
+      - name: Declare Cache Registry
+        id: cache-docker-images
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.IMAGE_CACHE_DIR }}
+          key: ${{ runner.os }}-docker-images-test
+          # key: ${{ runner.os }}-docker-images-${{ needs.image-build-and-cache.outputs.sha }}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -21,6 +34,14 @@ jobs:
 
       - name: Build test containers
         run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" build
+
+      - name: Docker save cache
+        run: |
+          docker save -o ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar misp3/php:8.2-fpm
+
+      # - name: Docker load
+      #   run: |
+      #     docker load --input ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar
 
       - name: Run tests
         run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" run misp
