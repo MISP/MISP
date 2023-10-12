@@ -15,7 +15,7 @@ env:
 
 jobs:
   test:
-    timeout-minutes: 20
+    timeout-minutes: 10
     runs-on: ubuntu-latest
 
     steps:
@@ -34,7 +34,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.IMAGE_CACHE_DIR }}
-          key: docker-images-test-${{ github.ref_name }}-${{ steps.docker-dir-checksum.outputs.SHA }}
+          key: 3.x-docker-images-test-${{ steps.docker-dir-checksum.outputs.SHA }}
 
       - if: ${{ steps.cache-docker-images.outputs.cache-hit != 'true' }}
         name: Build test containers and save cache
