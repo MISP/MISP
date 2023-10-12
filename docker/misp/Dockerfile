@@ -14,7 +14,7 @@ COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 # Install additional PHP extensions and system packages
 RUN apt-get -y update \
-    && apt-get install -y libicu-dev libpq-dev zip libzip-dev default-mysql-client gnupg supervisor \
+    && apt-get install -y libicu-dev libpq-dev zip libzip-dev default-mysql-client gnupg supervisor git sendmail sudo \
     && docker-php-ext-configure intl \
     && docker-php-ext-install intl pdo pdo_mysql mysqli zip \
     && apt-get remove -y --purge libicu-dev libzip-dev \
@@ -77,11 +77,11 @@ RUN pecl install -f xdebug pcov \
     && docker-php-ext-enable xdebug pcov
 
 # Install additional packages
-RUN apt-get update \
-    && apt-get install -y \
-    git sendmail sudo \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update \
+#     && apt-get install -y \
+#     && <package> \
+#     && apt-get clean \
+#     && rm -rf /var/lib/apt/lists/*
 
 # Write Xdebug configuration
 RUN echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \

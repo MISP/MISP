@@ -8,6 +8,10 @@ on:
     branches:
       - 3.x
 
+env:
+  IMAGE_CACHE_DIR: /tmp/cache/docker-image
+  IMAGE_CACHE_KEY: cache-image
+
 jobs:
   test:
     timeout-minutes: 10
@@ -19,8 +23,29 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build test containers
-        run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" build
+      - name: Get docker dir checksum
+        id: docker-dir-checksum
+        run: |
+          echo "SHA=$(find ./docker -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum | shasum | head -c 40)" >> $GITHUB_OUTPUT
+
+      - name: Cache docker images
+        id: cache-docker-images
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.IMAGE_CACHE_DIR }}
+          key: 3.x-docker-images-test-${{ steps.docker-dir-checksum.outputs.SHA }}
+
+      - if: ${{ steps.cache-docker-images.outputs.cache-hit != 'true' }}
+        name: Build test containers and save cache
+        run: |
+          docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" build
+          mkdir -p ${{ env.IMAGE_CACHE_DIR }}
+          docker save -o ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar misp3/php:8.2-fpm
+
+      - if: ${{ steps.cache-docker-images.outputs.cache-hit == 'true' }}
+        name: Docker load cached image
+        run: |
+          docker load --input ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar
 
       - name: Run tests
         run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" run misp
