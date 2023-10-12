@@ -17,11 +17,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
 
-      - name: Start test containers
-        run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" up -d --build
+      - name: Build test containers
+        run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" build
 
       - name: Run tests
-        run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" exec --no-TTY misp vendor/bin/phpunit
+        run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" run --no-TTY --entrypoint vendor/bin/phpunit misp
 
       - name: Stop containers
         run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" down --remove-orphans --volumes
