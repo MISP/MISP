@@ -24,17 +24,17 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Get last docker dir commit
-        id: docker-dir-commit
+      - name: Get docker dir checksum
+        id: docker-dir-checksum
         run: |
-          echo "::set-output name=sha::$(git log -n 1 --pretty=format:%h docker)"
+          echo "{sha}={$(find ./docker -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum | shasum | head -c 40)}" >> $GITHUB_OUTPUT
 
       - name: Cache docker images
         id: cache-docker-images
         uses: actions/cache@v3
         with:
           path: ${{ env.IMAGE_CACHE_DIR }}
-          key: docker-images-test-${{ github.ref_name }}-${{ steps.docker-dir-commit.outputs.sha }}
+          key: docker-images-test-${{ github.ref_name }}-${{ steps.docker-dir-checksum.outputs.sha }}
 
       - if: ${{ steps.cache-docker-images.outputs.cache-hit != 'true' }}
         name: Build test containers and save cache
@@ -44,7 +44,7 @@ jobs:
           docker save -o ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar misp3/php:8.2-fpm
 
       - if: ${{ steps.cache-docker-images.outputs.cache-hit == 'true' }}
-        name: Docker load
+        name: Docker load cached image
         run: |
           docker load --input ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar
 
