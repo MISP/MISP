@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Users;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\UsersFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class ViewUserApiTest extends TestCase
 {
@@ -23,6 +23,7 @@ class ViewUserApiTest extends TestCase
 
     public function testViewMyUser(): void
     {
+        $this->fail('Test failed');
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
         $this->get(self::ENDPOINT);
 
