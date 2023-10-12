@@ -23,6 +23,7 @@ class ViewUserApiTest extends TestCase
 
     public function testViewMyUser(): void
     {
+        ;
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
         $this->get(self::ENDPOINT);
 
