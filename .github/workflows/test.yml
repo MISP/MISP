@@ -19,30 +19,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Declare Cache Registry
-        id: cache-docker-images
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.IMAGE_CACHE_DIR }}
-          key: ${{ runner.os }}-docker-images-test
-          # key: ${{ runner.os }}-docker-images-${{ needs.image-build-and-cache.outputs.sha }}
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      # - name: Build test containers
-      #   run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" build
+      - name: Get last docker dir commit
+        id: docker-dir-commit
+        run: |
+          echo "::set-output name=sha::$(git log -n 1 --pretty=format:%h docker)"
 
-      # - name: Docker save cache
-      #   run: |
-      #     mkdir -p ${{ env.IMAGE_CACHE_DIR }}
-      #     docker save -o ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar misp3/php:8.2-fpm
+      - name: Cache docker images
+        id: cache-docker-images
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.IMAGE_CACHE_DIR }}
+          key: docker-images-test-${{ GITHUB_REF_NAME }}-${{ steps.docker-dir-commit.outputs.sha }}
 
-      # - name: Docker load
-      #   run: |
-      #     docker load --input ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar
+      - if: ${{ steps.cache-docker-images.outputs.cache-hit != 'true' }}
+        name: Build test containers and save cache
+        run: |
+          docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" build
+          mkdir -p ${{ env.IMAGE_CACHE_DIR }}
+          docker save -o ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar misp3/php:8.2-fpm
+
+      - if: ${{ steps.cache-docker-images.outputs.cache-hit == 'true' }}
+        name: Docker load
+        run: |
+          docker load --input ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar
 
       - name: Run tests
         run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" run misp
