@@ -844,6 +844,7 @@ x86_64-rhel-8
 x86_64-fedora-33
 x86_64-fedora-34
 x86_64-fedora-35
+x86_64-debian-12
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
