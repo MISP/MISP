@@ -27,14 +27,14 @@ jobs:
       - name: Get docker dir checksum
         id: docker-dir-checksum
         run: |
-          echo "{sha}={$(find ./docker -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum | shasum | head -c 40)}" >> $GITHUB_OUTPUT
+          echo "SHA=$(find ./docker -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum | shasum | head -c 40)" >> $GITHUB_OUTPUT
 
       - name: Cache docker images
         id: cache-docker-images
         uses: actions/cache@v3
         with:
           path: ${{ env.IMAGE_CACHE_DIR }}
-          key: docker-images-test-${{ github.ref_name }}-${{ steps.docker-dir-checksum.outputs.sha }}
+          key: docker-images-test-${{ github.ref_name }}-${{ steps.docker-dir-checksum.outputs.SHA }}
 
       - if: ${{ steps.cache-docker-images.outputs.cache-hit != 'true' }}
         name: Build test containers and save cache
