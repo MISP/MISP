@@ -10,6 +10,7 @@ services:
     tty: true
     restart: unless-stopped
     environment:
+      ENV: ${ENV}
       MISP_DB: ${MYSQL_DATABASE:-misp}
       MISP_DB_USER: ${MYSQL_USER:-misp}
       MISP_DB_PASSWORD: ${MYSQL_PASSWORD}

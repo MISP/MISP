@@ -160,5 +160,10 @@ else
 	supervisorctl start misp-workers:*
 fi
 
-echo >&2 "Starting php-fpm..."
-exec php-fpm -F "$@"
+if [ "$ENV" = "test" ]; then
+	echo >&2 "Running tests..."
+	vendor/bin/phpunit
+else
+	echo >&2 "Starting php-fpm..."
+	exec php-fpm -F "$@"
+fi
