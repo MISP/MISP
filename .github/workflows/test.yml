@@ -32,17 +32,17 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build test containers
-        run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" build
+      # - name: Build test containers
+      #   run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" build
 
-      - name: Docker save cache
-        run: |
-          mkdir -p ${{ env.IMAGE_CACHE_DIR }}
-          docker save -o ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar misp3/php:8.2-fpm
-
-      # - name: Docker load
+      # - name: Docker save cache
       #   run: |
-      #     docker load --input ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar
+      #     mkdir -p ${{ env.IMAGE_CACHE_DIR }}
+      #     docker save -o ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar misp3/php:8.2-fpm
+
+      - name: Docker load
+        run: |
+          docker load --input ${{ env.IMAGE_CACHE_DIR }}/misp3-image.tar
 
       - name: Run tests
         run: docker-compose -f docker-compose.yml -f docker-compose.dev.yml --env-file="./docker/.env.test" run misp
