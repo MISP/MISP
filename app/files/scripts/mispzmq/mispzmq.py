@@ -80,9 +80,14 @@ class MispZmq:
         with open((self.tmp_location / "mispzmq_settings.json").as_posix()) as settings_file:
             self.settings = json.load(settings_file)
         self.namespace = self.settings["redis_namespace"]
-        self.r = redis.StrictRedis(host=self.settings["redis_host"], db=self.settings["redis_database"],
+        # Check if TLS is being used with Redis host
+        redis_host = self.settings["redis_host"]
+        redis_ssl = redis_host.startswith("tls://")
+        if redis_host.startswith("tls://"):
+            redis_host = redis_host[6:]
+        self.r = redis.StrictRedis(host=redis_host, db=self.settings["redis_database"],
                                    password=self.settings["redis_password"], port=self.settings["redis_port"],
-                                   decode_responses=True)
+                                   decode_responses=True, ssl=redis_ssl)
         self.timestamp_settings = time.time()
         self._logger.debug("Connected to Redis {}:{}/{}".format(self.settings["redis_host"], self.settings["redis_port"],
                                                            self.settings["redis_database"]))
