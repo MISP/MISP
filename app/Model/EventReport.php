@@ -967,9 +967,9 @@ class EventReport extends AppModel
         $syncTool = new SyncTool();
         $config = [];
         $HttpSocket = $syncTool->setupHttpSocket($config, $this->timeout);
-        $url = Configure::read('Plugin.cti_info_extractor_url');
-        $apiKey = Configure::read('Plugin.cti_info_extractor_authentication');
-        $LLMFeatureEnabled = Configure::read('Plugin.cti_info_extractor', false);
+        $url = Configure::read('Plugin.CTI-Info-Extractor_url');
+        $apiKey = Configure::read('Plugin.CTI-Info-Extractor_authentication');
+        $LLMFeatureEnabled = Configure::read('Plugin.CTI-Info-Extractor_enable', false);
         if ($LLMFeatureEnabled || empty($url)) {
             $errors[] = __('LLM Feature disabled or no URL provided');
             return false;
