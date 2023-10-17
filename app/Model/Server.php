@@ -1483,14 +1483,14 @@ class Server extends AppModel
                     $serverSettings['Plugin']['Workflow_triggers_' . $triggerModule['id']] = $setting;
                 }
             }
-            $serverSettings['Plugin']['CTI-Info-Extractor_enable'] = [
+            $serverSettings['Plugin']['CTIInfoExtractor_enable'] = [
                 'level' => 1,
                 'description' => __('Enable the experimental CTI info extractor plugin to use a connected LLM server to extract additional information from markdown reports.'),
                 'value' => false,
                 'test' => 'testBool',
                 'type' => 'boolean'
             ];
-            $serverSettings['Plugin']['CTI-Info-Extractor_url'] = [
+            $serverSettings['Plugin']['CTIInfoExtractor_url'] = [
                 'level' => 1,
                 'description' => __('The url of the LLM REST service.'),
                 'value' => '',
@@ -1498,7 +1498,7 @@ class Server extends AppModel
                 'type' => 'string',
                 'null' => 'true'
             ];
-            $serverSettings['Plugin']['CTI-Info-Extractor_authentication'] = [
+            $serverSettings['Plugin']['CTIInfoExtractor_authentication'] = [
                 'level' => 1,
                 'description' => __('The authentication key for the LLM REST service.'),
                 'value' => '',
