@@ -1483,7 +1483,7 @@ class Server extends AppModel
                     $serverSettings['Plugin']['Workflow_triggers_' . $triggerModule['id']] = $setting;
                 }
             }
-            $serverSettings['Plugin']['Plugin.cti_info_extractor'] = [
+            $serverSettings['Plugin']['Plugin.cti_info_extractor_enable'] = [
                 'level' => 1,
                 'description' => __('Enable the experimental CTI info extractor plugin to use a connected LLM server to extract additional information from markdown reports.'),
                 'value' => false,
