@@ -1483,29 +1483,6 @@ class Server extends AppModel
                     $serverSettings['Plugin']['Workflow_triggers_' . $triggerModule['id']] = $setting;
                 }
             }
-            $serverSettings['Plugin']['CTIInfoExtractor_enable'] = [
-                'level' => 1,
-                'description' => __('Enable the experimental CTI info extractor plugin to use a connected LLM server to extract additional information from markdown reports.'),
-                'value' => false,
-                'test' => 'testBool',
-                'type' => 'boolean'
-            ];
-            $serverSettings['Plugin']['CTIInfoExtractor_url'] = [
-                'level' => 1,
-                'description' => __('The url of the LLM REST service.'),
-                'value' => '',
-                'test' => 'validateURL',
-                'type' => 'string',
-                'null' => 'true'
-            ];
-            $serverSettings['Plugin']['CTIInfoExtractor_authentication'] = [
-                'level' => 1,
-                'description' => __('The authentication key for the LLM REST service.'),
-                'value' => '',
-                'test' => 'notEmpty',
-                'type' => 'string',
-                'null' => 'true'
-            ];
         }
         return $serverSettings;
     }
@@ -7641,6 +7618,29 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
+                ],
+                'CTIInfoExtractor_enable' => [
+                    'level' => 1,
+                    'description' => __('Enable the experimental CTI info extractor plugin to use a connected LLM server to extract additional information from markdown reports.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'CTIInfoExtractor_url' => [
+                    'level' => 1,
+                    'description' => __('The url of the LLM REST service.'),
+                    'value' => '',
+                    'test' => 'validateURL',
+                    'type' => 'string',
+                    'null' => 'true'
+                ],
+                'CTIInfoExtractor_authentication' => [
+                    'level' => 1,
+                    'description' => __('The authentication key for the LLM REST service.'),
+                    'value' => '',
+                    'test' => 'notEmpty',
+                    'type' => 'string',
+                    'null' => 'true'
                 ]
             ),
             'SimpleBackgroundJobs' => [
