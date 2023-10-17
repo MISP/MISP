@@ -981,7 +981,7 @@ class EventReport extends AppModel
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
                 'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
-                'Authorization' => $apiKey,
+                'x-api-key' => $apiKey,
             ])
         ];
         $response = $HttpSocket->post($url, $data, $request);
