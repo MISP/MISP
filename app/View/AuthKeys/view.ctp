@@ -15,6 +15,13 @@ if (isset($keyUsage)) {
     $uniqueIps = null;
 }
 
+$seenIPsField = Configure::read("MISP.remember_seen_ips_authkeys") ? [
+    [
+        'key' => __('Seen IPs'),
+        'path' => 'AuthKey.unique_ips',
+        'type' => 'authkey_pin'
+    ]
+] : [];
 echo $this->element('genericElements/SingleViews/single_view', [
     'title' => 'Auth key view',
     'data' => $data,
@@ -82,10 +89,6 @@ echo $this->element('genericElements/SingleViews/single_view', [
             'raw' => $lastUsed ? $this->Time->time($lastUsed) : __('Not used yet'),
             'requirement' => isset($keyUsage),
         ],
-        [
-            'key' => __('Seen IPs'),
-            'path' => 'AuthKey.unique_ips',
-            'type' => 'authkey_pin'
-        ]
+        ...$seenIPsField
     ],
 ]);

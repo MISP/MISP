@@ -3,6 +3,13 @@
     if (!$advancedEnabled) {
         echo '<div class="alert">' . __('Advanced auth keys are not enabled.') . '</div>';
     }
+    $seenIPsField = Configure::read("MISP.remember_seen_ips_authkeys") ? [
+        [
+            'name' => __('Seen IPs'),
+            'data_path' => 'AuthKey.unique_ips',
+            'element' => 'authkey_pin',
+        ]
+    ] : [];
     echo $this->element('genericElements/IndexTable/index_table', [
         'data' => [
             'data' => $data,
@@ -73,11 +80,7 @@
                     'name' => __('Allowed IPs'),
                     'data_path' => 'AuthKey.allowed_ips',
                 ],
-                [
-                    'name' => __('Seen IPs'),
-                    'data_path' => 'AuthKey.unique_ips',
-                    'element' => 'authkey_pin',
-                ]
+                ...$seenIPsField
             ],
             'title' => empty($ajax) ? __('Authentication key Index') : false,
             'description' => empty($ajax) ? __('A list of API keys bound to a user.') : false,
