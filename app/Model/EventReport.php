@@ -970,11 +970,12 @@ class EventReport extends AppModel
         $LLMFeatureEnabled = Configure::read('Plugin.CTIInfoExtractor_enable', false);
         $url = Configure::read('Plugin.CTIInfoExtractor_url');
         $apiKey = Configure::read('Plugin.CTIInfoExtractor_authentication');
-        if ($LLMFeatureEnabled || empty($url)) {
+        if (!$LLMFeatureEnabled || empty($url)) {
             $errors[] = __('LLM Feature disabled or no URL provided');
             return false;
         }
-        $data = $report['EventReport']['content'];
+        $reportContent = $report['EventReport']['content'];
+        $data = json_encode(['text' => $reportContent]);
         $version = implode('.', $this->Event->checkMISPVersion());
         $request = [
             'header' => array_merge([
@@ -985,6 +986,7 @@ class EventReport extends AppModel
             ])
         ];
         $response = $HttpSocket->post($url, $data, $request);
-        return $response;
+        debug($response->body);
+        return true;
     }
 }
