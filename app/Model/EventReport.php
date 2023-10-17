@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('SyncTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -959,5 +960,26 @@ class EventReport extends AppModel
         $reportGenerator->construct($this->Event, $user, $options);
         $report = $reportGenerator->generate();
         return $report;
+    }
+
+    public function sendToLLM($report)
+    {
+        $syncTool = new SyncTool();
+        $config = [];
+        $HttpSocket = $syncTool->setupHttpSocket($config, $this->timeout);
+        $url = 'https://';
+        $apiKey = 'xxxx';
+        $data = $report['EventReport']['content'];
+        $version = implode('.', $this->Event->checkMISPVersion());
+        $request = [
+            'header' => array_merge([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
+                'Authorization' => $apiKey,
+            ])
+        ];
+        $response = $HttpSocket->post($url, $data, $request);
+        return $response;
     }
 }
