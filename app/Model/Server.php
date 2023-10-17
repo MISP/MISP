@@ -7630,7 +7630,7 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The url of the LLM REST service.'),
                     'value' => '',
-                    'test' => 'validateURL',
+                    'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => 'true'
                 ],
@@ -7638,7 +7638,7 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The authentication key for the LLM REST service.'),
                     'value' => '',
-                    'test' => 'notEmpty',
+                    'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => 'true'
                 ]
