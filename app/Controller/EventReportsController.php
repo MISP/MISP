@@ -383,7 +383,7 @@ class EventReportsController extends AppController
             if ($this->request->is('post')) {
                 $errors = [];
                 $result = $this->EventReport->sendToLLM($report, $errors);
-                if (!empty($result)) {
+                if ($result !== false) {
                     $successMessage = __('Successfully sent to Event Report %s to LLM', $reportId);
                     return $this->__getSuccessResponseBasedOnContext($successMessage, $result, 'sendToLLM', $reportId);
                 } else {

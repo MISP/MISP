@@ -986,7 +986,6 @@ class EventReport extends AppModel
             ])
         ];
         $response = $HttpSocket->post($url, $data, $request);
-        debug($response->body);
-        return true;
+        return $response->body;
     }
 }
