@@ -962,13 +962,18 @@ class EventReport extends AppModel
         return $report;
     }
 
-    public function sendToLLM($report)
+    public function sendToLLM($report, &$errors)
     {
         $syncTool = new SyncTool();
         $config = [];
         $HttpSocket = $syncTool->setupHttpSocket($config, $this->timeout);
-        $url = 'https://';
-        $apiKey = 'xxxx';
+        $url = Configure::read('Plugin.cti_info_extractor_url');
+        $apiKey = Configure::read('Plugin.cti_info_extractor_authentication');
+        $LLMFeatureEnabled = Configure::read('Plugin.cti_info_extractor', false);
+        if ($LLMFeatureEnabled || empty($url)) {
+            $errors[] = __('LLM Feature disabled or no URL provided');
+            return false;
+        }
         $data = $report['EventReport']['content'];
         $version = implode('.', $this->Event->checkMISPVersion());
         $request = [
