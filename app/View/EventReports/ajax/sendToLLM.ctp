@@ -15,7 +15,7 @@ echo $this->element('genericElements/Form/genericForm', array(
 <script>
     function confirmSubmissionToLLM() {
         submitGenericFormInPlace(function(data) {
-            console.log(data)
-        })
+            window.location.reload();
+        });
     }
 </script>

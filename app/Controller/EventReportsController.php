@@ -382,7 +382,7 @@ class EventReportsController extends AppController
             $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', true, false);
             if ($this->request->is('post')) {
                 $errors = [];
-                $result = $this->EventReport->sendToLLM($report, $errors);
+                $result = $this->EventReport->sendToLLM($report, $this->Auth->user(), $errors);
                 if ($result !== false) {
                     $successMessage = __('Successfully sent to Event Report %s to LLM', $reportId);
                     return $this->__getSuccessResponseBasedOnContext($successMessage, $result, 'sendToLLM', $reportId);
@@ -550,5 +550,12 @@ class EventReportsController extends AppController
             }
         }
         return $savedReport;
+    }
+
+    public function test()
+    {
+        $report = $this->EventReport->find('first', ['conditions' => ['EventReport.id' => 25]]);
+        $errors = [];
+        $this->EventReport->sendToLLM($report, $this->Auth->user(), $errors);
     }
 }
