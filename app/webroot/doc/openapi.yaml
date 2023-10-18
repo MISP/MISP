@@ -5469,13 +5469,13 @@ components:
       type: integer
       format: int32
       nullable: true
-      minimum: 0
+      minimum: 1
 
     LimitSearchFilter:
       type: integer
       format: int32
       nullable: true
-      minimum: 1
+      minimum: 0
 
     SortSearchField:
       description: Field to be used to sort the result
