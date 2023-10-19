@@ -499,6 +499,24 @@ class Event extends AppModel
             $this->data['Event']['uuid'] = CakeText::uuid();
         }
         $this->__beforeSaveData = $this->data['Event'];
+
+        $trigger_id = 'event-before-save';
+        if ($this->isTriggerCallable($trigger_id)) {
+            $event = $this->data;
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'Event',
+                'action' => 'add',
+                'id' => 0,
+                'message' => __('The workflow `%s` prevented the saving of event (%s)', $trigger_id, $event['Event']['uuid']),
+            ];
+            $triggerData = $event;
+            $workflowSuccess = $this->executeTrigger($trigger_id, $triggerData, $workflowErrors, $logging);
+            if (!$workflowSuccess) {
+                return false;
+            }
+        }
+
         return true;
     }
 
