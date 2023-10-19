@@ -640,15 +640,16 @@ function edit_item(id, callback) {
     var item = items_timeline.get(id);
     var group = item.group;
     if (group == 'attribute') {
-        simplePopup(baseurl+'/attributes/edit/'+item.orig_id);
+        // openGenericModal(baseurl + '/attributes/edit/' + item.orig_id);
+        // FIXME: Open it up as a popup and make sure edits on fs/ls are correctly saved
+        window.location = baseurl + '/attributes/edit/' + item.orig_id;
     } else if (group == 'object') {
         window.location = baseurl+'/objects/edit/'+item.orig_id;
     }
 }
 
 function handle_doubleClick(data) {
-    // should be replaced by keyboard shortcut: SHIFT+E ?
-    //edit_item(data.item);
+    edit_item(data.item);
 }
 
 function handle_not_seen_enabled(hide, include_hidden) {
