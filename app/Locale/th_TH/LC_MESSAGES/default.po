@@ -6965,6 +6965,10 @@ msgstr "บันทึก IP ของผู้ใช้ในแต่ละ�
 msgid "Log user IP and key usage on each API request. All logs for given keys are deleted after one year when this key is not used."
 msgstr "บันทึก IP ของผู้ใช้และการใช้คีย์ในคำขอ API แต่ละรายการ บันทึกทั้งหมดสำหรับคีย์ที่ระบุจะถูกลบหลังจากหนึ่งปีเมื่อไม่ได้ใช้คีย์นี้"
 
+#: Model/Server.php:5706
+msgid "Store IP addresses used to make API calls with an AuthKey against this AuthKey in the database."
+msgstr ""
+
 #: Model/Server.php:5330
 msgid "Enable new audit log system."
 msgstr "เปิดใช้งานระบบบันทึกการตรวจสอบใหม่"
