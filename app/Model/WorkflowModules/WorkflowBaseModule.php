@@ -314,7 +314,9 @@ class WorkflowBaseActionModule extends WorkflowBaseModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         $rData = $roamingData->getData();
-        $this->_buildFastLookupForRoamingData($rData);
+        if ($this->expect_misp_core_format) {
+            $this->_buildFastLookupForRoamingData($rData);
+        }
         return true;
     }
 

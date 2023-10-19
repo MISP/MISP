@@ -445,11 +445,11 @@ class Taxonomy extends AppModel
             }
             if ($tagList) {
                 foreach ($tagList as $tagName) {
-                    if ($tagName === $entry['tag']) {
+                    if ($tagName === $entry['tag'] || $tagName === h($entry['tag'])) {
                         if (isset($tags[strtoupper($entry['tag'])])) {
-                            $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colour, 0, $numerical_value);
+                            $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colour, 0, $numerical_value);
                         } else {
-                            $this->Tag->quickAdd($tagName, $colour, $numerical_value);
+                            $this->Tag->quickAdd($entry['tag'], $colour, $numerical_value);
                         }
                     }
                 }

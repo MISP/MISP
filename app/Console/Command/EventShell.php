@@ -91,12 +91,14 @@ class EventShell extends AppShell
         }
 
         $isXml = $extension === 'xml';
-        $takeOwnership = $this->param('take_ownership');
-        $publish = $this->param('publish');
+        $takeOwnership = $this->params['take-ownership'];
+        $publish = $this->params['publish'];
         $results = $this->Event->addMISPExportFile($user, $content, $isXml, $takeOwnership, $publish);
 
         foreach ($results as $result) {
             if (is_numeric($result['result'])) {
+                $this->out("Event `{$result['info']}` already exists at ({$result['result']}).");
+            } else if ($result['result'] === true) {
                 $this->out("Event #{$result['id']}: {$result['info']} imported.");
             } else {
                 $this->out("Could not import event because of validation errors: " . json_encode($result['validationIssues']));
