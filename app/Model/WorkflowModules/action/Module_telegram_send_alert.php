@@ -51,11 +51,11 @@ class Module_telegram_send_alert extends Module_webhook
 		'parse_mode' => "HTML",
 	];
 
-	$url = $this->telegram_url . $bot_token . "/sendMessage";
+	$url = $this->telegram_url . "bot" . $bot_token . "/sendMessage";
 
 	$response = $this->doRequest(
 		$url,
-		'json',
+		'application/json',
 		$data
 	);
 
