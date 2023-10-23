@@ -8,7 +8,9 @@ class OrganisationMapWidget
     public $height = 4;
     public $params = [
         'filter' => 'A list of filters by organisation meta information (sector, type, local (- expects a boolean or a list of boolean values)) to include. (dictionary, prepending values with ! uses them as a negation)',
-        'limit' => 'Limits the number of displayed tags. Default: 10'
+        'start_date' => 'The ISO 8601 date format at which to start',
+        'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
+        'limit' => 'Limits the number of displayed tags. Default: 10',
     ];
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
@@ -56,6 +58,12 @@ class OrganisationMapWidget
                         $params['conditions']['AND'][] = $tempConditionBucket;
                     }
                 }
+            }
+        }
+        if (!empty($options['start_date'])) {
+            $params['conditions']['AND']['Organisation.date_created >='] = (new DateTime($options['start_date']))->format('Y-m-d H:i:s');
+            if (!empty($options['end_date'])) {
+                $params['conditions']['AND']['Organisation.date_created <='] = (new DateTime($options['end_date']))->format('Y-m-d H:i:s');
             }
         }
         $this->Organisation = ClassRegistry::init('Organisation');

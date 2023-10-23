@@ -50,7 +50,8 @@ echo $this->element('genericElements/IndexTable/index_table', [
                 'element_path' => 'AuditLog/change'
             ]
         ],
-        'title' => __('Audit logs for event #%s', intval($event['Event']['id']))
+        'title' => __('Audit logs for event #%s', intval($event['Event']['id'])),
+        'persistUrlParams' => ['eventId', 'org']
     ]
 ]);
 echo '</div>';

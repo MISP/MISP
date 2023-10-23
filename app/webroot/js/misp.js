@@ -1998,9 +1998,9 @@ function choicePopup(legend, list) {
     openPopup("#popover_form");
 }
 
-function openModal(heading, body, footer, modal_option, css_container, css_body) {
+function openModal(heading, body, footer, modal_option, css_container, css_body, class_container) {
     var modal_id = 'dynamic_modal_' + new Date().getTime();
-    var modal_html = '<div id="' + modal_id + '" class="modal hide fade" style="' + (css_container !== undefined ? css_container : '') + '" tabindex="-1" role="dialog" aria-hidden="true">';
+    var modal_html = '<div id="' + modal_id + '" class="modal hide fade ' + (class_container !== undefined ? class_container : '') + '" style="' + (css_container !== undefined ? css_container : '') + '" tabindex="-1" role="dialog" aria-hidden="true">';
     if (heading !== undefined && heading !== '') {
         modal_html += '<div class="modal-header">'
                         + '<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>'
@@ -5515,26 +5515,29 @@ function resetDashboardGrid(grid, save = true) {
         grid.removeWidget(el);
         saveDashboardState();
     });
-    $('.export-widget').click(function() {
-        var $element = $(this).parent().parent().parent();
+    $('.widget-export-menu').find('a[data-exporttype]').click(function() {
+        var $element = $(this).closest('div[widget]');
         var container_id = $element.attr('id').substring(7);
+        var export_type = $(this).data('exporttype')
           $.ajax({
             type: 'POST',
-            url: baseurl + '/dashboards/renderWidget/' + container_id + '/exportjson:1',
+            url: baseurl + '/dashboards/renderWidget/' + container_id + '/export' + export_type + ':1',
             data: {
                 config: $element.attr('config'),
                 widget: $element.attr('widget')
             },
             success:function (data) {
-                data = JSON.stringify(data, null, 2);
-                var blob=new Blob([data], {type: 'application/json'});
+                if (export_type == 'json') {
+                    data = JSON.stringify(data, null, 2);
+                }
+                var blob = new Blob([data], { type: (export_type == 'json' ? 'application/json' : 'text/csv') });
                 var link=window.document.createElement('a');
                 link.href=window.URL.createObjectURL(blob);
-                link.download=$element.attr('widget') + "_" + container_id + "_export.json";
+                link.download=$element.attr('widget') + "_" + container_id + "_export." + export_type;
                 link.click();
             }
         });
-    });
+    })
 }
 
 function setHomePage() {

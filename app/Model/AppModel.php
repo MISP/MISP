@@ -85,7 +85,7 @@ class AppModel extends Model
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
-        111 => false, 112 => false, 113 => true, 114 => false
+        111 => false, 112 => false, 113 => true, 114 => false, 115 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1973,6 +1973,10 @@ class AppModel extends Model
             case 114:
                 $indexArray[] = ['object_references', 'uuid'];
                 break;
+            case 115:
+                $sqlArray[] = "ALTER TABLE `users` ADD COLUMN `last_pw_change` BIGINT(20) NULL DEFAULT NULL;";
+                $sqlArray[] = "UPDATE `users` SET last_pw_change=date_modified WHERE last_pw_change IS NULL";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -3288,25 +3292,32 @@ class AppModel extends Model
             foreach ($filters as $f) {
                 if ($f === -1) {
                     foreach ($keys as $key) {
-                        $temp['OR'][$key][] = -1;
+                        if ($this->checkParam($key)) {
+                            $temp['OR'][$key][] = -1;
+                        }
                     }
                     continue;
                 }
                 // split the filter params into two lists, one for substring searches one for exact ones
                 if (is_string($f) && ($f[strlen($f) - 1] === '%' || $f[0] === '%')) {
                     foreach ($keys as $key) {
-                        if ($operator === 'NOT') {
-                            $temp[] = array($key . ' NOT LIKE' => $f);
-                        } else {
-                            $temp[] = array($key . ' LIKE' => $f);
+                        if ($this->checkParam($key)) {
+                            if ($operator === 'NOT') {
+                                $temp[] = array($key . ' NOT LIKE' => $f);
+                            } else {
+                                $temp[] = array($key . ' LIKE' => $f);
+                                $temp[] = array($key => $f);
+                            }
                         }
                     }
                 } else {
                     foreach ($keys as $key) {
-                        if ($operator === 'NOT') {
-                            $temp[$key . ' !='][] = $f;
-                        } else {
-                            $temp['OR'][$key][] = $f;
+                        if ($this->checkParam($key)) {
+                            if ($operator === 'NOT') {
+                                $temp[$key . ' !='][] = $f;
+                            } else {
+                                $temp['OR'][$key][] = $f;
+                            }
                         }
                     }
                 }
@@ -3334,10 +3345,12 @@ class AppModel extends Model
             $filter = array();
             foreach ($temp as $f) {
                 $f = strval($f);
-                if ($f[0] === '!') {
-                    $filter['NOT'][] = substr($f, 1);
-                } else {
-                    $filter['OR'][] = $f;
+                if ($f !== '') {
+                    if ($f[0] === '!') {
+                        $filter['NOT'][] = substr($f, 1);
+                    } else {
+                        $filter['OR'][] = $f;
+                    }
                 }
             }
             return $filter;
@@ -3985,5 +3998,38 @@ class AppModel extends Model
             return trim($_SERVER[$ipHeader]);
         }
         return $_SERVER['REMOTE_ADDR'] ?? null;
+    }
+
+    public function find($type = 'first', $query = array()) {
+        if (!empty($query['order']) && $this->validOrderClause($query['order']) === false) {
+            throw new InvalidArgumentException('Invalid order clause');
+        }
+
+        return parent::find($type, $query);
+    }
+
+    private function validOrderClause($order){
+        $pattern = '/^[\w\_\-\.\(\) ]+$/';
+        if(is_string($order) && preg_match($pattern, $order)){
+            return true;
+        }
+
+        if (is_array($order)) {
+            foreach ($order as $key => $value) {
+                if (is_string($key) && is_string($value) && preg_match($pattern, $key) && in_array(strtolower($value), ['asc', 'desc'])) {
+                    return true;
+                }
+                if(is_numeric($key) && is_string($value) && preg_match($pattern, $value)){
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public function checkParam($param)
+    {
+        return preg_match('/^[\w\_\-\. ]+$/', $param);
     }
 }

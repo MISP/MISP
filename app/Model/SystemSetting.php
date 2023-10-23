@@ -21,6 +21,8 @@ class SystemSetting extends AppModel
         'MISP.tmpdir',
         'MISP.system_setting_db',
         'MISP.attachments_dir',
+        'MISP.self_update',
+        'MISP.online_version_check',
     ];
 
     // Allow to set config values just for these categories

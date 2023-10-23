@@ -68,7 +68,7 @@
                             'title' => __('Modify filters'),
                             'fa-icon' => 'search',
                             'onClick' => 'getPopup',
-                            'onClickParams' => array($urlparams, 'events', 'filterEventIndex')
+                            'onClickParams' => array(h($urlparams), 'events', 'filterEventIndex')
                         )
                     )
                 ),

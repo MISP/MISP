@@ -11,6 +11,9 @@
   } else {
       $attributeEvent = $event;
   }
+
+  $isNew = $object['timestamp'] > $event['Event']['publish_timestamp'];
+  
   $editScope = $mayModify ? 'Attribute' : 'ShadowAttribute';
   if (!empty($child)) {
       if ($child === 'last' && empty($object['ShadowAttribute'])) {
@@ -69,7 +72,7 @@
       <td class="short context hidden">
           <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
       </td>
-      <td class="short timestamp"><?= $this->Time->date($object['timestamp']) ?></td>
+      <td class="short timestamp <?= $isNew ? 'bold red' : '' ?>" <?= $isNew ? 'title="' . __('Element or modification to an existing element has not been published yet.') . '"' : '' ?>><?= $this->Time->date($object['timestamp']) . ($isNew ? '*' : '') ?></td>
       <?php
         if (!empty($extended)):
       ?>
@@ -338,12 +341,12 @@
             if ($isAclAdd && ($isSiteAdmin || !$mayModify)):
               if (isset($modules) && isset($modules['types'][$object['type']])):
         ?>
-          <span class="fas fa-asterisk useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query enrichment');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/ShadowAttribute');" title="<?php echo __('Propose enrichment');?>">&nbsp;</span>
+          <span class="fas fa-asterisk useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query enrichment');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/0/Enrichment/ShadowAttribute');" title="<?php echo __('Propose enrichment');?>">&nbsp;</span>
         <?php
               endif;
               if (isset($cortex_modules) && isset($cortex_modules['types'][$object['type']])):
         ?>
-          <span class="icon-eye-open useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query Cortex');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/ShadowAttribute/Cortex');" title="<?php echo __('Propose enrichment through Cortex');?>"></span>
+          <span class="icon-eye-open useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query Cortex');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Enrichment/0/ShadowAttribute/Cortex');" title="<?php echo __('Propose enrichment through Cortex');?>"></span>
         <?php
               endif;
         ?>
@@ -358,12 +361,12 @@
             if ($isSiteAdmin || $mayModify):
               if (isset($modules) && isset($modules['types'][$object['type']])):
         ?>
-          <span class="fas fa-asterisk useCursorPointer" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Attribute');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment');?>">&nbsp;</span>
+          <span class="fas fa-asterisk useCursorPointer" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/0/Enrichment/Attribute');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment');?>">&nbsp;</span>
         <?php
               endif;
               if (isset($cortex_modules) && isset($cortex_modules['types'][$object['type']])):
         ?>
-          <span class="icon-eye-open useCursorPointer" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Attribute/Cortex');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment via Cortex');?>"></span>
+          <span class="icon-eye-open useCursorPointer" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/0/Enrichment/Attribute/Cortex');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment via Cortex');?>"></span>
         <?php
               endif;
         ?>
