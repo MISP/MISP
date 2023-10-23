@@ -503,7 +503,6 @@ class ServersController extends AppController
                     $this->Flash->error($error_msg);
                 }
             }
-
             if (!$fail && !empty($this->request->data['Server']['push_rules']) && !JsonTool::isValid($this->request->data['Server']['push_rules'])) {
                 $fail = true;
                 $error_msg = __('The push filter rules must be in valid JSON format.');
@@ -512,17 +511,22 @@ class ServersController extends AppController
                 } else {
                     $this->Flash->error($error_msg);
                 }
-            }
-            $pushRules = $this->_jsonDecode($this->request->data['Server']['push_rules']);
-            $this->loadModel('Tag');
-            foreach ($pushRules['tags'] as $operator => $list) {
-                foreach ($list as $i => $tagName) {
-                    if (!is_numeric($tagName)) { // tag added from freetext
-                        $tag_id = $this->Tag->captureTag(['name' => $tagName], $this->Auth->user());
-                        $list[$i] = $tag_id;
+            }            
+            if (!$fail && !empty($this->request->data['Server']['push_rules'])) {
+                $pushRules = $this->_jsonDecode($this->request->data['Server']['push_rules']);
+                if (!empty($pushRules['tags'])) {
+                    $this->loadModel('Tag');
+                    foreach ($pushRules['tags'] as $operator => $list) {
+                        foreach ($list as $i => $tagName) {
+                            if (!is_numeric($tagName)) { // tag added from freetext
+                                $tag_id = $this->Tag->captureTag(['name' => $tagName], $this->Auth->user());
+                                $list[$i] = $tag_id;
+                            }
+                        }
                     }
                 }
             }
+            
             if (!$fail) {
                 // say what fields are to be updated
                 $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
@@ -915,30 +919,52 @@ class ServersController extends AppController
             App::uses('File', 'Utility');
             App::uses('Folder', 'Utility');
             App::uses('FileAccessTool', 'Tools');
+            App::uses('SyncTool', 'Tools');
             if (isset($server['Server'][$subm]['name'])) {
                 if ($this->request->data['Server'][$subm]['size'] != 0) {
                     if (!$this->Server->checkFilename($server['Server'][$subm]['name'])) {
                         throw new Exception(__('Filename not allowed'));
                     }
-                    $file = new File($server['Server'][$subm]['name']);
-                    $ext = $file->ext();
+
+                    if (!is_uploaded_file($server['Server'][$subm]['tmp_name'])) {
+                        throw new Exception(__('File not uploaded correctly'));
+                    }
+
+                    $ext = pathinfo($server['Server'][$subm]['name'], PATHINFO_EXTENSION);
+                    if (!in_array($ext, SyncTool::ALLOWED_CERT_FILE_EXTENSIONS)) {
+                        $this->Flash->error(__('Invalid extension.'));
+                        $this->redirect(array('action' => 'index'));
+                    }
+
                     if (!$server['Server'][$subm]['size'] > 0) {
                         $this->Flash->error(__('Incorrect extension or empty file.'));
                         $this->redirect(array('action' => 'index'));
                     }
 
-                    // read pem file data
-                    $pemData = FileAccessTool::readFromFile($server['Server'][$subm]['tmp_name'], $server['Server'][$subm]['size']);
+                    // read certificate file data
+                    $certData = FileAccessTool::readFromFile($server['Server'][$subm]['tmp_name'], $server['Server'][$subm]['size']);
                 } else {
                     return true;
                 }
             } else {
-                $pemData = base64_decode($server['Server'][$subm]);
+                $ext = 'pem';
+                $certData = base64_decode($server['Server'][$subm]);
             }
+
+            // check if the file is a valid x509 certificate
+            try {
+                $cert = openssl_x509_parse($certData);
+                if (!$cert) {
+                    throw new Exception(__('Invalid certificate.'));
+                }
+            } catch (Exception $e) {
+                $this->Flash->error(__('Invalid certificate.'));
+                $this->redirect(array('action' => 'index'));
+            }
+
             $destpath = APP . "files" . DS . "certs" . DS;
-            $dir = new Folder(APP . "files" . DS . "certs", true);
             $pemfile = new File($destpath . $id . $ins . '.' . $ext);
-            $result = $pemfile->write($pemData);
+            $result = $pemfile->write($certData);
             $s = $this->Server->read(null, $id);
             $s['Server'][$attr] = $s['Server']['id'] . $ins . '.' . $ext;
             if ($result) {

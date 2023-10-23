@@ -83,6 +83,12 @@ abstract class StixExport
         if ($this->__empty_file) {
             $this->__tmp_file->close();
             $this->__tmp_file->delete();
+            if (empty($this->__filenames)) {
+                $framing = $this->getFraming();
+                $tmpFile = new TmpFileTool();
+                $tmpFile->write($framing['header'] . $framing['footer']);
+                return $tmpFile;
+            }
         } else {
             if (!empty($this->__event_galaxies)) {
                 $this->__write_event_galaxies();

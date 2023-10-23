@@ -10,6 +10,7 @@ import time
 from xml.etree import ElementTree as ET
 from io import BytesIO
 import urllib3  # type: ignore
+from datetime import datetime, timedelta
 
 import logging
 logging.disable(logging.CRITICAL)
@@ -972,6 +973,118 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector._check_response(response)
         check_response(response)
         return response
+
+
+class TestLastPwChange(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.admin_misp_connector = PyMISP(url, key)
+
+        organisation = MISPOrganisation()
+        organisation.name = 'Test org for last pw change tests'
+        cls.test_org = cls.admin_misp_connector.add_organisation(organisation, pythonify=True)
+        check_response(cls.test_org)
+        cls.test_org_id = cls.test_org.id
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.admin_misp_connector.delete_organisation(cls.test_org)
+
+    def setUp(self) -> None:
+        self.admin_misp_connector = type(self).admin_misp_connector
+
+        # Create a user
+        user = MISPUser()
+        user.email = 'testusr_last_pw_change@user' + gen_random_id() + '.local'  # make name always unique
+        user.org_id = type(self).test_org_id
+        user.role_id = 3  # User role
+        user.password = str(uuid.uuid4())
+        self.test_usr = self.admin_misp_connector.add_user(user, pythonify=True)
+        check_response(self.test_usr)
+        self.test_usr_misp_connector = PyMISP(url, self.test_usr.authkey)
+
+    def tearDown(self) -> None:
+        # Delete Authkey and user
+        body = {
+            "authkey_start": self.test_usr.authkey[0:4],
+            "authkey_end": self.test_usr.authkey[-4:],
+            "User.id": self.test_usr.id
+        }
+        auth_key = type(self).admin_misp_connector.direct_call('auth_keys', body)
+        check_response(auth_key)
+        if len(auth_key) == 1 and "AuthKey" in auth_key[0]:
+            type(self).admin_misp_connector.direct_call(f'auth_keys/delete/{auth_key[0]["AuthKey"]["id"]}', {})
+
+        type(self).admin_misp_connector.delete_user(self.test_usr)
+
+    def test_new_user_last_pw_change_is_date_created(self):
+        self.assertEqual(self.test_usr.last_pw_change, self.test_usr.date_created)
+        time.sleep(1)
+
+    def test_admin_edit_password_updates_last_pw_change(self):
+        old_last_pw_change = self.test_usr.last_pw_change
+
+        # edit user password
+        self.test_usr.password = uuid.uuid4()
+        time_just_before_update = datetime.now()
+        self.updated_test_usr = self.admin_misp_connector.update_user(self.test_usr, pythonify=True)
+        time_just_after_update = datetime.now()
+        check_response(self.updated_test_usr)
+
+        self.check_last_pw_change_timestamp(old_last_pw_change, time_just_before_update, time_just_after_update)
+        time.sleep(1)
+
+    def test_user_change_password_updates_last_pw_change(self):
+        old_last_pw_change = self.test_usr.last_pw_change
+
+        # edit user password
+        time_just_before_update = datetime.now()
+        change_password_result = self.test_usr_misp_connector.change_user_password(uuid.uuid4())
+        time_just_after_update = datetime.now()
+        check_response(change_password_result)
+        self.updated_test_usr = self.test_usr_misp_connector.get_user(pythonify=True)
+        check_response(self.updated_test_usr)
+
+        self.check_last_pw_change_timestamp(old_last_pw_change, time_just_before_update, time_just_after_update)
+        time.sleep(1)
+
+    def test_reset_user_password_updates_last_pw_change(self):
+        old_last_pw_change = self.test_usr.last_pw_change
+
+        # reset user password
+        time_just_before_update = datetime.now()
+        self.admin_misp_connector.direct_call(f'users/initiatePasswordReset/{self.test_usr.id}', {})
+        time.sleep(1)
+        time_just_after_update = datetime.now()
+        self.updated_test_usr = self.test_usr_misp_connector.get_user(pythonify=True)
+        check_response(self.updated_test_usr)
+
+        self.check_last_pw_change_timestamp(old_last_pw_change, time_just_before_update, time_just_after_update)
+        time.sleep(1)
+
+    def last_pw_change_almost_equal_to_date_modified(self):
+        date_modified = datetime.fromtimestamp(int(self.updated_test_usr.date_modified))
+        last_pw_change = datetime.fromtimestamp(int(self.updated_test_usr.last_pw_change))
+        return date_modified - last_pw_change < timedelta(milliseconds=5)
+
+    def last_pw_change_time_is_in_expected_range(self, time_just_before_update, time_just_after_update):
+        timediff_last_pw_change_now = datetime.fromtimestamp(int(self.updated_test_usr.last_pw_change)) - time_just_before_update
+        max_accepted_timediff = time_just_after_update - time_just_before_update
+        return timediff_last_pw_change_now <= max_accepted_timediff
+
+    def check_last_pw_change_timestamp(self, old_last_pw_change, time_just_before_update, time_just_after_update):
+        # check if new last_pw_change timestamp looks okay, starting with fact that it should be newer than previous one
+        # self.assertGreater(self.updated_test_usr.last_pw_change, old_last_pw_change)
+
+        # last pw change should be set to timestamp sometime between time_just_before_update and time_just_after_update
+        self.assertTrue(self.last_pw_change_time_is_in_expected_range(time_just_before_update, time_just_after_update))
+
+        # last_pw_change should be relatively close to date_modified
+        self.assertTrue(self.last_pw_change_almost_equal_to_date_modified())
+
+
+def gen_random_id() -> str:
+    return str(uuid.uuid4()).split("-")[0]
 
 
 if __name__ == '__main__':

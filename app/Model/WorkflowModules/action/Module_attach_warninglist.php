@@ -17,8 +17,6 @@ class Module_attach_warninglist extends WorkflowBaseActionModule
     /** @var Warninglist */
     private $Warninglist;
     private $warninglists;
-    private $fastLookupArrayMispFormat = [];
-    private $fastLookupArrayFlattened = [];
 
 
     public function __construct()
@@ -54,7 +52,6 @@ class Module_attach_warninglist extends WorkflowBaseActionModule
         if ($matchingItems === false) {
             return true;
         }
-        $this->_buildFastLookupForRoamingData($rData);
 
         $warninglists = [];
         if ($params['warninglists']['value'] == 'ALL') {
@@ -83,35 +80,5 @@ class Module_attach_warninglist extends WorkflowBaseActionModule
         $rData['Event']['warnings'] = $eventWarnings;
         $roamingData->setData($rData);
         return true;
-    }
-
-    protected function _buildFastLookupForRoamingData($rData): void
-    {
-        foreach ($rData['Event']['Attribute'] as $i => $attribute) {
-            $this->fastLookupArrayMispFormat[$attribute['id']] = $i;
-        }
-        foreach ($rData['Event']['Object'] as $j => $object) {
-            foreach ($object['Attribute'] as $i => $attribute) {
-                $this->fastLookupArrayMispFormat[$attribute['id']] = [$j, $i];
-            }
-        }
-        foreach ($rData['Event']['_AttributeFlattened'] as $i => $attribute) {
-            $this->fastLookupArrayFlattened[$attribute['id']] = $i;
-        }
-    }
-
-    protected function _overrideAttribute(array $oldAttribute, array $newAttribute, array $rData): array
-    {
-        $attributeID = $oldAttribute['id'];
-        $rData['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattened[$attributeID]] = $newAttribute;
-        if (is_array($this->fastLookupArrayMispFormat[$attributeID])) {
-            $objectID = $this->fastLookupArrayMispFormat[$attributeID][0];
-            $attributeID = $this->fastLookupArrayMispFormat[$attributeID][1];
-            $rData['Event']['Object'][$objectID]['Attribute'][$attributeID] = $newAttribute;
-        } else {
-            $attributeID = $this->fastLookupArrayMispFormat[$attributeID];
-            $rData['Event']['Attribute'][$attributeID] = $newAttribute;
-        }
-        return $rData;
     }
 }

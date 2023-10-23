@@ -224,7 +224,6 @@ class AttributeValidationTool
         switch ($type) {
             case 'md5':
             case 'imphash':
-            case 'telfhash':
             case 'sha1':
             case 'sha224':
             case 'sha256':
@@ -255,6 +254,11 @@ class AttributeValidationTool
                     return true;
                 }
                 return __('Checksum has an invalid length or format (expected: at least 35 hexadecimal characters, optionally starting with t1 instead of hexadecimal characters). Please double check the value or select type "other".');
+            case 'telfhash':
+                if (self::isTelfhashValid($value)) {
+                    return true;
+                }
+                return __('Checksum has an invalid length or format (expected: %s or %s hexadecimal characters). Please double check the value or select type "other".', 70, 72);
             case 'pehash':
                 if (self::isHashValid('pehash', $value)) {
                     return true;
@@ -633,6 +637,15 @@ class AttributeValidationTool
             $value = substr($value, 1);
         }
         return strlen($value) > 35 && ctype_xdigit($value);
+    }
+
+    /**
+     * @param string $value
+     * @return bool
+     */
+    private static function isTelfhashValid($value)
+    {
+        return strlen($value) == 70 || strlen($value) == 72;
     }
 
 

@@ -93,6 +93,9 @@ class DashboardsController extends AppController
             if (empty($data['config'])) {
                 $data['config'] = '';
             }
+            if (!empty($data['id']) && !preg_match('/^[\w\d_]+$/i', $data['id'])) {
+                throw new BadRequestException(__('Invalid widget id provided.'));
+            }
             if ($action === 'add') {
                 $data['widget_options'] = $this->Dashboard->loadAllWidgets($this->Auth->user());
             } else if ($action === 'edit') {
@@ -194,6 +197,29 @@ class DashboardsController extends AppController
 
         if (!empty($this->request->params['named']['exportjson'])) {
             return $this->RestResponse->viewData($data);
+        } else if (!empty($this->request->params['named']['exportcsv'])) {
+            $csv = '';
+            $toConvert = !empty($data) ? (!empty($data['data']) ? $data['data'] : $data) : [];
+            if (!empty($toConvert)) {
+                $firstElement = key($toConvert);
+                if (is_string($firstElement)) {
+                    foreach ($toConvert as $key => $value) {
+                        $csv .= sprintf('%s,%s', $key, json_encode($value)) . PHP_EOL;
+                    }
+                } else { // second element is an array
+                    $csv = array_map(function($row) {
+                        $flattened = array_values(Hash::flatten($row));
+                        $stringified = array_map('strval', $flattened);
+                        $quotified = array_map(function($item) { return sprintf('"%s"', $item); }, $stringified);
+                        return implode(',', $quotified);
+                    }, $toConvert);
+                    $rowKey = implode(',', array_map(function ($item) {
+                        return sprintf('"%s"', $item);
+                    }, array_map('strval', array_keys(Hash::flatten($toConvert[0])))));
+                    $csv = $rowKey . PHP_EOL .  implode(PHP_EOL, array_values($csv));
+                }
+            }
+            return $this->RestResponse->viewData($csv, 'text/csv', false, true);
         }
 
         $this->layout = false;
