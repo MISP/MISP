@@ -7,6 +7,7 @@
   } else {
       $objectEvent = $event;
   }
+  $isNew = $object['timestamp'] > $event['Event']['publish_timestamp'];
   if ($object['deleted']) $tr_class .= ' lightBlueRow';
   else $tr_class .= ' blueRow';
   if (!empty($k)) {
@@ -33,7 +34,7 @@ $objectId = intval($object['id']);
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
-  <td class="short timestamp"><?= $this->Time->date($object['timestamp']) ?></td>
+  <td class="short timestamp <?= $isNew ? 'bold red' : '' ?>" <?= $isNew ? 'title="' . __('Element or modification to an existing element has not been published yet.') . '"' : '' ?>><?= $this->Time->date($object['timestamp']) . ($isNew ? '*' : '') ?></td>
   <?php
     if ($extended):
   ?>
@@ -111,6 +112,17 @@ $objectId = intval($object['id']);
   <td class="short action-links">
     <?php
       if ($mayModify) {
+          if (Configure::read('Plugin.Enrichment_services_enable') && ($isSiteAdmin || $mayModify) && (isset($modules) && isset($modules['types'][$object['name']]))) {
+            echo sprintf(
+              '<span class="fa fa-asterisk white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onclick="%2$s"></span> ',
+              __('Add enrichment'),
+              sprintf(
+                'simplePopup(\'%s/events/queryEnrichment/%s/0/Enrichment/Object\');',
+                  $baseurl, $objectId
+              )
+            );
+          }
+
           if (empty($object['deleted'])) {
             echo sprintf(
               '<a href="%s/objects/edit/%s" title="%s" aria-label="%s" class="fa fa-edit white"></a> ',

@@ -465,7 +465,7 @@
                     array(
                         'text' => __('Audit Logs'),
                         'url' => $baseurl . '/admin/audit_logs/index',
-                        'requirement' => Configure::read('MISP.log_new_audit') && $isAdmin,
+                        'requirement' => Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index'),
                     ),
                     array(
                         'text' => __('Access Logs'),
@@ -475,7 +475,7 @@
                     array(
                         'text' => __('Search Logs'),
                         'url' => $baseurl . '/admin/logs/search',
-                        'requirement' => $isAdmin
+                        'requirement' => $this->Acl->canAccess('logs', 'admin_search')
                     )
                 )
             ),

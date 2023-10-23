@@ -1,7 +1,11 @@
 <?php
+
+App::uses('ComponentCollection', 'Controller');
+App::uses('RestSearchComponent', 'Controller/Component');
+
 class DevShell extends AppShell {
 
-    public $uses = [];
+    public $uses = ['Attribute', 'Event', 'Object', 'GalaxyCluster', 'Sighting'];
 
     public function cleanFeedDefault() {
         $this->out(__('Massaging the feed metadata file.'));
@@ -44,6 +48,59 @@ class DevShell extends AppShell {
                 $this->stdout->styles('error');
                 $this->out(__('Something went wrong.'));
             }
+        }
+    }
+
+    public function generateSearchParams()
+    {
+        $fetchFunctionName = [
+            'Attribute' => 'fetchAttributes',
+            'Event' => 'fetchEvents',
+            'Object' => 'fetchObjects',
+            'Sighting' => 'fetchSightings',
+            'GalaxyCluster' => 'fetchGalaxyClusters'
+        ];
+        $collection = new ComponentCollection();
+        $this->RestSearchComponent = $collection->load('RestSearch');
+        $paramArray = $this->RestSearchComponent->paramArray;
+        foreach ($paramArray as $scope => $params) {
+            if (!empty($this->$scope->possibleOptions)) {
+                $paramArray[$scope] = array_values(array_unique(array_merge($paramArray[$scope], $this->$scope->possibleOptions)));
+            } else {
+                $fileName = $scope === 'Object' ? 'MispObject' : $scope;
+                $code = file_get_contents(APP . 'Model/' . $fileName . '.php');
+                $code = explode("\n", $code);
+                $start = false;
+                $end = false;
+                $analyzedBlock = [];
+                foreach ($code as $lineNumber => $line) {
+                    if (strpos($line, 'public function ' . $fetchFunctionName[$scope] . '(') !== false) {
+                        $start = $lineNumber;
+                    }
+                    if ($start) {
+                        if ($lineNumber !== $start && strpos($line, 'public function') !== false) {
+                            $end = $lineNumber - 1;
+                            break;
+                        }
+                        $analyzedBlock[] = $line;
+                    }
+                }
+                $analyzedBlock = implode("\n", $analyzedBlock);
+                $foundParams = [];
+                preg_match_all('/\$options\[\'([^\']+)/i', $analyzedBlock, $foundParams);
+                $foundParams = $foundParams[1];
+                foreach ($foundParams as $k => $v) {
+                    if (in_array(strtolower($v), ['contain', 'fields', 'conditions', 'order', 'joins', 'group', 'limit', 'page', 'recursive', 'callbacks'])) {
+                        unset($foundParams[$k]);
+                    }
+                }
+                $paramArray[$scope] = array_values(array_unique(array_merge($paramArray[$scope], $foundParams)));
+            }
+        }
+        foreach ($paramArray as $scope => $fields) {
+            echo "'" . $scope ."' => [" . PHP_EOL . "    '";
+            echo implode("'," . PHP_EOL . "    '", $fields) . "'" . PHP_EOL;
+            echo "]," . PHP_EOL;
         }
     }
 }

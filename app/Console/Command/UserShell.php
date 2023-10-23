@@ -104,6 +104,18 @@ class UserShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('require_password_change_for_old_passwords', [
+            'help' => __('Trigger forced password change on next login for users with an old (older than x days) password.'),
+            'parser' => [
+                'arguments' => [
+                    'days' => ['help' => __('Amount of days after which a password is considered "old" and needs to be changed.'), 'required' => true]
+                ],
+            ]
+        ]);
+
+        $parser->addSubcommand('expire_authkeys_without_ip_allowlist', [
+            'help' => __('Expire all active authkeys that do not have an IP allowlist set.'),
+        ]);
         return $parser;
     }
 
@@ -428,6 +440,61 @@ class UserShell extends AppShell
                 '%s==============================%sIP: %s%s==============================%sUser #%s: %s%s==============================%s',
                 PHP_EOL, PHP_EOL, $ip, PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL
             ));
+        }
+    }
+
+    public function require_password_change_for_old_passwords()
+    {
+        list($days) = $this->args;
+        if(!is_numeric($days)){
+            $this->error("The amount of days after which a password change is required (the argument) should be numeric.");
+        }
+        $interval  = 'P' . $days . 'D';
+
+        $current_time = new DateTime();
+        $time_before_change_required = $current_time->sub(new DateInterval($interval))->getTimestamp();
+        $users = $this->User->find('all', [
+            'conditions' => [
+                'OR' => [
+                    'last_pw_change <' => $time_before_change_required
+                ]
+            ],
+            'fields' => ['id'],
+            'recursive' => 0
+        ]);
+        foreach ($users as $user) {
+            $user['User']['change_pw'] = true;
+            $userId = $user['User']['id'];
+            if (!$this->User->save($user['User'], true, ["change_pw"])) {
+                $this->out("Could not update user $userId.");
+                $this->out($this->json($this->User->validationErrors));
+                $this->_stop(self::CODE_ERROR);
+            }
+        }
+    }
+
+    public function expire_authkeys_without_ip_allowlist()
+    {
+        $time = time();
+        $authkeys = $this->User->AuthKey->find('all', [
+            'conditions' => [
+                'OR' => [
+                    'AuthKey.expiration >' => $time,
+                    'AuthKey.expiration' => 0
+                ],
+                'allowed_ips' => NULL
+            ],
+            'fields' => ['id', 'user_id'],
+            'recursive' => 0
+        ]);
+        foreach ($authkeys as $authkey) {
+            $authkey['AuthKey']['expiration'] = $time;
+            $authkeyId = $authkey['AuthKey']['id'];
+            if (!$this->User->AuthKey->save($authkey['AuthKey'])) {
+                $this->out("Could not update authkey $authkeyId.");
+                $this->out($this->json($this->User->AuthKey->validationErrors));
+                $this->_stop(self::CODE_ERROR);
+            }
         }
     }
 

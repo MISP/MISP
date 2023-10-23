@@ -91,12 +91,14 @@ class EventShell extends AppShell
         }
 
         $isXml = $extension === 'xml';
-        $takeOwnership = $this->param('take_ownership');
-        $publish = $this->param('publish');
+        $takeOwnership = $this->params['take-ownership'];
+        $publish = $this->params['publish'];
         $results = $this->Event->addMISPExportFile($user, $content, $isXml, $takeOwnership, $publish);
 
         foreach ($results as $result) {
             if (is_numeric($result['result'])) {
+                $this->out("Event `{$result['info']}` already exists at ({$result['result']}).");
+            } else if ($result['result'] === true) {
                 $this->out("Event #{$result['id']}: {$result['info']} imported.");
             } else {
                 $this->out("Could not import event because of validation errors: " . json_encode($result['validationIssues']));
@@ -405,7 +407,17 @@ class EventShell extends AppShell
         $jobId = $this->args[2];
         $userId = $this->args[3];
         $user = $this->getUser($userId);
-        $job = $this->Job->read(null, $jobId);
+        $job = $this->Job->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'Job.id' => $jobId
+            ]
+        ]);
+        if (empty($job)) {
+            $log = ClassRegistry::init('Log');
+            $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): could not be published - valid job not found.', '');
+            return true;
+        }
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
         $result = $this->Event->publish($id, $passAlong);
         $job['Job']['progress'] = 100;

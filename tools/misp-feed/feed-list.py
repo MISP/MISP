@@ -6,13 +6,15 @@
 # This tool is part of the MISP core project and released under the GNU Affero
 # General Public License v3.0
 #
-# Copyright (C) 2017 Alexandre Dulaunoy
+# Copyright (C) 2017-2023 Alexandre Dulaunoy
 # Copyright (C) 2023 Christophe Vandeplas
 
 import json
 import requests
 
 default_feed = '../../app/files/feed-metadata/defaults.json'
+misp_website_path = '../../../misp-website-new/content/feeds.md'
+verify_certificate = False
 
 with open(default_feed) as feed_file:
     feedlist = json.load(feed_file)
@@ -25,7 +27,7 @@ for feed in feedlist:
     items.append(output)
     # try to download the feed
     headers = {"Range": "bytes=0-0"}
-    res = requests.get(feed['Feed']['url'], headers=headers)
+    res = requests.get(feed['Feed']['url'], headers=headers, verify=verify_certificate)
     if (res.status_code >= 200 and res.status_code < 300)\
             or res.status_code == 403:
         continue
@@ -38,7 +40,7 @@ items = sorted(items, key=lambda s: s.casefold())
 print("Updating misp-website feed.md file.")
 start_header_seen = False
 inserted = False
-with open('../../../misp-website/content/feeds.md', 'r') as f:
+with open(misp_website_path, 'r') as f:
     data_new = []
     for line in f:
         if start_header_seen and line.startswith('- ') and not inserted:  # first item
@@ -56,5 +58,5 @@ with open('../../../misp-website/content/feeds.md', 'r') as f:
             start_header_seen = True
 
 
-with open('../../../misp-website/content/feeds.md', 'w') as f:
+with open(misp_website_path, 'w') as f:
     f.write('\n'.join(data_new))

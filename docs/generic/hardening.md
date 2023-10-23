@@ -16,7 +16,7 @@ Nevertheless here is a very rough **food for thoughts** bulletpoint list for you
 - Do we need to encrypt the partitions where some data is stored?
 - Are we redundant in case one MISP instance might fail?
 - Is the database server and any other servers running on the machine bound to **localhost**? Do we need to expose because our setup is more complex?
-- Do we have enough storage? What about [MISP and size estimation](https://misp-project.org/MISP-sizer/) anyways?
+- Do we have enough storage? What about [MISP and size estimation](https://www.misp-project.org/sizing-your-misp-instance/) anyways?
 - Do we care about BIOS updates?
 - Do we care about physical access to the servers? (Disabling USB ports etc...)
 - Is any fancy management engine à la [IME](https://en.wikipedia.org/wiki/Intel_Management_Engine) in use?
@@ -52,7 +52,7 @@ index f9f69d4..2e8fd78 100644
 
 ## Resources
 
-[IT Security Guidelines for TLS by NCSC.nl](https://www.ncsc.nl/english/current-topics/factsheets/it-security-guidelines-for-transport-layer-security-tls.html)
+[IT Security Guidelines for TLS by NCSC.nl](https://english.ncsc.nl/publications/publications/2021/january/19/it-security-guidelines-for-transport-layer-security-2.1)
 
 [Weak Diffie-Hellman and the Logjam Attack](https://weakdh.org/sysadmin.html)
 

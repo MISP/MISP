@@ -108,7 +108,8 @@ class MispObject extends AppModel
         ),
         'description' => array(
             'stringNotEmpty' => array(
-                'rule' => array('stringNotEmpty')
+                'rule' => array('stringNotEmpty'),
+                'on' => 'create'
             ),
         ),
         'template_uuid' => array(

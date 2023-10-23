@@ -10,15 +10,15 @@ body:
 
         If you would like to report a bug, please fill the template bellow:
   - type: textarea
-    id: expected-behavior
-    attributes:
-      label: Expected behavior
-    validations:
-      required: true
-  - type: textarea
     id: actual-behavior
     attributes:
       label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
     validations:
       required: true
   - type: textarea

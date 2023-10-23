@@ -6,6 +6,7 @@ class Module_push_zmq extends WorkflowBaseActionModule
     public $blocking = false;
     public $id = 'push-zmq';
     public $name = 'Push to ZMQ';
+    public $version = '0.2';
     public $description = 'Push to the ZMQ channel';
     public $icon_path = 'zeromq.png';
     public $inputs = 1;
@@ -19,7 +20,7 @@ class Module_push_zmq extends WorkflowBaseActionModule
             [
                 'id' => 'data_extraction_path',
                 'label' => 'Data extraction path',
-                'type' => 'input',
+                'type' => 'hashpath',
                 'default' => '',
                 'placeholder' => 'Attribute.{n}.AttributeTag.{n}.Tag.name',
             ],
