@@ -99,7 +99,7 @@ class TrendingAttributesWidget
             $values = $attributeModel->find('all', [
                 'recursive' => -1,
                 'fields' => ['Attribute.value1', 'count(Attribute.value1) as Attribute__frequency'],
-                'group' => ['Attribute.value1'],
+                'group' => ['Attribute.value1', ],
                 'conditions' => $conditions,
                 'contain' => ['Event.orgc_id'],
                 'order' => 'count(Attribute.value1) desc',

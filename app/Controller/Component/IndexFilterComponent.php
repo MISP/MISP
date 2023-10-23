@@ -54,7 +54,7 @@ class IndexFilterComponent extends Component
     private function __massageData($data, $request, $paramArray)
     {
         $data = array_filter($data, function($paramName) use ($paramArray) {
-            return !empty($paramArray[$paramName]);
+            return in_array($paramName, $paramArray, true);
         }, ARRAY_FILTER_USE_KEY);
 
         if (!empty($paramArray)) {

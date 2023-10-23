@@ -5,6 +5,7 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
 {
     public $id = 'generic-filter-data';
     public $name = 'Filter :: Generic';
+    public $version = '0.2';
     public $description = 'Generic data filtering block. The module filters incoming data and forward the matching data to its output.';
     public $icon = 'filter';
     public $inputs = 1;
@@ -16,6 +17,8 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
         'not_in' => 'Not in',
         'equals' => 'Equals',
         'not_equals' => 'Not equals',
+        'any_value' => 'Any value',
+        'in_or' => 'Any value from',
     ];
 
     public function __construct()
@@ -27,6 +30,7 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
                 'label' => __('Filtering Label'),
                 'type' => 'select',
                 'options' => $this->_genFilteringLabels(),
+                'default' => array_keys($this->_genFilteringLabels())[0],
             ],
             [
                 'id' => 'selector',
@@ -39,6 +43,19 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
                 'label' => __('Value'),
                 'type' => 'input',
                 'placeholder' => 'tlp:red',
+                'display_on' => [
+                    'operator' => ['in', 'not_in', 'equals', 'not_equals',],
+                ],
+            ],
+            [
+                'id' => 'value_list',
+                'label' => __('Value list'),
+                'type' => 'picker',
+                'picker_create_new' => true,
+                'placeholder' => '[\'ip-src\', \'ip-dst\']',
+                'display_on' => [
+                    'operator' => 'in_or',
+                ],
             ],
             [
                 'id' => 'operator',
@@ -50,7 +67,7 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
             [
                 'id' => 'hash_path',
                 'label' => __('Hash path'),
-                'type' => 'input',
+                'type' => 'hashpath',
                 'placeholder' => 'Tag.name',
             ],
         ];
@@ -64,6 +81,8 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
         $path = $params['hash_path']['value'];
         $operator = $params['operator']['value'];
         $value = $params['value']['value'];
+        $value_list = $params['value_list']['value'];
+        $valueToEvaluate = $operator == 'in_or' ? $value_list : $value;
         $filteringLabel = $params['filtering-label']['value'];
         $rData = $roamingData->getData();
 
@@ -75,7 +94,7 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
             'selector' => $selector,
             'path' => $path,
             'operator' => $operator,
-            'value' => $value,
+            'value' => $valueToEvaluate,
         ];
 
         $roamingData->setData($newRData);

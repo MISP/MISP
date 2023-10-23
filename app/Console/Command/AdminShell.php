@@ -112,13 +112,31 @@ class AdminShell extends AppShell
         return $parser;
     }
 
-    public function jobGenerateCorrelation()
+    public function jobForgot()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate correlation'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Forgot'] . PHP_EOL);
         }
 
-        $jobId = $this->args[0];
+        $email = $this->args[0];
+        $ip = empty($this->args[1]) ? null : $this->args[1];
+        $jobId = empty($this->args[2]) ? null : $this->args[2];
+        $this->User->forgot($email, $ip, $jobId);
+    }
+
+    public function jobGenerateCorrelation()
+    {
+        $jobId = $this->args[0] ?? null;
+        if (empty($jobId)) {
+            $jobId = $this->Job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate correlation',
+                'All attributes',
+                'Job created.'
+            );
+        }
+
         $this->Correlation->generateCorrelation($jobId);
     }
 

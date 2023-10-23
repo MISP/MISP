@@ -6,16 +6,18 @@ class GraphUtil
 {
     public function __construct($graphData)
     {
-        $this->graph = $graphData;
+        $this->graph = array_filter($graphData, function($i) {
+            return $i != '_frames';
+        }, ARRAY_FILTER_USE_KEY);
         $this->numberNodes = count($this->graph);
-        $this->edgeList = $this->_buildEdgeList($graphData);
+        $this->edgeList = $this->_buildEdgeList($this->graph);
         $this->properties = [];
     }
 
     private function _buildEdgeList($graphData): array
     {
         $list = [];
-        foreach ($graphData as $node) {
+        foreach ($graphData as $i => $node) {
             $list[(int)$node['id']] = [];
             foreach (($node['outputs'] ?? []) as $output_id => $outputs) {
                 foreach ($outputs as $connections) {
@@ -356,6 +358,20 @@ class WorkflowRoamingData
 
 class WorkflowGraphTool
 {
+
+    /**
+     * cleanGraphData Remove frame nodes from the graph data
+     *
+     * @param  array $graphData
+     * @return array
+     */
+    public static function cleanGraphData(array $graphData): array
+    {
+        return array_filter($graphData, function($i) {
+            return $i != '_frames';
+        }, ARRAY_FILTER_USE_KEY);
+    }
+
     /**
      * extractTriggerFromWorkflow Return the trigger id (or full module) that are specified in the workflow
      *
@@ -382,8 +398,9 @@ class WorkflowGraphTool
      */
     public static function extractTriggersFromWorkflow(array $graphData, bool $fullNode = false): array
     {
+        $graphData = self::cleanGraphData($graphData);
         $triggers = [];
-        foreach ($graphData as $node) {
+        foreach ($graphData as $i => $node) {
             if ($node['data']['module_type'] == 'trigger') {
                 if (!empty($fullNode)) {
                     $triggers[] = $node;
@@ -404,8 +421,9 @@ class WorkflowGraphTool
      */
     public static function extractConcurrentTasksFromWorkflow(array $graphData, bool $fullNode = false): array
     {
+        $graphData = self::cleanGraphData($graphData);
         $nodes = [];
-        foreach ($graphData as $node) {
+        foreach ($graphData as $i => $node) {
             if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'concurrent-task') {
                 if (!empty($fullNode)) {
                     $nodes[] = $node;
@@ -426,8 +444,9 @@ class WorkflowGraphTool
      */
     public static function extractFilterNodesFromWorkflow(array $graphData, bool $fullNode = false): array
     {
+        $graphData = self::cleanGraphData($graphData);
         $nodes = [];
-        foreach ($graphData as $node) {
+        foreach ($graphData as $i => $node) {
             if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'generic-filter-data') {
                 if (!empty($fullNode)) {
                     $nodes[] = $node;
@@ -448,8 +467,9 @@ class WorkflowGraphTool
      */
     public static function extractResetFilterFromWorkflow(array $graphData, bool $fullNode = false): array
     {
+        $graphData = self::cleanGraphData($graphData);
         $nodes = [];
-        foreach ($graphData as $node) {
+        foreach ($graphData as $i => $node) {
             if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'generic-filter-reset') {
                 if (!empty($fullNode)) {
                     $nodes[] = $node;

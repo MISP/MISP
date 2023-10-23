@@ -40,6 +40,9 @@
         } else {
             $params['class'] = '';
         }
+        if (!empty($fieldData['autofocus'])) {
+            $params['autofocus'] = 1;
+        }
         if (empty($fieldData['type']) || $fieldData['type'] !== 'checkbox' ) {
             $params['class'] .= ' form-control';
         }

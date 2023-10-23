@@ -83,7 +83,7 @@ class OrgEvolutionLineWidget
             'recursive' => -1,
             'conditions' => $params['conditions'],
             'fields' => ['DATE_FORMAT(date_created, "%Y-%m") AS date', 'count(id) AS count'],
-            'group' => 'MONTH(date_created), YEAR(date_created)'
+            'group' => ['MONTH(date_created), YEAR(date_created)', ]
             
         ]);
         usort($raw, [$this, 'sortByCreationDate']);

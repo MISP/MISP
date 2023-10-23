@@ -519,8 +519,9 @@ kaliOnTheR0ckz () {
   overlay=$(df -kh |grep overlay; echo $?) # if 1 overlay NOT present
 
   if [[ ${totalRoot} -lt 3059034 ]]; then
-    echo "(If?) You run Kali in LiveCD mode and we need more overlay disk space."
-    echo "This is defined by the total memory, you have: ${totalMem}kB which is not enough."
+    echo "(If?) You run Kali in LiveCD mode, you need more overlay disk space."
+    echo "This is defined by the total memory setting in you VM config."
+    echo "You currently have: ${totalMem}kB which is not enough."
     echo "6-8Gb should be fine. (need >3Gb overlayFS)"
     exit 1
   fi
@@ -613,6 +614,14 @@ installRNG () {
 kaliUpgrade () {
   debug "Running various Kali upgrade tasks"
   checkAptLock
+  # Fix Missing keys early
+  sudo wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+  # /!\ The following is a very ugly dependency hack to make php7.4 work on Kali
+  wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+  sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+  wget http://ftp.debian.org/debian/pool/main/i/icu/libicu67_67.1-7_amd64.deb
+  sudo dpkg -i libicu67_67.1-7_amd64.deb
+  # EOH End-Of-Hack
   sudo DEBIAN_FRONTEND=noninteractive apt update
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
   sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
