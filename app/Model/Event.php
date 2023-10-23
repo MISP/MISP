@@ -186,6 +186,7 @@ class Event extends AppModel
         'order',
         'protected',
         'published',
+        'orgc_id',
     );
 
     public $validate = array(
@@ -1545,6 +1546,7 @@ class Event extends AppModel
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'org' => array('function' => 'set_filter_org', 'pop' => true),
+                    'orgc_id' => array('function' => 'set_filter_orgc_id', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
                     'published' => array('function' => 'set_filter_published', 'pop' => true),
                     'threat_level_id' => array('function' => 'set_filter_threat_level_id', 'pop' => true),
@@ -1904,6 +1906,9 @@ class Event extends AppModel
         }
         if ($options['published']) {
             $conditions['AND'][] = array('Event.published' => $options['published']);
+        }
+        if ($options['orgc_id']) {
+            $conditions['AND'][] = array('Event.orgc_id' => $options['orgc_id']);
         }
         if (!empty($options['includeRelatedTags'])) {
             $options['includeGranularCorrelations'] = 1;
@@ -2635,6 +2640,15 @@ class Event extends AppModel
             } else {
                 $conditions = $this->generic_add_filter($conditions, $params['sharinggroup'], 'Event.sharing_group_id');
             }
+        }
+        return $conditions;
+    }
+
+    public function set_filter_orgc_id(&$params, $conditions, $options)
+    {
+        if (!empty($params['orgc_id'])) {
+            $orgFilter = ['OR' => $params['orgc_id']];
+            $conditions = $this->generic_add_filter($conditions, $orgFilter, 'Event.orgc_id');
         }
         return $conditions;
     }
