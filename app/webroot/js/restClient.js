@@ -165,7 +165,11 @@ var debounceTimerUpdate;
             var previously_selected_template = $('#ServerUrl').data('urlWithoutParam')
             if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
                 $('#template_description').show();
-                $('#ServerMethod').val('POST');
+                if(allValidApis[selected_template].http_method !== undefined){
+                    $('#ServerMethod').val(allValidApis[selected_template].http_method);
+                } else {
+                    $('#ServerMethod').val('POST');
+                }
                 var server_url_changed = $('#ServerUrl').val() != allValidApis[selected_template].url;
                 $('#ServerUrl')
                     .val(allValidApis[selected_template].url)

@@ -8,7 +8,7 @@ class Module_webhook extends WorkflowBaseActionModule
 {
     public $id = 'webhook';
     public $name = 'Webhook';
-    public $version = '0.4';
+    public $version = '0.6';
     public $description = 'Allow to perform custom callbacks to the provided URL';
     public $icon_path = 'webhook.png';
     public $inputs = 1;
@@ -25,7 +25,7 @@ class Module_webhook extends WorkflowBaseActionModule
         $this->params = [
             [
                 'id' => 'url',
-                'label' => __('Payload URL'),
+                'label' => __('URL'),
                 'type' => 'input',
                 'placeholder' => 'https://example.com/test',
             ],
@@ -40,11 +40,39 @@ class Module_webhook extends WorkflowBaseActionModule
                 ],
             ],
             [
-                'id' => 'data_extraction_path',
-                'label' => __('Data extraction path'),
-                'type' => 'hashpath',
+                'id' => 'request_method',
+                'label' => __('HTTP Request Method'),
+                'type' => 'select',
+                'default' => 'post',
+                'options' => [
+                    'post' => 'POST',
+                    'get' => 'GET',
+                    'put' => 'PUT',
+                    'delete' => 'DELETE',
+                ],
+            ],
+            [
+                'id' => 'self_signed',
+                'label' => __('Self-signed certificates'),
+                'type' => 'select',
+                'default' => 'deny',
+                'options' => [
+                    'deny' => 'Deny self-signed certificates',
+                    'allow' => 'Allow self-signed certificates',
+                ],
+            ],
+            [
+                'id' => 'payload',
+                'label' => __('Payload (leave empty for roaming data)'),
+                'type' => 'textarea',
                 'default' => '',
-                'placeholder' => 'Attribute.{n}.AttributeTag.{n}.Tag.name',
+                'placeholder' => '',
+            ],
+            [
+                'id' => 'headers',
+                'label' => __('Headers'),
+                'type' => 'textarea',
+                'placeholder' => 'Authorization: foobar',
             ],
         ];
     }
@@ -82,10 +110,23 @@ class Module_webhook extends WorkflowBaseActionModule
         }
 
         $rData = $roamingData->getData();
-        $path = $params['data_extraction_path']['value'];
-        $extracted = !empty($params['data_extraction_path']['value']) ? $this->extractData($rData, $path) : $rData;
+        $payload = '';
+        if (strlen($params['payload']['value']) > 0) {
+            $payload = $this->render_jinja_template($params['payload']['value'], $rData);
+        } else {
+            $payload = $rData;
+        }
+        $tmpHeaders = explode(PHP_EOL, $params['headers']['value']);
+        $headers = [];
+        $selfSignedAllowed = $params['self_signed']['value'] == 'allow';
+        foreach ($tmpHeaders as $entry) {
+            $entry = explode(':', $entry, 2);
+            if (count($entry) == 2) {
+                $headers[trim($entry[0])] = trim($entry[1]);
+            }
+        }
         try {
-            $response = $this->doRequest($params['url']['value'], $params['content_type']['value'], $extracted);
+            $response = $this->doRequest($params['url']['value'], $params['content_type']['value'], $payload, $headers, $params['request_method']['value'], ['self_signed' => $selfSignedAllowed]);
             if ($response->isOk()) {
                 return true;
             }
@@ -106,7 +147,7 @@ class Module_webhook extends WorkflowBaseActionModule
         return false;
     }
 
-    protected function doRequest($url, $contentType, $data, $headers = [], $serverConfig = null)
+    protected function doRequest($url, $contentType, $data, $headers = [], $requestMethod='post', $serverConfig = null)
     {
         $this->Event = ClassRegistry::init('Event'); // We just need a model to use AppModel functions
         $version = implode('.', $this->Event->checkMISPVersion());
@@ -122,11 +163,25 @@ class Module_webhook extends WorkflowBaseActionModule
         $syncTool = new SyncTool();
         $serverConfig = !empty($serverConfig['Server']) ? $serverConfig : ['Server' => $serverConfig];
         $HttpSocket = $syncTool->setupHttpSocket($serverConfig, $this->timeout);
+        $encodedData = $data;
         if ($contentType == 'form') {
             $request['header']['Content-Type'] = 'application/x-www-form-urlencoded';
-            $response = $HttpSocket->post($url, $data, $request);
         } else {
-            $response = $HttpSocket->post($url, JsonTool::encode($data), $request);
+            $encodedData = JsonTool::encode($data);
+        }
+        switch ($requestMethod) {
+            case 'post':
+                $response = $HttpSocket->post($url, $encodedData, $request);
+                break;
+            case 'get':
+                $response = $HttpSocket->get($url, false, $request);
+                break;
+            case 'put':
+                $response = $HttpSocket->put($url, $encodedData, $request);
+                break;
+            case 'delete':
+                $response = $HttpSocket->delete($url, $encodedData, $request);
+                break;
         }
         return $response;
     }

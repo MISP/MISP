@@ -17,9 +17,6 @@
 [submodule "app/files/misp-objects"]
 	path = app/files/misp-objects
 	url = https://github.com/MISP/misp-objects
-[submodule "misp-vagrant"]
-	path = misp-vagrant
-	url = https://github.com/MISP/misp-vagrant.git
 [submodule "cti-python-stix2"]
 	path = app/files/scripts/cti-python-stix2
 	url = https://github.com/MISP/cti-python-stix2

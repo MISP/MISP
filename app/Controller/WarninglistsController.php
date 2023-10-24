@@ -157,6 +157,9 @@ class WarninglistsController extends AppController
                     unset($warninglist['Warninglist']['entries']);
                     $warninglist['WarninglistEntry'] = $entries;
                 }
+                if (empty($warninglist['Warninglist']['matching_attributes'])) {
+                    $warninglist['Warninglist']['matching_attributes'] = ['ALL'];
+                }
                 if (isset($warninglist['Warninglist']['matching_attributes']) && is_array($warninglist['Warninglist']['matching_attributes'])) {
                     $warninglist['WarninglistType'] = [];
                     foreach ($warninglist['Warninglist']['matching_attributes'] as $attribute) {

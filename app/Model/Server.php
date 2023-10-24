@@ -5615,7 +5615,7 @@ class Server extends AppModel
                 ),
                 'store_api_access_time' => array(
                     'level' => 1,
-                    'description' => __('If enabled, MISP will capture the last API access time following a successful authentication using API keys, stored against a user under the last_api_access field.'),
+                    'description' => __('If enabled, MISP will capture a users\' last API access time following every successful authentication using API keys (as opposed to once max per hour by default). Stored as last_api_access time for the user.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6402,6 +6402,14 @@ class Server extends AppModel
                 'mandate_ip_allowlist_advanced_authkeys' => array(
                     'level' => 2,
                     'description' => __('If enabled, setting an ip allowlist will be mandatory when adding or editing an advanced authkey.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'limit_site_admins_to_host_org' => array(
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('If enabled, it will only be possible to assign site admin roles to users belonging to the instance\'s host org.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',

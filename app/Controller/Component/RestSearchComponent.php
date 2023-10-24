@@ -52,6 +52,7 @@ class RestSearchComponent extends Component
             'first_seen',
             'last_seen',
             'eventinfo',
+            'sharinggroup',
             'allow_proposal_blocking',
             'flatten',
             'list',
@@ -119,7 +120,8 @@ class RestSearchComponent extends Component
             'noEventReports',
             'noShadowAttributes',
             'order',
-            'protected'
+            'protected',
+            'includeGranularCorrelations'
         ],
         'Object' => [
             'returnFormat',

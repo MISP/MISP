@@ -35,8 +35,11 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
             [
                 'id' => 'selector',
                 'label' => __('Data selector'),
-                'type' => 'input',
+                'type' => 'hashpath',
                 'placeholder' => 'Event._AttributeFlattened.{n}',
+                'hashpath' => [
+                    'is_sub_selector' => false
+                ]
             ],
             [
                 'id' => 'value',
@@ -69,6 +72,9 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
                 'label' => __('Hash path'),
                 'type' => 'hashpath',
                 'placeholder' => 'Tag.name',
+                'hashpath' => [
+                    'is_sub_selector' => true
+                ]
             ],
         ];
     }

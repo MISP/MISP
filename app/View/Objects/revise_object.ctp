@@ -22,6 +22,9 @@ $tableData = [
         $url = $baseurl . '/objects/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'];
     } else {
         $url = $baseurl . '/objects/edit/' . $object_id;
+        if (!empty($update_template_available)) {
+            $url .= '/1';
+        }
     }
     echo $this->Form->create('Object', array('id', 'url' => $url));
     $formSettings = array(

@@ -252,6 +252,9 @@ $data_passed_to_if_module = [
                         "relationship_type": null,
                         "inherited": false
                     }
+                ],
+                "enrichment": [
+                    {}
                 ]
             }
         ],
@@ -580,6 +583,9 @@ $data_passed_to_if_module = [
                         "relationship_type": null,
                         "inherited": false
                     }
+                ],
+                "enrichment": [
+                    {}
                 ]
             },
             {
@@ -645,20 +651,21 @@ $data_passed_to_if_module = [
             <div class="tab-pane" id="modal-jinja2">
                 <h3><?= __('Jinja2 Syntax') ?></h3>
                 <p><i class="fa-fw <?= $this->FontAwesome->getClass('exclamation-triangle') ?>"></i> <?= __('For these examples, we consider the module received data under the MISP core format.') ?></p>
+                <p><i class="fa-fw <?= $this->FontAwesome->getClass('link') ?>"></i> <?= __('More documenation available on Jinja2 template designer documentation\'s') ?> <a href="https://jinja.palletsprojects.com/en/3.1.x/templates/"><?= __('website') ?></a></p>
                 <h4><?= __('You can use the dot <code>`.` </code> notation or the subscript syntax <code>`[]`</code> to access attributes of a variable') ?></h4>
                 <ul>
                     <li><code>{{ Event.info }}</code>: <?= __('Shows the title of the event') ?></li>
                     <li><code>{{ Event['info'] }}</code>: <?= __('Shows the title of the event') ?></li>
                 </ul>
                 <h4><?= __('Jinja2 allows you to easily create list') ?></h4>
-<pre>
+                <pre>
 {% for attribute in Event.Attribute %}
 - {{ attribute.value }}
 {% endfor %}
 </pre>
 
                 <h4><?= __('Jinja2 allows you to add logic') ?></h4>
-<pre>
+                <pre>
 {% if "tlp:white" in Event.Tag %}
     - This Event has the TLP:WHITE tag
 {% else %}
@@ -667,7 +674,7 @@ $data_passed_to_if_module = [
 </pre>
 
                 <h4><?= __('Jinja2 allows you to modify variables by using filters') ?></h4>
-<pre>
+                <pre>
 # The `reverse` filter
 - `{{ Event.info | reverse }}`
 -> The event title, but reversed
@@ -682,11 +689,15 @@ $data_passed_to_if_module = [
     - {{ attribute.value }}
     {% endfor %}
 {% endfor %}
+
+# The `json` filter
+{{ attribute | tojson }}
+-> The complete attribute json encoded
 </pre>
 
             </div>
 
-            <div class="tab-pane" id="modal-blueprint">
+            <div class=" tab-pane" id="modal-blueprint">
                 <h3><?= __('Blueprints') ?></h3>
                 <ul>
                     <li><?= __('Blueprints allow user to saved a collection of modules and how they are connected together so that they can be re-used and shared.') ?></li>

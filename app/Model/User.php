@@ -262,6 +262,16 @@ class User extends AppModel
         if (empty($user['nids_sid'])) {
             $user['nids_sid'] = mt_rand(1000000, 9999999);
         }
+        if (!empty(Configure::read('Security.limit_site_admins_to_host_org'))){
+            if (!empty($user['role_id']) and !empty($user['org_id'] and $user['org_id'] != Configure::read('MISP.host_org_id'))){
+                $role = $this->Role->find('first', array(
+                    'conditions' => array('Role.id' => $user['role_id'])
+                ));
+                if (!empty($role) and $role['Role']['perm_site_admin'] === true){
+                    $this->invalidate('role_id', "Site admin roles can only be assigned to users of the host org on this instance.");
+                }
+            }
+        }
         return true;
     }
 

@@ -5,6 +5,9 @@
         $url = $baseurl . '/objects/revise_object/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'];
     } else {
         $url = $baseurl . '/objects/revise_object/edit/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] . '/' . h($object['Object']['id']);
+        if ($update_template_available) {
+            $url .= '/1';
+        }
     }
     echo $this->Form->create('Object', array('id', 'url' => $url, 'enctype' => 'multipart/form-data'));
 ?>

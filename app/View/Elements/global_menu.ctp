@@ -540,6 +540,18 @@
             )
         );
     }
+    $isHal = date('Y-10-31') == date('Y-m-d');
+    if ($isHal) {
+        $tmp = [
+            'type' => 'root',
+            'url'=> '#',
+            'html' => '<span onclick="toggleHal()" class="fa-stack fa-1x">
+                           <i class="fas fa-broom fa-stack-1x"></i>
+                           <i class="fas fa-cat fa-stack-1x fa-flip-horizontal" style="bottom: 8px; left: 2px;"></i>
+                       </span>'
+        ];
+        $menu_right = array_merge([$tmp], $menu_right);
+    }
 ?>
 <div id="topBar" class="navbar navbar-inverse <?= isset($debugMode) ? $debugMode : 'debugOff' ?>" style="z-index:100;">
   <div class="navbar-inner">
@@ -561,5 +573,9 @@
             }
         ?>
     </ul>
-  </div>
 </div>
+  <?php
+    if ($isHal) {
+        echo $this->element('hal-ee');
+    }
+  ?>
