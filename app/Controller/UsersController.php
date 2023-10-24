@@ -419,8 +419,7 @@ class UsersController extends AppController
                                         'OR' => array(
                                             'UPPER(User.email) LIKE' => $searchValue,
                                             'UPPER(Organisation.name) LIKE' => $searchValue,
-                                            'UPPER(Role.name) LIKE' => $searchValue,
-                                            'UPPER(User.authkey) LIKE' => $searchValue,
+                                            'UPPER(Role.name) LIKE' => $searchValue
                                         ),
                                     );
                                 } else {
