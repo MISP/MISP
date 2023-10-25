@@ -26,6 +26,10 @@ class Module_sighting_after_save extends WorkflowBaseTriggerModule
         $this->Event = ClassRegistry::init('Event');
         $this->Attribute = ClassRegistry::init('Attribute');
 
+        if (empty($data['Sighting'])) {
+            return false;
+        }
+
         // We are missing data such as tags or objects.
         $event = $this->Event->quickFetchEvent($data['Sighting']['Event']['id']);
         $attribute = $this->Attribute->fetchAttribute($data['Sighting']['Attribute']['id']);

@@ -522,7 +522,25 @@ class Workflow extends AppModel
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
         $debugData = ['original' => $data];
-        $data = $this->__normalizeDataForTrigger($triggerModule, $data);
+        $conversionFailure = false;
+        try {
+            $data = $this->__normalizeDataForTrigger($triggerModule, $data);
+        } catch (Exception $e) {
+            $conversionFailure = true;
+            $message = __('Error while normalizing data for trigger. Error:' . PHP_EOL . $e->getMessage());
+        }
+        if ($data === false) {
+            $conversionFailure = true;
+            $message = __('Error while normalizing data for trigger. Invalid input.');
+        }
+        if ($conversionFailure) {
+            $this->logExecutionIfDebug($workflow, $message);
+            return [
+                'outcomeText' => 'failure' . sprintf(' %s', $message),
+                'walkResult' => [],
+                'success' => false,
+            ];
+        }
         $debugData['normalized'] = $data;
         $for_path = !empty($triggerModule->blocking) ? GraphWalker::PATH_TYPE_BLOCKING : GraphWalker::PATH_TYPE_NON_BLOCKING;
         $this->sendRequestToDebugEndpointIfDebug($workflow, [], '/init?type=' . $for_path, $debugData);
@@ -710,10 +728,10 @@ class Workflow extends AppModel
         return $success;
     }
 
-    private function __normalizeDataForTrigger($triggerClass, array $data): array
+    private function __normalizeDataForTrigger($triggerClass, array $data)
     {
         if (method_exists($triggerClass, 'normalizeData')) {
-            return $triggerClass->normalizeData($data);
+            $data = $triggerClass->normalizeData($data);
         }
         return $data;
     }
