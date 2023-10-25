@@ -1734,6 +1734,19 @@ function genParameterWarning(options) {
     return ''
 }
 
+function genJinjaIconIfSupported(options) {
+    if (!options.jinja_supported) {
+        return ''
+    }
+    return $('<img/>').attr({
+        src: "/img/jinja.png",
+        alt: "Jinja icon",
+        title: "This input supports Jinja2 templating",
+        width: "36",
+        height: "12",
+    })
+}
+
 function genSelect(options, forNode = true) {
     var $container = $('<div>')
         .addClass('node-param-container')
@@ -1843,6 +1856,7 @@ function genInput(options, isTextArea, forNode = true) {
             marginBbottom: 0,
         })
         .append(
+            genJinjaIconIfSupported(options),
             $('<span>').text(options.label),
             genParameterWarning(options)
         )
@@ -1855,6 +1869,9 @@ function genInput(options, isTextArea, forNode = true) {
         }
     } else {
         $input = $('<input>').attr('type', 'text').css({height: '30px'})
+    }
+    if (options['jinja_supported']) {
+        $input.addClass('jinja')
     }
     $input.css({
         width: '100%',

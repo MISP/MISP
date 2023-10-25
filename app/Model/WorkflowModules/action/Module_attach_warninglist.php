@@ -42,12 +42,12 @@ class Module_attach_warninglist extends WorkflowBaseActionModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         if (empty($params['warninglists']['value'])) {
             $errors[] = __('No warninglist module selected');
             return false;
         }
-        $rData = $roamingData->getData();
 
         $matchingItems = $this->getMatchingItemsForAttributes($node, $rData);
         if ($matchingItems === false) {

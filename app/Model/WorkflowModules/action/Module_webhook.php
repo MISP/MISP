@@ -67,6 +67,7 @@ class Module_webhook extends WorkflowBaseActionModule
                 'type' => 'textarea',
                 'default' => '',
                 'placeholder' => '',
+                'jinja_supported' => true,
             ],
             [
                 'id' => 'headers',
@@ -103,16 +104,16 @@ class Module_webhook extends WorkflowBaseActionModule
             $errors[] = __('`Security.rest_client_enable_arbitrary_urls` is turned off');
             return false;
         }
-        $params = $this->getParamsWithValues($node);
+        $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         if (empty($params['url']['value'])) {
             $errors[] = __('URL not provided.');
             return false;
         }
 
-        $rData = $roamingData->getData();
         $payload = '';
         if (strlen($params['payload']['value']) > 0) {
-            $payload = $this->render_jinja_template($params['payload']['value'], $rData);
+            $payload = $params['payload']['value'];
         } else {
             $payload = $rData;
         }

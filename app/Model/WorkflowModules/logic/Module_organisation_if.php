@@ -60,13 +60,13 @@ class Module_organisation_if extends WorkflowBaseLogicModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $data = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $data);
 
         $org_type = $params['org_type']['value'];
         $operator = $params['condition']['value'];
         $selectedOrgs = !empty($params['org_id']['value']) ? $params['org_id']['value'] : [];
         $selectedOrgs = is_array($selectedOrgs) ? $selectedOrgs : [$selectedOrgs]; // Backward compatibility for non-multiple `org_id`
-        $data = $roamingData->getData();
         $path = 'Event.org_id';
         if ($org_type == 'orgc') {
             $path = 'Event.orgc_id';

@@ -64,13 +64,13 @@ class Module_generic_if extends WorkflowBaseLogicModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $data = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $data);
         $path = $params['hash_path']['value'];
         $operator = $params['operator']['value'];
         $value = $params['value']['value'];
         $value_list = $params['value_list']['value'];
         $valueToEvaluate = $operator == 'in_or' ? $value_list : $value;
-        $data = $roamingData->getData();
         $extracted = [];
         if ($operator == 'equals' || $operator == 'not_equals') {
             $extracted = Hash::get($data, $path, []);
