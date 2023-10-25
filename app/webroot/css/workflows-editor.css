@@ -320,6 +320,21 @@
     border: 1px solid #ccc;
 }
 
+.drawflow_content_node textarea.jinja,
+.drawflow_content_node input.jinja {
+    border: 1px solid #ae742daa;
+}
+
+.modal-body input.jinja {
+    border: 1px solid #ae742daa;
+    box-shadow: 0 1px 3px 0px #ae742d;
+}
+.start-codemirror.jinja + .CodeMirror.cm-s-default {
+    border: 1px solid #ae742daa;
+    box-shadow: 0 1px 3px 0px #ae742d;
+    border-top-color: #ccc;
+}
+
 .dropdown-menu li.disabled a {
     pointer-events: none;
 }

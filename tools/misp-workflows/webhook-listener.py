@@ -23,6 +23,7 @@ class MyServer(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
+        pprint(dict(self.headers))
         self.data_string = self.rfile.read(int(self.headers['Content-Length']))
         self.data_string = self.data_string.decode('utf8')
         try:

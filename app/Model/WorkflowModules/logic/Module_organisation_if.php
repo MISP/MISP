@@ -3,6 +3,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_organisation_if extends WorkflowBaseLogicModule
 {
+    public $version = '0.2';
     public $id = 'organisation-if';
     public $name = 'IF :: Organisation';
     public $description = 'Organisation IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
@@ -15,8 +16,8 @@ class Module_organisation_if extends WorkflowBaseLogicModule
 
     private $Organisation;
     private $operators = [
-        'equals' => 'Is',
-        'not_equals' => 'Is not',
+        'in' => 'Is any of (OR)',
+        'not_in' => 'Is not any of (OR)',
     ];
 
     public function __construct()
@@ -42,15 +43,15 @@ class Module_organisation_if extends WorkflowBaseLogicModule
                 'id' => 'condition',
                 'label' => 'Condition',
                 'type' => 'select',
-                'default' => 'equals',
+                'default' => 'in',
                 'options' => $this->operators,
             ],
             [
                 'id' => 'org_id',
                 'type' => 'picker',
-                'multiple' => false,
+                'multiple' => true,
                 'options' => $orgs,
-                'default' => 1,
+                'default' => [1],
                 'placeholder' => __('Pick an organisation'),
             ],
         ];
@@ -59,18 +60,19 @@ class Module_organisation_if extends WorkflowBaseLogicModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $data = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $data);
 
         $org_type = $params['org_type']['value'];
         $operator = $params['condition']['value'];
-        $org_id = $params['org_id']['value'];
-        $data = $roamingData->getData();
+        $selectedOrgs = !empty($params['org_id']['value']) ? $params['org_id']['value'] : [];
+        $selectedOrgs = is_array($selectedOrgs) ? $selectedOrgs : [$selectedOrgs]; // Backward compatibility for non-multiple `org_id`
         $path = 'Event.org_id';
         if ($org_type == 'orgc') {
             $path = 'Event.orgc_id';
         }
         $extracted_org = intval(Hash::get($data, $path)) ?? -1;
-        $eval = $this->evaluateCondition($extracted_org, $operator, $org_id);
+        $eval = $this->evaluateCondition($selectedOrgs, $operator, $extracted_org);
         return !empty($eval);
     }
 }

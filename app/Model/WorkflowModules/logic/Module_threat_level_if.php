@@ -50,12 +50,12 @@ class Module_threat_level_if extends WorkflowBaseLogicModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $data = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $data);
 
-	$operator = $params['condition']['value'];
+	    $operator = $params['condition']['value'];
         $selected_threatlevel = $params['threatlevel']['value'];
 
-        $data = $roamingData->getData();
 	$threatlevel_id = $data['Event']['threat_level_id'];
 
 	if ($operator == 'equals') {

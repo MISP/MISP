@@ -25,6 +25,7 @@ class Module_attribute_comment_operation extends Module_attribute_edition_operat
                 'label' => __('Comment'),
                 'type' => 'textarea',
                 'placeholder' => 'Comment to be set',
+                'jinja_supported' => true,
             ],
         ];
     }
@@ -32,9 +33,8 @@ class Module_attribute_comment_operation extends Module_attribute_edition_operat
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
-
         $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         $user = $roamingData->getUser();
 
         $matchingItems = $this->getMatchingItemsForAttributes($node, $rData);
@@ -52,7 +52,7 @@ class Module_attribute_comment_operation extends Module_attribute_edition_operat
     {
         $currentRData = $rData;
         $currentRData['__currentAttribute'] = $attribute;
-        $renderedComment = $this->render_jinja_template($params['comment']['value'], $currentRData);
+        $renderedComment = $params['comment']['value'];
         if ($attribute['comment'] !== $params['comment']['value']) {
             $attribute['comment'] = $renderedComment;
         }

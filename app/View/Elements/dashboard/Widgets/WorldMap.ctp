@@ -12,6 +12,9 @@
         'meta' => 'icon'
     ));
     $randomNumber = rand();
+    if (!empty($config['widget_config']['colour_scale'])) {
+        $data['colour_scale'] = json_encode($config['widget_config']['colour_scale']);
+    }
     if (empty($data['colour_scale'])) {
         $data['colour_scale'] = json_encode(array(
             '#003FBF','#0063BF','#0087BF','#00ACBF','#00BFAD','#00BF89','#00BF64',

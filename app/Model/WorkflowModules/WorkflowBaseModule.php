@@ -52,11 +52,14 @@ class WorkflowBaseModule
         return $fullIndexedParams;
     }
 
-    protected function getParamsWithValues($node): array
+    protected function getParamsWithValues(array $node, array $rData): array
     {
         $indexedParams = $this->mergeNodeConfigIntoParameters($node);
         foreach ($indexedParams as $id => $param) {
             $indexedParams[$id]['value'] = $param['value'] ?? ($param['default'] ?? '');
+            if (!empty($param['jinja_supported']) && strlen($param['value']) > 0) {
+                $indexedParams[$id]['value'] = $this->render_jinja_template($param['value'], $rData);
+            }
         }
         return $indexedParams;
     }
@@ -314,7 +317,9 @@ class WorkflowBaseActionModule extends WorkflowBaseModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         $rData = $roamingData->getData();
-        $this->_buildFastLookupForRoamingData($rData);
+        if ($this->expect_misp_core_format) {
+            $this->_buildFastLookupForRoamingData($rData);
+        }
         return true;
     }
 

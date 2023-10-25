@@ -35,10 +35,10 @@ class Module_published_if extends WorkflowBaseLogicModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $data = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $data);
 
         $operator = $params['condition']['value'];
-        $data = $roamingData->getData();
         $path = 'Event.published';
         $is_published = !empty(Hash::get($data, $path));
         $eval = $this->evaluateCondition($is_published, $operator, true);

@@ -35,8 +35,11 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
             [
                 'id' => 'selector',
                 'label' => __('Data selector'),
-                'type' => 'input',
+                'type' => 'hashpath',
                 'placeholder' => 'Event._AttributeFlattened.{n}',
+                'hashpath' => [
+                    'is_sub_selector' => false
+                ]
             ],
             [
                 'id' => 'value',
@@ -69,6 +72,9 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
                 'label' => __('Hash path'),
                 'type' => 'hashpath',
                 'placeholder' => 'Tag.name',
+                'hashpath' => [
+                    'is_sub_selector' => true
+                ]
             ],
         ];
     }
@@ -76,7 +82,8 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         $selector = $params['selector']['value'];
         $path = $params['hash_path']['value'];
         $operator = $params['operator']['value'];
@@ -84,7 +91,6 @@ class Module_generic_filter_data extends WorkflowFilteringLogicModule
         $value_list = $params['value_list']['value'];
         $valueToEvaluate = $operator == 'in_or' ? $value_list : $value;
         $filteringLabel = $params['filtering-label']['value'];
-        $rData = $roamingData->getData();
 
         $newRData = $rData;
         if (empty($newRData['_unfilteredData'])) {

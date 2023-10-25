@@ -90,9 +90,8 @@ class Module_tag_operation extends WorkflowBaseActionModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
-
         $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         $user = $roamingData->getUser();
 
         if ($this->filtersEnabled($node)) {

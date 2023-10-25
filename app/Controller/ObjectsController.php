@@ -27,7 +27,7 @@ class ObjectsController extends AppController
         }
     }
 
-    public function revise_object($action, $event_id, $template_id, $object_id = false, $similar_objects_display_threshold=15)
+    public function revise_object($action, $event_id, $template_id, $object_id = false, $update_template_available = false, $similar_objects_display_threshold=15)
     {
         if (!$this->request->is('post') && !$this->request->is('put')) {
             throw new MethodNotAllowedException(__('This action can only be reached via POST requests'));
@@ -79,6 +79,7 @@ class ObjectsController extends AppController
         $this->set('object_id', $object_id);
         $this->set('event', $event);
         $this->set('data', $this->request->data);
+        $this->set('update_template_available', !empty($update_template_available));
         // Make sure the data stored in the session applies to this object. User might be prompted to perform a merge with another object if the session's data is somehow not cleaned
         $curObjectTmpUuid = CakeText::uuid();
         $this->set('cur_object_tmp_uuid', $curObjectTmpUuid);
@@ -368,7 +369,7 @@ class ObjectsController extends AppController
             $this->Flash->error('Object cannot be edited, no valid template found. ', ['params' => ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')]]);
             $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
         }
-        if (!empty($template)) {
+        if (!empty($template) || $update_template_available) {
             $templateData = $this->MispObject->resolveUpdatedTemplate($template, $object, $update_template_available);
             $this->set('updateable_attribute', $templateData['updateable_attribute']);
             $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);

@@ -654,8 +654,8 @@ class Sighting extends AppModel
                     unset($sighting['org_id']);
                     unset($sighting['Organisation']);
                 } else {
-                    $sighting['org_id'] = $anonOrg['Organisation']['id'];
-                    $sighting['Organisation'] = $anonOrg['Organisation'];
+                    $sighting['org_id'] = $anonOrg['id'];
+                    $sighting['Organisation'] = $anonOrg;
                 }
             }
             $sightings[$k] = $sighting;

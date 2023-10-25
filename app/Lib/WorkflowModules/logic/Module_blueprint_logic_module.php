@@ -15,7 +15,8 @@ class Module_blueprint_logic_module extends WorkflowBaseLogicModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         $data = $roamingData->getData();
         // Returning true will make the execution flow take the first output of this module. Otherwise, the second output will be used.
         return true;

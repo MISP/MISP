@@ -63,6 +63,11 @@ class Event extends AppModel
         2 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'The event creator considers the analysis complete')
     );
 
+    public $debugDescriptions = array(
+        0 => 'The critical errors are logged in the usual log file.',
+        1 => 'All the errors and warnings are logged in the usual log file.'
+    );
+
     public $distributionDescriptions = [
         self::DISTRIBUTION_ORGANISATION => [
             'desc' => 'This field determines the current distribution of the event',
@@ -86,6 +91,16 @@ class Event extends AppModel
         ],
     ];
 
+    public $galaxiesOptionsDescriptions = array(
+        0 => 'Galaxies and Clusters are passed as MISP standard format. New generic Galaxies and Clusters are created when there is no match with existing ones.',
+        1 => 'Galaxies are passed as tags and there is only a simple search with existing galaxy tag names.'
+    );
+
+    public $debugOptions = array(
+        0 => 'Standard debugging',
+        1 => 'Advanced debugging'
+    );
+
     public $distributionLevels = [
         self::DISTRIBUTION_ORGANISATION => 'Your organisation only',
         self::DISTRIBUTION_COMMUNITY => 'This community only',
@@ -93,6 +108,11 @@ class Event extends AppModel
         self::DISTRIBUTION_ALL => 'All communities',
         self::DISTRIBUTION_SHARING_GROUP => 'Sharing group',
     ];
+
+    public $galaxiesOptions = array(
+        0 => 'As MISP standard format',
+        1 => 'As tag names'
+    );
 
     public $analysisLevels = array(
         0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'
@@ -158,6 +178,7 @@ class Event extends AppModel
         'includeFeedCorrelations',
         'includeServerCorrelations',
         'includeWarninglistHits',
+        'includeGranularCorrelations',
         'noEventReports', // do not include event report in event data
         'noShadowAttributes', // do not fetch proposals,
         'limit',
@@ -165,6 +186,7 @@ class Event extends AppModel
         'order',
         'protected',
         'published',
+        'orgc_id',
     );
 
     public $validate = array(
@@ -478,6 +500,24 @@ class Event extends AppModel
             $this->data['Event']['uuid'] = CakeText::uuid();
         }
         $this->__beforeSaveData = $this->data['Event'];
+
+        $trigger_id = 'event-before-save';
+        if ($this->isTriggerCallable($trigger_id)) {
+            $event = $this->data;
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'Event',
+                'action' => 'add',
+                'id' => 0,
+                'message' => __('The workflow `%s` prevented the saving of event (%s)', $trigger_id, $event['Event']['uuid']),
+            ];
+            $triggerData = $event;
+            $workflowSuccess = $this->executeTrigger($trigger_id, $triggerData, $workflowErrors, $logging);
+            if (!$workflowSuccess) {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -1506,6 +1546,7 @@ class Event extends AppModel
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'org' => array('function' => 'set_filter_org', 'pop' => true),
+                    'orgc_id' => array('function' => 'set_filter_orgc_id', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
                     'published' => array('function' => 'set_filter_published', 'pop' => true),
                     'threat_level_id' => array('function' => 'set_filter_threat_level_id', 'pop' => true),
@@ -1865,6 +1906,9 @@ class Event extends AppModel
         }
         if ($options['published']) {
             $conditions['AND'][] = array('Event.published' => $options['published']);
+        }
+        if ($options['orgc_id']) {
+            $conditions['AND'][] = array('Event.orgc_id' => $options['orgc_id']);
         }
         if (!empty($options['includeRelatedTags'])) {
             $options['includeGranularCorrelations'] = 1;
@@ -2596,6 +2640,15 @@ class Event extends AppModel
             } else {
                 $conditions = $this->generic_add_filter($conditions, $params['sharinggroup'], 'Event.sharing_group_id');
             }
+        }
+        return $conditions;
+    }
+
+    public function set_filter_orgc_id(&$params, $conditions, $options)
+    {
+        if (!empty($params['orgc_id'])) {
+            $orgFilter = ['OR' => $params['orgc_id']];
+            $conditions = $this->generic_add_filter($conditions, $orgFilter, 'Event.orgc_id');
         }
         return $conditions;
     }

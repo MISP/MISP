@@ -419,8 +419,7 @@ class UsersController extends AppController
                                         'OR' => array(
                                             'UPPER(User.email) LIKE' => $searchValue,
                                             'UPPER(Organisation.name) LIKE' => $searchValue,
-                                            'UPPER(Role.name) LIKE' => $searchValue,
-                                            'UPPER(User.authkey) LIKE' => $searchValue,
+                                            'UPPER(Role.name) LIKE' => $searchValue
                                         ),
                                     );
                                 } else {
@@ -1931,7 +1930,7 @@ class UsersController extends AppController
                 $fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'] . ' TOTP deleted';
                 $this->User->extralog($this->Auth->user(), "update", $fieldsDescrStr, '');
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('User', 'admin_totp_delete', $id, $this->response->type(), 'User TOTP deleted.');
+                    return $this->RestResponse->saveSuccessResponse('User', 'totp_delete', $id, $this->response->type(), 'User TOTP deleted.');
                 } else {
                     $this->Flash->success(__('User TOTP deleted'));
                     $this->redirect('/admin/users/index');

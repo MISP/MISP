@@ -54,7 +54,8 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         if (empty($params['modules']['value'])) {
             $errors[] = __('No enrichmnent module selected');
             return false;
@@ -64,7 +65,6 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
         $selectedModules = array_filter($params['modules']['value'], function($module) {
             return $module !== '';
         });
-        $rData = $roamingData->getData();
         $event_id = $rData['Event']['id'];
         $options = [
             'user' => $roamingData->getUser(),

@@ -79,4 +79,14 @@ class EventBlocklist extends AppModel
     {
         return $this->hasAny(['event_uuid' => $eventUuid]);
     }
+
+    /**
+     * @param string $eventUuid
+     * @return bool
+     */
+    public function addEntry($entry=[])
+    {
+        $this->create();
+        return $this->save($entry);
+    }
 }
