@@ -77,11 +77,7 @@ class TaxonomiesController extends AppController
         $urlparams = '';
         App::uses('CustomPaginationTool', 'Tools');
         $filter = isset($this->passedArgs['filter']) ? $this->passedArgs['filter'] : false;
-        $options = ['full' => true, 'filter' => $filter];
-        if (isset($this->passedArgs['enabled'])) {
-            $options['enabled'] = $this->passedArgs['enabled'];
-        }
-        $taxonomy = $this->Taxonomy->getTaxonomy($id, $options);
+        $taxonomy = $this->Taxonomy->getTaxonomy($id, true, $filter);
         if (empty($taxonomy)) {
             throw new NotFoundException(__('Taxonomy not found.'));
         }
@@ -189,16 +185,26 @@ class TaxonomiesController extends AppController
             'recursive' => -1,
             'conditions' => array('Taxonomy.id' => $id),
         ));
-        $taxonomy['Taxonomy']['enabled'] = true;
-        $this->Taxonomy->save($taxonomy);
-
-        $this->__log('enable', $id, 'Taxonomy enabled', $taxonomy['Taxonomy']['namespace'] . ' - enabled');
-
-        if ($this->_isRest()) {
-            return $this->RestResponse->saveSuccessResponse('Taxonomy', 'enable', $id, $this->response->type());
+        if (empty($taxonomy)) {
+            $message = __('Invalid taxonomy.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Taxonomy', 'enable', $id, $message);
+            } else {
+                $this->Flash->error($message);
+                $this->redirect($this->referer());
+            }
         } else {
-            $this->Flash->success(__('Taxonomy enabled.'));
-            $this->redirect($this->referer());
+            $taxonomy['Taxonomy']['enabled'] = true;
+            $this->Taxonomy->save($taxonomy);
+
+            $this->__log('enable', $id, 'Taxonomy enabled', $taxonomy['Taxonomy']['namespace'] . ' - enabled');
+
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Taxonomy', 'enable', $id, $this->response->type());
+            } else {
+                $this->Flash->success(__('Taxonomy enabled.'));
+                $this->redirect($this->referer());
+            }
         }
     }
 
@@ -210,17 +216,27 @@ class TaxonomiesController extends AppController
             'recursive' => -1,
             'conditions' => array('Taxonomy.id' => $id),
         ));
-        $this->Taxonomy->disableTags($id);
-        $taxonomy['Taxonomy']['enabled'] = 0;
-        $this->Taxonomy->save($taxonomy);
-
-        $this->__log('disable', $id, 'Taxonomy disabled', $taxonomy['Taxonomy']['namespace'] . ' - disabled');
-
-        if ($this->_isRest()) {
-            return $this->RestResponse->saveSuccessResponse('Taxonomy', 'disable', $id, $this->response->type());
+        if (empty($taxonomy)) {
+            $message = __('Invalid taxonomy.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Taxonomy', 'disable', $id, $message);
+            } else {
+                $this->Flash->error($message);
+                $this->redirect($this->referer());
+            }
         } else {
-            $this->Flash->success(__('Taxonomy disabled.'));
-            $this->redirect($this->referer());
+            $this->Taxonomy->disableTags($id);
+            $taxonomy['Taxonomy']['enabled'] = 0;
+            $this->Taxonomy->save($taxonomy);
+
+            $this->__log('disable', $id, 'Taxonomy disabled', $taxonomy['Taxonomy']['namespace'] . ' - disabled');
+
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Taxonomy', 'disable', $id, $this->response->type());
+            } else {
+                $this->Flash->success(__('Taxonomy disabled.'));
+                $this->redirect($this->referer());
+            }
         }
     }
 

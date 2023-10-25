@@ -8,6 +8,7 @@
             <li class="active"><a href=" #modal-info-concept" data-toggle="tab"><?= __('Terminology & Concepts') ?></a></li>
             <li class=""><a href=" #modal-hash-path" data-toggle="tab"><?= __('Hash Path') ?></a></li>
             <li class=""><a href=" #modal-core-format" data-toggle="tab"><?= __('MISP Core Format') ?></a></li>
+            <li class=""><a href=" #modal-jinja2" data-toggle="tab"><?= __('Jinja2 Syntax') ?></a></li>
             <li class=""><a href=" #modal-blueprint" data-toggle="tab"><?= __('Blueprints') ?></a></li>
             <li class=""><a href=" #modal-debugging" data-toggle="tab"><?= __('Debugging') ?></a></li>
             <li><a href="#modal-info-usage" data-toggle="tab"><?= __('Usage & Shortcuts') ?></a></li>
@@ -128,12 +129,12 @@ $data_passed_to_if_module = [
                     <li><?= __('Attributes are always encapsulated in the Event or Object') ?></li>
                     <li><?= __('Additional key') ?> <code>_AttributeFlattened</code> containing all Attributes</li>
                     <li><?= __('Additional key') ?> <code>_allTags</code> containing all tags</li>
-                        <ul>
-                            <li><?= __('Additional key %s for Tags', '<code>inherited</code>') ?></li>
-                        </ul>
+                    <ul>
+                        <li><?= __('Additional key %s for Tags', '<code>inherited</code>') ?></li>
+                    </ul>
                 </ul>
                 <p><strong><?= __('Sample:') ?></strong></p>
-                <pre>
+                <pre id="misp-core-format-sample">
 {
     "Event": {
         "id": "64",
@@ -251,6 +252,9 @@ $data_passed_to_if_module = [
                         "relationship_type": null,
                         "inherited": false
                     }
+                ],
+                "enrichment": [
+                    {}
                 ]
             }
         ],
@@ -579,6 +583,9 @@ $data_passed_to_if_module = [
                         "relationship_type": null,
                         "inherited": false
                     }
+                ],
+                "enrichment": [
+                    {}
                 ]
             },
             {
@@ -641,7 +648,59 @@ $data_passed_to_if_module = [
 
             </div>
 
-            <div class="tab-pane" id="modal-blueprint">
+            <div class="tab-pane" id="modal-jinja2">
+                <h3>
+                    <img src="/img/jinja.png" alt="Jinja icon" width="60" height="26">
+                    <?= __('Jinja2 Syntax') ?>
+                </h3>
+                <p><i class="fa-fw <?= $this->FontAwesome->getClass('exclamation-triangle') ?>"></i> <?= __('For these examples, we consider the module received data under the MISP core format.') ?></p>
+                <p><i class="fa-fw <?= $this->FontAwesome->getClass('link') ?>"></i> <?= __('More documenation available on Jinja2 template designer documentation\'s') ?> <a href="https://jinja.palletsprojects.com/en/3.1.x/templates/"><?= __('website') ?></a></p>
+                <h4><?= __('You can use the dot <code>`.` </code> notation or the subscript syntax <code>`[]`</code> to access attributes of a variable') ?></h4>
+                <ul>
+                    <li><code>{{ Event.info }}</code>: <?= __('Shows the title of the event') ?></li>
+                    <li><code>{{ Event['info'] }}</code>: <?= __('Shows the title of the event') ?></li>
+                </ul>
+                <h4><?= __('Jinja2 allows you to easily create list') ?></h4>
+                <pre>
+{% for attribute in Event.Attribute %}
+- {{ attribute.value }}
+{% endfor %}
+</pre>
+
+                <h4><?= __('Jinja2 allows you to add logic') ?></h4>
+                <pre>
+{% if "tlp:white" in Event.Tag %}
+    - This Event has the TLP:WHITE tag
+{% else %}
+    - This Event doesn't have the TLP:WHITE tag
+{% endif %}
+</pre>
+
+                <h4><?= __('Jinja2 allows you to modify variables by using filters') ?></h4>
+                <pre>
+# The `reverse` filter
+- `{{ Event.info | reverse }}`
+-> The event title, but reversed
+
+# The `format` filter
+- `{{ "%s :: %s" | format(Event.Attribute[0].type, Event.Attribute[0].value) }}`
+-> Allow to format string. python `.format()`
+
+# The `groupby` filter
+{% for type, attributes in Event.Attribute|groupby("type") %}
+- {{ type }}{% for attribute in attributes %}
+    - {{ attribute.value }}
+    {% endfor %}
+{% endfor %}
+
+# The `json` filter
+{{ attribute | tojson }}
+-> The complete attribute json encoded
+</pre>
+
+            </div>
+
+            <div class=" tab-pane" id="modal-blueprint">
                 <h3><?= __('Blueprints') ?></h3>
                 <ul>
                     <li><?= __('Blueprints allow user to saved a collection of modules and how they are connected together so that they can be re-used and shared.') ?></li>

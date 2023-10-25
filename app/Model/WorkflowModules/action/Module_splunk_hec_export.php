@@ -77,7 +77,8 @@ class Module_splunk_hec_export extends Module_webhook
             $errors[] = __('`Security.rest_client_enable_arbitrary_urls` is turned off');
             return false;
         }
-        $params = $this->getParamsWithValues($node);
+        $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         if (empty($params['url']['value'])) {
             $errors[] = __('URL not provided.');
             return false;
@@ -87,7 +88,6 @@ class Module_splunk_hec_export extends Module_webhook
             return false;
         }
 
-        $rData = $roamingData->getData();
         $event_without_attributes = $rData['Event'];
         unset($event_without_attributes['Attribute']);
         unset($event_without_attributes['_AttributeFlattened']);

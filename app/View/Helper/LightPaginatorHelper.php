@@ -13,6 +13,11 @@ class LightPaginatorHelper extends PaginatorHelper
         return '';
     }
 
+    public function last($last = 'last >>', $options = array())
+    {
+        return '';
+    }
+
     public function hasNext($model = null)
     {
         $model = $this->defaultModel();

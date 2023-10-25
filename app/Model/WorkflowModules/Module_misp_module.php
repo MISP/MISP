@@ -70,11 +70,11 @@ class Module_misp_module extends WorkflowBaseActionModule
             $postData['filteredItems'] = !empty($filteredItems) ? $filteredItems : $rData;
         }
 
-        $indexedParams = $this->getParamsWithValues($node);
+        $rData = $roamingData->getData();
+        $indexedParams = $this->getParamsWithValues($node, $rData);
         $postData['params'] = Hash::combine($indexedParams, '{s}.id', '{s}.value');
-        $params = $this->getParamsWithValues($node);
         $matchingData = [];
-        foreach ($params as $param) {
+        foreach ($indexedParams as $param) {
             if (!empty($param['_isHashPath'])) {
                 $matchingData[$param['label']] = !empty($param['value']) ? $this->extractData($rData, $param['value']) : $rData;
             }
@@ -106,6 +106,9 @@ class Module_misp_module extends WorkflowBaseActionModule
             $param['type'] = 'textarea';
         } else {
             $param['type'] = 'input';
+        }
+        if (isset($moduleParam['jinja_supported'])) {
+            $param['jinja_supported'] = !empty($moduleParam['jinja_supported']);
         }
         return $param;
     }

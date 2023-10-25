@@ -108,7 +108,8 @@ class MispObject extends AppModel
         ),
         'description' => array(
             'stringNotEmpty' => array(
-                'rule' => array('stringNotEmpty')
+                'rule' => array('stringNotEmpty'),
+                'on' => 'create'
             ),
         ),
         'template_uuid' => array(
@@ -1397,7 +1398,7 @@ class MispObject extends AppModel
         ));
         $template_difference = array();
         if (!empty($newer_template)) {
-            $toReturn['newer_template_version'] = !$newer_template['ObjectTemplate']['version'];
+            $toReturn['newer_template_version'] = $newer_template['ObjectTemplate']['version'];
             $newer_template_temp = Hash::remove(Hash::remove($newer_template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
             if (!empty($template)) {
                 // ignore IDs for comparison

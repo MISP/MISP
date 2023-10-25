@@ -1539,6 +1539,7 @@ class AttributesController extends AppController
         $user = $this->Auth->user();
         $exception = null;
         $filters = $this->__getSearchFilters($exception);
+        $this->set('passedArgsArray', ['results' => $continue]);
         if ($this->request->is('post') || !empty($this->request->params['named']['tags'])) {
             if ($filters === false) {
                 return $exception;

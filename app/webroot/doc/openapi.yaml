@@ -914,6 +914,24 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /users/totp_delete/{userId}:
+    delete:
+      summary: "Delete user TOTP"
+      operationId: deleteUserTotp
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/userIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteUserTotpResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundUserTotpDeleteResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /admin/organisations/add:
     post:
       summary: "Add organisation"
@@ -5879,6 +5897,23 @@ components:
           type: string
           example: "/attributes/1234"
 
+    NotFoundUserTotpDeleteError:
+      type: object
+      required:
+        - name
+        - message
+        - url
+      properties:
+        name:
+          type: string
+          example: "Invalid user"
+        message:
+          type: string
+          example: "Invalid user"
+        url:
+          type: string
+          example: "/users/totp_delete/1"
+
   parameters:
     eventIdParameter:
       name: eventId
@@ -7573,6 +7608,30 @@ components:
                 type: string
                 example: "/admin/users/delete/1"
 
+    DeleteUserTotpResponse:
+      description: "Delete user TOTP response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "User TOTP deleted."
+              message:
+                type: string
+                example: "User TOTP deleted."
+              url:
+                type: string
+                example: "/users/totp_delete/1"
+              id:
+                type: string
+                example: "1"
+
     OrganisationResponse:
       description: "Organisation list response"
       content:
@@ -9080,6 +9139,13 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/NotFoundApiError"
+
+    NotFoundUserTotpDeleteResponse:
+      description: "The specified resource was not found"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NotFoundUserTotpDeleteError"
 
     UnauthorizedApiErrorResponse:
       description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."

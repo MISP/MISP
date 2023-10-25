@@ -1,10 +1,13 @@
-pyzmq
-coveralls
-codecov
-stix
-pymisp
-requests-mock
-pip
-nose
-jsonschema
-plyara >= 2.0.2
+cybox>=2.1.0.21
+jsonschema>=4.19.1
+lief>=0.13.1
+maec>=4.1.0.17
+misp-lib-stix2>=3.0.1.1
+mixbox>=1.0.5
+plyara>=2.1.1
+pydeep2>=0.5.1
+pymisp==2.4.178
+python-magic>=0.4.27
+pyzmq>=25.1.1
+redis>=5.0.1
+stix>=1.2.0.11

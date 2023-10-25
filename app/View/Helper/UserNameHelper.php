@@ -32,8 +32,6 @@ class UserNameHelper extends AppHelper
             return '<i class="fas fa-smile-beam white"></i>&nbsp;';
         } else if (strpos($lower_email, 'rand') !== false && (strpos($lower_email, 'ecrime') !== false)) {
             return '<i class="fas fa-camera white"></i>&nbsp;';
-        } else if ($lower_email === 'christian.studer@circl.lu') {
-            return '<span class="bold white">Mr STIX</span> ';
         } else if ($lower_email === 'sami.mokaddem@circl.lu') {
             return '<span class="bold white">Graphman</span> ';
         } else if (strpos($lower_email, 'm.j.nassette') !== false) {

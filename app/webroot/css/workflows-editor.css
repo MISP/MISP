@@ -41,6 +41,11 @@
     flex-direction: column;
     position: absolute;
     top: var(--topbar-height)px;
+    left: 0;
+    transition: left 0.15s ease-out;
+}
+.sidebar.minimized {
+    left: calc(-1 * var(--editor-sidepanel-width));
 }
 
 .side-panel {
@@ -61,6 +66,31 @@
     background-color: #ffffff66;
     z-index: -1;
     top: 0;
+}
+
+.sidebar-minimize-button {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    cursor: pointer;
+}
+.sidebar-maximize-button {
+    position: absolute;
+    font-size: 1.25rem;
+    top: 3px;
+    right: -32px;
+    cursor: pointer;
+    background-color: #fff;
+    padding: 5px;
+    border-radius: 3px;
+    border: 1px #e3e3e3 solid;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+}
+.sidebar.minimized .sidebar-maximize-button {
+    display: inline-block;
+    opacity: 1;
 }
 
 .side-panel #block-tabs {
@@ -290,6 +320,21 @@
     border: 1px solid #ccc;
 }
 
+.drawflow_content_node textarea.jinja,
+.drawflow_content_node input.jinja {
+    border: 1px solid #ae742daa;
+}
+
+.modal-body input.jinja {
+    border: 1px solid #ae742daa;
+    box-shadow: 0 1px 3px 0px #ae742d;
+}
+.start-codemirror.jinja + .CodeMirror.cm-s-default {
+    border: 1px solid #ae742daa;
+    box-shadow: 0 1px 3px 0px #ae742d;
+    border-top-color: #ccc;
+}
+
 .dropdown-menu li.disabled a {
     pointer-events: none;
 }
@@ -345,7 +390,76 @@
     border: 3px solid #e35651;
 }
 
+.drawflow svg.connection > path.link-hover-for-insertion {
+    stroke: #7210cd;
+    filter: drop-shadow(0px 0px 6px #7210cddd);
+}
+
+#core-format-picker {
+    padding: 5px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    border: 1px solid #e1e1e1;
+}
+#core-format-picker .selectable-key {
+    font-weight: bold;
+    padding: 2px 3px;
+}
+#core-format-picker .selectable-key:hover {
+    box-shadow: 0 0 5px #00000077;
+    cursor: pointer;
+}
+
+#core-format-picker .selectable-value {
+    padding: 2px 3px;
+}
+#core-format-picker .selectable-value:hover {
+    box-shadow: 0 0 5px #00000077;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#core-format-picker .children-counter {
+    background-color: #6b6b6b;
+    color: #f2f2f2;
+    padding: 2px 5px;
+    margin: 0px 0.25rem;
+    font-size: smaller;
+    border-radius: 3px;
+}
+#core-format-picker .collaspe-button {
+    cursor: pointer;
+}
+#core-format-picker .collaspe-button:hover {
+    color: #292929;
+    cursor: pointer;
+}
+
 /* Custom input/output CSS */
+/* .drawflow .drawflow-node.expect-misp-core-format>.inputs>.input {
+    background-color: #2fa1db;
+} */
+
+.drawflow .drawflow-framenode {
+    position: absolute;
+    z-index: -1;
+    text-align: center;
+    background-color: #b5b5b570;
+    border: 1px solid #333333aa;
+    border-radius: 5px;
+}
+
+.drawflow .drawflow-framenode.selected {
+    box-shadow: 0 0 5px 2px #33333366;
+}
+.drawflow .drawflow-framenode > .drawflow-framenode-text {
+    line-height: 1.5em;
+    color: #505050;
+    font-size: 1.5em;
+    font-weight: bold;
+    cursor: text;
+}
+
 .drawflow .drawflow-node > .inputs > .input::before {
     line-height: var(--dfInputHeight);
     vertical-align: top;

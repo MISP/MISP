@@ -3,7 +3,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_attach_warninglist extends WorkflowBaseActionModule
 {
-    public $version = '0.1';
+    public $version = '0.2';
     public $id = 'attach-warninglist';
     public $name = 'Attach warninglist';
     public $description = 'Attach selected warninglist result.';
@@ -17,8 +17,6 @@ class Module_attach_warninglist extends WorkflowBaseActionModule
     /** @var Warninglist */
     private $Warninglist;
     private $warninglists;
-    private $fastLookupArrayMispFormat = [];
-    private $fastLookupArrayFlattened = [];
 
 
     public function __construct()
@@ -33,7 +31,8 @@ class Module_attach_warninglist extends WorkflowBaseActionModule
             [
                 'id' => 'warninglists',
                 'label' => __('Warninglists'),
-                'type' => 'select',
+                'type' => 'picker',
+                'multiple' => true,
                 'options' => $moduleOptions,
                 'default' => 'ALL',
             ],
@@ -43,25 +42,32 @@ class Module_attach_warninglist extends WorkflowBaseActionModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         if (empty($params['warninglists']['value'])) {
             $errors[] = __('No warninglist module selected');
             return false;
         }
-        $rData = $roamingData->getData();
 
         $matchingItems = $this->getMatchingItemsForAttributes($node, $rData);
         if ($matchingItems === false) {
             return true;
         }
-        $this->_buildFastLookupForRoamingData($rData);
 
         $warninglists = [];
-        if ($params['warninglists']['value'] == 'ALL') {
+
+        if (empty($params['warninglists']['value'])) {
+            $errors[] = __('No warninglists selected');
+            return false;
+        } else if (is_string($params['warninglists']['value'])) {
+            $params['warninglists']['value'] = [$params['warninglists']['value']];
+        }
+
+        if (in_array('ALL', $params['warninglists']['value'])) {
             $warninglists = $this->warninglists;
         } else {
             $warninglists = array_filter($this->warninglists, function($wl) use ($params) {
-                return $wl['Warninglist']['name'] == $params['warninglists']['value'];
+                return in_array($wl['Warninglist']['name'], $params['warninglists']['value']);
             });
         }
 
@@ -83,35 +89,5 @@ class Module_attach_warninglist extends WorkflowBaseActionModule
         $rData['Event']['warnings'] = $eventWarnings;
         $roamingData->setData($rData);
         return true;
-    }
-
-    protected function _buildFastLookupForRoamingData($rData): void
-    {
-        foreach ($rData['Event']['Attribute'] as $i => $attribute) {
-            $this->fastLookupArrayMispFormat[$attribute['id']] = $i;
-        }
-        foreach ($rData['Event']['Object'] as $j => $object) {
-            foreach ($object['Attribute'] as $i => $attribute) {
-                $this->fastLookupArrayMispFormat[$attribute['id']] = [$j, $i];
-            }
-        }
-        foreach ($rData['Event']['_AttributeFlattened'] as $i => $attribute) {
-            $this->fastLookupArrayFlattened[$attribute['id']] = $i;
-        }
-    }
-
-    protected function _overrideAttribute(array $oldAttribute, array $newAttribute, array $rData): array
-    {
-        $attributeID = $oldAttribute['id'];
-        $rData['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattened[$attributeID]] = $newAttribute;
-        if (is_array($this->fastLookupArrayMispFormat[$attributeID])) {
-            $objectID = $this->fastLookupArrayMispFormat[$attributeID][0];
-            $attributeID = $this->fastLookupArrayMispFormat[$attributeID][1];
-            $rData['Event']['Object'][$objectID]['Attribute'][$attributeID] = $newAttribute;
-        } else {
-            $attributeID = $this->fastLookupArrayMispFormat[$attributeID];
-            $rData['Event']['Attribute'][$attributeID] = $newAttribute;
-        }
-        return $rData;
     }
 }

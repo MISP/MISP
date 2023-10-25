@@ -80,13 +80,13 @@ class Module_distribution_if extends WorkflowBaseLogicModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $data = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $data);
 
         $scope = $params['scope']['value'];
         $operator = $params['condition']['value'];
         $selected_distribution = $params['distribution']['value'];
         $selected_sharing_groups = !empty($params['sharing_group_id']['value']) ? $params['sharing_group_id']['value'] : [];
-        $data = $roamingData->getData();
         $final_distribution = $this->__getPropagatedDistribution($data['Event']);
         if ($scope == 'attribute') {
             $final_distribution = $this->__getPropagatedDistribution(

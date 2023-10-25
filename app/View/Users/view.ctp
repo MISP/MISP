@@ -27,12 +27,12 @@ $totpHtml = $boolean;
 $totpHtml .= (!$isTotp && !$admin_view ? $this->Html->link(__('Generate'), array('action' => 'totp_new')) : '');
 $totpHtml .= ($isTotp && !$admin_view ? $this->Html->link(__('View paper tokens'), array('action' => 'hotp', $user['User']['id'])): '');
 
-if ($admin_view && $isSiteAdmin && $isTotp) {
+if ($isAdmin && $isTotp) {
     $totpHtml .= sprintf(
         '<a href="#" onClick="openGenericModal(\'%s/users/totp_delete/%s\')">%s</a>',
         h($baseurl),
         h($user['User']['id']),
-        __('Delete')
+        __($isTotp && !$admin_view ? ' Delete' : 'Delete')
     );
 }
     $table_data = [
@@ -90,7 +90,7 @@ if ($admin_view && $isSiteAdmin && $isTotp) {
     }
 
     if (Configure::read('Plugin.CustomAuth_enable') && !empty($user['User']['external_auth_key'])) {
-        $header = Configure::read('Plugin.CustomAuth_header') ?: 'Authorization';
+        $header = Configure::read('Plugin.CustomAuth_header') ?: 'AUTHORIZATION';
         $table_data[] = array(
             'key' => __('Customauth header'),
             'html' => sprintf(
@@ -156,6 +156,10 @@ if ($admin_view && $isSiteAdmin && $isTotp) {
     $table_data[] = array(
         'key' => __('Created'),
         'html' => $user['User']['date_created'] ? $this->Time->time($user['User']['date_created']) : __('N/A')
+    );
+    $table_data[] = array(
+        'key' => __('Last password change'),
+        'html' => $user['User']['last_pw_change'] ? $this->Time->time($user['User']['last_pw_change']) : __('N/A')
     );
     if ($admin_view) {
         $table_data[] = array(

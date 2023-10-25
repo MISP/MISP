@@ -157,6 +157,12 @@ class WarninglistsController extends AppController
                     unset($warninglist['Warninglist']['entries']);
                     $warninglist['WarninglistEntry'] = $entries;
                 }
+                if (empty($warninglist['WarninglistEntry'])) {
+                    $warninglist['Warninglist']['entries'] = ''; // Make model validation fails
+                }
+                if (empty($warninglist['Warninglist']['matching_attributes'])) {
+                    $warninglist['Warninglist']['matching_attributes'] = ['ALL'];
+                }
                 if (isset($warninglist['Warninglist']['matching_attributes']) && is_array($warninglist['Warninglist']['matching_attributes'])) {
                     $warninglist['WarninglistType'] = [];
                     foreach ($warninglist['Warninglist']['matching_attributes'] as $attribute) {
@@ -191,6 +197,9 @@ class WarninglistsController extends AppController
                     $entries = $this->Warninglist->parseFreetext($warninglist['Warninglist']['entries']);
                     unset($warninglist['Warninglist']['entries']);
                     $warninglist['WarninglistEntry'] = $entries;
+                }
+                if (empty($warninglist['WarninglistEntry'])) {
+                    $warninglist['Warninglist']['entries'] = ''; // Make model validation fails
                 }
                 if (isset($warninglist['Warninglist']['matching_attributes']) && is_array($warninglist['Warninglist']['matching_attributes'])) {
                     $warninglist['WarninglistType'] = [];

@@ -23,13 +23,23 @@ class WorkflowBaseModule
     ];
     public $params = [];
 
-    private $Event;
+    private $Workflow;
 
     /** @var PubSubTool */
     private static $loadedPubSubTool;
 
     public function __construct()
     {
+    }
+
+    public function debug(array $node, WorkflowRoamingData $roamingData, array $data=[]): void
+    {
+        if (!isset($this->Workflow)) {
+            $this->Workflow = ClassRegistry::init('Workflow');
+        }
+        $workflow = $roamingData->getWorkflow();
+        $path = sprintf('/debug/%s', $node['data']['id'] ?? '');
+        $this->Workflow->sendRequestToDebugEndpoint($workflow, $node, $path, $data);
     }
 
     protected function mergeNodeConfigIntoParameters($node): array
@@ -42,11 +52,14 @@ class WorkflowBaseModule
         return $fullIndexedParams;
     }
 
-    protected function getParamsWithValues($node): array
+    protected function getParamsWithValues(array $node, array $rData): array
     {
         $indexedParams = $this->mergeNodeConfigIntoParameters($node);
         foreach ($indexedParams as $id => $param) {
             $indexedParams[$id]['value'] = $param['value'] ?? ($param['default'] ?? '');
+            if (!empty($param['jinja_supported']) && strlen($param['value']) > 0) {
+                $indexedParams[$id]['value'] = $this->render_jinja_template($param['value'], $rData);
+            }
         }
         return $indexedParams;
     }
@@ -213,11 +226,13 @@ class WorkflowBaseModule
     public function getItemsMatchingCondition($items, $value, $operator, $path)
     {
         foreach ($items as $i => $item) {
-            $subItem = $this->extractData($item, $path, $operator);
+            $subItem = $this->extractData($item, $path);
             if (in_array($operator, ['equals', 'not_equals'])) {
                 $subItem = !empty($subItem) ? $subItem[0] : $subItem;
             }
-            if (!$this->evaluateCondition($subItem, $operator, $value)) {
+            if ($operator == 'any_value' && !empty($subItem)) {
+                continue;
+            } else if (!$this->evaluateCondition($subItem, $operator, $value)) {
                 unset($items[$i]);
             }
         }
@@ -296,6 +311,51 @@ class WorkflowBaseLogicModule extends WorkflowBaseModule
 
 class WorkflowBaseActionModule extends WorkflowBaseModule
 {
+    protected $fastLookupArrayMispFormat = [];
+    protected $fastLookupArrayFlattened = [];
+
+    public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
+    {
+        $rData = $roamingData->getData();
+        if ($this->expect_misp_core_format) {
+            $this->_buildFastLookupForRoamingData($rData);
+        }
+        return true;
+    }
+
+    protected function _buildFastLookupForRoamingData($rData): void
+    {
+        if (!empty($rData['Event']['Attribute'])) {
+            foreach ($rData['Event']['Attribute'] as $i => $attribute) {
+                $this->fastLookupArrayMispFormat[$attribute['id']] = $i;
+            }
+        }
+        if (!empty($rData['Event']['Object'])) {
+            foreach ($rData['Event']['Object'] as $j => $object) {
+                foreach ($object['Attribute'] as $i => $attribute) {
+                    $this->fastLookupArrayMispFormat[$attribute['id']] = [$j, $i];
+                }
+            }
+        }
+        foreach ($rData['Event']['_AttributeFlattened'] as $i => $attribute) {
+            $this->fastLookupArrayFlattened[$attribute['id']] = $i;
+        }
+    }
+
+    protected function _overrideAttribute(array $oldAttribute, array $newAttribute, array $rData): array
+    {
+        $attributeID = $oldAttribute['id'];
+        $rData['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattened[$attributeID]] = $newAttribute;
+        if (is_array($this->fastLookupArrayMispFormat[$attributeID])) {
+            $objectID = $this->fastLookupArrayMispFormat[$attributeID][0];
+            $attributeID = $this->fastLookupArrayMispFormat[$attributeID][1];
+            $rData['Event']['Object'][$objectID]['Attribute'][$attributeID] = $newAttribute;
+        } else {
+            $attributeID = $this->fastLookupArrayMispFormat[$attributeID];
+            $rData['Event']['Attribute'][$attributeID] = $newAttribute;
+        }
+        return $rData;
+    }
 }
 
 class WorkflowFilteringLogicModule extends WorkflowBaseLogicModule

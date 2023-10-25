@@ -126,11 +126,17 @@ class AdminShell extends AppShell
 
     public function jobGenerateCorrelation()
     {
-        if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate correlation'] . PHP_EOL);
+        $jobId = $this->args[0] ?? null;
+        if (empty($jobId)) {
+            $jobId = $this->Job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate correlation',
+                'All attributes',
+                'Job created.'
+            );
         }
 
-        $jobId = $this->args[0];
         $this->Correlation->generateCorrelation($jobId);
     }
 

@@ -4135,7 +4135,11 @@ class Server extends AppModel
         $current = implode('.', $version_array);
 
         $upToDate = version_compare($current, substr($newest, 1));
-        if ($upToDate === 0) {
+        if ($newest === null && (Configure::read('MISP.online_version_check') || !Configure::check('MISP.online_version_check'))) {
+            $upToDate = 'error';
+        } elseif ($newest === null && (!Configure::read('MISP.online_version_check') && Configure::check('MISP.online_version_check'))) {
+            $upToDate = 'disabled';
+        } elseif ($upToDate === 0) {
             $upToDate = 'same';
         } else {
             $upToDate = $upToDate === -1 ? 'older' : 'newer';
@@ -4171,11 +4175,15 @@ class Server extends AppModel
      */
     public function getCurrentGitStatus($checkVersion = false)
     {
-        $HttpSocket = $this->setupHttpSocket(null, null, 3);
-        try {
-            $latestCommit = GitTool::getLatestCommit($HttpSocket);
-        } catch (Exception $e) {
-            $latestCommit = false;
+        $latestCommit = false;
+
+        if (Configure::read('MISP.online_version_check') || !Configure::check('MISP.online_version_check')) {
+            $HttpSocket = $this->setupHttpSocket(null, null, 3);
+            try {
+                $latestCommit = GitTool::getLatestCommit($HttpSocket);
+            } catch (Exception $e) {
+                $latestCommit = false;
+            }
         }
 
         $output = [
@@ -4184,7 +4192,7 @@ class Server extends AppModel
             'latestCommit' => $latestCommit,
         ];
         if ($checkVersion) {
-            $output['version'] = $latestCommit ? $this->checkRemoteVersion($HttpSocket) : false;
+            $output['version'] = $latestCommit ? $this->checkRemoteVersion($HttpSocket) : $this->checkVersion(null);
         }
         return $output;
     }
@@ -5607,7 +5615,7 @@ class Server extends AppModel
                 ),
                 'store_api_access_time' => array(
                     'level' => 1,
-                    'description' => __('If enabled, MISP will capture the last API access time following a successful authentication using API keys, stored against a user under the last_api_access field.'),
+                    'description' => __('If enabled, MISP will capture a users\' last API access time following every successful authentication using API keys (as opposed to once max per hour by default). Stored as last_api_access time for the user.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6114,6 +6122,24 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                 ],
+                'self_update' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Enable the GUI button for MISP self-update on the Diagnostics page.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true,
+                ],
+                'online_version_check' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Enable the online MISP version check when loading the Diagnostics page.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true,
+                ],
             ),
             'GnuPG' => array(
                 'branch' => 1,
@@ -6368,6 +6394,22 @@ class Server extends AppModel
                 'do_not_log_authkeys' => array(
                     'level' => 0,
                     'description' => __('If enabled, any authkey will be replaced by asterisks in Audit log.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'mandate_ip_allowlist_advanced_authkeys' => array(
+                    'level' => 2,
+                    'description' => __('If enabled, setting an ip allowlist will be mandatory when adding or editing an advanced authkey.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'limit_site_admins_to_host_org' => array(
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('If enabled, it will only be possible to assign site admin roles to users belonging to the instance\'s host org.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -7259,6 +7301,13 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
+                'Sightings_enable_realtime_publish' => array(
+                    'level' => 1,
+                    'description' => __('By default, sightings will not be immediately pushed to connected instances, as this can have a heavy impact on the performance of sighting attributes. Enable realtime publishing to trigger the publishing of sightings immediately as they are added.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
                 'CustomAuth_enable' => array(
                     'level' => 2,
                     'description' => __('Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header.'),
@@ -7271,7 +7320,7 @@ class Server extends AppModel
                 'CustomAuth_header' => array(
                     'level' => 2,
                     'description' => __('Set the header that MISP should look for here. If left empty it will default to the Authorization header.'),
-                    'value' => 'Authorization',
+                    'value' => 'AUTHORIZATION',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true

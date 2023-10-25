@@ -301,6 +301,7 @@ class UsersController extends AppController
             // What fields should be saved (allowed to be saved)
             $user['User']['change_pw'] = 0;
             $user['User']['password'] = $this->request->data['User']['password'];
+            $user['User']['last_pw_change'] = time();
             if ($this->_isRest()) {
                 $user['User']['confirm_password'] = $this->request->data['User']['password'];
             } else {
@@ -418,8 +419,7 @@ class UsersController extends AppController
                                         'OR' => array(
                                             'UPPER(User.email) LIKE' => $searchValue,
                                             'UPPER(Organisation.name) LIKE' => $searchValue,
-                                            'UPPER(Role.name) LIKE' => $searchValue,
-                                            'UPPER(User.authkey) LIKE' => $searchValue,
+                                            'UPPER(Role.name) LIKE' => $searchValue
                                         ),
                                     );
                                 } else {
@@ -475,7 +475,8 @@ class UsersController extends AppController
                     'last_api_access',
                     'force_logout',
                     'date_created',
-                    'date_modified'
+                    'date_modified',
+                    'last_pw_change'
                 ),
                 'contain' => array(
                     'Organisation' => array('id', 'name'),
@@ -687,6 +688,7 @@ class UsersController extends AppController
                 }
             }
             $this->request->data['User']['date_created'] = time();
+            $this->request->data['User']['last_pw_change'] = $this->request->data['User']['date_created'];
             if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) {
                 $this->request->data['User']['server_id'] = 0;
             }
@@ -758,7 +760,7 @@ class UsersController extends AppController
                         $this->Flash->error(__('The user could not be saved. Invalid organisation.'));
                     }
                 } else {
-                    $fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread', 'date_created', 'date_modified');
+                    $fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread', 'date_created', 'date_modified', 'last_pw_change');
                     if ($this->User->save($this->request->data, true, $fieldList)) {
                         $notification_message = '';
                         if (!empty($this->request->data['User']['notify'])) {
@@ -953,6 +955,8 @@ class UsersController extends AppController
                     $this->__canChangePassword()
                 ) {
                     $fields[] = 'password';
+                    $fields[] = 'last_pw_change';
+                    $this->request->data['User']['last_pw_change'] = time();
                     if ($this->_isRest() && !isset($this->request->data['User']['confirm_password'])) {
                         $this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
                         $fields[] = 'confirm_password';
@@ -1383,6 +1387,7 @@ class UsersController extends AppController
         unset($user['User']['password']);
         $user['User']['action'] = 'logout';
         $this->User->save($user['User'], true, array('id'));
+        $this->Session->write('otp_secret', null);
         $this->redirect($this->Auth->logout());
     }
 
@@ -1834,7 +1839,7 @@ class UsersController extends AppController
     public function totp_new()
     {
         if (Configure::read('LinOTPAuth.enabled')) {
-            $this->Flash->error(__("LinOTP is enabled for this instance. Build-in TOTP should not be used."));
+            $this->Flash->error(__("LinOTP is enabled for this instance. Built-in TOTP should not be used."));
             $this->redirect($this->referer());
         }
         if (!class_exists('\OTPHP\TOTP') || !class_exists('\BaconQrCode\Writer')) {
@@ -1855,17 +1860,23 @@ class UsersController extends AppController
         }
         // do not allow this page to be accessed if the current already has a TOTP. Just redirect to the users details page with a Flash->error()
         if ($user['User']['totp']) { 
-            $this->Flash->error(__("Your account already has an TOTP. Please contact your organisational administrator to change or delete it."));
+            $this->Flash->error(__("Your account already has a TOTP. Please contact your organisational administrator to change or delete it."));
             $this->redirect($this->referer());
         }
 
-        $secret = $this->Session->read('otp_secret');  // Reload secret from session.
-        if ($secret) {
-            $totp = \OTPHP\TOTP::create($secret);
-        } else {
+        if ($this->request->is('get')) {
             $totp = \OTPHP\TOTP::create();
             $secret = $totp->getSecret();
-            $this->Session->write('otp_secret', $secret);  // Store in session, this is to keep the same QR code even if the page refreshes.
+            $this->Session->write('otp_secret', $secret);  // Store in session, we want to create a new secret each time the totp_new() function is queried via a GET (this will not impede incorrect confirmation attempty)
+        } else {
+            $secret = $this->Session->read('otp_secret');  // Reload secret from session.
+            if ($secret) {
+                $totp = \OTPHP\TOTP::create($secret);
+            } else {
+                $totp = \OTPHP\TOTP::create();
+                $secret = $totp->getSecret();
+                $this->Session->write('otp_secret', $secret); // Store in session, we want to keep reusing the same QR code until the user correctly enters the generated key on their authenticator
+            }
         }
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
             if ($totp->verify(trim($this->request->data['User']['otp']))) {
@@ -1919,7 +1930,7 @@ class UsersController extends AppController
                 $fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'] . ' TOTP deleted';
                 $this->User->extralog($this->Auth->user(), "update", $fieldsDescrStr, '');
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('User', 'admin_totp_delete', $id, $this->response->type(), 'User TOTP deleted.');
+                    return $this->RestResponse->saveSuccessResponse('User', 'totp_delete', $id, $this->response->type(), 'User TOTP deleted.');
                 } else {
                     $this->Flash->success(__('User TOTP deleted'));
                     $this->redirect('/admin/users/index');
@@ -2977,7 +2988,8 @@ class UsersController extends AppController
     public function viewPeriodicSummary(string $period)
     {
         $userId = $this->Auth->user('id');
-        $summary = $this->User->generatePeriodicSummary($userId, $period);
+        $lastdays = $this->request->params['named']['lastdays'] ?? false;
+        $summary = $this->User->generatePeriodicSummary($userId, $period, true, $lastdays);
         $periodicSettings = $this->User->fetchPeriodicSettingForUser($userId);
         $this->set('periodic_settings', $periodicSettings);
         $this->set('summary', $summary);

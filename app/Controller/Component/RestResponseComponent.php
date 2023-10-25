@@ -323,6 +323,11 @@ class RestResponseComponent extends Component
                 'description' => 'Simply GET the url endpoint to view the API output of the statistics API. Additional statistics are available via the following tab-options similar to the UI: data, orgs, users, tags, attributehistogram, sightings, attackMatrix',
                 'params' => array('tab'),
                 'http_method' => 'GET'
+            ),
+            'totp_delete' => array(
+                'description' => 'Simply do a DELETE or POST request to the url',
+                'params' => array('user_id'),
+                'http_method' => 'DELETE'
             )
         ),
         'UserSetting' => array(

@@ -26,7 +26,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
@@ -218,7 +218,7 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
               export PYTHONPATH=$PYTHONPATH:./app/files/scripts
-              pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 pyzmq redis plyara
+              pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 pyzmq redis plyara pytest
               deactivate
 
       - name: Test if apache is working
@@ -243,6 +243,13 @@ jobs:
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
               sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
 
+      - name: Clone test files
+        uses: actions/checkout@v4
+        with:
+          repository: viper-framework/viper-test-files
+          path: PyMISP/tests/viper-test-files
+
+
       - name: Run tests
         run: |
               pushd tests
@@ -253,8 +260,9 @@ jobs:
 
               . ./venv/bin/activate
               pushd PyMISP
-              python tests/testlive_comprehensive.py
-              python tests/test_mispevent.py
+              cp tests/keys.py .
+              python -m pytest -v --durations=0 tests/test_mispevent.py
+              python -m pytest -v --durations=0 tests/testlive_comprehensive.py
               popd
               python tests/testlive_security.py -v
               python tests/testlive_sync.py
@@ -265,6 +273,9 @@ jobs:
               popd
               python tools/misp-feed/validate.py
               deactivate
+
+      - name: Check requirements.txt
+        run: python tests/check_requirements.py
 
       - name: Logs
         if: ${{ always() }}

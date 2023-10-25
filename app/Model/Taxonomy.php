@@ -179,9 +179,10 @@ class Taxonomy extends AppModel
 
     /**
      * @param int|string $id Taxonomy ID or namespace
+     * @param string|boolean $filter String to filter to apply to the tags
      * @return array|false
      */
-    private function __getTaxonomy($id)
+    private function __getTaxonomy($id, $filter = false)
     {
         if (!is_numeric($id)) {
             $conditions = ['Taxonomy.namespace' => trim(mb_strtolower($id))];
@@ -215,7 +216,9 @@ class Taxonomy extends AppModel
                     if (isset($entry['numerical_value'])) {
                         $temp['numerical_value'] = $entry['numerical_value'];
                     }
-                    $entries[] = $temp;
+                    if (empty($filter) || mb_strpos(mb_strtolower($temp['tag']), mb_strtolower($filter)) !== false) {
+                        $entries[] = $temp;
+                    }
                 }
             } else {
                 $temp = [
@@ -231,7 +234,9 @@ class Taxonomy extends AppModel
                 if (isset($predicate['numerical_value'])) {
                     $temp['numerical_value'] = $predicate['numerical_value'];
                 }
-                $entries[] = $temp;
+                if (empty($filter) || mb_strpos(mb_strtolower($temp['tag']), mb_strtolower($filter)) !== false) {
+                    $entries[] = $temp;
+                }
             }
         }
         $taxonomy = [
@@ -349,11 +354,12 @@ class Taxonomy extends AppModel
     /**
      * @param int|string $id Taxonomy ID or namespace
      * @param bool $full Add tag information to entries
+     * @param string|boolean $filter String filter to apply to the tag names
      * @return array|false
      */
-    public function getTaxonomy($id, $full = true)
+    public function getTaxonomy($id, $full = true, $filter = false)
     {
-        $taxonomy = $this->__getTaxonomy($id);
+        $taxonomy = $this->__getTaxonomy($id, $filter);
         if (empty($taxonomy)) {
             return false;
         }
@@ -439,11 +445,11 @@ class Taxonomy extends AppModel
             }
             if ($tagList) {
                 foreach ($tagList as $tagName) {
-                    if ($tagName === $entry['tag']) {
+                    if ($tagName === $entry['tag'] || $tagName === h($entry['tag'])) {
                         if (isset($tags[strtoupper($entry['tag'])])) {
-                            $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colour, 0, $numerical_value);
+                            $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colour, 0, $numerical_value);
                         } else {
-                            $this->Tag->quickAdd($tagName, $colour, $numerical_value);
+                            $this->Tag->quickAdd($entry['tag'], $colour, $numerical_value);
                         }
                     }
                 }
