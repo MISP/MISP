@@ -1,5 +1,5 @@
 <?php
-include_once APP . 'Model/WorkflowModules/action/WorkflowBaseActionModule.php';
+include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_add_to_warninglist extends WorkflowBaseActionModule 
 {
@@ -7,7 +7,7 @@ class Module_add_to_warninglist extends WorkflowBaseActionModule
     public $blocking = false;
     public $id = 'add_to_warninglist';
     public $name = 'Add to warninglist';
-    public $description = 'Add attributes to a custom warninglist';
+    public $description = 'Append attributes to an active custom warninglist.';
     public $icon = 'exclamation-triangle';
     public $inputs = 1;
     public $outputs = 1;
@@ -15,29 +15,34 @@ class Module_add_to_warninglist extends WorkflowBaseActionModule
     public $expect_misp_core_format = true;
     public $params = [];
 
+    /** @var Warninglist */
+    private $Warninglist;
+    /** @var WarninglistEntry */
+    private $WarninglistEntry;
+    private $warninglists;
+
 
     public function __construct()
     {
         parent::__construct();
-        $this->Log = ClassRegistry::init('Log');
         $this->Warninglist = ClassRegistry::init('Warninglist');
-        $warninglists = $this->Warninglist->find('all', [
+        $this->warninglists = $this->Warninglist->find('all', [
             'fields' => ['id', 'name', 'enabled', 'version', 'description', 'type'],
             'recursive' => -1,
             'conditions' => ['default' => 0, 'enabled' => 1],
         ]);
-        $this->warninglists = $warninglists;
 
-        $moduleOptions = array();
-        foreach ($warninglists as $item) {
-            $moduleOptions[$item['Warninglist']['id']] = $item['Warninglist']['name'];
-        }
+        $moduleOptions = Hash::combine($this->warninglists, '{n}.Warninglist.id', '{n}.Warninglist.name');
         $this->params = [
             [
-                'id' => 'warninglists',
-                'label' => __('Warninglists'),
-                'type' => 'select',
-                'options' => $moduleOptions
+                'id' => 'warninglist',
+                'label' => __('Warninglist'),
+                'type' => 'picker',
+                'options' => $moduleOptions,
+                'placeholder' => __('No warninglist selected'),
+                'picker_options' => [
+                    'placeholder_text' => !empty($this->warninglists) ? __('Pick an active custom warninglist') : __('No active custom warninglist available'),
+                ],
             ],
         ];
     }
@@ -46,29 +51,33 @@ class Module_add_to_warninglist extends WorkflowBaseActionModule
     {
         parent::exec($node, $roamingData, $errors);
 
-        $params = $this->getParamsWithValues($node);
         $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
+        if (empty($params['warninglist']['value'])) {
+            $errors[] = __('No warninglist selected');
+            return false;
+        }
 
         $matchingItems = $this->getMatchingItemsForAttributes($node, $rData);
         if ($matchingItems === false) {
             return true;
         }
         
-        $selectedWarninglist = $params['warninglists']['value'];
-        
+        $selectedWarninglist = $params['warninglist']['value'];
+
         $warninglist = array_values(array_filter($this->warninglists, function($wl) use ($selectedWarninglist) {
             return $wl['Warninglist']['id'] == $selectedWarninglist;
         }))[0]['Warninglist'];
         
         $this->WarninglistEntry = ClassRegistry::init('WarninglistEntry');
-        $entries = $this->WarninglistEntry->find('column', array(
-            'conditions' => array('warninglist_id' => $warninglist['id']),
-            'fields' => array('WarninglistEntry.value')
-        ));
+        $entries = $this->WarninglistEntry->find('column', [
+            'conditions' => ['warninglist_id' => $warninglist['id']],
+            'fields' => ['WarninglistEntry.value'],
+        ]);
        
-        foreach($rData['Event']['Attribute'] as $attribute) {
+        foreach($matchingItems as $attribute) {
             if(!in_array($attribute['value'], $entries)) {
-                array_push($entries, $attribute['value']);
+                $entries[] = $attribute['value'];
             }
 
         }
