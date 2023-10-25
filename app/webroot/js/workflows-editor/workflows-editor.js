@@ -1796,7 +1796,7 @@ function genSelect(options, forNode = true) {
     })
     if (options.value !== undefined) {
         $select.find('option').filter(function() {
-            if (options.multiple) {
+            if (options.multiple && Array.isArray(options.value)) {
                 return options.value.includes(this.value)
             } else {
                 return this.value == options.value
