@@ -43,6 +43,11 @@ class Warninglist extends AppModel
         'category' => [
             'rule' => ['inList', ['false_positive', 'known']],
         ],
+        'entries' => [
+            'notEmpty' => [
+                'rule' => 'valueNotEmpty',
+            ],
+        ]
     );
 
     public $hasMany = array(
@@ -808,6 +813,10 @@ class Warninglist extends AppModel
         $transactionBegun = $db->begin();
 
         $success = parent::save($data, $validate, $fieldList);
+
+        if (empty($success)) {
+            return false;
+        }
 
         $db = $this->getDataSource();
 
