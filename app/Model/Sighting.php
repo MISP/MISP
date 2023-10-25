@@ -79,7 +79,7 @@ class Sighting extends AppModel
     {
         $pubToZmq = $this->pubToZmq('sighting');
         $kafkaTopic = $this->kafkaTopic('sighting');
-        $isTriggerCallable = $this->isTriggerCallable('sighting-publish');
+        $isTriggerCallable = $this->isTriggerCallable('sighting-after-save');
         if ($pubToZmq || $kafkaTopic || $isTriggerCallable) {
             $sighting = $this->getSighting($this->id);
             if ($pubToZmq) {
@@ -95,11 +95,11 @@ class Sighting extends AppModel
                 $workflowErrors = [];
                 $logging = [
                     'model' => 'Sighting',
-                    'action' => $action,
+                    'action' => $created ? 'add' : 'edit',
                     'id' => $sighting['Sighting']['id'],
                 ];
                 $triggerData = $sighting;
-                $this->executeTrigger('sighting-publish', $triggerData, $workflowErrors, $logging);
+                $this->executeTrigger('sighting-after-save', $triggerData, $workflowErrors, $logging);
             }
         }
         return true;
