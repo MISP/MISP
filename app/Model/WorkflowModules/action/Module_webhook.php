@@ -8,7 +8,7 @@ class Module_webhook extends WorkflowBaseActionModule
 {
     public $id = 'webhook';
     public $name = 'Webhook';
-    public $version = '0.6';
+    public $version = '0.7';
     public $description = 'Allow to perform custom callbacks to the provided URL';
     public $icon_path = 'webhook.png';
     public $inputs = 1;
@@ -28,6 +28,7 @@ class Module_webhook extends WorkflowBaseActionModule
                 'label' => __('URL'),
                 'type' => 'input',
                 'placeholder' => 'https://example.com/test',
+                'jinja_supported' => true,
             ],
             [
                 'id' => 'content_type',
@@ -74,6 +75,7 @@ class Module_webhook extends WorkflowBaseActionModule
                 'label' => __('Headers'),
                 'type' => 'textarea',
                 'placeholder' => 'Authorization: foobar',
+                'jinja_supported' => true,
             ],
         ];
     }
