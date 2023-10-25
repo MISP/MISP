@@ -1548,7 +1548,7 @@ function afterNodeDrawCallback() {
     var $nodes = $drawflow.find('.drawflow-node')
     $nodes.find('.start-chosen').each(function() {
         var chosenOptions = $(this).data('chosen_options')
-        $(this).chosen(chosenOptions)
+        $(this).chosen(chosenOptions).trigger('change')
     })
     toggleDisplayOnFields()
     enablePickerCreateNewOptions()
@@ -1558,7 +1558,7 @@ function afterNodeDrawCallback() {
 function afterModalShowCallback() {
     $blockModal.find('.start-chosen').each(function() {
         var chosenOptions = $(this).data('chosen_options')
-        $(this).chosen(chosenOptions)
+        $(this).chosen(chosenOptions).trigger('change')
     })
     var cmOptions = {
         theme: 'default',
