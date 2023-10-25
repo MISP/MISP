@@ -1523,6 +1523,7 @@ function cancelPopoverForm(id) {
     $("#screenshot_box").fadeOut(400, function() {
         $(this).remove();
     });
+    $('.tooltip').remove()
     $("#popover_box")
         .fadeOut()
         .removeAttr('style') // remove all inline styles
