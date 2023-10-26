@@ -525,7 +525,7 @@ class Workflow extends AppModel
         $conversionFailure = false;
         try {
             $data = $this->__normalizeDataForTrigger($triggerModule, $data);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $conversionFailure = true;
             $message = __('Error while normalizing data for trigger. Error:' . PHP_EOL . $e->getMessage());
         }
