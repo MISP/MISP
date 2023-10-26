@@ -71,5 +71,8 @@ return [
         'sign'              => true,
         'obscure_subject'   => false,
         'binary'            => '/usr/bin/gpg'
+    ],
+    'NamedParams' => [
+        'events.index' => ['limit', 'order', 'page', 'sort', 'direction', 'fields', 'search'],
     ]
 ];
