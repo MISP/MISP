@@ -21,6 +21,7 @@
  * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
+use App\Middleware\NamedParamsParserMiddleware;
 use Cake\Http\Middleware\CsrfProtectionMiddleware;
 use Cake\Routing\Route\DashedRoute;
 use Cake\Routing\RouteBuilder;
@@ -44,12 +45,20 @@ use Cake\Routing\RouteBuilder;
  */
 /** @var \Cake\Routing\RouteBuilder $routes */
 $routes->setRouteClass(DashedRoute::class);
-$routes->scope('/', function (RouteBuilder $builder) {
+$routes->scope(
+    '/',
+    function (RouteBuilder $builder) {
     $builder->setExtensions(['json']);
     // Register scoped middleware for in scopes.
-    $builder->registerMiddleware('csrf', new CsrfProtectionMiddleware([
-        'httponly' => true,
-    ]));
+    $builder->registerMiddleware('namedParamsParser', new NamedParamsParserMiddleware());
+    $builder->registerMiddleware(
+        'csrf',
+        new CsrfProtectionMiddleware(
+            [
+                'httponly' => true,
+            ]
+        )
+    );
     /*
      * Apply a middleware to the current route scope.
      * Requires middleware to be registered through `Application::routes()` with `registerMiddleware()`
@@ -57,7 +66,8 @@ $routes->scope('/', function (RouteBuilder $builder) {
      */
      if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
          $builder->applyMiddleware('csrf');
-     }
+    }
+    $builder->applyMiddleware('namedParamsParser');
 
     /*
      * Here, we are connecting '/' (base path) to a controller called 'Pages',
@@ -85,17 +95,24 @@ $routes->scope('/', function (RouteBuilder $builder) {
      * routes you want in your application.
      */
     $builder->fallbacks();
-});
+    }
+);
 
-$routes->prefix('Admin', function (RouteBuilder $routes) {
+$routes->prefix(
+    'Admin',
+    function (RouteBuilder $routes) {
     $routes->fallbacks(DashedRoute::class);
-});
+    }
+);
 
 
-$routes->prefix('Open', function (RouteBuilder $routes) {
+$routes->prefix(
+    'Open',
+    function (RouteBuilder $routes) {
     $routes->setExtensions(['json']);
     $routes->fallbacks(DashedRoute::class);
-});
+    }
+);
 
 /*
  * If you need a different set of middleware or none at all,

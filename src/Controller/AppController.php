@@ -41,6 +41,10 @@ class AppController extends Controller
     public $breadcrumb = [];
     public $request_ip = null;
 
+    public $MetaFields = null;
+    public $MetaTemplates = null;
+    public $Users = null;
+
     /**
      * Initialization hook method.
      *
