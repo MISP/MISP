@@ -2,11 +2,11 @@
 
 namespace App\Middleware;
 
+use Cake\Core\Configure;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Server\MiddlewareInterface;
-use Cake\Core\Configure;
+use Psr\Http\Server\RequestHandlerInterface;
 
 class NamedParamsParserMiddleware implements MiddlewareInterface
 {
@@ -15,15 +15,18 @@ class NamedParamsParserMiddleware implements MiddlewareInterface
      * This middleware allows to configure named params for specific controller/actions to keep CakePHP 2.x backwards compatibility.
      * Reads Configure::read('NamedParams') and parses the named params from the request->pass array.
      *
-     * @var array
      */
+
+    public const NAMED_PARAMS = [
+        'events.index' => ['limit', 'order', 'page', 'sort', 'direction', 'fields', 'search'],
+    ];
 
     public function process(
         ServerRequestInterface $request,
         RequestHandlerInterface $handler
     ): ResponseInterface {
 
-        $namedConfig = Configure::read('NamedParams', []);
+        $namedConfig = array_merge(Configure::read('NamedParams', []), self::NAMED_PARAMS);
 
         $action = $request->getParam('controller') . '.' . $request->getParam('action');
 
@@ -52,19 +55,19 @@ class NamedParamsParserMiddleware implements MiddlewareInterface
                         $arr = $val;
                         foreach ($matches as $match) {
                             if (empty($match[1])) {
-                                $arr = array($arr);
+                                $arr = [$arr];
                             } else {
-                                $arr = array(
+                                $arr = [
                                     $match[1] => $arr
-                                );
+                                ];
                             }
                         }
                         $val = $arr;
                     }
-                    $named = array_merge_recursive($named, array($key => $val));
+                    $named = array_merge_recursive($named, [$key => $val]);
 
                     // remove the named param from the pass array
-                    $pass = array_values(array_diff($pass, array($param)));
+                    $pass = array_values(array_diff($pass, [$param]));
                 }
             }
         }
