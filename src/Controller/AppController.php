@@ -18,11 +18,14 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Lib\Tools\JsonTool;
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
+use Cake\Http\Exception\HttpException;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Utility\Text;
+use Exception;
 
 /**
  * Application Controller
@@ -276,5 +279,125 @@ class AppController extends Controller
         $user = $this->Auth->user();
         session_abort();
         return $user;
+    }
+
+    /**
+     * generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
+     * @param array $options
+     * @param CakeResponse $exception
+     * @param array $data
+     * @return array|false
+     */
+    protected function harvestParameters($options, &$exception = null, $data = [])
+    {
+        $request = $options['request'] ?? $this->request;
+        if ($request->is('post')) {
+            if (empty($request->data)) {
+                $exception = $this->RestResponse->throwException(
+                    400,
+                    __('Either specify the search terms in the url, or POST a json with the filter parameters.'),
+                    '/' . $request->params['controller'] . '/' . $request->action
+                );
+                return false;
+            } else {
+                if (isset($request->data['request'])) {
+                    $temp = $request->data['request'];
+                } else {
+                    $temp = $request->data;
+                }
+                if (empty($options['paramArray'])) {
+                    foreach ($options['paramArray'] as $param => $value) {
+                        $data = $this->captureParam($data, $param, $value);
+                    }
+                    $data = array_merge($data, $temp);
+                } else {
+                    foreach ($options['paramArray'] as $param) {
+                        if (isset($temp[$param])) {
+                            $data[$param] = $temp[$param];
+                        }
+                    }
+                }
+            }
+        }
+        /*
+         * If we simply capture ordered URL params with func_get_args(), reassociate them.
+         * We can easily detect this by having ordered_url_params passed as a list instead of a dict.
+         */
+        if (isset($options['ordered_url_params'][0])) {
+            $temp = [];
+            foreach ($options['ordered_url_params'] as $k => $url_param) {
+                if (!empty($options['paramArray'][$k])) {
+                    $temp[$options['paramArray'][$k]] = $url_param;
+                }
+            }
+            $options['ordered_url_params'] = $temp;
+        }
+        if (!empty($options['paramArray'])) {
+            foreach ($options['paramArray'] as $p) {
+                if (
+                    isset($options['ordered_url_params'][$p]) &&
+                    (!in_array(strtolower((string)$options['ordered_url_params'][$p]), ['null', '0', false, 'false', null]))
+                ) {
+                    $data[$p] = $options['ordered_url_params'][$p];
+                    $data[$p] = str_replace(';', ':', $data[$p]);
+                }
+                if (isset($options['named_params'][$p])) {
+                    $data[$p] = str_replace(';', ':', $options['named_params'][$p]);
+                }
+            }
+        }
+        foreach ($data as &$v) {
+            if (is_string($v)) {
+                $v = trim($v);
+                if (strpos($v, '||')) {
+                    $v = explode('||', $v);
+                }
+            }
+        }
+        unset($v);
+        if (!empty($options['additional_delimiters'])) {
+            if (!is_array($options['additional_delimiters'])) {
+                $options['additional_delimiters'] = [$options['additional_delimiters']];
+            }
+            foreach ($data as $k => $v) {
+                $found = false;
+                foreach ($options['additional_delimiters'] as $delim) {
+                    if (strpos($v, $delim) !== false) {
+                        $found = true;
+                        break;
+                    }
+                }
+                if ($found) {
+                    $data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
+                    foreach ($data[$k] as $k2 => $value) {
+                        $data[$k][$k2] = trim($data[$k][$k2]);
+                    }
+                }
+            }
+        }
+        return $data;
+    }
+
+    private function captureParam($data, $param, $value)
+    {
+        $table = $this->getTableLocator()->get($this->defaultModel);
+        if ($table->checkParam($param)) {
+            $data[$param] = $value;
+        }
+        return $data;
+    }
+
+    /**
+     * Decode JSON with proper error handling.
+     * @param string $dataToDecode
+     * @return mixed
+     */
+    protected function _jsonDecode($dataToDecode)
+    {
+        try {
+            return JsonTool::decode($dataToDecode);
+        } catch (Exception $e) {
+            throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
+        }
     }
 }
