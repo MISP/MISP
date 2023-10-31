@@ -3,6 +3,57 @@
     if (!$advancedEnabled) {
         echo '<div class="alert">' . __('Advanced auth keys are not enabled.') . '</div>';
     }
+    $fields = [
+        [
+            'name' => '#',
+            'sort' => 'AuthKey.id',
+            'data_path' => 'AuthKey.id',
+        ],
+        [
+            'name' => __('User'),
+            'sort' => 'User.email',
+            'data_path' => 'User.email',
+            'element' => empty($user_id) ? 'links' : 'generic_field',
+            'url' => $baseurl . '/users/view',
+            'url_params_data_paths' => ['User.id'],
+            'requirement' => $me['Role']['perm_admin'] || $me['Role']['perm_site_admin'],
+        ],
+        [
+            'name' => __('Auth Key'),
+            'sort' => 'AuthKey.authkey_start',
+            'element' => 'authkey',
+            'data_path' => 'AuthKey',
+        ],
+        [
+            'name' => __('Expiration'),
+            'sort' => 'AuthKey.expiration',
+            'data_path' => 'AuthKey.expiration',
+            'element' => 'expiration'
+        ],
+        [
+            'name' => ('Last used'),
+            'data_path' => 'AuthKey.last_used',
+            'element' => 'datetime',
+            'requirements' => $keyUsageEnabled,
+            'empty' => __('Never'),
+        ],
+        [
+            'name' => __('Comment'),
+            'sort' => 'AuthKey.comment',
+            'data_path' => 'AuthKey.comment',
+        ],
+        [
+            'name' => __('Allowed IPs'),
+            'data_path' => 'AuthKey.allowed_ips',
+        ],
+    ];
+    if(Configure::read("MISP.remember_seen_ips_authkeys")){
+            $fields[] =[
+                'name' => __('Seen IPs'),
+                'data_path' => 'AuthKey.unique_ips',
+                'element' => 'authkey_pin',
+            ];
+    }
     echo $this->element('genericElements/IndexTable/index_table', [
         'data' => [
             'data' => $data,
@@ -30,55 +81,7 @@
                     ]
                 ]
             ],
-            'fields' => [
-                [
-                    'name' => '#',
-                    'sort' => 'AuthKey.id',
-                    'data_path' => 'AuthKey.id',
-                ],
-                [
-                    'name' => __('User'),
-                    'sort' => 'User.email',
-                    'data_path' => 'User.email',
-                    'element' => empty($user_id) ? 'links' : 'generic_field',
-                    'url' => $baseurl . '/users/view',
-                    'url_params_data_paths' => ['User.id'],
-                    'requirement' => $me['Role']['perm_admin'] || $me['Role']['perm_site_admin'],
-                ],
-                [
-                    'name' => __('Auth Key'),
-                    'sort' => 'AuthKey.authkey_start',
-                    'element' => 'authkey',
-                    'data_path' => 'AuthKey',
-                ],
-                [
-                    'name' => __('Expiration'),
-                    'sort' => 'AuthKey.expiration',
-                    'data_path' => 'AuthKey.expiration',
-                    'element' => 'expiration'
-                ],
-                [
-                    'name' => ('Last used'),
-                    'data_path' => 'AuthKey.last_used',
-                    'element' => 'datetime',
-                    'requirements' => $keyUsageEnabled,
-                    'empty' => __('Never'),
-                ],
-                [
-                    'name' => __('Comment'),
-                    'sort' => 'AuthKey.comment',
-                    'data_path' => 'AuthKey.comment',
-                ],
-                [
-                    'name' => __('Allowed IPs'),
-                    'data_path' => 'AuthKey.allowed_ips',
-                ],
-                [
-                    'name' => __('Seen IPs'),
-                    'data_path' => 'AuthKey.unique_ips',
-                    'element' => 'authkey_pin',
-                ]
-            ],
+            'fields' => $fields,
             'title' => empty($ajax) ? __('Authentication key Index') : false,
             'description' => empty($ajax) ? __('A list of API keys bound to a user.') : false,
             'pull' => 'right',

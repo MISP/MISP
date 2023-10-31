@@ -7939,6 +7939,10 @@ msgstr ""
 msgid "Log user IP and key usage on each API request. All logs for given keys are deleted after one year when this key is not used."
 msgstr ""
 
+#: Model/Server.php:5706
+msgid "Store IP addresses used to make API calls with an AuthKey against this AuthKey in the database."
+msgstr ""
+
 #: Model/Server.php:5355
 msgid "Enable new audit log system."
 msgstr ""
