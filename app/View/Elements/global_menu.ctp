@@ -550,7 +550,9 @@
                            <i class="fas fa-cat fa-stack-1x fa-flip-horizontal" style="bottom: 8px; left: 2px;"></i>
                        </span>'
         ];
-        $menu_right = array_merge([$tmp], $menu_right);
+        if (isset($menu_right)) {
+            $menu_right = array_merge([$tmp], $menu_right);
+        }
     }
 ?>
 <div id="topBar" class="navbar navbar-inverse <?= isset($debugMode) ? $debugMode : 'debugOff' ?>" style="z-index:100;">
