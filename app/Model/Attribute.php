@@ -3547,7 +3547,7 @@ class Attribute extends AppModel
         if (isset($attribute['id'])) {
             $conditions['Attribute.id !='] = $attribute['id'];
         }
-
+        
         return $this->find('first', [
             'recursive' => -1,
             'conditions' => $conditions,

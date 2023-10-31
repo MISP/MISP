@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('SyncTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -958,6 +959,70 @@ class EventReport extends AppModel
         $reportGenerator = new ReportFromEvent();
         $reportGenerator->construct($this->Event, $user, $options);
         $report = $reportGenerator->generate();
+        return $report;
+    }
+
+    public function sendToLLM($report, $user, &$errors)
+    {
+        $syncTool = new SyncTool();
+        $config = [];
+        $HttpSocket = $syncTool->setupHttpSocket($config, $this->timeout);
+        $LLMFeatureEnabled = Configure::read('Plugin.CTIInfoExtractor_enable', false);
+        $url = Configure::read('Plugin.CTIInfoExtractor_url');
+        $apiKey = Configure::read('Plugin.CTIInfoExtractor_authentication');
+        if (!$LLMFeatureEnabled || empty($url)) {
+            $errors[] = __('LLM Feature disabled or no URL provided');
+            return false;
+        }
+        $reportContent = $report['EventReport']['content'];
+        $data = json_encode(['text' => $reportContent]);
+        $version = implode('.', $this->Event->checkMISPVersion());
+        $request = [
+            'header' => array_merge([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
+                'x-api-key' => $apiKey,
+            ])
+        ];
+        
+        $response = $HttpSocket->post($url, $data, $request);
+        $data = json_decode($response->body, true);
+/*
+        debug($data);
+        
+        $data = array(
+	'AI_ThreatActor' => 'Sofacy',
+	'AI_AttributedCountry' => 'unknown',
+	'AI_Type' => 'Developments in IT Security',
+	'AI_Motivation' => 'Espionage',
+	'AI_ExecutiveSummary' => 'The Sofacy group, also known as APT28 or Fancy Bear, continues to target government and strategic organizations primarily in North America and Europe. They have recently been using a tool called Zebrocy, delivered via phishing attacks, to cast a wider net within target organizations. They have also been observed leveraging the Dynamic Data Exchange (DDE) exploit technique to deliver different payloads, including the Koadic toolkit. This report provides details on the campaigns and tactics used by the Sofacy group.',
+	'AI_CouldWeBeAffected' => true
+);
+*/
+        
+        if (!empty($data['AI_ExecutiveSummary'])) {
+            $report['EventReport']['content'] = '# Executive Summary' . PHP_EOL . $data['AI_ExecutiveSummary'] . PHP_EOL . PHP_EOL . '# Report' . PHP_EOL . $report['EventReport']['content'];
+        }
+        $this->save($report);
+        $event = $this->Event->find('first', [
+            'conditions' => ['Event.id' => $report['EventReport']['event_id']],
+            'recursive' => -1
+        ]);
+        if (!empty($data['AI_ThreatActor'])) {
+            $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor="' . $data['AI_ThreatActor'] . '"'], $user);
+            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+        }
+
+        if (!empty($data['AI_AttributedCountry'])) {
+            $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor-country="' . $data['AI_AttributedCountry'] . '"'], $user);
+            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+        }
+
+        if (!empty($data['AI_Motivation'])) {
+            $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor-motivation="' . $data['AI_Motivation'] . '"'], $user);
+            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+        }
         return $report;
     }
 }
