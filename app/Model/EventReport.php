@@ -897,31 +897,53 @@ class EventReport extends AppModel
         return $toReturn;
     }
 
-    public function downloadMarkdownFromURL($event_id, $url)
+    public function downloadMarkdownFromURL($event_id, $url, $format = 'html')
     {
         $this->Module = ClassRegistry::init('Module');
-        $module = $this->isFetchURLModuleEnabled();
+        $formatMapping = [
+            'html' => 'html_to_markdown',
+            'pdf' => 'pdf_enrich',
+            'pptx' => 'pptx_enrich',
+            'xlsx' => 'xlsx_enrich',
+            'ods' => 'ods_enrich',
+            'odt' => 'odt_enrich',
+            'docx' => 'docx_enrich'
+        ];
+        $module = $this->isFetchURLModuleEnabled($formatMapping[$format]);
         if (!is_array($module)) {
             return false;
         }
         $modulePayload = [
             'module' => $module['name'],
-            'event_id' => $event_id,
-            'url' => $url
+            'event_id' => $event_id
         ];
+        if ($format === 'html') {
+            $modulePayload['url'] = $url;
+        } else {
+            $url = filter_var($url, FILTER_SANITIZE_URL);
+            $modulePayload['attachment'] = 'temp.foo';
+            $modulePayload['data'] = base64_encode(file_get_contents($url));
+        }
         if (!empty($module)) {
             $result = $this->Module->queryModuleServer($modulePayload, false, 'Enrichment', false, []);
-            if (empty($result['results'][0]['values'][0])) {
-                return '';
+            if ($format === 'html') {
+                if (empty($result['results'][0]['values'][0])) {
+                    return '';
+                }
+                return $result['results'][0]['values'][0];
+            } else {
+                if (empty($result['results'][0]['values'])) {
+                    return '';
+                }
+                return $result['results'][0]['values'];
             }
-            return $result['results'][0]['values'][0];
         }
         return false;
     }
 
-    public function isFetchURLModuleEnabled() {
+    public function isFetchURLModuleEnabled($moduleName = 'html_to_markdown') {
         $this->Module = ClassRegistry::init('Module');
-        $module = $this->Module->getEnabledModule('html_to_markdown', 'expansion');
+        $module = $this->Module->getEnabledModule($moduleName, 'expansion');
         return !empty($module) ? $module : false;
     }
 
