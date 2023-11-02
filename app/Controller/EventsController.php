@@ -31,7 +31,7 @@ class EventsController extends AppController
         'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'page',
         'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
         'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'feed', 'server', 'toIDS',
-        'sighting', 'includeSightingdb', 'warninglistId', 'correlationId',
+        'sighting', 'includeSightingdb', 'warninglistId', 'correlationId', 'email', 'eventid', 'datefrom', 'dateuntil'
     );
 
     // private
@@ -1117,7 +1117,7 @@ class EventsController extends AppController
             'attribute' => array('OR' => array(), 'NOT' => array()),
             'hasproposal' => 2,
             'timestamp' => array('from' => "", 'until' => ""),
-            'publishtimestamp' => array('from' => "", 'until' => ""),
+            'publishtimestamp' => array('from' => "", 'until' => "")
         );
 
         if ($this->_isSiteAdmin()) {
@@ -2470,7 +2470,7 @@ class EventsController extends AppController
                         $this->data['Event']['publish'],
                         $this->data['Event']['distribution'],
                         $this->data['Event']['sharing_group_id'],
-                        !boolval($this->data['Event']['galaxies_parsing']),
+                        $this->data['Event']['galaxies_handling'],
                         $debug
                     );
                     if (is_numeric($result)) {
@@ -2500,6 +2500,16 @@ class EventsController extends AppController
         $this->set('distributionLevels', $distributionLevels);
         foreach ($distributionLevels as $key => $value) {
             $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
+        }
+        $debugOptions = $this->Event->debugOptions;
+        $this->set('debugOptions', $debugOptions);
+        foreach ($debugOptions as $key => $value) {
+            $fieldDesc['debug'][$key] = $this->Event->debugDescriptions[$key];
+        }
+        $galaxiesOptions = $this->Event->galaxiesOptions;
+        $this->set('galaxiesOptions', $galaxiesOptions);
+        foreach ($galaxiesOptions as $key => $value) {
+            $fieldDesc['galaxies_handling'][$key] = $this->Event->galaxiesOptionsDescriptions[$key];
         }
         $this->set('sharingGroups', $sgs);
         $this->set('fieldDesc', $fieldDesc);

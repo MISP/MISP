@@ -3204,7 +3204,7 @@ class Attribute extends AppModel
         $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
         $eventId = $attribute['event_id'];
         $modelId = $action === 'add' ? 0 : $this->id;
-        $this->loadLog()->createLogEntry($user, 'add', 'Attribute',  $modelId,
+        $this->loadLog()->createLogEntry($user, $action, 'Attribute',  $modelId,
             "Attribute dropped due to validation for Event $eventId failed: $attribute_short",
             'Validation errors: ' . JsonTool::encode($this->validationErrors) . ' Full Attribute: ' . JsonTool::encode($attribute)
         );

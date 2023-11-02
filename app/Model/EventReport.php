@@ -643,6 +643,9 @@ class EventReport extends AppModel
         foreach ($proxyElements['attribute'] as $uuid => $attribute) {
             $count = 0;
             $textToInject = sprintf('@[attribute](%s)', $uuid);
+            if (strlen($attribute['value']) < 3) {
+                continue;
+            }
             $content = str_replace($attribute['value'], $textToInject, $content, $count);
             if ($count > 0 || strpos($originalContent, $attribute['value'])) { // Check if the value has been replaced by the first match
                 if (!isset($replacedValues[$attribute['value']])) {
@@ -784,6 +787,9 @@ class EventReport extends AppModel
             $tags = $this->Tag->fetchUsableTags($user);
             foreach ($tags as $tag) {
                 $tagName = $tag['Tag']['name'];
+                if (strlen($tagName) < 3) {
+                    continue;
+                }
                 $found = $this->isValidReplacementTag($content, $tagName);
                 if ($found) {
                     $replacedContext[$tagName][$tagName] = $tag['Tag'];
