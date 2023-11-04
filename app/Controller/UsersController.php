@@ -1241,6 +1241,7 @@ class UsersController extends AppController
                 // Password is converted to hashed form automatically
                 $this->User->save(['id' => $this->Auth->user('id'), 'password' => $passwordToSave], false, ['password']);
             }
+            // login was successful, do everything that is needed such as logging and more:
             $this->_postlogin();
         } else {
             $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
@@ -1249,10 +1250,12 @@ class UsersController extends AppController
             if (str_replace("//", "/", $this->webroot . $this->Session->read('Auth.redirect')) == $this->webroot && $this->Session->read('Message.auth.message') == $this->Auth->authError) {
                 $this->Session->delete('Message.auth');
             }
-            // don't display "invalid user" before first login attempt
+            // Login was failed, do everything that is needed such as blocklisting, logging and more
+            // Also don't display "invalid user" before first login attempt
             if ($this->request->is('post') || $this->request->is('put')) {
                 $this->Flash->error(__('Invalid username or password, try again'));
                 if (isset($this->request->data['User']['email'])) {
+                    // increase bruteforce attempt and log
                     $this->Bruteforce->insert($this->request->data['User']['email']);
                 }
             }
@@ -1339,6 +1342,7 @@ class UsersController extends AppController
             'recursive' => -1
         ));
         unset($user['User']['password']);
+        // update login timestamp and welcome user
         $this->User->updateLoginTimes($user['User']);
         $lastUserLogin = $user['User']['last_login'];
         $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
@@ -1346,6 +1350,46 @@ class UsersController extends AppController
             $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
             $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
         }
+
+        // there are reasons to believe there is evil happening, suspicious. Inform user and (org)admins.
+        $suspiciousness_reason = $this->User->UserLoginProfile->_isSuspicious();
+        if ($suspiciousness_reason) {
+            // raise an alert (the SIEM component should ensure (org)admins are informed)
+            $this->loadModel('Log');
+            $this->Log->createLogEntry($this->Auth->user(), 'auth_alert', 'User', $this->Auth->user('id'), 'Suspicious login.', $suspiciousness_reason);
+            // inform user of the suspicious login
+            if (!Configure::read('MISP.disable_emailing')) {
+                $body = new SendEmailTemplate('userloginprofile_suspicious');
+                $body->set('userLoginProfile', $this->User->UserLoginProfile->_getUserProfile());
+                $body->set('username', $this->Auth->user('email'));
+                $body->set('baseurl', Configure::read('MISP.baseurl'));
+                $body->set('misp_org', Configure::read('MISP.org'));
+                // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
+                $result = $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login.");
+                if ($result) {
+                    // all is well, email sent to user
+                } else {
+                    // email flow system already logs errors
+                }
+            }
+            // FIXME chri - also inform org admin
+        }
+        // verify UserLoginProfile trust status and perform actions (such as sending email), only do this is emailing is not disabled on the instance
+        elseif(!$this->User->UserLoginProfile->_isTrusted() && !Configure::read('MISP.disable_emailing')) {
+            // Email construction
+            $body = new SendEmailTemplate('userloginprofile_newlogin');
+            $body->set('userLoginProfile', $this->User->UserLoginProfile->_getUserProfile());
+            $body->set('baseurl', Configure::read('MISP.baseurl'));
+            $body->set('misp_org', Configure::read('MISP.org'));
+            // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
+            $result = $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] New sign in.");
+            if ($result) {
+                // all is well, email sent to user
+            } else {
+                // email flow system already logs errors
+            }
+        }
+
         // no state changes are ever done via GET requests, so it is safe to return to the original page:
         $this->redirect($this->Auth->redirectUrl());
     }
@@ -3103,6 +3147,116 @@ class UsersController extends AppController
             $this->render('/genericTemplates/confirm');
         }
     }
+
+    public function view_auth_history($user_id = null) { 
+        if ($user_id && $this->_isAdmin()) {   // org and site admins
+            $user = $this->User->find('first', array(
+                'recursive' => -1,
+                'conditions' => $this->__adminFetchConditions($user_id),
+                'contain' => [
+                    'UserSetting',
+                    'Role',
+                    'Organisation'
+                ]
+            ));
+            if (empty($user)) {
+                throw new NotFoundException(__('Invalid user'));
+            }
+        } else {
+            $user_id = $this->Auth->user('id');
+        }
+        $this->loadModel('UserLoginProfile');
+        $this->loadModel('Log');
+        $logs = $this->Log->find('all', array(
+            'conditions' => array(
+                'Log.user_id' => $user_id,
+                'OR' => array ('Log.action' => array('login', 'login_fail', 'auth', 'auth_fail'))
+            ),
+            'fields' => array('Log.action', 'Log.created', 'Log.ip', 'Log.change', 'Log.id'),
+            'order' => array('Log.created DESC')
+            // TODO chri - limit the number of rows / or by age
+        ));
+        $lst = array();
+        $prevProfile = null;
+        $prevCreatedLast = null;
+        $prevCreatedFirst = null;
+        $prevLogEntry = null;
+        $prevActions = array();
+
+        $actions_translator = [
+            'auth_fail' => 'API:failed',
+            'auth' => 'API:login',
+            'login' => 'web:login',
+            'login_fail' => 'web:failed'
+        ];
+        
+        // group authentications by type of loginprofile, to make the list shorter
+        foreach($logs as $logEntry) {
+            $loginProfile = $this->UserLoginProfile->_fromLog($logEntry['Log']);
+            $loginProfile['ip'] = $logEntry['Log']['ip'] ?? null; // transitional workaround
+            if ($this->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
+                // continue find as same type of login
+                $prevCreatedFirst = $logEntry['Log']['created'];
+                $prevActions[] = $actions_translator[$logEntry['Log']['action']] ?? $logEntry['Log']['action'];
+            } else {
+                // add as new entry
+                if (null != $prevProfile) {
+                    $actionsString = '';  // count actions
+                    foreach(array_count_values($prevActions) as $action => $cnt) {
+                        $actionsString .=  $action . ' (' . $cnt . ") ";
+                    }
+                    $lst[] = array(
+                        'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
+                        'platform' => $prevProfile['ua_platform'],
+                        'browser' => $prevProfile['ua_browser'],
+                        'region' => $prevProfile['geoip'],
+                        'ip' =>  $prevProfile['ip'],
+                        'accept_lang' => $prevProfile['accept_lang'],
+                        'last_seen' => $prevCreatedLast,
+                        'first_seen' => $prevCreatedFirst,
+                        'actions' => $actionsString,
+                        'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
+                        'id' => $prevLogEntry);
+                }
+                // build new entry
+                $prevProfile = $loginProfile;
+                $prevCreatedFirst = $prevCreatedLast = $logEntry['Log']['created'];
+                $prevActions[] = $actions_translator[$logEntry['Log']['action']] ?? $logEntry['Log']['action'];
+                $prevLogEntry = $logEntry['Log']['id'];
+            }
+        }
+        // add last entry
+        $actionsString = '';  // count actions
+        foreach(array_count_values($prevActions) as $action => $cnt) {
+            $actionsString .=  $action . ' (' . $cnt . ") ";
+        }
+        $lst[] = array(
+            'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
+            'platform' => $prevProfile['ua_platform'],
+            'browser' => $prevProfile['ua_browser'],
+            'region' => $prevProfile['geoip'],
+            'ip' =>  $prevProfile['ip'],
+            'accept_lang' => $prevProfile['accept_lang'],
+            'last_seen' => $prevCreatedLast,
+            'first_seen' => $prevCreatedFirst,
+            'actions' => $actionsString,
+            'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
+            'id' => $prevLogEntry);
+        $query = [
+            'limit' => 50,
+            'page' => 1,
+            'order' => 'occurrence desc'
+        ];
+        foreach ($query as $customParam => $foo) {
+            if (isset($this->request->params['named'][$customParam])) {
+                $query[$customParam] = $this->request->params['named'][$customParam];
+            }
+        }
+        $this->__setPagingParams($query['page'], $query['limit'], count($lst), 'named');
+        $this->set('data', $lst);
+        $this->set('user_id', $user_id);
+    }
+
     public function logout401() {
         # You should read the documentation in docs/CONFIG.ApacheSecureAuth.md
         # before using this endpoint. It is not useful without webserver config

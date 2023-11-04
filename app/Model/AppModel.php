@@ -85,7 +85,7 @@ class AppModel extends Model
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
-        111 => false, 112 => false, 113 => true, 114 => false, 115 => false
+        111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1976,6 +1976,23 @@ class AppModel extends Model
             case 115:
                 $sqlArray[] = "ALTER TABLE `users` ADD COLUMN `last_pw_change` BIGINT(20) NULL DEFAULT NULL;";
                 $sqlArray[] = "UPDATE `users` SET last_pw_change=date_modified WHERE last_pw_change IS NULL";
+                break;
+            case 116:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `user_login_profiles` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    `user_id` int(11) NOT NULL,
+                    `status` varchar(255) DEFAULT NULL,
+                    `ip` varchar(255) DEFAULT NULL,
+                    `user_agent` varchar(255) DEFAULT NULL,
+                    `accept_lang` varchar(255) DEFAULT NULL,
+                    `geoip` varchar(255) DEFAULT NULL,
+                    `ua_platform` varchar(255) DEFAULT NULL,
+                    `ua_browser` varchar(255) DEFAULT NULL,
+                    `ua_pattern` varchar(255) DEFAULT NULL,
+                    PRIMARY KEY (`id`),
+                    INDEX `user_id` (`user_id`)
+                  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
