@@ -16,18 +16,11 @@ class UserLoginProfile extends AppModel
     );
 
     public $validate = [
-        // 'ip' => [
-        //     'rule' => ''
-        // ],
-        // 'user_agent' => [],
-        // 'status' => [
-        //     'boolean' => ['rule' => 'boolean']
-        // ],
-        // 'created_at' => []],  // when the status was saved
-        // 'user_id' => [
-        //     'rule' => 'userExists',
-        //     'message' => 'User doesn\'t exists',
-        // ],
+        'status' => [
+            'rule' => '/^(trusted|malicious)$/',
+            'message' => 'Must be one of: trusted, malicious'
+        ],
+        
     ];
 
     public $belongsTo = [

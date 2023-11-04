@@ -7,19 +7,6 @@
                 'pull' => 'right',
                 'children' => [
                     [
-                        'type' => 'simple',
-                        'children' => [
-                            // 'data' => [
-                            //     'type' => 'simple',
-                            //     'fa-icon' => 'plus',
-                            //     'text' => __('Add authentication key'),
-                            //     'class' => 'btn-primary modal-open',
-                            //     'url' => "$baseurl/auth_keys/add" . (empty($user_id) ? '' : ('/' . $user_id)),
-                            //     'requirement' => $canCreateUserLoginProfile
-                            // ]
-                        ]
-                    ],
-                    [
                         'type' => 'search',
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),

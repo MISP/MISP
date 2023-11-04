@@ -1441,6 +1441,9 @@ CREATE TABLE `user_login_profiles` (
   `ua_browser` varchar(255) DEFAULT NULL,
   `ua_pattern` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  KEY `ip` (`ip`),
+  KEY `status` (`status`),
+  KEY `geoip` (`geoip`),
   INDEX `user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

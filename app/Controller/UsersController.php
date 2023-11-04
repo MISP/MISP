@@ -3173,8 +3173,8 @@ class UsersController extends AppController
                 'OR' => array ('Log.action' => array('login', 'login_fail', 'auth', 'auth_fail'))
             ),
             'fields' => array('Log.action', 'Log.created', 'Log.ip', 'Log.change', 'Log.id'),
-            'order' => array('Log.created DESC')
-            // TODO chri - limit the number of rows / or by age
+            'order' => array('Log.created DESC'),
+            'limit' => 100          // relatively high limit, as we'll be grouping data afterwards.
         ));
         $lst = array();
         $prevProfile = null;
@@ -3190,6 +3190,9 @@ class UsersController extends AppController
             'login_fail' => 'web:failed'
         ];
         
+        $max_rows = 6;  // limit to a few rows, to prevent cluttering the interface. 
+                        // We didn't filter the data at SQL query too much, nor by age, as we want to show "enough" data, even if old
+        $rows = 0;
         // group authentications by type of loginprofile, to make the list shorter
         foreach($logs as $logEntry) {
             $loginProfile = $this->UserLoginProfile->_fromLog($logEntry['Log']);
@@ -3223,6 +3226,8 @@ class UsersController extends AppController
                 $prevCreatedFirst = $prevCreatedLast = $logEntry['Log']['created'];
                 $prevActions[] = $actions_translator[$logEntry['Log']['action']] ?? $logEntry['Log']['action'];
                 $prevLogEntry = $logEntry['Log']['id'];
+                $rows += 1;
+                if ($rows == $max_rows) break;
             }
         }
         // add last entry

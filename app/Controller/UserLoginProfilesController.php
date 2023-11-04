@@ -114,7 +114,7 @@ class UserLoginProfilesController extends AppController
             $this->__setTrust($logId, 'malicious');
             $this->Flash->info(__('You marked a login suspicious. We highly recommend you to change your password NOW !'));
             $this->loadModel('Log');
-            $details = 'User reported syspicious login for log ID: '. $logId;
+            $details = 'User reported suspicious login for log ID: '. $logId;
             // raise an alert (the SIEM component should ensure (org)admins are informed)
             $this->Log->createLogEntry($this->Auth->user(), 'auth_alert', 'User', $this->Auth->user('id'), 'Suspicious login reported.', $details);
             // FIXME chri - also inform (org) admins.
