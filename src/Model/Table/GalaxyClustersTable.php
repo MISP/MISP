@@ -25,6 +25,9 @@ use Cake\Http\Exception\NotFoundException;
 use Cake\Validation\Validation;
 use Exception;
 use App\Http\Exception\HttpSocketHttpException;
+use Cake\Validation\Validator;
+use App\Model\Entity\Distribution;
+use Cake\ORM\RulesChecker;
 
 /**
  * @property Tag $Tag
@@ -33,7 +36,7 @@ use App\Http\Exception\HttpSocketHttpException;
  * @property GalaxyElement $GalaxyElement
  * @property SharingGroup $SharingGroup
  */
-class GalaxyClusterTable extends AppTable
+class GalaxyClustersTable extends AppTable
 {
     use LocatorAwareTrait;
 
@@ -46,10 +49,113 @@ class GalaxyClusterTable extends AppTable
         'json' => array('json', 'JsonExport', 'json'),
     );
 
+    public function validationDefault(Validator $validator): Validator
+    {
+        $validator
+            ->requirePresence(['value'])
+            ->add(
+                'value',
+                'stringNotEmpty',
+                [
+                    'rule' => 'stringNotEmpty',
+                    'message' => 'Please provide a value'
+                ]
+            )
+            ->add(
+                'uuid',
+                'uuid',
+                [
+                    'rule' => 'uuid',
+                    'message' => 'Please provide a valid RFC 4122 UUID'
+                ]
+            )
+            ->add(
+                'distribution',
+                'inList',
+                [
+                    'rule' => ['inList', Distribution::ALL],
+                    'message' => 'Options: ' . implode(', ', Distribution::DESCRIPTION)
+                ]
+            )
+            ->add(
+                'published',
+                'boolean',
+                [
+                    'rule' => 'boolean'
+                ]
+            );
+
+        return $validator;
+    }
+
+    public function buildRules(RulesChecker $rules): RulesChecker
+    {
+        $rules->add($rules->isUnique(['uuid']));
+        return $rules;
+    }
+
     public function initialize(array $config): void
     {
         parent::initialize($config);
         $this->addBehavior('AuditLog');
+
+        $this->belongsTo(
+            'Galaxy',
+            [
+                'className' => 'Galaxy',
+                'foreignKey' => 'galaxy_id',
+            ]
+        );
+        $this->belongsTo(
+            'Tag',
+            [
+                'foreignKey' => false,
+                'conditions' => array('GalaxyCluster.tag_name = Tag.name')
+            ]
+        );
+        $this->belongsTo(
+            'Org',
+            [
+                'className' => 'Organisation',
+                'foreignKey' => 'org_id'
+            ]
+        );
+        $this->belongsTo(
+            'Orgc',
+            [
+                'className' => 'Organisation',
+                'foreignKey' => 'orgc_id'
+            ]
+        );
+        $this->belongsTo(
+            'SharingGroup',
+            [
+                'foreignKey' => 'sharing_group_id',
+                'propertyName' => 'SharingGroup'
+            ]
+        );
+
+        $this->hasMany(
+            'GalaxyElement',
+            [
+                'dependent' => true,
+            ]
+        );
+        $this->hasMany(
+            'GalaxyClusterRelations',
+            [
+                'foreignKey' => 'galaxy_cluster_id',
+                'dependent' => true,
+                'propertyName' => 'GalaxyClusterRelation'
+            ]
+        );
+        $this->hasMany(
+            'TargetingClusterRelation',
+            [
+                'foreignKey' => 'referenced_galaxy_cluster_id',
+                'propertyName' => 'TargetingClusterRelation'
+            ]
+        );
     }
 
     public function beforeMarshal(EventInterface $event, ArrayObject $data, ArrayObject $options)
@@ -74,7 +180,7 @@ class GalaxyClusterTable extends AppTable
     public function find(string $type = 'all', array $options = []): Query
     {
         $mapper = function ($row) {
-            // TODO: use JsonFieldBehavior
+            // TODO: [3.x-MIGRATION] use JsonFieldBehavior
             if (isset($row['authors'])) {
                 $row['authors'] = json_decode($row['authors'], true);
             }
@@ -109,9 +215,9 @@ class GalaxyClusterTable extends AppTable
         // Update all relations IDs that are unknown but saved
         if (!$this->bulkEntry) {
             $cluster = $this->fetchAndSetUUID($entity);
-            $this->GalaxyClusterRelation->updateAll(
-                array('GalaxyClusterRelation.referenced_galaxy_cluster_id' => $cluster['id']),
-                array('GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $cluster['uuid'])
+            $this->GalaxyClusterRelations->updateAll(
+                array('GalaxyClusterRelations.referenced_galaxy_cluster_id' => $cluster['id']),
+                array('GalaxyClusterRelations.referenced_galaxy_cluster_uuid' => $cluster['uuid'])
             );
         }
     }
@@ -134,12 +240,12 @@ class GalaxyClusterTable extends AppTable
     {
         // Remove all relations IDs now that the cluster is unknown
         if (!empty($this->deletedClusterUUID)) {
-            $this->GalaxyClusterRelation->updateAll(
-                array('GalaxyClusterRelation.referenced_galaxy_cluster_id' => 0),
-                array('GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $this->deletedClusterUUID)
+            $this->GalaxyClusterRelations->updateAll(
+                array('GalaxyClusterRelations.referenced_galaxy_cluster_id' => 0),
+                array('GalaxyClusterRelations.referenced_galaxy_cluster_uuid' => $this->deletedClusterUUID)
             );
             $this->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $entity->id));
-            $this->GalaxyClusterRelation->deleteAll(array('GalaxyClusterRelation.galaxy_cluster_uuid' => $this->deletedClusterUUID));
+            $this->GalaxyClusterRelations->deleteAll(array('GalaxyClusterRelations.galaxy_cluster_uuid' => $this->deletedClusterUUID));
         }
     }
 
@@ -162,7 +268,7 @@ class GalaxyClusterTable extends AppTable
 
     public function generateMissingRelations()
     {
-        $missingRelations = $this->GalaxyClusterRelation->find('column', [
+        $missingRelations = $this->GalaxyClusterRelations->find('all', [
             'conditions' => ['referenced_galaxy_cluster_id' => 0],
             'fields' => ['referenced_galaxy_cluster_uuid'],
             'unique' => true,
@@ -175,7 +281,7 @@ class GalaxyClusterTable extends AppTable
             'fields' => ['uuid', 'id']
         ]);
         foreach ($ids as $uuid => $id) {
-            $this->GalaxyClusterRelation->updateAll(
+            $this->GalaxyClusterRelations->updateAll(
                 ['referenced_galaxy_cluster_id' => $id],
                 ['referenced_galaxy_cluster_uuid' => $uuid]
             );
@@ -310,7 +416,7 @@ class GalaxyClusterTable extends AppTable
                 $this->GalaxyElement->updateElements(-1, $savedCluster['GalaxyCluster']['id'], $elementsToSave);
             }
             if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
-                $this->GalaxyClusterRelation->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $captureTag = true);
+                $this->GalaxyClusterRelations->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $captureTag = true);
             }
         } else {
             foreach ($this->validationErrors as $validationError) {
@@ -386,7 +492,7 @@ class GalaxyClusterTable extends AppTable
                         $this->GalaxyElement->updateElements($cluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['id'], $elementsToSave, $delete = $deleteOldElements);
                     }
                     if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
-                        $this->GalaxyClusterRelation->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $captureTag = true, $force = true);
+                        $this->GalaxyClusterRelations->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $captureTag = true, $force = true);
                     }
                 } else {
                     foreach ($this->validationErrors as $validationError) {
@@ -555,18 +661,18 @@ class GalaxyClusterTable extends AppTable
         ]);
         $cluster_ids = Hash::extract($clusters, '{n}.GalaxyCluster.id');
         $cluster_uuids = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
-        $relation_ids = $this->GalaxyClusterRelation->find('list', [
+        $relation_ids = $this->GalaxyClusterRelations->find('list', [
             'conditions' => ['galaxy_cluster_id' => $cluster_ids],
             'fields' => ['id']
         ]);
         $this->deleteAll(['GalaxyCluster.default' => true], false, false);
         $this->GalaxyElement->deleteAll(['GalaxyElement.galaxy_cluster_id' => $cluster_ids], false, false);
-        $this->GalaxyClusterRelation->deleteAll(['GalaxyClusterRelation.galaxy_cluster_id' => $cluster_ids], false, false);
-        $this->GalaxyClusterRelation->updateAll(
-            ['GalaxyClusterRelation.referenced_galaxy_cluster_id' => 0],
-            ['GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $cluster_uuids] // For all default clusters being referenced
+        $this->GalaxyClusterRelations->deleteAll(['GalaxyClusterRelations.galaxy_cluster_id' => $cluster_ids], false, false);
+        $this->GalaxyClusterRelations->updateAll(
+            ['GalaxyClusterRelations.referenced_galaxy_cluster_id' => 0],
+            ['GalaxyClusterRelations.referenced_galaxy_cluster_uuid' => $cluster_uuids] // For all default clusters being referenced
         );
-        $this->GalaxyClusterRelation->GalaxyClusterRelationTag->deleteAll(['GalaxyClusterRelationTag.galaxy_cluster_relation_id' => $relation_ids], false, false);
+        $this->GalaxyClusterRelations->GalaxyClusterRelationTag->deleteAll(['GalaxyClusterRelationTag.galaxy_cluster_relation_id' => $relation_ids], false, false);
         $LogTable = $this->fetchTable('Logs');
         $LogTable->createLogEntry('SYSTEM', 'wipe_default', 'GalaxyCluster', 0, "Wiping default galaxy clusters");
     }
@@ -788,8 +894,8 @@ class GalaxyClusterTable extends AppTable
                 $this->GalaxyElement->captureElements($user, $cluster['GalaxyCluster']['GalaxyElement'], $savedCluster['GalaxyCluster']['id']);
             }
             if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
-                $this->GalaxyClusterRelation->deleteAll(array('GalaxyClusterRelation.galaxy_cluster_id' => $savedCluster['GalaxyCluster']['id']));
-                $saveResult = $this->GalaxyClusterRelation->captureRelations($user, $savedCluster, $cluster['GalaxyCluster']['GalaxyClusterRelation'], $fromPull = $fromPull);
+                $this->GalaxyClusterRelations->deleteAll(array('GalaxyClusterRelations.galaxy_cluster_id' => $savedCluster['GalaxyCluster']['id']));
+                $saveResult = $this->GalaxyClusterRelations->captureRelations($user, $savedCluster, $cluster['GalaxyCluster']['GalaxyClusterRelation'], $fromPull = $fromPull);
                 if ($saveResult['failed'] > 0) {
                     $results['errors'][] = __('Issues while capturing relations have been logged.');
                 }
@@ -868,8 +974,9 @@ class GalaxyClusterTable extends AppTable
     /* Return a list of all tags associated with the cluster specific cluster within the galaxy (or all clusters if $clusterValue is false)
      * The counts are restricted to the event IDs that the user is allowed to see.
     */
-    public function getTags($galaxyType, $clusterValue = false, $user)
+    public function getTags($galaxyType, $clusterValue, $user)
     {
+        $clusterValue = $clusterValue ? $clusterValue : false;
         $EventsTable = $this->fetchTable('Events');
         $event_ids = $EventsTable->fetchEventIds($user, [
             'list' => true
@@ -1000,7 +1107,7 @@ class GalaxyClusterTable extends AppTable
                 'Galaxy',
                 'GalaxyElement',
                 'GalaxyClusterRelation' => array(
-                    'conditions' => $this->GalaxyClusterRelation->buildConditions($user, false),
+                    'conditions' => $this->GalaxyClusterRelations->buildConditions($user, false),
                     'GalaxyClusterRelationTag',
                     'SharingGroup',
                 ),
@@ -1069,11 +1176,11 @@ class GalaxyClusterTable extends AppTable
                 )
             ));
 
-            $tagsToFetch = Hash::extract($clusters, "{n}.GalaxyClusterRelation.{n}.GalaxyClusterRelationTag.{n}.tag_id");
+            $tagsToFetch = Hash::extract($clusters, "{n}.GalaxyClusterRelations.{n}.GalaxyClusterRelationTag.{n}.tag_id");
             $tagsToFetch = array_merge($tagsToFetch, Hash::extract($targetingClusterRelations, "GalaxyClusterRelationTag.{n}.tag_id"));
 
             if (!empty($tagsToFetch)) {
-                $tags = $this->GalaxyClusterRelation->GalaxyClusterRelationTag->Tag->find('all', [
+                $tags = $this->GalaxyClusterRelations->GalaxyClusterRelationTag->Tag->find('all', [
                     'conditions' => ['id' => array_unique($tagsToFetch, SORT_REGULAR)],
                     'recursive' => -1,
                 ]);

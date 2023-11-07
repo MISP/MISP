@@ -24,6 +24,7 @@ use Cake\Core\Configure;
 use Cake\Event\EventInterface;
 use Cake\Http\Exception\HttpException;
 use Cake\Http\Exception\MethodNotAllowedException;
+use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\Utility\Text;
 use Exception;
 
@@ -37,6 +38,7 @@ use Exception;
  */
 class AppController extends Controller
 {
+    use LocatorAwareTrait;
 
     public $isRest = null;
     public $restResponsePayload = null;
@@ -122,6 +124,7 @@ class AppController extends Controller
         if ($this->ParamHandler->isRest()) {
             $this->authApiUser();
             $this->Security->setConfig('unlockedActions', [$this->request->getParam('action')]);
+            $this->response = $this->setResponseType();
         }
         $this->ACL->setPublicInterfaces();
         if (!empty($this->request->getAttribute('identity'))) {
@@ -203,12 +206,12 @@ class AppController extends Controller
     private function authApiUser(): void
     {
         if (!empty($_SERVER['HTTP_AUTHORIZATION']) && strlen($_SERVER['HTTP_AUTHORIZATION'])) {
-            $this->loadModel('AuthKeys');
+            $AuthKeysTable = $this->fetchTable('AuthKeys');
             $logModel = $this->Users->auditLogs();
-            $authKey = $this->AuthKeys->checkKey($_SERVER['HTTP_AUTHORIZATION']);
+            $authKey = $AuthKeysTable->checkKey($_SERVER['HTTP_AUTHORIZATION']);
             if (!empty($authKey)) {
-                $this->loadModel('Users');
-                $user = $this->Users->get($authKey['user_id']);
+                $UsersTable = $this->fetchTable('Users');
+                $user = $UsersTable->get($authKey['user_id']);
                 $logModel->insert(
                     [
                         'request_action' => 'login',
@@ -398,6 +401,15 @@ class AppController extends Controller
             return JsonTool::decode($dataToDecode);
         } catch (Exception $e) {
             throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
+        }
+    }
+
+    private function setResponseType()
+    {
+        foreach ($this->request->getHeader('Accept') as $accept) {
+            if (strpos($accept, 'application/json') !== false) {
+                return $this->response->withType('json');
+            }
         }
     }
 }

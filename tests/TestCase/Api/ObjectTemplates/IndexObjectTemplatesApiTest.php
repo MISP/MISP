@@ -2,36 +2,34 @@
 
 declare(strict_types=1);
 
-namespace App\Test\TestCase\Api\ObjectTemplates;
+namespace App\Test\TestCase\Api\Noticelists;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Fixture\ObjectTemplatesFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
-class IndexObjectTemplatesApiTest extends TestCase
+class UpdateNoticelistsApiTest extends TestCase
 {
     use ApiTestTrait;
 
-    protected const ENDPOINT = '/object-templates/index';
+    protected const ENDPOINT = '/noticelists/update';
 
     protected $fixtures = [
         'app.Organisations',
         'app.Users',
         'app.AuthKeys',
-        'app.ObjectTemplates',
-        'app.ObjectTemplateElements',
+        'app.Galaxies'
     ];
 
-    public function testIndexObjectTemplates(): void
+    public function testUpdateNoticelists(): void
     {
         $this->skipOpenApiValidations();
 
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
 
-        $this->get(self::ENDPOINT);
+        $this->post(self::ENDPOINT);
 
         $this->assertResponseOk();
-        $this->assertResponseContains(sprintf('"name": "%s"', ObjectTemplatesFixture::OBJECT_TEMPLATE_1_NAME));
+        $this->assertDbRecordExists('Noticelists', ['name' => 'gdpr']);
     }
 }

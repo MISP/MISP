@@ -75,7 +75,7 @@ init_user() {
 	ADMIN_USER_ID=$(echo "SELECT id FROM users WHERE EMAIL='${ADMIN_EMAIL}';" | ${MYSQLCMD} | tr -d '\n')
 
 	# Insert Admin user API key
-	if [ -z "$ADMIN_API_KEY" ]; then
+	if [ ! -z "$ADMIN_API_KEY" ]; then
 		echo >&2 "Creating admin user API key..."
 		ADMIN_API_KEY_START=$(echo ${ADMIN_API_KEY} | head -c 4)
 		ADMIN_API_KEY_END=$(echo ${ADMIN_API_KEY} | tail -c 5)
@@ -143,9 +143,7 @@ php-fpm -t
 # Finished bootstrapping, create ready flag file
 touch "${MISP_READY_STATUS_FLAG}"
 
-if [ -z "$DISABLE_BACKGROUND_WORKERS" ]; then
-	DISABLE_BACKGROUND_WORKERS=0
-fi
+[ -z "$DISABLE_BACKGROUND_WORKERS" ] && DISABLE_BACKGROUND_WORKERS=0
 
 if [ "$DISABLE_BACKGROUND_WORKERS" -eq 1 ]; then
 	echo >&2 "Background workers disabled, skipping..."

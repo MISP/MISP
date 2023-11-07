@@ -19,6 +19,7 @@ class NamedParamsParserMiddleware implements MiddlewareInterface
 
     public const NAMED_PARAMS = [
         'events.index' => ['limit', 'order', 'page', 'sort', 'direction', 'fields', 'search'],
+        'galaxies.index' => ['limit', 'order', 'page', 'sort', 'direction', 'value'],
     ];
 
     public function process(
@@ -28,7 +29,7 @@ class NamedParamsParserMiddleware implements MiddlewareInterface
 
         $namedConfig = array_merge(Configure::read('NamedParams', []), self::NAMED_PARAMS);
 
-        $action = $request->getParam('controller') . '.' . $request->getParam('action');
+        $action = strtolower($request->getParam('controller') . '.' . $request->getParam('action'));
 
         if (!array_key_exists($action, $namedConfig)) {
             return $handler->handle($request);

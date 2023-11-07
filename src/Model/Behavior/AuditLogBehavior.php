@@ -1,18 +1,13 @@
 <?php
+
 namespace App\Model\Behavior;
 
+use App\Model\Entity\AppModel;
 use ArrayObject;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Cake\ORM\Behavior;
-use Cake\ORM\Entity;
-use Cake\ORM\Query;
-use Cake\Utility\Text;
-use Cake\Utility\Security;
-use \Cake\Http\Session;
-use Cake\Core\Configure;
 use Cake\ORM\TableRegistry;
-use App\Model\Table\AuditLogTable;
 
 class AuditLogBehavior extends Behavior
 {
@@ -48,9 +43,13 @@ class AuditLogBehavior extends Behavior
     {
         $fields = $entity->extract($entity->getVisible(), true);
         $skipFields = $this->skipFields;
-        $fieldsToFetch = array_filter($fields, function($key) use ($skipFields) {
+        $fieldsToFetch = array_filter(
+            $fields,
+            function ($key) use ($skipFields) {
             return strpos($key, '_') !== 0 && !isset($skipFields[$key]);
-        }, ARRAY_FILTER_USE_KEY);
+            },
+            ARRAY_FILTER_USE_KEY
+        );
         // Do not fetch old version when just few fields will be fetched
         $fieldToFetch = [];
         if (!empty($options['fieldList'])) {
@@ -59,7 +58,7 @@ class AuditLogBehavior extends Behavior
                     $fieldToFetch[] = $field;
                 }
             }
-            if (empty($fieldToFetch))  {
+            if (empty($fieldToFetch)) {
                 $this->old = null;
                 return true;
             }
@@ -81,14 +80,14 @@ class AuditLogBehavior extends Behavior
         }
 
         if ($entity->isNew()) {
-            $action = $entity->getConstant('ACTION_ADD');
+            $action = AppModel::ACTION_ADD;
         } else {
-            $action = $entity->getConstant('ACTION_EDIT');
+            $action = AppModel::ACTION_EDIT;
             if (isset($entity['deleted'])) {
                 if ($entity['deleted']) {
-                    $action = $entity->getConstant('ACTION_SOFT_DELETE');
+                    $action = AppModel::ACTION_SOFT_DELETE;
                 } else if (!$entity['deleted'] && $this->old['deleted']) {
-                    $action = $entity->getConstant('ACTION_UNDELETE');
+                    $action = AppModel::ACTION_UNDELETE;
                 }
             }
         }
@@ -105,13 +104,15 @@ class AuditLogBehavior extends Behavior
         } else if ($this->old[$modelTitleField]) {
             $modelTitle = $this->old[$modelTitleField];
         }
-        $this->auditLogs()->insert([
-            'request_action' => $action,
-            'model' => $entity->getSource(),
-            'model_id' => $id,
-            'model_title' => $modelTitle,
-            'changed' => $changedFields
-        ]);
+        $this->auditLogs()->insert(
+            [
+                'request_action' => $action,
+                'model' => $entity->getSource(),
+                'model_id' => $id,
+                'model_title' => $modelTitle,
+                'changed' => $changedFields
+            ]
+        );
     }
 
     public function beforeDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
@@ -129,13 +130,15 @@ class AuditLogBehavior extends Behavior
             $modelTitle = $entity[$modelTitleField];
         }
 
-        $this->auditLogs()->insert([
-            'request_action' => $entity->getConstant('ACTION_DELETE'),
-            'model' => $entity->getSource(),
-            'model_id' => $this->old->id,
-            'model_title' => $modelTitle,
-            'changed' => $this->changedFields($entity)
-        ]);
+        $this->auditLogs()->insert(
+            [
+                'request_action' => AppModel::ACTION_DELETE,
+                'model' => $entity->getSource(),
+                'model_id' => $this->old->id,
+                'model_title' => $modelTitle,
+                'changed' => $this->changedFields($entity)
+            ]
+        );
     }
 
     /**
@@ -208,6 +211,5 @@ class AuditLogBehavior extends Behavior
 
     public function log()
     {
-
     }
 }

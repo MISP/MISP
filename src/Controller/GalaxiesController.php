@@ -4,41 +4,39 @@ namespace App\Controller;
 
 use App\Controller\AppController;
 use App\Lib\Tools\ClusterRelationsGraphTool;
+use App\Lib\Tools\FileAccessTool;
+use App\Lib\Tools\JsonTool;
 use Cake\Core\Configure;
-use Cake\Http\Exception\MethodNotAllowedException;
-use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Exception\BadRequestException;
 use Cake\Http\Exception\ForbiddenException;
+use Cake\Http\Exception\MethodNotAllowedException;
+use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Response;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\Validation\Validation;
-use App\Lib\Tools\FileAccessTool;
-use App\Lib\Tools\JsonTool;
 use Exception;
 
-class JobsController extends AppController
+class GalaxiesController extends AppController
 {
     use LocatorAwareTrait;
-
 
     public $paginate = [
         'limit' => 60,
         'recursive' => 0,
         'order' => [
-            'Galaxy.id' => 'DESC'
+            'Galaxies.id' => 'DESC'
         ]
     ];
 
     public function index()
     {
-        $aclConditions = array();
-        $filterData = array(
+        $filterData = [
             'request' => $this->request,
-            'named_params' => $this->params['named'],
+            'named_params' => $this->request->getParam('named'),
             'paramArray' => ['value', 'enabled'],
             'ordered_url_params' => [],
             'additional_delimiters' => PHP_EOL
-        );
+        ];
         $exception = false;
         $filters = $this->harvestParameters($filterData, $exception);
         $searchConditions = [];
@@ -46,33 +44,32 @@ class JobsController extends AppController
             $filters['value'] = '';
         } else {
             $searchall = '%' . strtolower($filters['value']) . '%';
-            $searchConditions = array(
-                'OR' => array(
-                    'LOWER(Galaxy.name) LIKE' => $searchall,
-                    'LOWER(Galaxy.namespace) LIKE' => $searchall,
-                    'LOWER(Galaxy.description) LIKE' => $searchall,
-                    'LOWER(Galaxy.kill_chain_order) LIKE' => $searchall,
-                    'Galaxy.uuid LIKE' => $searchall
-                )
-            );
+            $searchConditions = [
+                'OR' => [
+                    'LOWER(Galaxies.name) LIKE' => $searchall,
+                    'LOWER(Galaxies.namespace) LIKE' => $searchall,
+                    'LOWER(Galaxies.description) LIKE' => $searchall,
+                    'LOWER(Galaxies.kill_chain_order) LIKE' => $searchall,
+                    'Galaxies.uuid LIKE' => $searchall
+                ]
+            ];
         }
         if (isset($filters['enabled'])) {
             $searchConditions[]['enabled'] = $filters['enabled'] ? 1 : 0;
         }
         if ($this->ParamHandler->isRest()) {
-            $galaxies = $this->Galaxy->find(
+            $galaxies = $this->Galaxies->find(
                 'all',
-                array(
+                [
                     'recursive' => -1,
-                    'conditions' => array(
-                        'AND' => array($searchConditions, $aclConditions)
-                    )
-                )
-            );
+                    'conditions' => [
+                        'AND' => $searchConditions
+                    ]
+                ]
+            )->disableHydration()->toArray();
             return $this->RestResponse->viewData($galaxies, $this->response->getType());
         } else {
             $this->paginate['conditions']['AND'][] = $searchConditions;
-            $this->paginate['conditions']['AND'][] = $aclConditions;
             $galaxies = $this->paginate();
             $this->set('galaxyList', $galaxies);
             $this->set('passedArgsArray', $this->passedArgs);
@@ -85,18 +82,18 @@ class JobsController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This action is only accessible via POST requests.');
         }
-        if (!empty($this->params['named']['force'])) {
+        if (!empty($this->request->getParam('named')['force'])) {
             $force = 1;
         } else {
             $force = 0;
         }
-        $result = $this->Galaxy->update($force);
+        $result = $this->Galaxies->update($force);
         $message = __('Galaxies updated.');
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->saveSuccessResponse('Galaxy', 'update', false, $this->response->getType(), $message);
         } else {
             $this->Flash->success($message);
-            $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+            $this->redirect(['controller' => 'galaxies', 'action' => 'index']);
         }
     }
 
@@ -111,35 +108,41 @@ class JobsController extends AppController
             return $this->RestResponse->saveSuccessResponse('Galaxy', 'wipe_default', false, $this->response->getType(), $message);
         } else {
             $this->Flash->success($message);
-            $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+            $this->redirect(['controller' => 'galaxies', 'action' => 'index']);
         }
     }
 
     public function view($id)
     {
         $id = $this->Toolbox->findIdByUuid($this->Galaxy, $id);
-        $passedArgsArray = array(
+        $passedArgsArray = [
             'context' => isset($this->params['named']['context']) ? $this->params['named']['context'] : 'all'
-        );
+        ];
         if (isset($this->params['named']['searchall']) && strlen($this->params['named']['searchall']) > 0) {
             $passedArgsArray['searchall'] = $this->params['named']['searchall'];
         }
         $this->set('passedArgsArray', $passedArgsArray);
         if ($this->ParamHandler->isRest()) {
-            $galaxy = $this->Galaxy->find('first', array(
-                'contain' => array('GalaxyCluster' => array('GalaxyElement'/*, 'GalaxyReference'*/)),
-                'recursive' => -1,
-                'conditions' => array('Galaxy.id' => $id)
-            ));
+            $galaxy = $this->Galaxy->find(
+                'first',
+                [
+                    'contain' => ['GalaxyCluster' => ['GalaxyElement'/*, 'GalaxyReference'*/]],
+                    'recursive' => -1,
+                    'conditions' => ['Galaxy.id' => $id]
+                ]
+            );
             if (empty($galaxy)) {
                 throw new NotFoundException('Galaxy not found.');
             }
             return $this->RestResponse->viewData($galaxy, $this->response->getType());
         } else {
-            $galaxy = $this->Galaxy->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Galaxy.id' => $id)
-            ));
+            $galaxy = $this->Galaxy->find(
+                'first',
+                [
+                    'recursive' => -1,
+                    'conditions' => ['Galaxy.id' => $id]
+                ]
+            );
             if (empty($galaxy)) {
                 throw new NotFoundException('Galaxy not found.');
             }
@@ -155,10 +158,13 @@ class JobsController extends AppController
             throw new NotFoundException('Invalid galaxy.');
         }
 
-        $galaxy = $this->Galaxy->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.id' => $id)
-        ));
+        $galaxy = $this->Galaxy->find(
+            'first',
+            [
+                'recursive' => -1,
+                'conditions' => ['Galaxy.id' => $id]
+            ]
+        );
         if (empty($galaxy)) {
             throw new NotFoundException('Invalid galaxy.');
         }
@@ -169,7 +175,7 @@ class JobsController extends AppController
                 return $this->RestResponse->saveSuccessResponse('Galaxy', 'delete', false, $this->response->getType(), $message);
             } else {
                 $this->Flash->success($message);
-                $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+                $this->redirect(['controller' => 'galaxies', 'action' => 'index']);
             }
         } else {
             $message = __('Could not delete Galaxy.');
@@ -200,10 +206,13 @@ class JobsController extends AppController
             throw new NotFoundException('Invalid galaxy.');
         }
 
-        $galaxy = $this->Galaxy->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.id' => $id)
-        ));
+        $galaxy = $this->Galaxy->find(
+            'first',
+            [
+                'recursive' => -1,
+                'conditions' => ['Galaxy.id' => $id]
+            ]
+        );
         if (empty($galaxy)) {
             throw new NotFoundException('Invalid galaxy.');
         }
@@ -219,7 +228,7 @@ class JobsController extends AppController
                 return $this->RestResponse->saveSuccessResponse('Galaxy', 'toggle', false, $this->response->getType(), $message);
             } else {
                 $this->Flash->success($message);
-                $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+                $this->redirect(['controller' => 'galaxies', 'action' => 'index']);
             }
         } else {
             $message = __('Could not enable Galaxy.');
@@ -253,7 +262,7 @@ class JobsController extends AppController
                     return $this->RestResponse->saveSuccessResponse('Galaxy', 'import', false, $this->response->getType(), $message);
                 } else {
                     $this->Flash->success($message);
-                    $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+                    $this->redirect(['controller' => 'galaxies', 'action' => 'index']);
                 }
             } else {
                 $message = __('Could not import galaxy clusters. %s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
@@ -292,29 +301,32 @@ class JobsController extends AppController
 
     public function export($galaxyId)
     {
-        $galaxy = $this->Galaxy->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.id' => $galaxyId)
-        ));
+        $galaxy = $this->Galaxy->find(
+            'first',
+            [
+                'recursive' => -1,
+                'conditions' => ['Galaxy.id' => $galaxyId]
+            ]
+        );
         if (empty($galaxy) && $galaxyId !== null) {
             throw new NotFoundException('Galaxy not found.');
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $requestData = $this->request->getData()['Galaxy'] ? $this->request->getData()['Galaxy'] : $this->request->getData();
-            $clusterType = array();
+            $clusterType = [];
             if ($requestData['default']) {
                 $clusterType[] = true;
             }
             if ($requestData['custom']) {
                 $clusterType[] = false;
             }
-            $options = array(
-                'conditions' => array(
+            $options = [
+                'conditions' => [
                     'GalaxyCluster.galaxy_id' => $galaxyId,
                     'GalaxyCluster.distribution' => $requestData['distribution'],
                     'GalaxyCluster.default' => $clusterType
-                )
-            );
+                ]
+            ];
             $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $options, $full = true);
             $clusters = $this->Galaxy->GalaxyCluster->unsetFieldsForExport($clusters);
             if ($requestData['format'] == 'misp-galaxy') {
@@ -352,32 +364,35 @@ class JobsController extends AppController
         if (!$local) {
             $conditions['local_only'] = false;
         }
-        $galaxies = $this->Galaxy->find('all', array(
-            'recursive' => -1,
-            'fields' => array('MAX(Galaxy.version) as latest_version', 'id', 'kill_chain_order', 'name', 'icon', 'description'),
-            'conditions' => $conditions,
-            'group' => array('name', 'id', 'kill_chain_order', 'icon', 'description'),
-            'order' => array('name asc')
-        ));
-        $items = array(
-            array(
-                'name' => __('All clusters'),
-                'value' => $this->baseurl . "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0' . '/local:' . h($local) . '/eventid:' . h($eventid)
-            )
+        $galaxies = $this->Galaxy->find(
+            'all',
+            [
+                'recursive' => -1,
+                'fields' => ['MAX(Galaxy.version) as latest_version', 'id', 'kill_chain_order', 'name', 'icon', 'description'],
+                'conditions' => $conditions,
+                'group' => ['name', 'id', 'kill_chain_order', 'icon', 'description'],
+                'order' => ['name asc']
+            ]
         );
+        $items = [
+            [
+                'name' => __('All clusters'),
+                'value' => $this->baseurl . "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0/local:' . h($local) . '/eventid:' . h($eventid)
+            ]
+        ];
         foreach ($galaxies as $galaxy) {
             if (!isset($galaxy['Galaxy']['kill_chain_order']) || $noGalaxyMatrix) {
-                $items[] = array(
+                $items[] = [
                     'name' => h($galaxy['Galaxy']['name']),
                     'value' => $this->baseurl . "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/' . $galaxy['Galaxy']['id'] . '/local:' . h($local) . '/eventid:' . h($eventid),
-                    'template' => array(
+                    'template' => [
                         'preIcon' => 'fa-' . $galaxy['Galaxy']['icon'],
                         'name' => $galaxy['Galaxy']['name'],
                         'infoExtra' => $galaxy['Galaxy']['description'],
-                    )
-                );
+                    ]
+                ];
             } else { // should use matrix instead
-                $param = array(
+                $param = [
                     'name' => $galaxy['Galaxy']['name'],
                     'value' => $this->baseurl . "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/' . $galaxy['Galaxy']['id'] . '/local:' . h($local) . '/eventid:' . h($eventid),
                     'functionName' => sprintf(
@@ -390,7 +405,7 @@ class JobsController extends AppController
                     ),
                     'isPill' => true,
                     'isMatrix' => true
-                );
+                ];
                 if ($galaxy['Galaxy']['id'] == $mitreAttackGalaxyId) {
                     $param['img'] = $this->baseurl . "/img/mitre-attack-icon.ico";
                 }
@@ -405,67 +420,83 @@ class JobsController extends AppController
     public function selectGalaxyNamespace($target_id, $target_type = 'event', $noGalaxyMatrix = false)
     {
         $this->closeSession();
-        $namespaces = $this->Galaxy->find('column', array(
-            'recursive' => -1,
-            'fields' => array('namespace'),
-            'conditions' => array('enabled' => 1),
-            'unique' => true,
-            'order' => array('namespace asc')
-        ));
+        $namespaces = $this->Galaxy->find(
+            'column',
+            [
+                'recursive' => -1,
+                'fields' => ['namespace'],
+                'conditions' => ['enabled' => 1],
+                'unique' => true,
+                'order' => ['namespace asc']
+            ]
+        );
         $local = !empty($this->params['named']['local']) ? '1' : '0';
         $eventid = !empty($this->params['named']['eventid']) ? $this->params['named']['eventid'] : '0';
         $noGalaxyMatrix = $noGalaxyMatrix ? '1' : '0';
         $items = [[
             'name' => __('All namespaces'),
-            'value' => $this->baseurl . "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/0' . '/' . h($noGalaxyMatrix) . '/local:' . h($local) . '/eventid:' . h($eventid)
-        ]];
+            'value' => $this->baseurl . "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/0/' . h($noGalaxyMatrix) . '/local:' . h($local) . '/eventid:' . h($eventid)
+        ]
+        ];
         foreach ($namespaces as $namespace) {
-            $items[] = array(
+            $items[] = [
                 'name' => $namespace,
                 'value' => $this->baseurl . "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/' . h($namespace) . '/' . h($noGalaxyMatrix) . '/local:' . h($local) . '/eventid:' . h($eventid)
-            );
+            ];
         }
 
         $this->set('items', $items);
-        $this->set('options', array( // set chosen (select picker) options
-            'multiple' => 0,
-        ));
+        $this->set(
+            'options',
+            [ // set chosen (select picker) options
+                'multiple' => 0,
+            ]
+        );
         $this->render('/Elements/generic_picker');
     }
 
     public function selectCluster($target_id, $target_type = 'event', $selectGalaxy = false)
     {
         $user = $this->closeSession();
-        $conditions = array(
-            'OR' => array(
+        $conditions = [
+            'OR' => [
                 'GalaxyCluster.published' => true,
                 'GalaxyCluster.default' => true,
-            ),
-            'AND' => array(
+            ],
+            'AND' => [
                 'GalaxyCluster.deleted' => false,
-            )
-        );
+            ]
+        ];
         if ($target_type == 'galaxyClusterRelation') {
             $conditions['OR']['GalaxyCluster.published'] = [true, false];
         }
         if ($selectGalaxy) {
             $conditions['GalaxyCluster.galaxy_id'] = $selectGalaxy;
         }
-        $data = array_column($this->Galaxy->GalaxyCluster->fetchGalaxyClusters($user, array(
-            'conditions' => $conditions,
-            'fields' => array('value', 'description', 'source', 'type', 'id', 'uuid'),
-            'order' => array('value asc'),
-        )), 'GalaxyCluster');
-        $synonyms = $this->Galaxy->GalaxyCluster->GalaxyElement->find('all', array(
-            'conditions' => array(
-                'GalaxyElement.key' => 'synonyms',
-                $conditions
+        $data = array_column(
+            $this->Galaxy->GalaxyCluster->fetchGalaxyClusters(
+                $user,
+                [
+                    'conditions' => $conditions,
+                    'fields' => ['value', 'description', 'source', 'type', 'id', 'uuid'],
+                    'order' => ['value asc'],
+                ]
             ),
-            'fields' => ['GalaxyElement.galaxy_cluster_id', 'GalaxyElement.value'],
-            'contain' => 'GalaxyCluster',
-            'recursive' => -1
-        ));
-        $sortedSynonyms = array();
+            'GalaxyCluster'
+        );
+        $synonyms = $this->Galaxy->GalaxyCluster->GalaxyElement->find(
+            'all',
+            [
+                'conditions' => [
+                    'GalaxyElement.key' => 'synonyms',
+                    $conditions
+                ],
+                'fields' => ['GalaxyElement.galaxy_cluster_id', 'GalaxyElement.value'],
+                'contain' => 'GalaxyCluster',
+                'recursive' => -1
+            ]
+        );
+        $sortedSynonyms = [];
         foreach ($synonyms as $synonym) {
             $sortedSynonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym['GalaxyElement']['value'];
         }
@@ -478,24 +509,24 @@ class JobsController extends AppController
         }
         ksort($clusters);
 
-        $items = array();
+        $items = [];
         foreach ($clusters as $cluster_data) {
             foreach ($cluster_data as $cluster) {
                 $optionName = $cluster['value'];
                 if (isset($cluster['synonyms_string'])) {
                     $optionName .= ' (' . $cluster['synonyms_string'] . ')';
                 }
-                $itemParam = array(
+                $itemParam = [
                     'name' => $optionName,
                     'value' => $cluster['id'],
-                    'template' => array(
+                    'template' => [
                         'name' => $cluster['value'],
                         'infoExtra' => $cluster['description'],
-                    ),
-                    'additionalData' => array(
+                    ],
+                    'additionalData' => [
                         'uuid' => $cluster['uuid']
-                    )
-                );
+                    ]
+                ];
                 if (isset($cluster['synonyms_string'])) {
                     $itemParam['template']['infoContextual'] =  __('Synonyms: ') . $cluster['synonyms_string'];
                 }
@@ -512,17 +543,20 @@ class JobsController extends AppController
         $this->set('mirrorOnEvent', $mirrorOnEvent);
         $this->set('items', $items);
         $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
-        $this->set('options', array( // set chosen (select picker) options
-            'functionName' => 'quickSubmitGalaxyForm',
-            'multiple' => $target_type == 'galaxyClusterRelation' ? 0 : '-1',
-            'select_options' => array(
-                'additionalData' => array(
-                    'target_id' => $target_id,
-                    'target_type' => $target_type,
-                    'local' => $local
-                )
-            ),
-        ));
+        $this->set(
+            'options',
+            [ // set chosen (select picker) options
+                'functionName' => 'quickSubmitGalaxyForm',
+                'multiple' => $target_type == 'galaxyClusterRelation' ? 0 : '-1',
+                'select_options' => [
+                    'additionalData' => [
+                        'target_id' => $target_id,
+                        'target_type' => $target_type,
+                        'local' => $local
+                    ]
+                ],
+            ]
+        );
         $this->render('ajax/cluster_choice');
     }
 
@@ -547,7 +581,7 @@ class JobsController extends AppController
         }
 
         $result = $this->Galaxy->attachCluster($user, $target_type, $target, $cluster_id, $local);
-        return new Response(array('body' => json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status' => 200, 'type' => 'json'));
+        return new Response(['body' => json_encode(['saved' => true, 'success' => $result, 'check_publish' => true]), 'status' => 200, 'type' => 'json']);
     }
 
     public function attachMultipleClusters($target_id, $target_type = 'event')
@@ -561,32 +595,32 @@ class JobsController extends AppController
             if ($target_id === 'selected') {
                 $target_id_list = $this->_jsonDecode($this->request->getData()['Galaxy']['attribute_ids']);
             } else {
-                $target_id_list = array($target_id);
+                $target_id_list = [$target_id];
             }
             $cluster_ids = $this->request->getData()['Galaxy']['target_ids'];
             $mirrorOnEventRequested = $mirrorOnEvent && !empty($this->request->getData()['Galaxy']['mirror_on_event']);
             if (strlen($cluster_ids) > 0) {
                 $cluster_ids = $this->_jsonDecode($cluster_ids);
                 if (empty($cluster_ids)) {
-                    return new Response(array('body' => json_encode(array('saved' => false, 'errors' => __('No clusters picked.'))), 'status' => 200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => false, 'errors' => __('No clusters picked.')]), 'status' => 200, 'type' => 'json']);
                 }
             } else {
-                return new Response(array('body' => json_encode(array('saved' => false, 'errors' => __('Failed to parse request.'))), 'status' => 200, 'type' => 'json'));
+                return new Response(['body' => json_encode(['saved' => false, 'errors' => __('Failed to parse request.')]), 'status' => 200, 'type' => 'json']);
             }
             if ($mirrorOnEventRequested && !empty($target_id_list)) {
                 $first_attribute_id = $target_id_list[0]; // We consider that all attributes to be tagged are contained in the same event.
 
                 $AttributeTable = $this->fetchTable('Attributes');
-                $attribute = $AttributeTable->fetchAttributeSimple($user, array('conditions' => array('Attribute.id' => $first_attribute_id)));
+                $attribute = $AttributeTable->fetchAttributeSimple($user, ['conditions' => ['Attribute.id' => $first_attribute_id]]);
                 if (!empty($attribute['Attribute']['event_id'])) {
                     $event_id = $attribute['Attribute']['event_id'];
                 } else {
-                    return new Response(array('body' => json_encode(array('saved' => false, 'errors' => __('Failed to parse request. Could not fetch attribute'))), 'status' => 200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => false, 'errors' => __('Failed to parse request. Could not fetch attribute')]), 'status' => 200, 'type' => 'json']);
                 }
             }
             $result = "";
             if (!is_array($cluster_ids)) { // in case we only want to attach 1
-                $cluster_ids = array($cluster_ids);
+                $cluster_ids = [$cluster_ids];
             }
             foreach ($cluster_ids as $cluster_id) {
                 foreach ($target_id_list as $target_id) {
@@ -610,7 +644,7 @@ class JobsController extends AppController
                 }
             }
             if ($this->request->is('ajax')) {
-                return new Response(array('body' => json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status' => 200, 'type' => 'json'));
+                return new Response(['body' => json_encode(['saved' => true, 'success' => $result, 'check_publish' => true]), 'status' => 200, 'type' => 'json']);
             }
 
             $this->Flash->info($result);
@@ -628,11 +662,14 @@ class JobsController extends AppController
 
     public function viewGraph($id)
     {
-        $cluster = $this->Galaxy->GalaxyCluster->find('first', array(
-            'conditions' => array('GalaxyCluster.id' => $id),
-            'contain' => array('Galaxy'),
-            'recursive' => -1
-        ));
+        $cluster = $this->Galaxy->GalaxyCluster->find(
+            'first',
+            [
+                'conditions' => ['GalaxyCluster.id' => $id],
+                'contain' => ['Galaxy'],
+                'recursive' => -1
+            ]
+        );
         if (empty($cluster)) {
             throw new MethodNotAllowedException('Invalid Galaxy.');
         }
@@ -648,31 +685,34 @@ class JobsController extends AppController
     {
         if ($scope === 'event') {
             $EventsTable = $this->fetchTable('Events');
-            $object = $EventsTable->fetchEvent($this->Auth->user(), array('eventid' => $id, 'metadata' => 1));
+            $object = $EventsTable->fetchEvent($this->Auth->user(), ['eventid' => $id, 'metadata' => 1]);
             if (empty($object)) {
                 throw new NotFoundException('Invalid event.');
             }
             $object = $object[0];
         } elseif ($scope === 'attribute') {
             $AttributesTable = $this->fetchTable('Attributes');
-            $object = $AttributesTable->fetchAttributeSimple($this->Auth->user(), [
-                'conditions' => ['Attribute.id' => $id],
-                'contain' => [
-                    'Event',
-                    'Object',
-                    'AttributeTag' => [
-                        'fields' => ['AttributeTag.id', 'AttributeTag.tag_id', 'AttributeTag.relationship_type', 'AttributeTag.local'],
-                        'Tag' => ['fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable']],
+            $object = $AttributesTable->fetchAttributeSimple(
+                $this->Auth->user(),
+                [
+                    'conditions' => ['Attribute.id' => $id],
+                    'contain' => [
+                        'Event',
+                        'Object',
+                        'AttributeTag' => [
+                            'fields' => ['AttributeTag.id', 'AttributeTag.tag_id', 'AttributeTag.relationship_type', 'AttributeTag.local'],
+                            'Tag' => ['fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable']],
+                        ],
                     ],
-                ],
-            ]);
+                ]
+            );
             if (empty($object)) {
                 throw new NotFoundException('Invalid attribute.');
             }
             $object = $AttributesTable->Event->massageTags($this->Auth->user(), $object, 'Attribute');
         } elseif ($scope === 'tag_collection') {
             $TagsCollectionTable = $this->fetchTable('TagCollections');
-            $object = $TagsCollectionTable->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $id)));
+            $object = $TagsCollectionTable->fetchTagCollection($this->Auth->user(), ['conditions' => ['TagCollection.id' => $id]]);
             if (empty($object)) {
                 throw new NotFoundException('Invalid Tag Collection.');
             }
@@ -689,7 +729,7 @@ class JobsController extends AppController
 
     public function forkTree($galaxyId, $pruneRootLeaves = true)
     {
-        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full = true);
+        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), ['conditions' => ['GalaxyCluster.galaxy_id' => $galaxyId]], $full = true);
         if (empty($clusters)) {
             throw new MethodNotAllowedException('Invalid Galaxy.');
         }
@@ -697,10 +737,13 @@ class JobsController extends AppController
         foreach ($clusters as $k => $cluster) {
             $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
         }
-        $galaxy = $this->Galaxy->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.id' => $galaxyId)
-        ));
+        $galaxy = $this->Galaxy->find(
+            'first',
+            [
+                'recursive' => -1,
+                'conditions' => ['Galaxy.id' => $galaxyId]
+            ]
+        );
         $tree = $this->Galaxy->generateForkTree($clusters, $galaxy, $pruneRootLeaves = $pruneRootLeaves);
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($tree, $this->response->getType());
@@ -712,14 +755,17 @@ class JobsController extends AppController
 
     public function relationsGraph($galaxyId, $includeInbound = 0)
     {
-        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full = true);
+        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), ['conditions' => ['GalaxyCluster.galaxy_id' => $galaxyId]], $full = true);
         if (empty($clusters)) {
             throw new MethodNotAllowedException('Invalid Galaxy.');
         }
-        $galaxy = $this->Galaxy->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.id' => $galaxyId)
-        ));
+        $galaxy = $this->Galaxy->find(
+            'first',
+            [
+                'recursive' => -1,
+                'conditions' => ['Galaxy.id' => $galaxyId]
+            ]
+        );
         $grapher = new ClusterRelationsGraphTool($this->Auth->user(), $this->Galaxy->GalaxyCluster);
         $relations = $grapher->getNetwork($clusters, $includeInbound, $includeInbound);
         if ($this->ParamHandler->isRest()) {

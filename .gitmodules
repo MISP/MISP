@@ -4,3 +4,6 @@
 [submodule "libraries/misp-objects"]
 	path = libraries/misp-objects
 	url = https://github.com/MISP/misp-objects.git
+[submodule "libraries/misp-galaxy"]
+	path = libraries/misp-galaxy
+	url = https://github.com/MISP/misp-galaxy

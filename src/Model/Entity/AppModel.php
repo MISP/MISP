@@ -9,7 +9,7 @@ class AppModel extends Entity
     const BROTLI_HEADER = "\xce\xb2\xcf\x81";
     const BROTLI_MIN_LENGTH = 200;
 
-    const ACTION_ADD = 'add',
+    public const ACTION_ADD = 'add',
         ACTION_EDIT = 'edit',
         ACTION_SOFT_DELETE = 'soft_delete',
         ACTION_DELETE = 'delete',
