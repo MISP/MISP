@@ -25,7 +25,7 @@ class UserNameHelper extends AppHelper
             (strpos($lower_email, 'saad') !== false && strpos($lower_email, 'thehive-project')) ||
             strpos($lower_email, 'saad.kadhi') !== false
         ) {
-            return '<i class="fas fa-frown white"></i>&nbsp;';
+            return '<i class="fas fa-smile white"></i>&nbsp;';
         } else if (strpos($lower_email, 'enrico.lovat') !== false) {
             return '<i class="fas fa-horse-head white"></i>&nbsp;';
         } else if (strpos($lower_email, 'christophe.vandeplas') !== false) {

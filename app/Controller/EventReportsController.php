@@ -305,13 +305,23 @@ class EventReportsController extends AppController
                 throw new MethodNotAllowedException(__('An URL must be provided'));
             }
             $url = $this->data['EventReport']['url'];
-            $markdown = $this->EventReport->downloadMarkdownFromURL($event_id, $url);
+            $format = 'html';
+            
+            $parsed_formats = ['pdf', 'xlsx', 'pptx', 'ods', 'odt', 'docx'];
+            foreach ($parsed_formats as $parsed_format) {
+                if (substr($url, -(1 + strlen($parsed_format))) === '.' . $parsed_format) {
+                    $format = $parsed_format;
+                }
+            }
+            
+            $content = $this->EventReport->downloadMarkdownFromURL($event_id, $url, $format);
+
             $errors = [];
-            if (!empty($markdown)) {
+            if (!empty($content)) {
                 $report = [
                     'name' => __('Report from - %s (%s)', $url, time()),
                     'distribution' => 5,
-                    'content' => $markdown
+                    'content' => $content
                 ];
                 $errors = $this->EventReport->addReport($this->Auth->user(), $report, $event_id);
             } else {
@@ -550,12 +560,5 @@ class EventReportsController extends AppController
             }
         }
         return $savedReport;
-    }
-
-    public function test()
-    {
-        $report = $this->EventReport->find('first', ['conditions' => ['EventReport.id' => 25]]);
-        $errors = [];
-        $this->EventReport->sendToLLM($report, $this->Auth->user(), $errors);
     }
 }

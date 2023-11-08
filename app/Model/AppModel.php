@@ -1978,6 +1978,9 @@ class AppModel extends Model
                 $sqlArray[] = "UPDATE `users` SET last_pw_change=date_modified WHERE last_pw_change IS NULL";
                 break;
             case 116:
+                $sqlArray[] = "ALTER TABLE `event_reports` modify `content` mediumtext";
+                break;
+            case 117:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `user_login_profiles` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
