@@ -1357,22 +1357,8 @@ class UsersController extends AppController
             // raise an alert (the SIEM component should ensure (org)admins are informed)
             $this->loadModel('Log');
             $this->Log->createLogEntry($this->Auth->user(), 'auth_alert', 'User', $this->Auth->user('id'), 'Suspicious login.', $suspiciousness_reason);
-            // inform user of the suspicious login
-            if (!Configure::read('MISP.disable_emailing')) {
-                $body = new SendEmailTemplate('userloginprofile_suspicious');
-                $body->set('userLoginProfile', $this->User->UserLoginProfile->_getUserProfile());
-                $body->set('username', $this->Auth->user('email'));
-                $body->set('baseurl', Configure::read('MISP.baseurl'));
-                $body->set('misp_org', Configure::read('MISP.org'));
-                // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
-                $result = $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login.");
-                if ($result) {
-                    // all is well, email sent to user
-                } else {
-                    // email flow system already logs errors
-                }
-            }
-            // FIXME chri - also inform org admin
+            // inform user/org admin of the suspicious login
+            $this->User->UserLoginProfile->email_suspicious($user, $suspiciousness_reason);
         }
         // verify UserLoginProfile trust status and perform actions (such as sending email), only do this is emailing is not disabled on the instance
         elseif(!$this->User->UserLoginProfile->_isTrusted() && !Configure::read('MISP.disable_emailing')) {

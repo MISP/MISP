@@ -1,6 +1,6 @@
-Hello,
+Dear Organisational MISP admin,
 
-A suspicious login happened with your account on MISP <?= $misp_org; ?>.
+A suspicious login happened with an account in your organisation on MISP <?= $misp_org; ?>.
 
 We believe it is suspicious because: <?= $suspiciousness_reason; ?>
 
@@ -19,7 +19,6 @@ The following information relates to the login:
 - IP: <?= $userLoginProfile['ip']; ?>
 
 
-Follow this link to confirm if was you: <?php echo $baseurl . '/users/view_auth_history/'; ?>
-
-I you don't recognize this activity, please markt the login as suspicious and IMMEDIATELY to reset your password. 
+The affected user was informed and asked to validate the connection. 
+You will be informed in an additional email if the user confirms it as malicious.
 

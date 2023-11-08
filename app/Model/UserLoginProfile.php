@@ -185,7 +185,7 @@ class UserLoginProfile extends AppModel
     public function _isSuspicious() {
         // previously marked loginuserprofile as malicious by the user
         if (strpos($this->_getTrustStatus($this->_getUserProfile()), 'malicious') !== false) {
-            return _('The UserLoginProfile was reported as malicious in the past.');
+            return _('A user reported a similar login profile as malicious.');
         }
         // same IP as previous malicious user
         $maliciousWithSameIP = $this->find('first', [
@@ -197,12 +197,57 @@ class UserLoginProfile extends AppModel
             'fields' => array('UserLoginProfile.*')],
         );
         if ($maliciousWithSameIP) {
-            return _('Source IP was reported as as malicious in the past.');
+            return _('The source IP was reported as as malicious by a user.');
         }
         // LATER - use other data to identify suspicious logins, such as:
         // - warning lists
         // - ...
         return false;
+    }
+
+    public function email_suspicious($user, $suspiciousness_reason) {
+        if (!Configure::read('MISP.disable_emailing')) {
+            $date_time = date('c');
+            // inform the user
+            $body = new SendEmailTemplate('userloginprofile_suspicious');
+            $body->set('userLoginProfile', $this->_getUserProfile());
+            $body->set('username', $user['User']['email']);
+            $body->set('baseurl', Configure::read('MISP.baseurl'));
+            $body->set('misp_org', Configure::read('MISP.org'));
+            $body->set('date_time', $date_time);
+            $body->set('suspiciousness_reason', $suspiciousness_reason);
+            // inform the user
+            $result = $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login with your account.");
+            if ($result) {
+                // all is well, email sent to user
+            } else {
+                // email flow system already logs errors
+            }
+            // inform the org admin
+            $body = new SendEmailTemplate('userloginprofile_suspicious_orgadmin');
+            $body->set('userLoginProfile', $this->_getUserProfile());
+            $body->set('username', $user['User']['email']);
+            $body->set('baseurl', Configure::read('MISP.baseurl'));
+            $body->set('misp_org', Configure::read('MISP.org'));
+            $body->set('date_time', $date_time);
+            $body->set('suspiciousness_reason', $suspiciousness_reason);
+            $org_admins = $this->User->getOrgAdminsForOrg($user['User']['org_id']);
+            foreach($org_admins as $org_admin_email) {
+                $org_admin = $this->User->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => ['User.email' => $org_admin_email]
+                ));
+                $result = $this->User->sendEmail($org_admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login.");
+                if ($result) {
+                    // all is well, email sent to user
+                } else {
+                    // email flow system already logs errors
+                }
+            }
+            bleh();
+
+            
+        }
     }
 
 
