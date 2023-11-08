@@ -26,6 +26,7 @@ return [
             'username' => 'misp',
             'password' => 'misp',
             'database' => 'misp3_test',
+            'quoteIdentifiers' => true,
         ],
         /*
          * The test connection is used during the test suite.
@@ -35,6 +36,7 @@ return [
             'username' => 'misp',
             'password' => 'misp',
             'database' => 'misp3_test',
+            'quoteIdentifiers' => true,
         ],
     ],
     'EmailTransport' => [
