@@ -134,7 +134,7 @@ class JobsController extends AppController
 
         if (is_numeric($type)) {
             $progress = $this->Jobs->find(
-                'first',
+                'all',
                 [
                     'conditions' => [
                         'Job.id' => $type,
@@ -143,10 +143,10 @@ class JobsController extends AppController
                     'fields' => ['id', 'progress'],
                     'order' => ['Job.id' => 'desc'],
                 ]
-            );
+            )->first();
         } else {
             $progress = $this->Jobs->find(
-                'first',
+                'all',
                 [
                     'conditions' => [
                         'job_type' => $type,
@@ -155,7 +155,7 @@ class JobsController extends AppController
                     'fields' => ['id', 'progress'],
                     'order' => ['Job.id' => 'desc'],
                 ]
-            );
+            )->first();
         }
         if (!$progress) {
             $progress = 0;
