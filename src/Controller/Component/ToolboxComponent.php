@@ -14,26 +14,32 @@ class ToolboxComponent extends Component
             return $id;
         }
         if (Validation::uuid($id)) {
-            $data = $model->find('first', array(
-                'conditions' => array($model->alias . '.uuid' => $id),
-                'recursive' => -1,
-                'fields' => array($model->alias . '.id')
-            ));
+            $data = $model->find(
+                'all',
+                [
+                    'conditions' => [$model->getAlias() . '.uuid' => $id],
+                    'recursive' => -1,
+                    'fields' => [$model->getAlias() . '.id']
+                ]
+            )->first();
             if (empty($data)) {
-                throw new NotFoundException(__('Invalid %s.', $model->alias));
+                throw new NotFoundException(__('Invalid {0}.', $model->getAlias()));
             }
-            return $data[$model->alias]['id'];
+            return $data['id'];
         } else {
             if (!is_numeric($id)) {
-                throw new NotFoundException(__('Invalid %s.', $model->alias));
+                throw new NotFoundException(__('Invalid {0}.', $model->getAlias()));
             }
-            $data = $model->find('first', array(
-                'conditions' => array($model->alias . '.id' => $id),
-                'recursive' => -1,
-                'fields' => array($model->alias . '.id')
-            ));
+            $data = $model->find(
+                'all',
+                [
+                    'conditions' => [$model->getAlias() . '.id' => $id],
+                    'recursive' => -1,
+                    'fields' => [$model->getAlias() . '.id']
+                ]
+            )->first();
             if (empty($data)) {
-                throw new NotFoundException(__('Invalid %s.', $model->alias));
+                throw new NotFoundException(__('Invalid {0}.', $model->getAlias()));
             } else {
                 return $id;
             }
