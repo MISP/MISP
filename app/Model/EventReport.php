@@ -1009,7 +1009,15 @@ class EventReport extends AppModel
         ];
         
         $response = $HttpSocket->post($url, $data, $request);
+        if (!$response->isOk()) {
+            $errors[] = __('LLM server failed to process the request, code: %s.', $response->code);
+            return false;
+        }
         $data = json_decode($response->body, true);
+        if (!empty($data['error'])) {
+            $errors[] = $data['error'];
+            return false;
+        }
 /*
         debug($data);
         
