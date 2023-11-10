@@ -3,10 +3,10 @@
 namespace App\Controller;
 
 use App\Controller\AppController;
-use Cake\Http\Exception\MethodNotAllowedException;
-use Cake\Utility\Inflector;
 use App\Lib\Tools\FileAccessTool;
+use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\Utility\Inflector;
 
 class CryptographicKeysController extends AppController
 {
@@ -25,7 +25,7 @@ class CryptographicKeysController extends AppController
 
         if ($type === 'Event') {
             $existingEvent = $this->CryptographicKeys->Event->fetchSimpleEvent(
-                $this->Auth->user(),
+                $this->ACL->getUser(),
                 $parent_id,
                 [
                     'conditions' => [
@@ -70,16 +70,16 @@ class CryptographicKeysController extends AppController
         $this->CRUD->delete(
             $id,
             [
-            'beforeDelete' => function ($data) use ($user) {
+                'beforeDelete' => function ($data) use ($user) {
                 $parent_type = $data['CryptographicKey']['parent_type'];
                 $tempModel = $this->fetchTable($parent_type);
                 $existingData = $tempModel->find(
                     'all',
                     [
-                    'conditions' => [
-                        $parent_type . '.id' => $data['CryptographicKey']['parent_id']
-                    ],
-                    'recursive' => -1
+                        'conditions' => [
+                            $parent_type . '.id' => $data['CryptographicKey']['parent_id']
+                        ],
+                        'recursive' => -1
                     ]
                 )->first();
                 if ($parent_type === 'Event') {
@@ -102,9 +102,9 @@ class CryptographicKeysController extends AppController
         $key = $this->CryptographicKeys->find(
             'all',
             [
-            'recursive' => -1,
-            'fields' => ['id', 'type', 'key_data', 'fingerprint'],
-            'conditions' => ['id' => $id]
+                'recursive' => -1,
+                'fields' => ['id', 'type', 'key_data', 'fingerprint'],
+                'conditions' => ['id' => $id]
             ]
         )->first();
 
