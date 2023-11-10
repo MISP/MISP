@@ -6,9 +6,12 @@ Takes the MISP communities metadata [1] and generates the website page [2]
 '''
 
 import json
+import requests
+import hashlib
 
 code_communities_filename = '../app/files/community-metadata/defaults.json'
-website_communities_filename = '../../misp-website/content/communities.md'
+website_basepath = '../../misp-website'
+website_communities_filename = f'{website_basepath}/content/communities.md'
 
 
 communities_header = '''
@@ -59,39 +62,56 @@ MISP URL location is [https://www.botvrij.eu/data/feed-osint](https://www.botvri
 vetted_image = ' <i class="far fa-check-circle" style="color:green; "></i>\n'
 
 
-with open(code_communities_filename, 'r') as f_in:
-    entries = json.load(f_in)
+def gen_entry(f_out, entry):
+    f_out.write(f'### {entry["name"]}')
+    f_out.write(vetted_image if entry.get('misp_project_vetted') else '\n')
+    if entry.get('logo'):
+        # save logo to files with a unique name, and set the url to this unique name.
+        # Why? to host files locally and prevent companies to profile visitors of misp-project.org
+        logo_fname = f"/img/communities/{hashlib.md5(entry['name'].encode()).hexdigest()}.{entry['logo'].split('.')[-1]}"
+        with open(f"{website_basepath}/static{logo_fname}", 'wb') as logo_f:
+            r = requests.get(entry['logo'], allow_redirects=True)
+            logo_f.write(r.content)
+        f_out.write(f'![Logo]({logo_fname} "{{class=\'community_logo\'}}")\n')
+    if entry.get('url'):
+        f_out.write(f'- Website: {entry["url"]}\n')
+    # if entry.get('type'):
+    #     f_out.write(f'- Type: {entry["type"]}\n')
+    if entry.get('sector'):
+        f_out.write(f'- Sector: {entry["sector"]}\n')
+    if entry.get('scope'):
+        f_out.write(f'- Scope of data to be shared: {entry["scope_of_data_to_be_shared"]}\n')
+    if entry.get('nationality'):
+        f_out.write(f'- Nationality: {entry["nationality"]}\n')
+    if entry.get('description'):
+        f_out.write(f'\n\n{entry["description"]}\n')
+    if entry.get('email') and entry.get('email') != 'undefined':
+        f_out.write(f'- Contact: {entry["email"]}')
+        if entry.get('pgp_key') and entry.get('pgp_key') != 'undefined':
+            f_out.write('\n<details><summary>GPG key</summary>\n\n```')
+            f_out.write(entry['pgp_key'])
+            f_out.write('```\n</details>\n')
+        f_out.write('\n')
+    f_out.write('\n')
 
+
+with open(code_communities_filename, 'r') as f_in:
+    entries = sorted(json.load(f_in), key=lambda kv: kv['name'])
 
 
 with open(website_communities_filename, 'w') as f_out:
     f_out.write(communities_header)
-    for entry in sorted(entries, key=lambda kv: kv['name']):
-        f_out.write(f'### {entry["name"]}')
-        f_out.write(vetted_image if entry.get('misp_project_vetted') else '\n')
-        if entry.get('logo'):
-            f_out.write(f'![Logo]({entry["logo"]} "{{class=\'community_logo\'}}")\n')
-        if entry.get('url'):
-            f_out.write(f'- Website: {entry["url"]}\n')
-        # if entry.get('type'):
-        #     f_out.write(f'- Type: {entry["type"]}\n')
-        if entry.get('sector'):
-            f_out.write(f'- Sector: {entry["sector"]}\n')
-        if entry.get('scope'):
-            f_out.write(f'- Scope of data to be shared: {entry["scope_of_data_to_be_shared"]}\n')
-        if entry.get('nationality'):
-            f_out.write(f'- Nationality: {entry["nationality"]}\n')
-        if entry.get('description'):
-            f_out.write(f'\n\n{entry["description"]}\n')
-        if entry.get('email') and entry.get('email') != 'undefined':
-            f_out.write(f'- Contact: {entry["email"]}')
-            if entry.get('pgp_key') and entry.get('pgp_key') != 'undefined':
-                f_out.write('\n<details><summary>GPG key</summary>\n\n```')
-                f_out.write(entry['pgp_key'])
-                f_out.write('```\n</details>\n')
-            f_out.write('\n')
-        f_out.write('\n')
+    for entry in [e for e in entries if e.get('misp_project_vetted')]:
+        gen_entry(f_out, entry)
+
+    for entry in [e for e in entries if not e.get('misp_project_vetted')]:
+        gen_entry(f_out, entry)
+
     f_out.write(communities_footer)
 
 
-print(f"The communities file has been generated. ({website_communities_filename}).\nPlease commit this in the misp-website repository, and publish the generated website.")
+print(f"The communities markdown file has been generated. ({website_communities_filename}).\n"
+      f"Please: \n"
+      f"1. verify the newly generated logo, if any\n"
+      f"2. commit this in the misp-website repository\n"
+      f"3. publish the generated website online.")
