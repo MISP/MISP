@@ -46,7 +46,7 @@ class AuditLogBehavior extends Behavior
         $fieldsToFetch = array_filter(
             $fields,
             function ($key) use ($skipFields) {
-            return strpos($key, '_') !== 0 && !isset($skipFields[$key]);
+                return strpos($key, '_') !== 0 && !isset($skipFields[$key]);
             },
             ARRAY_FILTER_USE_KEY
         );
@@ -101,8 +101,10 @@ class AuditLogBehavior extends Behavior
             $modelTitle = $modelTitleField($entity, isset($this->old) ? $this->old : []);
         } else if (isset($entity[$modelTitleField])) {
             $modelTitle = $entity[$modelTitleField];
-        } else if ($this->old[$modelTitleField]) {
+        } else if (!empty($this->old) && $this->old[$modelTitleField]) {
             $modelTitle = $this->old[$modelTitleField];
+        } else {
+            $modelTitle = '';
         }
         $this->auditLogs()->insert(
             [
