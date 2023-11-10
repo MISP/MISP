@@ -279,7 +279,7 @@ class AppController extends Controller
      */
     protected function closeSession()
     {
-        $user = $this->Auth->user();
+        $user = $this->ACL->getUser();
         session_abort();
         return $user;
     }
