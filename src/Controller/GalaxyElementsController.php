@@ -8,36 +8,36 @@ use Exception;
 
 class GalaxyElementsController extends AppController
 {
-    public $components = array('Session', 'RequestHandler');
+    public $components = ['Session', 'RequestHandler'];
 
-    public $paginate = array(
+    public $paginate = [
         'limit' => 20,
         'recursive' => -1,
-        'order' => array(
+        'order' => [
             'GalaxyElement.key' => 'ASC'
-        )
-    );
+        ]
+    ];
 
     public function index($clusterId)
     {
         $user = $this->closeSession();
-        $filters = $this->IndexFilter->harvestParameters(array('context', 'searchall'));
-        $aclConditions = $this->GalaxyElement->buildClusterConditions($user, $clusterId);
+        $filters = $this->IndexFilter->harvestParameters(['context', 'searchall']);
+        $aclConditions = $this->GalaxyElements->buildClusterConditions($user, $clusterId);
         if (empty($filters['context'])) {
             $filters['context'] = 'all';
         }
-        $searchConditions = array();
+        $searchConditions = [];
         if (empty($filters['searchall'])) {
             $filters['searchall'] = '';
         }
         if (strlen($filters['searchall']) > 0) {
             $searchall = '%' . strtolower($filters['searchall']) . '%';
-            $searchConditions = array(
-                'OR' => array(
+            $searchConditions = [
+                'OR' => [
                     'LOWER(GalaxyElement.key) LIKE' => $searchall,
                     'LOWER(GalaxyElement.value) LIKE' => $searchall,
-                ),
-            );
+                ],
+            ];
         }
         $this->paginate['conditions'] = ['AND' => [$aclConditions, $searchConditions]];
         $this->paginate['contain'] = ['GalaxyCluster' => ['fields' => ['id', 'distribution', 'org_id']]];
@@ -45,15 +45,20 @@ class GalaxyElementsController extends AppController
         $this->set('elements', $elements);
         $this->set('clusterId', $clusterId);
         $this->set('context', $filters['context']);
-        $this->set('passedArgs', json_encode([
-            'context' => $filters['context'],
-            'searchall' => isset($filters['searchall']) ? $filters['searchall'] : ''
-        ]));
-        $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($user, $clusterId, array('edit', 'delete'), false, false);
+        $this->set(
+            'passedArgs',
+            json_encode(
+                [
+                    'context' => $filters['context'],
+                    'searchall' => isset($filters['searchall']) ? $filters['searchall'] : ''
+                ]
+            )
+        );
+        $cluster = $this->GalaxyElements->GalaxyCluster->fetchIfAuthorized($user, $clusterId, ['edit', 'delete'], false, false);
         $canModify = !empty($cluster['authorized']);
         $this->set('canModify', $canModify);
         if ($filters['context'] === 'JSONView') {
-            $expanded = $this->GalaxyElement->getExpandedJSONFromElements($elements);
+            $expanded = $this->GalaxyElements->getExpandedJSONFromElements($elements);
             $this->set('JSONElements', $expanded);
         }
         $this->layout = false;
@@ -62,17 +67,17 @@ class GalaxyElementsController extends AppController
 
     public function delete($elementId)
     {
-        $element = $this->GalaxyElement->find('first', array('conditions' => array('GalaxyElement.id' => $elementId)));
+        $element = $this->GalaxyElements->find('all', ['conditions' => ['GalaxyElement.id' => $elementId]])->first();
         if (empty($element)) {
             throw new Exception(__('Element not found'));
         }
         $this->set('element', $element);
         $clusterId = $element['GalaxyElement']['galaxy_cluster_id'];
-        $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, array('edit'), true, false);
+        $cluster = $this->GalaxyElements->GalaxyCluster->fetchIfAuthorized($this->ACL->getUser(), $clusterId, ['edit'], true, false);
         if ($this->request->is('post')) {
-            $deleteResult = $this->GalaxyElement->delete($elementId);
+            $deleteResult = $this->GalaxyElements->delete($elementId);
             if ($deleteResult) {
-                $this->GalaxyElement->GalaxyCluster->editCluster($this->Auth->user(), $cluster, [], false);
+                $this->GalaxyElements->GalaxyCluster->editCluster($this->ACL->getUser(), $cluster, [], false);
                 $message = __('Galaxy element %s deleted', $elementId);
                 $this->Flash->success($message);
             } else {
@@ -93,7 +98,7 @@ class GalaxyElementsController extends AppController
 
     public function flattenJson($clusterId)
     {
-        $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, array('edit'), true, false);
+        $cluster = $this->GalaxyElements->GalaxyCluster->fetchIfAuthorized($this->ACL->getUser(), $clusterId, ['edit'], true, false);
         if ($this->request->is('post') || $this->request->is('put')) {
             $json = $this->_jsonDecode($this->request->getData()['GalaxyElement']['jsonData']);
             $flattened = Hash::flatten($json);
@@ -102,7 +107,7 @@ class GalaxyElementsController extends AppController
                 $newElements[] = ['key' => $k, 'value' => $v];
             }
             $cluster['GalaxyCluster']['GalaxyElement'] = $newElements;
-            $errors = $this->GalaxyElement->GalaxyCluster->editCluster($this->Auth->user(), $cluster, [], false);
+            $errors = $this->GalaxyElements->GalaxyCluster->editCluster($this->ACL->getUser(), $cluster, [], false);
             if (empty($errors)) {
                 return $this->RestResponse->saveSuccessResponse('GalaxyElement', 'flattenJson', $clusterId, false);
             } else {

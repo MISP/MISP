@@ -28,6 +28,12 @@ class GalaxiesController extends AppController
         ]
     ];
 
+    public function initialize(): void
+    {
+        $this->loadComponent('Toolbox');
+        parent::initialize();
+    }
+
     public function index()
     {
         $filterData = [
@@ -102,7 +108,7 @@ class GalaxiesController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This action is only accessible via POST requests.');
         }
-        $result = $this->Galaxy->GalaxyCluster->wipe_default();
+        $result = $this->Galaxies->GalaxyClusters->wipe_default();
         $message = __('Default galaxy clusters dropped.');
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->saveSuccessResponse('Galaxy', 'wipe_default', false, $this->response->getType(), $message);
@@ -114,35 +120,35 @@ class GalaxiesController extends AppController
 
     public function view($id)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Galaxy, $id);
+        $id = $this->Toolbox->findIdByUuid($this->Galaxies, $id);
         $passedArgsArray = [
-            'context' => isset($this->params['named']['context']) ? $this->params['named']['context'] : 'all'
+            'context' => isset($this->request->getParam('named')['context']) ? $this->request->getParam('named')['context'] : 'all'
         ];
-        if (isset($this->params['named']['searchall']) && strlen($this->params['named']['searchall']) > 0) {
-            $passedArgsArray['searchall'] = $this->params['named']['searchall'];
+        if (isset($this->request->getParam('named')['searchall']) && strlen($this->request->getParam('named')['searchall']) > 0) {
+            $passedArgsArray['searchall'] = $this->request->getParam('named')['searchall'];
         }
         $this->set('passedArgsArray', $passedArgsArray);
         if ($this->ParamHandler->isRest()) {
-            $galaxy = $this->Galaxy->find(
-                'first',
+            $galaxy = $this->Galaxies->find(
+                'all',
                 [
-                    'contain' => ['GalaxyCluster' => ['GalaxyElement'/*, 'GalaxyReference'*/]],
+                    'contain' => ['GalaxyClusters' => ['GalaxyElements'/*, 'GalaxyReference'*/]],
                     'recursive' => -1,
-                    'conditions' => ['Galaxy.id' => $id]
+                    'conditions' => ['Galaxies.id' => $id]
                 ]
-            );
+            )->first();
             if (empty($galaxy)) {
                 throw new NotFoundException('Galaxy not found.');
             }
             return $this->RestResponse->viewData($galaxy, $this->response->getType());
         } else {
-            $galaxy = $this->Galaxy->find(
-                'first',
+            $galaxy = $this->Galaxies->find(
+                'all',
                 [
                     'recursive' => -1,
-                    'conditions' => ['Galaxy.id' => $id]
+                    'conditions' => ['Galaxies.id' => $id]
                 ]
-            );
+            )->first();
             if (empty($galaxy)) {
                 throw new NotFoundException('Galaxy not found.');
             }
@@ -153,22 +159,22 @@ class GalaxiesController extends AppController
     public function delete($id)
     {
         if (Validation::uuid($id)) {
-            $id = $this->Toolbox->findIdByUuid($this->Galaxy, $id);
+            $id = $this->Toolbox->findIdByUuid($this->Galaxies, $id);
         } elseif (!is_numeric($id)) {
             throw new NotFoundException('Invalid galaxy.');
         }
 
-        $galaxy = $this->Galaxy->find(
-            'first',
+        $galaxy = $this->Galaxies->find(
+            'all',
             [
                 'recursive' => -1,
-                'conditions' => ['Galaxy.id' => $id]
+                'conditions' => ['Galaxies.id' => $id]
             ]
-        );
+        )->first();
         if (empty($galaxy)) {
             throw new NotFoundException('Invalid galaxy.');
         }
-        $result = $this->Galaxy->delete($id);
+        $result = $this->Galaxies->delete($galaxy);
         if ($result) {
             $message = __('Galaxy deleted');
             if ($this->ParamHandler->isRest()) {
@@ -201,29 +207,29 @@ class GalaxiesController extends AppController
     public function toggle($id, $enabled = null)
     {
         if (Validation::uuid($id)) {
-            $id = $this->Toolbox->findIdByUuid($this->Galaxy, $id);
+            $id = $this->Toolbox->findIdByUuid($this->Galaxies, $id);
         } elseif (!is_numeric($id)) {
             throw new NotFoundException('Invalid galaxy.');
         }
 
-        $galaxy = $this->Galaxy->find(
-            'first',
+        $galaxy = $this->Galaxies->find(
+            'all',
             [
                 'recursive' => -1,
-                'conditions' => ['Galaxy.id' => $id]
+                'conditions' => ['Galaxies.id' => $id]
             ]
-        );
+        )->first();
         if (empty($galaxy)) {
             throw new NotFoundException('Invalid galaxy.');
         }
         if (is_null($enabled)) {
-            $galaxy['Galaxy']['enabled'] = !$galaxy['Galaxy']['enabled'];
+            $galaxy['enabled'] = !$galaxy['enabled'];
         } else {
-            $galaxy['Galaxy']['enabled'] = $enabled;
+            $galaxy['enabled'] = $enabled;
         }
-        $result = $this->Galaxy->save($galaxy);
+        $result = $this->Galaxies->save($galaxy);
         if ($result) {
-            $message = __('Galaxy enabled');
+            $message = $galaxy['enabled'] ? __('Galaxy enabled') : __('Galaxy disabled');
             if ($this->ParamHandler->isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Galaxy', 'toggle', false, $this->response->getType(), $message);
             } else {
@@ -255,7 +261,7 @@ class GalaxiesController extends AppController
                     throw new BadRequestException(__('Error while decoding JSON'));
                 }
             }
-            $saveResult = $this->Galaxy->importGalaxyAndClusters($this->Auth->user(), $clusters);
+            $saveResult = $this->Galaxies->importGalaxyAndClusters($this->ACL->getUser(), $clusters);
             if ($saveResult['success']) {
                 $message = __('Galaxy clusters imported. %s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
                 if ($this->ParamHandler->isRest()) {
@@ -279,7 +285,7 @@ class GalaxiesController extends AppController
     // Ingests clusters coming from a sync request
     public function pushCluster()
     {
-        if (!$this->Auth->user()['Role']['perm_sync'] || !$this->Auth->user()['Role']['perm_galaxy_editor']) {
+        if (!$this->ACL->getUser()['Role']['perm_sync'] || !$this->ACL->getUser()['Role']['perm_galaxy_editor']) {
             throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
         }
         if (!$this->ParamHandler->isRest()) {
@@ -287,8 +293,8 @@ class GalaxiesController extends AppController
         }
         if ($this->request->is('post')) {
             $clusters = $this->request->getData();
-            $saveResult = $this->Galaxy->importGalaxyAndClusters($this->Auth->user(), $clusters);
-            $messageInfo = __('%s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
+            $saveResult = $this->Galaxies->importGalaxyAndClusters($this->ACL->getUser()->toArray(), $clusters);
+            $messageInfo = __('{0} imported, {1} ignored, {2} failed. {3}', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
             if ($saveResult['success']) {
                 $message = __('Galaxy clusters imported. ') . $messageInfo;
                 return $this->RestResponse->saveSuccessResponse('Galaxy', 'pushCluster', false, $this->response->getType(), $message);
@@ -299,15 +305,16 @@ class GalaxiesController extends AppController
         }
     }
 
-    public function export($galaxyId)
+    public function export($id)
     {
-        $galaxy = $this->Galaxy->find(
-            'first',
+        $galaxyId = $this->Toolbox->findIdByUuid($this->Galaxies, $id);
+        $galaxy = $this->Galaxies->find(
+            'all',
             [
                 'recursive' => -1,
-                'conditions' => ['Galaxy.id' => $galaxyId]
+                'conditions' => ['Galaxies.id' => $galaxyId]
             ]
-        );
+        )->first();
         if (empty($galaxy) && $galaxyId !== null) {
             throw new NotFoundException('Galaxy not found.');
         }
@@ -322,15 +329,22 @@ class GalaxiesController extends AppController
             }
             $options = [
                 'conditions' => [
-                    'GalaxyCluster.galaxy_id' => $galaxyId,
-                    'GalaxyCluster.distribution' => $requestData['distribution'],
-                    'GalaxyCluster.default' => $clusterType
+                    'GalaxyClusters.galaxy_id' => $galaxyId,
+                    // 'GalaxyClusters.distribution' => $requestData['distribution'],
                 ]
             ];
-            $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $options, $full = true);
-            $clusters = $this->Galaxy->GalaxyCluster->unsetFieldsForExport($clusters);
+            if(!empty($clusterType)){
+                $options['conditions']['GalaxyClusters.default in'] = $clusterType;
+            }
+
+            $clusters = $this->Galaxies->GalaxyClusters->fetchGalaxyClusters($this->ACL->getUser()->toArray(), $options, $full = true);
+            if(empty($clusters)) {
+                throw new NotFoundException('No clusters found.');
+            }
+            
+            $clusters = $this->Galaxies->GalaxyClusters->unsetFieldsForExport($clusters);
             if ($requestData['format'] == 'misp-galaxy') {
-                $clusters = $this->Galaxy->convertToMISPGalaxyFormat($galaxy, $clusters);
+                $clusters = $this->Galaxies->convertToMISPGalaxyFormat($galaxy, $clusters);
             }
             $content = json_encode($clusters, JSON_PRETTY_PRINT);
             $this->response = $this->response->withType('json');
@@ -353,9 +367,9 @@ class GalaxiesController extends AppController
     public function selectGalaxy($target_id, $target_type = 'event', $namespace = 'misp', $noGalaxyMatrix = false)
     {
         $this->closeSession();
-        $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
-        $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
-        $eventid = !empty($this->params['named']['eventid']) ? $this->params['named']['eventid'] : '0';
+        $mitreAttackGalaxyId = $this->Galaxies->getMitreAttackGalaxyId();
+        $local = !empty($this->request->getParam('named')['local']) ? $this->request->getParam('named')['local'] : '0';
+        $eventid = !empty($this->request->getParam('named')['eventid']) ? $this->request->getParam('named')['eventid'] : '0';
 
         $conditions = ['enabled' => true];
         if ($namespace !== '0') {
@@ -364,7 +378,7 @@ class GalaxiesController extends AppController
         if (!$local) {
             $conditions['local_only'] = false;
         }
-        $galaxies = $this->Galaxy->find(
+        $galaxies = $this->Galaxies->find(
             'all',
             [
                 'recursive' => -1,
@@ -420,7 +434,7 @@ class GalaxiesController extends AppController
     public function selectGalaxyNamespace($target_id, $target_type = 'event', $noGalaxyMatrix = false)
     {
         $this->closeSession();
-        $namespaces = $this->Galaxy->find(
+        $namespaces = $this->Galaxies->find(
             'column',
             [
                 'recursive' => -1,
@@ -430,13 +444,14 @@ class GalaxiesController extends AppController
                 'order' => ['namespace asc']
             ]
         );
-        $local = !empty($this->params['named']['local']) ? '1' : '0';
-        $eventid = !empty($this->params['named']['eventid']) ? $this->params['named']['eventid'] : '0';
+        $local = !empty($this->request->getParam('named')['local']) ? '1' : '0';
+        $eventid = !empty($this->request->getParam('named')['eventid']) ? $this->request->getParam('named')['eventid'] : '0';
         $noGalaxyMatrix = $noGalaxyMatrix ? '1' : '0';
-        $items = [[
-            'name' => __('All namespaces'),
-            'value' => $this->baseurl . "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/0/' . h($noGalaxyMatrix) . '/local:' . h($local) . '/eventid:' . h($eventid)
-        ]
+        $items = [
+            [
+                'name' => __('All namespaces'),
+                'value' => $this->baseurl . "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/0/' . h($noGalaxyMatrix) . '/local:' . h($local) . '/eventid:' . h($eventid)
+            ]
         ];
         foreach ($namespaces as $namespace) {
             $items[] = [
@@ -474,7 +489,7 @@ class GalaxiesController extends AppController
             $conditions['GalaxyCluster.galaxy_id'] = $selectGalaxy;
         }
         $data = array_column(
-            $this->Galaxy->GalaxyCluster->fetchGalaxyClusters(
+            $this->Galaxies->GalaxyClusters->fetchGalaxyClusters(
                 $user,
                 [
                     'conditions' => $conditions,
@@ -484,7 +499,7 @@ class GalaxiesController extends AppController
             ),
             'GalaxyCluster'
         );
-        $synonyms = $this->Galaxy->GalaxyCluster->GalaxyElement->find(
+        $synonyms = $this->Galaxies->GalaxyClusters->GalaxyElement->find(
             'all',
             [
                 'conditions' => [
@@ -542,7 +557,7 @@ class GalaxiesController extends AppController
         $this->set('target_type', $target_type);
         $this->set('mirrorOnEvent', $mirrorOnEvent);
         $this->set('items', $items);
-        $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
+        $local = !empty($this->request->getParam('named')['local']) ? $this->request->getParam('named')['local'] : '0';
         $this->set(
             'options',
             [ // set chosen (select picker) options
@@ -564,9 +579,9 @@ class GalaxiesController extends AppController
     {
         $local = !empty($this->request->getParam('local'));
         $cluster_id = $this->request->getData('target_id');
-        $user = $this->Auth->user();
+        $user = $this->ACL->getUser();
 
-        $target = $this->Galaxy->fetchTarget($user, $target_type, $target_id);
+        $target = $this->Galaxies->fetchTarget($user, $target_type, $target_id);
         if (empty($target)) {
             throw new NotFoundException(__('Invalid %s.', $target_type));
         }
@@ -580,7 +595,7 @@ class GalaxiesController extends AppController
             }
         }
 
-        $result = $this->Galaxy->attachCluster($user, $target_type, $target, $cluster_id, $local);
+        $result = $this->Galaxies->attachCluster($user, $target_type, $target, $cluster_id, $local);
         return new Response(['body' => json_encode(['saved' => true, 'success' => $result, 'check_publish' => true]), 'status' => 200, 'type' => 'json']);
     }
 
@@ -591,7 +606,7 @@ class GalaxiesController extends AppController
         $mirrorOnEvent = $mirrorOnEventEnabled && $target_type === 'attribute';
 
         if ($this->request->is('post')) {
-            $user = $this->Auth->user();
+            $user = $this->ACL->getUser();
             if ($target_id === 'selected') {
                 $target_id_list = $this->_jsonDecode($this->request->getData()['Galaxy']['attribute_ids']);
             } else {
@@ -624,7 +639,7 @@ class GalaxiesController extends AppController
             }
             foreach ($cluster_ids as $cluster_id) {
                 foreach ($target_id_list as $target_id) {
-                    $target = $this->Galaxy->fetchTarget($user, $target_type, $target_id);
+                    $target = $this->Galaxies->fetchTarget($user, $target_type, $target_id);
                     if (empty($target)) {
                         throw new NotFoundException(__('Invalid %s.', $target_type));
                     }
@@ -637,9 +652,9 @@ class GalaxiesController extends AppController
                             throw new ForbiddenException(__('No permission to attach this cluster to given target.'));
                         }
                     }
-                    $result = $this->Galaxy->attachCluster($user, $target_type, $target, $cluster_id, $local);
+                    $result = $this->Galaxies->attachCluster($user, $target_type, $target, $cluster_id, $local);
                     if ($mirrorOnEventRequested) {
-                        $result = $result && $this->Galaxy->attachCluster($user, 'event', $event_id, $cluster_id, $local);
+                        $result = $result && $this->Galaxies->attachCluster($user, 'event', $event_id, $cluster_id, $local);
                     }
                 }
             }
@@ -662,14 +677,14 @@ class GalaxiesController extends AppController
 
     public function viewGraph($id)
     {
-        $cluster = $this->Galaxy->GalaxyCluster->find(
-            'first',
+        $cluster = $this->Galaxies->GalaxyClusters->find(
+            'all',
             [
                 'conditions' => ['GalaxyCluster.id' => $id],
                 'contain' => ['Galaxy'],
                 'recursive' => -1
             ]
-        );
+        )->first();
         if (empty($cluster)) {
             throw new MethodNotAllowedException('Invalid Galaxy.');
         }
@@ -685,7 +700,7 @@ class GalaxiesController extends AppController
     {
         if ($scope === 'event') {
             $EventsTable = $this->fetchTable('Events');
-            $object = $EventsTable->fetchEvent($this->Auth->user(), ['eventid' => $id, 'metadata' => 1]);
+            $object = $EventsTable->fetchEvent($this->ACL->getUser(), ['eventid' => $id, 'metadata' => 1]);
             if (empty($object)) {
                 throw new NotFoundException('Invalid event.');
             }
@@ -693,7 +708,7 @@ class GalaxiesController extends AppController
         } elseif ($scope === 'attribute') {
             $AttributesTable = $this->fetchTable('Attributes');
             $object = $AttributesTable->fetchAttributeSimple(
-                $this->Auth->user(),
+                $this->ACL->getUser(),
                 [
                     'conditions' => ['Attribute.id' => $id],
                     'contain' => [
@@ -709,10 +724,10 @@ class GalaxiesController extends AppController
             if (empty($object)) {
                 throw new NotFoundException('Invalid attribute.');
             }
-            $object = $AttributesTable->Event->massageTags($this->Auth->user(), $object, 'Attribute');
+            $object = $AttributesTable->Event->massageTags($this->ACL->getUser(), $object, 'Attribute');
         } elseif ($scope === 'tag_collection') {
             $TagsCollectionTable = $this->fetchTable('TagCollections');
-            $object = $TagsCollectionTable->fetchTagCollection($this->Auth->user(), ['conditions' => ['TagCollection.id' => $id]]);
+            $object = $TagsCollectionTable->fetchTagCollection($this->ACL->getUser(), ['conditions' => ['TagCollection.id' => $id]]);
             if (empty($object)) {
                 throw new NotFoundException('Invalid Tag Collection.');
             }
@@ -729,22 +744,22 @@ class GalaxiesController extends AppController
 
     public function forkTree($galaxyId, $pruneRootLeaves = true)
     {
-        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), ['conditions' => ['GalaxyCluster.galaxy_id' => $galaxyId]], $full = true);
+        $clusters = $this->Galaxies->GalaxyClusters->fetchGalaxyClusters($this->ACL->getUser(), ['conditions' => ['GalaxyCluster.galaxy_id' => $galaxyId]], $full = true);
         if (empty($clusters)) {
             throw new MethodNotAllowedException('Invalid Galaxy.');
         }
-        $this->Galaxy->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
+        $this->Galaxies->GalaxyClusters->attachExtendByInfo($this->ACL->getUser(), $clusters);
         foreach ($clusters as $k => $cluster) {
-            $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
+            $clusters[$k] = $this->Galaxies->GalaxyClusters->attachExtendFromInfo($this->ACL->getUser(), $clusters[$k]);
         }
-        $galaxy = $this->Galaxy->find(
-            'first',
+        $galaxy = $this->Galaxies->find(
+            'all',
             [
                 'recursive' => -1,
-                'conditions' => ['Galaxy.id' => $galaxyId]
+                'conditions' => ['Galaxies.id' => $galaxyId]
             ]
-        );
-        $tree = $this->Galaxy->generateForkTree($clusters, $galaxy, $pruneRootLeaves = $pruneRootLeaves);
+        )->first();
+        $tree = $this->Galaxies->generateForkTree($clusters, $galaxy, $pruneRootLeaves = $pruneRootLeaves);
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($tree, $this->response->getType());
         }
@@ -755,18 +770,18 @@ class GalaxiesController extends AppController
 
     public function relationsGraph($galaxyId, $includeInbound = 0)
     {
-        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), ['conditions' => ['GalaxyCluster.galaxy_id' => $galaxyId]], $full = true);
+        $clusters = $this->Galaxies->GalaxyClusters->fetchGalaxyClusters($this->ACL->getUser(), ['conditions' => ['GalaxyCluster.galaxy_id' => $galaxyId]], $full = true);
         if (empty($clusters)) {
             throw new MethodNotAllowedException('Invalid Galaxy.');
         }
-        $galaxy = $this->Galaxy->find(
-            'first',
+        $galaxy = $this->Galaxies->find(
+            'all',
             [
                 'recursive' => -1,
-                'conditions' => ['Galaxy.id' => $galaxyId]
+                'conditions' => ['Galaxies.id' => $galaxyId]
             ]
-        );
-        $grapher = new ClusterRelationsGraphTool($this->Auth->user(), $this->Galaxy->GalaxyCluster);
+        )->first();
+        $grapher = new ClusterRelationsGraphTool($this->ACL->getUser(), $this->Galaxies->GalaxyClusters);
         $relations = $grapher->getNetwork($clusters, $includeInbound, $includeInbound);
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($relations, $this->response->getType());

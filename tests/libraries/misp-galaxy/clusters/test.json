@@ -1,0 +1,40 @@
+{
+    "authors": [
+        "test-author"
+    ],
+    "category": "test-category",
+    "description": "Test description galaxy 1",
+    "name": "test-library-galaxy-1",
+    "source": "test-source",
+    "type": "test-type",
+    "uuid": "090874b1-b9bd-4ed4-b9b7-c3a1982dcea8",
+    "values": [
+        {
+            "description": "Test description cluster 1",
+            "meta": {
+                "country": "test-country",
+                "refs": [
+                    "ref-1"
+                ],
+                "suspected-victims": [
+                    "suspected-victim-1"
+                ],
+                "synonyms": [],
+                "target-category": [
+                    "target-category-1"
+                ]
+            },
+            "related": [
+                {
+                    "dest-uuid": "8fd92fe2-1bed-43a0-b885-b1630e21dc2f",
+                    "tags": [
+                        "test-galaxy-cluster-tag-namespace:test-galaxy-cluster-tag-value"
+                    ],
+                    "type": "similar"
+                }
+            ],
+            "uuid": "b99d5a56-b761-4410-9cb8-6d1628fe7ca3",
+            "value": "test-cluster-1"
+        }
+    ]
+}

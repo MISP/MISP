@@ -2,21 +2,21 @@
 
 namespace App\Model\Table;
 
+use App\Lib\Tools\FileAccessTool;
 use App\Model\Table\AppTable;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use ArrayObject;
+use Cake\Core\Configure;
+use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
-use Cake\Core\Configure;
-use App\Lib\Tools\FileAccessTool;
 use Cake\Http\Exception\MethodNotAllowedException;
-use InvalidArgumentException;
-use RuntimeException;
 use Cake\Http\Exception\NotFoundException;
+use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\Utility\Inflector;
 use Exception;
 use GlobIterator;
-use Cake\Utility\Inflector;
-use Cake\ORM\Query;
+use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * @property GalaxyClusters $GalaxyCluster
@@ -29,6 +29,9 @@ class GalaxiesTable extends AppTable
     public $useTable = 'galaxies';
 
     public $recursive = -1;
+
+    private $galaxiesPath;
+    private $galaxyClustersPath;
 
     public function initialize(array $config): void
     {
@@ -48,11 +51,15 @@ class GalaxiesTable extends AppTable
                 'propertyName' => 'GalaxyCluster'
             ]
         );
+        $this->setDisplayField('name');
+
+        $this->galaxiesPath = Configure::read('MISP.custom_galaxies_path', APP . '../libraries' . DS . 'misp-galaxy' . DS . 'galaxies' . DS . '*.json');
+        $this->galaxyClustersPath = Configure::read('MISP.custom_galaxy_clusters_path', APP . '../libraries' . DS . 'misp-galaxy' . DS . 'clusters' . DS . '*.json');
     }
 
     function beforeDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
     {
-        $this->GalaxyClusters->deleteAll(array('GalaxyCluster.galaxy_id' => $entity->id));
+        $this->GalaxyClusters->deleteAll(['GalaxyCluster.galaxy_id' => $entity->id]);
     }
 
     /**
@@ -62,16 +69,19 @@ class GalaxiesTable extends AppTable
      */
     private function __load_galaxies($force = false)
     {
-        $files = new GlobIterator(APP . '../libraries' . DS . 'misp-galaxy' . DS . 'galaxies' . DS . '*.json');
-        $galaxies = array();
+        $files = new GlobIterator($this->galaxiesPath);
+        $galaxies = [];
         foreach ($files as $file) {
             $galaxies[] = FileAccessTool::readJsonFromFile($file->getPathname());
         }
-        $existingGalaxies = $this->find('all', array(
-            'fields' => array('uuid', 'version', 'id', 'icon'),
-            'recursive' => -1
-        ))->disableHydration()->toArray();
-        $existingGalaxies = array_column(array_column($existingGalaxies, 'Galaxy'), null, 'uuid');
+        $existingGalaxies = $this->find(
+            'all',
+            [
+                'fields' => ['uuid', 'version', 'id', 'icon'],
+                'recursive' => -1
+            ]
+        )->toArray();
+        $existingGalaxies = array_column($existingGalaxies, null, 'uuid');
         foreach ($galaxies as $galaxy) {
             if (isset($existingGalaxies[$galaxy['uuid']])) {
                 if (
@@ -81,7 +91,7 @@ class GalaxiesTable extends AppTable
                 ) {
                     $galaxy['id'] = $existingGalaxies[$galaxy['uuid']]['id'];
                     $galaxyEntity = $this->newEntity($galaxy);
-                    $galaxyEntity->kill_chain_order = $galaxy['kill_chain_order'];
+                    $galaxyEntity->kill_chain_order = $galaxy['kill_chain_order'] ?? [];
                     $this->save($galaxyEntity);
                 }
             } else {
@@ -90,14 +100,21 @@ class GalaxiesTable extends AppTable
                 $this->save($galaxyEntity);
             }
         }
-        return $this->find('list', array('recursive' => -1, 'fields' => array('type', 'id')))->disableHydration()->toArray();
+        return $this->find(
+            'list',
+            [
+                'recursive' => -1,
+                'keyField' => 'type',
+                'valueField' => 'id'
+            ]
+        )->toArray();
     }
 
     private function __update_prepare_template(array $cluster_package, array $galaxies)
     {
         return [
             'source' => isset($cluster_package['source']) ? $cluster_package['source'] : '',
-            'authors' => json_encode(isset($cluster_package['authors']) ? $cluster_package['authors'] : array()),
+            'authors' => json_encode(isset($cluster_package['authors']) ? $cluster_package['authors'] : []),
             'collection_uuid' => isset($cluster_package['uuid']) ? $cluster_package['uuid'] : '',
             'galaxy_id' => $galaxies[$cluster_package['type']],
             'type' => $cluster_package['type'],
@@ -112,21 +129,24 @@ class GalaxiesTable extends AppTable
      */
     private function __getPreExistingClusters(array $galaxies, array $cluster_package)
     {
-        $temp = $this->GalaxyClusters->find('all', array(
-            'conditions' => array(
-                'GalaxyCluster.galaxy_id' => $galaxies[$cluster_package['type']]
-            ),
-            'recursive' => -1,
-            'fields' => array('version', 'id', 'value', 'uuid')
-        ));
+        $temp = $this->GalaxyClusters->find(
+            'all',
+            [
+                'conditions' => [
+                    'GalaxyClusters.galaxy_id' => $galaxies[$cluster_package['type']]
+                ],
+                'recursive' => -1,
+                'fields' => ['version', 'id', 'value', 'uuid']
+            ]
+        )->toArray();
         return array_column(array_column($temp, 'GalaxyCluster'), null, 'value');
     }
 
     private function __deleteOutdated(bool $force, array $cluster_package, array $existingClusters)
     {
         // Delete all existing outdated clusters
-        $cluster_ids_to_delete = array();
-        $cluster_uuids_to_delete = array();
+        $cluster_ids_to_delete = [];
+        $cluster_uuids_to_delete = [];
         foreach ($cluster_package['values'] as $k => $cluster) {
             if (empty($cluster['value'])) {
                 continue;
@@ -148,9 +168,9 @@ class GalaxiesTable extends AppTable
             }
         }
         if (!empty($cluster_ids_to_delete)) {
-            $this->GalaxyClusters->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $cluster_ids_to_delete), false);
-            $this->GalaxyClusters->GalaxyClusterRelation->deleteAll(array('GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster_uuids_to_delete));
-            $this->GalaxyClusters->deleteAll(array('GalaxyCluster.id' => $cluster_ids_to_delete), false);
+            $this->GalaxyClusters->GalaxyElement->deleteAll(['GalaxyElement.galaxy_cluster_id' => $cluster_ids_to_delete], false);
+            $this->GalaxyClusters->GalaxyClusterRelation->deleteAll(['GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster_uuids_to_delete]);
+            $this->GalaxyClusters->deleteAll(['GalaxyCluster.id' => $cluster_ids_to_delete], false);
         }
         return $cluster_package;
     }
@@ -159,88 +179,94 @@ class GalaxiesTable extends AppTable
     {
         $relations = [];
         $elements = [];
-        $this->GalaxyClusters->bulkEntry = true;
 
-        // Start transaction
-        $this->getDataSource()->begin();
+        $conn = ConnectionManager::get('default');
 
-        foreach ($cluster_package['values'] as $cluster) {
-            if (empty($cluster['version'])) {
-                $cluster['version'] = 1;
-            }
-            $template['version'] = $cluster['version'];
-            $this->GalaxyClusters->create();
-            $cluster_to_save = $template;
-            if (isset($cluster['description'])) {
-                $cluster_to_save['description'] = $cluster['description'];
-                unset($cluster['description']);
-            }
-            $cluster_to_save['value'] = $cluster['value'];
-            $cluster_to_save['tag_name'] = $cluster_to_save['tag_name'] . $cluster['value'] . '"';
-            if (!empty($cluster['uuid'])) {
-                $cluster_to_save['uuid'] = $cluster['uuid'];
-            }
-            unset($cluster['value']);
-            if (empty($cluster_to_save['description'])) {
-                $cluster_to_save['description'] = '';
-            }
-            $cluster_to_save['distribution'] = 3;
-            $cluster_to_save['default'] = true;
-            $cluster_to_save['published'] = false;
-            $cluster_to_save['org_id'] = 0;
-            $cluster_to_save['orgc_id'] = 0;
-            // We are already in transaction
-            $result = $this->GalaxyClusters->save($cluster_to_save, ['atomic' => false, 'validate' => false]);
-            if (!$result) {
-                $this->log("Could not save galaxy cluster with UUID {$cluster_to_save['uuid']}.");
-                continue;
-            }
-            $galaxyClusterId = $this->GalaxyClusters->id;
-            if (isset($cluster['meta'])) {
-                foreach ($cluster['meta'] as $key => $value) {
-                    if (!is_array($value)) {
-                        $value = [$value];
-                    }
-                    foreach ($value as $v) {
-                        if (is_array($v)) {
-                            $LogTable = $this->fetchTable('Logs');
-                            $logEntry = $LogTable->newEntity([
-                                'org' => 'SYSTEM',
-                                'model' => 'Galaxy',
-                                'model_id' => 0,
-                                'email' => 0,
-                                'action' => 'error',
-                                'title' => sprintf('Found a malformed galaxy cluster (%s) during the update, skipping. Reason: Malformed meta field, embedded array found.', $cluster['uuid']),
-                                'change' => ''
-                            ]);
-                            $LogTable->save($logEntry);
-                        } else {
-                            $elements[] = array(
-                                $galaxyClusterId,
-                                $key,
-                                (string)$v
-                            );
+        $GalaxyClustersTable = $this->fetchTable('GalaxyClusters');
+        $LogTable = $this->fetchTable('Logs');
+
+        $conn->transactional(
+            function ($conn) use ($GalaxyClustersTable, $LogTable, $cluster_package, $template, &$relations, &$elements) {
+            foreach ($cluster_package['values'] as $cluster) {
+                if (empty($cluster['version'])) {
+                    $cluster['version'] = 1;
+                }
+                $template['version'] = $cluster['version'];
+
+                $cluster_to_save = $template;
+                if (isset($cluster['description'])) {
+                    $cluster_to_save['description'] = $cluster['description'];
+                    unset($cluster['description']);
+                }
+                $cluster_to_save['value'] = $cluster['value'];
+                $cluster_to_save['tag_name'] = $cluster_to_save['tag_name'] . $cluster['value'] . '"';
+                if (!empty($cluster['uuid'])) {
+                    $cluster_to_save['uuid'] = $cluster['uuid'];
+                }
+                unset($cluster['value']);
+                if (empty($cluster_to_save['description'])) {
+                    $cluster_to_save['description'] = '';
+                }
+                $cluster_to_save['distribution'] = 3;
+                $cluster_to_save['default'] = true;
+                $cluster_to_save['published'] = false;
+                $cluster_to_save['org_id'] = 0;
+                $cluster_to_save['orgc_id'] = 0;
+                // We are already in transaction
+                $clusterEntity = $GalaxyClustersTable->newEntity($cluster_to_save);
+
+                try {
+                    $GalaxyClustersTable->saveOrFail($clusterEntity, ['atomic' => false, 'validate' => false]);
+                } catch (Exception $e) {
+                    $this->log("Could not save galaxy cluster with UUID {$cluster_to_save['uuid']}, error: {$e->getMessage()}.");
+                    continue;
+                }
+                $galaxyClusterId = $clusterEntity->id;
+                if (isset($cluster['meta'])) {
+                    foreach ($cluster['meta'] as $key => $value) {
+                        if (!is_array($value)) {
+                            $value = [$value];
+                        }
+                        foreach ($value as $v) {
+                            if (is_array($v)) {
+                                $logEntry = $LogTable->newEntity(
+                                    [
+                                        'org' => 'SYSTEM',
+                                        'model' => 'Galaxy',
+                                        'model_id' => 0,
+                                        'email' => 0,
+                                        'action' => 'error',
+                                        'title' => sprintf('Found a malformed galaxy cluster (%s) during the update, skipping. Reason: Malformed meta field, embedded array found.', $cluster['uuid']),
+                                        'change' => ''
+                                    ]
+                                );
+                                $LogTable->save($logEntry);
+                            } else {
+                                $elements[] = [
+                                    'galaxy_cluster_id' => $galaxyClusterId,
+                                    'key' => $key,
+                                    'value' => (string)$v
+                                ];
+                            }
                         }
                     }
                 }
-            }
-            if (isset($cluster['related'])) {
-                foreach ($cluster['related'] as $relation) {
-                    $relations[] = [
-                        'galaxy_cluster_id' => $galaxyClusterId,
-                        'galaxy_cluster_uuid' => $cluster['uuid'],
-                        'referenced_galaxy_cluster_uuid' => $relation['dest-uuid'],
-                        'referenced_galaxy_cluster_type' => $relation['type'],
-                        'default' => true,
-                        'distribution' => 3,
-                        'tags' => $relation['tags'] ?? []
-                    ];
+                if (isset($cluster['related'])) {
+                    foreach ($cluster['related'] as $relation) {
+                        $relations[] = [
+                            'galaxy_cluster_id' => $galaxyClusterId,
+                            'galaxy_cluster_uuid' => $cluster['uuid'],
+                            'referenced_galaxy_cluster_uuid' => $relation['dest-uuid'],
+                            'referenced_galaxy_cluster_type' => $relation['type'],
+                            'default' => true,
+                            'distribution' => 3,
+                            'tags' => $relation['tags'] ?? []
+                        ];
+                    }
                 }
             }
-        }
-
-        // Commit transaction
-        $this->getDataSource()->commit();
+            }
+        );
 
         return [$elements, $relations];
     }
@@ -248,7 +274,7 @@ class GalaxiesTable extends AppTable
     public function update($force = false)
     {
         $galaxies = $this->__load_galaxies($force);
-        $files = new GlobIterator(APP . '../libraries' . DS . 'misp-galaxy' . DS . 'clusters' . DS . '*.json');
+        $files = new GlobIterator($this->galaxyClustersPath);
         $force = (bool)$force;
         $allRelations = [];
         foreach ($files as $file) {
@@ -263,15 +289,15 @@ class GalaxiesTable extends AppTable
             // create all clusters
             list($elements, $relations) = $this->__createClusters($cluster_package, $template);
             if (!empty($elements)) {
-                $db = $this->getDataSource();
-                $fields = array('galaxy_cluster_id', 'key', 'value');
-                $db->insertMulti('galaxy_elements', $fields, $elements);
+                $GalaxyElementsTable = $this->fetchTable('GalaxyElements');
+                $GalaxyElementsTable->saveMany($GalaxyElementsTable->newEntities($elements));
             }
             $allRelations = array_merge($allRelations, $relations);
         }
         // Save relation as last part when all clusters are created
         if (!empty($allRelations)) {
-            $this->GalaxyClusters->GalaxyClusterRelation->bulkSaveRelations($allRelations);
+            $GalaxyClusterRelationsTable = $this->fetchTable('GalaxyClusterRelations');
+            $GalaxyClusterRelationsTable->bulkSaveRelations($allRelations);
         }
         // Probably unnecessary anymore
         $this->GalaxyClusters->generateMissingRelations();
@@ -290,20 +316,27 @@ class GalaxiesTable extends AppTable
         if (empty($galaxy['uuid'])) {
             return false;
         }
-        $existingGalaxy = $this->find('all', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.uuid' => $galaxy['uuid'])
-        ))->first()->toArray();
+        $existingGalaxy = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => ['Galaxies.uuid' => $galaxy['uuid']]
+            ]
+        )->first();
+        $existingGalaxy = $existingGalaxy ? $existingGalaxy->toArray() : null;
+
         if (empty($existingGalaxy)) {
             if ($user['Role']['perm_site_admin'] || $user['Role']['perm_galaxy_editor']) {
-                $this->create();
                 unset($galaxy['id']);
                 $galaxyEntity = $this->newEntity($galaxy);
                 $this->save($galaxyEntity);
-                $existingGalaxy = $this->find('all', array(
-                    'recursive' => -1,
-                    'conditions' => array('Galaxy.id' => $this->id)
-                ))->first()->toArray();
+                $existingGalaxy = $this->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['Galaxies.id' => $galaxyEntity->id]
+                    ]
+                )->first()->toArray();
             } else {
                 return false;
             }
@@ -321,16 +354,19 @@ class GalaxiesTable extends AppTable
      */
     public function importGalaxyAndClusters(array $user, array $clusters)
     {
-        $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
+        $results = ['success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => []];
         foreach ($clusters as $cluster) {
             if (!empty($cluster['GalaxyCluster']['Galaxy'])) {
                 $existingGalaxy = $this->captureGalaxy($user, $cluster['GalaxyCluster']['Galaxy']);
             } elseif (!empty($cluster['GalaxyCluster']['type'])) {
-                $existingGalaxy = $this->find('first', array(
-                    'recursive' => -1,
-                    'fields' => array('id'),
-                    'conditions' => array('Galaxy.type' => $cluster['GalaxyCluster']['type']),
-                ));
+                $existingGalaxy = $this->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'fields' => ['id'],
+                        'conditions' => ['Galaxies.type' => $cluster['GalaxyCluster']['type']],
+                    ]
+                )->first();
                 if (empty($existingGalaxy)) { // We don't have enough info to create the galaxy
                     $results['failed']++;
                     $results['errors'][] = __('Galaxy not found');
@@ -341,7 +377,7 @@ class GalaxiesTable extends AppTable
                 $results['errors'][] = __('Galaxy not found');
                 continue;
             }
-            $cluster['GalaxyCluster']['galaxy_id'] = $existingGalaxy['Galaxy']['id'];
+            $cluster['GalaxyCluster']['galaxy_id'] = $existingGalaxy['id'];
             $cluster['GalaxyCluster']['locked'] = true;
             $saveResult = $this->GalaxyClusters->captureCluster($user, $cluster, $fromPull = false);
             if (empty($saveResult['errors'])) {
@@ -368,9 +404,9 @@ class GalaxiesTable extends AppTable
         if ($targetType === 'event') {
             return $TagsTable->EventTag->Event->fetchSimpleEvent($user, $targetId);
         } elseif ($targetType === 'attribute') {
-            return $TagsTable->AttributeTag->Attribute->fetchAttributeSimple($user, array('conditions' => array('Attribute.id' => $targetId)));
+            return $TagsTable->AttributeTag->Attribute->fetchAttributeSimple($user, ['conditions' => ['Attribute.id' => $targetId]]);
         } elseif ($targetType === 'tag_collection') {
-            $target = $TagsTable->TagCollectionTag->TagCollection->fetchTagCollection($user, array('conditions' => array('TagCollection.id' => $targetId)));
+            $target = $TagsTable->TagCollectionTag->TagCollection->fetchTagCollection($user, ['conditions' => ['TagCollection.id' => $targetId]]);
             if (!empty($target)) {
                 $target = $target[0];
             }
@@ -394,13 +430,16 @@ class GalaxiesTable extends AppTable
         $connectorModel = Inflector::camelize($targetType) . 'Tag';
         $local = $local == 1 || $local === true ? 1 : 0;
         $cluster_alias = $this->GalaxyClusters->alias;
-        $galaxy_alias = $this->alias;
-        $cluster = $this->GalaxyClusters->fetchGalaxyClusters($user, array(
-            'first' => true,
-            'conditions' => array("$cluster_alias.id" => $cluster_id),
-            'contain' => array('Galaxy'),
-            'fields' => array('tag_name', 'id', 'value', "$galaxy_alias.local_only"),
-        ));
+        $galaxy_alias = $this->getAlias();
+        $cluster = $this->GalaxyClusters->fetchGalaxyClusters(
+            $user,
+            [
+                'all' => true,
+                'conditions' => ["$cluster_alias.id" => $cluster_id],
+                'contain' => ['Galaxy'],
+                'fields' => ['tag_name', 'id', 'value', "$galaxy_alias.local_only"],
+            ]
+        )->first();
 
         if (empty($cluster)) {
             throw new NotFoundException(__('Invalid Galaxy cluster'));
@@ -410,7 +449,7 @@ class GalaxiesTable extends AppTable
             throw new MethodNotAllowedException(__("This Cluster can only be attached in a local scope"));
         }
         $TagsTable = $this->fetchTable('Tags');
-        $tag_id = $TagsTable->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1, 'local_only' => $local_only), $user, true);
+        $tag_id = $TagsTable->captureTag(['name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1, 'local_only' => $local_only], $user, true);
         if ($targetType === 'event') {
             $target_id = $target['Event']['id'];
         } elseif ($targetType === 'attribute') {
@@ -418,12 +457,12 @@ class GalaxiesTable extends AppTable
         } else {
             $target_id = $target['TagCollection']['id'];
         }
-        $existingTag = $TagsTable->$connectorModel->hasAny(array($targetType . '_id' => $target_id, 'tag_id' => $tag_id));
+        $existingTag = $TagsTable->$connectorModel->hasAny([$targetType . '_id' => $target_id, 'tag_id' => $tag_id]);
         if ($existingTag) {
             return 'Cluster already attached.';
         }
         $TagsTable->$connectorModel->create();
-        $toSave = array($targetType . '_id' => $target_id, 'tag_id' => $tag_id, 'local' => $local);
+        $toSave = [$targetType . '_id' => $target_id, 'tag_id' => $tag_id, 'local' => $local];
         if ($targetType === 'attribute') {
             $toSave['event_id'] = $target['Attribute']['event_id'];
         }
@@ -448,14 +487,17 @@ class GalaxiesTable extends AppTable
 
     public function detachCluster($user, $target_type, $target_id, $cluster_id)
     {
-        $cluster = $this->GalaxyClusters->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('id' => $cluster_id),
-            'fields' => array('tag_name', 'id', 'value')
-        ));
+        $cluster = $this->GalaxyClusters->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => ['id' => $cluster_id],
+                'fields' => ['tag_name', 'id', 'value']
+            ]
+        )->first();
         $TagsTable = $this->fetchTable('Tags');
         if ($target_type === 'event') {
-            $target = $TagsTable->EventTag->Event->fetchEvent($user, array('eventid' => $target_id, 'metadata' => 1));
+            $target = $TagsTable->EventTag->Event->fetchEvent($user, ['eventid' => $target_id, 'metadata' => 1]);
             if (empty($target)) {
                 throw new NotFoundException(__('Invalid %s.', $target_type));
             }
@@ -464,13 +506,13 @@ class GalaxiesTable extends AppTable
             $org_id = $event['Event']['org_id'];
             $orgc_id = $event['Event']['orgc_id'];
         } elseif ($target_type === 'attribute') {
-            $target = $TagsTable->AttributeTag->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $target_id), 'flatten' => 1));
+            $target = $TagsTable->AttributeTag->Attribute->fetchAttributes($user, ['conditions' => ['Attribute.id' => $target_id], 'flatten' => 1]);
             if (empty($target)) {
                 throw new NotFoundException(__('Invalid %s.', $target_type));
             }
             $target = $target[0];
             $event_id = $target['Attribute']['event_id'];
-            $event = $TagsTable->EventTag->Event->fetchEvent($user, array('eventid' => $event_id, 'metadata' => 1));
+            $event = $TagsTable->EventTag->Event->fetchEvent($user, ['eventid' => $event_id, 'metadata' => 1]);
             if (empty($event)) {
                 throw new NotFoundException(__('Invalid event'));
             }
@@ -478,7 +520,7 @@ class GalaxiesTable extends AppTable
             $org_id = $event['Event']['org_id'];
             $orgc_id = $event['Event']['org_id'];
         } elseif ($target_type === 'tag_collection') {
-            $target = $TagsTable->TagCollectionTag->TagCollection->fetchTagCollection($user, array('conditions' => array('TagCollection.id' => $target_id)));
+            $target = $TagsTable->TagCollectionTag->TagCollection->fetchTagCollection($user, ['conditions' => ['TagCollection.id' => $target_id]]);
             if (empty($target)) {
                 throw new NotFoundException(__('Invalid %s.', $target_type));
             }
@@ -497,26 +539,35 @@ class GalaxiesTable extends AppTable
             }
         }
 
-        $tag_id = $TagsTable->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
+        $tag_id = $TagsTable->captureTag(['name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1], $user);
 
         if ($target_type === 'attribute') {
-            $existingTargetTag = $TagsTable->AttributeTag->find('first', array(
-                'conditions' => array('AttributeTag.tag_id' => $tag_id, 'AttributeTag.attribute_id' => $target_id),
-                'recursive' => -1,
-                'contain' => array('Tag')
-            ));
+            $existingTargetTag = $TagsTable->AttributeTag->find(
+                'all',
+                [
+                    'conditions' => ['AttributeTag.tag_id' => $tag_id, 'AttributeTag.attribute_id' => $target_id],
+                    'recursive' => -1,
+                    'contain' => ['Tag']
+                ]
+            )->first();
         } elseif ($target_type === 'event') {
-            $existingTargetTag = $TagsTable->EventTag->find('first', array(
-                'conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $target_id),
-                'recursive' => -1,
-                'contain' => array('Tag')
-            ));
+            $existingTargetTag = $TagsTable->EventTag->find(
+                'all',
+                [
+                    'conditions' => ['EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $target_id],
+                    'recursive' => -1,
+                    'contain' => ['Tag']
+                ]
+            )->first();
         } elseif ($target_type === 'tag_collection') {
-            $existingTargetTag = $TagsTable->TagCollectionTag->TagCollection->find('first', array(
-                'conditions' => array('tag_id' => $tag_id, 'tag_collection_id' => $target_id),
-                'recursive' => -1,
-                'contain' => array('Tag')
-            ));
+            $existingTargetTag = $TagsTable->TagCollectionTag->TagCollection->find(
+                'all',
+                [
+                    'conditions' => ['tag_id' => $tag_id, 'tag_collection_id' => $target_id],
+                    'recursive' => -1,
+                    'contain' => ['Tag']
+                ]
+            )->first();
         }
 
         if (empty($existingTargetTag)) {
@@ -556,11 +607,14 @@ class GalaxiesTable extends AppTable
     public function detachClusterByTagId(array $user, $targetId, $targetType, $tagId)
     {
         if ($targetType === 'attribute') {
-            $attribute = $this->GalaxyClusters->Tag->EventTag->Event->Attribute->find('first', array(
-                'recursive' => -1,
-                'fields' => array('id', 'event_id'),
-                'conditions' => array('Attribute.id' => $targetId)
-            ));
+            $attribute = $this->GalaxyClusters->Tag->EventTag->Event->Attribute->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'fields' => ['id', 'event_id'],
+                    'conditions' => ['Attribute.id' => $targetId]
+                ]
+            )->first();
             if (empty($attribute)) {
                 throw new NotFoundException('Invalid Attribute.');
             }
@@ -572,10 +626,13 @@ class GalaxiesTable extends AppTable
         }
 
         if ($targetType === 'tag_collection') {
-            $tag_collection = $this->GalaxyClusters->Tag->TagCollectionTag->TagCollection->fetchTagCollection($user, array(
-                'conditions' => array('TagCollection.id' => $targetId),
-                'recursive' => -1,
-            ));
+            $tag_collection = $this->GalaxyClusters->Tag->TagCollectionTag->TagCollection->fetchTagCollection(
+                $user,
+                [
+                    'conditions' => ['TagCollection.id' => $targetId],
+                    'recursive' => -1,
+                ]
+            );
             if (empty($tag_collection)) {
                 throw new NotFoundException('Invalid Tag Collection');
             }
@@ -598,33 +655,45 @@ class GalaxiesTable extends AppTable
         }
 
         if ($targetType === 'attribute') {
-            $existingTargetTag = $this->GalaxyClusters->Tag->AttributeTag->find('first', array(
-                'conditions' => array('AttributeTag.tag_id' => $tagId, 'AttributeTag.attribute_id' => $targetId),
-                'recursive' => -1,
-                'contain' => array('Tag')
-            ));
+            $existingTargetTag = $this->GalaxyClusters->Tag->AttributeTag->find(
+                'all',
+                [
+                    'conditions' => ['AttributeTag.tag_id' => $tagId, 'AttributeTag.attribute_id' => $targetId],
+                    'recursive' => -1,
+                    'contain' => ['Tag']
+                ]
+            )->first();
         } elseif ($targetType === 'event') {
-            $existingTargetTag = $this->GalaxyClusters->Tag->EventTag->find('first', array(
-                'conditions' => array('EventTag.tag_id' => $tagId, 'EventTag.event_id' => $targetId),
-                'recursive' => -1,
-                'contain' => array('Tag')
-            ));
+            $existingTargetTag = $this->GalaxyClusters->Tag->EventTag->find(
+                'all',
+                [
+                    'conditions' => ['EventTag.tag_id' => $tagId, 'EventTag.event_id' => $targetId],
+                    'recursive' => -1,
+                    'contain' => ['Tag']
+                ]
+            )->first();
         } elseif ($targetType === 'tag_collection') {
-            $existingTargetTag = $this->GalaxyClusters->Tag->TagCollectionTag->find('first', array(
-                'conditions' => array('TagCollectionTag.tag_id' => $tagId, 'TagCollectionTag.tag_collection_id' => $targetId),
-                'recursive' => -1,
-                'contain' => array('Tag')
-            ));
+            $existingTargetTag = $this->GalaxyClusters->Tag->TagCollectionTag->find(
+                'all',
+                [
+                    'conditions' => ['TagCollectionTag.tag_id' => $tagId, 'TagCollectionTag.tag_collection_id' => $targetId],
+                    'recursive' => -1,
+                    'contain' => ['Tag']
+                ]
+            )->first();
         }
 
         if (empty($existingTargetTag)) {
             throw new NotFoundException('Galaxy not attached.');
         }
 
-        $cluster = $this->GalaxyClusters->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('GalaxyCluster.tag_name' => $existingTargetTag['Tag']['name'])
-        ));
+        $cluster = $this->GalaxyClusters->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => ['GalaxyCluster.tag_name' => $existingTargetTag['Tag']['name']]
+            ]
+        )->first();
         if (empty($cluster)) {
             throw new NotFoundException('Tag is not cluster');
         }
@@ -650,60 +719,69 @@ class GalaxiesTable extends AppTable
 
     public function getMitreAttackGalaxyId($type = "mitre-attack-pattern", $namespace = "mitre-attack")
     {
-        $galaxy = $this->find('first', array(
-            'recursive' => -1,
-            'fields' => array('MAX(Galaxy.version) as latest_version', 'id'),
-            'conditions' => array(
-                'Galaxy.type' => $type,
-                'Galaxy.namespace' => $namespace
-            ),
-            'group' => array('name', 'id')
-        ));
+        $galaxy = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'fields' => ['MAX(Galaxy.version) as latest_version', 'id'],
+                'conditions' => [
+                    'Galaxies.type' => $type,
+                    'Galaxies.namespace' => $namespace
+                ],
+                'group' => ['name', 'id']
+            ]
+        )->first();
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
     }
 
     public function getAllowedMatrixGalaxies()
     {
-        $conditions = array(
-            'NOT' => array(
+        $conditions = [
+            'NOT' => [
                 'kill_chain_order' => ''
-            )
+            ]
+        ];
+        $galaxies = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => $conditions,
+            ]
         );
-        $galaxies = $this->find('all', array(
-            'recursive' => -1,
-            'conditions' => $conditions,
-        ));
         return $galaxies;
     }
 
-    public function getMatrix($galaxy_id, $scores = array())
+    public function getMatrix($galaxy_id, $scores = [])
     {
-        $conditions = array('Galaxy.id' => $galaxy_id);
-        $contains = array(
-            'GalaxyCluster' => array('GalaxyElement'),
-        );
+        $conditions = ['Galaxies.id' => $galaxy_id];
+        $contains = [
+            'GalaxyCluster' => ['GalaxyElement'],
+        ];
 
-        $galaxy = $this->find('first', array(
-            'recursive' => -1,
-            'contain' => $contains,
-            'conditions' => $conditions,
-        ));
+        $galaxy = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'contain' => $contains,
+                'conditions' => $conditions,
+            ]
+        )->first();
 
         $mispUUID = Configure::read('MISP')['uuid'];
 
         if (!isset($galaxy['Galaxy']['kill_chain_order'])) {
             throw new MethodNotAllowedException(__("Galaxy cannot be represented as a matrix"));
         }
-        $matrixData = array(
+        $matrixData = [
             'killChain' => $galaxy['Galaxy']['kill_chain_order'],
-            'tabs' => array(),
-            'matrixTags' => array(),
+            'tabs' => [],
+            'matrixTags' => [],
             'instance-uuid' => $mispUUID,
             'galaxy' => $galaxy['Galaxy']
-        );
+        ];
 
         $clusters = $galaxy['GalaxyCluster'];
-        $cols = array();
+        $cols = [];
 
         foreach ($clusters as $cluster) {
             if (empty($cluster['GalaxyElement'])) {
@@ -735,13 +813,16 @@ class GalaxiesTable extends AppTable
         $this->sortMatrixByScore($matrixData['tabs'], $scores);
         // #FIXME temporary fix: retrieve tag name of deprecated mitre galaxies (for the stats)
         if ($galaxy['Galaxy']['id'] == $this->getMitreAttackGalaxyId()) {
-            $names = array('Enterprise Attack - Attack Pattern', 'Pre Attack - Attack Pattern', 'Mobile Attack - Attack Pattern');
-            $tag_names = array();
-            $gals = $this->find('all', array(
-                'recursive' => -1,
-                'contain' => array('GalaxyCluster.tag_name'),
-                'conditions' => array('Galaxy.name' => $names)
-            ));
+            $names = ['Enterprise Attack - Attack Pattern', 'Pre Attack - Attack Pattern', 'Mobile Attack - Attack Pattern'];
+            $tag_names = [];
+            $gals = $this->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'contain' => ['GalaxyCluster.tag_name'],
+                    'conditions' => ['Galaxies.name' => $names]
+                ]
+            );
             foreach ($gals as $gal => $temp) {
                 foreach ($temp['GalaxyCluster'] as $value) {
                     $matrixData['matrixTags'][$value['tag_name']] = 1;
@@ -759,7 +840,9 @@ class GalaxiesTable extends AppTable
         foreach (array_keys($tabs) as $i) {
             foreach (array_keys($tabs[$i]) as $j) {
                 // major ordering based on score, minor based on alphabetical
-                usort($tabs[$i][$j], function ($a, $b) use ($scores) {
+                usort(
+                    $tabs[$i][$j],
+                    function ($a, $b) use ($scores) {
                     if ($a['tag_name'] == $b['tag_name']) {
                         return 0;
                     }
@@ -779,7 +862,8 @@ class GalaxiesTable extends AppTable
                         $ret = strcmp($a['value'], $b['value']);
                     }
                     return $ret;
-                });
+                    }
+                );
             }
         }
     }
@@ -794,12 +878,12 @@ class GalaxiesTable extends AppTable
      */
     public function generateForkTree(array $clusters, array $galaxy, $pruneRootLeaves = true)
     {
-        $tree = array();
-        $lookup = array();
-        $lastNodeAdded = array();
+        $tree = [];
+        $lookup = [];
+        $lastNodeAdded = [];
         // generate the lookup table used to immediatly get the correct cluster
         foreach ($clusters as $i => $cluster) {
-            $clusters[$i]['children'] = array();
+            $clusters[$i]['children'] = [];
             $lookup[$cluster['GalaxyCluster']['id']] = &$clusters[$i];
         }
         foreach ($clusters as $i => $cluster) {
@@ -811,20 +895,20 @@ class GalaxiesTable extends AppTable
                     $lookup[$parent['GalaxyCluster']['id']]['children'][] = &$clusters[$i];
                 } else {
                     // version differs, insert version node between child and parent
-                    $lastVersionNode = array(
+                    $lastVersionNode = [
                         'isVersion' => true,
                         'isLast' => true,
                         'version' => $parentVersion,
                         'parentUuid' => $parent['GalaxyCluster']['uuid'],
-                        'children' => array()
-                    );
-                    $versionNode = array(
+                        'children' => []
+                    ];
+                    $versionNode = [
                         'isVersion' => true,
                         'isLast' => false,
                         'version' => $clusterVersion,
                         'parentUuid' => $parent['GalaxyCluster']['uuid'],
-                        'children' => array(&$clusters[$i])
-                    );
+                        'children' => [&$clusters[$i]]
+                    ];
                     $lookup[$parent['GalaxyCluster']['id']]['children'][] = $versionNode;
                     if (!isset($lastNodeAdded[$parent['GalaxyCluster']['id']])) {
                         $lookup[$parent['GalaxyCluster']['id']]['children'][] = $lastVersionNode;
@@ -844,10 +928,11 @@ class GalaxiesTable extends AppTable
             }
         }
 
-        $tree = array(array(
+        $tree = [[
             'Galaxy' => $galaxy['Galaxy'],
             'children' => array_values($tree)
-        ));
+        ]
+        ];
         return $tree;
     }
 

@@ -8,7 +8,7 @@ use Cake\Utility\Hash;
 /**
  * @property GalaxyCluster $GalaxyCluster
  */
-class GalaxyElements extends AppTable
+class GalaxyElementsTable extends AppTable
 {
     public $useTable = 'galaxy_elements';
 
@@ -22,33 +22,33 @@ class GalaxyElements extends AppTable
         $this->belongsTo(
             'GalaxyClusters',
             [
-                'className' => 'GalaxyCluster',
                 'foreignKey' => 'galaxy_cluster_id',
             ]
         );
+        $this->setDisplayField('name');
     }
 
     public function updateElements($oldClusterId, $newClusterId, $elements, $delete = true)
     {
         if ($delete) {
-            $this->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $oldClusterId));
+            $this->deleteAll(['GalaxyElement.galaxy_cluster_id' => $oldClusterId]);
         }
-        $tempElements = array();
+        $tempElements = [];
         foreach ($elements as $key => $value) {
             if (is_array($value)) {
                 foreach ($value as $arrayElement) {
-                    $tempElements[] = array(
+                    $tempElements[] = [
                         'key' => $key,
                         'value' => $arrayElement,
                         'galaxy_cluster_id' => $newClusterId
-                    );
+                    ];
                 }
             } else {
-                $tempElements[] = array(
+                $tempElements[] = [
                     'key' => $key,
                     'value' => $value,
                     'galaxy_cluster_id' => $newClusterId
-                );
+                ];
             }
         }
         $this->saveMany($tempElements);
@@ -56,13 +56,13 @@ class GalaxyElements extends AppTable
 
     public function update($galaxy_id, $oldClusters, $newClusters)
     {
-        $elementsToSave = array();
+        $elementsToSave = [];
         // Since we are dealing with flat files as the end all be all content, we are safe to just drop all of the old clusters and recreate them.
         foreach ($oldClusters as $oldCluster) {
-            $this->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $oldCluster['GalaxyCluster']['id']));
+            $this->deleteAll(['GalaxyElement.galaxy_cluster_id' => $oldCluster['GalaxyCluster']['id']]);
         }
         foreach ($newClusters as $newCluster) {
-            $tempCluster = array();
+            $tempCluster = [];
             foreach ($newCluster as $key => $value) {
                 // Don't store the reserved fields as elements
                 if ($key == 'description' || $key == 'value') {
@@ -70,10 +70,10 @@ class GalaxyElements extends AppTable
                 }
                 if (is_array($value)) {
                     foreach ($value as $arrayElement) {
-                        $tempCluster[] = array('key' => $key, 'value' => $arrayElement);
+                        $tempCluster[] = ['key' => $key, 'value' => $arrayElement];
                     }
                 } else {
-                    $tempCluster[] = array('key' => $key, 'value' => $value);
+                    $tempCluster[] = ['key' => $key, 'value' => $value];
                 }
             }
 
@@ -87,15 +87,15 @@ class GalaxyElements extends AppTable
 
     public function captureElements($user, $elements, $clusterId)
     {
-        $tempElements = array();
+        $tempElements = [];
         foreach ($elements as $k => $element) {
-            $tempElements[] = array(
+            $tempElements[] = [
                 'key' => $element['key'],
                 'value' => $element['value'],
                 'galaxy_cluster_id' => $clusterId,
-            );
+            ];
         }
-        $this->saveMany($tempElements);
+        $this->saveMany($this->newEntities($tempElements));
     }
 
     public function buildACLConditions($user)
@@ -117,11 +117,11 @@ class GalaxyElements extends AppTable
 
     public function fetchElements(array $user, $clusterId)
     {
-        $params = array(
+        $params = [
             'conditions' => $this->buildClusterConditions($user, $clusterId),
             'contain' => ['GalaxyCluster' => ['fields' => ['id', 'distribution', 'org_id']]],
             'recursive' => -1
-        );
+        ];
         $elements = $this->find('all', $params);
         foreach ($elements as $i => $element) {
             $elements[$i] = $elements[$i]['GalaxyElement'];
@@ -164,14 +164,17 @@ class GalaxyElements extends AppTable
             $this->buildACLConditions($user),
             $elementConditions,
         ];
-        $elements = $this->find('all', [
-            'fields' => ['GalaxyElement.galaxy_cluster_id'],
-            'conditions' => $conditions,
-            'contain' => ['GalaxyCluster' => ['fields' => ['id', 'distribution', 'org_id']]],
-            'group' => ['GalaxyElement.galaxy_cluster_id'],
-            'having' => ['COUNT(GalaxyElement.id) =' => $conditionCount],
-            'recursive' => -1
-        ]);
+        $elements = $this->find(
+            'all',
+            [
+                'fields' => ['GalaxyElement.galaxy_cluster_id'],
+                'conditions' => $conditions,
+                'contain' => ['GalaxyCluster' => ['fields' => ['id', 'distribution', 'org_id']]],
+                'group' => ['GalaxyElement.galaxy_cluster_id'],
+                'having' => ['COUNT(GalaxyElement.id) =' => $conditionCount],
+                'recursive' => -1
+            ]
+        );
         $clusterIDs = [];
         foreach ($elements as $element) {
             $clusterIDs[] = $element['GalaxyElement']['galaxy_cluster_id'];
