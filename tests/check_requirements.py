@@ -9,7 +9,7 @@ with open(requirements_file) as f:
     req_version = re.findall('pymisp==(.*)', f.read())[0]
 
 with open(app_controller) as f:
-    controler_version = re.findall('pyMispVersion = \'(.*)\'', f.read())[0]
+    controller_version = re.findall('pyMispVersion = \'(.*)\'', f.read())[0]
 
-if not req_version == controler_version:
-    raise Exception(f'PyMISP in {requirements_file} ({req_version}) differs from the one in {app_controller} ({controler_version})')
+if not req_version == controller_version:
+    raise Exception(f'PyMISP in {requirements_file} ({req_version}) differs from the one in {app_controller} ({controller_version})')
