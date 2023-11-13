@@ -818,7 +818,7 @@ class GalaxyClustersTable extends AppTable
                     }
                 }
             }
-            foreach ($cluster['GalaxyElement'] as $i => $element) {
+            foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $i => $element) {
                 unset($clusters[$k]['GalaxyElement'][$i]['id']);
                 unset($clusters[$k]['GalaxyElement'][$i]['galaxy_cluster_id']);
             }
@@ -1178,7 +1178,9 @@ class GalaxyClustersTable extends AppTable
                 'GalaxyElements',
                 'GalaxyClusterRelations' => [
                     'conditions' => $GalaxyClusterRelationTable->buildConditions($user, false),
-                    'GalaxyClusterRelationTags',
+                    'GalaxyClusterRelationTags' => [
+                        'Tags'
+                    ],
                     'SharingGroup',
                 ],
                 'Orgc',
@@ -1281,7 +1283,7 @@ class GalaxyClustersTable extends AppTable
                 if ($includeFullClusterRelationship) {
                     $targetingClusterRelation['TargetingClusterRelation']['GalaxyCluster'] = $targetingClusterRelation['SourceCluster'];
                 }
-                $targetingClusterRelations[$k] = $targetingClusterRelation['TargetingClusterRelation'];
+                $targetingClusterRelations[$k] = $targetingClusterRelation->toArray();
             }
         }
 

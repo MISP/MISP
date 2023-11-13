@@ -26,7 +26,7 @@ class PushGalaxyClusterApiTest extends TestCase
         'app.Tags',
     ];
 
-    public function testUpdateGalaxies(): void
+    public function testPushGalaxyCluster(): void
     {
         $this->skipOpenApiValidations();
 
@@ -74,31 +74,46 @@ class PushGalaxyClusterApiTest extends TestCase
         $this->post(self::ENDPOINT, $jsonGalaxyCluster);
 
         $this->assertResponseOk();
-        $this->assertDbRecordExists('Galaxies', [
-            'uuid' => 'c51c59e9-f213-4ad4-9913-09a43d78dff5'
-        ]);
+        $this->assertDbRecordExists(
+            'Galaxies',
+            [
+                'uuid' => 'c51c59e9-f213-4ad4-9913-09a43d78dff5'
+            ]
+        );
 
         // # check that the galaxy has the correct clusters
-        $this->assertDbRecordExists('GalaxyClusters', [
-            'uuid' => '06251f72-9d60-43b5-a28a-48a2e0452d1e'
-        ]);
+        $this->assertDbRecordExists(
+            'GalaxyClusters',
+            [
+                'uuid' => '06251f72-9d60-43b5-a28a-48a2e0452d1e'
+            ]
+        );
 
         # check that the galaxy has the correct elements
-        $this->assertDbRecordExists('GalaxyElements', [
-            'key' => 'test-pushed-element-key',
-            'value' => 'test-pushed-element-value'
-        ]);
+        $this->assertDbRecordExists(
+            'GalaxyElements',
+            [
+                'key' => 'test-pushed-element-key',
+                'value' => 'test-pushed-element-value'
+            ]
+        );
 
         // # check that the galaxy has the correct relations
-        $this->assertDbRecordExists('GalaxyClusterRelations', [
-            'referenced_galaxy_cluster_uuid' => '06251f72-9d60-43b5-a28a-48a2e0452d1e',
-            'referenced_galaxy_cluster_type' => 'self-referenced-cluster-type',
-            'galaxy_cluster_uuid' => '06251f72-9d60-43b5-a28a-48a2e0452d1e'
-        ]);
+        $this->assertDbRecordExists(
+            'GalaxyClusterRelations',
+            [
+                'referenced_galaxy_cluster_uuid' => '06251f72-9d60-43b5-a28a-48a2e0452d1e',
+                'referenced_galaxy_cluster_type' => 'self-referenced-cluster-type',
+                'galaxy_cluster_uuid' => '06251f72-9d60-43b5-a28a-48a2e0452d1e'
+            ]
+        );
 
         # check that the galaxy has the correct tags
-        $this->assertDbRecordExists('Tags', [
-            'name' => 'foo:bar'
-        ]);
+        $this->assertDbRecordExists(
+            'Tags',
+            [
+                'name' => 'foo:bar'
+            ]
+        );
     }
 }

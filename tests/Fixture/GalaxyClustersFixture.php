@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Test\Fixture;
 
-use Cake\TestSuite\Fixture\TestFixture;
 use App\Test\Fixture\GalaxiesFixture;
+use Cake\TestSuite\Fixture\TestFixture;
 
 class GalaxyClustersFixture extends TestFixture
 {
@@ -27,7 +27,7 @@ class GalaxyClustersFixture extends TestFixture
                 'source' => 'test-fixture-source',
                 'type' => 'test-fixture-type',
                 'authors' => '["test-fixture-author"]',
-                'collection_uuid' => '',
+                'collection_uuid' => GalaxiesFixture::GALAXY_1_UUID,
                 'value' => 'test-fixture-cluster-1',
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'orgc_id' => OrganisationsFixture::ORGANISATION_A_ID,

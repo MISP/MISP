@@ -954,26 +954,26 @@ class GalaxiesTable extends AppTable
     public function convertToMISPGalaxyFormat($galaxy, $clusters)
     {
         $converted = [];
-        $converted['name'] = $galaxy['Galaxy']['name'];
-        $converted['type'] = $galaxy['Galaxy']['type'];
+        $converted['name'] = $galaxy['name'];
+        $converted['type'] = $galaxy['type'];
         $converted['authors'] = [];
         $converted['version'] = 0;
         $values = [];
         $fieldsToSave = ['description', 'uuid', 'value', 'extends_uuid', 'extends_version'];
         foreach ($clusters as $i => $cluster) {
             foreach ($fieldsToSave as $field) {
-                $values[$i][$field] = $cluster['GalaxyCluster'][$field];
+                $values[$i][$field] = $cluster[$field];
             }
-            $converted['uuid'] = $cluster['GalaxyCluster']['collection_uuid'];
-            $converted['source'] = $cluster['GalaxyCluster']['source'];
-            if (!empty($cluster['GalaxyCluster']['authors'])) {
-                foreach ($cluster['GalaxyCluster']['authors'] as $author) {
+            $converted['uuid'] = $cluster['collection_uuid'];
+            $converted['source'] = $cluster['source'];
+            if (!empty($cluster['authors'])) {
+                foreach ($cluster['authors'] as $author) {
                     if (!is_null($author) && $author != 'null') {
                         $converted['authors'][$author] = $author;
                     }
                 }
             }
-            $converted['version'] = $converted['version'] > $cluster['GalaxyCluster']['version'];
+            $converted['version'] = $converted['version'] > $cluster['version'];
             foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $element) {
                 if (isset($values[$i]['meta'][$element['key']])) {
                     if (is_array($values[$i]['meta'][$element['key']])) {
@@ -992,7 +992,7 @@ class GalaxiesTable extends AppTable
                 ];
                 if (!empty($relation['Tag'])) {
                     foreach ($relation['Tag'] as $tag) {
-                        $values[$i]['related'][$j]['tags'][] = $tag['name'];
+                        $values[$i]['related'][$j]['tags'][] = $tag['Tag']['name'];
                     }
                 }
             }

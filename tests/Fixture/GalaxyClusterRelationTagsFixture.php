@@ -14,7 +14,12 @@ class GalaxyClusterRelationTagsFixture extends TestFixture
     {
         $faker = \Faker\Factory::create();
 
-        $this->records = [];
+        $this->records = [
+            [
+                'galaxy_cluster_relation_id' => GalaxyClusterRelationsFixture::GALAXY_CLUSTER_RELATION_1_ID,
+                'tag_id' => TagsFixture::TAG_1_ID,
+            ]
+        ];
         parent::init();
     }
 }

@@ -330,7 +330,7 @@ class GalaxiesController extends AppController
             $options = [
                 'conditions' => [
                     'GalaxyClusters.galaxy_id' => $galaxyId,
-                    // 'GalaxyClusters.distribution' => $requestData['distribution'],
+                    'GalaxyClusters.distribution' => $requestData['distribution'],
                 ]
             ];
             if(!empty($clusterType)){

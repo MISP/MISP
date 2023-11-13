@@ -11,7 +11,7 @@ use Cake\Validation\Validator;
 class GalaxyClusterRelationTagsTable extends AppTable
 {
     public $useTable = 'galaxy_cluster_relation_tags';
-    public $actsAs = array('AuditLog', 'Containable');
+    public $actsAs = ['AuditLog', 'Containable'];
 
     public function validationDefault(Validator $validator): Validator
     {
@@ -29,7 +29,12 @@ class GalaxyClusterRelationTagsTable extends AppTable
         $this->addBehavior('AuditLog');
 
         $this->belongsTo('GalaxyClusterRelations');
-        $this->belongsTo('Tags');
+        $this->belongsTo(
+            'Tags',
+            [
+                'propertyName' => 'Tag',
+            ]
+        );
     }
 
     public function softDelete($id)
@@ -52,19 +57,22 @@ class GalaxyClusterRelationTagsTable extends AppTable
         $saveResult = false;
         foreach ($tags as $tagName) {
             if ($capture) {
-                $tagId = $this->Tags->captureTag(array('name' => $tagName), $user);
+                $tagId = $this->Tags->captureTag(['name' => $tagName], $user);
             } else {
                 $tagId = $this->Tags->lookupTagIdFromName($tagName);
             }
-            $existingAssociation = $this->find('all', array(
-                'recursive' => -1,
-                'conditions' => array(
-                    'tag_id' => $tagId,
-                    'galaxy_cluster_relation_id' => $galaxyClusterRelationId
-                )
-            ))->first();
+            $existingAssociation = $this->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'tag_id' => $tagId,
+                        'galaxy_cluster_relation_id' => $galaxyClusterRelationId
+                    ]
+                ]
+            )->first();
             if (empty($existingAssociation) && $tagId != -1) {
-                $saveResult = $this->save($this->newEntity(array('galaxy_cluster_relation_id' => $galaxyClusterRelationId, 'tag_id' => $tagId)));
+                $saveResult = $this->save($this->newEntity(['galaxy_cluster_relation_id' => $galaxyClusterRelationId, 'tag_id' => $tagId]));
                 $allSaved = $allSaved && $saveResult;
                 if (!$saveResult) {
                     $this->Log->createLogEntry($user, 'attachTags', 'GalaxyClusterRelationTag', 0, __('Could not attach tag %s', $tagName), __('relation (%s)', $galaxyClusterRelationId));
@@ -76,6 +84,6 @@ class GalaxyClusterRelationTagsTable extends AppTable
 
     public function detachTag($user, $relationTagId)
     {
-        $this->delete(array('GalaxyClusterRelationTag.relationTagId' => $relationTagId));
+        $this->delete(['GalaxyClusterRelationTag.relationTagId' => $relationTagId]);
     }
 }

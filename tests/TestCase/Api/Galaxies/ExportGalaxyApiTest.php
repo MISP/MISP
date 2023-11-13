@@ -34,33 +34,38 @@ class ExportGalaxyApiTest extends TestCase
 
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
         $url = sprintf('%s/%s', self::ENDPOINT, GalaxiesFixture::GALAXY_1_UUID);
-        $this->post($url, [
-            "Galaxy" => [
-                "default" => false,
-                "custom" => false,
-                "distribution" => "0",
-                "format" => "misp-galaxy",
-                "download" => false
+        $this->post(
+            $url,
+            [
+                "Galaxy" => [
+                    "default" => false,
+                    "custom" => false,
+                    "distribution" => "0",
+                    "format" => "misp-galaxy",
+                    "download" => false
+                ]
             ]
-        ]);
-        $this->markTestSkipped("This is not implemented yet.");
+        );
+        // $this->markTestSkipped("This is not implemented yet.");
 
-        // $this->assertResponseOk();
-        // $galaxy = $this->getJsonResponseAsArray();
+        $this->assertResponseOk();
+        $galaxy = $this->getJsonResponseAsArray();
 
-        // $this->assertEquals(GalaxiesFixture::GALAXY_1_ID, $galaxy['id']);
-        // $this->assertEquals(GalaxiesFixture::GALAXY_1_NAME, $galaxy['name']);
+        $this->assertEquals(GalaxiesFixture::GALAXY_1_UUID, $galaxy['uuid']);
+        $this->assertEquals(GalaxiesFixture::GALAXY_1_NAME, $galaxy['name']);
 
-        // # check that the galaxy has the correct clusters
-        // $this->assertEquals(GalaxyClustersFixture::GALAXY_CLUSTER_1_UUID, $galaxy['GalaxyCluster'][0]['uuid']);
-        // $this->assertEquals(GalaxiesFixture::GALAXY_1_ID, $galaxy['GalaxyCluster'][0]['galaxy_id']);
+        # check that the galaxy has the correct clusters exported
+        $this->assertEquals(GalaxyClustersFixture::GALAXY_CLUSTER_1_UUID, $galaxy['values'][0]['uuid']);
+        $this->assertEquals('test-fixture-cluster-1', $galaxy['values'][0]['value']);
 
-        // # check that the galaxy has the correct elements
-        // $this->assertEquals(GalaxyClustersFixture::GALAXY_CLUSTER_1_ID, $galaxy['GalaxyCluster'][0]['GalaxyElement'][0]['galaxy_cluster_id']);
-        // $this->assertEquals('test-fixture-element-key', $galaxy['GalaxyCluster'][0]['GalaxyElement'][0]['key']);
-        // $this->assertEquals('test-fixture-element-value', $galaxy['GalaxyCluster'][0]['GalaxyElement'][0]['value']);
+        # check that the galaxy has the correct elements exported
+        $this->assertEquals('test-fixture-element-value', $galaxy['values'][0]['meta']['test-fixture-element-key']);
 
-        # TODO: check that the galaxy has the correct relations
-        # TODO: check that the galaxy has the correct tags
+        # check that the galaxy has the correct relations exported
+        $this->assertEquals(GalaxyClustersFixture::GALAXY_CLUSTER_1_UUID, $galaxy['values'][0]['related'][0]['dest-uuid']);
+        $this->assertEquals('similar', $galaxy['values'][0]['related'][0]['type']);
+
+        # check that the galaxy has the correct relation tags exported
+        $this->assertEquals('test:tag', $galaxy['values'][0]['related'][0]['tags'][0]);
     }
 }
