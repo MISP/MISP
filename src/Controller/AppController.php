@@ -281,7 +281,7 @@ class AppController extends Controller
     {
         $user = $this->ACL->getUser();
         session_abort();
-        return $user;
+        return $user->toArray();
     }
 
     /**

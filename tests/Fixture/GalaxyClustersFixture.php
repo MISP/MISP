@@ -31,6 +31,7 @@ class GalaxyClustersFixture extends TestFixture
                 'value' => 'test-fixture-cluster-1',
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'orgc_id' => OrganisationsFixture::ORGANISATION_A_ID,
+                'default' => true
             ]
         ];
         parent::init();

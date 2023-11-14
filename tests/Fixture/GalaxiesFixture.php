@@ -10,11 +10,11 @@ class GalaxiesFixture extends TestFixture
 {
     public $connection = 'test';
 
-    public const GALAXY_1_ID = 1;
+    public const GALAXY_1_ID = 1000;
     public const GALAXY_1_NAME = 'test-galaxy-fixture-1';
     public const GALAXY_1_UUID = '64771633-a0d4-414a-a27e-b101f91a0270';
 
-    public const GALAXY_2_ID = 2;
+    public const GALAXY_2_ID = 2000;
     public const GALAXY_2_NAME = 'test-galaxy-fixture-2';
     public const GALAXY_2_UUID = 'edf4c347-f645-4211-9ad3-976395253b80';
 

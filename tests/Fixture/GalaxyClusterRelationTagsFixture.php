@@ -10,12 +10,15 @@ class GalaxyClusterRelationTagsFixture extends TestFixture
 {
     public $connection = 'test';
 
+    public const GALAXY_CLUSTER_RELATION_TAG_1_ID = 1000;
+
     public function init(): void
     {
         $faker = \Faker\Factory::create();
 
         $this->records = [
             [
+                'id' => self::GALAXY_CLUSTER_RELATION_TAG_1_ID,
                 'galaxy_cluster_relation_id' => GalaxyClusterRelationsFixture::GALAXY_CLUSTER_RELATION_1_ID,
                 'tag_id' => TagsFixture::TAG_1_ID,
             ]

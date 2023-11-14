@@ -103,7 +103,7 @@ class GalaxiesController extends AppController
         }
     }
 
-    public function wipe_default()
+    public function wipeDefault()
     {
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This action is only accessible via POST requests.');
@@ -261,9 +261,9 @@ class GalaxiesController extends AppController
                     throw new BadRequestException(__('Error while decoding JSON'));
                 }
             }
-            $saveResult = $this->Galaxies->importGalaxyAndClusters($this->ACL->getUser(), $clusters);
+            $saveResult = $this->Galaxies->importGalaxyAndClusters($this->ACL->getUser()->toArray(), $clusters);
             if ($saveResult['success']) {
-                $message = __('Galaxy clusters imported. %s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
+                $message = __('Galaxy clusters imported. {0} imported, {1} ignored, {2} failed. {3}', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
                 if ($this->ParamHandler->isRest()) {
                     return $this->RestResponse->saveSuccessResponse('Galaxy', 'import', false, $this->response->getType(), $message);
                 } else {
@@ -472,14 +472,15 @@ class GalaxiesController extends AppController
 
     public function selectCluster($target_id, $target_type = 'event', $selectGalaxy = false)
     {
-        $user = $this->closeSession();
+        // $user = $this->closeSession();
+        $user = $this->ACL->getUser()->toArray();
         $conditions = [
             'OR' => [
-                'GalaxyCluster.published' => true,
-                'GalaxyCluster.default' => true,
+                'GalaxyClusters.published' => true,
+                'GalaxyClusters.default' => true,
             ],
             'AND' => [
-                'GalaxyCluster.deleted' => false,
+                'GalaxyClusters.deleted' => false,
             ]
         ];
         if ($target_type == 'galaxyClusterRelation') {
@@ -499,15 +500,15 @@ class GalaxiesController extends AppController
             ),
             'GalaxyCluster'
         );
-        $synonyms = $this->Galaxies->GalaxyClusters->GalaxyElement->find(
+        $synonyms = $this->Galaxies->GalaxyClusters->GalaxyElements->find(
             'all',
             [
                 'conditions' => [
-                    'GalaxyElement.key' => 'synonyms',
+                    'GalaxyElements.key' => 'synonyms',
                     $conditions
                 ],
-                'fields' => ['GalaxyElement.galaxy_cluster_id', 'GalaxyElement.value'],
-                'contain' => 'GalaxyCluster',
+                'fields' => ['GalaxyElements.galaxy_cluster_id', 'GalaxyElements.value'],
+                'contain' => 'GalaxyClusters',
                 'recursive' => -1
             ]
         );
