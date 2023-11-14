@@ -1,0 +1,9 @@
+{
+    "description": "Test description galaxy 1",
+    "icon": "user-secret",
+    "name": "test-library-galaxy-1",
+    "namespace": "test-namespace",
+    "type": "test-type",
+    "uuid": "090874b1-b9bd-4ed4-b9b7-c3a1982dcea8",
+    "version": 1
+}

@@ -26,12 +26,14 @@ return [
             'username' => env('MISP_DB_USER', 'misp'),
             'password' => env('MISP_DB_PASSWORD'),
             'database' => env('MISP_DB', 'misp3'),
+            'quoteIdentifiers' => true,
         ],
         'test' => [
             'host' => 'db',
             'username' => 'misp',
             'password' => 'misp',
             'database' => 'misp3_test',
+            'quoteIdentifiers' => true,
         ],
     ],
 

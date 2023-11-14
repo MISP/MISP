@@ -32,8 +32,8 @@ class AppTable extends Table
             $queryTopUsage
                 ->select(
                     [
-                    $scope,
-                    'count' => $queryTopUsage->func()->count('id'),
+                        $scope,
+                        'count' => $queryTopUsage->func()->count('id'),
                     ]
                 );
             if ($queryTopUsage->getDefaultTypes()[$scope] != 'boolean') {
@@ -61,7 +61,7 @@ class AppTable extends Table
                 $queryOthersUsage
                     ->select(
                         [
-                        'count' => $queryOthersUsage->func()->count('id'),
+                            'count' => $queryOthersUsage->func()->count('id'),
                         ]
                     )
                     ->where(
@@ -74,9 +74,9 @@ class AppTable extends Table
                             } else {
                                 return $exp->or(
                                     [
-                                    $query->newExpr()->isNull($scope),
-                                    $query->newExpr()->eq($scope, ''),
-                                    $query->newExpr()->notIn($scope, Hash::extract($topUsage, "{n}.{$scope}")),
+                                        $query->newExpr()->isNull($scope),
+                                        $query->newExpr()->eq($scope, ''),
+                                        $query->newExpr()->notIn($scope, Hash::extract($topUsage, "{n}.{$scope}")),
                                     ]
                                 );
                             }
@@ -142,8 +142,8 @@ class AppTable extends Table
             $query = $table->find();
             $query->select(
                 [
-                'count' => $query->func()->count('id'),
-                'date' => "DATE({$field})",
+                    'count' => $query->func()->count('id'),
+                    'date' => "DATE({$field})",
                 ]
             )
                 ->where(["{$field} >" => FrozenTime::now()->subDays($days)])
@@ -173,8 +173,8 @@ class AppTable extends Table
         foreach ($input['metaFields'] as $templateID => $metaFields) {
             $metaTemplates = $this->MetaTemplates->find()->where(
                 [
-                'id' => $templateID,
-                'enabled' => 1
+                    'id' => $templateID,
+                    'enabled' => 1
                 ]
             )->contain(['MetaTemplateFields'])->first();
             $fieldNameToId = [];
@@ -266,5 +266,24 @@ class AppTable extends Table
         );
 
         return $query;
+    }
+
+    public function findOrder($order, $order_model, $valid_order_fields)
+    {
+        if (!is_array($order)) {
+            $order_rules = explode(' ', strtolower($order));
+            $order_field = explode('.', $order_rules[0]);
+            $order_field = end($order_field);
+            if (in_array($order_field, $valid_order_fields)) {
+                $direction = 'asc';
+                if (!empty($order_rules[1]) && trim($order_rules[1]) === 'desc') {
+                    $direction = 'desc';
+                }
+            } else {
+                return null;
+            }
+            return $order_model . '.' . $order_field . ' ' . $direction;
+        }
+        return null;
     }
 }

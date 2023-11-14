@@ -121,7 +121,7 @@ RUN apt-get update \
 # Clone MISP repository
 RUN git clone --branch ${MISP_TAG_OR_BRANCH} --depth 1 https://github.com/MISP/MISP.git /var/www/html
 WORKDIR /var/www/html
-RUN git submodule update --init --recursive .;
+RUN git submodule update --init --recursive .
 
 USER www-data
 

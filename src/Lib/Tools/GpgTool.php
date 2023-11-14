@@ -2,11 +2,11 @@
 
 namespace App\Lib\Tools;
 
-use Cake\Http\Client as HttpClient;
-use Cake\Core\Exception\CakeException;
-use Cake\Http\Exception\NotFoundException;
-use Cake\Http\Exception\HttpException;
 use Cake\Core\Configure;
+use Cake\Core\Exception\CakeException;
+use Cake\Http\Client as HttpClient;
+use Cake\Http\Exception\HttpException;
+use Cake\Http\Exception\NotFoundException;
 
 class GpgTool
 {
@@ -123,7 +123,7 @@ class GpgTool
      */
     private function extractKeySearch($body)
     {
-        $final = array();
+        $final = [];
         $lines = explode("\n", $body);
         foreach ($lines as $line) {
             $parts = explode(":", $line);
@@ -131,18 +131,18 @@ class GpgTool
             if ($parts[0] === 'pub') {
                 if (!empty($temp)) {
                     $final[] = $temp;
-                    $temp = array();
+                    $temp = [];
                 }
 
                 if (strpos($parts[6], 'r') !== false || strpos($parts[6], 'd') !== false || strpos($parts[6], 'e') !== false) {
                     continue; // skip if key is expired, revoked or disabled
                 }
 
-                $temp = array(
+                $temp = [
                     'fingerprint' => $parts[1],
                     'key_id' => substr($parts[1], -8),
                     'date' => date('Y-m-d', $parts[4]),
-                );
+                ];
             } else if ($parts[0] === 'uid' && !empty($temp)) {
                 $temp['address'] = urldecode($parts[1]);
             }
@@ -232,7 +232,7 @@ class GpgTool
 
     /**
      * @param string $uri
-     * @return HttpSocketResponseExtended
+     * @return \Cake\Http\Client\Response
      * @throws HttpSocketHttpException
      * @throws Exception
      */

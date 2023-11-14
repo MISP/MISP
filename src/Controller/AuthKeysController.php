@@ -32,11 +32,11 @@ class AuthKeysController extends AppController
         $keyUsageEnabled = Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_authkeys');
         $this->CRUD->index(
             [
-            'filters' => ['Users.email', 'authkey_start', 'authkey_end', 'comment', 'Users.id'],
-            'quickFilters' => ['comment', 'authkey_start', 'authkey_end', 'Users.email'],
-            'conditions' => $conditions,
-            'contain' => ['Users' => ['fields' => ['id', 'email']]],
-            'afterFind' => function ($authKeys) use ($keyUsageEnabled) {
+                'filters' => ['Users.email', 'authkey_start', 'authkey_end', 'comment', 'Users.id'],
+                'quickFilters' => ['comment', 'authkey_start', 'authkey_end', 'Users.email'],
+                'conditions' => $conditions,
+                'contain' => ['Users' => ['fields' => ['id', 'email']]],
+                'afterFind' => function ($authKeys) use ($keyUsageEnabled) {
                 if ($keyUsageEnabled) {
                     $keyIds = Hash::extract($authKeys, "{n}.AuthKey.id");
                     $lastUsedById = $this->AuthKey->getLastUsageForKeys($keyIds);
@@ -60,8 +60,8 @@ class AuthKeysController extends AppController
         $this->set(
             'menuData',
             [
-            'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
-            'menuItem' => 'authkeys_index',
+                'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
+                'menuItem' => 'authkeys_index',
             ]
         );
     }
@@ -74,8 +74,8 @@ class AuthKeysController extends AppController
         $this->CRUD->delete(
             $id,
             [
-            'conditions' => $this->__prepareConditions(),
-            'contain' => ['Users'],
+                'conditions' => $this->__prepareConditions(),
+                'contain' => ['Users'],
             ]
         );
         if ($this->ParamHandler->isRest()) {
@@ -91,12 +91,12 @@ class AuthKeysController extends AppController
         $this->CRUD->edit(
             $id,
             [
-            'conditions' => $this->__prepareConditions(),
-            'afterFind' => function (\App\Model\Entity\AuthKey $authKey) {
+                'conditions' => $this->__prepareConditions(),
+                'afterFind' => function (\App\Model\Entity\AuthKey $authKey) {
                 return $authKey;
             },
-            'fields' => ['comment', 'allowed_ips', 'expiration', 'read_only'],
-            'contain' => ['Users' => ['fields' => ['id', 'org_id']]]
+                'fields' => ['comment', 'allowed_ips', 'expiration', 'read_only'],
+                'contain' => ['Users' => ['fields' => ['id', 'org_id']]]
             ]
         );
         if ($this->ParamHandler->isRest()) {
@@ -105,20 +105,20 @@ class AuthKeysController extends AppController
         $this->set(
             'dropdownData',
             [
-            'user' => $this->Users->find(
-                'list',
-                [
-                'sort' => ['username' => 'asc'],
-                'conditions' => ['id' => $this->entity['user_id']],
-                ]
-            )
+                'user' => $this->Users->find(
+                    'list',
+                    [
+                        'sort' => ['username' => 'asc'],
+                        'conditions' => ['id' => $this->entity['user_id']],
+                    ]
+                )
             ]
         );
         $this->set(
             'menuData',
             [
-            'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
-            'menuItem' => 'authKeyAdd',
+                'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
+                'menuItem' => 'authKeyAdd',
             ]
         );
         $this->set('edit', true);
@@ -166,8 +166,8 @@ class AuthKeysController extends AppController
             'user' => $this->AuthKeys->Users->find(
                 'list',
                 [
-                'sort' => ['username' => 'asc'],
-                'conditions' => $selectConditions,
+                    'sort' => ['username' => 'asc'],
+                    'conditions' => $selectConditions,
                 ]
             )
         ];
@@ -176,8 +176,8 @@ class AuthKeysController extends AppController
         $this->set(
             'menuData',
             [
-            'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
-            'menuItem' => 'authKeyAdd',
+                'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
+                'menuItem' => 'authKeyAdd',
             ]
         );
         $this->set('validity', Configure::read('Security.advanced_authkeys_validity'));
@@ -188,9 +188,9 @@ class AuthKeysController extends AppController
         $this->CRUD->view(
             $id,
             [
-            'contain' => ['Users' => ['fields' => ['id', 'email']]],
-            'conditions' => $this->__prepareConditions(),
-            'afterFind' => function (\App\Model\Entity\AuthKey $authKey) {
+                'contain' => ['Users' => ['fields' => ['id', 'email']]],
+                'conditions' => $this->__prepareConditions(),
+                'afterFind' => function (\App\Model\Entity\AuthKey $authKey) {
                 return $authKey;
             }
             ]
@@ -210,8 +210,8 @@ class AuthKeysController extends AppController
         $this->set(
             'menuData',
             [
-            'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
-            'menuItem' => 'authKeyView',
+                'menuList' => $this->isSiteAdmin() ? 'admin' : 'globalActions',
+                'menuItem' => 'authKeyView',
             ]
         );
     }
@@ -273,23 +273,23 @@ class AuthKeysController extends AppController
             } else {
                 // org admin only for non-admin users and themselves
                 $user = $this->AuthKey->User->find(
-                    'first',
+                    'all',
                     [
-                    'recursive' => -1,
-                    'conditions' => [
-                        'User.id' => $user_id,
-                        'User.disabled' => false
-                    ],
-                    'fields' => ['User.id', 'User.org_id', 'User.disabled'],
-                    'contain' => [
-                        'Role' => [
-                            'fields' => [
-                                'Role.perm_site_admin', 'Role.perm_admin', 'Role.perm_auth'
+                        'recursive' => -1,
+                        'conditions' => [
+                            'User.id' => $user_id,
+                            'User.disabled' => false
+                        ],
+                        'fields' => ['User.id', 'User.org_id', 'User.disabled'],
+                        'contain' => [
+                            'Role' => [
+                                'fields' => [
+                                    'Role.perm_site_admin', 'Role.perm_admin', 'Role.perm_auth'
+                                ]
                             ]
                         ]
                     ]
-                    ]
-                );
+                )->first();
                 if (
                     $user['Role']['perm_site_admin'] ||
                     ($user['Role']['perm_admin'] && $user['User']['id'] !== $loggedUser->id) ||
@@ -313,10 +313,10 @@ class AuthKeysController extends AppController
         $user_id = $this->AuthKeys->find(
             'column',
             [
-            'fields' => ['user_id'],
-            'conditions' => [
-                'id' => $key_id
-            ]
+                'fields' => ['user_id'],
+                'conditions' => [
+                    'id' => $key_id
+                ]
             ]
         );
         return $this->__canCreateAuthKeyForUser($user_id);
