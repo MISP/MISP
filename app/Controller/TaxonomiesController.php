@@ -99,12 +99,12 @@ class TaxonomiesController extends AppController
             $taxonomy['entries'][$key]['events'] = $count;
             $taxonomy['entries'][$key]['attributes'] = $count_a;
         }
-        $this->set('filter', $filter);
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($taxonomy['entries'], $this->passedArgs, 'TaxonomyEntry');
         if ($params['sort'] == 'id') {
             $params['sort'] = 'tag';
         }
+        $params['options'] = ['filter' => $filter];
         $this->params->params['paging'] = array($this->modelClass => $params);
         $params = $customPagination->applyRulesOnArray($taxonomy['entries'], $params, 'taxonomies');
         if ($this->_isRest()) {
