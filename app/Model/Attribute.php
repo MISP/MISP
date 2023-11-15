@@ -1688,7 +1688,7 @@ class Attribute extends AppModel
         }
         $params['order'] = [];
         if (!empty($options['order'])) {
-            $options['order'] = $this->findOrder(
+            $params['order'] = $this->findOrder(
                 $options['order'],
                 'Attribute',
                 ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']

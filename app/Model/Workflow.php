@@ -1214,7 +1214,7 @@ class Workflow extends AppModel
 
         $params['order'] = [];
         if (!empty($options['order'])) {
-            $options['order'] = $this->findOrder(
+            $params['order'] = $this->findOrder(
                 $options['order'],
                 'Workflow',
                 ['id', 'name', 'timestmap', 'trigger_id', 'counter']

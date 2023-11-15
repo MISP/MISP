@@ -191,7 +191,6 @@ echo $this->element('/genericElements/IndexTable/scaffold', ['scaffold_data' => 
     'paginatorOptions' => [
         'url' => [$taxonomy['id']]
     ],
-    'persistUrlParams' => ['filter']
 ],
     'containerId' => 'preview_taxonomy_tags_container'
 ]]);

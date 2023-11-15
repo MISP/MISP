@@ -491,7 +491,9 @@ class StixParser():
         elif properties.hostname:
             type1 = "hostname"
             value1 = properties.hostname.hostname_value.value
-        return "{}|port".format(type1), "{}|{}".format(value1, properties.port.port_value.value), ""
+        if properties.port:
+            return "{}|port".format(type1), "{}|{}".format(value1, properties.port.port_value.value), ""
+        return type1, value1, ''
 
     # Parse a system object to extract a mac-address attribute
     @staticmethod
