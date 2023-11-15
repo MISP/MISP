@@ -3978,7 +3978,7 @@ class Event extends AppModel
         return true;
     }
 
-    public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false)
+    public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false, $fast_update = false)
     {
         $data = $this->cleanupEventArrayFromXML($data);
         unset($this->Attribute->validate['event_id']);
@@ -4114,7 +4114,7 @@ class Event extends AppModel
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $attribute) {
                     $nothingToChange = false;
-                    $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
+                    $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server, $fast_update);
                     if ($result !== true) {
                         $validationErrors['Attribute'][] = $result;
                     }

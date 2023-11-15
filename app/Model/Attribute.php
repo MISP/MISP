@@ -2555,7 +2555,7 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false, $server = null)
+    public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false, $server = null, $fast_update = false)
     {
         $eventId = $event['Event']['id'];
         $attribute['event_id'] = $eventId;
@@ -2629,7 +2629,17 @@ class Attribute extends AppModel
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';
         }
-        if (!$this->save(['Attribute' => $attribute], ['fieldList' => $fieldList, 'parentEvent' => $event])) {
+
+        $saveOptions = [
+            'fieldList' => $fieldList,
+            'parentEvent' => $event
+        ];
+        
+        if ($fast_update) {
+            $saveOptions['callbacks'] = false;
+        }
+
+        if (!$this->save(['Attribute' => $attribute], $saveOptions)) {
             $this->logDropped($user, $attribute, 'edit');
             return $this->validationErrors;
         }
