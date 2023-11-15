@@ -2057,7 +2057,7 @@ class Event extends AppModel
             $params['page'] = $options['page'];
         }
         if (!empty($options['order'])) {
-            $options['order'] = $this->findOrder(
+            $params['order'] = $this->findOrder(
                 $options['order'],
                 'Event',
                 ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']

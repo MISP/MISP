@@ -203,6 +203,7 @@ class ACLComponent extends Component
                 'extractFromReport' => array('*'),
                 'replaceSuggestionInReport' => array('*'),
                 'importReportFromUrl' => array('*'),
+                'sendToLLM' => ['*'],
             ),
             'events' => array(
                     'add' => array('perm_add'),
@@ -617,6 +618,7 @@ class ACLComponent extends Component
                 'advanced' => array('perm_sighting'),
                 'delete' => ['AND' => ['perm_sighting', 'perm_modify_org']],
                 'index' => array('*'),
+                'view' => array('*'),
                 'listSightings' => array('*'),
                 'quickDelete' => ['AND' => ['perm_sighting', 'perm_modify_org']],
                 'viewSightings' => array('*'),
