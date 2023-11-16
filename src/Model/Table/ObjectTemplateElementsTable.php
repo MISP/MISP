@@ -10,25 +10,31 @@ class ObjectTemplateElementsTable extends AppTable
     {
         parent::initialize($config);
         $this->addBehavior('AuditLog');
-        $this->addBehavior('JsonFields', [
-            'fields' => ['categories', 'values_list', 'sane_default'],
-        ]);
+        $this->addBehavior(
+            'JsonFields',
+            [
+                'fields' => ['categories' => [], 'values_list' => [], 'sane_default'=> []],
+            ]
+        );
         $this->setDisplayField('object_relation');
     }
 
     public function getAllAvailableTypes()
     {
-        $temp = $this->find('all', array(
-            'recursive' => -1,
-            'fields' => array('object_relation as type', 'description AS desc', 'categories'),
-            'group' => array('object_relation', 'description', 'categories')
-        ));
-        $res = array();
+        $temp = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'fields' => ['object_relation as type', 'description AS desc', 'categories'],
+                'group' => ['object_relation', 'description', 'categories']
+            ]
+        );
+        $res = [];
         foreach ($temp as $type) {
-            $res[$type['ObjectTemplateElement']['type']] = array(
+            $res[$type['ObjectTemplateElement']['type']] = [
                 'desc' => $type['ObjectTemplateElement']['desc'],
                 'category' => $type['ObjectTemplateElement']['categories']
-            );
+            ];
         }
         return $res;
     }

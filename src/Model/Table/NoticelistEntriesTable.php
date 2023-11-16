@@ -9,8 +9,11 @@ class NoticelistEntriesTable extends AppTable
     public function initialize(array $config): void
     {
         parent::initialize($config);
-        $this->addBehavior('JsonFields', [
-            'fields' => ['data'],
-        ]);
+        $this->addBehavior(
+            'JsonFields',
+            [
+                'fields' => ['data' => []],
+            ]
+        );
     }
 }

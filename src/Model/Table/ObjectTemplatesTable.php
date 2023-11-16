@@ -17,7 +17,7 @@ class ObjectTemplatesTable extends AppTable
         $this->addBehavior(
             'JsonFields',
             [
-            'fields' => ['requirements'],
+                'fields' => ['requirements' => []],
             ]
         );
         $this->belongsTo(
@@ -25,15 +25,15 @@ class ObjectTemplatesTable extends AppTable
             [
                 'foreignKey' => 'user_id',
                 'propertyName' => 'User',
-                ]
+            ]
         );
-            $this->belongsTo(
-                'Organisations',
-                [
-                    'foreignKey' => 'org_id',
-                    'propertyName' => 'Organisation',
-                ]
-            );
+        $this->belongsTo(
+            'Organisations',
+            [
+                'foreignKey' => 'org_id',
+                'propertyName' => 'Organisation',
+            ]
+        );
         $this->hasMany(
             'ObjectTemplateElements',
             [
@@ -66,10 +66,10 @@ class ObjectTemplatesTable extends AppTable
             $current = $this->find(
                 'all',
                 [
-                'fields' => ['version' => 'MAX(version)', 'uuid'],
-                'conditions' => ['uuid' => $template['uuid']],
-                'recursive' => -1,
-                'group' => ['uuid']
+                    'fields' => ['version' => 'MAX(version)', 'uuid'],
+                    'conditions' => ['uuid' => $template['uuid']],
+                    'recursive' => -1,
+                    'group' => ['uuid']
                 ]
             )->first();
             if (!empty($current)) {
@@ -109,7 +109,6 @@ class ObjectTemplatesTable extends AppTable
         }
         $template['fixed'] = 1;
         $templateEntity = $this->newEntity($template);
-        $templateEntity->requirements = $template['requirements'];
         $result = $this->save($templateEntity);
         if (!$result) {
             return $this->validationErrors;
@@ -123,9 +122,6 @@ class ObjectTemplatesTable extends AppTable
             $attribute['object_relation'] = $k;
             $attribute['object_template_id'] = $id;
             $attributeEntity = $this->ObjectTemplateElements->newEntity($attribute);
-            $attributeEntity->categories = $attribute['categories'] ?? [];
-            $attributeEntity->values_list = $attribute['values_list'] ?? [];
-            $attributeEntity->sane_default = $attribute['sane_default'] ?? [];
 
             $attributes[] = $attributeEntity;
         }
@@ -218,33 +214,33 @@ class ObjectTemplatesTable extends AppTable
         $potentialTemplateIds = $this->find(
             'column',
             [
-            'recursive' => -1,
-            'fields' => [
-                'ObjectTemplate.id',
-            ],
-            'conditions' => [
-                'ObjectTemplate.active' => true,
-                'ObjectTemplateElements.type' => $uniqueAttributeTypes,
-            ],
-            'joins' => [
-                [
-                    'table' => 'object_template_elements',
-                    'alias' => 'ObjectTemplateElements',
-                    'type' => 'RIGHT',
-                    'fields' => ['ObjectTemplateElements.object_relation', 'ObjectTemplateElements.type'],
-                    'conditions' => ['ObjectTemplate.id = ObjectTemplateElements.object_template_id']
-                ]
-            ],
-            'group' => 'ObjectTemplate.id',
+                'recursive' => -1,
+                'fields' => [
+                    'ObjectTemplate.id',
+                ],
+                'conditions' => [
+                    'ObjectTemplate.active' => true,
+                    'ObjectTemplateElements.type' => $uniqueAttributeTypes,
+                ],
+                'joins' => [
+                    [
+                        'table' => 'object_template_elements',
+                        'alias' => 'ObjectTemplateElements',
+                        'type' => 'RIGHT',
+                        'fields' => ['ObjectTemplateElements.object_relation', 'ObjectTemplateElements.type'],
+                        'conditions' => ['ObjectTemplate.id = ObjectTemplateElements.object_template_id']
+                    ]
+                ],
+                'group' => 'ObjectTemplate.id',
             ]
         );
 
         $templates = $this->find(
             'all',
             [
-            'recursive' => -1,
-            'conditions' => ['id' => $potentialTemplateIds],
-            'contain' => ['ObjectTemplateElements' => ['fields' => ['object_relation', 'type', 'multiple']]]
+                'recursive' => -1,
+                'conditions' => ['id' => $potentialTemplateIds],
+                'contain' => ['ObjectTemplateElements' => ['fields' => ['object_relation', 'type', 'multiple']]]
             ]
         );
 
@@ -258,17 +254,17 @@ class ObjectTemplatesTable extends AppTable
         usort(
             $templates->toArray(),
             function ($a, $b) {
-            if ($a['id'] == $b['id']) {
-                return 0;
-            } else if (is_array($a['compatibility']) && is_array($b['compatibility'])) {
-                return count($a['compatibility']) > count($b['compatibility']) ? 1 : -1;
-            } else if (is_array($a['compatibility']) && !is_array($b['compatibility'])) {
-                return 1;
-            } else if (!is_array($a['compatibility']) && is_array($b['compatibility'])) {
-                return -1;
-            } else { // sort based on invalidTypes count
-                return count($a['invalidTypes']) > count($b['invalidTypes']) ? 1 : -1;
-            }
+                if ($a['id'] == $b['id']) {
+                    return 0;
+                } else if (is_array($a['compatibility']) && is_array($b['compatibility'])) {
+                    return count($a['compatibility']) > count($b['compatibility']) ? 1 : -1;
+                } else if (is_array($a['compatibility']) && !is_array($b['compatibility'])) {
+                    return 1;
+                } else if (!is_array($a['compatibility']) && is_array($b['compatibility'])) {
+                    return -1;
+                } else { // sort based on invalidTypes count
+                    return count($a['invalidTypes']) > count($b['invalidTypes']) ? 1 : -1;
+                }
             }
         );
 
@@ -356,9 +352,9 @@ class ObjectTemplatesTable extends AppTable
         $template = $this->find(
             'all',
             [
-            'recursive' => -1,
-            'conditions' => ['ObjectTemplates.id' => $id],
-            'fields' => ['ObjectTemplates.id', 'ObjectTemplates.uuid', 'ObjectTemplates.active'],
+                'recursive' => -1,
+                'conditions' => ['ObjectTemplates.id' => $id],
+                'fields' => ['ObjectTemplates.id', 'ObjectTemplates.uuid', 'ObjectTemplates.active'],
             ]
         )->first();
         if (empty($template)) {
@@ -372,14 +368,14 @@ class ObjectTemplatesTable extends AppTable
         $similar_templates = $this->find(
             'all',
             [
-            'recursive' => -1,
-            'fields' => ['ObjectTemplates.id'],
-            'conditions' => [
-                'ObjectTemplates.uuid' => $template['uuid'],
-                'NOT' => [
-                    'ObjectTemplates.id' => $template['id']
+                'recursive' => -1,
+                'fields' => ['ObjectTemplates.id'],
+                'conditions' => [
+                    'ObjectTemplates.uuid' => $template['uuid'],
+                    'NOT' => [
+                        'ObjectTemplates.id' => $template['id']
+                    ]
                 ]
-            ]
             ]
         );
         $template['active'] = 1;

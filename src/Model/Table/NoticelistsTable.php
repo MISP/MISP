@@ -19,7 +19,7 @@ class NoticelistsTable extends AppTable
         $this->addBehavior(
             'JsonFields',
             [
-                'fields' => ['ref', 'geographical_area'],
+                'fields' => ['ref' => [], 'geographical_area' => []],
             ]
         );
 
@@ -90,8 +90,6 @@ class NoticelistsTable extends AppTable
             $noticelist[$fieldToSave] = $list[$fieldToSave];
         }
         $noticelistEntity = $this->newEntity($noticelist);
-        $noticelistEntity->ref = $noticelist['ref'];
-        $noticelistEntity->geographical_area = $noticelist['geographical_area'];
         $result = $this->save($noticelistEntity);
         if ($result) {
             $values = [];
