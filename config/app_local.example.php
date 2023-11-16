@@ -51,7 +51,8 @@ return [
     ],
     'MISP' => [
         'dark' => 0,
-        'email' => 'email@example.com'
+        'email' => 'email@example.com',
+        'default_event_distribution' => '1'
     ],
     'BackgroundJobs' => [
         'enabled' => true,

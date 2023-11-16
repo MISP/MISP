@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Galaxies;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\GalaxiesFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class IndexGalaxiesApiTest extends TestCase
 {
@@ -20,6 +20,11 @@ class IndexGalaxiesApiTest extends TestCase
         'app.Users',
         'app.AuthKeys',
         'app.Galaxies',
+        'app.GalaxyClusters',
+        'app.GalaxyElements',
+        'app.GalaxyClusterRelations',
+        'app.GalaxyClusterRelationTags',
+        'app.Tags',
     ];
 
     public function testIndexGalaxies(): void

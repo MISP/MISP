@@ -46,7 +46,7 @@ class GalaxyClusterRelationsTable extends AppTable
                 'inList',
                 [
                     'rule' => ['inList', Distribution::ALL],
-                    'message' => 'Options: ' . implode(', ', Distribution::DESCRIPTION)
+                    'message' => 'Options: ' . implode(', ', Distribution::DESCRIPTIONS)
                 ]
             );
 

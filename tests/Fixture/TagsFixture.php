@@ -10,7 +10,7 @@ class TagsFixture extends TestFixture
 {
     public $connection = 'test';
 
-    public const TAG_1_ID = 1;
+    public const TAG_1_ID = 1000;
 
     public function init(): void
     {
