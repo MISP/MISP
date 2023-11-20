@@ -2794,7 +2794,14 @@ class EventsController extends AppController
                     $this->request->data = array('Event' => $this->request->data);
                 }
                 $fast_update = $this->request->param('named.fast_update');
-                $result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id, null, null, false, $fast_update);
+                if (!empty($this->request->data['Event']['fast_update'])) {
+                    $fast_update = (bool)$this->request->data['Event']['fast_update'];
+                }
+                if ($fast_update) {
+                    $this->Event->fast_update = true;
+                    $this->Event->Attribute->fast_update = true;
+                }
+                $result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id, null, null, false);
                 if ($result === true) {
                     // REST users want to see the newly created event
                     $metadata = $this->request->param('named.metadata');

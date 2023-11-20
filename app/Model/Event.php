@@ -373,6 +373,8 @@ class Event extends AppModel
     /** @var array|null */
     private $eventBlockRule;
 
+    public $fast_update = false;
+
     public function beforeDelete($cascade = true)
     {
         // blocklist the event UUID if the feature is enabled
@@ -3983,7 +3985,6 @@ class Event extends AppModel
         $data = $this->cleanupEventArrayFromXML($data);
         unset($this->Attribute->validate['event_id']);
         unset($this->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-
         // reposition to get the event.id with given uuid
         if (isset($data['Event']['uuid'])) {
             $conditions = ['Event.uuid' => $data['Event']['uuid']];
@@ -3993,7 +3994,6 @@ class Event extends AppModel
             throw new InvalidArgumentException("No event UUID or ID provided.");
         }
         $existingEvent = $this->find('first', ['conditions' => $conditions, 'recursive' => -1]);
-
         if ($passAlong) {
             $this->Server = ClassRegistry::init('Server');
             $server = $this->Server->find('first', array(
@@ -4109,19 +4109,32 @@ class Event extends AppModel
                     'Event'
                 );
             }
-
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
-                foreach ($data['Event']['Attribute'] as $attribute) {
-                    $nothingToChange = false;
-                    $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server, $fast_update);
-                    if ($result !== true) {
-                        $validationErrors['Attribute'][] = $result;
+                $attributes = [];
+                if (true) {
+                    foreach ($data['Event']['Attribute'] as $k => $attribute) {
+                        $nothingToChange = false;
+                        $attributes[] = $this->Attribute->editAttribute2($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
+                        if (!$nothingToChange) {
+                            $changed = true;
+                        }
                     }
-                    if (!$nothingToChange) {
-                        $changed = true;
+                    $result = $this->Attribute->editAttributeBulk($attributes, $saveResult, $user);
+                    $result = $this->Attribute->editAttributePostProcessing($attributes, $saveResult, $user);
+                } else {
+                    foreach ($data['Event']['Attribute'] as $k => $attribute) {
+                        $nothingToChange = false;
+                        $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
+                        if ($result !== true) {
+                            $validationErrors['Attribute'][] = $result;
+                        }
+                        if (!$nothingToChange) {
+                            $changed = true;
+                        }
                     }
                 }
+
             }
             if (isset($data['Event']['Object'])) {
                 $data['Event']['Object'] = array_values($data['Event']['Object']);

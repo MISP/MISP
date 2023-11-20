@@ -39,10 +39,18 @@ class Module_attribute_edition_operation extends WorkflowBaseActionModule
     protected function __saveAttributes(array $attributes, array $rData, array $params, array $user): array
     {
         $success = false;
-        foreach ($attributes as $attribute) {
+        $attributes = [];
+        $newAttributes = [];
+        foreach ($attributes as $k => $attribute) {
             $newAttribute = $this->_editAttribute($attribute, $rData, $params);
+            $newAttributes[] = $newAttribute;
             unset($newAttribute['timestamp']);
-            $saveSuccess = $this->Attribute->editAttribute($newAttribute, $rData, $user, $newAttribute['object_id']);
+            $attributes[] = $this->Attribute->editAttribute($newAttribute, $rData, $user, $newAttribute['object_id']);
+        }
+        $this->Attribute->editAttributeBulk($attributes, $rData, $user);
+        $this->Attribute->editAttributePostProcessing($attributes, $rData, $user);
+        foreach ($attributes as $k => $attribute) {
+            $saveSuccess = empty($this->Attribute->validationErrors[$k]);
             if ($saveSuccess) {
                 $rData = $this->_overrideAttribute($attribute, $newAttribute, $rData);
             }
@@ -54,3 +62,14 @@ class Module_attribute_edition_operation extends WorkflowBaseActionModule
         ];
     }
 }
+
+
+
+foreach ($object['Attribute'] as $k => $attribute) {
+    if (!empty($object['deleted'])) {
+        $attribute['deleted'] = 1;
+    }
+    $attributes[] = $this->Attribute->editAttribute2($attribute, $event, $user, $object['id'], false, $force);
+}
+$result = $this->Attribute->editAttributeBulk($attributes, $event, $user);
+$result = $this->Attribute->editAttributePostProcessing($attributes, $event, $user);

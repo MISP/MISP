@@ -1215,6 +1215,15 @@ class MispObject extends AppModel
                 }
                 $result = $this->Attribute->editAttribute($attribute, $event, $user, $object['id'], false, $force);
             }
+            $attributes = [];
+            foreach ($object['Attribute'] as $k => $attribute) {
+                if (!empty($object['deleted'])) {
+                    $attribute['deleted'] = 1;
+                }
+                $attributes[] = $this->Attribute->editAttribute2($attribute, $event, $user, $object['id'], false, $force);
+            }
+            $result = $this->Attribute->editAttributeBulk($attributes, $event, $user);
+            $result = $this->Attribute->editAttributePostProcessing($attributes, $event, $user);
         }
         return true;
     }
