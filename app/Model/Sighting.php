@@ -649,7 +649,7 @@ class Sighting extends AppModel
             if ($showOrg && $sighting['org_id']) {
                 $sighting['Organisation'] = $this->getOrganisationById($sighting['org_id']);
             }
-            if ($sighting['org_id'] != $user['org_id'] && ($anonymise || !empty($anonOrg))) {
+            if ($sighting['org_id'] != $user['org_id'] && $anonymise) {
                 if (empty($anonOrg)) {
                     unset($sighting['org_id']);
                     unset($sighting['Organisation']);

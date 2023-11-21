@@ -181,7 +181,7 @@
   },
   {
     "name": "BEAM SOC MISP Community",
-    "logo": "https://www.beamteknoloji.com/wp-content/uploads/2020/01/beamlogo.png",
+    "logo": "https://www.beamteknoloji.com/wp-content/uploads/beamBlueLogo.png",
     "uuid": "45819403-49b9-438f-95bc-e0abb50ba03b",
     "org_uuid": "",
     "org_name": "",
@@ -192,7 +192,7 @@
     "type": "Vetted Information Sharing Community",
     "email": "contact@beamteknoloji.com",
     "pgp_key": null,
-    "misp_project_vetted": true,
+    "misp_project_vetted": false,
     "scope_of_data_to_be_shared": "",
     "self_registration": false
   }

@@ -59,7 +59,8 @@ class RestSearchComponent extends Component
             'event_ids',
             'includeAllTags',
             'includeAttributeUuid',
-            'includeGalaxy'
+            'includeGalaxy',
+            'order'
         ],
         'Event' => [
             'returnFormat',
@@ -188,7 +189,8 @@ class RestSearchComponent extends Component
             'minimal',
             'list',
             'first',
-            'count'
+            'count',
+            'order'
         ],
     );
 

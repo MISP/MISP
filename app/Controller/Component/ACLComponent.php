@@ -203,6 +203,7 @@ class ACLComponent extends Component
                 'extractFromReport' => array('*'),
                 'replaceSuggestionInReport' => array('*'),
                 'importReportFromUrl' => array('*'),
+                'sendToLLM' => ['*'],
             ),
             'events' => array(
                     'add' => array('perm_add'),

@@ -11,7 +11,8 @@ class EventEvolutionLineWidget
     public $autoRefreshDelay = false;
     public $params = [
         'filter' => 'A list of filters by organisation meta information (nationality, sector, type, name, uuid) to include. (dictionary, prepending values with ! uses them as a negation)',
-        'start_date' => 'Start date, expressed in Y-m-d format (e.g. 2012-10-01)'
+        'start_date' => 'Start date, expressed in Y-m-d format (e.g. 2012-10-01)',
+        'cumulative' => '(default: on), should the data counted cumulatively over time',
     ];
     private $validFilterKeys = [
         'nationality',
@@ -48,6 +49,7 @@ class EventEvolutionLineWidget
     {
         $this->Organisation = ClassRegistry::init('Organisation');
         $this->Event = ClassRegistry::init('Event');
+        $isCumulative = isset($options['cumulative']) && empty($options['cumulative']);
         $oparams = [
             'conditions' => [
                 'AND' => ['Organisation.local' => !isset($options['local']) ? 1 : $options['local']]
@@ -92,7 +94,7 @@ class EventEvolutionLineWidget
             'recursive' => -1,
             'conditions' => $eparams['conditions'],
             'fields' => ['DATE_FORMAT(FROM_UNIXTIME(Event.publish_timestamp), "%Y-%m") AS date', 'count(id) AS count'],
-            'group' => ['MONTH(FROM_UNIXTIME(Event.publish_timestamp)), YEAR(FROM_UNIXTIME(Event.publish_timestamp))',]
+            'group' => ['MONTH(FROM_UNIXTIME(Event.publish_timestamp)), YEAR(FROM_UNIXTIME(Event.publish_timestamp))', 'DATE_FORMAT(FROM_UNIXTIME(Event.publish_timestamp), "%Y-%m")']
             
         ]);
 
@@ -113,7 +115,11 @@ class EventEvolutionLineWidget
         $total = 0;
         foreach ($raw_padded as $date => $count) {
             $total += $count;
-            $raw_padded[$date] = $total;
+            if ($isCumulative) {
+                $raw_padded[$date] = $count;
+            } else {
+                $raw_padded[$date] = $total;
+            }
         }
         $data = [];
         foreach ($raw_padded as $date => $count) {

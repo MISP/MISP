@@ -1064,7 +1064,7 @@ class GalaxyCluster extends AppModel
             $params['group'] = $options['group'];
         }
         if (!empty($options['order'])) {
-            $options['order'] = $this->findOrder(
+            $params['order'] = $this->findOrder(
                 $options['order'],
                 'GalaxyCluster',
                 ['id', 'event_id', 'version', 'type', 'value', 'distribution', 'orgc_id', 'org_id', 'tag_name', 'galaxy_id']
