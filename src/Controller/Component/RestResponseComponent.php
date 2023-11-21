@@ -2,6 +2,7 @@
 
 namespace App\Controller\Component;
 
+use App\Model\Entity\Distribution;
 use Cake\Controller\Component;
 use Cake\Core\Configure;
 use Cake\ORM\Locator\LocatorAwareTrait;
@@ -50,7 +51,7 @@ class RestResponseComponent extends Component
             'restSearch' => [
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => ['returnFormat'],
-                'optional' => ['page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'],
+                'optional' => ['page', 'limit', 'value', 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'],
                 'params' => []
             ]
         ],
@@ -278,7 +279,7 @@ class RestResponseComponent extends Component
                 'mandatory' => ['[]']
             ],
             'toggleEnable' => [
-                'description' => "POST a json object with a single or a list of warninglist IDsIDs, or alternatively a (list of) substring(s) that match the names of warninglist(s) to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",'mandatory' => ['id'],
+                'description' => "POST a json object with a single or a list of warninglist IDsIDs, or alternatively a (list of) substring(s) that match the names of warninglist(s) to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.", 'mandatory' => ['id'],
                 'optional' => ['id', 'name', 'enabled']
             ]
         ]
@@ -286,7 +287,8 @@ class RestResponseComponent extends Component
 
     private $__scopedFieldsConstraint = [];
 
-    public function initialize(array $config): void {
+    public function initialize(array $config): void
+    {
         $this->__configureFieldConstraints();
         $this->Controller = $this->getController();
     }
@@ -424,7 +426,7 @@ class RestResponseComponent extends Component
         return $this->__sendResponse($response, 200, $format);
     }
 
-    public function ajaxSuccessResponse($ObjectAlias, $action, $entity, $message, $additionalData=[])
+    public function ajaxSuccessResponse($ObjectAlias, $action, $entity, $message, $additionalData = [])
     {
         $action = $this->__dissectAdminRouting($action);
         $entity = is_array($entity) ? $entity : $entity->toArray();
@@ -607,7 +609,7 @@ class RestResponseComponent extends Component
         $params = '';
         if (!empty($this->__descriptions[Inflector::singularize($controller)][$action]['params'])) {
             foreach ($this->__descriptions[Inflector::singularize($controller)][$action]['params'] as $k => $param) {
-                $params .= ($k > 0 ? '/': '') . '[' . $param . ']';
+                $params .= ($k > 0 ? '/' : '') . '[' . $param . ']';
             }
         }
         $response['url'] = $this->__generateURL($actionArray, $controller, $params);
@@ -649,7 +651,7 @@ class RestResponseComponent extends Component
             'active' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Is the sharing group selectable (active) when chosing distribution')
             ],
             'all' => [
@@ -660,26 +662,26 @@ class RestResponseComponent extends Component
             'all_orgs' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('All organisations contained on the instance will be part of the sharing group')
             ],
             'allow_hard_delete' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('hard-delete already soft-deleted attributes')
             ],
             'analysis' => [
                 'input' => 'select',
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
-                'values' => [ 0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'],
+                'values' => [0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'],
                 'help' => __('Maturity of the event')
             ],
             'anonymise' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'operators' => ['equal'],
                 'help' => __('Anonymise the information regarding the server on which the request was issued')
             ],
@@ -698,7 +700,7 @@ class RestResponseComponent extends Component
             'autoalert' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The user receive alerts when events are published')
             ],
             'body' => [
@@ -710,7 +712,7 @@ class RestResponseComponent extends Component
             'caching_enabled' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The feed is cached')
             ],
             'category' => [
@@ -734,7 +736,7 @@ class RestResponseComponent extends Component
             'change_pw' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The user will be prompted the change the password')
             ],
             'colour' => [
@@ -757,12 +759,12 @@ class RestResponseComponent extends Component
             'contactalert' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The user receive alerts from `contact reporter` requests')
             ],
             'created' => [
                 'type' => 'date',
-                'validation' => [ 'format' => 'YYYY-MM-DD' ],
+                'validation' => ['format' => 'YYYY-MM-DD'],
                 'plugin' => 'datepicker',
                 'plugin_config' => [
                     'format' => 'yyyy/mm/dd',
@@ -779,7 +781,7 @@ class RestResponseComponent extends Component
             ],
             'date' => [
                 'type' => 'date',
-                'validation' => [ 'format' => 'YYYY-MM-DD' ],
+                'validation' => ['format' => 'YYYY-MM-DD'],
                 'plugin' => 'datepicker',
                 'plugin_config' => [
                     'format' => 'yyyy/mm/dd',
@@ -791,7 +793,7 @@ class RestResponseComponent extends Component
             ],
             'datefrom' => [
                 'type' => 'date',
-                'validation' => [ 'format' => 'YYYY-MM-DD' ],
+                'validation' => ['format' => 'YYYY-MM-DD'],
                 'plugin' => 'datepicker',
                 'plugin_config' => [
                     'format' => 'yyyy/mm/dd',
@@ -802,7 +804,7 @@ class RestResponseComponent extends Component
             ],
             'dateuntil' => [
                 'type' => 'date',
-                'validation' => [ 'format' => 'YYYY-MM-DD' ],
+                'validation' => ['format' => 'YYYY-MM-DD'],
                 'plugin' => 'datepicker',
                 'plugin_config' => [
                     'format' => 'yyyy/mm/dd',
@@ -821,25 +823,25 @@ class RestResponseComponent extends Component
             'default_role' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The role is a default role (selected by default)')
             ],
             'delete_local_file' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Remove file after ingestion')
             ],
             'deleted' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Include deleted elements')
             ],
             'delta_merge' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Merge attributes (only add new attribute, remove revoked attributes)')
             ],
             'description' => [
@@ -850,7 +852,7 @@ class RestResponseComponent extends Component
             'disabled' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Disable the user account')
             ],
             'distribution' => [
@@ -868,18 +870,18 @@ class RestResponseComponent extends Component
             'enable_password' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Set the password manually')
             ],
             'enabled' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'encrypt' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('When uploading malicious samples, set this flag to tell MISP to encrpyt the sample and extract the file hashes. This will create a MISP object with the appropriate attributes.')
             ],
             //'enforceWarningList' => array(
@@ -890,7 +892,7 @@ class RestResponseComponent extends Component
             'enforceWarninglist' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Should the warning list be enforced. Adds `blocked` field for matching attributes')
             ],
             'event_id' => [
@@ -928,31 +930,31 @@ class RestResponseComponent extends Component
             'exportable' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The tag is exported when synchronising with other instances')
             ],
             'excludeDecayed' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => 'Should the decayed elements by excluded'
             ],
             'excludeLocalTags' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Exclude local tags from the export')
             ],
             'extend' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The organisation have write access to this sharing group (they can add/remove other organisation)')
             ],
             'external_auth_required' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('An external authorisation is required for this user')
             ],
             'external_auth_key' => [
@@ -971,12 +973,12 @@ class RestResponseComponent extends Component
                 'input' => 'select',
                 'type' => 'integer',
                 'operators' => ['equal'],
-                'values' => [ 0 => 'New Event Each Pull', 1 => 'Fixed Event'],
+                'values' => [0 => 'New Event Each Pull', 1 => 'Fixed Event'],
                 'help' => __('target_event option might be considered')
             ],
             'from' => [
                 'type' => 'date',
-                'validation' => [ 'format' => 'YYYY-MM-DD' ],
+                'validation' => ['format' => 'YYYY-MM-DD'],
                 'plugin' => 'datepicker',
                 'plugin_config' => [
                     'format' => 'yyyy/mm/dd',
@@ -985,7 +987,7 @@ class RestResponseComponent extends Component
                     'autoclose' => true
                 ],
                 'help' => __('The date from which the event was published')
-             ],
+            ],
             'gpgkey' => [
                 'input' => 'text',
                 'type' => 'string',
@@ -995,7 +997,7 @@ class RestResponseComponent extends Component
             'hasproposal' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The event contains proposals')
             ],
             'headers' => [
@@ -1007,7 +1009,7 @@ class RestResponseComponent extends Component
             'hide_tag' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The tag is hidden (not selectable)')
             ],
             'id' => [
@@ -1019,43 +1021,43 @@ class RestResponseComponent extends Component
             'includeAttribute' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Include matching attributes in the response')
             ],
             'includeDecayScore' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => 'Include all enabled decaying score'
             ],
             'includeEvent' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Include matching events in the response')
             ],
             'includeEventUuid' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Include matching eventUuids in the response')
             ],
             'includeEventTags' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Include tags of matching events in the response')
             ],
             'includeFullModel' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => 'Include all model information of matching events in the response'
             ],
             'includeProposals' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Include proposals of matching events in the response')
             ],
             'info' => [
@@ -1068,7 +1070,7 @@ class RestResponseComponent extends Component
                 'input' => 'select',
                 'type' => 'string',
                 'operators' => ['equal'],
-                'values' => [ 'network' => 'Network', 'local' => 'Local'],
+                'values' => ['network' => 'Network', 'local' => 'Local'],
                 'help' => __('Specify whether the source (url field) is a directory (local) or an geniun url (network)')
             ],
             'ip' => [
@@ -1105,13 +1107,13 @@ class RestResponseComponent extends Component
             'local' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('If the organisation should have access to this instance, make sure that the Local organisation setting is checked. If you would only like to add a known external organisation for inclusion in sharing groups, uncheck the Local organisation setting.')
             ],
             'lookup_visible' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The lookup will not be visible in the feed correlation')
             ],
             'message' => [
@@ -1123,19 +1125,19 @@ class RestResponseComponent extends Component
             'metadata' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Will only return the metadata of the given query scope, contained data is omitted.')
             ],
             'minimal' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Will only return  id, timestamp, published and uuid')
             ],
             'mock' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'operators' => ['equal'],
                 'help' => __('Mock the query')
             ],
@@ -1153,7 +1155,7 @@ class RestResponseComponent extends Component
             ],
             'modified' => [
                 'type' => 'date',
-                'validation' => [ 'format' => 'YYYY-MM-DD' ],
+                'validation' => ['format' => 'YYYY-MM-DD'],
                 'plugin' => 'datepicker',
                 'plugin_config' => [
                     'format' => 'yyyy/mm/dd',
@@ -1227,7 +1229,7 @@ class RestResponseComponent extends Component
             'override_ids' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The IDS flags will be set to off for this feed')
             ],
             'page' => [
@@ -1246,68 +1248,68 @@ class RestResponseComponent extends Component
             'perm_admin' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'perm_audit' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'perm_auth' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'perm_delegate' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'perm_regexp_access' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'perm_sharing_group' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'perm_sighting' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'perm_site_admin' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'perm_sync' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'perm_tag_editor' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'perm_tagger' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'perm_template' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'permission' => [
                 'input' => 'select',
                 'type' => 'string',
                 'operators' => ['equal'],
-                'values' => [0 =>'Read Only', 1 => 'Manage Own Events', 2 => 'Manage Organisation Events', 3 => 'Manage and Publish Organisation Events'],
+                'values' => [0 => 'Read Only', 1 => 'Manage Own Events', 2 => 'Manage Organisation Events', 3 => 'Manage and Publish Organisation Events'],
             ],
             'provider' => [
                 'input' => 'text',
@@ -1318,7 +1320,7 @@ class RestResponseComponent extends Component
             'publish' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('The event will be published')
             ],
             'publish_timestamp' => [
@@ -1330,7 +1332,7 @@ class RestResponseComponent extends Component
             'published' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'publishtimestamp' => [
                 'input' => 'number',
@@ -1341,19 +1343,19 @@ class RestResponseComponent extends Component
             'pull' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Allow the download of events and their attribute from the server')
             ],
             'push' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Allow the upload of events and their attribute to the server')
             ],
             'push_sightings' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Allow the upload of sightings to the server')
             ],
             'releasability' => [
@@ -1377,7 +1379,7 @@ class RestResponseComponent extends Component
             'roaming' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Pass the event to any connected instance where the sync connection is tied to an organisation contained in the SG organisation list')
             ],
             'role_id' => [
@@ -1396,7 +1398,7 @@ class RestResponseComponent extends Component
             'searchall' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields')
             ],
             'sector' => [
@@ -1414,7 +1416,7 @@ class RestResponseComponent extends Component
             'sgReferenceOnly' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'help' => __('Will only return the sharing group ID')
             ],
             'sharing_group_id' => [
@@ -1440,7 +1442,7 @@ class RestResponseComponent extends Component
                 'input' => 'text',
                 'type' => 'string',
                 'operators' => ['equal'],
-                'values' => [ 'misp' => 'MISP Feed', 'freetext' => 'Freetext Parsed Feed', 'csv' => 'CSV Parsed Feed']
+                'values' => ['misp' => 'MISP Feed', 'freetext' => 'Freetext Parsed Feed', 'csv' => 'CSV Parsed Feed']
             ],
             'subject' => [
                 'input' => 'text',
@@ -1463,7 +1465,7 @@ class RestResponseComponent extends Component
             'sync' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ],
+                'values' => [1 => 'True', 0 => 'False'],
                 'operators' => ['equal']
             ],
             'tag' => [
@@ -1494,19 +1496,19 @@ class RestResponseComponent extends Component
             'termsaccepted' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
             'threat_level_id' => [
                 'input' => 'select',
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
-                'values' => [ 1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined']
+                'values' => [1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined']
             ],
             'threatlevel' => [
                 'input' => 'select',
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
-                'values' => [ 1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined']
+                'values' => [1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined']
             ],
             'time' => [
                 'input' => 'text',
@@ -1528,7 +1530,7 @@ class RestResponseComponent extends Component
             ],
             'to' => [
                 'type' => 'date',
-                'validation' => [ 'format' => 'YYYY-MM-DD' ],
+                'validation' => ['format' => 'YYYY-MM-DD'],
                 'plugin' => 'datepicker',
                 'plugin_config' => [
                     'format' => 'yyyy/mm/dd',
@@ -1581,7 +1583,7 @@ class RestResponseComponent extends Component
             'withAttachments' => [
                 'input' => 'radio',
                 'type' => 'integer',
-                'values' => [1 => 'True', 0 => 'False' ]
+                'values' => [1 => 'True', 0 => 'False']
             ],
 
             // Not supported yet
@@ -1661,7 +1663,8 @@ class RestResponseComponent extends Component
     }
 
     // create dictionnary mapping between fields constraints and scope->action
-    private function __setupFieldsConstraint() {
+    private function __setupFieldsConstraint()
+    {
         foreach ($this->__descriptions as $scope => $desc) {
             foreach ($desc as $action => $params) {
                 $fieldsConstraint = [];
@@ -1669,9 +1672,9 @@ class RestResponseComponent extends Component
                     if ($paramType == 'optional' || $paramType == 'mandatory') {
                         $fields = array_values($field);
                         if (!empty($fields)) {
-                            foreach($fields as $field) {
+                            foreach ($fields as $field) {
                                 if (is_array($field)) {
-                                    foreach($field as $sf) {
+                                    foreach ($field as $sf) {
                                         $fieldsConstraint[$sf] = $this->__fieldsConstraint[$sf];
                                         $label = $scope . '.' . $sf;
                                         $fieldsConstraint[$sf]['id'] = $label;
@@ -1687,7 +1690,7 @@ class RestResponseComponent extends Component
                                 }
 
                                 // add dynamic data and overwrite name collisions
-                                switch($field) {
+                                switch ($field) {
                                     case "returnFormat":
                                         $this->__overwriteReturnFormat($scope, $action, $fieldsConstraint[$field]);
                                         break;
@@ -1724,7 +1727,6 @@ class RestResponseComponent extends Component
                                     default:
                                         break;
                                 }
-
                             }
                         }
                     }
@@ -1735,8 +1737,9 @@ class RestResponseComponent extends Component
     }
 
     // Fetch the correct values based on the scope, then overwrite default value
-    private function __overwriteReturnFormat($scope, $action, &$field) {
-        switch($scope) {
+    private function __overwriteReturnFormat($scope, $action, &$field)
+    {
+        switch ($scope) {
             case "Attribute":
                 $field['values'] = array_keys($this->fetchTable($scope)->validFormats);
                 break;
@@ -1745,9 +1748,10 @@ class RestResponseComponent extends Component
                 break;
         }
     }
-    private function __overwriteType($scope, $action, &$field) {
+    private function __overwriteType($scope, $action, &$field)
+    {
         $field['input'] = 'select';
-        switch($scope) {
+        switch ($scope) {
             case "Attribute":
                 $field['values'] = array_keys($this->fetchTable($scope)->typeDefinitions);
                 break;
@@ -1763,66 +1767,73 @@ class RestResponseComponent extends Component
         }
     }
 
-    private function __overwriteCategory($scope, $action, &$field) {
+    private function __overwriteCategory($scope, $action, &$field)
+    {
         $field['values'] = array_keys($this->fetchTable("Attribute")->categoryDefinitions);
     }
-    private function __overwriteDistribution($scope, $action, &$field) {
+    private function __overwriteDistribution($scope, $action, &$field)
+    {
         $field['values'] = [];
-        foreach($this->fetchTable("Attribute")->distributionLevels as $d => $text) {
+        foreach (Distribution::ALL as $d => $text) {
             $field['values'][] = ['label' => $text, 'value' => $d];
         }
     }
-    private function __overwriteDecayingModel($scope, &$field) {
+    private function __overwriteDecayingModel($scope, &$field)
+    {
         $this->{$scope} = $this->fetchTable("DecayingModel");
         $models = $this->{$scope}->find(
             'list',
             [
-            'recursive' => -1,
-            'fields' => ['name']
+                'recursive' => -1,
+                'fields' => ['name']
             ]
         );
         $field['values'] = [];
-        foreach($models as $i => $model_name) {
+        foreach ($models as $i => $model_name) {
             $field['values'][] = ['label' => h($model_name), 'value' => $i];
         }
     }
-    private function __overwriteTags($scope, $action, &$field) {
+    private function __overwriteTags($scope, $action, &$field)
+    {
         $this->{$scope} = $this->fetchTable("Tag");
         $tags = $this->{$scope}->find(
             'list',
             [
-            'recursive' => -1,
-            'fields' => ['name']
+                'recursive' => -1,
+                'fields' => ['name']
             ]
         );
-        foreach($tags as $i => $tag) {
+        foreach ($tags as $i => $tag) {
             $tagname = htmlspecialchars($tag);
             $tags[$tagname] = $tagname;
             unset($tags[$i]);
         }
         $field['values'] = $tags;
     }
-    private function __overwriteNationality($scope, $action, &$field) {
+    private function __overwriteNationality($scope, $action, &$field)
+    {
         $field['values'] = $this->fetchTable("Organisation")->countries;
     }
-    private function __overwriteAction($scope, $action, &$field) {
+    private function __overwriteAction($scope, $action, &$field)
+    {
         $field['values'] = array_keys($this->fetchTable("Log")->actionDefinitions);
     }
-    private function __overwriteRoleId($scope, $action, &$field) {
+    private function __overwriteRoleId($scope, $action, &$field)
+    {
         $this->{$scope} = $this->fetchTable("Role");
         $roles = $this->{$scope}->find(
             'list',
             [
-            'recursive' => -1,
-            'fields' => ['name']
+                'recursive' => -1,
+                'fields' => ['name']
             ]
         );
         $field['values'] = $roles;
     }
-    private function __overwriteSeen($scope, $action, &$field) {
+    private function __overwriteSeen($scope, $action, &$field)
+    {
         if ($action == 'restSearch') {
             $field['help'] = __('Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)');
         }
     }
-
 }

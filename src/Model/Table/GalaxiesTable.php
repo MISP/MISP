@@ -40,7 +40,7 @@ class GalaxiesTable extends AppTable
         $this->addBehavior(
             'JsonFields',
             [
-                'fields' => ['kill_chain_order'],
+                'fields' => ['kill_chain_order' => ['default' => []]],
             ]
         );
 
@@ -187,84 +187,84 @@ class GalaxiesTable extends AppTable
 
         $conn->transactional(
             function ($conn) use ($GalaxyClustersTable, $LogTable, $cluster_package, $template, &$relations, &$elements) {
-            foreach ($cluster_package['values'] as $cluster) {
-                if (empty($cluster['version'])) {
-                    $cluster['version'] = 1;
-                }
-                $template['version'] = $cluster['version'];
+                foreach ($cluster_package['values'] as $cluster) {
+                    if (empty($cluster['version'])) {
+                        $cluster['version'] = 1;
+                    }
+                    $template['version'] = $cluster['version'];
 
-                $cluster_to_save = $template;
-                if (isset($cluster['description'])) {
-                    $cluster_to_save['description'] = $cluster['description'];
-                    unset($cluster['description']);
-                }
-                $cluster_to_save['value'] = $cluster['value'];
-                $cluster_to_save['tag_name'] = $cluster_to_save['tag_name'] . $cluster['value'] . '"';
-                if (!empty($cluster['uuid'])) {
-                    $cluster_to_save['uuid'] = $cluster['uuid'];
-                }
-                unset($cluster['value']);
-                if (empty($cluster_to_save['description'])) {
-                    $cluster_to_save['description'] = '';
-                }
-                $cluster_to_save['distribution'] = 3;
-                $cluster_to_save['default'] = true;
-                $cluster_to_save['published'] = false;
-                $cluster_to_save['org_id'] = 0;
-                $cluster_to_save['orgc_id'] = 0;
-                // We are already in transaction
-                $clusterEntity = $GalaxyClustersTable->newEntity($cluster_to_save);
+                    $cluster_to_save = $template;
+                    if (isset($cluster['description'])) {
+                        $cluster_to_save['description'] = $cluster['description'];
+                        unset($cluster['description']);
+                    }
+                    $cluster_to_save['value'] = $cluster['value'];
+                    $cluster_to_save['tag_name'] = $cluster_to_save['tag_name'] . $cluster['value'] . '"';
+                    if (!empty($cluster['uuid'])) {
+                        $cluster_to_save['uuid'] = $cluster['uuid'];
+                    }
+                    unset($cluster['value']);
+                    if (empty($cluster_to_save['description'])) {
+                        $cluster_to_save['description'] = '';
+                    }
+                    $cluster_to_save['distribution'] = 3;
+                    $cluster_to_save['default'] = true;
+                    $cluster_to_save['published'] = false;
+                    $cluster_to_save['org_id'] = 0;
+                    $cluster_to_save['orgc_id'] = 0;
+                    // We are already in transaction
+                    $clusterEntity = $GalaxyClustersTable->newEntity($cluster_to_save);
 
-                try {
-                    $GalaxyClustersTable->saveOrFail($clusterEntity, ['atomic' => false, 'validate' => false]);
-                } catch (Exception $e) {
-                    $this->log("Could not save galaxy cluster with UUID {$cluster_to_save['uuid']}, error: {$e->getMessage()}.");
-                    continue;
-                }
-                $galaxyClusterId = $clusterEntity->id;
-                if (isset($cluster['meta'])) {
-                    foreach ($cluster['meta'] as $key => $value) {
-                        if (!is_array($value)) {
-                            $value = [$value];
-                        }
-                        foreach ($value as $v) {
-                            if (is_array($v)) {
-                                $logEntry = $LogTable->newEntity(
-                                    [
-                                        'org' => 'SYSTEM',
-                                        'model' => 'Galaxy',
-                                        'model_id' => 0,
-                                        'email' => 0,
-                                        'action' => 'error',
-                                        'title' => sprintf('Found a malformed galaxy cluster (%s) during the update, skipping. Reason: Malformed meta field, embedded array found.', $cluster['uuid']),
-                                        'change' => ''
-                                    ]
-                                );
-                                $LogTable->save($logEntry);
-                            } else {
-                                $elements[] = [
-                                    'galaxy_cluster_id' => $galaxyClusterId,
-                                    'key' => $key,
-                                    'value' => (string)$v
-                                ];
+                    try {
+                        $GalaxyClustersTable->saveOrFail($clusterEntity, ['atomic' => false, 'validate' => false]);
+                    } catch (Exception $e) {
+                        $this->log("Could not save galaxy cluster with UUID {$cluster_to_save['uuid']}, error: {$e->getMessage()}.");
+                        continue;
+                    }
+                    $galaxyClusterId = $clusterEntity->id;
+                    if (isset($cluster['meta'])) {
+                        foreach ($cluster['meta'] as $key => $value) {
+                            if (!is_array($value)) {
+                                $value = [$value];
+                            }
+                            foreach ($value as $v) {
+                                if (is_array($v)) {
+                                    $logEntry = $LogTable->newEntity(
+                                        [
+                                            'org' => 'SYSTEM',
+                                            'model' => 'Galaxy',
+                                            'model_id' => 0,
+                                            'email' => 0,
+                                            'action' => 'error',
+                                            'title' => sprintf('Found a malformed galaxy cluster (%s) during the update, skipping. Reason: Malformed meta field, embedded array found.', $cluster['uuid']),
+                                            'change' => ''
+                                        ]
+                                    );
+                                    $LogTable->save($logEntry);
+                                } else {
+                                    $elements[] = [
+                                        'galaxy_cluster_id' => $galaxyClusterId,
+                                        'key' => $key,
+                                        'value' => (string)$v
+                                    ];
+                                }
                             }
                         }
                     }
-                }
-                if (isset($cluster['related'])) {
-                    foreach ($cluster['related'] as $relation) {
-                        $relations[] = [
-                            'galaxy_cluster_id' => $galaxyClusterId,
-                            'galaxy_cluster_uuid' => $cluster['uuid'],
-                            'referenced_galaxy_cluster_uuid' => $relation['dest-uuid'],
-                            'referenced_galaxy_cluster_type' => $relation['type'],
-                            'default' => true,
-                            'distribution' => 3,
-                            'tags' => $relation['tags'] ?? []
-                        ];
+                    if (isset($cluster['related'])) {
+                        foreach ($cluster['related'] as $relation) {
+                            $relations[] = [
+                                'galaxy_cluster_id' => $galaxyClusterId,
+                                'galaxy_cluster_uuid' => $cluster['uuid'],
+                                'referenced_galaxy_cluster_uuid' => $relation['dest-uuid'],
+                                'referenced_galaxy_cluster_type' => $relation['type'],
+                                'default' => true,
+                                'distribution' => 3,
+                                'tags' => $relation['tags'] ?? []
+                            ];
+                        }
                     }
                 }
-            }
             }
         );
 
@@ -843,25 +843,25 @@ class GalaxiesTable extends AppTable
                 usort(
                     $tabs[$i][$j],
                     function ($a, $b) use ($scores) {
-                    if ($a['tag_name'] == $b['tag_name']) {
-                        return 0;
-                    }
-                    if (isset($scores[$a['tag_name']]) && isset($scores[$b['tag_name']])) {
-                        if ($scores[$a['tag_name']] < $scores[$b['tag_name']]) {
-                            $ret = 1;
-                        } elseif ($scores[$a['tag_name']] == $scores[$b['tag_name']]) {
-                            $ret = strcmp($a['value'], $b['value']);
-                        } else {
-                            $ret = -1;
+                        if ($a['tag_name'] == $b['tag_name']) {
+                            return 0;
                         }
-                    } elseif (isset($scores[$a['tag_name']])) {
-                        $ret = -1;
-                    } elseif (isset($scores[$b['tag_name']])) {
-                        $ret = 1;
-                    } else { // none are set
-                        $ret = strcmp($a['value'], $b['value']);
-                    }
-                    return $ret;
+                        if (isset($scores[$a['tag_name']]) && isset($scores[$b['tag_name']])) {
+                            if ($scores[$a['tag_name']] < $scores[$b['tag_name']]) {
+                                $ret = 1;
+                            } elseif ($scores[$a['tag_name']] == $scores[$b['tag_name']]) {
+                                $ret = strcmp($a['value'], $b['value']);
+                            } else {
+                                $ret = -1;
+                            }
+                        } elseif (isset($scores[$a['tag_name']])) {
+                            $ret = -1;
+                        } elseif (isset($scores[$b['tag_name']])) {
+                            $ret = 1;
+                        } else { // none are set
+                            $ret = strcmp($a['value'], $b['value']);
+                        }
+                        return $ret;
                     }
                 );
             }
@@ -928,10 +928,11 @@ class GalaxiesTable extends AppTable
             }
         }
 
-        $tree = [[
-            'Galaxy' => $galaxy['Galaxy'],
-            'children' => array_values($tree)
-        ]
+        $tree = [
+            [
+                'Galaxy' => $galaxy['Galaxy'],
+                'children' => array_values($tree)
+            ]
         ];
         return $tree;
     }

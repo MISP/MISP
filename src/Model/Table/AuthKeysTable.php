@@ -29,7 +29,7 @@ class AuthKeysTable extends AppTable
         $this->addBehavior(
             'JsonFields',
             [
-            'fields' => ['allowed_ips'],
+                'fields' => ['allowed_ips' => []],
             ]
         );
         $this->setDisplayField('comment');

@@ -6,6 +6,7 @@ use App\Controller\AppController;
 use App\Lib\Tools\ClusterRelationsGraphTool;
 use App\Lib\Tools\FileAccessTool;
 use App\Lib\Tools\JsonTool;
+use App\Model\Entity\Distribution;
 use Cake\Core\Configure;
 use Cake\Http\Exception\BadRequestException;
 use Cake\Http\Exception\ForbiddenException;
@@ -355,8 +356,7 @@ class GalaxiesController extends AppController
             return $this->response;
         } else {
             $this->set('galaxy', $galaxy);
-            $AttributeTable = $this->fetchTable('Attributes');
-            $distributionLevels = $AttributeTable->distributionLevels;
+            $distributionLevels = Distribution::ALL;
             unset($distributionLevels[5]);
             $distributionLevels[4] = __('All sharing groups');
             $this->set('distributionLevels', $distributionLevels);
@@ -791,8 +791,7 @@ class GalaxiesController extends AppController
         $this->set('galaxy', $galaxy);
         $this->set('galaxy_id', $galaxyId);
         $this->set('includeInbound', $includeInbound);
-        $AttributeTable = $this->fetchTable('Attributes');
-        $distributionLevels = $AttributeTable->distributionLevels;
+        $distributionLevels = Distribution::ALL;
         $this->set('distributionLevels', $distributionLevels);
     }
 }

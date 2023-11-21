@@ -16,7 +16,7 @@ class ObjectRelationshipsTable extends AppTable
         $this->addBehavior(
             'JsonFields',
             [
-            'fields' => ['format'],
+                'fields' => ['format' => []],
             ]
         );
         $this->setDisplayField('name');
@@ -48,7 +48,6 @@ class ObjectRelationshipsTable extends AppTable
             foreach ($relations['values'] as $relation) {
                 $relation['version'] = $relations['version'];
                 $relationEntity = $this->newEntity($relation);
-                $relationEntity->format = $relation['format'];
                 $this->save($relationEntity);
             }
         }
