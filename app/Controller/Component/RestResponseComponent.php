@@ -631,6 +631,7 @@ class RestResponseComponent extends Component
                     }
                 }
 
+                App::uses('TmpFileTool', 'Tools');
                 // If response is big array, encode items separately to save memory
                 if (is_array($response) && count($response) > 10000) {
                     $output = new TmpFileTool();
@@ -661,7 +662,6 @@ class RestResponseComponent extends Component
             }
         }
 
-        App::uses('TmpFileTool', 'Tools');
         if ($response instanceof Generator) {
             $tmpFile = new TmpFileTool();
             $tmpFile->writeWithSeparator($response, null);
