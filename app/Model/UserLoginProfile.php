@@ -115,9 +115,6 @@ class UserLoginProfile extends AppModel
     public function _isSimilar($a, $b) {
         // if one is not initialized
         if (!$a || !$b) return false;
-        // coming from the same source IP, and the same browser
-        if ($a['ip'] == $b['ip'] && $a['ua_browser'] == $b['ua_browser'])
-            return true;
         // transition for old logs where UA was not known
         if (!$a['ua_browser']) 
             return false;

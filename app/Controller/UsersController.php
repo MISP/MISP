@@ -3185,7 +3185,7 @@ class UsersController extends AppController
                 if (null != $prevProfile) {
                     $actionsString = '';  // count actions
                     foreach(array_count_values($prevActions) as $action => $cnt) {
-                        $actionsString .=  $action . ' (' . $cnt . ") ";
+                        $actionsString .=  $action . ' (' . $cnt . "x) ";
                     }
                     $lst[] = array(
                         'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
@@ -3212,7 +3212,7 @@ class UsersController extends AppController
         // add last entry
         $actionsString = '';  // count actions
         foreach(array_count_values($prevActions) as $action => $cnt) {
-            $actionsString .=  $action . ' (' . $cnt . ") ";
+            $actionsString .=  $action . ' (' . $cnt . "x) ";
         }
         $lst[] = array(
             'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),

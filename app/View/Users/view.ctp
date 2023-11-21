@@ -207,7 +207,7 @@ if ($isAdmin && $isTotp) {
                 $baseurl,
                 h($user['User']['id'])
             ),
-            __('Review user login history')
+            __('Review user logins')
         ),
         $me['Role']['perm_auth'] ? $this->element('/genericElements/accordion', array('title' => __('Auth keys'), 'url' => '/auth_keys/index/' . h($user['User']['id']))) : '',
         $this->element('/genericElements/accordion', array('title' => 'Events', 'url' => '/events/index/searchemail:' . urlencode(h($user['User']['email']))))
