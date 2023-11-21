@@ -203,7 +203,7 @@ if ($isAdmin && $isTotp) {
         sprintf(
             '&nbsp;<a href="%s" class="btn btn-inverse">%s</a>',
             sprintf(
-                '%s/users/view_auth_history/%s',
+                '%s/users/view_login_history/%s',
                 $baseurl,
                 h($user['User']['id'])
             ),

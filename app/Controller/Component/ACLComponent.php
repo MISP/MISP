@@ -781,7 +781,7 @@ class ACLComponent extends Component
                 'viewPeriodicSummary' => ['*'],
                 'getGpgPublicKey' => array('*'),
                 'unsubscribe' => ['*'],
-                'view_auth_history' => ['*']
+                'view_login_history' => ['*']
             ),
             'userLoginProfiles' => array(
                 'index' => ['*'],

@@ -105,7 +105,7 @@ class UserLoginProfilesController extends AppController
         if ($this->request->is('post')) {
             $this->__setTrust($logId, 'trusted');
         }
-        $this->redirect(array('controller' => 'users', 'action' => 'view_auth_history'));
+        $this->redirect(array('controller' => 'users', 'action' => 'view_login_history'));
     }
 
     public function malicious($logId)
@@ -119,7 +119,7 @@ class UserLoginProfilesController extends AppController
             $this->Log->createLogEntry($this->Auth->user(), 'auth_alert', 'User', $this->Auth->user('id'), 'Suspicious login reported.', $details);
             // FIXME chri - also inform (org) admins.
         }
-        $this->redirect(array('controller' => 'users', 'action' => 'view_auth_history'));        
+        $this->redirect(array('controller' => 'users', 'action' => 'view_login_history'));        
     }
 
     private function __setTrust($logId, $status)

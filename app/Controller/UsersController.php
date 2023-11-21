@@ -3127,7 +3127,7 @@ class UsersController extends AppController
         }
     }
 
-    public function view_auth_history($user_id = null) { 
+    public function view_login_history($user_id = null) { 
         if ($user_id && $this->_isAdmin()) {   // org and site admins
             $user = $this->User->find('first', array(
                 'recursive' => -1,
