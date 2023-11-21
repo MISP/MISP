@@ -200,9 +200,29 @@ class UserLoginProfile extends AppModel
             return _('The source IP was reported as as malicious by a user.');
         }
         // LATER - use other data to identify suspicious logins, such as:
+        // - what with use-case where a user marks something as legitimate, but is marked by someone else as suspicious?
         // - warning lists
         // - ...
         return false;
+    }
+
+    public function email_newlogin($user) {
+        if (!Configure::read('MISP.disable_emailing')) {
+            $date_time = date('c');
+
+            $body = new SendEmailTemplate('userloginprofile_newlogin');
+            $body->set('userLoginProfile', $this->User->UserLoginProfile->_getUserProfile());
+            $body->set('baseurl', Configure::read('MISP.baseurl'));
+            $body->set('misp_org', Configure::read('MISP.org'));
+            $body->set('date_time', $date_time);
+            // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
+            $result = $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] New sign in.");
+            if ($result) {
+                // all is well, email sent to user
+            } else {
+                // email flow system already logs errors
+            }
+        }
     }
 
     public function email_suspicious($user, $suspiciousness_reason) {
@@ -244,7 +264,6 @@ class UserLoginProfile extends AppModel
                     // email flow system already logs errors
                 }
             }
-            bleh();
 
             
         }
