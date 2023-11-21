@@ -589,6 +589,7 @@ class RestResponseComponent extends Component
      */
     private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
     {
+        App::uses('TmpFileTool', 'Tools');
         $format = !empty($format) ? strtolower($format) : 'json';
         if ($format === 'application/xml' || $format === 'xml') {
             if (!$raw) {
@@ -630,8 +631,7 @@ class RestResponseComponent extends Component
                         $response['sql_dump'] = $this->getSqlLog();
                     }
                 }
-
-                App::uses('TmpFileTool', 'Tools');
+                
                 // If response is big array, encode items separately to save memory
                 if (is_array($response) && count($response) > 10000) {
                     $output = new TmpFileTool();
