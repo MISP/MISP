@@ -3840,10 +3840,14 @@ class Event extends AppModel
             if (!empty($data['Event']['Attribute'])) {
                 $attributeHashes = [];
                 foreach ($data['Event']['Attribute'] as $attribute) {
-                    $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
-                    if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
-                        $attributeHashes[$attributeHash] = true;
+                    if (empty($attribute['deleted'])) {
                         $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                    } else {
+                        $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
+                        if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
+                            $attributeHashes[$attributeHash] = true;
+                            $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                        }
                     }
                 }
                 unset($attributeHashes);
@@ -4112,7 +4116,7 @@ class Event extends AppModel
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 $attributes = [];
-                if (true) {
+                if (false) {
                     foreach ($data['Event']['Attribute'] as $k => $attribute) {
                         $nothingToChange = false;
                         $attributes[] = $this->Attribute->editAttribute2($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
