@@ -5704,7 +5704,7 @@ class Server extends AppModel
                 'remember_seen_ips_authkeys' => [
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('Store IP addresses used to make API calls with an AuthKey against this AuthKey in the database.'),
-                    'value' => false,
+                    'value' => true,
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
