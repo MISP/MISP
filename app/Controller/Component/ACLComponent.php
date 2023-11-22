@@ -787,7 +787,7 @@ class ACLComponent extends Component
                 'index' => ['*'],
                 'trust' => ['*'],
                 'malicious' => ['*'],
-                'admindelete' => ['perm_admin']
+                'admin_delete' => ['perm_admin']
             ),
             'userSettings' => array(
                 'index' => array('*'),

@@ -81,7 +81,7 @@
             'actions' => [
                 [
                     'class' => 'modal-open',
-                    'url' => "$baseurl/UserLoginProfiles/admindelete",
+                    'url' => "$baseurl/admin/UserLoginProfiles/delete",
                     'url_params_data_paths' => ['UserLoginProfile.id'],
                     'postLink' => true,
                     'postLinkConfirm' => __('Are you sure you want to delete this profile?'),    

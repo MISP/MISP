@@ -35,9 +35,7 @@ class UserLoginProfilesController extends AppController
             $delete_buttons = true;
         }
         $this->CRUD->index([
-            'conditions' => $conditions,
-            'order' => ['created_at DESC'], // FIXME chri - not working, ask Andras
-            'fields' => 'UserLoginProfile.*' // FIXME chri - not working, ask Andras
+            'conditions' => $conditions
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -73,7 +71,7 @@ class UserLoginProfilesController extends AppController
         return $conditions;
     }
 
-    public function admindelete($id) // FIXME chri - should be admin_delete however gives issues   (note: change also view and ACL)
+    public function admin_delete($id)
     {
         if ($this->request->is('post') || $this->request->is('delete')) {
             $profile = $this->UserLoginProfile->find('first', array(
@@ -92,11 +90,11 @@ class UserLoginProfilesController extends AppController
                     return $this->RestResponse->saveSuccessResponse('UserLoginProfile', 'admin_delete', $id, $this->response->type(), 'UserLoginProfile deleted.');
                 } else {
                     $this->Flash->success(__('UserLoginProfile deleted'));
-                    $this->redirect(array('action' => 'index', $profile['UserLoginProfile']['user_id']));
+                    $this->redirect(array('admin'=> false, 'controller' => 'userLoginProfiles', 'action' => 'index', $profile['UserLoginProfile']['user_id']));
                 }
             }
             $this->Flash->error(__('UserLoginProfile was not deleted'));
-            $this->redirect(array('action' => 'index', $profile['UserLoginProfile']['user_id']));
+            $this->redirect(array('admin'=> false, 'controller' => 'userLoginProfiles', 'action' => 'index', $profile['UserLoginProfile']['user_id']));
         }
     }
 
