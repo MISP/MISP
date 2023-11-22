@@ -51,7 +51,7 @@ foreach($data as $entry ){
             echo "<div>";
             echo $this->Form->postLink(__('This was me'),array('controller' => 'userLoginProfiles', 'action'=>'trust', $entry['id']),array('class' => 'btn btn-inverse', 'style' => '', 'confirm' => __('Are you sure you want to mark this device as trusted?')));
             echo "&nbsp;";
-            echo $this->Form->postLink(__('Report malicious'),array('controller' => 'userLoginProfiles', 'action'=>'malicious', $entry['id']),array('class' => 'btn btn-inverse','confirm' => __('Was this connection suspicious or malicious?')));
+            echo $this->Form->postLink(__('Report malicious'),array('controller' => 'userLoginProfiles', 'action'=>'malicious', $entry['id']),array('class' => 'btn btn-inverse','confirm' => __('Was this connection suspicious or malicious? If yes, you will be forced to change your password.')));
             echo "</div>";
         } ?>
     </div>

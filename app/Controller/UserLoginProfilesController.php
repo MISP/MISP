@@ -111,13 +111,26 @@ class UserLoginProfilesController extends AppController
     public function malicious($logId)
     {
         if ($this->request->is('post')) {
-            $this->__setTrust($logId, 'malicious');
-            $this->Flash->info(__('You marked a login suspicious. We highly recommend you to change your password NOW !'));
+            $userLoginProfile = $this->__setTrust($logId, 'malicious');
+            $this->Flash->info(__('You marked a login suspicious. You must change your password NOW !'));
             $this->loadModel('Log');
             $details = 'User reported suspicious login for log ID: '. $logId;
             // raise an alert (the SIEM component should ensure (org)admins are informed)
             $this->Log->createLogEntry($this->Auth->user(), 'auth_alert', 'User', $this->Auth->user('id'), 'Suspicious login reported.', $details);
-            // FIXME chri - also inform (org) admins.
+            // inform (org)admins of the report, they might want to action this...
+            $user = $this->User->find('first', array(
+                'conditions' => array(
+                    'User.id' => $this->Auth->user('id')
+                ),
+                'recursive' => -1
+            ));
+            unset($user['User']['password']);
+            $this->UserLoginProfile->email_report_malicious($user, $userLoginProfile);
+            // change account info to force password change, redirect to new password page.
+            $this->User->id =  $this->Auth->user('id');
+            $this->User->saveField('change_pw', 1);
+            $this->redirect(array('controller' => 'users', 'action' => 'change_pw'));
+            return;
         }
         $this->redirect(array('controller' => 'users', 'action' => 'view_login_history'));        
     }
@@ -135,12 +148,14 @@ class UserLoginProfilesController extends AppController
             'fields' => array('Log.action', 'Log.created', 'Log.ip', 'Log.change', 'Log.id'),
             'order' => array('Log.created DESC')
         ));
-        // LATER check if the userLoginProfile is already there, or not
-        // add it if it isn't there yet
         $data = $this->UserLoginProfile->_fromLog($log['Log']);
         $data['status'] = $status;
         $data['user_id'] = $user['id'];
+
+        // LATER check if the userLoginProfile is already there, or not
+        // add it if it isn't there yet
         $this->UserLoginProfile->save($data);
+        return $data;
     }
 
 }

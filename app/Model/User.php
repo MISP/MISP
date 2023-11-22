@@ -1054,6 +1054,27 @@ class User extends AppModel
         ));
     }
 
+    public function getSiteAdmins($excludeUserId = false) {
+        $adminRoles = $this->Role->find('column', array(
+            'conditions' => array('perm_site_admin' => 1),
+            'fields' => array('Role.id')
+        ));
+        $conditions = array(
+            'User.disabled' => 0,
+            'User.role_id' => $adminRoles
+        );
+        if ($excludeUserId) {
+            $conditions['User.id !='] = $excludeUserId;
+        }
+        return $this->find('list', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => array(
+                'User.id', 'User.email'
+            )
+        ));
+    }
+
     public function verifyPassword($user_id, $password)
     {
         $currentUser = $this->find('first', array(

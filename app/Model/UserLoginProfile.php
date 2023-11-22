@@ -109,6 +109,7 @@ class UserLoginProfile extends AppModel
         $data = json_decode('{"user_agent": "", "ip": "", "accept_lang":"", "geoip":"", "ua_pattern":"", "ua_platform":"", "ua_browser":""}', true);
         $data = array_merge($data, json_decode($logEntry['change'], true) ?? []);
         $data['ip'] = $logEntry['ip'];
+        $data['timestamp'] = $logEntry['created'];
         return $data;
     }
 
@@ -222,6 +223,32 @@ class UserLoginProfile extends AppModel
         }
     }
 
+    public function email_report_malicious($user, $userLoginProfile) {
+        // inform the org admin
+        $date_time = $userLoginProfile['timestamp']; // LATER not ideal as timestamp is string without timezone info
+        $body = new SendEmailTemplate('userloginprofile_report_malicious');
+        $body->set('userLoginProfile', $userLoginProfile);
+        $body->set('username', $user['User']['email']);
+        $body->set('baseurl', Configure::read('MISP.baseurl'));
+        $body->set('misp_org', Configure::read('MISP.org'));
+        $body->set('date_time', $date_time);
+        $org_admins = $this->User->getOrgAdminsForOrg($user['User']['org_id']);
+        $admins = $this->User->getSiteAdmins();
+        $all_admins = array_unique(array_merge($org_admins, $admins));
+        foreach($all_admins as $admin_email) {
+            $admin = $this->User->find('first', array(
+                'recursive' => -1,
+                'conditions' => ['User.email' => $admin_email]
+            ));
+            $result = $this->User->sendEmail($admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login reported.");
+            if ($result) {
+                // all is well, email sent to user
+            } else {
+                // email flow system already logs errors
+            }
+        }
+    }
+
     public function email_suspicious($user, $suspiciousness_reason) {
         if (!Configure::read('MISP.disable_emailing')) {
             $date_time = date('c');
@@ -254,7 +281,7 @@ class UserLoginProfile extends AppModel
                     'recursive' => -1,
                     'conditions' => ['User.email' => $org_admin_email]
                 ));
-                $result = $this->User->sendEmail($org_admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login.");
+                $result = $this->User->sendEmail($org_admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login detected.");
                 if ($result) {
                     // all is well, email sent to user
                 } else {
