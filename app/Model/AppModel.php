@@ -1982,7 +1982,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `event_reports` modify `content` mediumtext";
                 break;
             case 117:
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `user_login_profiles` (
+                $sqlArray[] = "CREATE TABLE `user_login_profiles` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `user_id` int(11) NOT NULL,
@@ -1994,7 +1994,9 @@ class AppModel extends Model
                     `ua_platform` varchar(191) DEFAULT NULL,
                     `ua_browser` varchar(191) DEFAULT NULL,
                     `ua_pattern` varchar(191) DEFAULT NULL,
+                    `hash` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
                     PRIMARY KEY (`id`),
+                    UNIQUE KEY `hash` (`hash`),
                     KEY `ip` (`ip`),
                     KEY `status` (`status`),
                     KEY `geoip` (`geoip`),

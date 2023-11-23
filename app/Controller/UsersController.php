@@ -3175,7 +3175,7 @@ class UsersController extends AppController
         // group authentications by type of loginprofile, to make the list shorter
         foreach($logs as $logEntry) {
             $loginProfile = $this->UserLoginProfile->_fromLog($logEntry['Log']);
-            if (!$loginProfile) continue;
+            if (!$loginProfile) continue; // skip if empty log
             $loginProfile['ip'] = $logEntry['Log']['ip'] ?? null; // transitional workaround
             if ($this->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
                 // continue find as same type of login
