@@ -2888,6 +2888,24 @@ class Attribute extends AppModel
                 $this->AttributeTag->deleteAll($conditions, false);
             }
         }
+        if ($this->fast_update) {
+            // Let's recorrelate the event
+            $this->Corrleation->generateCorrelation(false, $event['Event']['id']);
+            // Instead of incrementing / decrementing the event 
+            $attribute_count = $this->find('count', [
+                'conditions' => [
+                    'Attribute.event_id' => $event['Event']['id'],
+                    'Attribute.deleted' => 0
+                ],
+                'recursive' => -1
+            ]);
+            $temp_event = [
+                'id' => $event['Event']['id'],
+                'attribute_count' => $attribute_count
+            ];
+            $this->Event->save($temp_event);
+            $this->__alterAttributeCount($event['Event']['id']);
+        }
         return true;
     }
     
