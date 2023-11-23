@@ -50,7 +50,7 @@ class StatisticsShell extends AppShell {
                 'https://api.github.com/search/issues?q=repo:%s+is:pr%s%s',
                 $project,
                 $from ? '+created:>=' . $from : '',
-                $to ? '+created:<=' . $to : '',
+                $to ? '+created:<=' . $to : ''
             );
             $result = $HttpSocket->get($url);
             $result = json_decode($result, true);
@@ -61,7 +61,7 @@ class StatisticsShell extends AppShell {
                 'https://api.github.com/search/issues?q=repo:%s+is:pr+is:closed+merged:%s..%s',
                 $project,
                 $from ? $from : '2012-01-01',
-                $to ? $to : date("Y-m-d"),
+                $to ? $to : date("Y-m-d")
             );
             $result = $HttpSocket->get($url);
             $result = json_decode($result, true);

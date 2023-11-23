@@ -47,7 +47,7 @@
             'data_path' => 'AuthKey.allowed_ips',
         ],
     ];
-    if(Configure::read("MISP.remember_seen_ips_authkeys")){
+    if(!Configure::read("MISP.disable_seen_ips_authkeys")){
             $fields[] =[
                 'name' => __('Seen IPs'),
                 'data_path' => 'AuthKey.unique_ips',

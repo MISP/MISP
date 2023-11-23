@@ -373,6 +373,8 @@ class Event extends AppModel
     /** @var array|null */
     private $eventBlockRule;
 
+    public $fast_update = false;
+
     public function beforeDelete($cascade = true)
     {
         // blocklist the event UUID if the feature is enabled
@@ -3838,10 +3840,14 @@ class Event extends AppModel
             if (!empty($data['Event']['Attribute'])) {
                 $attributeHashes = [];
                 foreach ($data['Event']['Attribute'] as $attribute) {
-                    $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
-                    if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
-                        $attributeHashes[$attributeHash] = true;
+                    if (!empty($attribute['deleted'])) {
                         $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                    } else {
+                        $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
+                        if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
+                            $attributeHashes[$attributeHash] = true;
+                            $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                        }
                     }
                 }
                 unset($attributeHashes);
@@ -3978,12 +3984,11 @@ class Event extends AppModel
         return true;
     }
 
-    public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false)
+    public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false, $fast_update = false)
     {
         $data = $this->cleanupEventArrayFromXML($data);
         unset($this->Attribute->validate['event_id']);
         unset($this->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-
         // reposition to get the event.id with given uuid
         if (isset($data['Event']['uuid'])) {
             $conditions = ['Event.uuid' => $data['Event']['uuid']];
@@ -3993,7 +3998,6 @@ class Event extends AppModel
             throw new InvalidArgumentException("No event UUID or ID provided.");
         }
         $existingEvent = $this->find('first', ['conditions' => $conditions, 'recursive' => -1]);
-
         if ($passAlong) {
             $this->Server = ClassRegistry::init('Server');
             $server = $this->Server->find('first', array(
@@ -4109,19 +4113,21 @@ class Event extends AppModel
                     'Event'
                 );
             }
-
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
-                foreach ($data['Event']['Attribute'] as $attribute) {
+                $attributes = [];
+                foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $nothingToChange = false;
                     $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
-                    if ($result !== true) {
-                        $validationErrors['Attribute'][] = $result;
+                    if (is_array($result)) {
+                        $attributes[] = $result;
                     }
                     if (!$nothingToChange) {
                         $changed = true;
                     }
                 }
+                $this->Attribute->editAttributeBulk($attributes, $saveResult, $user);
+                $this->Attribute->editAttributePostProcessing($attributes, $saveResult, $user);
             }
             if (isset($data['Event']['Object'])) {
                 $data['Event']['Object'] = array_values($data['Event']['Object']);

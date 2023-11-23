@@ -5701,10 +5701,10 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
-                'remember_seen_ips_authkeys' => [
+                'disable_seen_ips_authkeys' => [
                     'level' => self::SETTING_RECOMMENDED,
-                    'description' => __('Store IP addresses used to make API calls with an AuthKey against this AuthKey in the database.'),
-                    'value' => true,
+                    'description' => __('Disable the storing of IP addresses used to make API calls with an AuthKey against this AuthKey in the database.'),
+                    'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true

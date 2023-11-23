@@ -80,7 +80,7 @@ $fields = [
         'requirement' => isset($keyUsage),
     ],
 ];
-if (Configure::read("MISP.remember_seen_ips_authkeys")) {
+if (!Configure::read("MISP.disable_seen_ips_authkeys")) {
     $fields[] =[
         'key' => __('Seen IPs'),
         'path' => 'AuthKey.unique_ips',
