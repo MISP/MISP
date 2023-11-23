@@ -2762,7 +2762,7 @@ class Attribute extends AppModel
         }
         if ($this->fast_update) {
             // Let's recorrelate the event
-            $this->Corrleation->generateCorrelation(false, $event['Event']['id']);
+            $this->Correlation->generateCorrelation(false, $event['Event']['id']);
             // Instead of incrementing / decrementing the event 
             $attribute_count = $this->find('count', [
                 'conditions' => [
