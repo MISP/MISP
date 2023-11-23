@@ -1201,8 +1201,7 @@ class AppController extends Controller
 
     private function _redirectToLogin()
     {
-        $targetRoute = $this->Auth->loginAction;
-        $targetRoute['admin'] = false;
+        $targetRoute = Configure::read('MISP.baseurl') . '/users/login';
         $this->redirect($targetRoute);
     }
 
