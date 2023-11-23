@@ -4118,7 +4118,7 @@ class Event extends AppModel
                 $attributes = [];
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $nothingToChange = false;
-                    $attributes[] = $this->Attribute->editAttribute2($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
+                    $attributes[] = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
                     if (!$nothingToChange) {
                         $changed = true;
                     }
