@@ -45,7 +45,10 @@ class Module_attribute_edition_operation extends WorkflowBaseActionModule
             $newAttribute = $this->_editAttribute($attribute, $rData, $params);
             $newAttributes[] = $newAttribute;
             unset($newAttribute['timestamp']);
-            $attributes[] = $this->Attribute->editAttribute($newAttribute, $rData, $user, $newAttribute['object_id']);
+            $result = $this->Attribute->editAttribute($newAttribute, $rData, $user, $newAttribute['object_id']);
+            if (is_array($result)) {
+                $attributes[] = $result;
+            }
         }
         $this->Attribute->editAttributeBulk($attributes, $rData, $user);
         $this->Attribute->editAttributePostProcessing($attributes, $rData, $user);

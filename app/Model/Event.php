@@ -4118,13 +4118,16 @@ class Event extends AppModel
                 $attributes = [];
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $nothingToChange = false;
-                    $attributes[] = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
+                    $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
+                    if (is_array($result)) {
+                        $attributes[] = $result;
+                    }
                     if (!$nothingToChange) {
                         $changed = true;
                     }
                 }
-                $result = $this->Attribute->editAttributeBulk($attributes, $saveResult, $user);
-                $result = $this->Attribute->editAttributePostProcessing($attributes, $saveResult, $user);
+                $this->Attribute->editAttributeBulk($attributes, $saveResult, $user);
+                $this->Attribute->editAttributePostProcessing($attributes, $saveResult, $user);
             }
             if (isset($data['Event']['Object'])) {
                 $data['Event']['Object'] = array_values($data['Event']['Object']);
