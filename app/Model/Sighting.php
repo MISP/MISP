@@ -79,7 +79,8 @@ class Sighting extends AppModel
     {
         $pubToZmq = $this->pubToZmq('sighting');
         $kafkaTopic = $this->kafkaTopic('sighting');
-        if ($pubToZmq || $kafkaTopic) {
+        $isTriggerCallable = $this->isTriggerCallable('sighting-after-save');
+        if ($pubToZmq || $kafkaTopic || $isTriggerCallable) {
             $sighting = $this->getSighting($this->id);
             if ($pubToZmq) {
                 $pubSubTool = $this->getPubSubTool();
@@ -88,6 +89,17 @@ class Sighting extends AppModel
             if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $sighting, 'add');
+            }
+
+            if($isTriggerCallable) {
+                $workflowErrors = [];
+                $logging = [
+                    'model' => 'Sighting',
+                    'action' => $created ? 'add' : 'edit',
+                    'id' => $sighting['Sighting']['id'],
+                ];
+                $triggerData = $sighting;
+                $this->executeTrigger('sighting-after-save', $triggerData, $workflowErrors, $logging);
             }
         }
         return true;
@@ -637,7 +649,7 @@ class Sighting extends AppModel
             if ($showOrg && $sighting['org_id']) {
                 $sighting['Organisation'] = $this->getOrganisationById($sighting['org_id']);
             }
-            if ($sighting['org_id'] != $user['org_id'] && ($anonymise || !empty($anonOrg))) {
+            if ($sighting['org_id'] != $user['org_id'] && $anonymise) {
                 if (empty($anonOrg)) {
                     unset($sighting['org_id']);
                     unset($sighting['Organisation']);

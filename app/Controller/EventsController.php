@@ -2793,7 +2793,15 @@ class EventsController extends AppController
                 if (!isset($this->request->data['Event'])) {
                     $this->request->data = array('Event' => $this->request->data);
                 }
-                $result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id);
+                $fast_update = $this->request->param('named.fast_update');
+                if (!empty($this->request->data['Event']['fast_update'])) {
+                    $fast_update = (bool)$this->request->data['Event']['fast_update'];
+                }
+                if ($fast_update) {
+                    $this->Event->fast_update = true;
+                    $this->Event->Attribute->fast_update = true;
+                }
+                $result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id, null, null, false);
                 if ($result === true) {
                     // REST users want to see the newly created event
                     $metadata = $this->request->param('named.metadata');
@@ -6014,7 +6022,6 @@ class EventsController extends AppController
             $this->set('file_uploaded', "1");
             $this->set('file_name', $this->request['data']['Event']['analysis_file']['name']);
             $this->set('file_content', file_get_contents($this->request['data']['Event']['analysis_file']['tmp_name']));
-
         //$result = $this->Event->upload_mactime($this->Auth->user(), );
         } elseif ($this->request->is('post') && $this->request['data']['SelectedData']['mactime_data']) {
             // Find the event that is to be updated
@@ -6042,7 +6049,7 @@ class EventsController extends AppController
                     'meta-category' => 'file',
                     'description' => 'Mactime template, used in forensic investigations to describe the timeline of a file activity',
                     'template_version' => 1,
-                    'template_uuid' => '9297982e-be62-4772-a665-c91f5a8d639'
+                    'template_uuid' => '58149b06-eabe-4937-9dac-01d63f504e14'
                 );
 
                 $object['Attribute'] = array(
@@ -6105,7 +6112,7 @@ class EventsController extends AppController
 
                     );
                 $this->loadModel('MispObject');
-                $ObjectResult = $this->MispObject->saveObject($object, $eventId, "", "");
+                $ObjectResult = $this->MispObject->saveObject($object, $eventId, false, $this->Auth->user());
                 $temp = $this->MispObject->ObjectReference->Object->find('first', array(
                     'recursive' => -1,
                     'fields' => array('Object.uuid','Object.id'),

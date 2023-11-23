@@ -119,6 +119,23 @@ class SightingsController extends AppController
         }
     }
 
+    public function view($idOrUUID)
+    {
+        $sighting = $this->Sighting->find('first', array(
+            'conditions' => Validation::uuid($idOrUUID) ? ['Sighting.uuid' => $idOrUUID] : ['Sighting.id' => $idOrUUID],
+            'recursive' => -1,
+            'fields' => ['id', 'attribute_id'],
+        ));
+        $sightings = [];
+        if (!empty($sighting)) {
+            $sightings = $this->Sighting->listSightings($this->Auth->user(), $sighting['Sighting']['attribute_id'], 'attribute');
+        }
+        if (empty($sightings)) {
+            throw new NotFoundException('Invalid sighting.');
+        }
+        return $this->RestResponse->viewData($sightings[0]);
+    }
+
     public function advanced($id, $context = 'attribute')
     {
         if (empty($id)) {

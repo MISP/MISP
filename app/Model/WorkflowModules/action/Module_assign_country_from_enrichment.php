@@ -75,9 +75,8 @@ class Module_assign_country_from_enrichment extends Module_tag_operation
 
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
-        $params = $this->getParamsWithValues($node);
-
         $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         $user = $roamingData->getUser();
 
         $countryExtractionPath = $params['hash_path']['value'];

@@ -305,13 +305,23 @@ class EventReportsController extends AppController
                 throw new MethodNotAllowedException(__('An URL must be provided'));
             }
             $url = $this->data['EventReport']['url'];
-            $markdown = $this->EventReport->downloadMarkdownFromURL($event_id, $url);
+            $format = 'html';
+            
+            $parsed_formats = ['pdf', 'xlsx', 'pptx', 'ods', 'odt', 'docx'];
+            foreach ($parsed_formats as $parsed_format) {
+                if (substr($url, -(1 + strlen($parsed_format))) === '.' . $parsed_format) {
+                    $format = $parsed_format;
+                }
+            }
+            
+            $content = $this->EventReport->downloadMarkdownFromURL($event_id, $url, $format);
+
             $errors = [];
-            if (!empty($markdown)) {
+            if (!empty($content)) {
                 $report = [
                     'name' => __('Report from - %s (%s)', $url, time()),
                     'distribution' => 5,
-                    'content' => $markdown
+                    'content' => $content
                 ];
                 $errors = $this->EventReport->addReport($this->Auth->user(), $report, $event_id);
             } else {
@@ -372,6 +382,28 @@ class EventReportsController extends AppController
         $this->set('event_id', $eventId);
         $this->layout = false;
         $this->render('ajax/reportFromEvent');
+    }
+
+    public function sendToLLM($reportId)
+    {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
+        } else {
+            $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', true, false);
+            if ($this->request->is('post')) {
+                $errors = [];
+                $result = $this->EventReport->sendToLLM($report, $this->Auth->user(), $errors);
+                if ($result !== false) {
+                    $successMessage = __('Successfully sent to Event Report %s to LLM', $reportId);
+                    return $this->__getSuccessResponseBasedOnContext($successMessage, $result, 'sendToLLM', $reportId);
+                } else {
+                    $errorMessage = __('Could not send Event Report %s to LLM.%sReasons: %s', $reportId, PHP_EOL, json_encode($errors));
+                    return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'sendToLLM', $reportId);
+                }
+            }
+            $this->layout = false;
+            $this->render('ajax/sendToLLM');
+        }
     }
 
     private function __generateIndexConditions($filters = [])

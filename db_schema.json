@@ -2527,11 +2527,11 @@
             {
                 "column_name": "content",
                 "is_nullable": "YES",
-                "data_type": "text",
-                "character_maximum_length": "65535",
+                "data_type": "mediumtext",
+                "character_maximum_length": "16777215",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_general_ci",
-                "column_type": "text",
+                "column_type": "mediumtext",
                 "column_default": "NULL",
                 "extra": ""
             },
@@ -9560,5 +9560,5 @@
             "uuid": false
         }
     },
-    "db_version": "115"
+    "db_version": "116"
 }

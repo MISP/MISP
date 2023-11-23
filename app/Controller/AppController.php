@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '155';
-    public $pyMispVersion = '2.4.178';
+    private $__queryVersion = '157';
+    public $pyMispVersion = '2.4.179';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -1201,8 +1201,7 @@ class AppController extends Controller
 
     private function _redirectToLogin()
     {
-        $targetRoute = $this->Auth->loginAction;
-        $targetRoute['admin'] = false;
+        $targetRoute = Configure::read('MISP.baseurl') . '/users/login';
         $this->redirect($targetRoute);
     }
 

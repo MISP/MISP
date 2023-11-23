@@ -274,6 +274,9 @@ jobs:
               python tools/misp-feed/validate.py
               deactivate
 
+      - name: Check requirements.txt
+        run: python tests/check_requirements.py
+
       - name: Logs
         if: ${{ always() }}
         run: |

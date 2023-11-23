@@ -67,9 +67,8 @@ class Module_tag_replacement_generic extends Module_tag_operation
 
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
-        $params = $this->getParamsWithValues($node);
-
         $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         $user = $roamingData->getUser();
 
         if ($this->filtersEnabled($node)) {

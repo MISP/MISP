@@ -23,6 +23,11 @@ class Module_post_after_save extends WorkflowBaseTriggerModule
     public function normalizeData(array $data)
     {
         parent::normalizeData($data);
+
+        if (empty($data['Post'])) {
+            return false;
+        }
+
         $this->Thread = ClassRegistry::init('Thread');
         $thread = $this->Thread->find('first', [
             'recursive' => -1,

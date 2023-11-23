@@ -91,7 +91,8 @@ class Module_tag_if extends WorkflowBaseLogicModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $data = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $data);
 
         $selectedTags = !empty($params['tags']['value']) ? $params['tags']['value'] : [];
         $selectedClusters = !empty($params['clusters']['value']) ? $params['clusters']['value'] : [];
@@ -101,7 +102,6 @@ class Module_tag_if extends WorkflowBaseLogicModule
         $allSelectedTags = array_merge($selectedTags, $selectedClusters);
         $operator = $params['condition']['value'];
         $scope = $params['scope']['value'];
-        $data = $roamingData->getData();
         $extracted = $this->__getTagFromScope($scope, $data);
         $eval = $this->evaluateCondition($extracted, $operator, $allSelectedTags);
         return !empty($eval);

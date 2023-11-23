@@ -39,12 +39,14 @@ class Module_send_mail extends WorkflowBaseActionModule
                 'label' => 'Mail template subject',
                 'type' => 'textarea',
                 'placeholder' => __('The **template** will be rendered using *Jinja2*!'),
+                'jinja_supported' => true,
             ],
             [
                 'id' => 'mail_template_body',
                 'label' => 'Mail template body',
                 'type' => 'textarea',
                 'placeholder' => __('The **template** will be rendered using *Jinja2*!'),
+                'jinja_supported' => true,
             ],
         ];
     }
@@ -60,7 +62,8 @@ class Module_send_mail extends WorkflowBaseActionModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
+        $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         if (empty($params['recipients']['value'])) {
             $errors[] = __('No recipient set.');
             return false;
@@ -69,10 +72,9 @@ class Module_send_mail extends WorkflowBaseActionModule
             $errors[] = __('The mail template is empty.');
             return false;
         }
-        $rData = $roamingData->getData();
 
-        $renderedBody = $this->render_jinja_template($params['mail_template_body']['value'], $rData);
-        $renderedSubject = $this->render_jinja_template($params['mail_template_subject']['value'], $rData);
+        $renderedBody = $params['mail_template_body']['value'];
+        $renderedSubject = $params['mail_template_subject']['value'];
 
         $users = [];
         if (in_array('All accounts', $params['recipients']['value'])) {
