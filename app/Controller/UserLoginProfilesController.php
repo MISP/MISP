@@ -147,12 +147,19 @@ class UserLoginProfilesController extends AppController
             'order' => array('Log.created DESC')
         ));
         $data = $this->UserLoginProfile->_fromLog($log['Log']);
+        if (!$loginProfile) return $data; // skip if empty logs
         $data['status'] = $status;
         $data['user_id'] = $user['id'];
+        $data['hash'] = $this->UserLoginProfile->hash($data);
 
-        // LATER check if the userLoginProfile is already there, or not
-        // add it if it isn't there yet
-        $this->UserLoginProfile->save($data);
+        // add the userLoginProfile trust status if it not already there, based on the hash
+        $result = $this->UserLoginProfile->find('count', array(
+            'conditions' => array('UserLoginProfile.hash' => $data['hash'])
+        ));
+        if ($result == 0) {
+            // no row yet, save it. 
+            $this->UserLoginProfile->save($data);
+        }
         return $data;
     }
 

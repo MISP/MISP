@@ -3175,6 +3175,7 @@ class UsersController extends AppController
         // group authentications by type of loginprofile, to make the list shorter
         foreach($logs as $logEntry) {
             $loginProfile = $this->UserLoginProfile->_fromLog($logEntry['Log']);
+            if (!$loginProfile) continue;
             $loginProfile['ip'] = $logEntry['Log']['ip'] ?? null; // transitional workaround
             if ($this->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
                 // continue find as same type of login
@@ -3226,17 +3227,6 @@ class UsersController extends AppController
             'actions' => $actionsString,
             'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
             'id' => $prevLogEntry);
-        $query = [
-            'limit' => 50,
-            'page' => 1,
-            'order' => 'occurrence desc'
-        ];
-        foreach ($query as $customParam => $foo) {
-            if (isset($this->request->params['named'][$customParam])) {
-                $query[$customParam] = $this->request->params['named'][$customParam];
-            }
-        }
-        $this->__setPagingParams($query['page'], $query['limit'], count($lst), 'named');
         $this->set('data', $lst);
         $this->set('user_id', $user_id);
     }

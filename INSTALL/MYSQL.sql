@@ -1432,20 +1432,20 @@ CREATE TABLE `user_login_profiles` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `user_id` int(11) NOT NULL,
-  `status` varchar(255) DEFAULT NULL,
-  `ip` varchar(255) DEFAULT NULL,
-  `user_agent` varchar(255) DEFAULT NULL,
-  `accept_lang` varchar(255) DEFAULT NULL,
-  `geoip` varchar(255) DEFAULT NULL,
-  `ua_platform` varchar(255) DEFAULT NULL,
-  `ua_browser` varchar(255) DEFAULT NULL,
-  `ua_pattern` varchar(255) DEFAULT NULL,
+  `status` varchar(191) DEFAULT NULL,
+  `ip` varchar(191) DEFAULT NULL,
+  `user_agent` varchar(191) DEFAULT NULL,
+  `accept_lang` varchar(191) DEFAULT NULL,
+  `geoip` varchar(191) DEFAULT NULL,
+  `ua_platform` varchar(191) DEFAULT NULL,
+  `ua_browser` varchar(191) DEFAULT NULL,
+  `ua_pattern` varchar(191) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `ip` (`ip`),
   KEY `status` (`status`),
   KEY `geoip` (`geoip`),
   INDEX `user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 

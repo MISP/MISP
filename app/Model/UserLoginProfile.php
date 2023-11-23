@@ -52,6 +52,18 @@ class UserLoginProfile extends AppModel
         $bc->convertFile($this->browscapIniFile);
     }
 
+    public function beforeSave($options = [])
+    {
+        $this->data['UserLoginProfile']['hash'] = $this->hash($this->data['UserLoginProfile']);
+        return true;
+    }
+
+    public function hash($data) {
+        unset($data['hash']);
+        unset($data['created_at']);
+        return md5(serialize($data));
+    }
+
     /**
      * slow function - don't call it too often 
      * @return array
@@ -112,6 +124,7 @@ class UserLoginProfile extends AppModel
         $data = array_merge($data, json_decode($logEntry['change'], true) ?? []);
         $data['ip'] = $logEntry['ip'];
         $data['timestamp'] = $logEntry['created'];
+        if ($data['user_agent'] == "") return false;
         return $data;
     }
 
