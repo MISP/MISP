@@ -2584,6 +2584,7 @@ class Attribute extends AppModel
         if (isset($attribute['encrypt'])) {
             $attribute = $this->onDemandEncrypt($attribute);
         }
+        $attribute['_materialChange'] = false;
         unset($attribute['id']);
         if (isset($attribute['uuid'])) {
             $existingAttribute = $this->find('first', array(
@@ -2615,10 +2616,17 @@ class Attribute extends AppModel
                 } else {
                     $attribute['timestamp'] = time();
                 }
+                foreach (['value','type','distribution','sharing_group_id'] as $relevantField) {
+                    if (isset($attribute[$relevantField]) && $existingAttribute['Attribute'][$relevantField] !== $attribute[$relevantField]) {
+                        $attribute['_materialChange'] = true;
+                    }
+                }
             } else {
+                $attribute['_materialChange'] = true;
                 $this->create();
             }
         } else {
+            $attribute['_materialChange'] = true;
             $this->create();
         }
         $attribute['event_id'] = $eventId;
@@ -2762,7 +2770,11 @@ class Attribute extends AppModel
         }
         if ($this->fast_update) {
             // Let's recorrelate the event
-            $this->Correlation->generateCorrelation(false, $event['Event']['id']);
+            foreach ($attributes as $attribute) {
+                if (!empty($attribute['_materialChange'])) {
+                    $this->Correlation->generateCorrelation(false, $event['Event']['id'], $attribute['id']);
+                }
+            }
             // Instead of incrementing / decrementing the event 
             $attribute_count = $this->find('count', [
                 'conditions' => [
