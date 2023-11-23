@@ -4116,29 +4116,15 @@ class Event extends AppModel
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 $attributes = [];
-                if (false) {
-                    foreach ($data['Event']['Attribute'] as $k => $attribute) {
-                        $nothingToChange = false;
-                        $attributes[] = $this->Attribute->editAttribute2($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
-                        if (!$nothingToChange) {
-                            $changed = true;
-                        }
-                    }
-                    $result = $this->Attribute->editAttributeBulk($attributes, $saveResult, $user);
-                    $result = $this->Attribute->editAttributePostProcessing($attributes, $saveResult, $user);
-                } else {
-                    foreach ($data['Event']['Attribute'] as $k => $attribute) {
-                        $nothingToChange = false;
-                        $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
-                        if ($result !== true) {
-                            $validationErrors['Attribute'][] = $result;
-                        }
-                        if (!$nothingToChange) {
-                            $changed = true;
-                        }
+                foreach ($data['Event']['Attribute'] as $k => $attribute) {
+                    $nothingToChange = false;
+                    $attributes[] = $this->Attribute->editAttribute2($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
+                    if (!$nothingToChange) {
+                        $changed = true;
                     }
                 }
-
+                $result = $this->Attribute->editAttributeBulk($attributes, $saveResult, $user);
+                $result = $this->Attribute->editAttributePostProcessing($attributes, $saveResult, $user);
             }
             if (isset($data['Event']['Object'])) {
                 $data['Event']['Object'] = array_values($data['Event']['Object']);
