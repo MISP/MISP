@@ -11,9 +11,11 @@
         "ext-pcre": "*",
         "kamisama/cake-resque": "4.1.2",
         "pear/crypt_gpg": "1.6.7",
-        "monolog/monolog": "1.24.0",
+        "monolog/monolog": "~2.5",
         "spomky-labs/otphp": "^10.0",
-        "bacon/bacon-qr-code": "^2.0"
+        "bacon/bacon-qr-code": "^2.0",
+        "geoip2/geoip2": "~2.0",
+        "browscap/browscap-php": "^7.2"
     },
     "require-dev": {
         "phpunit/phpunit": "^8",
