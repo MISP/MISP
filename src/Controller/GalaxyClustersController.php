@@ -343,7 +343,7 @@ class GalaxyClustersController extends AppController
                 $cluster['GalaxyCluster']['extends_uuid'] = null;
             }
             try {
-                $galaxyClusterEntity = $this->GalaxyClusters->saveCluster($this->ACL->getUser()->toArray(), $cluster);
+                [$errors, $galaxyClusterEntity] = $this->GalaxyClusters->saveCluster($this->ACL->getUser()->toArray(), $cluster);
             } catch (\Exception $e) {
                 $errors[] = $e->getMessage();
             }
@@ -463,7 +463,7 @@ class GalaxyClustersController extends AppController
                 }
             } else {
                 try {
-                    $clusterEntity = $this->GalaxyClusters->editCluster($this->ACL->getUser()->toArray(), $cluster);
+                    [$errors, $clusterEntity] = $this->GalaxyClusters->editCluster($this->ACL->getUser()->toArray(), $cluster);
                 } catch (\Exception $e) {
                     $errors[] = $e->getMessage();
                 }

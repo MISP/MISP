@@ -111,7 +111,7 @@ class GalaxyElementsTable extends AppTable
     {
         return [
             $this->buildACLConditions($user),
-            'GalaxyCluster.id' => $clusterId
+            'GalaxyClusters.id' => $clusterId
         ];
     }
 
