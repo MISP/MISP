@@ -65,14 +65,3 @@ class Module_attribute_edition_operation extends WorkflowBaseActionModule
         ];
     }
 }
-
-
-
-foreach ($object['Attribute'] as $k => $attribute) {
-    if (!empty($object['deleted'])) {
-        $attribute['deleted'] = 1;
-    }
-    $attributes[] = $this->Attribute->editAttribute2($attribute, $event, $user, $object['id'], false, $force);
-}
-$result = $this->Attribute->editAttributeBulk($attributes, $event, $user);
-$result = $this->Attribute->editAttributePostProcessing($attributes, $event, $user);
