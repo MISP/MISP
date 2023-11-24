@@ -42,11 +42,9 @@ class UserLoginProfile extends AppModel
 
     public function _buildBrowscapCache() {
         $this->log("Browscap - building new cache from browscap.ini file.", "info");
-        $fileCache = new \League\Flysystem\Local\LocalFilesystemAdapter($this->browscapCacheDir);
-        $filesystem = new \League\Flysystem\Filesystem($fileCache);
-        $cache = new \MatthiasMullie\Scrapbook\Psr16\SimpleCache(
-            new \MatthiasMullie\Scrapbook\Adapters\Flysystem($filesystem)
-        );
+        $fileCache = new \Doctrine\Common\Cache\FilesystemCache($this->browscapCacheDir);
+        $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
+
         $logger = new \Monolog\Logger('name');
         $bc = new \BrowscapPHP\BrowscapUpdater($cache, $logger);
         $bc->convertFile($this->browscapIniFile);
@@ -73,11 +71,8 @@ class UserLoginProfile extends AppModel
             // below uses https://github.com/browscap/browscap-php 
             if (class_exists('\BrowscapPHP\Browscap')) {
                 try {
-                    $fileCache = new \League\Flysystem\Local\LocalFilesystemAdapter($this->browscapCacheDir);
-                    $filesystem = new \League\Flysystem\Filesystem($fileCache);
-                    $cache = new \MatthiasMullie\Scrapbook\Psr16\SimpleCache(
-                        new \MatthiasMullie\Scrapbook\Adapters\Flysystem($filesystem)
-                    );
+                    $fileCache = new \Doctrine\Common\Cache\FilesystemCache($this->browscapCacheDir);
+                    $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
                     $logger = new \Monolog\Logger('name');
                     $bc = new \BrowscapPHP\Browscap($cache, $logger);
                     $browser = $bc->getBrowser();
