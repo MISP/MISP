@@ -85,7 +85,8 @@ class AppModel extends Model
         93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
-        111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false
+        111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
+        117 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -1979,6 +1980,28 @@ class AppModel extends Model
                 break;
             case 116:
                 $sqlArray[] = "ALTER TABLE `event_reports` modify `content` mediumtext";
+                break;
+            case 117:
+                $sqlArray[] = "CREATE TABLE `user_login_profiles` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    `user_id` int(11) NOT NULL,
+                    `status` varchar(191) DEFAULT NULL,
+                    `ip` varchar(191) DEFAULT NULL,
+                    `user_agent` varchar(191) DEFAULT NULL,
+                    `accept_lang` varchar(191) DEFAULT NULL,
+                    `geoip` varchar(191) DEFAULT NULL,
+                    `ua_platform` varchar(191) DEFAULT NULL,
+                    `ua_browser` varchar(191) DEFAULT NULL,
+                    `ua_pattern` varchar(191) DEFAULT NULL,
+                    `hash` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `hash` (`hash`),
+                    KEY `ip` (`ip`),
+                    KEY `status` (`status`),
+                    KEY `geoip` (`geoip`),
+                    INDEX `user_id` (`user_id`)
+                  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
