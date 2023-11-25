@@ -2626,6 +2626,7 @@ class Attribute extends AppModel
                 $this->create();
             }
         } else {
+            $attribute['uuid'] = CakeText::uuid();
             $attribute['_materialChange'] = true;
             $this->create();
         }
@@ -2644,7 +2645,7 @@ class Attribute extends AppModel
                     'Attribute dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $attribute_short,
                     'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
                 );
-                return 'Invalid sharing group choice.';
+                return true;
             }
         } else if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = $this->defaultDistribution();
@@ -2668,14 +2669,20 @@ class Attribute extends AppModel
             'fieldList' => $fieldList,
             'parentEvent' => $event,
             'atomic' => true,
-            'validate' => true
+            'validate' => 'only'
         ];
+        // validation only so we can cull the problematic attributes
         $this->saveMany($attributes, $saveOptions);
         if (!empty($this->validationErrors)) {
             foreach ($this->validationErrors as $key => $validationError) {
                 $this->logDropped($user, $attributes[$key], 'edit', $validationError);
+                unset($this->updateLookupTable[$attributes[$key]['uuid']]);
+                unset($attributes[$key]);
             }
         }
+        $saveOptions['validate'] = true;
+        // actual save, though we still need to validate in order for the beforeValidate massaging scripts to fire.
+        $this->saveMany($attributes, $saveOptions);
         return true;
     }
 
@@ -2684,6 +2691,9 @@ class Attribute extends AppModel
         $eventId = $event['Event']['id'];
         $tagActions = [];
         foreach ($attributes as $attribute) {
+            if (!isset($this->updateLookupTable[$attribute['uuid']])) {
+                continue;
+            }
             $attributeId = $this->updateLookupTable[$attribute['uuid']];
             if (!empty($attribute['Sighting'])) {
                 $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
