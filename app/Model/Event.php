@@ -4127,7 +4127,6 @@ class Event extends AppModel
                     }
                 }
                 $this->Attribute->editAttributeBulk($attributes, $saveResult, $user);
-                $this->Attribute->editAttributePostProcessing($attributes, $saveResult, $user);
             }
             if (isset($data['Event']['Object'])) {
                 $data['Event']['Object'] = array_values($data['Event']['Object']);

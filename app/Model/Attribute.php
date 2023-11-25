@@ -2696,8 +2696,10 @@ class Attribute extends AppModel
         }
         $saveOptions['validate'] = false;
         // actual save, though we still need to validate in order for the beforeValidate massaging scripts to fire.
-        $this->saveMany($attributes, $saveOptions);
-        return true;
+        if (!empty($attributes)) {
+            $this->saveMany($attributes, $saveOptions);
+        }
+        return $this->editAttributePostProcessing($attributes, $event, $user);
     }
 
     public function editAttributePostProcessing($attributes, $event, $user)

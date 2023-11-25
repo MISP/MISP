@@ -51,7 +51,6 @@ class Module_attribute_edition_operation extends WorkflowBaseActionModule
             }
         }
         $this->Attribute->editAttributeBulk($attributes, $rData, $user);
-        $this->Attribute->editAttributePostProcessing($attributes, $rData, $user);
         foreach ($attributes as $k => $attribute) {
             $saveSuccess = empty($this->Attribute->validationErrors[$k]);
             if ($saveSuccess) {
