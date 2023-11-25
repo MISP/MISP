@@ -619,6 +619,15 @@ class Attribute extends AppModel
             return false;
         }
 
+        $attribute = $this->beforeVAlidateMassage($attribute);
+
+        // return true, otherwise the object cannot be saved
+        return true;
+    }
+
+    public function beforeValidateMassage($attribute)
+    {
+        $type = $attribute['type'];
         // If `value1` or `value2` provided and `value` is empty, merge them into `value` because of validation
         if (empty($attribute['value'])) {
             if (!empty($attribute['value1']) && !empty($attribute['value2'])) {
@@ -688,8 +697,7 @@ class Attribute extends AppModel
                 $attribute['disable_correlation'] = true;
             }
         }
-        // return true, otherwise the object cannot be saved
-        return true;
+        return $attribute;
     }
 
     public function validComposite($fields)
@@ -2626,6 +2634,7 @@ class Attribute extends AppModel
                 $this->create();
             }
         } else {
+            $attribute['uuid'] = CakeText::uuid();
             $attribute['_materialChange'] = true;
             $this->create();
         }
@@ -2644,7 +2653,7 @@ class Attribute extends AppModel
                     'Attribute dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $attribute_short,
                     'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
                 );
-                return 'Invalid sharing group choice.';
+                return true;
             }
         } else if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = $this->defaultDistribution();
@@ -2668,15 +2677,29 @@ class Attribute extends AppModel
             'fieldList' => $fieldList,
             'parentEvent' => $event,
             'atomic' => true,
-            'validate' => true
+            'validate' => 'only'
         ];
-        $this->saveMany($attributes, $saveOptions);
+
+        // run the beforevalidation massage at this point so we can skip validation in round 2
+        foreach ($attributes as $k => $attribute) {
+            $attributes[$k] = $this->beforeVAlidateMassage($attribute);
+        }
+
+        // validation only so we can cull the problematic attributes
+        $this->saveAll($attributes, $saveOptions);
         if (!empty($this->validationErrors)) {
             foreach ($this->validationErrors as $key => $validationError) {
                 $this->logDropped($user, $attributes[$key], 'edit', $validationError);
+                unset($this->updateLookupTable[$attributes[$key]['uuid']]);
+                unset($attributes[$key]);
             }
         }
-        return true;
+        $saveOptions['validate'] = false;
+        // actual save, though we still need to validate in order for the beforeValidate massaging scripts to fire.
+        if (!empty($attributes)) {
+            $this->saveMany($attributes, $saveOptions);
+        }
+        return $this->editAttributePostProcessing($attributes, $event, $user);
     }
 
     public function editAttributePostProcessing($attributes, $event, $user)
@@ -2684,6 +2707,9 @@ class Attribute extends AppModel
         $eventId = $event['Event']['id'];
         $tagActions = [];
         foreach ($attributes as $attribute) {
+            if (!isset($this->updateLookupTable[$attribute['uuid']])) {
+                continue;
+            }
             $attributeId = $this->updateLookupTable[$attribute['uuid']];
             if (!empty($attribute['Sighting'])) {
                 $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
