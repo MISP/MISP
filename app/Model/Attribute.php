@@ -2781,9 +2781,9 @@ class Attribute extends AppModel
             
         }
         if (!empty($tagActions['detach'])) {
-            $conditions = [];
+            $conditions = ['OR' => []];
             foreach ($tagActions['detach'] as $detach) {
-                $conditions[] = [
+                $conditions['OR'][] = [
                     'AND' => [
                         'attribute_id' => $detach['attribute_id'],
                         'tag_id' => $detach['tag_id']

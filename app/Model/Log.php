@@ -26,6 +26,7 @@ class Log extends AppModel
                     'attachTags',
                     'auth',
                     'auth_fail',
+                    'auth_alert',
                     'blocklisted',
                     'captureRelations',
                     'change_pw',
@@ -99,7 +100,7 @@ class Log extends AppModel
 
     public $logMeta = array(
         'email' => array('values' => array('email'), 'name' => 'Emails'),
-        'auth_issues' => array('values' => array('login_fail', 'auth_fail'), 'name' => 'Authentication issues')
+        'auth_issues' => array('values' => array('login_fail', 'auth_fail', 'auth_alert'), 'name' => 'Authentication issues')
     );
 
     public $logMetaAdmin = array(

@@ -1425,6 +1425,33 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `user_login_profiles`
+--
+
+CREATE TABLE `user_login_profiles` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `user_id` int(11) NOT NULL,
+  `status` varchar(191) DEFAULT NULL,
+  `ip` varchar(191) DEFAULT NULL,
+  `user_agent` varchar(191) DEFAULT NULL,
+  `accept_lang` varchar(191) DEFAULT NULL,
+  `geoip` varchar(191) DEFAULT NULL,
+  `ua_platform` varchar(191) DEFAULT NULL,
+  `ua_browser` varchar(191) DEFAULT NULL,
+  `ua_pattern` varchar(191) DEFAULT NULL,
+  `hash` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `hash` (`hash`),
+  KEY `ip` (`ip`),
+  KEY `status` (`status`),
+  KEY `geoip` (`geoip`),
+  INDEX `user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `warninglists`
 --
 
