@@ -619,6 +619,15 @@ class Attribute extends AppModel
             return false;
         }
 
+        $attribute = $this->beforeVAlidateMassage($attribute);
+
+        // return true, otherwise the object cannot be saved
+        return true;
+    }
+
+    public function beforeValidateMassage($attribute)
+    {
+        $type = $attribute['type'];
         // If `value1` or `value2` provided and `value` is empty, merge them into `value` because of validation
         if (empty($attribute['value'])) {
             if (!empty($attribute['value1']) && !empty($attribute['value2'])) {
@@ -688,8 +697,7 @@ class Attribute extends AppModel
                 $attribute['disable_correlation'] = true;
             }
         }
-        // return true, otherwise the object cannot be saved
-        return true;
+        return $attribute;
     }
 
     public function validComposite($fields)
@@ -2671,6 +2679,12 @@ class Attribute extends AppModel
             'atomic' => true,
             'validate' => 'only'
         ];
+
+        // run the beforevalidation massage at this point so we can skip validation in round 2
+        foreach ($attributes as $k => $attribute) {
+            $attributes[$k] = $this->beforeVAlidateMassage($attribute);
+        }
+
         // validation only so we can cull the problematic attributes
         $this->saveMany($attributes, $saveOptions);
         if (!empty($this->validationErrors)) {
@@ -2680,7 +2694,7 @@ class Attribute extends AppModel
                 unset($attributes[$key]);
             }
         }
-        $saveOptions['validate'] = true;
+        $saveOptions['validate'] = false;
         // actual save, though we still need to validate in order for the beforeValidate massaging scripts to fire.
         $this->saveMany($attributes, $saveOptions);
         return true;
