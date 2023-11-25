@@ -2686,7 +2686,7 @@ class Attribute extends AppModel
         }
 
         // validation only so we can cull the problematic attributes
-        $this->saveMany($attributes, $saveOptions);
+        $this->saveAll($attributes, $saveOptions);
         if (!empty($this->validationErrors)) {
             foreach ($this->validationErrors as $key => $validationError) {
                 $this->logDropped($user, $attributes[$key], 'edit', $validationError);
