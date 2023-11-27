@@ -619,7 +619,7 @@ class Attribute extends AppModel
             return false;
         }
 
-        $attribute = $this->beforeVAlidateMassage($attribute);
+        $attribute = $this->beforeValidateMassage($attribute);
 
         // return true, otherwise the object cannot be saved
         return true;
@@ -2682,7 +2682,7 @@ class Attribute extends AppModel
 
         // run the beforevalidation massage at this point so we can skip validation in round 2
         foreach ($attributes as $k => $attribute) {
-            $attributes[$k] = $this->beforeVAlidateMassage($attribute);
+            $attributes[$k] = $this->beforeValidateMassage($attribute);
         }
 
         // validation only so we can cull the problematic attributes
