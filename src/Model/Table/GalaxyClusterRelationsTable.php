@@ -367,7 +367,7 @@ class GalaxyClusterRelationsTable extends AppTable
                 if (empty($fieldList)) {
                     $fieldList = ['galaxy_cluster_id', 'galaxy_cluster_uuid', 'referenced_galaxy_cluster_id', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type', 'distribution', 'sharing_group_id', 'default'];
                 }
-                $relationEntity = $this->newEntity($relation['GalaxyClusterRelation'], ['fields' => $fieldList]);
+                $relationEntity = $this->patchEntity($existingRelation, $relation['GalaxyClusterRelation'], ['fieldList' => $fieldList, 'associated' => []]);
                 try {
                     $this->saveOrFail($relationEntity);
                     $this->GalaxyClusterRelationTags->deleteAll(['GalaxyClusterRelationTag.galaxy_cluster_relation_id' => $relation['GalaxyClusterRelation']['id']]);
