@@ -8,7 +8,7 @@ The `prod` image has the minimum required packages to safely run MISP on a produ
 ## Development environment
 1. Create a copy of `./docker/.env.dev.dist`, update the variables values only if you need so and know what your are doing.
     ```bash
-    cp ./docker/.env.dist ./docker.env.dev
+    cp ./docker/.env.dev.dist ./docker/.env.dev
     ```
 2. Build the `dev` images:
     ```bash
