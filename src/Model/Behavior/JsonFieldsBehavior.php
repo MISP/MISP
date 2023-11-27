@@ -53,7 +53,7 @@ class JsonFieldsBehavior extends Behavior
                 return $results->map(
                     function ($row) use ($config) {
                         foreach ($config['fields'] as $field => $fieldConfig) {
-                            if (isset($row[$field])) {
+                            if (isset($row[$field]) && !is_array($row[$field])) {
                                 $row[$field] = JsonTool::decode($row[$field]);
                             }
                         }
