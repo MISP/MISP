@@ -152,7 +152,7 @@ class Sighting extends AppModel
 
         $toSave = [];
         foreach ($sightings as $sighting) {
-            if (isset($existingSighting[$sighting['uuid']])) {
+            if (!empty($sighting['uuid']) && isset($existingSighting[$sighting['uuid']])) {
                 continue; // already exists, skip
             }
 

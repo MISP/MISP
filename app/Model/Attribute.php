@@ -2712,7 +2712,7 @@ class Attribute extends AppModel
             }
             $attributeId = $this->updateLookupTable[$attribute['uuid']];
             if (!empty($attribute['Sighting'])) {
-                $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
+                $this->Sighting->captureSightings($attribute['Sighting'], $attributeId, $eventId, $user);
             }
             if ($user['Role']['perm_tagger']) {
                 /*
