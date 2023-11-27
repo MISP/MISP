@@ -2798,7 +2798,7 @@ class Attribute extends AppModel
             // Let's recorrelate the event
             foreach ($attributes as $attribute) {
                 if (!empty($attribute['_materialChange'])) {
-                    $this->Correlation->generateCorrelation(false, $event['Event']['id'], $attribute['id']);
+                    $this->Correlation->generateCorrelation(false, $event['Event']['id'], $attributeId);
                 }
             }
             // Instead of incrementing / decrementing the event 
