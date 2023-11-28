@@ -3,19 +3,12 @@
 namespace App\Controller;
 
 use App\Controller\AppController;
-use App\Lib\Tools\ClusterRelationsGraphTool;
-use App\Lib\Tools\FileAccessTool;
-use App\Lib\Tools\JsonTool;
 use App\Model\Entity\Distribution;
 use Cake\Core\Configure;
-use Cake\Http\Exception\BadRequestException;
-use Cake\Http\Exception\ForbiddenException;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Response;
 use Cake\ORM\Locator\LocatorAwareTrait;
-use Cake\Validation\Validation;
-use Exception;
 use Cake\Utility\Hash;
 
 /**
@@ -31,49 +24,49 @@ class GalaxyClusterRelationsController extends AppController
         parent::initialize();
     }
 
-    public $paginate = array(
+    public $paginate = [
         'limit' => 60,
         'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
         'recursive' => -1,
-    );
+    ];
 
     public function index()
     {
         $filters = $this->request->getQueryParams();
         $GalaxyClusterRelationsTable = $this->fetchTable('GalaxyClusterRelations');
         $aclConditions = $GalaxyClusterRelationsTable->buildConditions($this->ACL->getUser());
-        $contextConditions = array();
+        $contextConditions = [];
         if (empty($filters['context'])) {
             $filters['context'] = 'all';
         } else {
-            $contextConditions = array();
+            $contextConditions = [];
             if ($filters['context'] == 'default') {
-                $contextConditions = array(
+                $contextConditions = [
                     'GalaxyClusterRelations.default' => true
-                );
+                ];
             } elseif ($filters['context'] == 'custom') {
-                $contextConditions = array(
+                $contextConditions = [
                     'GalaxyClusterRelations.default' => false
-                );
+                ];
             }
         }
-        $this->set('passedArgsArray', array('context' => $filters['context'], 'searchall' => isset($filters['searchall']) ? $filters['searchall'] : ''));
+        $this->set('passedArgsArray', ['context' => $filters['context'], 'searchall' => isset($filters['searchall']) ? $filters['searchall'] : '']);
         $this->set('context', $filters['context']);
-        $searchConditions = array();
+        $searchConditions = [];
         if (empty($filters['searchall'])) {
             $filters['searchall'] = '';
         }
         if (strlen($filters['searchall']) > 0) {
             $searchall = '%' . strtolower($filters['searchall']) . '%';
-            $searchConditions = array(
-                'OR' => array(
+            $searchConditions = [
+                'OR' => [
                     'LOWER(GalaxyClusterRelations.referenced_galaxy_cluster_type) LIKE' => $searchall,
                     'LOWER(TargetCluster.value) LIKE' => $searchall,
                     'LOWER(TargetCluster.tag_name) LIKE' => $searchall,
                     'LOWER(SourceCluster.value) LIKE' => $searchall,
                     'LOWER(SourceCluster.tag_name) LIKE' => $searchall,
-                ),
-            );
+                ],
+            ];
         }
 
         if ($this->ParamHandler->isRest()) {
@@ -90,11 +83,11 @@ class GalaxyClusterRelationsController extends AppController
 
             $relations = $GalaxyClusterRelationsTable->find(
                 'all',
-                array(
+                [
                     'recursive' => -1,
                     'conditions' => $conditions,
-                    'contain' => array('SharingGroup', 'SourceCluster', 'TargetCluster', 'GalaxyClusterRelationTags' => array('Tags'))
-                )
+                    'contain' => ['SharingGroup', 'SourceCluster', 'TargetCluster', 'GalaxyClusterRelationTags' => ['Tags']]
+                ]
             );
             $relations = $GalaxyClusterRelationsTable->removeNonAccessibleTargetCluster($this->ACL->getUser()->toArray(), $relations);
             return $this->RestResponse->viewData($relations->toArray(), $this->response->getType());
@@ -102,7 +95,7 @@ class GalaxyClusterRelationsController extends AppController
             $this->paginate['conditions']['AND'][] = $contextConditions;
             $this->paginate['conditions']['AND'][] = $searchConditions;
             $this->paginate['conditions']['AND'][] = $aclConditions;
-            $this->paginate['contain'] = array('SharingGroup', 'SourceCluster' => ['Org', 'Orgc'], 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tags'));
+            $this->paginate['contain'] = ['SharingGroup', 'SourceCluster' => ['Org', 'Orgc'], 'TargetCluster', 'GalaxyClusterRelationTag' => ['Tags']];
             $relations = $this->paginate();
             $relations = $GalaxyClusterRelationsTable->removeNonAccessibleTargetCluster($this->ACL->getUser(), $relations);
             $distributionLevels = Distribution::ALL;
@@ -115,12 +108,15 @@ class GalaxyClusterRelationsController extends AppController
     public function view($id)
     {
         if ($this->ParamHandler->isRest()) {
-            $conditions = array('GalaxyClusterRelations.id' => $id);
+            $conditions = ['GalaxyClusterRelations.id' => $id];
             $GalaxyClusterRelationsTable = $this->fetchTable('GalaxyClusterRelations');
-            $relation = $GalaxyClusterRelationsTable->fetchRelations($this->ACL->getUser(), array(
-                'conditions' => $conditions,
-                'contain' => array('SharingGroup', 'TargetCluster', 'GalaxyClusterRelationTags' => array('Tags'))
-            ))->toArray();
+            $relation = $GalaxyClusterRelationsTable->fetchRelations(
+                $this->ACL->getUser(),
+                [
+                    'conditions' => $conditions,
+                    'contain' => ['SharingGroup', 'TargetCluster', 'GalaxyClusterRelationTags' => ['Tags']]
+                ]
+            )->toArray();
             if (empty($relation)) {
                 throw new NotFoundException(__('Invalid cluster relation'));
             }
@@ -150,10 +146,10 @@ class GalaxyClusterRelationsController extends AppController
         $sgs = $SharingGroupsTable->fetchAllAuthorised($this->ACL->getUser()->toArray(), 'name', 1);
 
         if ($this->request->is('post')) {
-            $errors = array();
+            $errors = [];
             $data = $this->request->getData();
             if (empty($data['GalaxyClusterRelation'])) {
-                $data = array('GalaxyClusterRelation' => $data);
+                $data = ['GalaxyClusterRelation' => $data];
             }
             $relation = $data;
             if ($relation['GalaxyClusterRelation']['distribution'] != 4) {
@@ -161,9 +157,9 @@ class GalaxyClusterRelationsController extends AppController
             }
 
             $GalaxyClusterRelationsTable = $this->fetchTable('GalaxyClusterRelations');
-            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser()->toArray(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors = false, $full = false);
+            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser()->toArray(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], ['edit', 'publish'], $throwErrors = false, $full = false);
             if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
-                $errors = array($clusterSource['error']);
+                $errors = [$clusterSource['error']];
             }
 
             if (!empty($relation['GalaxyClusterRelation']['tags'])) {
@@ -171,7 +167,7 @@ class GalaxyClusterRelationsController extends AppController
                 $tags = array_map('trim', $tags);
                 $relation['GalaxyClusterRelation']['tags'] = $tags;
             } else {
-                $relation['GalaxyClusterRelation']['tags'] = array();
+                $relation['GalaxyClusterRelation']['tags'] = [];
             }
 
             if (empty($errors)) {
@@ -195,15 +191,15 @@ class GalaxyClusterRelationsController extends AppController
             } elseif ($this->request->is('ajax')) {
                 $this->autoRender = false;
                 if (empty($errors)) {
-                    return new Response(array('body' => json_encode(array('saved' => true, 'success' => '')), 'status' => 200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => true, 'success' => '']), 'status' => 200, 'type' => 'json']);
                 } else {
                     $message .= sprintf('Reasons: %s', json_encode($errors));
-                    return new Response(array('body' => json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => false, 'errors' => $message]), 'status' => 200, 'type' => 'json']);
                 }
             } else {
                 if (empty($errors)) {
                     $this->Flash->success($message);
-                    $this->redirect(array('action' => 'index'));
+                    $this->redirect(['action' => 'index']);
                 } else {
                     $message .= __(' Reason: %s', json_encode(array_merge($errors, $GalaxyClusterRelationsTable->validationErrors)));
                     $this->Flash->error($message);
@@ -219,7 +215,7 @@ class GalaxyClusterRelationsController extends AppController
 
     public function edit($id)
     {
-        $conditions = array('conditions' => array('GalaxyClusterRelations.id' => $id), 'contain' => array('GalaxyClusterRelationTags' => 'Tags'));
+        $conditions = ['conditions' => ['GalaxyClusterRelations.id' => $id], 'contain' => ['GalaxyClusterRelationTags' => 'Tags']];
         $GalaxyClusterRelationsTable = $this->fetchTable('GalaxyClusterRelations');
         $existingRelation = $GalaxyClusterRelationsTable->fetchRelations($this->ACL->getUser()->toArray(), $conditions)->toArray();
         if (empty($existingRelation)) {
@@ -245,10 +241,10 @@ class GalaxyClusterRelationsController extends AppController
         $sgs = $SharingGroupsTable->fetchAllAuthorised($this->ACL->getUser()->toArray(), 'name', 1);
 
         if ($this->request->is('post') || $this->request->is('put')) {
-            $errors = array();
+            $errors = [];
             $data = $this->request->getData();
             if (empty($data['GalaxyClusterRelation'])) {
-                $data = array('GalaxyClusterRelation' => $data);
+                $data = ['GalaxyClusterRelation' => $data];
             }
             $relation = $data;
             $relation['GalaxyClusterRelation']['id'] = $id;
@@ -256,9 +252,9 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation']['sharing_group_id'] = null;
             }
 
-            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser()->toArray(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors = false, $full = false);
+            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser()->toArray(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], ['edit', 'publish'], $throwErrors = false, $full = false);
             if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
-                $errors = array($clusterSource['error']);
+                $errors = [$clusterSource['error']];
             }
             $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterSource['id'];
 
@@ -267,7 +263,7 @@ class GalaxyClusterRelationsController extends AppController
                 $tags = array_map('trim', $tags);
                 $relation['GalaxyClusterRelation']['tags'] = $tags;
             } else {
-                $relation['GalaxyClusterRelation']['tags'] = array();
+                $relation['GalaxyClusterRelation']['tags'] = [];
             }
 
             if (empty($errors)) {
@@ -288,12 +284,12 @@ class GalaxyClusterRelationsController extends AppController
                     return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'edit', false, $message, $this->response->getType());
                 }
                 if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($this->ACL->getUser(), $relation['GalaxyClusterRelation']['sharing_group_id'])) {
-                    $errors[] = array(__('Galaxy Cluster Relation could not be saved: The user has to have access to the sharing group in order to be able to edit it.'));
+                    $errors[] = [__('Galaxy Cluster Relation could not be saved: The user has to have access to the sharing group in order to be able to edit it.')];
                 }
             } else {
                 if (empty($errors)) {
                     $this->Flash->success($message);
-                    $this->redirect(array('action' => 'index'));
+                    $this->redirect(['action' => 'index']);
                 } else {
                     $message .= __(' Reason: %s', json_encode(array_merge($errors, $GalaxyClusterRelationsTable->validationErrors), true));
                     $this->Flash->error($message);
@@ -313,12 +309,12 @@ class GalaxyClusterRelationsController extends AppController
     {
         if ($this->request->is('post')) {
             $GalaxyClusterRelationsTable = $this->fetchTable('GalaxyClusterRelations');
-            $relation = $GalaxyClusterRelationsTable->fetchRelations($this->ACL->getUser(), array('conditions' => array('GalaxyClusterRelations.id' => $id)))->toArray();
+            $relation = $GalaxyClusterRelationsTable->fetchRelations($this->ACL->getUser(), ['conditions' => ['GalaxyClusterRelations.id' => $id]])->toArray();
             if (empty($relation)) {
                 throw new NotFoundException(__('Relation not found.'));
             }
             $relation = $relation[0];
-            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser()->toArray(), $relation['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors = true, $full = false);
+            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser()->toArray(), $relation['galaxy_cluster_uuid'], ['edit', 'publish'], $throwErrors = true, $full = false);
 
             $result = $GalaxyClusterRelationsTable->delete($relation, true);
             if ($result) {
