@@ -60,7 +60,17 @@ class RestSearchComponent extends Component
             'includeAllTags',
             'includeAttributeUuid',
             'includeGalaxy',
-            'order'
+            'order',
+            'policy',
+            'walled_garden',
+            'ns',
+            'email',
+            'serial',
+            'refresh',
+            'retry',
+            'expiry',
+            'minimum_ttl',
+            'ttl'
         ],
         'Event' => [
             'returnFormat',
@@ -122,7 +132,17 @@ class RestSearchComponent extends Component
             'noShadowAttributes',
             'order',
             'protected',
-            'includeGranularCorrelations'
+            'includeGranularCorrelations',
+            'policy',
+            'walled_garden',
+            'ns',
+            'email',
+            'serial',
+            'refresh',
+            'retry',
+            'expiry',
+            'minimum_ttl',
+            'ttl'
         ],
         'Object' => [
             'returnFormat',
