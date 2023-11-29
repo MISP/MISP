@@ -168,7 +168,7 @@ class UserLoginProfile extends AppModel
         if (!isset($this->knownUserProfiles[$user_id])) {
             $this->knownUserProfiles[$user_id] = $this->find('all', [
                 'conditions' => ['UserLoginProfile.user_id' => $user_id],
-                'recursive' => 0],
+                'recursive' => 0]
             );
         }
         // perform check on all entries, and stop when check OK
@@ -203,9 +203,9 @@ class UserLoginProfile extends AppModel
             'conditions' => [
                 'UserLoginProfile.ip' => $this->_getUserProfile()['ip'],
                 'UserLoginProfile.status' => 'malicious'
-        ],
+            ],
             'recursive' => 0,
-            'fields' => array('UserLoginProfile.*')],
+            'fields' => array('UserLoginProfile.*')]
         );
         if ($maliciousWithSameIP) {
             return _('The source IP was reported as as malicious by a user.');
@@ -300,9 +300,7 @@ class UserLoginProfile extends AppModel
                 } else {
                     // email flow system already logs errors
                 }
-            }
-
-            
+            }            
         }
     }
 
