@@ -781,6 +781,13 @@ class ACLComponent extends Component
                 'viewPeriodicSummary' => ['*'],
                 'getGpgPublicKey' => array('*'),
                 'unsubscribe' => ['*'],
+                'view_login_history' => ['*']
+            ),
+            'userLoginProfiles' => array(
+                'index' => ['*'],
+                'trust' => ['*'],
+                'malicious' => ['*'],
+                'admin_delete' => ['perm_admin']
             ),
             'userSettings' => array(
                 'index' => array('*'),

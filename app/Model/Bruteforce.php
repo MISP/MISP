@@ -8,7 +8,6 @@ class Bruteforce extends AppModel
     public function insert($username)
     {
         $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
         $ip = $this->_remoteIp();
         $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
         $amount = Configure::check('SecureAuth.amount') ? Configure::read('SecureAuth.amount') : 5;
@@ -21,36 +20,32 @@ class Bruteforce extends AppModel
         );
         $this->save($bruteforceEntry);
         $title = 'Failed login attempt using username ' . $username . ' from IP: ' . $ip . '.';
+        $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
+        $change = $this->UserLoginProfile->_getUserProfile();
         if ($this->isBlocklisted($username)) {
-            $change = 'This has tripped the bruteforce protection after  ' . $amount . ' failed attempts. The source IP/username is now blocklisted for ' . $expire . ' seconds.';
-        } else {
-            $change = '';
+            $title .= ' Blocked against bruteforcing.';
+            $change['details'] = 'This has tripped the bruteforce protection after  ' . $amount . ' failed attempts. The source IP/username is now blocklisted for ' . $expire . ' seconds.';
         }
         // lookup the real user details
         $this->User = ClassRegistry::init('User');
         $user = $this->User->find('first', array(
             'conditions' => array('User.email' => $username),
-            'fields' => array('User.id', 'Organisation.name'),
+            'fields' => array('User.id', 'Organisation.name', 'User.email'),
             'recursive' => 0));
+        $user = array_merge($user, $user['User']);
         if ($user) {
-            $org = $user['Organisation']['name'];
             $userId = $user['User']['id'];
         } else {
-            $org = 'SYSTEM';
+            $user = 'SYSTEM';
             $userId = 0;
         }
-
-        $log = array(
-                'org' => $org,
-                'model' => 'User',
-                'model_id' => $userId,
-                'email' => $username,
-                'user_id' => $userId,
-                'action' => 'login_fail',
-                'title' => $title,
-                'change' => $change
-        );
-        $this->Log->save($log);
+        $this->Log->createLogEntry(
+            $user,
+            'login_fail',
+            'User',
+            $userId,
+            $title,
+            json_encode($change));
     }
 
     public function clean()
