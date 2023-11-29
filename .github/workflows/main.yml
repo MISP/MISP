@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        php: ['7.4']
+        php: ['7.2', '7.3', '7.4']
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
