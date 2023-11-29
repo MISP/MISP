@@ -268,7 +268,7 @@ misp = ExpandedPyMISP(misp_url, misp_key, misp_verifycert)
 misp.direct_call(relative_path, body)
 ',
                 $baseurl,
-                $request['header']['Authorization'],
+                isset($request['header']['X-MISP-AUTH']) ? $request['header']['X-MISP-AUTH'] : $request['header']['Authorization'],
                 $verifyCert,
                 $relative,
                 (empty($request['body']) ? 'None' : $request['body'])

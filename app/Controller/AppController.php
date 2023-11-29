@@ -400,13 +400,20 @@ class AppController extends Controller
         if (Configure::read('Security.allow_unsafe_apikey_named_param') && !empty($this->request->params['named']['apikey'])) {
             $namedParamAuthkey = $this->request->params['named']['apikey'];
         }
+        $apikey = null;
+        if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            $apikey = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+        if (!empty($_SERVER['HTTP_X_MISP_AUTH'])) {
+            $apikey = $_SERVER['HTTP_X_MISP_AUTH'];
+        }
         // Authenticate user with authkey in Authorization HTTP header
-        if (!empty($_SERVER['HTTP_AUTHORIZATION']) && strcasecmp(substr($_SERVER['HTTP_AUTHORIZATION'], 0, 5), "Basic") == 0) { // Skip Basic Authorizations
+        if (!empty($apikey) && strcasecmp(substr($apikey, 0, 5), "Basic") == 0) { // Skip Basic Authorizations
             return null;
         }
-        if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($namedParamAuthkey)) {
+        if (!empty($apikey) || !empty($namedParamAuthkey)) {
             $foundMispAuthKey = false;
-            $authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
+            $authentication = explode(',', $apikey);
             if (!empty($namedParamAuthkey)) {
                 $authentication[] = $namedParamAuthkey;
             }
