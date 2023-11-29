@@ -54,6 +54,7 @@ class Attribute extends AppModel
     const EDITABLE_FIELDS = [
         'timestamp',
         'category',
+        'type',
         'value',
         'value1',
         'value2',
@@ -620,7 +621,6 @@ class Attribute extends AppModel
         }
 
         $attribute = $this->beforeValidateMassage($attribute);
-
         // return true, otherwise the object cannot be saved
         return true;
     }
