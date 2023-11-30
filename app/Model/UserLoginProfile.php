@@ -68,9 +68,6 @@ class UserLoginProfile extends AppModel
      */
     public function _getUserProfile() {
         if (!$this->userProfile) {
-            if (version_compare(PHP_VERSION, '7.4.0') >= 0) {
-                return [];
-            }
             // below uses https://github.com/browscap/browscap-php 
             if (class_exists('\BrowscapPHP\Browscap')) {
                 try {
