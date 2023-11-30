@@ -1351,7 +1351,7 @@ class UsersController extends AppController
             $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
         }
 
-        if (version_compare(PHP_VERSION, '7.4.0') >= 0) {
+        try {
             // there are reasons to believe there is evil happening, suspicious. Inform user and (org)admins.
             $suspiciousness_reason = $this->User->UserLoginProfile->_isSuspicious();
             if ($suspiciousness_reason) {
@@ -1369,6 +1369,9 @@ class UsersController extends AppController
                 // send email to inform the user
                 $this->User->UserLoginProfile->email_newlogin($user);
             }
+        } catch (Exception $e) {
+            // At first login after code update and before DB schema update we might end up with problems.
+            // Just catch it cleanly here to prevent problems.
         }
 
         // no state changes are ever done via GET requests, so it is safe to return to the original page:
