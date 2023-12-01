@@ -1149,6 +1149,7 @@ class AppController extends Controller
                     $this->Session->write(AuthComponent::$sessionKey, $user['User']);
                     if (Configure::read('MISP.log_auth')) {
                         $this->Log = ClassRegistry::init('Log');
+                        $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
                         $change = $this->UserLoginProfile->_getUserProfile();
                         $change['http_method'] = $_SERVER['REQUEST_METHOD'];
                         $change['target'] = $this->request->here;
@@ -1165,6 +1166,7 @@ class AppController extends Controller
                     // User not authenticated correctly
                     // reset the session information
                     $this->Log = ClassRegistry::init('Log');
+                    $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
                     $change = $this->UserLoginProfile->_getUserProfile();
                     $this->Log->createLogEntry(
                         'SYSTEM',
