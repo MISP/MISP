@@ -55,7 +55,10 @@
         </properties>
     </rule>
 
-    <rule ref="Generic.Arrays.ArrayIndent" />
+    <rule ref="Squiz.Arrays.ArrayDeclaration">
+        <exclude name="Squiz.Arrays.ArrayDeclaration.OpenBraceNotAligned" />
+        <exclude name="Squiz.Arrays.ArrayDeclaration.DoubleArrowNotAligned" />
+    </rule>
 
     <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes">
         <severity>0</severity>
