@@ -1350,28 +1350,29 @@ class UsersController extends AppController
             $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
             $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
         }
-
-        try {
-            // there are reasons to believe there is evil happening, suspicious. Inform user and (org)admins.
-            $suspiciousness_reason = $this->User->UserLoginProfile->_isSuspicious();
-            if ($suspiciousness_reason) {
-                // raise an alert (the SIEM component should ensure (org)admins are informed)
-                $this->loadModel('Log');
-                $this->Log->createLogEntry($this->Auth->user(), 'auth_alert', 'User', $this->Auth->user('id'), 'Suspicious login.', $suspiciousness_reason);
-                // Line below commented out to NOT inform user/org admin of the suspicious login.
-                // The reason is that we want to prevent other user actions cause trouble. 
-                // However this also means we're sitting on data that could be used to detect new evil logins.
-                // As we're generating alerts, the sysadmin should be keeping an eye on these
-                // $this->User->UserLoginProfile->email_suspicious($user, $suspiciousness_reason);
+        if (Configure::read('Security.alert_on_suspicious_logins')) {
+            try {
+                // there are reasons to believe there is evil happening, suspicious. Inform user and (org)admins.
+                $suspiciousness_reason = $this->User->UserLoginProfile->_isSuspicious();
+                if ($suspiciousness_reason) {
+                    // raise an alert (the SIEM component should ensure (org)admins are informed)
+                    $this->loadModel('Log');
+                    $this->Log->createLogEntry($this->Auth->user(), 'auth_alert', 'User', $this->Auth->user('id'), 'Suspicious login.', $suspiciousness_reason);
+                    // Line below commented out to NOT inform user/org admin of the suspicious login.
+                    // The reason is that we want to prevent other user actions cause trouble. 
+                    // However this also means we're sitting on data that could be used to detect new evil logins.
+                    // As we're generating alerts, the sysadmin should be keeping an eye on these
+                    // $this->User->UserLoginProfile->email_suspicious($user, $suspiciousness_reason);
+                }
+                // verify UserLoginProfile trust status and perform informative actions
+                if (!$this->User->UserLoginProfile->_isTrusted()) {
+                    // send email to inform the user
+                    $this->User->UserLoginProfile->email_newlogin($user);
+                }
+            } catch (Exception $e) {
+                // At first login after code update and before DB schema update we might end up with problems.
+                // Just catch it cleanly here to prevent problems.
             }
-            // verify UserLoginProfile trust status and perform informative actions
-            if(!$this->User->UserLoginProfile->_isTrusted()) {
-                // send email to inform the user
-                $this->User->UserLoginProfile->email_newlogin($user);
-            }
-        } catch (Exception $e) {
-            // At first login after code update and before DB schema update we might end up with problems.
-            // Just catch it cleanly here to prevent problems.
         }
 
         // no state changes are ever done via GET requests, so it is safe to return to the original page:
