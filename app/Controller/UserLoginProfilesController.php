@@ -147,7 +147,7 @@ class UserLoginProfilesController extends AppController
             'order' => array('Log.created DESC')
         ));
         $data = $this->UserLoginProfile->_fromLog($log['Log']);
-        if (!$loginProfile) return $data; // skip if empty logs
+        if (!$data) return $data; // skip if empty logs
         $data['status'] = $status;
         $data['user_id'] = $user['id'];
         $data['hash'] = $this->UserLoginProfile->hash($data);
