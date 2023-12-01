@@ -1,0 +1,5 @@
+# This file contains regexes applied to logs, one line per regex 
+# Whenever the regex matches, the Logs job will fail and report the error.
+class="cake-error"
+Error: [ParseError]
+Error: [PDOException]
