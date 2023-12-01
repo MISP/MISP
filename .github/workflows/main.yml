@@ -290,4 +290,4 @@ jobs:
       - name: Errors in Logs
         if: ${{ always() }}
         run: |
-              ./logs_tests.sh
+              ./tests/logs_tests.sh
