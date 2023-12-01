@@ -69,7 +69,7 @@ def main():
             sharinggroup_id = get_sharing_group_id(destination_instance, sharinggroup_uuid)
             delegation_config['sharinggroup_id'] = sharinggroup_id
         except Exception as err:
-            logger.debug(f'Unexpected {err=}, {type(err)=}')
+            logger.debug(f'Unexpected error "{err}", type={type(err)}')
             logger.error(f'Could not fetch sharing group with UUID {sharinggroup_uuid} on remote')
             return 1
 
@@ -78,7 +78,7 @@ def main():
     try:
         events_on_source = collect_events_from_source(source_instance, filters, incremental_sync)
     except Exception as err:
-        logger.debug(f'Unexpected {err=}, {type(err)=}')
+        logger.debug(f'Unexpected error "{err}", type={type(err)}')
         events_on_source = None
 
     if events_on_source is None:
@@ -93,7 +93,7 @@ def main():
     try:
         events_on_remote = collect_existing_events_on_remote(destination_instance, incremental_sync)
     except Exception as err:
-        logger.debug(f'Unexpected {err=}, {type(err)=}')
+        logger.debug(f'Unexpected error "{err}", type={type(err)}')
         events_on_remote = None
 
     if events_on_remote is None:
@@ -258,8 +258,8 @@ def push_eligible_events_to_remote(source_instance: MISPInstance, destination_in
         try:
             event_on_src = source_instance.GET(f'/events/view/{uuid}.json')
         except Exception as err:
-            logger.debug(f'Unexpected {err=}, {type(err)=}')
-            logger.warning(f'Event {uuid} could not be retrieved from source<{source_instance.base_url}>. {err=}')
+            logger.debug(f'Unexpected error "{err}", type={type(err)}')
+            logger.warning(f'Event {uuid} could not be retrieved from source<{source_instance.base_url}>. error "{err}"')
             continue
 
         event_on_src['Event']['distribution'] = 0  # type: ignore # Downgrade distribution level to `org_only` to prevent data leak and allow delegation
@@ -267,8 +267,8 @@ def push_eligible_events_to_remote(source_instance: MISPInstance, destination_in
         try:
             pushed_event = destination_instance.POST('/events/add', payload=event_on_src) # type: ignore
         except Exception as err:
-            logger.debug(f'Unexpected {err=}, {type(err)=}')
-            logger.warning(f'Event {uuid} was not pushed. {err=}')
+            logger.debug(f'Unexpected error "{err}", type={type(err)}')
+            logger.warning(f'Event {uuid} was not pushed. error "{err}"')
             continue
         pushed_uuids.append(pushed_event['Event']['uuid']) # type: ignore
     return pushed_uuids
@@ -291,8 +291,8 @@ def request_delegation_for_pushed_events(destination_instance: MISPInstance, pus
         try:
             delegated_event = destination_instance.POST(f'/event_delegations/delegateEvent/{uuid}', payload)
         except Exception as err:
-            logger.debug(f'Unexpected {err=}, {type(err)=}')
-            logger.warning(f'Event {uuid} could not be delegated. {err=}')
+            logger.debug(f'Unexpected error "{err}", type={type(err)}')
+            logger.warning(f'Event {uuid} could not be delegated. error "{err}"')
             continue
         delegated_events.append(uuid)
     return delegated_events
@@ -303,8 +303,8 @@ def get_tag_ids_from_name(source_instance: MISPInstance, tag_actions: dict) -> U
     try:
         all_tags = source_instance.GET(f'/tags/index')['Tag'] # type: ignore
     except Exception as err:
-        logger.debug(f'Unexpected {err=}, {type(err)=}')
-        logger.warning(f'Could not fetch tags on source<{source_instance.base_url}>. {err=}')
+        logger.debug(f'Unexpected error "{err}", type={type(err)}')
+        logger.warning(f'Could not fetch tags on source<{source_instance.base_url}>. error "{err}"')
         return None
 
     for tag in all_tags:
@@ -323,8 +323,8 @@ def attach_tags_on_events(source_instance: MISPInstance, tag_ids: List[int], eve
         try:
             source_instance.POST(f'/events/addTag/{sourceEventUUIDToID[event_uuid]}/local:1', payload=payload)
         except Exception as err:
-            logger.debug(f'Unexpected {err=}, {type(err)=}')
-            logger.warning(f'Could not attach tags on event {event_uuid}. {err=}')
+            logger.debug(f'Unexpected error "{err}", type={type(err)}')
+            logger.warning(f'Could not attach tags on event {event_uuid}. error "{err}"')
 
 
 def detach_tags_from_events(source_instance: MISPInstance, tag_ids: List[int], event_uuids: List[str]) -> None:
@@ -335,8 +335,8 @@ def detach_tags_from_events(source_instance: MISPInstance, tag_ids: List[int], e
             try:
                 source_instance.POST(f'/events/removeTag/{sourceEventUUIDToID[event_uuid]}/{tag_id}', payload=payload)
             except Exception as err:
-                logger.debug(f'Unexpected {err=}, {type(err)=}')
-                logger.warning(f'Could not attach tag {tag_id} on event {event_uuid}. {err=}')
+                logger.debug(f'Unexpected error "{err}", type={type(err)}')
+                logger.warning(f'Could not attach tag {tag_id} on event {event_uuid}. error "{err}"')
 
 
 if __name__ == '__main__':
