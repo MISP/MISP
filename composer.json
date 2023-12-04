@@ -30,6 +30,7 @@
         "fakerphp/faker": "^1.21",
         "josegonzalez/dotenv": "^3.2",
         "league/openapi-psr7-validator": "^0.17",
+        "phpcsstandards/phpcsextra": "^1.2.0",
         "phpstan/phpstan": "^1.10",
         "phpunit/phpunit": "^9.5",
         "psy/psysh": "@stable",
