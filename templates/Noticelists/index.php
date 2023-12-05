@@ -72,7 +72,7 @@ echo $this->element(
                 ],
                 [
                     'type' => 'table_action',
-                    'table_setting_id' => 'organisation_index',
+                    'table_setting_id' => 'noticelist_index',
                 ]
             ]
         ],
