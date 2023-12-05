@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace App\Config\Migrations;
+
 use Migrations\AbstractMigration;
 
 class DefaultRoles extends AbstractMigration
