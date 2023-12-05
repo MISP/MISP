@@ -22,9 +22,6 @@ class ObjectTemplatesController extends AppController
         'order' => [
             'Object.id' => 'desc'
         ],
-        'contain' => [
-            'Organisations' => ['fields' => ['Organisations.id', 'Organisations.name', 'Organisations.uuid']]
-        ],
         'recursive' => -1
     ];
 
@@ -147,9 +144,6 @@ class ObjectTemplatesController extends AppController
         if ($this->ParamHandler->isRest()) {
             $params['contain'][] = 'ObjectTemplateElements';
         }
-        if ($this->isSiteAdmin()) {
-            $params['contain']['Users'] = ['fields' => ['Users.id', 'Users.email']];
-        }
         $objectTemplate = $this->ObjectTemplates->find('all', $params)->first();
         if (empty($objectTemplate)) {
             throw new NotFoundException('Invalid object template');
@@ -197,20 +191,23 @@ class ObjectTemplatesController extends AppController
             $conditions['ObjectTemplates.active'] = 1;
         }
 
-        $this->CRUD->index(
-            [
+        $this->CRUD->index([
             'filters' => $this->filterFields,
             'quickFilters' => $this->quickFilterFields,
             'quickFilterForMetaField' => ['enabled' => true, 'wildcard_search' => true],
             'conditions' => $conditions
-            ]
-        );
+        ]);
 
         $responsePayload = $this->CRUD->getResponsePayload();
 
         if (!empty($responsePayload)) {
             return $responsePayload;
         }
+    }
+
+    public function filtering()
+    {
+        $this->CRUD->filtering();
     }
 
     public function update($type = false, $force = false)
@@ -221,7 +218,7 @@ class ObjectTemplatesController extends AppController
         if (!empty($this->request->getParam('force'))) {
             $force = $this->request->getParam('force');
         }
-        $result = $this->ObjectTemplates->update($this->ACL->getUser(), $type, $force);
+        $result = $this->ObjectTemplates->update($type, $force);
         $ObjectRelationshipTable = $this->fetchTable('ObjectRelationships');
         $ObjectRelationshipTable->update();
         $this->Log = $this->fetchTable('Logs');

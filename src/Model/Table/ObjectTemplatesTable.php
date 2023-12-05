@@ -20,20 +20,6 @@ class ObjectTemplatesTable extends AppTable
                 'fields' => ['requirements' => []],
             ]
         );
-        $this->belongsTo(
-            'Users',
-            [
-                'foreignKey' => 'user_id',
-                'propertyName' => 'User',
-            ]
-        );
-        $this->belongsTo(
-            'Organisations',
-            [
-                'foreignKey' => 'org_id',
-                'propertyName' => 'Organisation',
-            ]
-        );
         $this->hasMany(
             'ObjectTemplateElements',
             [
@@ -47,7 +33,7 @@ class ObjectTemplatesTable extends AppTable
 
     const OBJECTS_DIR = APP . '../libraries/misp-objects/objects';
 
-    public function update($user = false, $type = false, $force = false)
+    public function update($type = false, $force = false)
     {
         $directories = $this->getTemplateDirectoryPaths();
         $updated = [];
@@ -76,7 +62,7 @@ class ObjectTemplatesTable extends AppTable
                 $current['version'] = $current['version'];
             }
             if ($force || empty($current) || $template['version'] > $current['version']) {
-                $result = $this->__updateObjectTemplate($template, $current, $user);
+                $result = $this->__updateObjectTemplate($template, $current);
                 if ($result === true) {
                     $temp = ['name' => $template['name'], 'new' => $template['version']];
                     if (!empty($current)) {
@@ -91,7 +77,7 @@ class ObjectTemplatesTable extends AppTable
         return $updated;
     }
 
-    private function __updateObjectTemplate($template, $current, $user = false)
+    private function __updateObjectTemplate($template, $current)
     {
         $template['requirements'] = [];
         $requirementFields = ['required', 'requiredOneOf'];
@@ -99,13 +85,6 @@ class ObjectTemplatesTable extends AppTable
             if (isset($template[$field])) {
                 $template['requirements'][$field] = $template[$field];
             }
-        }
-        if (!empty($user)) {
-            $template['user_id'] = $user['id'];
-            $template['org_id'] = $user['org_id'];
-        } else {
-            $template['user_id'] = 0;
-            $template['org_id'] = 0;
         }
         $template['fixed'] = 1;
         $templateEntity = $this->newEntity($template);
