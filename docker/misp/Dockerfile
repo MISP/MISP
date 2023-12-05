@@ -23,7 +23,7 @@ RUN apt-get -y update \
 
 # Install pecl extensions
 RUN pecl install -f brotli zstd igbinary redis \
-    && docker-php-ext-enable zstd igbinary redis
+    && docker-php-ext-enable brotli zstd igbinary redis
 
 # Install PEAR packages
 RUN pear install Crypt_GPG
