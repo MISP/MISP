@@ -1,4 +1,4 @@
-# Cerebrate Migrations using Phinx
+# Migrations using Phinx
 
 ## For users
 
