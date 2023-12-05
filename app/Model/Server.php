@@ -4621,9 +4621,6 @@ class Server extends AppModel
             $pipe = $redis->pipeline();
             foreach ($data as $entry) {
                 list($value, $uuid) = explode(',', $entry);
-                if (!Validation::uuid($uuid)) {
-                    break 2;
-                }
                 if (!empty($value)) {
                     $redis->sAdd('misp:server_cache:' . $serverId, $value);
                     $redis->sAdd('misp:server_cache:combined', $value);
