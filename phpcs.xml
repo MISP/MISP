@@ -14,13 +14,20 @@
     <arg name="parallel" value="75" />
     <arg value="np" />
 
+    <rule ref="PSR12" />
+
+    <!-- Arrays -->
+    <rule ref="NormalizedArrays.Arrays.ArrayBraceSpacing" />
+    <rule ref="Generic.Arrays.ArrayIndent" />
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax" />
+
+
     <!-- Don't hide tokenizer exceptions -->
     <rule ref="Internal.Tokenizer.Exception">
         <type>error</type>
     </rule>
 
     <!-- Include some sniffs from other standards that don't conflict with PEAR -->
-    <rule ref="Generic.Arrays.DisallowLongArraySyntax" />
     <rule ref="Generic.PHP.DeprecatedFunctions" />
     <rule ref="Generic.Strings.UnnecessaryStringConcat" />
     <rule ref="Generic.WhiteSpace.IncrementDecrementSpacing" />
@@ -53,11 +60,6 @@
                 <element key="create_function" value="null" />
             </property>
         </properties>
-    </rule>
-
-    <rule ref="Squiz.Arrays.ArrayDeclaration">
-        <exclude name="Squiz.Arrays.ArrayDeclaration.OpenBraceNotAligned" />
-        <exclude name="Squiz.Arrays.ArrayDeclaration.DoubleArrowNotAligned" />
     </rule>
 
     <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes">
