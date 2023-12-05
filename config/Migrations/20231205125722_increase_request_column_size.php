@@ -6,19 +6,19 @@ namespace App\Config\Migrations;
 
 use Phinx\Migration\AbstractMigration;
 
-final class IncreaseQueryLogColumnSize extends AbstractMigration
+final class IncreaseRequestColumnSize extends AbstractMigration
 {
     public function up()
     {
         $logs = $this->table('access_logs');
-        $logs->changeColumn('query_log', 'blob', ['null' => true, 'default' => 'null']);
+        $logs->changeColumn('request', 'blob', ['null' => true, 'default' => 'null']);
         $logs->save();
     }
 
     public function down()
     {
         $logs = $this->table('access_logs');
-        $logs->changeColumn('query_log', 'varbinary(255)');
+        $logs->changeColumn('request', 'varbinary(255)');
         $logs->save();
     }
 }
