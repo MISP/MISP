@@ -14,7 +14,33 @@
     <arg name="parallel" value="75" />
     <arg value="np" />
 
-    <rule ref="PSR12" />
+    <!-- PSR12 Standard -->
+    <rule ref="PSR12">
+        <exclude name="PSR12.Files.FileHeader.SpacingAfterBlock" />
+        <exclude name="PSR12.Files.FileHeader.IncorrectOrder" />
+        <!--
+        Property and method names with underscore prefix are allowed in CakePHP.
+        Not using underscore prefix is a recommendation of PSR2, not a requirement.
+        -->
+        <exclude name="PSR2.Classes.PropertyDeclaration.Underscore" />
+        <exclude name="PSR2.Methods.MethodDeclaration.Underscore" />
+    </rule>
+
+    <!-- Relax rules from PSR1 -->
+    <rule ref="PSR1.Classes.ClassDeclaration.MissingNamespace">
+        <exclude-pattern>*/config/Migrations/*</exclude-pattern>
+        <exclude-pattern>*/config/Seeds/*</exclude-pattern>
+    </rule>
+    <rule ref="PSR1.Files.SideEffects">
+        <exclude-pattern>*/config/*</exclude-pattern>
+        <exclude-pattern>*/tests/*</exclude-pattern>
+    </rule>
+    <rule ref="PSR1.Methods.CamelCapsMethodName">
+        <exclude-pattern>*/src/Controller/*</exclude-pattern>
+        <exclude-pattern>*/src/Command/*</exclude-pattern>
+        <exclude-pattern>*/src/Shell/*</exclude-pattern>
+        <exclude-pattern>*/tests/*</exclude-pattern>
+    </rule>
 
     <!-- Arrays -->
     <rule ref="NormalizedArrays.Arrays.ArrayBraceSpacing" />
