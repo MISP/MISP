@@ -50,7 +50,8 @@ class CRUDComponent extends Component
         }
 
         $optionFilters = [];
-        $optionValidFilters = empty($options['filters']) ? [] : $this->getFilterFieldsName($options['filters']);
+        // $optionValidFilters = empty($options['filters']) ? [] : $this->getFilterFieldsName($options['filters']);
+        $optionValidFilters = empty($options['filters']) ? [] : $options['filters'];
         $optionFilters += $optionValidFilters;
         foreach ($optionFilters as $i => $filter) {
             $optionFilters[] = "{$filter} !=";
