@@ -142,7 +142,7 @@ if(!function_exists("generateFilterLinkConfiguration")) {
             config: {
                 spinnerVariant: 'dark',
                 spinnerType: 'grow',
-                spinnerSmall: true
+                spinnerSize: 'sm'
             }
         }])
     }
