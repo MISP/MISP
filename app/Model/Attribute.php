@@ -2781,16 +2781,11 @@ class Attribute extends AppModel
             
         }
         if (!empty($tagActions['detach'])) {
-            $conditions = ['OR' => []];
             foreach ($tagActions['detach'] as $detach) {
-                $conditions['OR'][] = [
-                    'AND' => [
-                        'attribute_id' => $detach['attribute_id'],
-                        'tag_id' => $detach['tag_id']
-                    ]
+                $conditions = [
+                    'attribute_id' => $detach['attribute_id'],
+                    'tag_id' => $detach['tag_id']
                 ];
-            }
-            if (!empty($conditions)) {
                 $this->AttributeTag->deleteAll($conditions, false);
             }
         }
