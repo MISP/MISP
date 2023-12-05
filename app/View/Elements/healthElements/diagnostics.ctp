@@ -15,7 +15,7 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     <p><?php
         echo __('Every version of MISP includes a JSON file with the current version.') . " ";
         if (Configure::read('MISP.online_version_check') || !Configure::check('MISP.online_version_check')) {
-            echo _('This is checked against the latest tag on GitHub, if there is a version mismatch the tool will warn you about it.') . " ";
+            echo __('This is checked against the latest tag on GitHub, if there is a version mismatch the tool will warn you about it.') . " ";
         } else {
             echo "<b>" . __('The online version check is disabled, so you will not be warned about an outdated MISP version.') . "</b> ";
         }
