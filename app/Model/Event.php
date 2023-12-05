@@ -2079,7 +2079,7 @@ class Event extends AppModel
         }
         if (
             $options['includeServerCorrelations'] &&
-            (!$isSiteAdmin && $user['org_id'] != Configure::read('MISP.host_org_id') && !Configure::read('MISP.show_correlation_for_all_users', false))
+            (!$isSiteAdmin && $user['org_id'] != Configure::read('MISP.host_org_id') && !Configure::read('MISP.show_server_correlations_for_all_users', false))
         ) {
             $options['includeServerCorrelations'] = false; // not permission to see server correlations
         }

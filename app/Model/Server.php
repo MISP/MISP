@@ -5959,7 +5959,7 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
-                'show_correlation_for_all_users' => array(
+                'show_server_correlations_for_all_users' => array(
                     'level' => 1,
                     'description' => __('This setting will reveal correlations from other remote servers visible to all users.'),
                     'value' => false,

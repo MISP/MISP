@@ -243,7 +243,8 @@
                             }
                         } else {
                             $liContents = sprintf(
-                                '<span>%s</span>',
+                                '<a href="#" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
+                                h($popover),
                                 h($feed['id'])
                             );
                         }
