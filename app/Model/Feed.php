@@ -556,7 +556,7 @@ class Feed extends AppModel
         }
 
         $sources = $this->getCachedFeedsOrServers($user, $scope);
-        if (!$user['Role']['perm_site_admin'] && $user['org_id'] != Configure::read('MISP.host_org_id')) {
+        if ($scope == 'Server' && !$user['Role']['perm_site_admin'] && $user['org_id'] != Configure::read('MISP.host_org_id')) {
             // Filter fields that shouldn't be visible to everyone
             $allowedFieldsForAllUsers = array_flip(['id', 'name',]);
             $sources = array_map(function($source) use($scope, $allowedFieldsForAllUsers) {
