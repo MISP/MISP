@@ -4,13 +4,15 @@ namespace App\Controller\Component;
 
 use App\Controller\Component\Navigation\SidemenuNavigation;
 use Cake\Controller\Component;
-use Cake\Filesystem\Folder;
+use DirectoryIterator;
 use Cake\ORM\TableRegistry;
 use Cake\Routing\Router;
 use Cake\Utility\Inflector;
 
 class NavigationComponent extends Component
 {
+    const NAVIGATION_FILES_DIR = APP . DS . 'Controller' . DS . 'Component' . DS . 'Navigation';
+
     private $currentUser = null;
     public $breadcrumb = null;
     public $fullBreadcrumb = null;
@@ -83,6 +85,7 @@ class NavigationComponent extends Component
         'UserSettings',
         'Events',
         'Noticelists',
+        'ObjectTemplates',
     ];
 
     public function initialize(array $config): void
@@ -191,18 +194,19 @@ class NavigationComponent extends Component
     private function loadNavigationClasses($bcf, $request)
     {
         $navigationClasses = [];
-        $navigationDir = new Folder(APP . DS . 'Controller' . DS . 'Component' . DS . 'Navigation');
-        $navigationFiles = $navigationDir->find('.*\.php', true);
-        foreach ($navigationFiles as $navigationFile) {
-            if ($navigationFile == 'BaseNavigation.php' || $navigationFile == 'SidemenuNavigation.php') {
-                continue;
+        $dir = new DirectoryIterator(self::NAVIGATION_FILES_DIR);
+        foreach ($dir as $fileinfo) {
+            if ($fileinfo->isFile()) {
+                if ($fileinfo->getFilename() == 'BaseNavigation.php' || $fileinfo->getFilename() == 'SidemenuNavigation.php') {
+                    continue;
+                }
+                $navigationClassname = str_replace('.php', '', $fileinfo->getFilename());
+                require_once(APP . 'Controller' . DS . 'Component' . DS . 'Navigation' . DS . $fileinfo->getFilename());
+                $reflection = new \ReflectionClass("App\\Controller\\Component\\Navigation\\{$navigationClassname}");
+                $viewVars = $this->_registry->getController()->viewBuilder()->getVars();
+                $navigationClasses[$navigationClassname] = $reflection->newInstance($bcf, $request, $viewVars);
+                $navigationClasses[$navigationClassname]->setCurrentUser($this->currentUser);
             }
-            $navigationClassname = str_replace('.php', '', $navigationFile);
-            require_once(APP . 'Controller' . DS . 'Component' . DS . 'Navigation' . DS . $navigationFile);
-            $reflection = new \ReflectionClass("App\\Controller\\Component\\Navigation\\{$navigationClassname}");
-            $viewVars = $this->_registry->getController()->viewBuilder()->getVars();
-            $navigationClasses[$navigationClassname] = $reflection->newInstance($bcf, $request, $viewVars);
-            $navigationClasses[$navigationClassname]->setCurrentUser($this->currentUser);
         }
         return $navigationClasses;
     }
