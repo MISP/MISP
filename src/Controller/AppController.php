@@ -132,7 +132,7 @@ class AppController extends Controller
             $user = $this->Users->get(
                 $this->request->getAttribute('identity')->getIdentifier(),
                 [
-                    'contain' => ['Roles', /*'UserSettings',*/ 'Organisations']
+                    'contain' => ['Roles', 'Organisations' /*'UserSettings'*/]
                 ]
             );
             $this->__accessMonitor($user->toArray());
