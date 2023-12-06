@@ -2,25 +2,26 @@
 
 namespace App\Model\Table;
 
+use App\Lib\Tools\JsonTool;
+use App\Lib\Tools\LogExtendedTrait;
 use App\Model\Entity\AccessLog;
 use App\Model\Table\AppTable;
-use Cake\Datasource\EntityInterface;
-use Cake\Event\EventInterface;
 use ArrayObject;
-use App\Lib\Tools\JsonTool;
-use Cake\Collection\CollectionInterface;
-use Cake\ORM\Query;
 use Cake\Chronos\Chronos;
-use Cake\Http\ServerRequest;
+use Cake\Collection\CollectionInterface;
 use Cake\Core\Configure;
-use Exception;
 use Cake\Datasource\ConnectionManager;
+use Cake\Event\EventInterface;
+use Cake\Http\ServerRequest;
+use Cake\ORM\Query;
 use DebugKit\Database\Log\DebugLog;
-use App\Lib\Tools\LogExtendedTrait;
+use Exception;
 
 class AccessLogsTable extends AppTable
 {
     use LogExtendedTrait;
+
+    public $actsAs = ['LightPaginator'];
 
     public function initialize(array $config): void
     {
@@ -47,8 +48,8 @@ class AccessLogsTable extends AppTable
     {
         // Truncate
         foreach (['request_id', 'user_agent', 'url'] as $field) {
-            if (isset($entity[$field]) && strlen($entity[$field]) > 255) {
-                $entity[$field] = substr($entity[$field], 0, 255);
+            if (isset($data[$field]) && strlen($data[$field]) > 255) {
+                $data[$field] = substr($data[$field], 0, 255);
             }
         }
 
@@ -152,10 +153,12 @@ class AccessLogsTable extends AppTable
         }
 
         // Save data on shutdown
-        register_shutdown_function(function () use ($dataToSave, $requestTime, $includeSqlQueries) {
-            session_write_close(); // close session to allow concurrent requests
-            $this->saveOnShutdown($dataToSave, $requestTime, $includeSqlQueries);
-        });
+        register_shutdown_function(
+            function () use ($dataToSave, $requestTime, $includeSqlQueries) {
+                session_write_close(); // close session to allow concurrent requests
+                $this->saveOnShutdown($dataToSave, $requestTime, $includeSqlQueries);
+            }
+        );
 
         return true;
     }
@@ -166,9 +169,12 @@ class AccessLogsTable extends AppTable
      */
     public function deleteOldLogs(Chronos $duration)
     {
-        $this->deleteAll([
-            ['created <' => $duration->format('Y-m-d H:i:s.u')],
-        ], false);
+        $this->deleteAll(
+            [
+                ['created <' => $duration->format('Y-m-d H:i:s.u')],
+            ],
+            false
+        );
 
         $deleted = $this->getAffectedRows();
         if ($deleted > 100) {

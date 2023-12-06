@@ -22,6 +22,12 @@ class AccessLogsController extends AppController
         ],
     ];
 
+    public function initialize(): void
+    {
+        parent::initialize();
+        $this->loadComponent('Flash');
+    }
+
     public function index()
     {
         $params = $this->harvestParameters(
@@ -63,11 +69,9 @@ class AccessLogsController extends AppController
             return $this->RestResponse->viewData($list->toArray(), 'json');
         }
         if (empty(Configure::read('MISP.log_skip_access_logs_in_application_logs'))) {
-            $this->Flash->warning(__('Access logs are logged in both application logs and access logs. Make sure you reconfigure your log monitoring tools and update MISP.log_skip_access_logs_in_application_logs.'));
+            $this->Flash->info(__('Access logs are logged in both application logs and access logs. Make sure you reconfigure your log monitoring tools and update MISP.log_skip_access_logs_in_application_logs.'));
         }
 
-        $this->AccessLog->virtualFields['has_query_log'] = 'query_log IS NOT NULL';
-        $this->paginate['fields'][] = 'has_query_log';
         $this->paginate['conditions'] = $conditions;
         $list = $this->paginate();
 
@@ -211,7 +215,7 @@ class AccessLogsController extends AppController
             if (is_numeric($params['org'])) {
                 $conditions['AccessLogs.org_id'] = $params['org'];
             } else {
-                $org = $this->AccessLog->Organisation->fetchOrg($params['org']);
+                $org = $this->AccessLogs->Organisation->fetchOrg($params['org']);
                 if ($org) {
                     $conditions['AccessLogs.org_id'] = $org['id'];
                 } else {
@@ -222,7 +226,7 @@ class AccessLogsController extends AppController
         if (isset($params['created'])) {
             $tempData = is_array($params['created']) ? $params['created'] : [$params['created']];
             foreach ($tempData as $k => $v) {
-                $tempData[$k] = $this->AccessLog->resolveTimeDelta($v);
+                $tempData[$k] = $this->AccessLogs->resolveTimeDelta($v);
             }
             if (count($tempData) === 1) {
                 $conditions['AccessLogs.created >='] = date("Y-m-d H:i:s", $tempData[0]);

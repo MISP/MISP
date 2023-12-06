@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -13,10 +14,10 @@ declare(strict_types=1);
  * @since     3.0.0
  * @license   https://opensource.org/licenses/mit-license.php MIT License
  */
+
 namespace App\View;
 
 use Cake\View\View;
-use Cake\Utility\Hash;
 
 /**
  * Application View
@@ -43,6 +44,7 @@ class AppView extends View
         $this->loadHelper('PrettyPrint');
         $this->loadHelper('FormFieldMassage');
         $this->loadHelper('Paginator', ['templates' => 'misp-pagination-templates']);
+        $this->loadHelper('LightPaginator', ['templates' => 'misp-pagination-templates']);
         $this->loadHelper('Tags.Tag');
         $this->loadHelper('ACL');
     }

@@ -20,4 +20,9 @@ class AccessLog extends AppModel
         7 => 'TRACE',
         8 => 'PATCH',
     ];
+
+    protected function _getHasQueryLog()
+    {
+        return !is_null($this->query_log);
+    }
 }
