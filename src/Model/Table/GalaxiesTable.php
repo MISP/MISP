@@ -60,7 +60,7 @@ class GalaxiesTable extends AppTable
         $this->galaxyClustersPath = Configure::read('MISP.custom_galaxy_clusters_path', APP . '../libraries' . DS . 'misp-galaxy' . DS . 'clusters' . DS . '*.json');
     }
 
-    function beforeDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
+    public function beforeDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
     {
         $this->GalaxyClusters->deleteAll(['GalaxyCluster.galaxy_id' => $entity->id]);
     }
