@@ -92,6 +92,14 @@ class GalaxyClustersTable extends AppTable
     {
         parent::initialize($config);
         $this->addBehavior('AuditLog');
+        $this->addBehavior(
+            'JsonFields',
+            [
+                'fields' => [
+                    'authors' => ['default' => []]
+                ],
+            ]
+        );
 
         $this->belongsTo(
             'Galaxy',
@@ -226,7 +234,7 @@ class GalaxyClustersTable extends AppTable
         }
     }
 
-    function beforeDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
+    public function beforeDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
     {
         $cluster = $this->find(
             'all',
@@ -328,6 +336,7 @@ class GalaxyClustersTable extends AppTable
      */
     public function saveCluster(array $user, array $cluster, $allowEdit = false)
     {
+        $SharingGroupsTable = $this->fetchTable('SharingGroups');
         $errors = [];
         if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
             $errors[] = __('Incorrect permission');
@@ -406,7 +415,7 @@ class GalaxyClustersTable extends AppTable
         $cluster['GalaxyCluster']['orgc_id'] = $user['Organisation']['id'];
 
         if ($user['Role']['perm_sync']) {
-            if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])) {
+            if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$SharingGroupsTable->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])) {
                 $errors[] = __('The sync user has to have access to the sharing group in order to be able to edit it');
                 return $errors;
             }
@@ -457,7 +466,7 @@ class GalaxyClustersTable extends AppTable
      */
     public function editCluster(array $user, array $cluster, array $fieldList = [], $deleteOldElements = true)
     {
-        $this->SharingGroup = $this->fetchTable('SharingGroups');
+        $SharingGroupsTable = $this->fetchTable('SharingGroups');
         $errors = [];
         if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
             $errors[] = __('Incorrect permission');
@@ -473,12 +482,12 @@ class GalaxyClustersTable extends AppTable
             // For users that are of the creating org of the cluster, always allow the edit
             // For users that are sync users, only allow the edit if the cluster is locked
             if (
-                $existingCluster['GalaxyCluster']['orgc_id'] === $user['org_id'] ||
-                ($user['Role']['perm_sync'] && $existingCluster['GalaxyCluster']['locked']) || $user['Role']['perm_site_admin']
+                $existingCluster['orgc_id'] === $user['org_id'] ||
+                ($user['Role']['perm_sync'] && $existingCluster['locked']) || $user['Role']['perm_site_admin']
             ) {
                 if ($user['Role']['perm_sync']) {
                     if (
-                        isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])
+                        isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$SharingGroupsTable->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])
                     ) {
                         $errors[] = [__('Galaxy Cluster could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.')];
                     }
@@ -1136,8 +1145,9 @@ class GalaxyClustersTable extends AppTable
     public function buildConditions($user)
     {
         $conditions = [];
+        $SharingGroupsTable = $this->fetchTable('SharingGroups');
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->SharingGroup->authorizedIds($user);
+            $sgids = $SharingGroupsTable->authorizedIds($user);
             $alias = $this->getAlias();
             $conditions['AND']['OR'] = [
                 "$alias.org_id" => $user['org_id'],
@@ -1236,7 +1246,6 @@ class GalaxyClustersTable extends AppTable
         if (isset($options['first']) && $options['first']) {
             $clusters = [$clusters];
         }
-
 
         if ($full) {
             $clusterIds = array_column($clusters, 'id');

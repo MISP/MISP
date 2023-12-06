@@ -34,7 +34,8 @@ class GalaxiesFixture extends TestFixture
                 'namespace' => 'test',
                 'enabled' => false,
                 'local_only' => false,
-                'kill_chain_order' => json_encode(['TEST'])
+                'kill_chain_order' => json_encode(['TEST']),
+                'authors' => json_encode(['test-author-fixture'])
             ],
             [
                 'id' => self::GALAXY_2_ID,
@@ -47,7 +48,8 @@ class GalaxiesFixture extends TestFixture
                 'namespace' => 'test',
                 'enabled' => true,
                 'local_only' => false,
-                'kill_chain_order' => json_encode(['TEST'])
+                'kill_chain_order' => json_encode(['TEST']),
+                'authors' => json_encode(['test-author-fixture'])
             ]
         ];
         parent::init();
