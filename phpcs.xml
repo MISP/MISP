@@ -36,6 +36,7 @@
         <exclude-pattern>*/tests/*</exclude-pattern>
     </rule>
     <rule ref="PSR1.Methods.CamelCapsMethodName">
+        <exclude-pattern>*/src/Model/*</exclude-pattern>
         <exclude-pattern>*/src/Controller/*</exclude-pattern>
         <exclude-pattern>*/src/Command/*</exclude-pattern>
         <exclude-pattern>*/src/Shell/*</exclude-pattern>
