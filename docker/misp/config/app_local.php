@@ -51,11 +51,7 @@ return [
     'MISP' => [
         'dark' => 0,
         'email' => 'email@example.com',
-        'default_event_distribution' => '1',
-        'log_paranoid' => true,
-        'log_paranoid_include_sql_queries' => true,
-        'log_new_audit_compress' => true,
-        'log_paranoid_include_post_body' => true,
+        'default_event_distribution' => '1'
     ],
     'BackgroundJobs' => [
         'enabled' => true,
