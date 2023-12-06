@@ -636,6 +636,13 @@ class EventShell extends AppShell
         }
     }
 
+    public function reportValidationIssuesAttributes()
+    {
+        foreach ($this->Event->Attribute->reportValidationIssuesAttributes() as $validationIssue) {
+            echo $this->json($validationIssue) . "\n";
+        }
+    }
+
     /**
      * @param int $userId
      * @return array
