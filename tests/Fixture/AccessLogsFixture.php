@@ -19,7 +19,7 @@ class AccessLogsFixture extends TestFixture
         $this->records = [
             [
                 'id' => self::ACCESS_LOG_1_ID,
-                'created' => '#000000',
+                'created' => $faker->dateTime()->getTimestamp(),
                 'user_id' => UsersFixture::USER_ADMIN_ID,
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'request_method' => 0,

@@ -253,7 +253,6 @@ trait ApiTestTrait
         $_SERVER['CONTENT_TYPE'] = $this->_request['headers']['Content-Type'];
         $_SERVER['HTTP_CONTENT_ENCODING'] = $this->_request['headers']['Content-Type'];
 
-
         $this->_sendRequestOriginal($url, $method, $data);
 
         // Validate response against OpenAPI spec
