@@ -4,7 +4,6 @@ namespace App\Model\Table;
 
 use App\Http\Exception\HttpSocketHttpException;
 use App\Lib\Tools\BackgroundJobsTool;
-use App\Lib\Tools\JsonTool;
 use App\Lib\Tools\ServerSyncTool;
 use App\Lib\Tools\SyncTool;
 use App\Lib\Tools\TmpFileTool;
@@ -177,11 +176,6 @@ class GalaxyClustersTable extends AppTable
         }
         if (!isset($data['published'])) {
             $data['published'] = false;
-        }
-        if (!isset($data['authors'])) {
-            $data['authors'] = '';
-        } elseif (is_array($data['authors'])) {
-            $data['authors'] = JsonTool::encode($data['authors']);
         }
     }
 
