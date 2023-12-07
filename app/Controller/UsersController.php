@@ -266,12 +266,12 @@ class UsersController extends AppController
         $this->set('canFetchPgpKey', $this->__canFetchPgpKey());
     }
 
-    private function __pw_change($user, $source, &$abortPost, $token = false)
+    private function __pw_change($user, $source, &$abortPost, $token = false, $skip_password_confirmation = false)
     {
         if (!isset($this->request->data['User'])) {
             $this->request->data = array('User' => $this->request->data);
         }
-        if (Configure::read('Security.require_password_confirmation')) {
+        if (Configure::read('Security.require_password_confirmation') && !$skip_password_confirmation) {
             if (!empty($this->request->data['User']['current_password'])) {
                 $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
                 if (!$hashed) {
@@ -3305,7 +3305,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $abortPost = false;
-            return $this->__pw_change(['User' => $user], 'password_reset', $abortPost, $token);
+            return $this->__pw_change(['User' => $user], 'password_reset', $abortPost, $token, true);
         }
     }
 
