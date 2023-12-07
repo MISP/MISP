@@ -590,8 +590,11 @@ class Feed extends AppModel
             // Append also exact MISP feed or server event UUID
             // TODO: This can be optimised in future to do that in one pass
             if ($sourceHasHit && ($scope === 'Server' || $source[$scope]['source_format'] === 'misp')) {
-                if (!$user['Role']['perm_site_admin'] && $user['org_id'] != Configure::read('MISP.host_org_id')) {
-                    continue;
+                if (
+                    $scope === 'Server' &&
+                    !$user['Role']['perm_site_admin'] && $user['org_id'] != Configure::read('MISP.host_org_id')
+                ) {
+                    continue; // Non-privileged users cannot see the hits for server
                 }
                 $pipe = $redis->pipeline();
                 $eventUuidHitPosition = [];
