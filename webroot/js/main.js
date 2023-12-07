@@ -321,4 +321,17 @@ $(document).ready(() => {
     $('.sidebar #btn-add-bookmark').click(() => {
         openSaveBookmarkModal(window.location.pathname)
     })
+
+    $('.sidebar .sidebar-link-container.parent').on('mouseenter', function() {
+        const $subContainer = $(this).find('.submenu-container')
+        $subContainer.css({ display: 'block' })
+        $(this).on('mouseleave', function() {
+            delay(function () {
+                if (!$subContainer[0].matches(':hover')) {
+                    $subContainer.css({ display: 'none' })
+                    $(this).trigger('mouseenter')
+                }
+            }, 150)
+        })
+    })
 })

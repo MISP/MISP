@@ -5,19 +5,6 @@ echo $this->element('genericElements/IndexTable/index_table', [
         'top_bar' => [
             'children' => [
                 [
-                    'type' => 'simple',
-                    'children' => [
-                        'data' => [
-                            'type' => 'simple',
-                            'text' => __('Update templates'),
-                            'popover_url' => '/object-templates/update',
-                            'button' => [
-                                'icon' => 'refresh',
-                            ]
-                        ]
-                    ]
-                ],
-                [
                     'type' => 'context_filters',
                 ],
                 [
@@ -30,7 +17,7 @@ echo $this->element('genericElements/IndexTable/index_table', [
                 ],
                 [
                     'type' => 'table_action',
-                    'table_setting_id' => 'organisation_index',
+                    'table_setting_id' => 'objecttemplates_index',
                 ]
             ]
         ],
@@ -52,13 +39,6 @@ echo $this->element('genericElements/IndexTable/index_table', [
                 'sort' => 'uuid',
                 'class' => 'short',
                 'data_path' => 'uuid',
-            ],
-            [
-                'name' => __('Organisation'),
-                'sort' => 'Organisation.name',
-                'element' => 'org',
-                'data_path' => 'Organisation',
-                'class' => 'short',
             ],
             [
                 'name' => __('Version'),

@@ -174,7 +174,7 @@ main.content {
         top: 50%;
     }
     .sidebar .sidebar-link-container:hover .submenu-container {
-        display: block;
+        /* display: block; */
     }
     .sidebar .sidebar-link-container .submenu-container:hover {
         display: block;

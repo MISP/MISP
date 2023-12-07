@@ -967,7 +967,7 @@ class ModalFactory {
     }
 }
 
-/** Class representing an loading overlay */
+/** Class representing a loading overlay */
 class OverlayFactory {
     /**
      * Create a loading overlay
@@ -992,8 +992,8 @@ class OverlayFactory {
      * @property {boolean} rounded        - If the overlay should be rounded
      * @property {boolean}  auto           - Whether overlay and spinner options should be adapted automatically based on the node
      * @property {string=('primary'|'secondary'|'success'|'danger'|'warning'|'info'|'light'|'dark'|'white'|'transparent')} spinnerVariant - The variant of the spinner
-     * @property {boolean} spinnerSmall   - If the spinner inside the overlay should be small
-     * @property {string=('border'|'grow')} spinnerSmall   - If the spinner inside the overlay should be small
+     * @property {string=('xs', 'sm', 'md')} spinnerSize   -The size of the spinner
+     * @property {string=('border'|'grow')} spinnerType   - The type of the spinner defined in Bootstrap
      */
     static defaultOptions = {
         text: '',
@@ -1003,7 +1003,7 @@ class OverlayFactory {
         rounded: false,
         auto: true,
         spinnerVariant: '',
-        spinnerSmall: false,
+        spinnerSize: 'md',
         spinnerType: 'border',
         fallbackBootstrapVariant: '',
         wrapperCSSDisplay: '',
@@ -1039,10 +1039,9 @@ class OverlayFactory {
             this.$overlayBg.css('opacity', this.options.opacity)
         }
         this.$overlaySpinner = $(OverlayFactory.overlaySpinner)
-        this.$overlaySpinner.children().addClass(`spinner-${this.options.spinnerType}`)
-        if (this.options.spinnerSmall) {
-            this.$overlaySpinner.children().addClass(`spinner-${this.options.spinnerType}-sm`)
-        }
+        this.$overlaySpinner.children()
+            .addClass(`spinner-${this.options.spinnerType}`)
+            .addClass(`spinner-${this.options.spinnerType}-${this.options.spinnerSize}`)
         if (this.options.spinnerVariant.length > 0) {
             this.$overlaySpinner.children().addClass(`text-${this.options.spinnerVariant}`)
         }

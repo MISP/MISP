@@ -147,6 +147,10 @@ function debounce(func, wait, options) {
     return debounced
 }
 
+function delay(func, wait, ...args) {
+    return setTimeout(func, wait, ...args)
+}
+
 function arrayEqual(array1, array2) {
     const array2Sorted = array2.slice().sort();
     return array1.length === array2.length && array1.slice().sort().every((value, index) => value === array2Sorted[index])

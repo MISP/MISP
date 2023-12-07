@@ -19,6 +19,7 @@ class UserCommand extends Command
                 ['1', 'List users'],
                 ['2', 'Reset password for a user'],
                 ['3', 'Enable/Disable a user'],
+                ['4', 'Reset admin'],
                 ['0', 'Exit']
             ];
             $io->helper('Table')->output($menu);
@@ -67,6 +68,9 @@ class UserCommand extends Command
                         }
                     }
                     break;
+                case '4':
+                    $this->resetAdmin();
+                    break;
                 case '0':
                     $exit = true;
                     break;
@@ -110,6 +114,13 @@ class UserCommand extends Command
     {
         $user->password = $password;
         return $this->Users->save($user);
+    }
+
+    private function resetAdmin()
+    {
+	$user = $this->Users->find()->where(['email' => 'admin@admin.test'])->first();
+	$user->password = 'Password1234';
+	return $this->Users->save($user);
     }
 
     private function toggleDisable($user)
