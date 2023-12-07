@@ -94,6 +94,9 @@ class AccessLogsController extends AppController
             ]
         );
 
+        if ($this->ParamHandler->isRest()) {
+            return $this->restResponsePayload;
+        }
 
         if (empty(Configure::read('MISP.log_skip_access_logs_in_application_logs'))) {
             $this->Flash->info(__('Access logs are logged in both application logs and access logs. Make sure you reconfigure your log monitoring tools and update MISP.log_skip_access_logs_in_application_logs.'));
