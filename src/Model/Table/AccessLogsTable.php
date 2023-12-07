@@ -21,8 +21,6 @@ class AccessLogsTable extends AppTable
 {
     use LogExtendedTrait;
 
-    public $actsAs = ['LightPaginator'];
-
     public function initialize(array $config): void
     {
         parent::initialize($config);

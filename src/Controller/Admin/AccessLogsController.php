@@ -3,13 +3,11 @@
 namespace App\Controller\Admin;
 
 use App\Controller\AppController;
-use App\Model\Entity\AccessLog;
 use Cake\Core\Configure;
 use Cake\Http\Exception\NotFoundException;
 
 class AccessLogsController extends AppController
 {
-
     public $paginate = [
         'recursive' => -1,
         'limit' => 60,
