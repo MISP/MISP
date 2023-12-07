@@ -781,7 +781,7 @@ class ShadowAttribute extends AppModel
         $this->Log = ClassRegistry::init('Log');
         if (!Configure::read('MISP.background_jobs')) {
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => 'SYSTEM',
                     'model' => 'Server',
                     'model_id' => 0,
@@ -794,7 +794,7 @@ class ShadowAttribute extends AppModel
             $count = $this->generateCorrelation();
             $this->Log->create();
             if (is_numeric($count)) {
-                $this->Log->save(array(
+                $this->Log->saveOrFailSilently(array(
                         'org' => 'SYSTEM',
                         'model' => 'Server',
                         'model_id' => 0,
@@ -805,7 +805,7 @@ class ShadowAttribute extends AppModel
                         'change' => 'The generation of Proposal correlations as part of the 2.4.20 datamodel upgrade is completed. ' . $count . ' proposals used.'
                 ));
             } else {
-                $this->Log->save(array(
+                $this->Log->saveOrFailSilently(array(
                         'org' => 'SYSTEM',
                         'model' => 'Server',
                         'model_id' => 0,
@@ -840,7 +840,7 @@ class ShadowAttribute extends AppModel
             );
 
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => 'SYSTEM',
                     'model' => 'Server',
                     'model_id' => 0,

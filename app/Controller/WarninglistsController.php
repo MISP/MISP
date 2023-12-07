@@ -78,7 +78,7 @@ class WarninglistsController extends AppController
                         $change = $success['name'] . ' v' . $success['new'] . ' installed';
                     }
                     $this->Log->create();
-                    $this->Log->save(array(
+                    $this->Log->saveOrFailSilently(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Warninglist',
                         'model_id' => $id,
@@ -94,7 +94,7 @@ class WarninglistsController extends AppController
             if (isset($result['fails'])) {
                 foreach ($result['fails'] as $id => $fail) {
                     $this->Log->create();
-                    $this->Log->save(array(
+                    $this->Log->saveOrFailSilently(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Warninglist',
                         'model_id' => $id,
@@ -109,7 +109,7 @@ class WarninglistsController extends AppController
             }
         } else {
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org' => $this->Auth->user('Organisation')['name'],
                 'model' => 'Warninglist',
                 'model_id' => 0,

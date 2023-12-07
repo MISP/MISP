@@ -1148,7 +1148,7 @@ class ACLComponent extends Component
                     if ($hit) {
                         $this->Log = ClassRegistry::init('Log');
                         $this->Log->create();
-                        $this->Log->save(array(
+                        $this->Log->saveOrFailSilently(array(
                                 'org' => 'SYSTEM',
                                 'model' => 'User',
                                 'model_id' => $user['id'],

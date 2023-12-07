@@ -101,7 +101,7 @@ class ShadowAttributesController extends AppController
             $this->Event->unpublishEvent($activeAttribute['Attribute']['event_id'], true);
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org_id' => $this->Auth->user('org_id'),
                 'model' => 'ShadowAttribute',
                 'model_id' => $id,
@@ -145,7 +145,7 @@ class ShadowAttributesController extends AppController
             }
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org_id' => $this->Auth->user('org_id'),
                 'model' => 'ShadowAttribute',
                 'model_id' => $id,

@@ -322,7 +322,7 @@ class Organisation extends AppModel
         }
         $backupFile->append($sql . PHP_EOL);
         $this->Log->create();
-        $this->Log->save(array(
+        $this->Log->saveOrFailSilently(array(
                 'org' => $user['Organisation']['name'],
                 'model' => 'Organisation',
                 'model_id' => $currentOrg['Organisation']['id'],
@@ -359,7 +359,7 @@ class Organisation extends AppModel
                                 $sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ' WHERE "id" IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
                             }
                             $backupFile->append($sql . PHP_EOL);
-                            $this->Log->save(array(
+                            $this->Log->saveOrFailSilently(array(
                                     'org' => $user['Organisation']['name'],
                                     'model' => 'Organisation',
                                     'model_id' => $currentOrg['Organisation']['id'],
@@ -370,7 +370,7 @@ class Organisation extends AppModel
                                     'change' => '',
                             ));
                         } catch (Exception $e) {
-                            $this->Log->save(array(
+                            $this->Log->saveOrFailSilently(array(
                                     'org' => $user['Organisation']['name'],
                                     'model' => 'Organisation',
                                     'model_id' => $currentOrg['Organisation']['id'],

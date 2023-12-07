@@ -2118,7 +2118,7 @@ class Event extends AppModel
             if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
-                $this->Log->save(array(
+                $this->Log->saveOrFailSilently(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Event',
                     'model_id' => $event['Event']['id'],
@@ -3107,7 +3107,7 @@ class Event extends AppModel
         if (Configure::read('MISP.disable_emailing')) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => 'SYSTEM',
                     'model' => 'Event',
                     'model_id' => $id,
@@ -3125,7 +3125,7 @@ class Event extends AppModel
             $banError = $banStatus['error'] || $banStatusUser['error'];
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => 'SYSTEM',
                     'model' => 'Event',
                     'model_id' => $id,
@@ -7418,7 +7418,7 @@ class Event extends AppModel
         if ($largest_event/$memory_scaling_factor > $memory_in_mb) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => 'SYSTEM',
                     'model' => 'Event',
                     'model_id' => 0,

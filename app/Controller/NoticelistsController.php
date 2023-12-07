@@ -47,7 +47,7 @@ class NoticelistsController extends AppController
                         $change = $success['name'] . ' v' . $success['new'] . ' installed';
                     }
                     $this->Log->create();
-                    $this->Log->save(array(
+                    $this->Log->saveOrFailSilently(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Noticelist',
                         'model_id' => $id,
@@ -63,7 +63,7 @@ class NoticelistsController extends AppController
             if (isset($result['fails'])) {
                 foreach ($result['fails'] as $id => $fail) {
                     $this->Log->create();
-                    $this->Log->save(array(
+                    $this->Log->saveOrFailSilently(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Noticelist',
                         'model_id' => $id,
@@ -78,7 +78,7 @@ class NoticelistsController extends AppController
             }
         } else {
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org' => $this->Auth->user('Organisation')['name'],
                 'model' => 'Noticelist',
                 'model_id' => 0,
