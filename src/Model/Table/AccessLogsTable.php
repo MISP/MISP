@@ -224,7 +224,7 @@ class AccessLogsTable extends AppTable
 
         if ($sqlLog instanceof DebugLog) {
             $queries = $sqlLog->queries();
-            $queryCount = $sqlLog->totalRows();
+            $queryCount = count($queries);
             $queryTotalTime = $sqlLog->totalTime();
         }
 
