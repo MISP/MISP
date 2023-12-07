@@ -9,10 +9,11 @@ use Cake\Http\Exception\NotFoundException;
 
 class AccessLogsController extends AppController
 {
+
     public $paginate = [
         'recursive' => -1,
         'limit' => 60,
-        'fields' => ['id', 'created', 'user_id', 'org_id', 'authkey_id', 'ip', 'request_method', 'user_agent', 'request_id', 'controller', 'action', 'url', 'response_code', 'memory_usage', 'duration', 'query_count'],
+        'fields' => ['id', 'created', 'user_id', 'org_id', 'authkey_id', 'ip', 'request_method', 'user_agent', 'request_id', 'controller', 'action', 'url', 'response_code', 'memory_usage', 'duration', 'query_count', 'request'],
         'contain' => [
             'Users' => ['fields' => ['id', 'email', 'org_id']],
             'Organisations' => ['fields' => ['id', 'name', 'uuid']],
@@ -20,6 +21,33 @@ class AccessLogsController extends AppController
         'order' => [
             'AccessLogs.id' => 'DESC'
         ],
+    ];
+
+    public $quickFilterFields = [
+        'ip',
+        ['user_agent' => true],
+        ['action' => true],
+        ['url' => true],
+        ['controller' => true]
+    ];
+
+    public $filterFields = [
+        'created',
+        'ip',
+        'user',
+        'org_id',
+        'request_id',
+        'authkey_id',
+        'api_request',
+        'request_method',
+        'controller',
+        'action',
+        'url',
+        'user_agent',
+        'memory_usage',
+        'duration',
+        'query_count',
+        'response_code',
     ];
 
     public function initialize(): void
@@ -51,32 +79,27 @@ class AccessLogsController extends AppController
             ]
         );
 
-        $conditions =  $this->__searchConditions($params);
+        // $conditions =  $this->__searchConditions($params);
 
-        if ($this->ParamHandler->isRest()) {
-            $list = $this->AccessLogs->find(
-                'all',
-                [
-                    'conditions' => $conditions,
-                    'contain' => $this->paginate['contain'],
-                ]
-            );
-            foreach ($list as $item) {
-                if (!empty($item['request'])) {
-                    $item['request'] = base64_encode($item['request']);
-                }
+        $afterFindHandler = function ($entry) {
+            if (!empty($entry['request'])) {
+                $entry['request'] = base64_encode($entry['request']);
             }
-            return $this->RestResponse->viewData($list->toArray(), 'json');
-        }
+            return $entry;
+        };
+
+        $this->CRUD->index(
+            [
+                'filters' => $this->filterFields,
+                'quickFilters' => $this->quickFilterFields,
+                'afterFind' => $afterFindHandler,
+            ]
+        );
+
+
         if (empty(Configure::read('MISP.log_skip_access_logs_in_application_logs'))) {
             $this->Flash->info(__('Access logs are logged in both application logs and access logs. Make sure you reconfigure your log monitoring tools and update MISP.log_skip_access_logs_in_application_logs.'));
         }
-
-        $this->paginate['conditions'] = $conditions;
-        $list = $this->paginate();
-
-        $this->set('list', $list);
-        $this->set('title_for_layout', __('Access logs'));
     }
 
     public function request($id)
@@ -136,110 +159,8 @@ class AccessLogsController extends AppController
         $this->set('queryLog', $request['query_log']);
     }
 
-    /**
-     * @param array $params
-     * @return array
-     */
-    private function __searchConditions(array $params)
+    public function filtering()
     {
-        $qbRules = [];
-        foreach ($params as $key => $value) {
-            if ($key === 'created') {
-                $qbRules[] = [
-                    'id' => $key,
-                    'operator' => is_array($value) ? 'between' : 'greater_or_equal',
-                    'value' => $value,
-                ];
-            } else {
-                if (is_array($value)) {
-                    $value = implode('||', $value);
-                }
-                $qbRules[] = [
-                    'id' => $key,
-                    'value' => $value,
-                ];
-            }
-        }
-        $this->set('qbRules', $qbRules);
-
-        $conditions = [];
-        if (isset($params['user'])) {
-            if (is_numeric($params['user'])) {
-                $conditions['AccessLogs.user_id'] = $params['user'];
-            } else {
-                $user = $this->Users->find(
-                    'first',
-                    [
-                        'conditions' => ['Users.email' => $params['user']],
-                        'fields' => ['id'],
-                    ]
-                );
-                if (!empty($user)) {
-                    $conditions['AccessLogs.user_id'] = $user['id'];
-                } else {
-                    $conditions['AccessLogs.user_id'] = -1;
-                }
-            }
-        }
-        if (isset($params['ip'])) {
-            $conditions['AccessLogs.ip'] = inet_pton($params['ip']);
-        }
-        foreach (['authkey_id', 'request_id', 'controller', 'action'] as $field) {
-            if (isset($params[$field])) {
-                $conditions['AccessLogs.' . $field] = $params[$field];
-            }
-        }
-        if (isset($params['url'])) {
-            $conditions['AccessLogs.url LIKE'] = "%{$params['url']}%";
-        }
-        if (isset($params['user_agent'])) {
-            $conditions['AccessLogs.user_agent LIKE'] = "%{$params['user_agent']}%";
-        }
-        if (isset($params['memory_usage'])) {
-            $conditions['AccessLogs.memory_usage >='] = ($params['memory_usage'] * 1024);
-        }
-        if (isset($params['memory_usage'])) {
-            $conditions['AccessLogs.memory_usage >='] = ($params['memory_usage'] * 1024);
-        }
-        if (isset($params['duration'])) {
-            $conditions['AccessLogs.duration >='] = $params['duration'];
-        }
-        if (isset($params['query_count'])) {
-            $conditions['AccessLogs.query_count >='] = $params['query_count'];
-        }
-        if (isset($params['request_method'])) {
-            $methodId = array_flip(AccessLog::REQUEST_TYPES)[$params['request_method']] ?? -1;
-            $conditions['AccessLogs.request_method'] = $methodId;
-        }
-        if (isset($params['org'])) {
-            if (is_numeric($params['org'])) {
-                $conditions['AccessLogs.org_id'] = $params['org'];
-            } else {
-                $org = $this->AccessLogs->Organisation->fetchOrg($params['org']);
-                if ($org) {
-                    $conditions['AccessLogs.org_id'] = $org['id'];
-                } else {
-                    $conditions['AccessLogs.org_id'] = -1;
-                }
-            }
-        }
-        if (isset($params['created'])) {
-            $tempData = is_array($params['created']) ? $params['created'] : [$params['created']];
-            foreach ($tempData as $k => $v) {
-                $tempData[$k] = $this->AccessLogs->resolveTimeDelta($v);
-            }
-            if (count($tempData) === 1) {
-                $conditions['AccessLogs.created >='] = date("Y-m-d H:i:s", $tempData[0]);
-            } else {
-                if ($tempData[0] < $tempData[1]) {
-                    $temp = $tempData[1];
-                    $tempData[1] = $tempData[0];
-                    $tempData[0] = $temp;
-                }
-                $conditions['AND'][] = ['AccessLogs.created <=' => date("Y-m-d H:i:s", $tempData[0])];
-                $conditions['AND'][] = ['AccessLogs.created >=' => date("Y-m-d H:i:s", $tempData[1])];
-            }
-        }
-        return $conditions;
+        $this->CRUD->filtering();
     }
 }
