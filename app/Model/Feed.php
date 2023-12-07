@@ -2158,7 +2158,7 @@ class Feed extends AppModel
         }
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
-        $this->Log->save(array(
+        $this->Log->saveOrFailSilently(array(
             'org' => 'SYSTEM',
             'model' => 'Feed',
             'model_id' => $id,

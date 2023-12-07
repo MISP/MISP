@@ -181,7 +181,7 @@ class SharingGroupBlueprint extends AppModel
                 'title' => 'Updated the sharing group.',
                 'change' => __('Updated sharing group. Added %s and removed %s organisations', $added, $removed)
             );
-            $this->Log->save($entry);
+            $this->Log->saveOrFailSilently($entry);
             return true;
         }
         return false;

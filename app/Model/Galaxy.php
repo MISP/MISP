@@ -202,7 +202,7 @@ class Galaxy extends AppModel
                         if (is_array($v)) {
                             $this->Log = ClassRegistry::init('Log');
                             $this->Log->create();
-                            $this->Log->save(array(
+                            $this->Log->saveOrFailSilently(array(
                                 'org' => 'SYSTEM',
                                 'model' => 'Galaxy',
                                 'model_id' => 0,

@@ -932,7 +932,7 @@ class SharingGroup extends AppModel
                             'user_id' => 0,
                             'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but the user used for creating the sharing group locally doesn\'t exist any longer.'
                     );
-                    $this->Log->save($entry);
+                    $this->Log->saveOrFailSilently($entry);
                     unset($syncUsers[$sg['SharingGroup']['sync_user_id']]);
                     continue;
                 }
@@ -951,7 +951,7 @@ class SharingGroup extends AppModel
                             'user_id' => 0,
                             'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but saving the changes has resulted in the following error: ' . json_encode($this->SharingGroupOrg->validationErrors)
                     );
-                    $this->Log->save($entry);
+                    $this->Log->saveOrFailSilently($entry);
                 }
             }
         }

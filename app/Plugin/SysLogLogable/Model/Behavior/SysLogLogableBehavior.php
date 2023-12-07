@@ -259,7 +259,7 @@ class SysLogLogableBehavior extends LogableBehavior
 		}
 		}
 		$this->Log->create($logData);
-		$this->Log->save(null, array('validate' => false));
+		$this->Log->saveOrFailSilently(null, array('validate' => false));
 	}
 
     function setup(Model $Model, $config = array())

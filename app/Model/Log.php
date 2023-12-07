@@ -1175,4 +1175,13 @@ class Log extends AppModel
         }
         return $this->elasticSearchClient;
     }
+
+    public function saveOrFailSilently($data, $options = null)
+    {
+        try {
+            return $this->save($data, $options);
+        } catch (Exception $e) {
+            return false;
+        }
+    }
 }

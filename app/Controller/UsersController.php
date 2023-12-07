@@ -2815,7 +2815,7 @@ class UsersController extends AppController
             } else {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
-                $this->Log->save(array(
+                $this->Log->saveOrFailSilently(array(
                     'org' => $this->Auth->user('Organisation')['name'],
                     'model' => 'User',
                     'model_id' => 0,
