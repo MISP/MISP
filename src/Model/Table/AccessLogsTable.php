@@ -239,7 +239,7 @@ class AccessLogsTable extends AppTable
             $data['query_log'] = ['time' => $queryTotalTime, 'log' => $queries];
         }
 
-        $data['response_code'] = http_response_code();
+        $data['response_code'] =  http_response_code() ? : 0;
         $data['memory_usage'] = memory_get_peak_usage();
         $data['query_count'] = $queryCount;
         $data['duration'] = (int)((microtime(true) - $requestTime->format('U.u')) * 1000); // in milliseconds
