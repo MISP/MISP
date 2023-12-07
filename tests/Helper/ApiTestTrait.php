@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace App\Test\Helper;
 
-use Cake\TestSuite\IntegrationTestTrait;
 use Cake\Core\Configure;
-use Cake\Http\ServerRequestFactory;
-use Cake\Http\ServerRequest;
 use Cake\Http\Exception\NotImplementedException;
-use \League\OpenAPIValidation\PSR7\ValidatorBuilder;
-use \League\OpenAPIValidation\PSR7\RequestValidator;
-use \League\OpenAPIValidation\PSR7\ResponseValidator;
-use \League\OpenAPIValidation\PSR7\OperationAddress;
+use Cake\Http\ServerRequest;
+use Cake\Http\ServerRequestFactory;
+use Cake\TestSuite\IntegrationTestTrait;
+use League\OpenAPIValidation\PSR7\OperationAddress;
 
 /**
  * Trait ApiTestTrait
@@ -56,15 +53,16 @@ trait ApiTestTrait
 
         // somehow this is not set automatically in test environment
         $_SERVER['HTTP_AUTHORIZATION'] = $authToken;
-        $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 
-        $this->configRequest([
-            'headers' => [
-                'Accept' => 'application/json',
-                'Authorization' => $this->_authToken,
-                'Content-Type' => 'application/json'
+        $this->configRequest(
+            [
+                'headers' => [
+                    'Accept' => 'application/json',
+                    'Authorization' => $this->_authToken,
+                    'Content-Type' => 'application/json'
+                ]
             ]
-        ]);
+        );
     }
 
     /**
@@ -85,7 +83,7 @@ trait ApiTestTrait
 
     /**
      * Load OpenAPI specification validator
-     * 
+     *
      * @return void
      */
     public function initializeOpenApiValidator(): void
@@ -100,7 +98,7 @@ trait ApiTestTrait
 
     /**
      * Validates the API request against the OpenAPI spec
-     * 
+     *
      * @return void
      */
     public function assertRequestMatchesOpenApiSpec(): void
@@ -110,8 +108,8 @@ trait ApiTestTrait
 
     /**
      * Validates the API response against the OpenAPI spec
-     * 
-     * @param string $path The path to the API endpoint 
+     *
+     * @param string $path The path to the API endpoint
      * @param string $method The HTTP method used to call the endpoint
      * @return void
      */
@@ -121,15 +119,15 @@ trait ApiTestTrait
         $this->_validator->getResponseValidator()->validate($address, $this->_response);
     }
 
-    /** 
+    /**
      * Validates a record exists in the database
-     * 
+     *
      * @param string $table The table name
      * @param array $conditions The conditions to check
      * @return void
      * @throws \Exception
      * @throws \Cake\Datasource\Exception\RecordNotFoundException
-     * 
+     *
      * @see https://book.cakephp.org/4/en/orm-query-builder.html
      */
     public function assertDbRecordExists(string $table, array $conditions): void
@@ -141,15 +139,15 @@ trait ApiTestTrait
         $this->assertNotEmpty($record);
     }
 
-    /** 
+    /**
      * Validates a record do not exists in the database
-     * 
+     *
      * @param string $table The table name
      * @param array $conditions The conditions to check
      * @return void
      * @throws \Exception
      * @throws \Cake\Datasource\Exception\RecordNotFoundException
-     * 
+     *
      * @see https://book.cakephp.org/4/en/orm-query-builder.html
      */
     public function assertDbRecordNotExists(string $table, array $conditions): void
@@ -161,9 +159,9 @@ trait ApiTestTrait
         $this->assertEmpty($record);
     }
 
-    /** 
+    /**
      * Parses the response body and returns the decoded JSON
-     * 
+     *
      * @return array
      * @throws \Exception
      */
@@ -176,9 +174,9 @@ trait ApiTestTrait
         return json_decode((string)$this->_response->getBody(), true);
     }
 
-    /** 
+    /**
      * Gets a database records as an array
-     * 
+     *
      * @param string $table The table name
      * @param array $conditions The conditions to check
      * @return array
@@ -191,10 +189,10 @@ trait ApiTestTrait
 
     /**
      * This method intercepts IntegrationTestTrait::_buildRequest()
-     * in the quest to get a PSR-7 request object and saves it for 
+     * in the quest to get a PSR-7 request object and saves it for
      * later inspection, also validates it against the OpenAPI spec.
      * @see \Cake\TestSuite\IntegrationTestTrait::_buildRequest()
-     * 
+     *
      * @param string $url The URL
      * @param string $method The HTTP method
      * @param array|string $data The request data.
@@ -248,6 +246,13 @@ trait ApiTestTrait
             $data = json_encode($data);
         }
 
+        // somehow this is not set automatically in test environment
+        $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+        $_SERVER['HTTP_USER_AGENT'] = 'CakePHP TestSuite';
+        $_SERVER['REQUEST_METHOD'] = $method;
+        $_SERVER['CONTENT_TYPE'] = $this->_request['headers']['Content-Type'];
+        $_SERVER['HTTP_CONTENT_ENCODING'] = $this->_request['headers']['Content-Type'];
+
         $this->_sendRequestOriginal($url, $method, $data);
 
         // Validate response against OpenAPI spec
@@ -270,7 +275,7 @@ trait ApiTestTrait
     /**
      * Create a PSR-7 request from the request spec.
      * @see \Cake\TestSuite\MiddlewareDispatcher::_createRequest()
-     * 
+     *
      * @param array<string, mixed> $spec The request spec.
      * @return \Cake\Http\ServerRequest
      */

@@ -52,7 +52,11 @@ return [
     'MISP' => [
         'dark' => 0,
         'email' => 'email@example.com',
-        'default_event_distribution' => '1'
+        'default_event_distribution' => '1',
+        'log_paranoid' => false,
+        'log_paranoid_include_sql_queries' => false,
+        'log_new_audit_compress' => false,
+        'log_paranoid_include_post_body' => false,
     ],
     'BackgroundJobs' => [
         'enabled' => false,

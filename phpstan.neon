@@ -6,3 +6,5 @@ parameters:
     ignoreErrors:
       - message: '#Undefined variable: \$this#'
         path: %currentWorkingDirectory%/templates
+      - message: '#Function brotli_compress not found.#'
+        path: %currentWorkingDirectory%/*

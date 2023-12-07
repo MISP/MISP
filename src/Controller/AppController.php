@@ -19,6 +19,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Lib\Tools\JsonTool;
+use App\Lib\Tools\RedisTool;
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
@@ -131,9 +132,10 @@ class AppController extends Controller
             $user = $this->Users->get(
                 $this->request->getAttribute('identity')->getIdentifier(),
                 [
-                    'contain' => ['Roles', /*'UserSettings',*/ 'Organisations']
+                    'contain' => ['Roles', 'Organisations' /*'UserSettings'*/]
                 ]
             );
+            $this->__accessMonitor($user->toArray());
             if (!empty($user['disabled'])) {
                 $this->Authentication->logout();
                 $this->Flash->error(__('The user account is disabled.'));
@@ -410,6 +412,65 @@ class AppController extends Controller
             if (strpos($accept, 'application/json') !== false) {
                 return $this->response->withType('json');
             }
+        }
+    }
+
+    /**
+     * @return string|null
+     */
+    protected function _remoteIp()
+    {
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
+        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
+    }
+
+    /**
+     * @param array $user
+     * @throws Exception
+     */
+    private function __accessMonitor(array $user)
+    {
+        $userMonitoringEnabled = Configure::read('Security.user_monitoring_enabled');
+        if ($userMonitoringEnabled) {
+            try {
+                $userMonitoringEnabled = RedisTool::init()->sismember('misp:monitored_users', $user['id']);
+            } catch (Exception $e) {
+                $userMonitoringEnabled = false;
+            }
+        }
+
+        $shouldBeLogged = $userMonitoringEnabled ||
+            Configure::read('MISP.log_paranoid') ||
+            (Configure::read('MISP.log_paranoid_api') && isset($user['logged_by_authkey']) && $user['logged_by_authkey']);
+
+        if ($shouldBeLogged) {
+            $includeRequestBody = !empty(Configure::read('MISP.log_paranoid_include_post_body')) || $userMonitoringEnabled;
+            /** @var AccessLog $accessLog */
+            $accessLogsTable = $this->fetchTable('AccessLogs');
+            $accessLogsTable->logRequest($user, $this->_remoteIp(), $this->request, $includeRequestBody);
+        }
+
+        if (
+            empty(Configure::read('MISP.log_skip_access_logs_in_application_logs')) &&
+            $shouldBeLogged
+        ) {
+            $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->getAttribute('here');
+            ;
+            if (
+                (
+                    $this->request->is('post') ||
+                    $this->request->is('put')
+                ) &&
+                (
+                    !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
+                    $userMonitoringEnabled
+                )
+            ) {
+                $payload = $this->request->getBody();
+                $change .= PHP_EOL . 'Request body: ' . $payload;
+            }
+            $logsTable = $this->fetchTable('Logs');
+            $logsTable->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
         }
     }
 }

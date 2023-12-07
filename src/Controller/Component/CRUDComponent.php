@@ -50,8 +50,9 @@ class CRUDComponent extends Component
         }
 
         $optionFilters = [];
-        // $optionValidFilters = empty($options['filters']) ? [] : $this->getFilterFieldsName($options['filters']);
-        $optionValidFilters = empty($options['filters']) ? [] : $options['filters'];
+        $optionValidFilters = empty($options['filters']) ? [] : $this->getFilterFieldsName($options['filters']);
+        // TODO: fix this @sami
+        // $optionValidFilters = empty($options['filters']) ? [] : $options['filters'];
         $optionFilters += $optionValidFilters;
         foreach ($optionFilters as $i => $filter) {
             $optionFilters[] = "{$filter} !=";
@@ -98,9 +99,9 @@ class CRUDComponent extends Component
             if (isset($options['hidden'])) {
                 $data->each(
                     function ($value, $key) use ($options) {
-                    $hidden = is_array($options['hidden']) ? $options['hidden'] : [$options['hidden']];
-                    $value->setHidden($hidden);
-                    return $value;
+                        $hidden = is_array($options['hidden']) ? $options['hidden'] : [$options['hidden']];
+                        $value->setHidden($hidden);
+                        return $value;
                     }
                 );
             }
@@ -109,22 +110,22 @@ class CRUDComponent extends Component
                 if (is_callable($function)) {
                     $data = $data->map(
                         function ($value, $key) use ($function) {
-                        return $function($value);
+                            return $function($value);
                         }
                     )->filter(
                         function ($value) {
-                        return $value !== false;
+                            return $value !== false;
                         }
                     );
                 } else {
                     $t = $this->Table;
                     $data = $data->map(
                         function ($value, $key) use ($t, $function) {
-                        return $t->$function($value);
+                            return $t->$function($value);
                         }
                     )->filter(
                         function ($value) {
-                        return $value !== false;
+                            return $value !== false;
                         }
                     );
                 }
@@ -133,7 +134,7 @@ class CRUDComponent extends Component
                 $metaTemplates = $this->getMetaTemplates()->toArray();
                 $data = $data->map(
                     function ($value, $key) use ($metaTemplates) {
-                    return $this->attachMetaTemplatesIfNeeded($value, $metaTemplates);
+                        return $this->attachMetaTemplatesIfNeeded($value, $metaTemplates);
                     }
                 );
             }
@@ -144,7 +145,7 @@ class CRUDComponent extends Component
                 false,
                 false,
                 [
-                'X-Total-Count' => $totalCount,
+                    'X-Total-Count' => $totalCount,
                 ],
                 $wrapResponse
             );
@@ -155,22 +156,22 @@ class CRUDComponent extends Component
                 if (is_callable($function)) {
                     $data = $data->map(
                         function ($value, $key) use ($function) {
-                        return $function($value);
+                            return $function($value);
                         }
                     )->filter(
                         function ($value) {
-                        return $value !== false;
+                            return $value !== false;
                         }
                     );
                 } else {
                     $t = $this->Table;
                     $data = $data->map(
                         function ($value, $key) use ($t, $function) {
-                        return $t->$function($value);
+                            return $t->$function($value);
                         }
                     )->filter(
                         function ($value) {
-                        return $value !== false;
+                            return $value !== false;
                         }
                     );
                 }
@@ -279,7 +280,7 @@ class CRUDComponent extends Component
         $typeMap = array_filter(
             $typeMap,
             function ($field) use ($filtersName) {
-            return in_array($field, $filtersName);
+                return in_array($field, $filtersName);
             },
             ARRAY_FILTER_USE_KEY
         );
@@ -300,7 +301,7 @@ class CRUDComponent extends Component
         $filters = !empty($this->Controller->filterFields) ? $this->Controller->filterFields : [];
         $filters = array_map(
             function ($item) {
-            return is_array($item) ? $item['name'] : $item;
+                return is_array($item) ? $item['name'] : $item;
             },
             $filters
         );
@@ -367,12 +368,13 @@ class CRUDComponent extends Component
             )
             ->contain('MetaTemplateFields')
             ->formatResults(
-                function (\Cake\Collection\CollectionInterface $metaTemplates) { // Set meta-template && meta-template-fields indexed by their ID
-                return $metaTemplates
+                function (\Cake\Collection\CollectionInterface $metaTemplates) {
+                // Set meta-template && meta-template-fields indexed by their ID
+                    return $metaTemplates
                     ->map(
                         function ($metaTemplate) {
-                        $metaTemplate->meta_template_fields = Hash::combine($metaTemplate->meta_template_fields, '{n}.id', '{n}');
-                        return $metaTemplate;
+                            $metaTemplate->meta_template_fields = Hash::combine($metaTemplate->meta_template_fields, '{n}.id', '{n}');
+                            return $metaTemplate;
                         }
                     )
                     ->indexBy('id');
@@ -548,14 +550,14 @@ class CRUDComponent extends Component
                                 $metaFieldsTable->patchEntity(
                                     $metaField,
                                     [
-                                    'value' => $new_value,
-                                    'scope' => $this->Table->getBehavior('MetaFields')->getScope(),
-                                    'field' => $rawMetaTemplateField->field,
-                                    'meta_template_id' => $rawMetaTemplateField->meta_template_id,
-                                    'meta_template_field_id' => $rawMetaTemplateField->id,
-                                    'meta_template_directory_id' => $allMetaTemplates[$template_id]->meta_template_directory_id,
-                                    'parent_id' => $entity->id,
-                                    'uuid' => Text::uuid(),
+                                        'value' => $new_value,
+                                        'scope' => $this->Table->getBehavior('MetaFields')->getScope(),
+                                        'field' => $rawMetaTemplateField->field,
+                                        'meta_template_id' => $rawMetaTemplateField->meta_template_id,
+                                        'meta_template_field_id' => $rawMetaTemplateField->id,
+                                        'meta_template_directory_id' => $allMetaTemplates[$template_id]->meta_template_directory_id,
+                                        'parent_id' => $entity->id,
+                                        'uuid' => Text::uuid(),
                                     ]
                                 );
                                 $entity->meta_fields[] = $metaField;
@@ -571,7 +573,7 @@ class CRUDComponent extends Component
                                     $metaFieldsTable->patchEntity(
                                         $entity->meta_fields[$index],
                                         [
-                                        'value' => $new_value, 'meta_template_field_id' => $rawMetaTemplateField->id
+                                            'value' => $new_value, 'meta_template_field_id' => $rawMetaTemplateField->id
                                         ],
                                         ['value']
                                     );
@@ -586,14 +588,14 @@ class CRUDComponent extends Component
                                 $metaFieldsTable->patchEntity(
                                     $metaField,
                                     [
-                                    'value' => $new_value,
-                                    'scope' => $this->Table->getBehavior('MetaFields')->getScope(), // get scope from behavior
-                                    'field' => $rawMetaTemplateField->field,
-                                    'meta_template_id' => $rawMetaTemplateField->meta_template_id,
-                                    'meta_template_field_id' => $rawMetaTemplateField->id,
-                                    'meta_template_directory_id' => $template->meta_template_directory_id,
-                                    'parent_id' => $entity->id,
-                                    'uuid' => Text::uuid(),
+                                        'value' => $new_value,
+                                        'scope' => $this->Table->getBehavior('MetaFields')->getScope(), // get scope from behavior
+                                        'field' => $rawMetaTemplateField->field,
+                                        'meta_template_id' => $rawMetaTemplateField->meta_template_id,
+                                        'meta_template_field_id' => $rawMetaTemplateField->id,
+                                        'meta_template_directory_id' => $template->meta_template_directory_id,
+                                        'parent_id' => $entity->id,
+                                        'uuid' => Text::uuid(),
                                     ]
                                 );
                                 $entity->meta_fields[] = $metaField;
@@ -756,9 +758,12 @@ class CRUDComponent extends Component
         $metaFieldScope = $this->Table->getBehavior('MetaFields')->getScope();
         $query = $this->MetaTemplates->find()->where(['MetaTemplates.scope' => $metaFieldScope]);
         $query->contain(
-            ['MetaTemplateFields.MetaFields' => function ($q) use ($id, $metaFieldScope) {
-            return $q->where(['MetaFields.scope' => $metaFieldScope, 'MetaFields.parent_id' => $id]);
-            }]
+            [
+                'MetaTemplateFields.MetaFields' => function ($q) use ($id, $metaFieldScope) {
+                    return $q->where(['MetaFields.scope' => $metaFieldScope, 'MetaFields.parent_id' => $id]);
+                }
+
+            ]
         );
         $query
             ->order(['MetaTemplates.is_default' => 'DESC'])
@@ -856,9 +861,9 @@ class CRUDComponent extends Component
         $this->Controller->set('requestedMetaFields', $requestedMetaFields);
         return $query->contain(
             [
-            'MetaFields' => [
-                'conditions' => $containConditions
-            ]
+                'MetaFields' => [
+                    'conditions' => $containConditions
+                ]
             ]
         );
     }
@@ -895,7 +900,7 @@ class CRUDComponent extends Component
         if (Validation::uuid($id) && $this->Table->getSchema()->hasColumn('uuid')) {
             $data = $this->Table->find()->where(
                 [
-                "{$this->Table->getAlias()}.uuid" => $id,
+                    "{$this->Table->getAlias()}.uuid" => $id,
                 ]
             )->first();
         } else {
@@ -911,7 +916,7 @@ class CRUDComponent extends Component
                 $data,
                 null,
                 [
-                'id IN' => $usedMetaTemplateIDs
+                    'id IN' => $usedMetaTemplateIDs
                 ]
             );
         }
@@ -937,9 +942,9 @@ class CRUDComponent extends Component
             // We deep copy the meta-template so that the data attached is not preserved for the next iteration
             $metaTemplates = array_map(
                 function ($metaTemplate) {
-                $tmpEntity = $this->MetaTemplates->newEntity($metaTemplate->toArray());
-                $tmpEntity['meta_template_fields'] = Hash::combine($tmpEntity['meta_template_fields'], '{n}.id', '{n}'); // newEntity resets array indexing, see https://github.com/cakephp/cakephp/blob/32e3c532fea8abe2db8b697f07dfddf4dfc134ca/src/ORM/Marshaller.php#L369
-                return $tmpEntity;
+                    $tmpEntity = $this->MetaTemplates->newEntity($metaTemplate->toArray());
+                    $tmpEntity['meta_template_fields'] = Hash::combine($tmpEntity['meta_template_fields'], '{n}.id', '{n}'); // newEntity resets array indexing, see https://github.com/cakephp/cakephp/blob/32e3c532fea8abe2db8b697f07dfddf4dfc134ca/src/ORM/Marshaller.php#L369
+                    return $tmpEntity;
                 },
                 $metaTemplates
             );
@@ -1110,7 +1115,7 @@ class CRUDComponent extends Component
                 $input['tags'] = array_filter(
                     $entity->tags,
                     function ($existingTag) use ($tagsToRemove) {
-                    return !in_array($existingTag->name, $tagsToRemove);
+                        return !in_array($existingTag->name, $tagsToRemove);
                     }
                 );
                 $patchEntityParams = [
@@ -1293,8 +1298,8 @@ class CRUDComponent extends Component
             $this->Controller->set(
                 'quickFilterForMetaField',
                 [
-                'enabled' => $options['quickFilterForMetaField']['enabled'] ?? false,
-                'wildcard_search' => $options['quickFilterForMetaField']['enabled'] ?? false,
+                    'enabled' => $options['quickFilterForMetaField']['enabled'] ?? false,
+                    'wildcard_search' => $options['quickFilterForMetaField']['enabled'] ?? false,
                 ]
             );
         }
@@ -1406,8 +1411,8 @@ class CRUDComponent extends Component
         $subQuery = $this->Table->find(
             'tagged',
             [
-            'name' => $tags,
-            'OperatorAND' => true
+                'name' => $tags,
+                'OperatorAND' => true
             ]
         )->select($modelAlias . '.id');
         return $query->where([$modelAlias . '.id IN' => $subQuery]);
@@ -1427,7 +1432,7 @@ class CRUDComponent extends Component
             $query = $query->matching(
                 $modelName,
                 function (\Cake\ORM\Query $q) use ($filterParts, $filterValue) {
-                return $this->setNestedRelatedCondition($q, $filterParts, $filterValue);
+                    return $this->setNestedRelatedCondition($q, $filterParts, $filterValue);
                 }
             );
         }
@@ -1439,12 +1444,12 @@ class CRUDComponent extends Component
         return $query->matching(
             $modelName,
             function (\Cake\ORM\Query $q) use ($fieldName, $filterValue) {
-            if (is_array($filterValue)) {
-                return $this->setInCondition($q, $fieldName, $filterValue);
-            } else {
+                if (is_array($filterValue)) {
+                    return $this->setInCondition($q, $fieldName, $filterValue);
+                } else {
+                    return $this->setValueCondition($q, $fieldName, $filterValue);
+                }
                 return $this->setValueCondition($q, $fieldName, $filterValue);
-            }
-            return $this->setValueCondition($q, $fieldName, $filterValue);
             }
         );
     }
@@ -1456,7 +1461,7 @@ class CRUDComponent extends Component
         } else {
             return $query->where(
                 function ($exp, \Cake\ORM\Query $q) use ($fieldName, $value) {
-                return $exp->like($fieldName, $value);
+                    return $exp->like($fieldName, $value);
                 }
             );
         }
@@ -1475,13 +1480,13 @@ class CRUDComponent extends Component
         if ($operator == '=') {
             return $query->where(
                 function (QueryExpression $exp, Query $q) use ($field, $values) {
-                return $exp->in($field, $values);
+                    return $exp->in($field, $values);
                 }
             );
         } else if ($operator == '!=') {
             return $query->where(
                 function (QueryExpression $exp, Query $q) use ($field, $values) {
-                return $exp->notIn($field, $values);
+                    return $exp->notIn($field, $values);
                 }
             );
         }
@@ -1550,8 +1555,8 @@ class CRUDComponent extends Component
         $metaTemplates = $this->MetaFields->MetaTemplates->find(
             'list',
             [
-            'keyField' => 'name',
-            'valueField' => 'id'
+                'keyField' => 'name',
+                'valueField' => 'id'
             ]
         )->where(['name IN' => array_keys($metaConditions)])->all()->toArray();
         $fieldsConditions = [];
@@ -1696,7 +1701,7 @@ class CRUDComponent extends Component
         $ids = $this->getIdsOrFail(false);
         $query = $this->Table->find()->where(
             function (QueryExpression $exp) use ($ids) {
-            return $exp->in($this->Table->getAlias() . '.id', $ids);
+                return $exp->in($this->Table->getAlias() . '.id', $ids);
             }
         );
         if (!empty($params['conditions'])) {
@@ -1801,7 +1806,7 @@ class CRUDComponent extends Component
                 )
                     ->where(
                         [
-                        ["$field IS NOT" => NULL]
+                            ["$field IS NOT" => null]
                         ]
                     );
             } else if ($associationType == 'manyToOne') {
@@ -1841,7 +1846,7 @@ class CRUDComponent extends Component
     }
 
     /**
-     * Prepare a find query for either the provided id/uuid or a list of json-encoded ids 
+     * Prepare a find query for either the provided id/uuid or a list of json-encoded ids
      *
      * @param mixed $id Can be either ID, UUID or unset
      * @return Query
@@ -1856,7 +1861,7 @@ class CRUDComponent extends Component
         } else if (count($ids) > 0) {
             $query->where(
                 function (QueryExpression $exp) use ($ids) {
-                return $exp->in($this->Table->getAlias() . '.id', $ids);
+                    return $exp->in($this->Table->getAlias() . '.id', $ids);
                 }
             );
         } else {

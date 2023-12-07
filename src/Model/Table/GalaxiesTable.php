@@ -40,7 +40,10 @@ class GalaxiesTable extends AppTable
         $this->addBehavior(
             'JsonFields',
             [
-                'fields' => ['kill_chain_order' => ['default' => []]],
+                'fields' => [
+                    'kill_chain_order' => ['default' => []],
+                    'authors' => ['default' => []]
+                ],
             ]
         );
 
@@ -57,7 +60,7 @@ class GalaxiesTable extends AppTable
         $this->galaxyClustersPath = Configure::read('MISP.custom_galaxy_clusters_path', APP . '../libraries' . DS . 'misp-galaxy' . DS . 'clusters' . DS . '*.json');
     }
 
-    function beforeDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
+    public function beforeDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
     {
         $this->GalaxyClusters->deleteAll(['GalaxyCluster.galaxy_id' => $entity->id]);
     }
@@ -91,12 +94,10 @@ class GalaxiesTable extends AppTable
                 ) {
                     $galaxy['id'] = $existingGalaxies[$galaxy['uuid']]['id'];
                     $galaxyEntity = $this->newEntity($galaxy);
-                    $galaxyEntity->kill_chain_order = $galaxy['kill_chain_order'] ?? [];
                     $this->save($galaxyEntity);
                 }
             } else {
                 $galaxyEntity = $this->newEntity($galaxy);
-                $galaxyEntity->kill_chain_order = $galaxy['kill_chain_order'] ?? [];
                 $this->save($galaxyEntity);
             }
         }
@@ -114,7 +115,7 @@ class GalaxiesTable extends AppTable
     {
         return [
             'source' => isset($cluster_package['source']) ? $cluster_package['source'] : '',
-            'authors' => json_encode(isset($cluster_package['authors']) ? $cluster_package['authors'] : []),
+            'authors' => $cluster_package['authors'],
             'collection_uuid' => isset($cluster_package['uuid']) ? $cluster_package['uuid'] : '',
             'galaxy_id' => $galaxies[$cluster_package['type']],
             'type' => $cluster_package['type'],

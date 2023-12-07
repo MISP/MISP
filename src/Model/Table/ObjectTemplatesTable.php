@@ -28,6 +28,14 @@ class ObjectTemplatesTable extends AppTable
                 'cascadeCallbacks' => false
             ]
         );
+        $this->belongsTo(
+            'Organisations',
+            [
+                'className' => 'Organisation',
+                'foreignKey' => 'org_id',
+                'propertyName' => 'Organisation',
+            ]
+        );
         $this->setDisplayField('name');
     }
 
