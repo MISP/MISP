@@ -7,8 +7,10 @@
             }
             $relatedData = [
                 'Name' => $relatedServer['name'],
-                'URL' => $relatedServer['url']
             ];
+            if (!empty($relatedServer['url'])) {
+                $relatedData['url'] = $relatedServer['url'];
+            }
             $popover = '';
             foreach ($relatedData as $k => $v) {
                 $popover .= sprintf(
@@ -16,17 +18,17 @@
                     h($k),
                     h($v)
                 );
-                $serverHtml[] = sprintf(
-                    '<span style="white-space: nowrap; display: inline-block">%s</span>',
-                    sprintf(
-                        '<a href="%s/servers/previewIndex/%s" class="linkButton useCursorPointer" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
-                        $baseurl,
-                        h($relatedServer['id']),
-                        h($popover),
-                        h($relatedServer['name']) . ' (' . $relatedServer['id'] . ')'
-                    )
-                );
             }
+            $serverHtml[] = sprintf(
+                '<span style="white-space: nowrap; display: inline-block">%s</span>',
+                sprintf(
+                    '<a href="%s/servers/previewIndex/%s" class="linkButton useCursorPointer" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
+                    $baseurl,
+                    h($relatedServer['id']),
+                    h($popover),
+                    h($relatedServer['name']) . ' (' . $relatedServer['id'] . ')'
+                )
+            );
         }
     } else {
         $relatedData[] = __(

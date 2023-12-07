@@ -243,7 +243,8 @@
                             }
                         } else {
                             $liContents = sprintf(
-                                '<span>%s</span>',
+                                '<a href="#" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
+                                h($popover),
                                 h($feed['id'])
                             );
                         }
@@ -265,23 +266,18 @@
                             }
                             $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
                         }
+                        if (empty($server['event_uuids'])) {
+                            $server['event_uuids'] = [0 => 1]; // Make sure to print the content once
+                        }
                         foreach ($server['event_uuids'] as $k => $event_uuid) {
                             $liContents = '';
-                            if ($isSiteAdmin) {
-                                $liContents .= sprintf(
-                                    '<a href="%s/servers/previewEvent/%s/%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
-                                    $baseurl,
-                                    h($server['id']),
-                                    h($event_uuid),
-                                    h($popover),
-                                    'S' . h($server['id']) . ':' . ($k + 1)
-                                );
-                            } else {
-                                $liContents .= sprintf(
-                                    '<span>%s</span>',
-                                    'S' . h($server['id']) . ':' . ($k + 1)
-                                );
-                            }
+                            $url = $isSiteAdmin ? sprintf('%s/servers/previewEvent/%s/%s', $baseurl, h($server['id']), h($event_uuid)) : '#';
+                            $liContents .= sprintf(
+                                '<a href="%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
+                                $url,
+                                h($popover),
+                                'S' . h($server['id']) . ':' . ($k + 1)
+                            );
                             echo "<li>$liContents</li>";
                         }
                     }
