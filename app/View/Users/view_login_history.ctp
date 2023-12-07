@@ -19,6 +19,12 @@ echo sprintf('<div%s>', !$this->request->is('ajax') ? ' class="index"' : '');
         }
 </style>
 <?php
+if (!function_exists('str_contains')) {
+    function str_contains(string $haystack, string $needle): bool {
+        return '' === $needle || false !== strpos($haystack, $needle);
+    }
+}
+
 foreach($data as $entry ){
     $platform = h(strtolower($entry['platform']));
     if (str_contains($platform, 'win')) $platform = 'windows';
