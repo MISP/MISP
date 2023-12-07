@@ -1279,6 +1279,37 @@ class Attribute extends AppModel
     }
 
     /**
+     * @param bool $dryRun If true, no changes will be made to
+     * @return Generator
+     * @throws Exception
+     */
+    public function normalizeIpAddress($dryRun = false)
+    {
+        $attributes = $this->fetchAttributesInChunks([
+            'Attribute.type' => ['ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'domain|ip'],
+        ]);
+
+        foreach ($attributes as $attribute) {
+            $value = $attribute['Attribute']['value'];
+            $normalizedValue = AttributeValidationTool::modifyBeforeValidation($attribute['Attribute']['type'], $value);
+            if ($value !== $normalizedValue) {
+                if (!$dryRun) {
+                    $attribute['Attribute']['value'] = $normalizedValue;
+                    $this->save($attribute, true, ['value1', 'value2']);
+                }
+
+                yield [
+                    'id' => (int) $attribute['Attribute']['id'],
+                    'event_id' => (int) $attribute['Attribute']['event_id'],
+                    'type' => $attribute['Attribute']['type'],
+                    'value' => $value,
+                    'normalized_value' => $normalizedValue,
+                ];
+            }
+        }
+    }
+
+    /**
      * This method takes a string from an argument with several elements (separated by '&&' and negated by '!') and returns 2 arrays
      * array 1 will have all of the non negated terms and array 2 all the negated terms
      *
@@ -3694,7 +3725,7 @@ class Attribute extends AppModel
         );
     }
 
-    private function findAttributeByValue($attribute)
+    private function findAttributeByValue(array $attribute)
     {
         $type = $attribute['type'];
         $conditions = [
