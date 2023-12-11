@@ -2,204 +2,113 @@
 <?php echo $this->Form->create('Attribute', array('url' => array('controller' => 'attributes', 'action' => 'search', 'results')));?>
     <fieldset>
         <legend><?php echo __('Search Attribute'); ?></legend>
-<?php echo __('You can search for attributes based on contained expression within the value, event ID, submitting organisation, category and type. <br />For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) in front of the term.'); ?>
-        <br />
-<?php echo __('For string searches (such as searching for an expression, tags, etc) - lookups are simple string matches. If you want a substring match encapsulate the lookup string between "%" characters.'); ?>
-        <br /><br />
+        <?= __('You can search for attributes based on contained expression within the value, event ID, submitting organisation, category and type. <br>For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) in front of the term.'); ?>
+        <br>
+        <?= __('For string searches (such as searching for an expression, tags, etc) - lookups are simple string matches. If you want a substring match encapsulate the lookup string between "%" characters.'); ?>
+        <br><br>
         <?php
             echo $this->Form->input('value', array('type' => 'textarea', 'rows' => 2, 'label' => __('Containing the following expressions'), 'div' => 'clear', 'class' => 'input-xxlarge', 'required' => false));
             echo $this->Form->input('tags', array('type' => 'textarea', 'rows' => 2, 'label' => __('Having tag or being an attribute of an event having the tag'), 'div' => 'clear', 'class' => 'input-xxlarge', 'required' => false));
             echo $this->Form->input('uuid', array('type' => 'textarea', 'rows' => 2, 'maxlength' => false, 'label' => __('Being attributes of the following event IDs, event UUIDs or attribute UUIDs'), 'div' => 'clear', 'class' => 'input-xxlarge', 'required' => false));
             echo $this->Form->input('org', array(
-                    'type' => 'textarea',
-                    'label' => __('From the following organisation(s)'),
-                    'div' => 'input clear',
-                    'rows' => 2,
-                    'class' => 'input-xxlarge'));
+                'type' => 'textarea',
+                'label' => __('From the following organisation(s)'),
+                'div' => 'input clear',
+                'rows' => 2,
+                'class' => 'input-xxlarge'
+            ));
+            $typeFormInfo = $this->element('genericElements/Form/formInfo', [
+                'field' => [
+                    'field' => 'type'
+                ],
+                'modelForForm' => 'Attribute',
+                'fieldDesc' => $fieldDesc['type'],
+            ]);
             echo $this->Form->input('type', array(
                 'div' => 'input clear',
-                'required' => false
+                'required' => false,
+                "label" => __("Type") . " " . $typeFormInfo,
             ));
-            echo $this->Form->input('category', array('required' => false));
+            $categoryFormInfo = $this->element('genericElements/Form/formInfo', [
+                'field' => [
+                    'field' => 'category'
+                ],
+                'modelForForm' => 'Attribute',
+                'fieldDesc' => $fieldDesc['category'],
+            ]);
+            echo $this->Form->input('category', array(
+                'required' => false,
+                "label" => __("Category") . " " . $categoryFormInfo,
+            ));
         ?>
             <div class="input clear"></div>
         <?php
             echo $this->Form->input('to_ids', array(
                 'type' => 'checkbox',
-                'label' => __('Only find IOCs flagged as to_ids')
+                'label' => __('Only find IOCs flagged as to IDS'),
+                'div' => ['style' => 'margin-top:1em'],
             ));
-            echo $this->Form->input('alternate', array(
-                    'type' => 'checkbox',
-                    'label' => __('Alternate Search Result (Events)')
+            echo $this->Form->input('first_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+            ));
+            echo $this->Form->input('last_seen', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
             ));
         ?>
+        <div class="clear">
+            <h3><?php echo __('First seen and Last seen'); ?></h3>
+            <p><?php echo __('Attributes not having first seen or last seen set might not appear in the search'); ?></p>
+        </div>
     </fieldset>
-<?php
-    echo $this->Form->button(__('Search'), array('class' => 'btn btn-primary'));
-    echo $this->Form->end();
-?>
+    <div id="bothSeenSliderContainer"></div>
+    <div class="clear"></div>
+    <button class="btn btn-primary" style="margin-top: 1em" type="submit"><?= __("Search") ?></button>
+    <?php echo $this->Form->end(); ?>
 </div>
-<script type="text/javascript">
-//
-// Generate Category / Type filtering array
-//
-var category_type_mapping = new Array();
+<?php echo $this->element('form_seen_input'); ?>
+<script>
+var category_type_mapping = <?= json_encode(array_map(function(array $value) {
+    return $value['types'];
+}, $categoryDefinitions)); ?>;
 
-<?php
-// all types for Category ALL
-echo "category_type_mapping['ALL'] = {";
-$first = true;
-foreach ($typeDefinitions as $type => $def) {
-        if ($first) $first = false;
-        else echo ', ';
-        echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-}
-echo "}; \n";
-
-// all types for empty Category
-echo "category_type_mapping[''] = {";
-$first = true;
-foreach ($typeDefinitions as $type => $def) {
-        if ($first) $first = false;
-        else echo ', ';
-        echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-}
-echo "}; \n";
-
-// Types per Category
-foreach ($categoryDefinitions as $category => $def) {
-    echo "category_type_mapping['" . addslashes($category) . "'] = {";
-    $first = true;
-    foreach ($def['types'] as $type) {
-        if ($first) $first = false;
-        else echo ', ';
-        echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-    }
-    echo "}; \n";
-}
-?>
-
-//
-// Generate Type / Category filtering array
-//
-var type_category_mapping = new Array();
-
-<?php
-// all categories for Type ALL
-echo "type_category_mapping['ALL'] = {";
-$first = true;
-foreach ($categoryDefinitions as $type => $def) {
-        if ($first) $first = false;
-        else echo ', ';
-        echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-}
-echo "}; \n";
-
-// Categories per Type
-foreach ($typeDefinitions as $type => $def) {
-    echo "type_category_mapping['" . addslashes($type) . "'] = {";
-    $first = true;
-    foreach ($categoryDefinitions as $category => $def) {
-        if ( in_array ( $type , $def['types'])) {
-            if ($first) $first = false;
-            else echo ', ';
-            echo "'" . addslashes($category) . "' : '" . addslashes($category) . "'";
-        }
-    }
-    echo "}; \n";
-}
-?>
-
-function formCategoryChanged(id) {
-    var alreadySelected = $('#AttributeType').val();
-    // empty the types
-    document.getElementById("AttributeType").options.length = 1;
-    // add new items to options
-    var options = $('#AttributeType').prop('options');
-    $.each(category_type_mapping[$('#AttributeCategory').val()], function(val, text) {
-        options[options.length] = new Option(text, val);
-        if (val == alreadySelected) {
-            options[options.length-1].selected = true;
-        }
-    });
-    // enable the form element
-    $('#AttributeType').prop('disabled', false);
-}
-
-function formTypeChanged(id) {
-    var alreadySelected = $('#AttributeCategory').val();
+function searchFormTypeChanged() {
+    var $categorySelect = $('#AttributeCategory');
+    var alreadySelected = $categorySelect.val();
     // empty the categories
-    document.getElementById("AttributeCategory").options.length = 2;
+    $('option', $categorySelect).remove();
     // add new items to options
-    var options = $('#AttributeCategory').prop('options');
-    $.each(type_category_mapping[$('#AttributeType').val()], function(val, text) {
-        options[options.length] = new Option(text, val);
-        if (val == alreadySelected) {
-            options[options.length-1].selected = true;
+    var options = $categorySelect.prop('options');
+    var selectedType = $('#AttributeType').val();
+
+    $.each(category_type_mapping, function (category, types) {
+        if (types.indexOf(selectedType) !== -1) {
+            var option = new Option(category, category);
+            if (category === alreadySelected) {
+                option.selected = true;
+            }
+            options.add(option);
         }
     });
     // enable the form element
-    $('#AttributeCategory').prop('disabled', false);
+    $categorySelect.prop('disabled', false);
 }
 
-var formInfoValues = new Array();
-<?php
-foreach ($typeDefinitions as $type => $def) {
-    $info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-    echo "formInfoValues['$type'] = \"$info\";\n";
-}
+$(function() {
+    $('#AttributeCategory, #AttributeType').chosen();
 
-foreach ($categoryDefinitions as $category => $def) {
-    $info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-    echo "formInfoValues['$category'] = \"$info\";\n";
-}
-$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
-$this->Js->get('#AttributeType')->event('change', 'formTypeChanged("#AttributeType")');
-?>
+    $("#AttributeCategory").change(function () {
+        formCategoryChanged("Attribute");
+        $("#AttributeType").trigger("chosen:updated");
+    }).change();
 
-formInfoValues['ALL'] = '';
-formInfoValues[''] = '';
-
-
-$(document).ready(function() {
-
-    $("#AttributeType, #AttributeCategory").on('mouseleave', function(e) {
-        $('#'+e.currentTarget.id).popover('destroy');
-    });
-
-    $("#AttributeType, #AttributeCategory").on('mouseover', function(e) {
-        var $e = $(e.target);
-        if ($e.is('option')) {
-            $('#'+e.currentTarget.id).popover('destroy');
-            $('#'+e.currentTarget.id).popover({
-                trigger: 'manual',
-                placement: 'right',
-                content: formInfoValues[$e.val()],
-            }).popover('show');
-        }
-    });
-
-    // workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
-    // disadvantage is that user needs to click on the item to see the tooltip.
-    // no solutions exist, except to generate the select completely using html.
-    $("#AttributeType, #AttributeCategory").on('change', function(e) {
-        var $e = $(e.target);
-        $('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'manual',
-            placement: 'right',
-            content: formInfoValues[$e.val()],
-        }).popover('show');
-    });
-
-});
-$('.input-xxlarge').keydown(function (e) {
-      if (e.ctrlKey && e.keyCode == 13) {
-          $('#AttributeSearchForm').submit();
-      }
+    $("#AttributeType").change(function () {
+        searchFormTypeChanged();
+        $("#AttributeCategory").trigger("chosen:updated");
+    }).change();
 });
 </script>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'searchAttributes'));
-    echo $this->Js->writeBuffer();
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'searchAttributes'));

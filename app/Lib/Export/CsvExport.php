@@ -6,6 +6,7 @@ class CsvExport
 	public $default_fields = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'timestamp', 'object_relation', 'attribute_tag');
 	public $default_obj_fields = array('object_uuid', 'object_name', 'object_meta-category');
 	public $requested_fields = array();
+	public $decaying_fields = array('decay_score_score', 'decay_score_decayed');
 	public $non_restrictive_export = true;
 
     public function handler($data, $options = array())
@@ -22,6 +23,9 @@ class CsvExport
 
 	public function modify_params($user, $params)
 	{
+		if (!empty($params['includeDecayScore'])) {
+			$this->enable_decaying();
+		}
 		if (empty($params['contain'])) {
 			$params['contain'] = array();
 		}
@@ -32,7 +36,13 @@ class CsvExport
 		));
 		unset($params['fields']);
 		$params['withAttachments'] = 0;
+		$params['includeContext'] = 0; // Needed as fetchAttributes override the Event entry
 		return $params;
+	}
+
+	public function enable_decaying()
+	{
+		$this->default_fields = array_merge($this->default_fields, $this->decaying_fields);
 	}
 
 	private function __attributesHandler($attribute, $options)
@@ -43,7 +53,18 @@ class CsvExport
 			$attribute['object_name'] = $attribute['Object']['name'];
 			$attribute['object_meta-category'] = $attribute['Object']['meta-category'];
 		}
-		return $this->__addLine($attribute, $options);
+		if (!empty($attribute['decay_score'])) {
+			$all_scores = Hash::extract($attribute, 'decay_score.{n}.score');
+			$all_decayed = Hash::extract($attribute, 'decay_score.{n}.decayed');
+			$avg_score = array_sum($all_scores)/count($all_scores);
+			$avg_decayed = count(array_intersect([true], $all_decayed)) > 0;
+			$attribute['decay_score_score'] = $avg_score;
+			$attribute['decay_score_decayed'] = $avg_decayed;
+		} else {
+			$attribute['decay_score_score'] = 0;
+			$attribute['decay_score_decayed'] = false;
+		}
+		return $this->__addLine($attribute);
 	}
 
         private function __sightingsHandler($sighting, $options)
@@ -68,7 +89,7 @@ class CsvExport
                         $sighting['Sighting'][$new_key] = $attribute_val;
                     }
                 }
-		$lines .= $this->__addLine($sighting['Sighting'], $options);
+		        $lines .= $this->__addLine($sighting['Sighting']);
                 return $lines;
 	}
 
@@ -76,20 +97,20 @@ class CsvExport
 	{
 		$lines = '';
 		if (!empty($event['Attribute'])) {
-			foreach ($event['Attribute'] as $k => $attribute) {
+			foreach ($event['Attribute'] as $attribute) {
 				$attribute = $this->__addMetadataToAttribute($event, $attribute);
-				$lines .= $this->__addLine($attribute, $options);
+				$lines .= $this->__addLine($attribute);
 			}
 		}
 		if (!empty($event['Object'])) {
-			foreach ($event['Object'] as $k => $object) {
+			foreach ($event['Object'] as $object) {
 				if (!empty($object['Attribute'])) {
 					foreach ($object['Attribute'] as $attribute) {
 						$attribute = $this->__addMetadataToAttribute($event, $attribute);
 						$attribute['object_uuid'] = $object['uuid'];
 						$attribute['object_name'] = $object['name'];
 						$attribute['object_meta-category'] = $object['meta-category'];
-						$lines .= $this->__addLine($attribute, $options);
+						$lines .= $this->__addLine($attribute);
 					}
 				}
 			}
@@ -97,22 +118,27 @@ class CsvExport
 		return $lines;
 	}
 
-	private function __addLine($attribute, $options = array()) {
-		$line = '';
+    /**
+     * @param array $attribute
+     * @return string
+     */
+	private function __addLine($attribute)
+    {
+		$parts = [];
 		foreach ($this->requested_fields as $req_att) {
-			if (empty($line)) {
-				$line = $this->__escapeCSVField($attribute[$req_att]);
-			} else {
-				$line .= ',' . $this->__escapeCSVField($attribute[$req_att]);
-			}
+		    if (isset($attribute[$req_att])) {
+                $parts[] = $this->__escapeCSVField($attribute[$req_att]);
+            } else {
+                $parts[] = '""'; // keep it consistent with old CSV format
+            }
 		}
-		return $line . PHP_EOL;
+		return implode(',', $parts) . PHP_EOL;
 	}
 
-	private function __escapeCSVField(&$field)
+	private function __escapeCSVField($field)
 	{
 		if (is_bool($field)) {
-			return ($field ? '1' : '0');
+			return $field ? '1' : '0';
 		}
 		if (is_numeric($field)) {
 			return $field;
@@ -140,9 +166,9 @@ class CsvExport
 		$attribute['event_analysis'] = $attribute_raw['Event']['analysis'];
 		$attribute['event_date'] = $attribute_raw['Event']['date'];
 		$attribute['event_timestamp'] = $attribute_raw['Event']['timestamp'];
-		if (!empty($attribute_raw['EventTag'])) {
+		if (!empty($attribute_raw['Event']['EventTag'])) {
 			$tags = array();
-			foreach ($attribute_raw['EventTag'] as $et) {
+			foreach ($attribute_raw['Event']['EventTag'] as $et) {
 				$tags[] = $et['Tag']['name'];
 			}
 			$tags = implode(',', $tags);
@@ -236,15 +262,18 @@ class CsvExport
         return '';
     }
 
-	public function eventIndex($events)
+    /**
+     * @param array $events
+     * @return Generator[string]
+     */
+	public function eventIndex(array $events)
 	{
 		$fields = array(
 			'id', 'date', 'info', 'tags', 'uuid', 'published', 'analysis', 'attribute_count', 'orgc_id', 'orgc_name', 'orgc_uuid', 'timestamp', 'distribution', 'sharing_group_id', 'threat_level_id',
 			'publish_timestamp', 'extends_uuid'
 		);
-		$result = implode(',', $fields) . PHP_EOL;
-		foreach ($events as $key => $event) {
-			$event['tags'] = '';
+		yield implode(',', $fields) . PHP_EOL;
+		foreach ($events as $event) {
 			if (!empty($event['EventTag'])) {
 				$tags = array();
 				foreach ($event['EventTag'] as $et) {
@@ -254,16 +283,18 @@ class CsvExport
 			} else {
 				$tags = '';
 			}
-			$event['Event']['tags'] = $tags;
-			$event['Event']['orgc_name'] = $event['Orgc']['name'];
-			$event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
+			$event['tags'] = $tags;
+			$event['orgc_name'] = $event['Orgc']['name'];
+			$event['orgc_uuid'] = $event['Orgc']['uuid'];
 			$current = array();
 			foreach ($fields as $field) {
-				$current[] = $this->__escapeCSVField($event['Event'][$field]);
+			    if (isset($event[$field])) {
+                    $current[] = $this->__escapeCSVField($event[$field]);
+                } else {
+			        $current[] = '';
+                }
 			}
-			$result .= implode(', ', $current) . PHP_EOL;
+			yield implode(',', $current) . PHP_EOL;
 		}
-		return $result;
 	}
-
 }

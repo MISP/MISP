@@ -756,7 +756,9 @@
       selector = selector && /#/.test(selector) && selector.replace(/.*(?=#[^\s]*$)/, '') //strip for ie7
     }
 
-    $parent = selector && $(selector)
+    if (selector && selector !== '#') {
+      $parent = $(selector)
+    }
 
     if (!$parent || !$parent.length) $parent = $this.parent()
 
@@ -1744,15 +1746,18 @@
 
       if (e.isDefaultPrevented()) return
 
-      $target = $(selector)
-
-      this.activate($this.parent('li'), $ul)
-      this.activate($target, $target.parent(), function () {
-        $this.trigger({
-          type: 'shown'
-        , relatedTarget: previous
+      if (selector && selector !== '#') {
+        $target = $(selector)
+      }
+      if ($target && $target.length > 0) {
+        this.activate($this.parent('li'), $ul)
+        this.activate($target, $target.parent(), function () {
+          $this.trigger({
+            type: 'shown'
+          , relatedTarget: previous
+          })
         })
-      })
+      }
     }
 
   , activate: function ( element, container, callback) {

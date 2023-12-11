@@ -67,11 +67,12 @@ App::uses('AppHelper', 'View/Helper');
                         if (!is_numeric($data) && ($trigger == 'event' || $trigger == 'thread')) {
                             $replacement = '%MALFORMED URL%';
                         } else {
+                            $url = str_replace('$1', $data, $this->__replacement[$trigger]['url']);
                             if (filter_var(str_replace('$1', $data, $this->__replacement[$trigger]['url']), FILTER_VALIDATE_URL)) {
-                                if (substr($data, 0, 7) === 'http://' || substr($data, 0, 8) === 'https://') {
+                                if (substr($url, 0, 7) === 'http://' || substr($url, 0, 8) === 'https://') {
                                     $replacement = $this->Html->link(
                                         str_replace('$1', $data, $this->__replacement[$trigger]['text']),
-                                        str_replace('$1', $data, $this->__replacement[$trigger]['url'])
+                                        $url
                                     );
                                 } else {
                                     $replacement = '%MALFORMED URL%';

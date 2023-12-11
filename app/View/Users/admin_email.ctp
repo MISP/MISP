@@ -9,7 +9,7 @@
             <li><?php echo __('When adding a new user to the system, or when you want to manually reset the password for a user, just use the "Send temporary password" setting.');?></li>
             <li><?php echo __('After selecting the action, choose who the target of the e-mails should be (all users, a single user or a user not yet in the system).');?></li>
             <li><?php echo __('You can then specify (if eligible) what the e-mail address of the target is (for existing users you can choose from a dropdown menu).');?></li>
-            <li><?php echo __('In the case of a new user, you can specify the future user\'s GnuPG key, to send his/her new key in an encrypted e-mail.');?></li>
+            <li><?php echo __('In the case of a new user, you can specify the future user\'s PGP key, to send his/her new key in an encrypted e-mail.');?></li>
             <li><?php echo __('The system will automatically generate a message for you, but it is also possible to write a custom message if you tick the check-box,
                         but don\'t worry about assigning a temporary password manually, the system will do that for you, right after your custom message.');?></li>
         </ul>
@@ -76,10 +76,10 @@ $(document).ready(function() {
 
     // Confirm before submit
     $('#UserAdminEmailForm').submit(function(e) {
-        var url = '<?php echo $baseurl; ?>/admin/users/email/true?';
-        url += 'recipient=' + $('#recipient').val();
-        url += '&recipientEmailList=' + $('#UserRecipientEmailList').val();
-        url += '&orgNameList=' + $('#UserOrgNameList').val();
+        var url = '<?php echo $baseurl; ?>/admin/users/email/true';
+        url += '/recipient:' + $('#recipient').val();
+        url += '/recipientEmailList:' + $('#UserRecipientEmailList').val();
+        url += '/orgNameList:' + $('#UserOrgNameList').val();
         $.get(url, function(data) {
             $("#confirmation_box").html(data);
             openPopup("#confirmation_box");

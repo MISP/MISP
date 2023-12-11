@@ -24,18 +24,11 @@ class ObjectRelationship extends AppModel
         ),
     );
 
-
-    public function beforeValidate($options = array())
-    {
-        parent::beforeValidate();
-        return true;
-    }
-
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $result) {
-            if (!empty($results[$k]['ObjectRelationship']['format'])) {
-                $results[$k]['ObjectRelationship']['format'] = json_decode($results[$k]['ObjectRelationship']['format'], true);
+            if (!empty($result['ObjectRelationship']['format'])) {
+                $results[$k]['ObjectRelationship']['format'] = JsonTool::decode($result['ObjectRelationship']['format'], true);
             }
         }
         return $results;
@@ -45,14 +38,13 @@ class ObjectRelationship extends AppModel
     {
         $relationsFile = APP . 'files/misp-objects/relationships/definition.json';
         if (file_exists($relationsFile)) {
-            $file = new File($relationsFile);
-            $relations = json_decode($file->read(), true);
+            $relations = FileAccessTool::readJsonFromFile($relationsFile, true);
             if (!isset($relations['version'])) {
                 $relations['version'] = 1;
             }
             $this->deleteAll(array('version <' => $relations['version']));
-            foreach ($relations['values'] as $k => $relation) {
-                $relation['format'] = json_encode($relation['format'], true);
+            foreach ($relations['values'] as $relation) {
+                $relation['format'] = json_encode($relation['format']);
                 $relation['version'] = $relations['version'];
                 $this->create();
                 $this->save($relation);

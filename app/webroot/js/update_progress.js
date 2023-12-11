@@ -23,53 +23,82 @@ function toggleVisiblity(termId, auto, show) {
 }
 
 var pooler;
-var poolerInterval = 3000;
 $(document).ready(function() {
-    pooler = setInterval(function() { update_state(); }, poolerInterval);
+    pooler = new TaskScheduler(update_state, { container: 'followUpdateSwitchContainer', checkboxLabel: checkboxLabel});
+    pooler.start();
 });
 
-
-function update_state() {
-    $.getJSON(urlGetProgress, function(data) {
-        var total = parseInt(data['total']);
-        var current = parseInt(data['current']);
-        var failArray = data['failed_num'];
-        for (var i=0; i<total; i++) {
-            var term = $('div[data-terminalid='+i+']')
-            toggleVisiblity(i, true, false);
-            if (i < current) {
-                if (failArray.indexOf(String(i)) != -1) {
-                    update_row_state(i, 2);
-                } else {
-                    update_row_state(i, 0);
-                }
-            } else if (i == current) {
-                if (failArray.indexOf(String(i)) != -1) {
-                    update_row_state(i, 2);
-                    toggleVisiblity(i, true, true);
-                } else {
-                    update_row_state(i, 1);
-                    toggleVisiblity(i-1, true, true);
-                }
-                update_single_update_progress(i, data);
-            } else {
-                update_row_state(i, 3);
+function update_state(hard_reload) {
+    if (hard_reload) {
+        pooler.cancel();
+        pooler.stop();
+        $.ajax({
+            url: urlGetProgress+'/1',
+            dataType: 'html',
+            success: function( html, textStatus, jQxhr ) {
+                $('div.servers.form').html(html);
+                pooler.start();
+                pooler.unthrottle();
+                pooler.createSwitch(); // previous switch was destroyed by .html()
             }
-        }
-        update_messages(data);
-        if (total > 0) {
-            var percFail = Math.round(failArray.length/total*100);
-            var perc = Math.round(current/total*100);
-            update_pb(perc, percFail);
-        }
+        });
+    } else {
+        $.getJSON(urlGetProgress, function(data) {
+            var toward_db_version = $('table.updateProgressTable').data('towarddbversion');
+            if (data['toward_db_version'] === undefined) {
+                pooler.throttle();
+                return;
+            } else if (data['toward_db_version'] != toward_db_version) {
+                update_state(true);
+                return;
+            }
+            var total = parseInt(data['total']);
+            var current = parseInt(data['current']);
+            var failArray = data['failed_num'];
+            for (var i=0; i<total; i++) {
+                var term = $('div[data-terminalid='+i+']')
+                toggleVisiblity(i, true, false);
+                if (i < current) {
+                    if (failArray.indexOf(String(i)) != -1) {
+                        update_row_state(i, 2);
+                    } else {
+                        update_row_state(i, 0);
+                    }
+                } else if (i == current) {
+                    if (failArray.indexOf(String(i)) != -1) {
+                        update_row_state(i, 2);
+                        toggleVisiblity(i, true, true);
+                    } else {
+                        update_row_state(i, 1);
+                        toggleVisiblity(i-1, true, true);
+                    }
+                    update_single_update_progress(i, data);
+                } else {
+                    update_row_state(i, 3);
+                }
+            }
+            update_messages(data);
+            if (total > 0) {
+                var percFail = Math.round(failArray.length/total*100);
+                var perc = Math.round(current/total*100);
+                update_pb(perc, percFail);
+            }
 
-        if ((current+1) >= total || failArray.indexOf(current) != -1) {
-            clearInterval(pooler);
-            $('.single-update-progress').hide();
-        }
-    });
+            if ((current+1) >= total || failArray.indexOf(current) != -1) {
+                pooler.throttle();
+                $('.single-update-progress').hide();
+                if (parseInt(data['complete_update_remaining']) === 0) {
+                    $('.completeUpdateRemainingContainer').remove();
+                    if (!data['update_locked']) {
+                        $('.UpdateLockedContainer').remove();
+                    }
+                }
+            } else {
+                pooler.unthrottle();
+            }
+        });
+    }
 }
-
 
 function update_messages(messages) {
     if (messages.commands === undefined) {

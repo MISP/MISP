@@ -13,7 +13,7 @@
     ?>
                     <div class="attributehistogram-legend-line">
                         <div class="attributehistogram-legend-box" style="display: block;float: left;margin: 4px 6px 0 0;background-color:<?php echo $colour; ?>">&nbsp;</div>
-                        <div style="display: inline-block;cursor: pointer;<?php if (in_array($type, $selectedTypes)) echo 'font-weight:bold';?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle histogram');?>" tite="<?php echo __('Toggle histogram');?>" onClick='toggleHistogramType("<?php echo h($type); ?>", [<?php foreach ($selectedTypes as $t) echo '"' . $t . '", ' ?>]);'><?php echo h($type);?></div>
+                        <div style="display: inline-block;cursor: pointer;<?php if (in_array($type, $selectedTypes)) echo 'font-weight:bold';?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle histogram');?>" title="<?php echo __('Toggle histogram');?>" onClick='toggleHistogramType("<?php echo h($type); ?>", [<?php foreach ($selectedTypes as $t) echo '"' . $t . '", ' ?>]);'><?php echo h($type);?></div>
                     </div>
     <?php
                     $cnt++;

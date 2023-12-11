@@ -87,20 +87,16 @@
         }
       },
       "required": [
-        "id",
         "name",
         "provider",
         "url",
         "rules",
         "enabled",
         "distribution",
-        "sharing_group_id",
-        "tag_id",
         "default",
         "source_format",
         "fixed_event",
         "delta_merge",
-        "event_id",
         "publish",
         "override_ids",
         "settings",
@@ -133,11 +129,9 @@
         }
       },
       "required": [
-        "id",
         "name",
         "colour",
         "exportable",
-        "org_id",
         "hide_tag"
       ]
     }

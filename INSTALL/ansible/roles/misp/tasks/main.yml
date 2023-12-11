@@ -164,20 +164,6 @@
     group: root
     mode: 0755
 
-- name: Cake-resque installation
-  composer:
-    command: "require"
-    arguments: "kamisama/cake-resque:4.1.2"
-    working_dir: "/opt/misp-server/misp/app"
-  register: cakeresque_install
-
-- name: Vendor configure
-  composer:
-    command: "config"
-    arguments: "vendor-dir Vendor"
-    working_dir: "/opt/misp-server/misp/app"
-  when: cakeresque_install.changed
-
 - name: PHP composer install
   composer:
     command: "install"

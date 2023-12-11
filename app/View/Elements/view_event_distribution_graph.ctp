@@ -1,16 +1,11 @@
-<?php
-    $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
-    $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-?>
-
 <div id="distribution_graph_container">
     <div class="loadingPopover">
         <div class="spinner"></div>
-        <div class="loadingText"><?php echo __('Loading');?></div>
+        <div class="loadingText"><?php echo __('Loading'); ?></div>
     </div>
 
     <div id="eventdistri_graph" data-event-id="<?php echo h($event['Event']['id']); ?>" data-event-distribution="<?php echo h($event['Event']['distribution']); ?>" data-event-distribution-text="<?php echo $event['Event']['distribution'] == 4 ? h($event['SharingGroup']['name']) : h($distributionLevels[$event['Event']['distribution']]); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>" data-extended="<?php echo $extended; ?>">
-        <canvas id="distribution_graph_canvas"  height="290px"width="400px"></canvas>
+        <canvas id="distribution_graph_canvas" height="290" width="400"></canvas>
     </div>
     <div class="popupDistriSeparator"></div>
     <div id="eventdistri_pb_container">
@@ -27,9 +22,12 @@
         </div>
     </div>
 </div>
-
-<?php
-    echo $this->Html->script('Chart.min');
-    echo $this->Html->script('event-distribution-graph');
-    echo $this->Html->css('distribution-graph');
-?>
+<?= $this->element('genericElements/assetLoader', [
+    'js' => [
+        'Chart.min',
+        'event-distribution-graph',
+    ],
+    'css' => [
+        'distribution-graph',
+    ],
+]);

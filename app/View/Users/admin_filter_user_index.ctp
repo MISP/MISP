@@ -122,19 +122,19 @@ var filtering = <?php echo $filtering; ?>;
 
 var operators = ["OR", "NOT"];
 
-var differentFilters = ["autoalert", "contactalert", "termsaccepted"];
+var differentFilters = <?= json_encode($differentFilters) ?>;
 
-var simpleFilters = <?php echo json_encode($simpleFilters, true); ?>;
+var simpleFilters = <?php echo json_encode($simpleFilters); ?>;
 
 var typedFields = ["role"];
 
-var orgs = <?php echo json_encode($orgs, true); ?>
+var orgs = <?= isset($orgs) ? json_encode($orgs) : '[]'; ?>;
 
 var allFields = simpleFilters.concat(differentFilters);
 
 var baseurl = "<?php echo $baseurl; ?>";
 
-$(document).ready(function() {
+$(function() {
     indexRuleChange();
     indexSetTableVisibility();
     indexEvaluateFiltering();

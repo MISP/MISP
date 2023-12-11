@@ -1,50 +1,48 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
 <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <?php echo $this->Html->charset(); ?>
-    <meta name="viewport" content="width=device-width" />
-    <title>
-        <?php echo $title_for_layout, ' - '. h(Configure::read('MISP.title_text') ? Configure::read('MISP.title_text') : 'MISP'); ?>
-    </title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width">
+    <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
+    <title><?= h($title_for_layout), ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
-        $css_collection = array(
-            'bootstrap',
-            //'bootstrap4',
-            'bootstrap-datepicker',
-            'bootstrap-colorpicker',
-            'famfamfam-flags',
-            'font-awesome',
-            'jquery-ui',
-            'chosen.min',
-            'main',
-            array('print', array('media' => 'print'))
-        );
+        $css = [
+            ['bootstrap', ['preload' => true]],
+            ['bootstrap-datepicker', ['preload' => true]],
+            ['bootstrap-colorpicker', ['preload' => true]],
+            ['font-awesome', ['preload' => true]],
+            ['chosen.min', ['preload' => true]],
+            ['main', ['preload' => true]],
+            ['print', ['media' => 'print']],
+        ];
         if (Configure::read('MISP.custom_css')) {
-            $css_collection[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
+            $css[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
         }
-        $js_collection = array(
-            'jquery',
-            'misp-touch',
-            'jquery-ui',
-            'chosen.jquery.min'
-        );
-        echo $this->element('genericElements/assetLoader', array(
-            'css' => $css_collection,
-            'js' => $js_collection,
-            'meta' => 'icon'
-        ));
+        $js = [
+            ['jquery', ['preload' => true]],
+            ['chosen.jquery.min', ['preload' => true]],
+        ];
+        if (!empty($additionalCss)) {
+            $css = array_merge($css, $additionalCss);
+        }
+        if (!empty($additionalJs)) {
+            $js = array_merge($js, $additionalJs);
+        }
+        echo $this->element('genericElements/assetLoader', [
+            'css' => $css,
+            'js' => $js,
+        ]);
     ?>
-
 </head>
-<body>
+<body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
     <div id="popover_form" class="ajax_popover_form"></div>
     <div id="popover_form_large" class="ajax_popover_form ajax_popover_form_large"></div>
+    <div id="popover_form_x_large" class="ajax_popover_form ajax_popover_form_x_large"></div>
     <div id="popover_matrix" class="ajax_popover_form ajax_popover_matrix"></div>
     <div id="popover_box" class="popover_box"></div>
-    <div id="screenshot_box" class="screenshot_box"></div>
-    <div id="confirmation_box" class="confirmation_box"></div>
-    <div id="gray_out" class="gray_out"></div>
+    <div id="confirmation_box"></div>
+    <div id="gray_out"></div>
     <div id="container">
         <?php
             echo $this->element('global_menu');
@@ -55,7 +53,7 @@
         ?>
     </div>
     <div id="flashContainer" style="padding-top:<?php echo $topPadding; ?>px; !important;">
-        <div id="main-view-container" class="container-fluid ">
+        <div id="main-view-container" class="container-fluid">
             <?php
                 echo $this->Flash->render();
             ?>
@@ -67,40 +65,41 @@
         ?>
     </div>
     <?php
-    echo $this->element('genericElements/assetLoader', array(
-        'js' => array(
+    echo $this->element('genericElements/assetLoader', [
+        'js' => [
+            'misp-touch',
             'bootstrap',
             'bootstrap-timepicker',
             'bootstrap-datepicker',
             'bootstrap-colorpicker',
             'misp',
-            'keyboard-shortcuts'
-        )
-    ));
+            'keyboard-shortcuts-definition',
+            'keyboard-shortcuts',
+        ],
+    ]);
     echo $this->element('footer');
     echo $this->element('sql_dump');
     ?>
-    <div id = "ajax_success_container" class="ajax_container">
+    <div id="ajax_success_container" class="ajax_container">
         <div id="ajax_success" class="ajax_result ajax_success"></div>
     </div>
-    <div id = "ajax_fail_container" class="ajax_container">
+    <div id="ajax_fail_container" class="ajax_container">
         <div id="ajax_fail" class="ajax_result ajax_fail"></div>
     </div>
     <div class="loading">
         <div class="spinner"></div>
         <div class="loadingText"><?php echo __('Loading');?></div>
     </div>
-    <script type="text/javascript">
+    <script>
     <?php
         if (!isset($debugMode)):
     ?>
-        $(window).scroll(function(e) {
+        $(window).scroll(function() {
             $('.actions').css('left',-$(window).scrollLeft());
         });
     <?php
         endif;
     ?>
-        var tabIsActive = true;
         var baseurl = '<?php echo $baseurl; ?>';
         var here = '<?php
                 if (substr($this->params['action'], 0, 6) === 'admin_') {
@@ -109,25 +108,13 @@
                     echo $baseurl . '/' . h($this->params['controller']) . '/' . h($this->params['action']);
                 }
             ?>';
-        $(document).ready(function(){
-            $(window).blur(function() {
-                tabIsActive = false;
-            });
-            $(window).focus(function() {
-                tabIsActive = true;
-            });
         <?php
-            if (!Configure::read('MISP.disable_auto_logout') and $me):
+            if (!Configure::read('MISP.disable_auto_logout') && isset($me) && $me):
         ?>
-                checkIfLoggedIn();
+                //checkIfLoggedIn();
         <?php
             endif;
         ?>
-        if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
-            var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
-            $('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
-        }
-        });
     </script>
 </body>
 </html>

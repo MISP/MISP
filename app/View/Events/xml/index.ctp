@@ -1,5 +1,4 @@
 <?php
-// TODO also output a kind of status code and data what was requested in the REST result
 $xmlArray = array();
 
 foreach ($events as $key => $event) {

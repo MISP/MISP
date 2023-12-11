@@ -1,7 +1,7 @@
 <div class="jobs index">
     <h2><?php echo __('Jobs');?></h2>
-    <h4><?php echo __('Purge job entries:');?></h4>
     <span>
+        <span style="float: left;margin-right: 10px;font-size: 120%;"><?= __('Purge job entries:') ?></span>
         <?php
             echo $this->Form->postLink(
                 __('Completed'),
@@ -17,69 +17,47 @@
             );
         ?>
     </span>
-    <br />
+    <br>
     <div class="pagination">
         <ul>
         <?php
-            $this->Paginator->options(array(
-                'update' => '.span12',
-                'evalScripts' => true,
-                'before' => '$(".progress").show()',
-                'complete' => '$(".progress").hide()',
-            ));
-
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
             echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
         ?>
         </ul>
     </div>
-    <script type="text/javascript">
-        var intervalArray = new Array();
-
-        function queueInterval(k, id) {
-            intervalArray[k] = setInterval(function() {
-                if (tabIsActive) {
-                    $.getJSON('/jobs/getGenerateCorrelationProgress/' + id, function(data) {
-                        var x = document.getElementById("bar" + id);
-                        x.style.width = data+"%";
-                        if (data > 0 && data < 100) {
-                            x.innerHTML = data + "%";
-                        }
-                        if (data == 100) {
-                            x.innerHTML = "<?php echo __('Completed.');?>";
-                            clearInterval(intervalArray[k]);
-                        }
-                    });
-                }
-            }, 3000);
-        }
-    </script>
     <?php
         $data = array(
             'children' => array(
                 array(
                     'children' => array(
                         array(
-                            'url' => '/jobs/index',
+                            'url' => $baseurl . '/jobs/index',
                             'text' => __('All'),
                             'title' => __('Show all queues'),
                             'active' => !$queue
                         ),
                         array(
-                            'url' => '/jobs/index/default',
+                            'url' => $baseurl . '/jobs/index/default',
                             'text' => __('Default'),
                             'title' => __('Show default queue'),
                             'active' => $queue === 'default'
                         ),
                         array(
-                            'url' => '/jobs/index/email',
+                            'url' => $baseurl . '/jobs/index/prio',
+                            'text' => __('Prio'),
+                            'title' => __('Show prio queue'),
+                            'active' => $queue === 'prio'
+                        ),
+                        array(
+                            'url' => $baseurl . '/jobs/index/email',
                             'text' => __('Email'),
                             'titles' => __('Show email queue'),
                             'active' => $queue === 'email'
                         ),
                         array(
-                            'url' => '/jobs/index/cache',
+                            'url' => $baseurl . '/jobs/index/cache',
                             'text' => __('Cache'),
                             'title' => __('Show cache queue'),
                             'active' => $queue === 'cache'
@@ -89,28 +67,27 @@
             )
         );
     ?>
-    <div id="attributeList" class="attributeListContainer">
+    <div>
         <?php echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data)); ?>
         <table class="table table-striped table-hover table-condensed">
         <tr>
-                <th><?php echo $this->Paginator->sort('id');?></th>
-                <th><?php echo $this->Paginator->sort('date_created', __('Date created'));?></th>
-                <th><?php echo $this->Paginator->sort('date_modified', __('Date modified'));?></th>
-                <th><?php echo $this->Paginator->sort('process_id', __('Process ID'));?></th>
-                <th><?php echo $this->Paginator->sort('worker', __('Worker'));?></th>
-                <th><?php echo $this->Paginator->sort('job_type', __('Job type'));?></th>
-                <th><?php echo $this->Paginator->sort('job_input', __('Input'));?></th>
-                <th><?php echo $this->Paginator->sort('message');?></th>
-                <th><?php echo $this->Paginator->sort('Org.name', __('Organisation name'));?></th>
-                <th><?php echo $this->Paginator->sort('status');?></th>
-                <th><?php echo $this->Paginator->sort('retries', __('Retries'));?></th>
-                <th><?php echo $this->Paginator->sort('progress');?></th>
+            <th><?php echo $this->Paginator->sort('id', __('ID'));?></th>
+            <th><?php echo $this->Paginator->sort('date_created', __('Date created'));?></th>
+            <th><?php echo $this->Paginator->sort('date_modified', __('Date modified'));?></th>
+            <th><?php echo $this->Paginator->sort('process_id', __('Process ID'));?></th>
+            <th><?php echo $this->Paginator->sort('worker', __('Worker'));?></th>
+            <th><?php echo $this->Paginator->sort('job_type', __('Job type'));?></th>
+            <th><?php echo $this->Paginator->sort('job_input', __('Input'));?></th>
+            <th><?php echo $this->Paginator->sort('message');?></th>
+            <th><?php echo $this->Paginator->sort('Org.name', __('Organisation name'));?></th>
+            <th><?php echo $this->Paginator->sort('status');?></th>
+            <th><?php echo $this->Paginator->sort('progress');?></th>
         </tr>
 <?php
     foreach ($list as $k => $item):
         $progress = '100';
         $startRefreshing = false;
-        if ($item['Job']['failed'] || $item['Job']['status'] == 3) {
+        if ($item['Job']['failed'] || $item['Job']['status'] == Job::STATUS_FAILED) {
             $item['Job']['job_status'] = 'Failed';
             $progress_message = __('Failed');
             $progress_bar_type = 'progress progress-danger active';
@@ -120,6 +97,7 @@
         } else if ($item['Job']['progress'] == 0) {
             $progress_bar_type = 'progress progress-striped progress-queued active';
             $progress_message = $item['Job']['job_status'] === 'Running' ? __('Running') : __('Queued');
+            $startRefreshing = true;
         } else {
             $progress = h($item['Job']['progress']);
             if ($item['Job']['progress'] == 100) {
@@ -132,44 +110,32 @@
             }
         }
 ?>
-        <tr>
-            <td class="short"><?php echo h($item['Job']['id']); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Job']['date_created']); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Job']['date_modified']); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Job']['process_id']); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Job']['worker']); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Job']['job_type']); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Job']['job_input']); ?>&nbsp;</td>
-            <td><?php echo h($item['Job']['message']); ?>&nbsp;</td>
-            <td class="short"><?php echo isset($item['Org']['name']) ? h($item['Org']['name']) : 'SYSTEM'; ?>&nbsp;</td>
+        <tr data-primary-id="<?= intval($item['Job']['id']) ?>" data-refresh="<?= $startRefreshing ? 'true' : 'false' ?>">
+            <td class="short"><?= intval($item['Job']['id']) ?></td>
+            <td class="short"><?= $this->Time->time($item['Job']['date_created']) ?></td>
+            <td class="short"><?= $this->Time->time($item['Job']['date_modified']) ?></td>
+            <td class="short"><?php echo h($item['Job']['process_id']); ?></td>
+            <td class="short"><?php echo h($item['Job']['worker']); ?></td>
+            <td class="short"><?php echo h($item['Job']['job_type']); ?></td>
+            <td class="short"><?php echo h($item['Job']['job_input']); ?></td>
+            <td><?php echo h($item['Job']['message']); ?></td>
+            <td class="short"><?php echo isset($item['Org']['name']) ? h($item['Org']['name']) : 'SYSTEM'; ?></td>
             <td class="short">
             <?php
                 echo h($item['Job']['job_status']);
                 if ($item['Job']['failed']):
             ?>
-                <div class="fa fa-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
+                <div class="fa fa-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="<?php echo $baseurl; ?>/jobs/getError/<?= h($item['Job']['process_id']) ?>"></div>
             <?php
                 endif;
             ?>
             </td>
-            <td class="short"><?php echo h($item['Job']['retries']); ?>&nbsp;</td>
             <td style="width:200px;">
-                <div class="<?php echo $progress_bar_type; ?>" style="margin-bottom: 0px;">
-                  <div id="bar<?php echo h($item['Job']['id']); ?>" class="bar" style="width: <?php echo $progress; ?>%;">
-                    <?php
-                        echo h($progress_message);
-                    ?>
+                <div class="<?php echo $progress_bar_type; ?>" style="margin-bottom: 0">
+                  <div class="bar" style="width: <?php echo $progress; ?>%;">
+                    <?= h($progress_message); ?>
                   </div>
                 </div>
-                    <?php
-                        if ($startRefreshing):
-                    ?>
-                            <script type="text/javascript">
-                                queueInterval("<?php echo $k; ?>", "<?php echo h($item['Job']['id']); ?>");
-                            </script>
-                    <?php
-                        endif;
-                    ?>
             </td>
         </tr><?php
     endforeach; ?>
@@ -192,10 +158,40 @@
         </ul>
     </div>
 </div>
-<div class="actions <?php echo $debugMode;?>">
-    <ul class="nav nav-list">
+<script>
+    $(function () {
+        var refreshIds = [];
+        $("[data-refresh=true]").each(function () {
+           refreshIds.push($(this).data("primary-id"));
+        });
 
-    </ul>
-</div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'jobs'));
+        var interval = setInterval(function() {
+            if (!document.hidden) {
+                if (refreshIds.length === 0) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                var url = baseurl + '/jobs/getGenerateCorrelationProgress/' + refreshIds.join(",");
+                $.getJSON(url, function(allData) {
+                    $.each(allData, function (index, data) {
+                        var $tr = $("[data-primary-id=" + index + "]");
+                        var bar = $tr.find(".bar")[0];
+                        if (data.progress == 0) {
+                            bar.innerText = data.job_status;
+                        } else if (data.progress > 0 && data.progress < 100) {
+                            bar.style.width = data.progress + "%";
+                            bar.innerText = data.progress + "%";
+                        } else if (data.progress == 100) {
+                            bar.style.width = "100%";
+                            bar.innerText = data.job_status;
+                            bar.parentElement.className = "progress";
+                            refreshIds = refreshIds.filter(function(e) { return e != index })
+                        }
+                    });
+                });
+            }
+        }, 3000);
+    });
+</script>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'jobs'));

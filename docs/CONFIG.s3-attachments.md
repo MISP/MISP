@@ -23,7 +23,6 @@ Install the AWS PHP SDK
 
 ```bash
 cd /var/www/MISP/app
-sudo -u www-data php composer.phar config vendor-dir Vendor
 sudo -u www-data php composer.phar require aws/aws-sdk-php
 ```
 

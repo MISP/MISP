@@ -17,16 +17,16 @@
         <div class="input select">
             <label>Organisation</label>
             <select id="organisationPicker" data-toggle="chosen">
-                <?php foreach ($organisations as $k => $org): ?>
-                    <option value="<?php echo isset($org['Organisation']['id']) ? h($org['Organisation']['id']) : ''; ?>" <?php echo $org['Organisation']['id'] == $picked_organisation['Organisation']['id'] ? 'selected' : ''; ?> ><?php echo h($org['Organisation']['name']); ?></option>
+                <?php foreach ($organisations as $id => $name): ?>
+                    <option value="<?= $id ?>" <?= $id == $picked_organisation_id ? 'selected' : ''; ?> ><?= h($name) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
         <div style="display: inline-block;">
             <label>Dates</label>
-            <input id="dateFrom" class="datepicker" placeholder="from" value="<?php echo isset($dateFrom) ? h($dateFrom) : ''; ?>"></input>
+            <input id="dateFrom" class="datepicker" placeholder="from" value="<?php echo isset($dateFrom) ? h($dateFrom) : ''; ?>">
             <i class="fas fa-arrow-right"></i>
-            <input id="dateTo" class="datepicker" placeholder="to" value="<?php echo isset($dateTo) ? h($dateTo) : ''; ?>"></input>
+            <input id="dateTo" class="datepicker" placeholder="to" value="<?php echo isset($dateTo) ? h($dateTo) : ''; ?>">
         </div>
         <button id="btnSubmit" class="btn btn-primary"><?php echo __('Submit') ?></button>
     </div>

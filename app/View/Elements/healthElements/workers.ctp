@@ -1,17 +1,24 @@
 <div style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
-    <?php
+<?php
         if (!$worker_array['proc_accessible']):
     ?>
     <div style="background-color:red !important;color:white;"><b><?php echo __('Warning');?></b>: <?php echo __('MISP cannot access your /proc directory to check the status of the worker processes, which means that dead workers will not be detected by the diagnostic tool. If you would like to regain this functionality, make sure that the open_basedir directive is not set, or that /proc is included in it.');?></div>
 <?php
     endif;
+
+    if(Configure::read('SimpleBackgroundJobs.enabled') && !$worker_array['supervisord_status']):
+    ?>
+        <div style="background-color:red !important;color:white;"><b><?php echo __('Warning');?></b>: <?php echo __('MISP cannot connect to the Supervisord API, check the following settings are correct: [`supervisor_host`, `supervisor_port`, `supervisor_user`, `supervisor_password`] and restart the service. For details check the MISP error logs.');?></div>
+    <?php
+    endif;
+
     if (!$worker_array['controls']):
 ?>
     <div><b><?php echo __('Note:');?></b>: <?php echo  __('You have set the "manage_workers" variable to "false", therefore worker controls have been disabled.');?></div>
 <?php
         endif;
         foreach ($worker_array as $type => $data):
-        if ($type == 'proc_accessible' or $type == 'controls') continue;
+        if (!in_array($type, BackgroundJobsTool::VALID_QUEUES)) continue;
         $queueStatusMessage = __("Issues prevent jobs from being processed. Please resolve them below.");
         $queueStatus = false;
         if ($data['ok']) {
@@ -103,7 +110,7 @@
             <td class="actions short" style="<?php echo $style; ?>">
 <?php
         if ($worker_array['controls']) {
-            echo $this->Form->postLink('', '/servers/stopWorker/' . h($worker['pid']), array('class' => 'fa fa-trash black' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
+            echo $this->Form->postLink('', $baseurl . '/servers/stopWorker/' . h($worker['pid']), array('class' => 'fa fa-trash black' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
         }
             ?>
             </td>
@@ -115,7 +122,7 @@
     </table>
     <?php
         if ($worker_array['controls']) {
-            echo $this->Form->create('Server', array('url' => '/servers/startWorker/' . h($type)));
+            echo $this->Form->create('Server', array('url' => $baseurl . '/servers/startWorker/' . h($type)));
             echo $this->Form->button(__('Start a worker'), array('class' => 'btn btn-inverse'));
             echo $this->Form->end();
         }
@@ -126,8 +133,30 @@
 
 <?php
 if ($worker_array['controls']) {
-    echo $this->Form->create('Server', array('url' => '/servers/restartWorkers'));
-    echo $this->Form->button(__('Restart all workers'), array('class' => 'btn btn-primary'));
-    echo $this->Form->end();
+    echo $this->Form->postLink(
+        __('Restart dead workers'),
+        $baseurl . '/servers/restartDeadWorkers',
+        [
+            'class' => 'btn btn-primary',
+            'style' => 'margin-right:5px;'
+        ]
+    );
+    echo $this->Form->postLink(
+        __('Kill all workers'),
+        $baseurl . '/servers/killAllWorkers',
+        [
+            'class' => 'btn btn-primary',
+            'style' => 'margin-right:5px;'
+        ]
+    );
+    echo $this->Form->postLink(
+        __('Force kill all workers'),
+        $baseurl . '/servers/killAllWorkers/1',
+        [
+            'class' => 'btn btn-primary',
+            'style' => 'margin-right:5px;',
+            'confirm' => __('Are you sure you want to force kill all workers? This will issue a kill -9 and terminate any processing underway.')
+        ]
+    );
 }
 ?>

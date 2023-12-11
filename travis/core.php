@@ -244,8 +244,9 @@
  *       and their setttings.
  */
 $engine = 'File';
-if (extension_loaded('apc') && function_exists('apc_dec') && (php_sapi_name() !== 'cli' || ini_get('apc.enable_cli'))) {
-	$engine = 'Apc';
+if (function_exists('apcu_dec') && (PHP_SAPI !== 'cli' || ini_get('apc.enable_cli'))) {
+    require_once APP . 'Plugin/ApcuCache/Engine/ApcuEngine.php'; // it is not possible to use plugin
+    $engine = 'Apcu';
 }
 
 // In development mode, caches should expire quickly.

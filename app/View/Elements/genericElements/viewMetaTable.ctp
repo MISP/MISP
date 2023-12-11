@@ -18,13 +18,29 @@
         ...
     );
     */
-    $rows = array();
+    echo '<table class="meta_table table table-striped table-condensed">';
     foreach ($table_data as $row) {
-        $element = false;
-        if (!empty($row['element'])) {
-            $element = $this->element($row['element'], empty($row['element_params']) ? array() : $row['element_params']);
+        $html = "";
+        if (isset($row['boolean'])) {
+            $html = sprintf(
+                '<span class="%s">%s</span>',
+                (empty($row['class']) && empty($row['value_class'])) ?
+                    (empty($row['boolean']) ? 'label label-important label-padding' : 'label label-success label-padding') : '',
+                empty($row['boolean']) ? __('No') : __('Yes'));
         }
-        $rows[] = sprintf(
+        if (!empty($row['value'])) {
+            $html .= nl2br(h(trim($row['value'])), false);
+        }
+        if (!empty($row['html'])) {
+            $html .= $row['html'];
+        }
+        if (!empty($row['url'])) {
+            $html .= sprintf('<a href="%s">%s</a>', h($row['url']), h($row['url']));
+        }
+        if (!empty($row['element'])) {
+            $html .= $this->element($row['element'], empty($row['element_params']) ? array() : $row['element_params']);
+        }
+        echo sprintf(
             '<tr><td class="%s" title="%s">%s</td><td class="%s">%s</td></tr>',
             sprintf(
                 'meta_table_key %s %s',
@@ -38,23 +54,7 @@
                 empty($row['class']) ? '' : h($row['class']),
                 empty($row['value_class']) ? '' : h($row['value_class'])
             ),
-            sprintf(
-                '%s%s%s%s',
-                !isset($row['boolean']) ? '' : sprintf(
-                    '<span class="%s">%s</span>',
-                    (empty($row['class']) && empty($row['value_class'])) ?
-                        (empty($row['boolean']) ? 'bold red' : 'bold green') : '',
-                    empty($row['boolean']) ? 'No' : 'Yes'
-                ),
-                empty($row['value']) ? '' : nl2br(h(trim($row['value']))),
-                empty($row['html']) ? '' : $row['html'],
-                empty($element) ? '' : $element
-            )
-        );
+            $html
+        ) . PHP_EOL;
     }
-    $rows = implode(PHP_EOL, $rows);
-    echo sprintf(
-        '<table class="%s">%s</table>',
-        'meta_table table table-striped table-condensed',
-        $rows
-    );
+    echo '</table>';

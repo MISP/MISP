@@ -1,12 +1,14 @@
 # INSTALLATION INSTRUCTIONS
-## for FreeBSD 12.0-amd64
+## for FreeBSD 12.0-amd64!}
 
 ### 0/ WIP /!\ You are warned, this does not work yet! /!\
 
 !!! warning
     NOT working: pydeep, lief
 
-{!generic/globalVariables.md!}
+{% comment %}
+{% include_relative generic/globalVariables.md %}
+{% endcomment %}
 
 ```bash
 PHP_ETC_BASE=/usr/local/etc
@@ -251,9 +253,7 @@ sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install .
 ```bash
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd ${PATH_TO_MISP}/app
-sudo -u www php composer.phar require kamisama/cake-resque:4.1.2
-sudo -u www php composer.phar config vendor-dir Vendor
-sudo -u www php composer.phar install
+sudo -u www php composer.phar install --no-dev
 
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www cp -fa /usr/local/www/MISP/INSTALL/setup/config.php /usr/local/www/MISP/app/Plugin/CakeResque/Config/config.php
@@ -436,7 +436,9 @@ then
 fi
 ```
 
-{!generic/MISP_CAKE_init.md!}
+{% comment %}
+{% include_relative generic/MISP_CAKE_init.md %}
+{% endcomment %}
 
 ```bash
 sudo gsed -i -e '$i \sudo -u www bash /usr/local/www/MISP/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
@@ -463,9 +465,13 @@ sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install .
 sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install stix2
 ```
 
-{!generic/INSTALL.done.md!}
+{% comment %}
+{% include_relative generic/INSTALL.done.md %}
+{% endcomment %}
 
-{!generic/recommended.actions.md!}
+{% comment %}
+{% include_relative generic/recommended.actions.md %}
+{% endcomment %}
 
 ### Optional features
 -----------------

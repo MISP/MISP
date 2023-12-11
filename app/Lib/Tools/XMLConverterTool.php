@@ -147,7 +147,9 @@ class XMLConverterTool
         }
         if (!empty($event['Event']['Object'])) {
             foreach ($event['Event']['Object'] as $k => $v) {
-                $event['Event']['Object'][$k]['Attribute'] = $this->__rearrangeAttributes($event['Event']['Object'][$k]['Attribute']);
+                if (!empty($event['Event']['Object'][$k]['Attribute'])) {
+                    $event['Event']['Object'][$k]['Attribute'] = $this->__rearrangeAttributes($event['Event']['Object'][$k]['Attribute']);
+                }
             }
         }
         if (isset($event['Event']['ShadowAttribute'])) {
@@ -198,27 +200,18 @@ class XMLConverterTool
         $field = str_replace($this->__toEscape, $this->__escapeWith, $field);
     }
 
-    public function eventCollection2Format($events, $isSiteAdmin=false)
-    {
-        $result = "";
-        foreach ($events as $event) {
-            $result .= $this->convert($event) . PHP_EOL;
-        }
-        return $result;
-    }
-
+    /**
+     * @param string $input
+     * @param false $mispVersion
+     * @return Generator
+     */
     public function frameCollection($input, $mispVersion = false)
     {
-        $result = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
-        $result .= $input;
+        yield '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
+        yield $input . PHP_EOL;
         if ($mispVersion) {
-            $result .= '<xml_version>' . $mispVersion . '</xml_version>';
+            yield '<xml_version>' . $mispVersion . '</xml_version>';
         }
-        return $result . '</response>' . PHP_EOL;
-    }
-
-    private function __prepareAttributes($attributes)
-    {
-        return $attributes;
+        yield '</response>' . PHP_EOL;
     }
 }

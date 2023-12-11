@@ -31,7 +31,7 @@ sudo dpkg-reconfigure locales
 
 To install MISP on Tsurugi copy paste this in your r00t shell:
 ```bash
-wget -O /tmp/misp-tsurugi.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/xINSTALL.tsurugi.txt && bash /tmp/misp-tsurugi.sh
+wget --no-cache -O /tmp/misp-tsurugi.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/xINSTALL.tsurugi.txt && bash /tmp/misp-tsurugi.sh
 ```
 
 !!! warning
@@ -84,7 +84,7 @@ function installMISPonTsurugi() {
   PATH_TO_MISP='/var/www/MISP'
   MISP_BASEURL='https://misp.local'
   MISP_LIVE='1'
-  CAKE="$PATH_TO_MISP/app/Console/cake"
+  CAKE="${PATH_TO_MISP}/app/Console/cake"
 
   # Database configuration
   DBHOST='localhost'
@@ -118,6 +118,9 @@ function installMISPonTsurugi() {
   post_max_size=50M
   max_execution_time=300
   memory_limit=2048M
+  session.sid_length=32
+  session.use_strict_mode=1
+
   PHP_INI=/etc/php/7.0/apache2/php.ini
 
   # apt config
@@ -184,12 +187,12 @@ function installMISPonTsurugi() {
   #update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
   #update-alternatives --install /usr/bin/python python /usr/bin/python3.5 2
 
-  mkdir $PATH_TO_MISP
-  chown www-data:www-data $PATH_TO_MISP
-  cd $PATH_TO_MISP
-  $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
+  mkdir ${PATH_TO_MISP}
+  chown www-data:www-data ${PATH_TO_MISP}
+  cd ${PATH_TO_MISP}
+  ${SUDO_WWW} git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}
 
-  $SUDO_WWW git config core.filemode false
+  ${SUDO_WWW} git config core.filemode false
 
   cp -p /etc/lsb-release /etc/lsb-release.tmp
   sudo sed -i 's/TSURUGI/Ubuntu/g' /etc/lsb-release
@@ -198,47 +201,45 @@ function installMISPonTsurugi() {
   sudo apt-get update
   sudo apt-get install python3.6 python3.6-dev -y
   mv /etc/lsb-release.tmp /etc/lsb-release
-  $SUDO_WWW virtualenv -p python3.6 $PATH_TO_MISP/venv
+  ${SUDO_WWW} virtualenv -p python3.6 ${PATH_TO_MISP}/venv
 
-  cd $PATH_TO_MISP/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
+  cd ${PATH_TO_MISP}/app/files/scripts
+  ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git
+  ${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git
+  ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git
 
   mkdir /var/www/.cache
   chown www-data:www-data /var/www/.cache
 
-  cd $PATH_TO_MISP/app/files/scripts/python-stix
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+  cd ${PATH_TO_MISP}/app/files/scripts/python-stix
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+  cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  cd $PATH_TO_MISP/app/files/scripts/mixbox
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+  cd ${PATH_TO_MISP}/app/files/scripts/mixbox
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  cd $PATH_TO_MISP
-  $SUDO_WWW git submodule update --init --recursive
+  cd ${PATH_TO_MISP}
+  ${SUDO_WWW} git submodule update --init --recursive
   # Make git ignore filesystem permission differences for submodules
-  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+  ${SUDO_WWW} git submodule foreach --recursive git config core.filemode false
 
   # install PyMISP
-  cd $PATH_TO_MISP/PyMISP
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+  cd ${PATH_TO_MISP}/PyMISP
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  cd $PATH_TO_MISP/app
+  cd ${PATH_TO_MISP}/app
   mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
-  $SUDO_WWW php composer.phar install
+  ${SUDO_WWW} php composer.phar install --no-dev
 
-  $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
+  ${SUDO_WWW} cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 
-  chown -R www-data:www-data $PATH_TO_MISP
-  chmod -R 750 $PATH_TO_MISP
-  chmod -R g+ws $PATH_TO_MISP/app/tmp
-  chmod -R g+ws $PATH_TO_MISP/app/files
-  chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+  chown -R www-data:www-data ${PATH_TO_MISP}
+  chmod -R 750 ${PATH_TO_MISP}
+  chmod -R g+ws ${PATH_TO_MISP}/app/tmp
+  chmod -R g+ws ${PATH_TO_MISP}/app/files
+  chmod -R g+ws ${PATH_TO_MISP}/app/files/scripts/tmp
 
   if [ ! -e /var/lib/mysql/misp/users.ibd ]; then
     echo "
@@ -271,7 +272,7 @@ function installMISPonTsurugi() {
     update-rc.d apache2 enable
     update-rc.d redis-server enable
 
-    $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+    ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 
     echo "<?php
   class DATABASE_CONFIG {
@@ -288,7 +289,7 @@ function installMISPonTsurugi() {
                   'prefix' => '',
                   'encoding' => 'utf8',
           );
-  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
+  }" | ${SUDO_WWW} tee ${PATH_TO_MISP}/app/Config/database.php
   else
     echo "There might be a database already existing here: /var/lib/mysql/misp/users.ibd"
     echo "Skipping any creations…"
@@ -309,9 +310,9 @@ function installMISPonTsurugi() {
   cd /var/www
   mkdir misp-dashboard
   chown www-data:www-data misp-dashboard
-  $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git
+  ${SUDO_WWW} git clone https://github.com/MISP/misp-dashboard.git
   cd misp-dashboard
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install zmq
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install zmq redis
   /var/www/misp-dashboard/install_dependencies.sh
   sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
   sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
@@ -321,7 +322,7 @@ function installMISPonTsurugi() {
   sed -i -e '$i \    echo "Updating ${d}"\n' /etc/rc.local
   sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
   sed -i -e '$i \done\n' /etc/rc.local
-  $SUDO_WWW bash /var/www/misp-dashboard/start_all.sh
+  ${SUDO_WWW} bash /var/www/misp-dashboard/start_all.sh
 
   apt install libapache2-mod-wsgi-py3 -y
 
@@ -340,9 +341,9 @@ function installMISPonTsurugi() {
   <VirtualHost _default_:443>
           ServerAdmin admin@localhost.lu
           ServerName misp.local
-          DocumentRoot $PATH_TO_MISP/app/webroot
+          DocumentRoot ${PATH_TO_MISP}/app/webroot
 
-          <Directory $PATH_TO_MISP/app/webroot>
+          <Directory ${PATH_TO_MISP}/app/webroot>
                   Options -Indexes
                   AllowOverride all
   		            Require all granted
@@ -412,18 +413,20 @@ function installMISPonTsurugi() {
   do
       sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 
   systemctl restart apache2
 
-  cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+  cp ${PATH_TO_MISP}/INSTALL/misp.logrotate /etc/logrotate.d/misp
   chmod 0640 /etc/logrotate.d/misp
 
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
 
-  chown -R www-data:www-data $PATH_TO_MISP/app/Config
-  chmod -R 750 $PATH_TO_MISP/app/Config
+  chown -R www-data:www-data ${PATH_TO_MISP}/app/Config
+  chmod -R 750 ${PATH_TO_MISP}/app/Config
   $CAKE Live $MISP_LIVE
   $CAKE Baseurl $MISP_BASEURL
 
@@ -440,11 +443,11 @@ function installMISPonTsurugi() {
       %commit
   %echo done" > /tmp/gen-key-script
 
-  $SUDO_WWW gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
+  ${SUDO_WWW} gpg --homedir ${PATH_TO_MISP}/.gnupg --batch --gen-key /tmp/gen-key-script
 
-  $SUDO_WWW sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | $SUDO_WWW tee $PATH_TO_MISP/app/webroot/gpg.asc
+  ${SUDO_WWW} sh -c "gpg --homedir ${PATH_TO_MISP}/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | ${SUDO_WWW} tee ${PATH_TO_MISP}/app/webroot/gpg.asc
 
-  chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+  chmod +x ${PATH_TO_MISP}/app/Console/worker/start.sh
 
   $CAKE userInit -q
   $CAKE Admin updateDatabase
@@ -544,7 +547,7 @@ function installMISPonTsurugi() {
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
   sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh\n' /etc/rc.local
   sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log 2> /dev/null &\n' /etc/rc.local
-  $SUDO_WWW bash $PATH_TO_MISP/app/Console/worker/start.sh
+  ${SUDO_WWW} bash ${PATH_TO_MISP}/app/Console/worker/start.sh
   cd /usr/local/src/
   git clone https://github.com/MISP/misp-modules.git
   cd misp-modules
@@ -552,14 +555,14 @@ function installMISPonTsurugi() {
   chown www-data .
   apt install libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y
 
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I .
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install maec python-magic wand lief yara-python plyara
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install stix2
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -I .
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install maec python-magic wand lief yara-python plyara
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install stix2
   gem install pygments.rb
   gem install asciidoctor-pdf --pre
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s &
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &
   $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
   $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
   $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
@@ -593,7 +596,7 @@ function installMISPonTsurugi() {
   sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
   $SUDO /usr/local/src/viper/viper-cli -h > /dev/null
   $SUDO /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
-  echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |tee /etc/environment
+  echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |tee -a /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
   $SUDO sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" /home/${MISP_USER}/.viper/viper.conf
   $SUDO sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" /home/${MISP_USER}/.viper/viper.conf
@@ -605,38 +608,38 @@ function installMISPonTsurugi() {
     sleep 6
   done
 
-  chown -R www-data:www-data $PATH_TO_MISP
-  chmod -R 750 $PATH_TO_MISP
-  chmod -R g+ws $PATH_TO_MISP/app/tmp
-  chmod -R g+ws $PATH_TO_MISP/app/files
-  chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+  chown -R www-data:www-data ${PATH_TO_MISP}
+  chmod -R 750 ${PATH_TO_MISP}
+  chmod -R g+ws ${PATH_TO_MISP}/app/tmp
+  chmod -R g+ws ${PATH_TO_MISP}/app/files
+  chmod -R g+ws ${PATH_TO_MISP}/app/files/scripts/tmp
 
   cd /usr/local/src/
 
   apt-get install cmake libcaca-dev liblua5.3-dev -y
   git clone https://github.com/MISP/mail_to_misp.git
-  git clone git://github.com/stricaud/faup.git faup
-  git clone git://github.com/stricaud/gtcaca.git gtcaca
+  git clone https://github.com/stricaud/faup.git faup
+  git clone https://github.com/stricaud/gtcaca.git gtcaca
   chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
   cd gtcaca
-  $SUDO_USER mkdir -p build
+  $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_USER cmake .. && $SUDO_USER make
+  $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
   cd ../../faup
-  $SUDO_USER mkdir -p build
+  $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_USER cmake .. && $SUDO_USER make
+  $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
   sudo ldconfig
   cd ../../mail_to_misp
-  $SUDO_USER virtualenv -p python3 venv
-  $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-  $SUDO_USER ./venv/bin/pip install -r requirements.txt
-  $SUDO_USER cp mail_to_misp_config.py-example mail_to_misp_config.py
+  $SUDO_CMD virtualenv -p python3 venv
+  $SUDO_CMD ./venv/bin/pip install lief
+  $SUDO_CMD ./venv/bin/pip install -r requirements.txt
+  $SUDO_CMD cp mail_to_misp_config.py-example mail_to_misp_config.py
   ##$SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py
-  $SUDO_USER sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-  $SUDO_USER sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_CMD sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_CMD sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
   echo ""
   echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" > /home/${MISP_USER}/mysql.txt
   echo "User  (misp) DB Password: $DBPASSWORD_MISP" >> /home/${MISP_USER}/mysql.txt

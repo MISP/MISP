@@ -158,7 +158,7 @@
                 echo sprintf(
                     '<li class="actions" style="text-align:center; width: auto; padding: 7px 2px;">%s</li>',
                     $background ?
-                    $this->Html->link($sigType, array('action' => 'downloadExport', $k, $sigType), array('class' => 'btn btn-inverse btn-small btn.active qet')) :
+                    $this->Html->link($sigType, array('action' => 'downloadExport', 'text', $sigType), array('class' => 'btn btn-inverse btn-small btn.active qet')) :
                     sprintf(
                         '<a href="%s" class="btn btn-inverse btn-small">%s</a>',
                         $baseurl . '/attributes/restSearch/returnFormat:text/type:' . $sigType . '.json',
@@ -175,7 +175,7 @@
 <script type="text/javascript">
     function generate(i, type, id, progress, modified) {
         $.ajax({
-            url: "/jobs/cache/" + type,
+            url: "<?php echo $baseurl; ?>/jobs/cache/" + type,
             })
             .done(function(data) {
                 jobsArray[i] = data;
@@ -186,7 +186,7 @@
         }
 
     function queryTask(type, i){
-        $.getJSON('/jobs/getProgress/cache_' + type, function(data) {
+        $.getJSON('<?php echo $baseurl; ?>/jobs/getProgress/cache_' + type, function(data) {
             var x = document.getElementById("bar" + i);
             x.style.width = data+"%";
             if (data > -1 && data < 100) {

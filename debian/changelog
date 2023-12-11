@@ -1,0 +1,23 @@
+misp (2.4.125-1) UNRELEASED; urgency=low
+
+  * Bump to release 2.4.125
+
+ -- Sebastien Tricaud <sebastien.tricaud@devo.com>  Fri, 1 May 2020 17:32:05 -0800
+
+misp (2.4.123-1) UNRELEASED; urgency=low
+
+  * Bump to release 2.4.123
+
+ -- Sebastien Tricaud <sebastien.tricaud@devo.com>  Thu, 24 Mar 2020 11:10:19 -0800
+
+misp (2.4.122-1) UNRELEASED; urgency=low
+
+  * Bump to release 2.4.122
+
+ -- Sebastien Tricaud <sebastien.tricaud@devo.com>  Wed, 12 Feb 2020 14:44:35 -0800
+
+misp (2.4.121-1) UNRELEASED; urgency=low
+
+  * First package of MISP
+
+ -- Sebastien Tricaud <sebastien.tricaud@devo.com>  Wed, 29 Jan 2020 16:32:33 -0800

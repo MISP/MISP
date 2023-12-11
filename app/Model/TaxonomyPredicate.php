@@ -1,6 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property TaxonomyEntry $TaxonomyEntry
+ */
 class TaxonomyPredicate extends AppModel
 {
     public $useTable = 'taxonomy_predicates';

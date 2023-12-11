@@ -9,7 +9,6 @@ if (is_array($name)) {
         <span href="#" class="tagComplete" style="background-color:<?php echo h($background_color); ?>; color:<?php echo h($color); ?>">
             <?php echo h($name) ?>
         </span>
-
 <?php
     } else {
         echo h($name);

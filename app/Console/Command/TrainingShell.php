@@ -5,9 +5,13 @@
  * arg0 = email
  * arg1 = new password
  */
+
+App::uses('File', 'Utility');
+
+
 class TrainingShell extends AppShell {
 
-    public $uses = array('User', 'Organisation', 'Server');
+    public $uses = array('User', 'Organisation', 'Server', 'AuthKey');
 
     private $__currentUrl = false;
     private $__currentAuthKey = false;
@@ -113,6 +117,126 @@ class TrainingShell extends AppShell {
             }
         }
         $this->__printReport('Setup complete. Please find the modifications below:' . PHP_EOL . PHP_EOL);
+    }
+
+    public function createOrganisationsFromConfig()
+    {
+        $rawConfig = file_get_contents(APP . 'Console/Command/config_orgs.json');
+        $config = json_decode($rawConfig, true);
+        $createdOrgs = [];
+        foreach ($config as $org) {
+            $filepath = APP . 'Console/Command/' . $org['Organisation']['logo_path'];
+            $file = new File($filepath, false);
+            if ($file->exists()) {
+                $org['Organisation']['logo'] = [
+                    'name' => $file->name(),
+                    'type' => $file->mime(),
+                    'tmp_name' => $filepath,
+                    'error' => 0,
+                    'size' => $file->size(),
+                ];
+            }
+            $file->close();
+            $date = date('Y-m-d H:i:s');
+            $org['Organisation']['date_created'] = $date;
+            $org['Organisation']['date_modified'] = $date;
+            $this->Organisation->create();
+            $this->Organisation->save($org);
+            $filename = $this->Organisation->id . '.' . ($file->ext() === 'svg' ? 'svg' : 'png');
+            $file->copy(APP . 'webroot/img/orgs/' . $filename);
+            $createdOrg = $this->Organisation->find('first', ['conditions' => ['id' => $this->Organisation->id]]);
+            $createdOrgs[$createdOrg['Organisation']['uuid']] = $createdOrg['Organisation'];
+        }
+        return $createdOrgs;
+    }
+
+    public function createUsersFromConfig($createdOrgs)
+    {
+        $rawConfig = file_get_contents(APP . 'Console/Command/config_users.json');
+        $config = json_decode($rawConfig, true);
+        $createdUsers = [];
+        foreach ($config as $user) {
+            if (!empty($user['org_uuid'])) {
+                $user['org_id'] = $createdOrgs[$user['org_uuid']]['id'];
+            }
+            $existingUser = $this->User->find('first', [
+                'recursive' => -1,
+                'conditions' => ['User.email' => $user['email']],
+            ]);
+            if (empty($existingUser)) {
+                $this->User->create();
+            } else {
+                $user['id'] = $existingUser['User']['id'];
+            }
+            $this->User->save($user);
+            $createdUser = $this->User->find('first', ['id' => $this->User->id]);
+            $createdUsers[] = $createdUser;
+        }
+        return $createdUsers;
+    }
+
+    public function setSettingsFromConfig($createdOrgs)
+    {
+        $rawConfig = file_get_contents(APP . 'Console/Command/config_settings.json');
+        $config = json_decode($rawConfig, true);
+        $cli_user = ['id' => 0, 'email' => 'SYSTEM', 'Organisation' => ['name' => 'SYSTEM']];
+        foreach ($config as $setting_name => $value) {
+            if ($setting_name == 'MISP.host_org_id') {
+                $value = $createdOrgs[$value]['id'];
+            }
+            $setting = $this->Server->getSettingData($setting_name);
+            if (empty($setting)) {
+                $this->error(__('Setting change rejected.'));
+            }
+            $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value, true);
+            if (empty($result)) {
+                $this->error(__('Setting change rejected.'));
+            }
+        }
+    }
+
+    public function createRemoteServersFromConfig($createdOrgs, $createdUsers)
+    {
+        $rawConfig = file_get_contents(APP . 'Console/Command/config_syncs.json');
+        $config = json_decode($rawConfig, true);
+        $createdServers = [];
+        foreach ($config as $sync) {
+            $sync['org_id'] = $createdOrgs[$sync['org_uuid']]['id'];
+            $sync['remote_org_id'] = $createdOrgs[$sync['remote_org_uuid']]['id'];
+            $this->Server->create();
+            $this->Server->save($sync);
+            $createdServer = $this->User->find('first', ['id' => $this->User->id]);
+            $createdServers[] = $createdServer;
+        }
+        return $createdServers;
+    }
+
+    public function createAllFromConfig()
+    {
+        $createdOrgs = $this->createOrganisationsFromConfig();
+        $createdUsers = $this->createUsersFromConfig($createdOrgs);
+        $this->setSettingsFromConfig($createdOrgs);
+        $this->createRemoteServersFromConfig($createdOrgs, $createdUsers);
+    }
+
+    public function WipeAllSyncs()
+    {
+        $this->Server->deleteAll(['Server.id !=' => 0]);
+    }
+
+    public function WipeAllUsers()
+    {
+        $this->User->deleteAll(['User.email !=' => 'admin@admin.test']);
+    }
+
+    public function WipeAllOrgs()
+    {
+        $this->Organisation->deleteAll(['Organisation.name !=' => 'ORGNAME']);
+    }
+
+    public function WipeAllAuthkeys()
+    {
+        $this->AuthKey->deleteAll(['AuthKey.id !=' => 0]);
     }
 
     private function __createOrgFromBlueprint($id)

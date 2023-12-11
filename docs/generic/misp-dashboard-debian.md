@@ -1,5 +1,9 @@
 #### MISP Dashboard
 --------------
+
+!!! warning
+    A valid MaxMind DB key is required.
+
 ```bash
 # <snippet-begin 4_misp-dashboard.sh>
 # Main MISP Dashboard install function
@@ -12,7 +16,7 @@ mispDashboard () {
   sudo mkdir misp-dashboard
   sudo chown $WWW_USER:$WWW_USER misp-dashboard
 
-  $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git; done
   cd misp-dashboard
   sudo -H /var/www/misp-dashboard/install_dependencies.sh
   sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
@@ -71,26 +75,3 @@ mispDashboard () {
   sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
 }
 # <snippet-end 4_misp-dashboard.sh>
-
-# <snippet-begin 4_misp-dashboard-cake.sh>
-dashboardCAKE () {
-  # Enable ZeroMQ for misp-dashboard
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
-}
-# <snippet-end 4_misp-dashboard-cake.sh>
-```

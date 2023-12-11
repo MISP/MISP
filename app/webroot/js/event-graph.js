@@ -75,6 +75,7 @@ class EventGraph {
 
         this.extended_event_color_mapping = {};
         this.extended_event_points = {};
+        this.extended_event_uuid_mapping = {};
 
         this.network = new vis.Network(container, data, this.network_options);
         this.add_unreferenced_root_node();
@@ -85,13 +86,13 @@ class EventGraph {
     bind_listener() {
         var that = this;
         this.network.on("selectNode", function (params) {
-            that.network.moveTo({
-                position: {
-                    x: params.pointer.canvas.x,
-                    y: params.pointer.canvas.y
-                },
-                animation: true,
-            });
+            // that.network.moveTo({
+            //     position: {
+            //         x: params.pointer.canvas.x,
+            //         y: params.pointer.canvas.y
+            //     },
+            //     animation: true,
+            // });
         });
 
         this.network.on("dragStart", function (params) {
@@ -111,7 +112,7 @@ class EventGraph {
 
             for (var event_id in that.extended_event_points) {
                 if (that.extended_event_color_mapping[event_id] === undefined) {
-                    eventGraph.extended_event_color_mapping[event_id] = stringToRGB(event_id);
+                    eventGraph.extended_event_color_mapping[event_id] = stringToRGB(that.extended_event_uuid_mapping[event_id]);
                 }
                 var chosen_color = eventGraph.extended_event_color_mapping[event_id];
 
@@ -155,7 +156,7 @@ class EventGraph {
             $("#select_graph_scope").val(value);
         }
 
-        if (value == "Rotation key") {
+        if (value == "Pivot key") {
             $("#network-scope-badge").text(value + ": " + eventGraph.scope_keyType);
         } else {
             $("#network-scope-badge").text(value);
@@ -176,30 +177,30 @@ class EventGraph {
             label: "Scope",
             tooltip: "The scope represented by the network",
             event: function(value) {
-                if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected  for Rotation key scope
+                if (value == "Pivot key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected  for Pivot key scope
                     return;
                 } else {
                     eventGraph.update_scope(value);
                     dataHandler.fetch_data_and_update();
                 }
             },
-            options: ["Reference", "Tag", "Rotation key"],
+            options: ["Reference", "Tag", "Pivot key"],
             default: "Reference"
         });
         menu_scope.add_select({
             id: "input_graph_scope_jsonkey",
-            label: "Rotation key",
+            label: "Pivot key",
             tooltip: "The key around which the network will be constructed",
             event: function(value) {
-                if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected for Rotation key scope
+                if (value == "Pivot key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected for Pivot key scope
                     return;
                 } else {
                     eventGraph.scope_keyType = value;
-                    eventGraph.update_scope("Rotation key");
+                    eventGraph.update_scope("Pivot key");
                     dataHandler.fetch_data_and_update();
                 }
             },
-            options: dataHandler.available_rotation_key ? dataHandler.available_rotation_key : [],
+            options: dataHandler.available_pivot_key ? dataHandler.available_pivot_key : [],
             default: ""
         });
         return menu_scope;
@@ -298,7 +299,8 @@ class EventGraph {
                 for(var nodeId of objectIds) {
                     eventGraph.expand_node(nodeId);
                 }
-            }
+            },
+            title: "Expanding all nodes may takes some time"
         });
         menu_display.add_button({
             label: "Collapse all nodes",
@@ -310,7 +312,8 @@ class EventGraph {
                 for(var nodeId of objectIds) {
                     eventGraph.collapse_node(nodeId);
                 }
-            }
+            },
+            title: "Collapsing all nodes may takes some time"
         });
         menu_display.add_slider({
             id: 'slider_display_max_char_num',
@@ -343,6 +346,13 @@ class EventGraph {
             eventApply: function(value) {
                 dataHandler.fetch_data_and_update();
             }
+        });
+        menu_display.add_button({
+            label: "Remove leaves",
+            type: "primary",
+            event: function () {
+                eventGraph.remove_leaves();
+            },
         });
         return menu_display;
     }
@@ -626,7 +636,7 @@ class EventGraph {
                     btn_plot.data('network-preview', preview);
                     btn_plot.popover({
                         container: 'body',
-                        content: function() { return '<img style="width: 500px; height: 150px;" src="' + $(this).data('network-preview') + '" />'; },
+                        content: function() { return '<img style="width: 500px; height: 150px;" src="' + $('<div>').text($(this).data('network-preview')).html() + '" />'; },
                         placement: 'right',
                         trigger: 'hover',
                         template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
@@ -675,6 +685,7 @@ class EventGraph {
         if (hard) {
             this.backup_connection_edges = {};
             this.extended_event_points = {};
+            this.extended_event_uuid_mapping = {};
             this.extended_event_color_mapping = {};
         }
     }
@@ -683,6 +694,10 @@ class EventGraph {
         var that = this;
         that.network_loading(true, loadingText_creating);
 
+        this.extended_event_uuid_mapping = data.extended_event_uuid_mapping;
+
+        dataHandler.mapping_node_to_from_edges = {};
+        dataHandler.mapping_node_to_to_edges = {};
         // New nodes will be automatically added
         // removed references will be deleted
         var node_conf;
@@ -700,17 +715,20 @@ class EventGraph {
             if ( node.node_type == 'object' ) {
                 var group =  'object';
                 var label = dataHandler.generate_label(node);
+                var labelHtml = escapeHtml(label) + '</br><i>' + escapeHtml(node.comment) + '</i>'
+                label += ' ' + escapeHtml(node.comment)
                 var striped_value = that.strip_text_value(label);
                 node_conf = {
                     id: node.id,
                     uuid: node.uuid,
                     Attribute: node.Attribute,
+                    event_id: node.event_id,
                     label: striped_value,
-                    title: label,
+                    title: labelHtml,
                     group: group,
                     mass: 5,
                     icon: {
-                        color: stringToRGB(label),
+                        color: node.color,
                         face: '"Font Awesome 5 Free"',
                         code: that.get_FA_icon(node['meta-category']),
                     }
@@ -724,7 +742,7 @@ class EventGraph {
                     id: node.id,
                     uuid: node.uuid,
                     label: label,
-                    title: label,
+                    title: escapeHtml(label),
                     group: group,
                     mass: 20,
                     color: {
@@ -748,23 +766,26 @@ class EventGraph {
                 node_conf = {
                     id: node.id,
                     label: striped_value,
-                    title: label,
+                    title: escapeHtml(label),
                     group: group
                 };
                 dataHandler.mapping_value_to_nodeID.set(label, node.id);
             } else {
                 group =  'attribute';
-                label = node.type + ': ' + node.label;
+                label = escapeHtml(node.type) + ': ' + node.label;
+                label += ' ' + escapeHtml(node.comment)
+                var labelHtml = escapeHtml(label) + '</br><i>' + escapeHtml(node.comment) + '</i>'
                 var striped_value = that.strip_text_value(label);
                 node_conf = {
                     id: node.id,
                     uuid: node.uuid,
+                    event_id: node.event_id,
                     label: striped_value,
-                    title: label,
+                    title: labelHtml,
                     group: group,
                     mass: 5,
                 };
-                if (node.type == 'attachment') {
+                if (node.type == 'attachment' && isPicture(node.label)) {
                     // fetch picture via attributes/viewPicture
                     node_conf.group = 'attribute_image';
                     node_conf.size = $('#slider_display_picture_size').val();
@@ -801,13 +822,21 @@ class EventGraph {
                 from: rel.from,
                 to: rel.to,
                 label: rel.type,
-                title: rel.comment,
+                title: escapeHtml(rel.comment),
                 color: {
                     opacity: 1.0,
                 }
             };
             newRelations.push(rel);
             newRelationIDs.push(rel.id);
+            if (!dataHandler.mapping_node_to_from_edges[rel.from]) {
+                dataHandler.mapping_node_to_from_edges[rel.from] = [];
+            }
+            if (!dataHandler.mapping_node_to_to_edges[rel.to]) {
+                dataHandler.mapping_node_to_to_edges[rel.to] = [];
+            }
+            dataHandler.mapping_node_to_from_edges[rel.from].push(rel.to);
+            dataHandler.mapping_node_to_to_edges[rel.to].push(rel.from);
         }
         // check if nodes got deleted
         var old_rel_ids = that.edges.getIds();
@@ -936,6 +965,23 @@ class EventGraph {
         eventGraph.nodes.update(update);
     }
 
+    remove_leaves() {
+        var nodeIds = []
+        eventGraph.nodes.forEach(function (node) {
+            // Hide node that have no outgoing references and are not being targetted by others
+            if (
+                dataHandler.mapping_node_to_from_edges[node.id] === undefined &&
+                (
+                    dataHandler.mapping_node_to_to_edges[node.id] === undefined ||
+                    dataHandler.mapping_node_to_to_edges[node.id].length < 2
+                )
+            ) {
+                nodeIds.push(node.id)
+            }
+        })
+        eventGraph.hideNode(nodeIds)
+    }
+
     // state true: loading
     // state false: finished
     network_loading(state, message) {
@@ -1007,7 +1053,7 @@ class EventGraph {
                         x: parent_pos.x,
                         y: parent_pos.y,
                         label: attr.object_relation + ': ' + striped_value,
-                        title: attr.object_relation + ': ' + attr.value,
+                        title: escapeHtml(attr.object_relation) + ': ' + escapeHtml(attr.value),
                         group: 'obj_relation',
                         color: {
                             background: parent_color
@@ -1016,7 +1062,7 @@ class EventGraph {
                             color: getTextColour(parent_color)
                         }
                     };
-                    if (attr.type == 'attachment') {
+                    if (attr.type == 'attachment'  && isPicture(attr.value)) {
                         // fetch picture via attributes/viewPicture
                         node.group = 'obj_relation_image';
                         node.size = $('#slider_display_picture_size').val();
@@ -1087,6 +1133,11 @@ class EventGraph {
 
                 // Do not link already connected nodes
                 if (that.network.getConnectedEdges(cur_id).length > 0) {
+                    if (nodeData['unreferenced'] !== undefined) {
+                        that.nodes.remove(nodeData.id);
+                        delete nodeData['unreferenced'];
+                        that.nodes.add(nodeData);
+                    }
                     return;
                 }
 
@@ -1345,6 +1396,8 @@ class DataHandler {
         this.mapping_value_to_nodeID = new Map();
         this.mapping_obj_relation_value_to_nodeID = new Map();
         this.mapping_uuid_to_template = new Map();
+        this.mapping_node_to_from_edges = {};
+        this.mapping_node_to_to_edges = {};
         this.selected_type_to_display = "";
         this.extended_event = $('#eventgraph_network').data('extended') == 1 ? true : false;
         this.networkHistoryJsonData = new Map();
@@ -1399,7 +1452,7 @@ class DataHandler {
         eventGraph.menu_filter.items["table_attr_value"].add_options("table_control_select_attr_value", available_object_references);
     }
 
-    fetch_data_and_update(stabilize, callback) {
+    fetch_data_and_update(stabilize, updateOnly, callback) {
         eventGraph.network_loading(true, loadingText_fetching);
         $.when(this.fetch_objects_template()).done(function() {
             var filtering_rules = eventGraph.get_filtering_rules();
@@ -1410,14 +1463,16 @@ class DataHandler {
             var extended_text = dataHandler.extended_event ? "extended:1" : "";
             eventGraph.canDrawHull = false;
             $.ajax({
-                url: "/events/"+dataHandler.get_scope_url()+"/"+scope_id+"/"+extended_text+"/event.json",
+                url: baseurl+"/events/"+dataHandler.get_scope_url()+"/"+scope_id+"/"+extended_text+"/event.json",
                 dataType: 'json',
                 type: 'post',
                 contentType: 'application/json',
                 data: JSON.stringify( payload ),
                 processData: false,
                 success: function( data, textStatus, jQxhr ){
-                    eventGraph.reset_graphs(true);
+                    if (updateOnly === undefined || updateOnly === false) {
+                        eventGraph.reset_graphs(true);
+                    }
                     eventGraph.is_filtered = (filtering_rules.presence.length > 0 || filtering_rules.value.length > 0);
                     eventGraph.first_draw = true;
                     // update object state
@@ -1427,8 +1482,8 @@ class DataHandler {
                         return [[index, value]];
                     });
                     dataHandler.update_filtering_selectors(available_object_references, available_tags);
-                    dataHandler.available_rotation_key = data.available_rotation_key;
-                    eventGraph.menu_scope.add_options("input_graph_scope_jsonkey", dataHandler.available_rotation_key);
+                    dataHandler.available_pivot_key = data.available_pivot_key;
+                    eventGraph.menu_scope.add_options("input_graph_scope_jsonkey", dataHandler.available_pivot_key);
                     if (data.items.length < nodes_ask_threshold) {
                         eventGraph.update_graph(data);
                     } else if (data.items.length > nodes_ask_threshold && confirm("The network contains a lot of nodes, displaying it may slow down your browser. Continue?")) {
@@ -1453,13 +1508,13 @@ class DataHandler {
     }
 
     fetch_reference_data(rel_uuid, callback) {
-        $.getJSON( "/events/getReferenceData/"+rel_uuid+"/reference.json", function( data ) {
+        $.getJSON(baseurl + "/events/getReferenceData/"+rel_uuid+"/reference.json", function( data ) {
             callback(data);
         });
     }
 
     fetch_objects_template() {
-        return $.getJSON( "/events/getObjectTemplate/templates.json", function( data ) {
+        return $.getJSON(baseurl + "/events/getObjectTemplate/templates.json", function( data ) {
             for (var i in data) {
                 var template = data[i].ObjectTemplate;
                 var requiredFields;
@@ -1494,7 +1549,7 @@ class DataHandler {
     }
 
     fetch_graph_history(callback) {
-        $.getJSON( "/eventGraph/view/"+scope_id, function( history ) {
+        $.getJSON(baseurl + "/eventGraph/view/"+scope_id, function( history ) {
             var history_formatted = [];
             var network_previews = [];
             history.forEach(function(item) {
@@ -1572,7 +1627,8 @@ class MispInteraction {
         if (!that.can_create_reference(edgeData.from) || !that.can_be_referenced(edgeData.to)) {
             return;
         }
-        genericPopup('/objectReferences/add/'+edgeData.from, '#popover_form', function() {
+        var edgeFromId = edgeData.from.startsWith('o-') ? edgeData.from.substr(2) : edgeData.from;
+        genericPopup(baseurl+'/objectReferences/add/'+edgeFromId, '#popover_form', function() {
             $('#ObjectReferenceReferencedUuid').val(uuid);
             objectReferenceInput();
         });
@@ -1594,7 +1650,7 @@ class MispInteraction {
         dataHandler.fetch_reference_data(rel_uuid, function(data) {
             data = data[0].ObjectReference;
             var uuid = data.referenced_uuid;
-            genericPopup('/objectReferences/add/'+data.object_id, '#popover_form', function() {
+            genericPopup(baseurl + '/objectReferences/add/'+data.object_id, '#popover_form', function() {
                 $('#targetSelect').val(uuid);
                 $('#ObjectReferenceComment').val(data.comment);
                 $('#ObjectReferenceRelationshipTypeSelect').val(data.relationship_type);
@@ -1604,16 +1660,23 @@ class MispInteraction {
     }
 
     can_create_reference(id) {
-        return this.nodes.get(id).group == "object";
+        var node = this.nodes.get(id)
+        return node.group == "object";
     }
 
     can_be_referenced(id) {
         var res;
-        if (this.nodes.get(id).group == "object") {
+        var node = this.nodes.get(id)
+        if (node.event_id != scope_id) {
+            showMessage('fail', 'Cannot reference a node not belonging in this event')
+            return false;
+        }
+        if (node.group == "object") {
             res = true;
-        } else if (this.nodes.get(id).group.slice(0, 9) == "attribute") {
+        } else if (node.group.slice(0, 9) == "attribute") {
             res = true;
         } else {
+            showMessage('fail', 'This node cannot be referenced')
             res = false;
         }
         return res;
@@ -1628,7 +1691,7 @@ class MispInteraction {
             },
             {
                 text: "Add an Attribute",
-                onclick: "simplePopup('/attributes/add/"+scope_id+"');"
+                onclick: "openGenericModal('"+baseurl+"/attributes/add/"+scope_id+"');"
             },
         ]);
     }
@@ -1637,6 +1700,7 @@ class MispInteraction {
         var selected_nodes = nodeData.nodes;
         for (var nodeID of selected_nodes) {
             var node = this.nodes.get(nodeID)
+            nodeID = nodeID.startsWith('o-') ? nodeID.substr(2) : nodeID;
             if (node.group.slice(0, 9) == "attribute") {
                 deleteObject('attributes', 'delete', nodeID, scope_id);
             } else if (node.group == "object") {
@@ -1649,10 +1713,11 @@ class MispInteraction {
         var that = mispInteraction;
         var id = nodeData.id
         var group = nodes.get(id).group;
+        id = id.startsWith('o-') ? id.substr(2) : id;
         if (group.slice(0, 9) == 'attribute') {
-            simplePopup('/attributes/edit/'+id);
+            openGenericModal(baseurl + '/attributes/edit/' + id);
         } else if (group == 'object') {
-            window.location = '/objects/edit/'+id;
+            window.location = baseurl + '/objects/edit/' + id;
         }
     }
 
@@ -1663,7 +1728,7 @@ class MispInteraction {
 
     delete_saved_network(data) {
         var network_id = data[0];
-        var url = "/" + "eventGraph" + "/" + "delete" + "/" + network_id;
+        var url = baseurl + "/" + "eventGraph" + "/" + "delete" + "/" + network_id;
         $.get(url, function(data) {
             openPopup("#confirmation_box");
             $("#confirmation_box").html(data);
@@ -1715,7 +1780,7 @@ class MispInteraction {
     }
 
     networkFetchForm(type, event_id, network_id, callback) {
-        var url = '/' + 'EventGraph' + '/' + 'add' + '/' + event_id;
+        var url = baseurl + '/' + 'EventGraph' + '/' + 'add' + '/' + event_id;
         $.ajax({
             beforeSend: function(XMLHttpRequest) {
                 $('.loading').show();
@@ -1748,26 +1813,32 @@ class MispInteraction {
 * UTILS
 * ========*/
 function drawExtendedEventHull(ctx, nodes, color, text) {
-    ctx.fillStyle = color+'88';
-    var hull = getHullFromPoints(nodes);
+    ctx.fillStyle = color+'55';
+    ctx.strokeStyle = color+'aa';
+    var centroid = getCentroid(nodes);
+    var hull = getHullFromPoints(nodes, centroid);
+    var hullExtraPoints = []
+    hull.forEach(p => {
+        hullExtraPoints.push(applyAngularOffsetForCentroid(p, centroid, false))
+        hullExtraPoints.push(p)
+        hullExtraPoints.push(applyAngularOffsetForCentroid(p, centroid, true))
+    })
+    centroid = getCentroid(hullExtraPoints);
+    var hullFinal = getHullFromPoints(hullExtraPoints, centroid);
+    hullFinal.push(hullFinal[0])
 
-    var start = hull[0];
-    var end = hull[hull.length-1];
-    var prev = start;
     ctx.beginPath();
-    ctx.moveTo(start.x, start.y);
-    for (var i=1; i<hull.length; i++) {
-        var cur = hull[i];
-        ctx.lineTo(cur.x,cur.y);
-        prev = cur;
+    ctx.moveTo(hullFinal[0].x, hullFinal[0].y);
+    for(var i=1; i<hullFinal.length; i++) {
+        var cp_x_mid = (hullFinal[i-1].x + hullFinal[i].x) / 2;
+        var cp_y_mid = (hullFinal[i-1].y + hullFinal[i].y) / 2;
+        var cp = applyOffsetForCentroid({x: cp_x_mid, y: cp_y_mid}, centroid, 0.2)
+        ctx.quadraticCurveTo(cp.x, cp.y, hullFinal[i].x, hullFinal[i].y);
+        ctx.stroke();
     }
-    ctx.moveTo(end.x, end.y);
-    var centerX = (end.x+start.x)/2;
-    var centerY = (end.y+start.y)/2;
-    ctx.quadraticCurveTo(centerX,centerY,start.x,start.y);
+    ctx.stroke();
     ctx.fill();
 
-    var centroid = getCentroid(hull);
     ctx.beginPath();
     ctx.font="30px Verdana";
     ctx.fillStyle = getTextColour(color);
@@ -1783,10 +1854,11 @@ function orientation(p, q, r) {
 }
 // Implementation of Gift wrapping algorithm (jarvis march in 2D)
 // Inspired from https://www.geeksforgeeks.org/convex-hull-set-1-jarviss-algorithm-or-wrapping/
-function getHullFromPoints(points) {
+function getHullFromPoints(points, centroid) {
     var n = points.length;
     var l = 0;
     var hull = [];
+    var cur_point;
     // get leftmost point
     for (var i=0; i<n; i++) {
         l = points[l].x > points[i].x ? l : i;
@@ -1795,7 +1867,9 @@ function getHullFromPoints(points) {
     var p = l;
     var q;
     do {
-        hull.push(points[p]);
+        cur_point = points[p]
+        cur_point = applyOffsetForCentroid(cur_point, centroid)
+        hull.push(cur_point);
 
         q = (p+1) % n;
         for (var i=0; i<n; i++) {
@@ -1808,21 +1882,40 @@ function getHullFromPoints(points) {
     return hull;
 }
 function getCentroid(coordList) {
-    var cx = 0;
-    var cy = 0;
-    var a = 0;
-    for (var i=0; i<coordList.length; i++) {
-        var ci = coordList[i];
-        var cj = i+1 == coordList.length ? coordList[0] : coordList[i+1]; // j = i+1 AND loop around
-        var mul = (ci.x*cj.y - cj.x*ci.y);
-        cx += (ci.x + cj.x)*mul;
-        cy += (ci.y + cj.y)*mul;
-        a += mul;
+    var centroid = {x: 0, y: 0};
+    coordList.forEach(function(point) {
+        centroid.x += point.x;
+        centroid.y += point.y;
+    })
+    centroid.x = centroid.x / coordList.length;
+    centroid.y = centroid.y / coordList.length;
+    return centroid;
+}
+function applyOffsetForCentroid(point, centroid, ratio) {
+    ratio = ratio === undefined ? 1.0 : ratio;
+    var DEFAULT_OFFSET_X = 45 * ratio;
+    var DEFAULT_OFFSET_Y = 22 * ratio;
+    var slope = (point.y - centroid.y) / (point.x - centroid.x);
+    var angle = Math.atan(slope);
+    var sign = point.x > centroid.x ? 1 : -1;
+    var newPoint = {
+        x: point.x + Math.cos(angle) * DEFAULT_OFFSET_X * sign,
+        y: point.y + Math.sin(angle) * DEFAULT_OFFSET_Y * sign,
     }
-    a = a / 2;
-    cx = cx / (6*a);
-    cy = cy / (6*a);
-    return {x: cx, y: cy};
+    return newPoint;
+}
+function applyAngularOffsetForCentroid(point, centroid, left) {
+    var DEFAULT_ANGULAR_OFFSET = 2;
+    var DEFAULT_OFFSET = 40;
+    var slope = (point.y - centroid.y) / (point.x - centroid.x);
+    var angle = Math.atan(slope);
+    angle = angle + ((left ? 1 : -1) * DEFAULT_ANGULAR_OFFSET);
+    var sign = point.x > centroid.x ? 1 : -1
+    var newPoint = {
+        x: point.x + Math.cos(angle) * DEFAULT_OFFSET * sign,
+        y: point.y + Math.sin(angle) * DEFAULT_OFFSET * sign,
+    }
+    return newPoint;
 }
 
 function generate_background_shortcuts(shortcut_text) {
@@ -1861,7 +1954,7 @@ function genericPopupCallback(result) {
     // sucess and eventgraph is enabled
     if (result == "success" && dataHandler !== undefined) {
         mispInteraction.apply_callback();
-        dataHandler.fetch_data_and_update(false);
+        dataHandler.fetch_data_and_update(false, true);
     }
 }
 
@@ -1909,7 +2002,7 @@ function reset_graph_history() {
                 btn_plot.data('network-preview', preview);
                 btn_plot.popover({
                     container: 'body',
-                    content: function() { return '<img style="width: 500px; height: 150px;" src="' + $(this).data('network-preview') + '" />'; },
+                    content: function() { return '<img style="width: 500px; height: 150px;" src="' + $('<div>').text($(this).data('network-preview')).html() + '" />'; },
                     placement: 'right',
                     trigger: 'hover',
                     template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
@@ -1958,7 +2051,7 @@ function import_graph_from_json(data) {
         $('#checkbox_physics_enable').prop('checked', data.physics.enabled);
 
         // update data
-        dataHandler.fetch_data_and_update(false, function() {
+        dataHandler.fetch_data_and_update(false, false, function() {
             eventGraph.nodes.update(data.nodes);
             eventGraph.expand_previous_expansion(data.nodes);
             eventGraph.hiddenNode.clear();
@@ -2093,7 +2186,7 @@ function enable_interactive_graph() {
         eventGraph = new EventGraph(network_options, nodes, edges);
 
         $(document).on("keydown", function(evt) {
-            if (evt.target !== undefined && $(evt.target).is('input')) {
+            if (evt.target !== undefined && ($(evt.target).is('input') || $(evt.target).is('textarea'))) {
                 return;
             }
             switch(evt.keyCode) {
@@ -2180,7 +2273,7 @@ $(document).on("keyup", function(evt) {
 });
 
 eventGraph.update_scope();
-dataHandler.fetch_data_and_update(true, function() {
+dataHandler.fetch_data_and_update(true, false, function() {
     var $select = $('#network-typeahead');
     dataHandler.get_typeaheadData_search().forEach(function(element) {
         var $option = $('<option></option>');
@@ -2489,3 +2582,10 @@ function global_processProperties(clusterOptions, childNodes) {
     that.clusters.push({id:'cluster:' + that.cluster_index, scale: that.cur_scale, group: clusterOptions.group});
     return clusterOptions;
 }
+
+function isPicture(filename) {
+    var extension = filename.split('.').pop()
+    var validExtensions = ['jpg', 'jpeg', 'png', 'gif']
+    return validExtensions.includes(extension)
+}
+

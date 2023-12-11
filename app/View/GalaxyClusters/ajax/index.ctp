@@ -1,108 +1,327 @@
-<div class="pagination">
-    <ul>
-    <?php
-        $this->Paginator->options(array(
-                'update' => '#clusters_div',
-                'evalScripts' => true,
-                'before' => '$(".progress").show()',
-                'complete' => '$(".progress").hide()',
-        ));
-
-        echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-        echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-        echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-    ?>
-    </ul>
-</div>
 <?php
-    $tab = "Center";
-    $filtered = false;
-    if(isset($passedArgsArray)){
-        if (count($passedArgsArray) > 0) {
-            $tab = "Left";
-            $filtered = true;
+    foreach ($list as $i => $cluster) {
+        if ($cluster['GalaxyCluster']['default']) {
+            $list[$i]['GalaxyCluster']['published'] = null;
         }
     }
+    echo $this->element('/genericElements/IndexTable/index_table', array(
+        'containerId' => 'clusters',
+        'data' => array(
+            'data' => $list,
+            'top_bar' => array(
+                'children' => array(
+                    array(
+                        'type' => 'simple',
+                        'children' => array(
+                            array(
+                                'active' => $context === 'all',
+                                'url' => sprintf('%s/galaxies/view/%s/context:all', $baseurl, $galaxy_id),
+                                'text' => __('All'),
+                            ),
+                            array(
+                                'active' => $context === 'default',
+                                'url' => sprintf('%s/galaxies/view/%s/context:default', $baseurl, $galaxy_id),
+                                'text' => __('Default'),
+                            ),
+                            array(
+                                'active' => $context === 'custom',
+                                'url' => sprintf('%s/galaxies/view/%s/context:custom', $baseurl, $galaxy_id),
+                                'text' => __('Custom'),
+                                'badge' => [
+                                    'type' => 'info',
+                                    'text' => $custom_cluster_count
+                                ]
+                            ),
+                            array(
+                                'active' => $context === 'org',
+                                'url' => sprintf('%s/galaxies/view/%s/context:org', $baseurl, $galaxy_id),
+                                'text' => __('My Clusters'),
+                            ),
+                            array(
+                                'active' => $context === 'deleted',
+                                'url' => sprintf('%s/galaxies/view/%s/context:deleted', $baseurl, $galaxy_id),
+                                'text' => __('Deleted'),
+                            ),
+                            array(
+                                'active' => $context === 'fork_tree',
+                                'url' => sprintf('%s/galaxies/view/%s/context:fork_tree', $baseurl, $galaxy_id),
+                                'text' => __('View Fork Tree'),
+                            ),
+                            array(
+                                'active' => $context === 'relations',
+                                'url' => sprintf('%s/galaxies/view/%s/context:relations', $baseurl, $galaxy_id),
+                                'text' => __('View Galaxy Relationships'),
+                            ),
+                        )
+                    ),
+                    array(
+                        'type' => 'search',
+                        'button' => __('Filter'),
+                        'placeholder' => __('Enter value to search'),
+                        'data' => '',
+                    )
+                )
+            ),
+            'fields' => array(
+                array(
+                    'name' => __('ID'),
+                    'sort' => 'GalaxyCluster.id',
+                    'element' => 'links',
+                    'class' => 'short',
+                    'data_path' => 'GalaxyCluster.id',
+                    'url_params_data_paths' => 'GalaxyCluster.id',
+                    'url' => $baseurl . '/galaxy_clusters/view'
+                ),
+                array(
+                    'name' => __('Published'),
+                    'sort' => 'GalaxyCluster.published',
+                    'element' => 'booleanOrNA',
+                    'class' => 'short',
+                    'data_path' => 'GalaxyCluster.published'
+                ),
+                array(
+                    'name' => __('Value'),
+                    'sort' => 'GalaxyCluster.value',
+                    'element' => 'links',
+                    'class' => 'short',
+                    'data_path' => 'GalaxyCluster.value',
+                    'url_params_data_paths' => 'GalaxyCluster.id',
+                    'url' => $baseurl . '/galaxy_clusters/view'
+                ),
+                array(
+                    'name' => __('Synonyms'),
+                    'sort' => 'name',
+                    'class' => '',
+                    'data_path' => 'GalaxyCluster.synonyms',
+                ),
+                array(
+                    'name' => __('Owner Org'),
+                    'class' => 'short',
+                    'element' => 'org',
+                    'data_path' => 'Org',
+                    'fields' => array(
+                        'allow_picture' => true,
+                        'default_org' => 'MISP'
+                    ),
+                    'requirement' => $isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))
+                ),
+                array(
+                    'name' => __('Creator Org'),
+                    'class' => 'short',
+                    'element' => 'org',
+                    'data_path' => 'Orgc',
+                    'fields' => array(
+                        'allow_picture' => true,
+                        'default_org' => 'MISP'
+                    ),
+                    'requirement' => (Configure::read('MISP.showorg') || $isAdmin) || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))
+                ),
+                array(
+                    'name' => __('Default'),
+                    'class' => 'short',
+                    'element' => 'boolean',
+                    'data_path' => 'GalaxyCluster.default',
+                ),
+                array(
+                    'name' => __('Activity'),
+                    'class' => 'short',
+                    'data_path' => 'GalaxyCluster.id',
+                    'csv_data_path' => 'csv',
+                    'csv' => array('scope' => 'cluster'),
+                    'element' => 'sparkline',
+                ),
+                array(
+                    'name' => __('#Events'),
+                    'class' => 'short',
+                    'data_path' => 'GalaxyCluster.event_count',
+                ),
+                array(
+                    'name' => __('#Relations'),
+                    'class' => 'short',
+                    'data_path' => 'GalaxyCluster.relation_counts',
+                    'element' => 'in_out_counts',
+                    'fields' => array(
+                        'entity_name' => __('cluster'),
+                        'inbound_action_name' => __('is being targeted by'),
+                        'outbound_action_name' => __('targets'),
+                    )
+                ),
+                array(
+                    'name' => __('Description'),
+                    'sort' => 'description',
+                    'data_path' => 'GalaxyCluster.description',
+                    'element' => 'tree',
+                    'fields' => array(
+                        'tree_data' => array(
+                            0 => array(
+                                'main_data_path' => 'GalaxyCluster.extended_from',
+                                'node_link_path' => 'GalaxyCluster.uuid',
+                                'node_link_title' => 'GalaxyCluster.value',
+                            ),
+                            1 => array(
+                                'main_data_path' => 'GalaxyCluster',
+                                'node_link_title' => 'value',
+                            ),
+                            2 => array(
+                                'main_data_path' => 'GalaxyCluster.extended_by',
+                                'node_link_path' => 'GalaxyCluster.uuid',
+                                'node_link_title' => 'GalaxyCluster.value',
+                            ),
+                        )
+                    )
+                ),
+                array(
+                    'name' => __('Distribution'),
+                    'sort' => 'distribution',
+                    'data_path' => 'GalaxyCluster.distribution',
+                    'element' => 'distribution_levels'
+                ),
+            ),
+            'actions' => array(
+                array(
+                    'title' => __('Restore Cluster'),
+                    'url' => '/galaxy_clusters/restore',
+                    'url_params_data_paths' => array(
+                        'GalaxyCluster.id'
+                    ),
+                    'icon' => 'trash-restore',
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to restore the Galaxy Cluster?'),
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return ($options['me']['Role']['perm_site_admin'] || $options['me']['org_id'] == $options['datapath']['orgc']) && $options['datapath']['deleted'];
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'orgc' => 'GalaxyCluster.orgc_id',
+                                'deleted' => 'GalaxyCluster.deleted'
+                            )
+                        )
+                    ),
+                ),
+                array(
+                    'title' => __('Publish Cluster'),
+                    'url' => '/galaxy_clusters/publish',
+                    'url_params_data_paths' => array(
+                        'GalaxyCluster.id'
+                    ),
+                    'icon' => 'upload',
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to publish the Galaxy Cluster?'),
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return !$options['datapath']['published'] &&
+                                (
+                                    $options['me']['Role']['perm_site_admin'] ||
+                                    ($options['me']['org_id'] == $options['datapath']['orgc'] && $options['me']['Role']['perm_galaxy_editor'] && $options['me']['Role']['perm_publish'])
+                                );
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'orgc' => 'GalaxyCluster.orgc_id',
+                                'published' => 'GalaxyCluster.published'
+                            )
+                        )
+                    ),
+                ),
+                array(
+                    'title' => __('View correlation graph'),
+                    'url' => '/galaxies/viewGraph',
+                    'url_params_data_paths' => array(
+                        'GalaxyCluster.id'
+                    ),
+                    'icon' => 'share-alt',
+                ),
+                array(
+                    'title' => __('Fork'),
+                    'url' => '/galaxy_clusters/add',
+                    'url_params_data_paths' => array(
+                        'GalaxyCluster.galaxy_id'
+                    ),
+                    'url_named_params_data_paths' => array(
+                        'forkUuid' => 'GalaxyCluster.uuid'
+                    ),
+                    'icon' => 'code-branch',
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return $options['me']['Role']['perm_galaxy_editor'];
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'org' => 'GalaxyCluster.org_id',
+                                'default' => 'GalaxyCluster.default'
+                            )
+                        )
+                    ),
+                ),
+                array(
+                    'title' => __('Edit'),
+                    'url' => '/galaxy_clusters/edit',
+                    'url_params_data_paths' => array(
+                        'GalaxyCluster.id'
+                    ),
+                    'icon' => 'edit',
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return !$options['datapath']['default'] &&
+                            (
+                                $options['me']['Role']['perm_site_admin'] ||
+                                ($options['me']['org_id'] == $options['datapath']['org'] && $options['me']['Role']['perm_galaxy_editor'])
+                            );
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'org' => 'GalaxyCluster.org_id',
+                                'default' => 'GalaxyCluster.default'
+                            )
+                        )
+                    ),
+                ),
+                array(
+                    'title' => __('Delete'),
+                    'icon' => 'trash',
+                    'onclick' => 'simplePopup(\'' . $baseurl . '/galaxy_clusters/delete/[onclick_params_data_path]\');',
+                    'onclick_params_data_path' => 'GalaxyCluster.id',
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return $options['me']['Role']['perm_site_admin'] || ($options['me']['org_id'] == $options['datapath']['org'] && $options['me']['Role']['perm_galaxy_editor']);
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'org' => 'GalaxyCluster.org_id',
+                                'default' => 'GalaxyCluster.default'
+                            )
+                        )
+                    ),
+                ),
+                array(
+                    'title' => __('View'),
+                    'url' => '/galaxy_clusters/view',
+                    'url_params_data_paths' => array(
+                        'GalaxyCluster.id'
+                    ),
+                    'icon' => 'eye',
+                    'dbclickAction' => true
+                ),
+            )
+        )
+    ));
 ?>
-<div class="tabMenuFixedContainer" style="display:inline-block;">
-    <?php if ($filtered):
-        foreach ($passedArgsArray as $k => $v):?>
-            <span class="tabMenuFixed tabMenuFixedElement">
-                <?php echo h(ucfirst($k)) . " : " . h($v); ?>
-            </span>
-        <?php endforeach; ?>
-        <span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
-            <?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'view/'. $galaxy_id), array('class' => 'icon-remove', 'title' => __('Remove filters')));?>
-        </span>
-    <?php endif;?>
-    <span style="border-right:0px !important;">
-        <span id="quickFilterButton" role="button" tabindex="0" aria-label="Filter value galaxie cluster" class="tabMenuFilterFieldButton useCursorPointer"
-            onClick="quickFilter('', '<?php echo $baseurl . '/galaxies/view/' . $galaxy_id; ?>');"><?php echo __('Filter');?></span>
-        <input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
-    </span>
-</div>
-<table class="table table-striped table-hover table-condensed">
-    <tr>
-        <th><?php echo $this->Paginator->sort('value');?></th>
-        <th><?php echo $this->Paginator->sort('synonyms', __('Synonyms'));?></th>
-        <th><?php echo __('Activity');?></th>
-        <th><?php echo __('#Events');?></th>
-        <th><?php echo $this->Paginator->sort('description');?></th>
-        <th class="actions"><?php echo __('Actions');?></th>
-    </tr>
-<?php
-    foreach ($list as $k => $item):
-?>
-        <tr>
-            <td class="short bold"><?php echo h($item['GalaxyCluster']['value']); ?>&nbsp;</td>
-            <td class="short bold">
-                <?php
-                    echo nl2br(h(implode("\n", $item['GalaxyCluster']['synonyms'])));
-                ?>
-                &nbsp;
-            </td>
-            <td class="shortish">
-                <?php echo $this->element('sparkline', array('scope' => 'cluster', 'id' => $item['GalaxyCluster']['id'], 'csv' => $csv[$k])); ?>
-            </td>
-            <td class="short">
-                <?php
-                    if (!empty($item['GalaxyCluster']['event_count'])):
-                ?>
-                    <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($item['GalaxyCluster']['tag_id']);?>" class="bold"><?php echo h($item['GalaxyCluster']['event_count']);?></a>
-                <?php
-                    else:
-                        echo '0';
-                    endif;
-                ?>
-            </td>
-            <td><?php echo h($item['GalaxyCluster']['description']); ?>&nbsp;</td>
-            <td class="short action-links">
-                <?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'viewGraph', $item['GalaxyCluster']['id']), array('class' => 'fa fa-share-alt', 'title' => __('View graph'), 'aria-label' => __('View graph')));?>
-                <?php echo $this->Html->link('', array('action' => 'view', $item['GalaxyCluster']['id']), array('class' => 'fa fa-eye', 'title' => __('View'), 'aria-label' => __('View')));?>
-                <span class="fa fa-trash useCursorPointer" title="<?php echo __('Delete galaxy cluster');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete galaxy cluster');?>" onClick="deleteObject('galaxy_clusters', 'delete', '<?php echo h($item['GalaxyCluster']['id']); ?>', '<?php echo h($item['GalaxyCluster']['id']); ?>');"></span>
-            </td>
-        </tr>
-    <?php
-        endforeach;
-    ?>
-</table>
-<p>
-<?php
-    echo $this->Paginator->counter(array('format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')));
-?>
-</p>
-<div class="pagination">
-    <ul>
-    <?php
-        echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-        echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-        echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-    ?>
-    </ul>
-</div>
 
-<script type="text/javascript">
-    $(document).ready(function(){
+<script>
+    $(function(){
+        var passedArgsArray = <?php echo $passedArgs; ?>;
+        var galaxyId = "<?php echo h($galaxy_id); ?>";
+        if (passedArgsArray['context'] === undefined || passedArgsArray['context'] === "") {
+            passedArgsArray['context'] = 'all';
+        }
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter('/' + galaxyId + '/context:' + passedArgsArray['context']);
+        });
     });
 </script>
-<?php echo $this->Js->writeBuffer(); ?>

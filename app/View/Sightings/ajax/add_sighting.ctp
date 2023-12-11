@@ -1,7 +1,7 @@
 <h3>Add Sighting</h3>
 <div id="sightingsEventId" class="hidden" data-event-id="<?php echo h($event_id); ?>"></div>
 <?php
-    echo $this->Form->create('Sighting', array('id', 'url' => '/sightings/add/' . urlencode(h($id)), 'style' => 'margin-bottom:0px;'));
+    echo $this->Form->create('Sighting', array('id', 'url' => $baseurl . '/sightings/add/' . urlencode(h($id)), 'style' => 'margin-bottom:0px;'));
     echo $this->Form->input('type', array(
             'options' => array('Sighting', 'False-positive', 'Expiration'),
             'default' => 0,
@@ -28,6 +28,9 @@
         'style' => 'width:120px;',
         'div' => array('style' => 'width:120px !important;'),
         'label' => false
+    ));
+    echo $this->Form->input('filters', array(
+        'placeholder' => __('{ "to_ids": 1, "tags": ["tlp:white"] }'),
     ));
 ?>
 <span id="submitButton" role="button" tabindex="0" aria-label="<?php echo __('Add sighting');?>" title="<?php echo __('Add sighting');?>" class="btn btn-primary" onClick="submitPopoverForm('<?php echo h($id);?>', 'addSighting', '<?php echo h($event_id); ?>')"><?php echo __('Add');?></span>

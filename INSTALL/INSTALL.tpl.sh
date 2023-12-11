@@ -10,14 +10,19 @@
 ############################################################
 #INSTALLATION INSTRUCTIONS                                #
 ##########################################################
-#------------------------- for Debian Flavored Linux Distributions
+#------------------------- for Linux Distributions
 #
 #-------------------------------------------------------|
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
-#    20190302: Ubuntu 18.04.2 tested and working. -- sCl
-#    20190208: Kali Linux tested and working. -- sCl
+#  20210406: CentOS 7.9        tested and working. -- sCl
+#  20210406: CentOS 8          tested and working. -- sCl
+#  20210406: CentOS Stream     tested and working. -- sCl
+#  20210406: Ubuntu 21.04      tested and working. -- sCl
+#  20210406: Ubuntu 20.04.2    tested and working. -- sCl
+#  20210406: Ubuntu 18.04.5    tested and working. -- sCl
+#  20220303: Kali Linux 2022.1 tested and working. -- sCl
 #
 #
 #-------------------------------------------------------------------------------------------------|
@@ -35,8 +40,9 @@
 # 2/ For Kali, download and run Installer Script        |
 #-------------------------------------------------------|
 #
-# To install MISP on Kali copy paste the following to your r00t shell:
+# To install MISP on Kali copy paste the following to your shell:
 # # wget --no-cache -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
+# NO other version then 2022.x supported, kthxbai.
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
 #
@@ -70,6 +76,8 @@
 ## 0_apt-upgrade.sh ##
 ## 0_sudoKeeper.sh ##
 ## 0_installCoreDeps.sh ##
+## 0_upgradePhp74.sh ##
+## 0_installDepsPhp74.sh ##
 ## 0_installDepsPhp73.sh ##
 ## 0_installDepsPhp72.sh ##
 ## 0_installDepsPhp70.sh ##
@@ -84,11 +92,35 @@
 ## 2_logRotation.sh ##
 ## 2_backgroundWorkers.sh ##
 ## 3_misp-modules.sh ##
+## 3_misp-modules-cake.sh ##
 ## 4_misp-dashboard.sh ##
 ## 4_misp-dashboard-cake.sh ##
 ## 5_mail_to_misp.sh ##
 ## 6_ssdeep.sh ##
 ## 6_viper.sh ##
+
+## 0_RHEL_register.sh ##
+## 0_RHEL7_SCL.sh ##
+## 0_RHEL8_SCL.sh ##
+## 0_RHEL7_EPEL.sh ##
+## 0_CentOS_EPEL.sh ##
+## 0_EPEL_REMI.sh ##
+## 0_yumInstallCoreDeps7.sh ##
+## 0_yumInstallCoreDeps8.sh ##
+## 0_yumInstallHaveged.sh ##
+## 1_mispCoreInstall_RHEL7.sh ##
+## 1_mispCoreInstall_RHEL8.sh ##
+## 1_installCake_RHEL.sh ##
+## 1_prepareDB_RHEL.sh ##
+## 1_apacheConfig_RHEL7.sh ##
+## 1_apacheConfig_RHEL8.sh ##
+## 1_firewall_RHEL.sh ##
+## 2_permissions_RHEL7.sh ##
+## 2_permissions_RHEL8.sh ##
+## 2_logRotation_RHEL.sh ##
+## 2_configMISP_RHEL.sh ##
+## 3_configWorkers_RHEL.sh ##
+## 3_misp-modules_RHEL.sh ##
 
 # No functions scripts:
 ## apt-upgrade.sh ##
@@ -98,7 +130,7 @@
 ### END AUTOMATED SECTION ###
 
 # This function will generate the main installer.
-# It is a helper function for the maintainers for the installer.
+# It is a helper function for the maintainers of the installer.
 
 colors () {
   # Some colors for easier debug and better UX (not colorblind compatible, PR welcome)
@@ -111,13 +143,13 @@ colors () {
 }
 
 generateInstaller () {
-  if [ ! -f $(which xsnippet) ]; then
+  if [[ ! -f $(which xsnippet) ]]; then
     echo 'xsnippet is NOT installed. Clone the repository below and copy the xsnippet shell script somehwere in your $PATH'
     echo "git clone https://github.com/SteveClement/xsnippet.git"
     exit 1
   fi
 
-  if [[ $(echo $0 |grep -e '^\.\/') != "./INSTALL.tpl.sh" ]]; then
+  if [[ "$(echo $0 |grep -e '^\.\/')" != "./INSTALL.tpl.sh" ]]; then
     echo -e "${RED}iAmError!${NC}"
     echo -e "To generate the installer call it with './INSTALL.tpl.sh' otherwise things will break."
     echo -e "You called: ${RED}$0${NC}"
@@ -128,12 +160,12 @@ generateInstaller () {
   cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
+  for f in `echo INSTALL.ubuntu2004.md INSTALL.ubuntu1804.md xINSTALL.debian10.md xINSTALL.tsurugi.md INSTALL.rhel7.md INSTALL.rhel8.md`; do
     xsnippet . ../../docs/${f}
   done
 
   # Pull out code snippets from generic Install Documents
-  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules-debian.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
+  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-dashboard-rhel.md misp-dashboard-cake.md misp-modules-debian.md misp-modules-rhel.md misp-modules-cake.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
     xsnippet . ../../docs/generic/${f}
   done
 
@@ -147,6 +179,8 @@ generateInstaller () {
   perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_upgradePhp74.sh ##/`cat 0_upgradePhp74.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp74.sh ##/`cat 0_installDepsPhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp70.sh ##/`cat 0_installDepsPhp70.sh`/ge' -i INSTALL.tpl.sh
@@ -161,12 +195,36 @@ generateInstaller () {
   perl -pe 's/^## 2_logRotation.sh ##/`cat 2_logRotation.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_backgroundWorkers.sh ##/`cat 2_backgroundWorkers.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_misp-modules-cake.sh ##/`cat 3_misp-modules-cake.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 5_mail_to_misp.sh ##/`cat 5_mail_to_misp.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.tpl.sh
+
+  perl -pe 's/^## 0_RHEL_register.sh ##/`cat 0_RHEL_register.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_SCL.sh ##/`cat 0_RHEL7_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL8_SCL.sh ##/`cat 0_RHEL8_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_CentOS_EPEL.sh ##/`cat 0_CentOS_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_EPEL.sh ##/`cat 0_RHEL7_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps7.sh ##/`cat 0_yumInstallCoreDeps7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps8.sh ##/`cat 0_yumInstallCoreDeps8.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallHaveged.sh ##/`cat 0_yumInstallHaveged.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL7.sh ##/`cat 1_mispCoreInstall_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL8.sh ##/`cat 1_mispCoreInstall_RHEL8.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_EPEL_REMI.sh ##/`cat 0_EPEL_REMI.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_installCake_RHEL.sh ##/`cat 1_installCake_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL7.sh ##/`cat 2_permissions_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL8.sh ##/`cat 2_permissions_RHEL8.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_prepareDB_RHEL.sh ##/`cat 1_prepareDB_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL7.sh ##/`cat 1_apacheConfig_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL8.sh ##/`cat 1_apacheConfig_RHEL8.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_firewall_RHEL.sh ##/`cat 1_firewall_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_logRotation_RHEL.sh ##/`cat 2_logRotation_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_configMISP_RHEL.sh ##/`cat 2_configMISP_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_configWorkers_RHEL.sh ##/`cat 3_configWorkers_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_misp-modules_RHEL.sh ##/`cat 3_misp-modules_RHEL.sh`/ge' -i INSTALL.tpl.sh
 
   cp INSTALL.tpl.sh ../INSTALL.sh
   cd ..
@@ -182,10 +240,10 @@ generateInstaller () {
 # Simple debug function with message
 
 # Make sure no alias exists
-if [[ $(type -t debug) == "alias" ]]; then unalias debug; fi
+[[ $(type -t debug) == "alias" ]] && unalias debug
 debug () {
   echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}" > /dev/tty
-  if [ ! -z $DEBUG ]; then
+  if [[ ! -z ${DEBUG} ]]; then
     NO_PROGRESS=1
     echo -e "${RED}Debug Mode${NC}, press ${LBLUE}enter${NC} to continue..." > /dev/tty
     exec 3>&1
@@ -202,12 +260,8 @@ installSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
-  # Set Base URL - functionLocation('generic/supportFunctions.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
-  progress 4
-
   # Check if sudo is installed and etckeeper - functionLocation('generic/sudo_etckeeper.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper
   [[ ! -z ${MISP_USER} ]] && [[ ! -f /etc/sudoers.d/misp ]] && echo "%${MISP_USER} ALL=(ALL:ALL) NOPASSWD:ALL" |sudo tee /etc/sudoers.d/misp
   progress 4
 
@@ -215,12 +269,12 @@ installSupported () {
   checkLocale
 
   # Upgrade system to make sure we install  the latest packages - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade
   progress 4
 
   # TODO: Double check how the user is added and subsequently used during the install.
   # TODO: Work on possibility to install as user X and install MISP for user Y
-  # TODO: Check if logout needed. (run SUDO_USER in installer)
+  # TODO: Check if logout needed. (run SUDO_CMD in installer)
   # <snippet-begin add-user.sh>
   # TODO: Double check how to properly handle postfix
   # <snippet-begin postfix.sh>
@@ -245,18 +299,21 @@ installSupported () {
 
   if [[ "$1" =~ ^PHP= ]]; then
     PHP_VER=$(echo $1 |cut -f2 -d=)
-    if [[ "$PHP_VER" == "7.2" ]]; then
+    if [[ "$PHP_VER" == 7.2 ]]; then
       # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
-    elif [[ "$PHP_VER" == "7.3" ]]; then
+    elif [[ "$PHP_VER" == 7.3 ]]; then
       # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
-    elif [[ "$PHP_VER" == "7.0" ]]; then
+    elif [[ "$PHP_VER" == 7.4 ]]; then
+      # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
+    elif [[ "$PHP_VER" == 7.0 ]]; then
       # Install PHP 7.0 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp70
     fi
   else
-      # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+      # Install PHP 7.2 Dependencies by dangerous default - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
   fi
   progress 4
@@ -270,40 +327,36 @@ installSupported () {
   progress 4
 
   # Make sure permissions are sane - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && permissions 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && permissions
   progress 4
 
   # TODO: Mysql install functions, make it upgrade safe, double check
   # Setup Databse - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && prepareDB 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && prepareDB
   progress 4
 
   # Roll Apache Config - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && apacheConfig 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && apacheConfig
   progress 4
 
   # Setup log logrotate - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && logRotation 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && logRotation
   progress 4
 
   # Generate MISP Config files - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && configMISP 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && configMISP
   progress 4
 
   # Generate GnuPG key - functionLocation('generic/gnupg.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && setupGnuPG 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && setupGnuPG
   progress 4
 
   # Setup and start background workers - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && backgroundWorkers 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && backgroundWorkers
   progress 4
 
   # Run cake CLI for the core installation - functionLocation('generic/MISP_CAKE_init.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE 2> /dev/null > /dev/null
-  progress 4
-
-  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE
   progress 4
 
   # Disable spinner
@@ -323,17 +376,27 @@ installSupported () {
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
   progress 4
 
-  # Install Viper - functionLocation('generic/viper-debian.md')
-  [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
+  [[ -n $CORE ]]      || [[ -n $ALL ]] && updateGOWNT
   progress 4
+
+  # Install misp-modules - functionLocation('generic/misp-modules-cake.md')
+  [[ -n $MODULES ]]   || [[ -n $ALL ]] && modulesCAKE
+  progress 4
+
+  # Install Viper - functionLocation('generic/viper-debian.md')
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##[[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+  ##progress 4
 
   # Install ssdeep - functionLocation('generic/ssdeep-debian.md')
   [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
   progress 4
 
   # Install misp-dashboard - functionLocation('generic/misp-dashboard-debian.md')
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
-  progress 4
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##[[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE
+  ##progress 4
 
   # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
@@ -347,10 +410,10 @@ installSupported () {
   theEnd
 }
 
-# Main Kalin Install function
+# Main Kali Install function
 installMISPonKali () {
-  # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('')
-  kaliUpgrade 2> /dev/null > /dev/null
+  # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('generic/supportFunctions.md')
+  kaliUpgrade
 
   # Set locale if not set - functionLocation('generic/supportFunctions.md')
   checkLocale
@@ -358,14 +421,17 @@ installMISPonKali () {
   # Set Base URL - functionLocation('generic/supportFunctions.md')
   setBaseURL
 
-  # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
-  installDepsPhp73 2> /dev/null > /dev/null
+  # Install PHP 7.4 (only php8.1 is available on latest Kali) - functionLocation('supportFunctions.md')
+  installDepsKaliPhp74
+
+  # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
+  installDepsPhp74
 
   # Set custom Kali only variables and tweaks
   space
   # The following disables sleep on kali/gnome
   ### FIXME: Disabling for now, maybe source of some issues.
-  ##disableSleep 2> /dev/null > /dev/null
+  ##disableSleep
   ##debug "Sleeping 3 seconds to make sure the disable sleep does not confuse the execution of the script."
   ##sleep 3
 
@@ -377,149 +443,126 @@ installMISPonKali () {
   installCoreDeps
 
   debug "Enabling redis and gnupg modules"
-  phpenmod -v 7.3 redis
-  phpenmod -v 7.3 gnupg
+  sudo phpenmod -v 7.4 redis
+  sudo phpenmod -v 7.4 gnupg
 
-  debug "Apache2 ops: dismod: status php7.2 - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
-  a2dismod status 2> /dev/null > /dev/null
-  a2dismod php7.2 2> /dev/null > /dev/null
-  a2enmod ssl rewrite headers php7.3 2> /dev/null > /dev/null
-  a2dissite 000-default 2> /dev/null > /dev/null
-  a2ensite default-ssl 2> /dev/null > /dev/null
+  debug "Apache2 ops: dismod: status - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
+  sudo a2dismod status
+  sudo a2enmod ssl rewrite headers php7.4
+  sudo a2dissite 000-default
+  sudo a2ensite default-ssl
 
   debug "Restarting mysql.service"
-  systemctl restart mysql.service 2> /dev/null > /dev/null
-
-  debug "Fixing redis rc script on Kali"
-  fixRedis 2> /dev/null > /dev/null
+  sudo systemctl restart mysql.service
 
   debug "git clone, submodule update everything"
-  mkdir $PATH_TO_MISP
-  chown $WWW_USER:$WWW_USER $PATH_TO_MISP
-  cd $PATH_TO_MISP
-  $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
+  sudo mkdir ${PATH_TO_MISP}
+  sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
+  cd ${PATH_TO_MISP}
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}; done
 
-  $SUDO_WWW git config core.filemode false
+  ${SUDO_WWW} git config core.filemode false
 
-  cd $PATH_TO_MISP
-  $SUDO_WWW git submodule update --init --recursive 2> /dev/null > /dev/null
+  cd ${PATH_TO_MISP}
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git submodule update --progress --init --recursive; done
   # Make git ignore filesystem permission differences for submodules
-  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+  ${SUDO_WWW} git submodule foreach --recursive git config core.filemode false
 
-  cd $PATH_TO_MISP/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git 2> /dev/null > /dev/null
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git 2> /dev/null > /dev/null
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git 2> /dev/null > /dev/null
-  $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git 2> /dev/null > /dev/null
+  sudo mkdir /var/www/.cache/
 
+  MISP_USER_HOME=$(sudo -Hiu ${MISP_USER} env | grep HOME |cut -f 2 -d=)
+  sudo mkdir ${MISP_USER_HOME}/.cache
+  sudo chown ${MISP_USER}:${MISP_USER} ${MISP_USER_HOME}/.cache
+  sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
 
-  mkdir /var/www/.cache/
-
-  MISP_USER_HOME=$(sudo -Hiu $MISP_USER env | grep HOME |cut -f 2 -d=)
-  mkdir $MISP_USER_HOME/.cache
-  chown $MISP_USER:$MISP_USER $MISP_USER_HOME/.cache
-  chown $WWW_USER:$WWW_USER /var/www/.cache
-
-  debug "Generating rc.local"
-  genRCLOCAL
+  ## Not really needed...
+  ## debug "Generating rc.local"
+  ## genRCLOCAL
 
   debug "Setting up main MISP virtualenv"
   # Needs virtualenv
-  $SUDO_WWW virtualenv -p python3 ${PATH_TO_MISP}/venv
+  ${SUDO_WWW} virtualenv -p python3 ${PATH_TO_MISP}/venv
 
-  debug "Installing MISP dashboard"
-  mispDashboard
+  ## FIXME: The current stat of misp-dashboard is broken, disabling any use.
+  ##debug "Installing MISP dashboard"
+  ##mispDashboard
 
   debug "Installing python-cybox"
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Installing python-stix"
-  cd $PATH_TO_MISP/app/files/scripts/python-stix
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  cd ${PATH_TO_MISP}/app/files/scripts/python-stix
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  debug "Install maec"
-  cd $PATH_TO_MISP/app/files/scripts/python-maec
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  debug "Installing maec"
+  cd ${PATH_TO_MISP}/app/files/scripts/python-maec
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  # install STIX2.0 library to support STIX 2.0 export
-  debug "Installing cti-python-stix2"
-  cd ${PATH_TO_MISP}/cti-python-stix2
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
+  # Install misp-stix
+  debug "Installing misp-stix"
+  cd ${PATH_TO_MISP}/app/files/scripts/misp-stix
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Installing mixbox"
-  cd $PATH_TO_MISP/app/files/scripts/mixbox
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  cd ${PATH_TO_MISP}/app/files/scripts/mixbox
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install PyMISP
   debug "Installing PyMISP"
-  cd $PATH_TO_MISP/PyMISP
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  cd ${PATH_TO_MISP}/PyMISP
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install pydeep
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git 2> /dev/null > /dev/null
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git; done
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip 2> /dev/null > /dev/null
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install lief
 
   # install python-magic
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install python-magic
 
   # install plyara
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara 2> /dev/null > /dev/null
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install plyara
 
   # install zmq needed by mispzmq
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq 2> /dev/null > /dev/null
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install zmq
 
-  # Install Crypt_GPG and Console_CommandLine
-  debug "Installing pear Console_CommandLine"
-  pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-  debug "Installing pear Crypt_GPG"
-  pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
+  debug "Installing cake"
+  composer74
 
+  ${SUDO_WWW} cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 
-  debug "Installing composer with php 7.3 updates"
-  composer73
-
-  $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
-
-  chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
-  chmod -R 750 $PATH_TO_MISP
-  chmod -R g+ws $PATH_TO_MISP/app/tmp
-  chmod -R g+ws $PATH_TO_MISP/app/files
-  chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chown -R ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
+  sudo chmod -R 750 ${PATH_TO_MISP}
+  sudo chmod -R g+ws ${PATH_TO_MISP}/app/tmp
+  sudo chmod -R g+ws ${PATH_TO_MISP}/app/files
+  sudo chmod -R g+ws ${PATH_TO_MISP}/app/files/scripts/tmp
 
   debug "Setting up database"
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
-    echo "
-      set timeout 10
-      spawn mysql_secure_installation
-      expect \"Enter current password for root (enter for none):\"
-      send -- \"\r\"
-      expect \"Set root password?\"
-      send -- \"y\r\"
-      expect \"New password:\"
-      send -- \"${DBPASSWORD_ADMIN}\r\"
-      expect \"Re-enter new password:\"
-      send -- \"${DBPASSWORD_ADMIN}\r\"
-      expect \"Remove anonymous users?\"
-      send -- \"y\r\"
-      expect \"Disallow root login remotely?\"
-      send -- \"y\r\"
-      expect \"Remove test database and access to it?\"
-      send -- \"y\r\"
-      expect \"Reload privilege tables now?\"
-      send -- \"y\r\"
-      expect eof" | expect -f -
+    # Kill the anonymous users
+    sudo mysql -h ${DBHOST} -e "DROP USER IF EXISTS ''@'localhost'"
+    # Because our hostname varies we'll use some Bash magic here.
+    sudo mysql -h ${DBHOST} -e "DROP USER IF EXISTS ''@'$(hostname)'"
+    # Kill off the demo database
+    sudo mysql -h ${DBHOST} -e "DROP DATABASE IF EXISTS test"
+    # No root remote logins
+    sudo mysql -h ${DBHOST} -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+    # Make sure that NOBODY can access the server without a password
+    sudo mysqladmin -h ${DBHOST} -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
+    # Make our changes take effect
+    sudo mysql -h ${DBHOST} -e "FLUSH PRIVILEGES"
 
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBUSER_MISP@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
+    sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE DATABASE ${DBNAME};"
+    sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT USAGE ON *.* TO ${DBUSER_MISP}@localhost IDENTIFIED BY '${DBPASSWORD_MISP}';"
+    sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT ALL PRIVILEGES ON ${DBNAME}.* TO '${DBUSER_MISP}'@'localhost';"
+    sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "FLUSH PRIVILEGES;"
 
     enableServices
 
-    $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+    debug "Populating database"
+    ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} ${DBNAME}
 
     echo "<?php
   class DATABASE_CONFIG {
@@ -536,7 +579,7 @@ installMISPonKali () {
                   'prefix' => '',
                   'encoding' => 'utf8',
           );
-  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php 2> /dev/null > /dev/null
+  }" | ${SUDO_WWW} tee ${PATH_TO_MISP}/app/Config/database.php
   else
     echo "There might be a database already existing here: /var/lib/mysql/misp/users.ibd"
     echo "Skipping any creations…"
@@ -544,67 +587,69 @@ installMISPonKali () {
   fi
 
   debug "Generating Certificate"
-  openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
+  sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
   -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
   -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
   debug "Generating Apache Conf"
   genApacheConf
 
-  echo "127.0.0.1 misp.local" | tee -a /etc/hosts
+  echo "127.0.0.1 misp.local" | sudo tee -a /etc/hosts
 
   debug "Disabling site default-ssl, enabling misp-ssl"
-  a2dissite default-ssl
-  a2ensite misp-ssl
+  sudo a2dissite default-ssl
+  sudo a2ensite misp-ssl
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
-      sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" ${PHP_INI}
   done
 
   debug "Restarting Apache2"
-  systemctl restart apache2
+  sudo systemctl restart apache2
 
   debug "Setting up logrotate"
-  cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
-  chmod 0640 /etc/logrotate.d/misp
+  sudo cp ${PATH_TO_MISP}/INSTALL/misp.logrotate /etc/logrotate.d/misp
+  sudo chmod 0640 /etc/logrotate.d/misp
 
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
 
-  chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config
-  chmod -R 750 $PATH_TO_MISP/app/Config
+  sudo chown -R ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}/app/Config
+  sudo chmod -R 750 ${PATH_TO_MISP}/app/Config
 
   debug "Setting up GnuPG"
-  setupGnuPG 2> /dev/null > /dev/null
+  setupGnuPG
 
   debug "Adding workers to systemd"
-  chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-  sudo cp $PATH_TO_MISP/INSTALL/misp-workers.service /etc/systemd/system/
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now misp-workers
+  backgroundWorkers
 
   debug "Running Core Cake commands"
-  coreCAKE 2> /dev/null > /dev/null
-  dashboardCAKE 2> /dev/null > /dev/null
+  coreCAKE
+
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##dashboardCAKE
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
-  updateGOWNT 2> /dev/null > /dev/null
+  updateGOWNT
 
-  gitPullAllRCLOCAL
+  # This is not needed atm...
+  ##gitPullAllRCLOCAL
 
   checkUsrLocalSrc
 
   debug "Installing misp-modules"
   mispmodules
+  modulesCAKE
 
-  debug "Installing Viper"
-  viper
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##debug "Installing Viper"
+  ##viper
 
   debug "Installing ssdeep"
   ssdeep
-  phpenmod -v 7.3 ssdeep
+  sudo phpenmod -v 7.3 ssdeep
 
   debug "Setting permissions"
   permissions
@@ -614,6 +659,128 @@ installMISPonKali () {
 }
 # End installMISPonKali ()
 
+# Main Install on RHEL function
+installMISPRHEL () {
+  if [[ -n $SSDEEP ]] || [[ -n $MAIL2 ]]; then
+    echo "RHEL installation currently only supports Core and Modules"
+    echo "Ignoring other options..."
+  fi
+
+  if [[ -n $CORE ]] || [[ -n $ALL ]]; then
+    space
+    echo "Proceeding with MISP core installation on RHEL ${dist_version}"
+    space
+
+    id -u "${MISP_USER}" > /dev/null
+    if [[ $? -eq 1 ]]; then
+      debug "Creating MISP user"
+      sudo useradd -G wheel -m "${MISP_USER}"
+    fi 
+
+    # Register system if RHEL
+    if [[ "${DISTRI}" =~ ^[rhel].* ]]; then
+      registerRHEL
+    fi
+
+    debug "Enabling Extras Repos (SCL)"
+    if [[ "${DISTRI}" == "rhel7" ]]; then
+      enableReposRHEL7
+      enableEPEL
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps7
+      installEntropyRHEL
+      debug "Installing MISP code"
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Setting File permissions"
+      permissions_RHEL7
+      debug "Preparing Database"
+      prepareDB_RHEL
+      apacheConfig_RHEL7
+    fi
+
+    if [[ "${DISTRI%??}" == "fedora" ]]; then
+      enableREMI_fedora
+      yumInstallCoreDeps8
+      installEntropyRHEL
+      installCoreRHEL8
+      installCake_RHEL
+      permissions_RHEL8
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DIST_VER}" =~ ^[8].* ]]; then
+      enableEPEL_REMI_8
+      enableOptionalRHEL8
+      yumInstallCoreDeps8
+      installCoreRHEL8
+      installCake_RHEL
+      permissions_RHEL8
+      prepareDB_RHEL
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DISTRI}" == "centos7" ]]; then
+      centosEPEL
+      debug "Installing MISP code"
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps7
+      installEntropyRHEL
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Setting File permissions"
+      permissions_RHEL7
+      debug "Preparing Database"
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL7
+    fi
+
+    debug "Enabling Haveged for additional entropy"
+    sudo yum install haveged -y
+    sudo systemctl enable --now haveged.service
+
+
+    debug "Setting up firewall"
+    firewall_RHEL
+
+    debug "Enabling log rotation"
+    logRotation_RHEL
+
+    debug "Configuring MISP"
+    configMISP_RHEL
+
+    debug "Setting up background workers"
+    configWorkersRHEL
+
+    debug "Optimizing Cake Installation"
+    coreCAKE
+
+    debug "Updating tables"
+    updateGOWNT
+
+    echo "Core Intallation finished, check on port 443 to see the Web UI"
+  fi
+
+  if [[ -n $MODULES ]] || [[ -n $ALL ]]; then
+    space
+    echo "Installing MISP Modules"
+    space
+
+    mispmodulesRHEL
+    # Another sleep to avoid RC
+    sleep 3
+    modulesCAKE
+
+    echo "MISP modules installation finished."
+  fi
+}
+# End installMISPRHEL ()
+
 ## End Function Section ##
 
 colors
@@ -622,17 +789,17 @@ if [[ "$0" == "./INSTALL.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.tpl.sh')" ==
   generateInstaller
 fi
 
+debug "Checking Linux distribution and flavour..."
+checkFlavour
 debug "Checking if we are uptodate and checksums match"
 checkInstaller
 
 space
 debug "Setting MISP variables"
 MISPvars
-debug "Checking Linux distribution and flavour..."
-checkFlavour
 
 debug "Checking for parameters or Unattended Kali Install"
-if [[ $# == 0 && $0 != "/tmp/misp-kali.sh" ]]; then
+if [[ $# -eq 0 && "$0" != "/tmp/misp-kali.sh" ]]; then
   usage
   exit 
 else
@@ -670,20 +837,36 @@ fi
 # TODO: Move support map to top
 
 SUPPORT_MAP="
-x86_64-centos-8
+x86_64-centos-7
 x86_64-rhel-7
+x86_64-centos-8
 x86_64-rhel-8
-x86_64-fedora-30
+x86_64-fedora-33
+x86_64-fedora-34
+x86_64-fedora-35
+x86_64-debian-12
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
-x86_64-kali-2019.2
+x86_64-ubuntu-focal
+x86_64-ubuntu-hirsute
+x86_64-ubuntu-jammy
+x86_64-kali-2022.1
+x86_64-kali-2022.2
+x86_64-kali-2022.3
+x86_64-kali-2022.4
+x86_64-kali-2023.1
+x86_64-kali-2023.2
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
+armv7l-raspbian-buster
 armv7l-debian-jessie
 armv7l-debian-stretch
 armv7l-debian-buster
 armv7l-ubuntu-bionic
+armv7l-ubuntu-focal
+aarch64-ubuntu-focal
+aarch64-ubuntu-hirsute
 "
 
 # Check if we actually support this configuration
@@ -698,24 +881,42 @@ EOF
 fi
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
-if [ "${FLAVOUR}" == "ubuntu" ]; then
+if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   RELEASE=$(lsb_release -s -r| tr '[:upper:]' '[:lower:]')
-  if [ "${RELEASE}" == "18.04" ]; then
+  if [[ "${RELEASE}" == "18.04" ]]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    upgradeToPHP74
+    installSupported PHP="7.4" && exit || exit
+  fi
+  if [[ "${RELEASE}" == "20.04" ]]; then
+    echo "Install on Ubuntu 20.04 LTS fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installSupported PHP="7.4" && exit || exit
+  fi
+  if [[ "${RELEASE}" == "21.04" ]]; then
+    echo "Install on Ubuntu 21.04 LTS fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installSupported PHP="7.4" && exit || exit
+  fi
+  if [[ "${RELEASE}" == "22.04" ]]; then
+    echo "Install on Ubuntu 22.04 LTS fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    upgradeToPHP74
+    installSupported PHP="7.4" && exit || exit
+  fi
+  if [[ "${RELEASE}" == "18.10" ]]; then
+    echo "Install on Ubuntu 18.10 partially supported, bye."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
   fi
-  if [ "${RELEASE}" == "18.10" ]; then
-    echo "Install on Ubuntu 18.10 partially supported, bye."
-    installSupported && exit || exit
-  fi
-  if [ "${RELEASE}" == "19.04" ]; then
-    echo "Install on Ubuntu 19.04 under development."
+  if [[ "${RELEASE}" == "19.04" ]]; then
+    echo "Install on Ubuntu 19.04 partially supported bye."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
     exit 1
   fi
-  if [ "${RELEASE}" == "19.10" ]; then
+  if [[ "${RELEASE}" == "19.10" ]]; then
     echo "Install on Ubuntu 19.10 not supported, bye"
     exit 1
   fi
@@ -723,20 +924,20 @@ if [ "${FLAVOUR}" == "ubuntu" ]; then
   exit
 fi
 
-# If Debian is detected, figure out which release it is and run the according scripts
-if [ "${FLAVOUR}" == "debian" ]; then
+# If Debian/Raspbian is detected, figure out which release it is and run the according scripts
+if [[ "${FLAVOUR}" == "debian" ]] || [[ "${FLAVOUR}" == "raspbian" ]]; then
   CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
-  if [ "${CODE}" == "buster" ]; then
+  if [[ "${CODE}" == "buster" ]]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP=7.3 && exit || exit
   fi
-  if [ "${CODE}" == "sid" ]; then
+  if [[ "${CODE}" == "sid" ]]; then
     echo "Install on Debian unstable not fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP=7.3 && exit || exit
   fi
-  if [ "${CODE}" == "stretch" ]; then
+  if [[ "${CODE}" == "stretch" ]]; then
     echo "Install on Debian stable fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP=7.0 && exit || exit
@@ -746,13 +947,13 @@ if [ "${FLAVOUR}" == "debian" ]; then
 fi
 
 # If Tsurugi is detected, figure out which release it is and run the according scripts
-if [ "${FLAVOUR}" == "tsurugi" ]; then
+if [[ "${FLAVOUR}" == "tsurugi" ]]; then
   CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
-  if [ "${CODE}" == "bamboo" ]; then
+  if [[ "${CODE}" == "bamboo" ]]; then
     echo "Install on Tsurugi Lab partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
   fi
-  if [ "${CODE}" == "soy sauce" ]; then
+  if [[ "${CODE}" == "soy sauce" ]]; then
     echo "Install on Tsurugi Acquire partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
   fi
@@ -761,10 +962,17 @@ if [ "${FLAVOUR}" == "tsurugi" ]; then
 fi
 
 # If Kali Linux is detected, run the acccording scripts
-if [ "${FLAVOUR}" == "kali" ]; then
+if [[ "${FLAVOUR}" == "kali" ]]; then
   KALI=1
-  kaliOnRootR0ckz
+  kaliOnTheR0ckz
   installMISPonKali
   echo "Installation done!"
+  exit
+fi
+
+# If RHEL/CentOS is detected, run appropriate script
+if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]] || [[ "${FLAVOUR}" == "fedora" ]]; then
+  installMISPRHEL
+  echo "Installation done !"
   exit
 fi

@@ -31,7 +31,7 @@
             ),
             'fields' => array(
                 array(
-                    'name' => __('Id'),
+                    'name' => __('ID'),
                     'sort' => 'id',
                     'class' => 'short',
                     'data_path' => 'id',
@@ -58,24 +58,34 @@
                 array(
                     'name' => __('Description'),
                     'data_path' => 'description',
+                ),
+                array(
+                    'name' => __('Self-reg'),
+                    'element' => 'self_registration',
+                    'class' => 'short',
+                    'title' => __('This community allows for self-registration'),
+                    'data_path' => 'url',
+                    'data_path_requirement' => 'self_registration'
                 )
             ),
             'title' => __('Communities index'),
             'description' => __('You can find a list of communities below that chose to advertise their existence to the general MISP user-base. Requesting access to any of those communities is of course no guarantee of being permitted access, it is only meant to simplify the means of finding the various communities that one may be eligible for. Get in touch with the MISP project maintainers if you would like your community to be included in the list.'),
             'actions' => array(
                 array(
-                    'url' => '/communities/view',
+                    'url' => $baseurl . '/communities/view',
                     'url_params_data_paths' => array(
                         'uuid'
                     ),
-                    'icon' => 'eye'
+                    'icon' => 'eye',
+                    'title' => __('View'),
                 ),
                 array(
-                    'url' => '/communities/requestAccess',
+                    'url' => $baseurl . '/communities/requestAccess',
                     'url_params_data_paths' => array(
                         'uuid'
                     ),
-                    'icon' => 'comments'
+                    'icon' => 'comments',
+                    'title' => __('Request access'),
                 )
             )
         )
@@ -83,19 +93,14 @@
     echo '</div>';
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'list_communities'));
 ?>
-<script type="text/javascript">
+<script>
     var passedArgsArray = <?php echo $passedArgs; ?>;
     if (passedArgsArray['context'] === undefined) {
-        passedArgsArray['context'] = 'pending';
+        passedArgsArray['context'] = 'vetted';
     }
-    $(document).ready(function() {
+    $(function() {
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter('/context:' + passedArgsArray['context']);
-        });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter('/context:' + passedArgsArray['context']);
-            }
         });
     });
 </script>

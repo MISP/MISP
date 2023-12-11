@@ -31,7 +31,7 @@
 ##
 
 # This makes use of the standard variables used by the installer
-eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | grep -v \`\`\`)"
+eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | awk '/^# <snippet-begin/,0' | grep -v \`\`\`)"
 MISPvars > /dev/null 2>&1
 
 # Leave empty for NO debug messages, if run with set -x or bash -x it will enable DEBUG by default

@@ -181,8 +181,15 @@ Configure::write('Session', array(
 	'cookie_timeout' => 10080 ,  // Cookie timeout, default is 1 week
 	'defaults'       => 'php',
 	'autoRegenerate' => false,
-	'checkAgent' => false
+	'checkAgent' => false,
 ));
+
+// Set session cookie SameSite parameter to Lax if this param is supported and no default value is set
+if (PHP_VERSION_ID >= 70300 && empty(ini_get('session.cookie_samesite'))) {
+    Configure::write('Session.ini', [
+        'session.cookie_samesite' => 'Lax'
+    ]);
+}
 
 /**
  * The level of CakePHP security.
@@ -248,8 +255,9 @@ Configure::write('Acl.database', 'default');
  *       and their setttings.
  */
 $engine = 'File';
-if (extension_loaded('apc') && function_exists('apc_dec') && (php_sapi_name() !== 'cli' || ini_get('apc.enable_cli'))) {
-	$engine = 'Apc';
+if (function_exists('apcu_dec') && (PHP_SAPI !== 'cli' || ini_get('apc.enable_cli'))) {
+    require_once APP . 'Plugin/ApcuCache/Engine/ApcuEngine.php'; // it is not possible to use plugin
+    $engine = 'Apcu'; // faster version of ApcEngine
 }
 
 // In development mode, caches should expire quickly.

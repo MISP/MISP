@@ -31,7 +31,7 @@
  *
  * Remember that Logable behavior needs to be added after RevisionBehavior. In fact, just put it last to be safe.
  *
- * Optionally register what user was responisble for the activity :
+ * Optionally register what user was responsible for the activity :
  *
  * - Supply configuration only if defaults are wrong. Example given with defaults :
  *
@@ -161,10 +161,17 @@ class LogableBehavior extends ModelBehavior {
 				'limit' => 50);
 		$params = array_merge($defaults, $params);
 		$options = array(
-				'order' => $params['order'],
 				'conditions' => $params['conditions'],
 				'fields' => $params['fields'],
-				'limit' => $params['limit']);
+				'limit' => $params['limit']
+		);
+		if (!empty($options['order'])) {
+			$options['order'] = $Model->findOrder(
+				$options['order'],
+				'Attribute',
+				['id', 'action', 'model_id', 'model', 'ip', 'org', 'email']
+			);
+		}
 		if ($params[$this->settings[$Model->alias]['classField']] === NULL) {
 			$params[$this->settings[$Model->alias]['classField']] = $Model->alias;
 		}
@@ -207,7 +214,7 @@ class LogableBehavior extends ModelBehavior {
 		if (!$this->UserModel) {
 			return NULL;
 		}
-		// if logged in user is asking for her own log, use the data we allready have
+		// if logged in user is asking for her own log, use the data we already have
 		if (isset($this->user) && isset($this->user[$this->UserModel->alias][$this->UserModel->primaryKey]) && $user_id == $this->user[$this->UserModel->alias][$this->UserModel->primaryKey] && isset($this->user[$this->UserModel->alias][$this->UserModel->displayField])) {
 			$username = $this->user[$this->UserModel->alias][$this->UserModel->displayField];
 		} else {
@@ -433,6 +440,10 @@ class LogableBehavior extends ModelBehavior {
 					$old = '';
 				}
 				if ($key != 'modified' && !in_array($key, $this->settings[$Model->alias]['ignore']) && $value != $old && in_array($key, $db_fields)) {
+				    if ($key === 'authkey' && Configure::read('Security.do_not_log_authkeys')) {
+				        $old = $value = '*****';
+                    }
+
 					if ($this->settings[$Model->alias]['change'] == 'full') {
 						$changed_fields[] = $key . ' (' . $old . ') => (' . $value . ')';
 					} else if ($this->settings[$Model->alias]['change'] == 'serialize') {
@@ -528,7 +539,7 @@ class LogableBehavior extends ModelBehavior {
 			$logData['Log']['description'] .= '.';
 		}
 		$this->Log->create($logData);
-		$this->Log->save(null, array(
+		$this->Log->saveOrFailSilently(null, array(
 				'validate' => false,
 				'callbacks' => false));
 	}

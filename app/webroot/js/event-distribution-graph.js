@@ -1,22 +1,22 @@
-var scope_id = $('#eventdistri_graph').data('event-id');
-var event_distribution = $('#eventdistri_graph').data('event-distribution');
-var event_distribution_text = $('#eventdistri_graph').data('event-distribution-text');
-var extended_text = $('#eventdistri_graph').data('extended') == 1 ? true : false;
+var $eventDistriGraph = $('#eventdistri_graph');
+var scope_id = $eventDistriGraph.data('event-id');
+var event_distribution = $eventDistriGraph.data('event-distribution');
+var event_distribution_text = $eventDistriGraph.data('event-distribution-text');
+var extended_text = $eventDistriGraph.data('extended') == 1 ? true : false;
 var spanOffset_orig = 15; // due to padding
-var payload = {};
 var distribution_chart;
 var distributionData;
 
 function clickHandlerGraph(evt) {
-    var firstPoint = distribution_chart.getElementAtEvent(evt)[0];
+    var firstPoint = distribution_chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false)[0];
     var distribution_id;
     if (firstPoint) {
-        var value = distribution_chart.data.datasets[firstPoint._datasetIndex].data[firstPoint._index];
+        var value = distribution_chart.data.datasets[firstPoint.datasetIndex].data[firstPoint.index];
         if (value == 0) {
             document.getElementById('attributesFilterField').value = "";
-            filterAttributes('all', scope_id);
+            filterAttributes('all');
         } else {
-            distribution_id = distribution_chart.data.distribution[firstPoint._index].value;
+            distribution_id = distribution_chart.data.distribution[firstPoint.index].value;
             var value_to_set = String(distribution_id);
             value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
             value_to_set = value_to_set.split('|');
@@ -323,6 +323,9 @@ function construct_piechart(data) {
         count += data.event[i];
     }
     if (count > 0) {
+        if (distribution_chart) {
+            distribution_chart.destroy()
+        }
         distribution_chart = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -331,13 +334,13 @@ function construct_piechart(data) {
                 datasets: doughnut_dataset,
             },
             options: {
-                title: {
-                    display: false
-                },
                 animation: {
                     duration: 500
                 },
-                tooltips: {
+                title: {
+                    display: false
+                },
+                tooltip: {
                     callbacks: {
                         label: function(item, data) {
                             return data.datasets[item.datasetIndex].label
@@ -386,13 +389,9 @@ function construct_piechart(data) {
 
 function fetchDistributionData(callback) {
     $.ajax({
-        url: "/events/"+"getDistributionGraph"+"/"+scope_id+"/event.json",
-        dataType: 'json',
-        type: 'post',
-        contentType: 'application/json',
-        data: JSON.stringify( payload ),
-        processData: false,
-        beforeSend: function (XMLHttpRequest) {
+        url: baseurl + "/events/getDistributionGraph/"+scope_id+"/event.json",
+        type: 'get',
+        beforeSend: function () {
             $(".loadingPopover").show();
         },
         success: function( data, textStatus, jQxhr ){
@@ -420,9 +419,12 @@ function drawBarChart(data) {
 }
 
 $(document).ready(function() {
-    var rightBtn = '<div style="float:right;"><span type="button" id="reloadDistributionGraph" title="Reload Distribution Graph" class="fas fa-sync useCursorPointer" aria-hidden="true" style="margin-left: 5px;" onclick="fetchDistributionData(function(data) { construct_piechart(data); });"></span></div>';
+    var rightBtns = '<div style="float:right;">';
+    rightBtns += '<span type="button" id="reloadDistributionGraph" title="Reload Distribution Graph" class="fas fa-sync useCursorPointer" aria-hidden="true" style="margin-left: 5px;" onclick="fetchDistributionData(function(data) { construct_piechart(data); });"></span>';
+    rightBtns += '<button type="button" class="close" style="margin-left: 5px;" onclick="$(\'.distribution_graph\').popover(\'hide\');">×</button>';
+    rightBtns += '</div>';
     var pop = $('.distribution_graph').popover({
-        title: "<b>Distribution graph</b> [atomic event]" + rightBtn,
+        title: "<b>Distribution graph</b> [atomic event]" + rightBtns,
         html: true,
         content: function() { return $('#distribution_graph_container').html(); },
         template : '<div class="popover" role="tooltip" style="z-index: 1;"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="padding-left: '+spanOffset_orig+'px; padding-right: '+spanOffset_orig*2+'px;"></div></div>'
@@ -448,6 +450,7 @@ $(document).ready(function() {
         drawBarChart(data);
         $('#showAdvancedSharingButton').distributionNetwork({
             event_distribution: event_distribution,
+            event_distribution_name: event_distribution_text,
             distributionData: data,
             scope_id: scope_id
         });

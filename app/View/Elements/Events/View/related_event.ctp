@@ -1,30 +1,30 @@
 <?php
-    $href_url = isset($href_url) ? $href_url : $baseurl . '/events';
+    $href_url = isset($href_url) ? $href_url : $baseurl . '/events/view/' . intval($related['id']);
+    if (isset($fromEventId)) {
+        $href_url .= "/1/$fromEventId";
+    }
     $hide = isset($hide) ? $hide : false;
+    $correlationCount = isset($relatedEventCorrelationCount[$related['id']]) ? (int)$relatedEventCorrelationCount[$related['id']] : null;
 ?>
-<span class="<?php echo $hide ? 'hidden correlation-expanded-area' : '' ?>">
-    <span style="display: inline-block; border: 1px solid #ddd; border-radius: 5px; padding: 3px; background-color: white;">
-        <table>
-            <tbody>
-                <tr>
-                    <td rowspan="2" style="border-right: 1px solid #ddd; padding-right: 2px; max-width: 24px; overflow: hidden; font-size: xx-small; text-overflow: ellipsis;" title="<?php echo h($related['Orgc']['name']); ?>">
-                        <?php echo $this->OrgImg->getOrgImg(array('name' => $related['Orgc']['name'], 'id' => $related['Orgc']['id'], 'size' => 24)); ?>
-                    </td>
-                    <td style="line-height: 14px; padding-left: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; max-width: 430px;">
-                        <a title="<?php echo h($related['info']); ?>" href="<?php echo h($href_url) . '/' . $related['id']?>">
-                            <span><?php echo h($related['info']) ?>
-                        </a>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="line-height: 14px; padding-left: 2px;">
-                        <i><?php echo h($related['date']); ?></i>
-                        <?php if (isset($relatedEventCorrelationCount[$related['id']])): ?>
-                            <b style="margin-left: 5px; float: right; cursor: help;" title="<?php echo sprintf(__('This related event contains %s unique correlation(s)'), h($relatedEventCorrelationCount[$related['id']])); ?>"> <?php echo h($relatedEventCorrelationCount[$related['id']]) ?></b>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </span>
-</span>
+<div class="event-correlation<?= $hide ? ' hidden-important' : '' ?>" data-count="<?= $correlationCount ?>" data-date="<?= h($related['date']) ?>" data-own-org="<?= $ownOrg ? 1 : 0 ?>">
+    <table>
+        <tr>
+            <td rowspan="2" class="org" title="<?= h($related['Orgc']['name']); ?>">
+                <?= $this->OrgImg->getOrgLogo($related['Orgc'], 24) ?>
+            </td>
+            <td class="info">
+                <a title="<?= h($related['info']); ?>" href="<?= h($href_url)?>">
+                    <?= h($related['info']) ?>
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding-left: 2px;">
+                <time><?= h($related['date']); ?></time>
+                <?php if (isset($correlationCount)): ?>
+                    <b onclick="setAttributeFilter('correlationId', <?= intval($related['id']) ?>)" title="<?= __n('This related event contains %s unique correlation. Click to show them.', 'This related event contains %s unique correlations. Click to show them.', $correlationCount, $correlationCount); ?>"><?= $correlationCount ?></b>
+                <?php endif; ?>
+            </td>
+        </tr>
+    </table>
+</div>

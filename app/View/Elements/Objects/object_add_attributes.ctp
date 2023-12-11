@@ -13,14 +13,13 @@
   </td>
   <td class="short" title="<?php echo h($element['description']); ?>">
     <?php
-      $formSettings = array(
-        'type' => 'hidden',
-        'value' => $element['object_relation'],
-        'label' => false,
-        'div' => false
-      );
-      echo $this->Form->input('Attribute.' . $k . '.object_relation', $formSettings);
-      if ($action == 'edit') {
+      echo $this->Form->input('Attribute.' . $k . '.object_relation', array(
+          'type' => 'hidden',
+          'value' => $element['object_relation'],
+          'label' => false,
+          'div' => false
+      ));
+      if ($action === 'edit') {
         echo $this->Form->input('Attribute.' . $k . '.uuid', array(
           'type' => 'hidden',
           'label' => false,
@@ -28,18 +27,17 @@
           'value' => !empty($element['uuid']) ? $element['uuid'] : ''
         ));
       }
-      $formSettings = array(
-        'type' => 'hidden',
-        'value' => $element['type'],
-        'label' => false,
-        'div' => false
-      );
-      echo $this->Form->input('Attribute.' . $k . '.type', $formSettings);
+      echo $this->Form->input('Attribute.' . $k . '.type', array(
+          'type' => 'hidden',
+          'value' => $element['type'],
+          'label' => false,
+          'div' => false
+      ));
       echo '<span class="bold">' . Inflector::humanize(h($element['object_relation'])) . '</span>';
-      if (!empty($template['ObjectTemplate']['requirements']['required']) && in_array($element['object_relation'], $template['ObjectTemplate']['requirements']['required'])) {
-        echo '<span class="bold red">' . '(*)' . '</span>';
+      if (!empty($template['ObjectTemplate']['requirements']['required']) && in_array($element['object_relation'], $template['ObjectTemplate']['requirements']['required'], true)) {
+        echo '<span class="red" style="vertical-align: super;font-size: 8px;margin-left: 2px;" title="' . __('Required') . '"><i class="fas fa-asterisk"></i></span>';
       }
-      echo ' :: ' . h($element['type']) . '';
+      echo '<br>' . h($element['type']);
     ?>
   </td>
   <td>
@@ -47,14 +45,13 @@
   </td>
   <td class="short">
     <?php
-      $formSettings = array(
-        'options' => array_combine($element['categories'], $element['categories']),
-        'default' => $element['default_category'],
-        'style' => 'margin-bottom:0px;',
-        'label' => false,
-        'div' => false
-      );
-      echo $this->Form->input('Attribute.' . $k . '.category', $formSettings);
+      echo $this->Form->input('Attribute.' . $k . '.category', array(
+          'options' => array_combine($element['categories'], $element['categories']),
+          'default' => $element['default_category'],
+          'style' => 'margin-bottom:0px;width:180px',
+          'label' => false,
+          'div' => false
+      ));
     ?>
   </td>
   <td class="short">
@@ -85,7 +82,8 @@
         'type' => 'checkbox',
         'checked' => $element['disable_correlation'],
         'label' => false,
-        'div' => false
+        'div' => false,
+        'disabled' => in_array($element['type'], Attribute::NON_CORRELATING_TYPES, true),
       ));
     ?>
   </td>

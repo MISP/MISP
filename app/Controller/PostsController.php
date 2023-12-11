@@ -9,12 +9,9 @@ App::uses('AppController', 'Controller');
 class PostsController extends AppController
 {
     public $components = array(
-        'Security',
         'Session',
         'RequestHandler'
     );
-
-    public $helpers = array('Js' => array('Jquery'));
 
     public $paginate = array(
             'limit' => 60,
@@ -42,35 +39,28 @@ class PostsController extends AppController
         $event_id = 0;
         $post_id = 0;
         if ($this->request->is('ajax')) {
-            $this->layout = 'ajax';
+            $this->layout = false;
         }
         // we have a target type and a target id. The target id defines what type of object we want to attach this event to (is it a reply to another post,
         // did someone add a post to a thread, does a thread for the event exist already, etc.
         switch ($target_type) {
             case 'event':
                 $this->loadModel('Event');
-                $this->Event->recursive = -1;
-                $this->Event->read(null, $target_id);
-                $eventDiscussionTitle = __('Discussion about Event #') . $this->Event->data['Event']['id'] . ' (' . $this->Event->data['Event']['info'] . ')';
-                if (!$this->Event->exists()) {
+                $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $target_id);
+                if (!$event) {
                     throw new NotFoundException(__('Invalid event'));
                 }
-                if (!$this->_isSiteAdmin()) {
-                    if ($this->Event->data['Event']['distribution'] == 0 && $this->Event->data['Event']['org_id'] != $this->Auth->user('org_id')) {
-                        throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
-                    }
-                }
-                $thread = $this->Thread->find('first', array('conditions' => array('event_id' => $target_id)));
+                $eventDiscussionTitle = __('Discussion about Event #%s (%s)', $event['Event']['id'], $event['Event']['info']);
+                $thread = $this->Thread->find('first', array('conditions' => array('event_id' => $event['Event']['id'])));
                 $title = $eventDiscussionTitle;
                 if (isset($thread['Thread']['id'])) {
                     $target_thread_id = $thread['Thread']['id'];
                 } else {
                     $target_thread_id = null;
                 }
-                $distribution = $this->Event->data['Event']['distribution'];
-                $sgid = $this->Event->data['Event']['sharing_group_id'];
-                $org = $this->Event->data['Event']['org_id'];
-                $event_id = $this->Event->data['Event']['id'];
+                $distribution = $event['Event']['distribution'];
+                $sgid = $event['Event']['sharing_group_id'];
+                $event_id = $event['Event']['id'];
             break;
             case 'thread':
                 $target_thread_id = $target_id;
@@ -208,7 +198,7 @@ class PostsController extends AppController
             throw new NotFoundException(__('Invalid post'));
         }
         if (!$this->_isSiteAdmin() && $this->Auth->user('id') != $post['Post']['user_id']) {
-            throw new MethodNotAllowedException(__('This is not your event.'));
+            throw new MethodNotAllowedException(__('This is not your post.'));
         }
 
         if ($this->request->is('post') || $this->request->is('put')) {

@@ -1,25 +1,25 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Regexp $Regexp
+ * @property AdminCrudComponent $AdminCrud
+ */
 class RegexpController extends AppController
 {
-    public $components = array('Security', 'RequestHandler', 'AdminCrud');
+    public $components = array('RequestHandler', 'AdminCrud');
 
     public $paginate = array(
-            'limit' => 60,
-            'order' => array(
-                    'Regexp.id' => 'ASC'
-            )
+        'limit' => 60,
+        'order' => array(
+            'Regexp.id' => 'ASC'
+        )
     );
 
     public function admin_add()
     {
         $this->loadModel('Attribute');
         $types = array_keys($this->Attribute->typeDefinitions);
-        if (!$this->userRole['perm_regexp_access']) {
-            $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
-        }
         if ($this->request->is('post')) {
             if ($this->request->data['Regexp']['all'] == 1) {
                 $this->Regexp->create();
@@ -54,9 +54,6 @@ class RegexpController extends AppController
 
     public function admin_index()
     {
-        if (!$this->userRole['perm_regexp_access']) {
-            $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
-        }
         $this->AdminCrud->adminIndex();
     }
 
@@ -67,10 +64,6 @@ class RegexpController extends AppController
         // for ip-src and ip-dst attribute entry, but not for url.
         $this->loadModel('Attribute');
         $types = array_keys($this->Attribute->typeDefinitions);
-        // send the user away if he/she's no admin
-        if (!$this->userRole['perm_regexp_access']) {
-            $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
-        }
         $this->Regexp->id = $id;
         if (!$this->Regexp->exists()) {
             throw new NotFoundException('Invalid Regexp');
@@ -159,9 +152,6 @@ class RegexpController extends AppController
 
     public function admin_delete($id = null)
     {
-        if (!$this->userRole['perm_regexp_access']) {
-            $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
-        }
         $this->AdminCrud->adminDelete($id);
     }
 
@@ -173,9 +163,8 @@ class RegexpController extends AppController
 
     public function admin_clean()
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException('This action is only accessible via a POST request.');
-        }
+        $this->request->allowMethod(['post']);
+
         $allRegexp = $this->Regexp->find('all');
         $deletable = array();
         $modifications = 0;
@@ -215,9 +204,8 @@ class RegexpController extends AppController
 
     public function cleanRegexModifiers()
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
+        $this->request->allowMethod(['post']);
+
         $entries = $this->Regexp->find('all', array());
         $changes = 0;
         foreach ($entries as $entry) {

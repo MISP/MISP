@@ -1,11 +1,7 @@
-<?php
-    $mayModify = (
-        ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Event']['orgc_id'] == $me['org_id']) ||
-        ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])
-    );
-    echo $this->element('ajaxTags', array(
-        'event' => $event,
-        'tags' => $tags,
-        'tagAccess' => ($isSiteAdmin || $mayModify)
-    ));
-?>
+<?= $this->element('ajaxTags', array(
+    'event' => $event,
+    'tags' => $tags,
+    'tagAccess' => $isSiteAdmin || $mayModify,
+    'localTagAccess' => $this->Acl->canModifyTag($event, true),
+    'tagConflicts' => $tagConflicts
+));

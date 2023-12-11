@@ -1,11 +1,16 @@
 <div class="confirmation">
     <?php
-    echo $this->Form->create($model, array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/' . strtolower($model) . 's/removeTag/' . $id . '/' . $tag_id));
+    echo $this->Form->create($model, array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/' . strtolower($model) . 's/removeTag/' . $id . '/' . $tag_id));
     $action = "removeObjectTag('" . $model . "', '" . h($id) . "', '" . h($tag_id) . "');";
     ?>
-    <legend><?php echo __('Remove Tag'); ?></legend>
     <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-    <p><?php echo __('Remove tag '); ?> (<?php echo h($tag_id); ?>) <?php echo __('from '); ?> <?php echo ucfirst(h($model)); ?> (<?php echo h($id); ?>)?</p>
+    <p><?= __('Remove %s tag %s from %s %s?',
+            isset($is_local) ? ($is_local ? __('local') : __('global')) : '',
+            $this->element('tag', ['tag' => $tag]),
+            str_replace('_', ' ', strtolower($model)),
+            h($model_name))
+        ?>
+    </p>
         <table>
             <tr>
                 <td style="vertical-align:top">

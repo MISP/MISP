@@ -19,13 +19,10 @@ let keyboardShortcutsManager = {
 	 * Fetches the keyboard shortcut config files and populates this.shortcutJSON.
 	 */
 	init() {
-		let shortcutURIs = [];
-		for(let keyboardShortcutElement of $('.keyboardShortcutsConfig')) {
-			shortcutURIs.push(keyboardShortcutElement.value);
-			this.ajaxGet(window.location.protocol + "//" + window.location.host + keyboardShortcutElement.value).then(response => {
-				this.mapKeyboardShortcuts(JSON.parse(response));
-			});
-		}
+		/* Codacy comment to notify that baseurl is a read-only global variable. */
+		/* global baseurl */
+		var $body = $(document.body);
+		this.mapKeyboardShortcuts(getShortcutsDefinition($body.data('controller'), $body.data('action')));
 		this.setKeyboardListener();
 	},
 
@@ -47,7 +44,7 @@ let keyboardShortcutsManager = {
 	 */
 	addShortcutListToHTML() {
 		let html = "<ul>";
-		for(let shortcut of this.shortcutKeys.values()) {
+		for (let shortcut of this.shortcutKeys.values()) {
 			html += `<li><strong>${shortcut.key.toUpperCase()}</strong>: ${shortcut.description}</li>`
 		}
 		html += "</ul>"
@@ -59,7 +56,7 @@ let keyboardShortcutsManager = {
 	 * @param {} config The shortcut JSON list: [{key: string, description: string, action: string(eval-able JS code)}]
 	 */
 	mapKeyboardShortcuts(config) {
-		for(let shortcut of config.shortcuts) {
+		for (let shortcut of config) {
 			this.shortcutKeys.set(shortcut.key, shortcut);
 		}
 		this.addShortcutListToHTML();
@@ -72,45 +69,21 @@ let keyboardShortcutsManager = {
 	 */
 	setKeyboardListener() {
 		window.onkeyup = (keyboardEvent) => {
-			if(this.shortcutKeys.has(keyboardEvent.key)) {
+			if (this.shortcutKeys.has(keyboardEvent.key)) {
 				let activeElement = document.activeElement.tagName;
-				if( !this.ESCAPED_TAG_NAMES.includes(activeElement)) {
-					eval(this.shortcutKeys.get(keyboardEvent.key).action);
+				if (!this.ESCAPED_TAG_NAMES.includes(activeElement)) {
+					this.shortcutKeys.get(keyboardEvent.key).action();
 				}
-			} else if(this.NAVIGATION_KEYS.includes(keyboardEvent.key)) {
+			} else if (this.NAVIGATION_KEYS.includes(keyboardEvent.key)) {
 				window.dispatchEvent(new CustomEvent(this.EVENTS[keyboardEvent.key], {detail: keyboardEvent}));
 			}
 		}
 	},
-
-	/**
-	 * Queries the given URL with a GET request and returns a Promise
-	 * that resolves when the response arrives.
-	 * @param string url The URL to fetch.
-	 */
-	ajaxGet(url) {
-		return new Promise(function(resolve, reject) {
-			let req = new XMLHttpRequest();
-			req.open("GET", url);
-			req.onload = function() {
-				if (req.status === 200) {
-					resolve(req.response);
-				} else {
-					reject(new Error(req.statusText));
-				}
-			};
-
-			req.onerror = function() {
-				reject(new Error("Network error"));
-			};
-
-			req.send();
-		});
-	}
 }
 
-// Inits the keyboard shortcut manager's main routine.
-$(document).ready(() => keyboardShortcutsManager.init());
+// Inits the keyboard shortcut manager's main routine and the click event on the keyboard shortcut triangle at the bottom of the screen.
+$(function(){
+	keyboardShortcutsManager.init();
+	$('#triangle').click(keyboardShortcutsManager.onTriangleClick);
+});
 
-// Inits the click event on the keyboard shortcut triangle at the bottom of the screen.
-$('#triangle').click(keyboardShortcutsManager.onTriangleClick);

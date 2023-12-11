@@ -100,7 +100,7 @@ COPY public.event_tags (id, event_id, tag_id) FROM stdin;
 -- Data for Name: events; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.events (id, org_id, date, info, user_id, uuid, published, analysis, attribute_count, orgc_id, "timestamp", distribution, sharing_group_id, proposal_email_lock, locked, threat_level_id, publish_timestamp, disable_correlation, extends_uuid) FROM stdin;
+COPY public.events (id, org_id, date, info, user_id, uuid, published, analysis, attribute_count, orgc_id, "timestamp", distribution, sharing_group_id, proposal_email_lock, locked, threat_level_id, publish_timestamp, sighting_timestamp, disable_correlation, extends_uuid) FROM stdin;
 \.
 
 
@@ -118,7 +118,7 @@ COPY public.favourite_tags (id, tag_id, user_id) FROM stdin;
 
 COPY public.feeds (id, name, provider, url, rules, enabled, distribution, sharing_group_id, tag_id, "default", source_format, fixed_event, delta_merge, event_id, publish, override_ids, settings, input_source, delete_local_file, lookup_visible, headers, caching_enabled) FROM stdin;
 1	CIRCL OSINT Feed	CIRCL	https://www.circl.lu/doc/misp/feed-osint	\N	f	3	0	0	t	misp	f	f	0	f	f	\N	network	f	f	\N	f
-2	The Botvrij.eu Data	Botvrij.eu	http://www.botvrij.eu/data/feed-osint	\N	f	3	0	0	t	misp	f	f	0	f	f	\N	network	f	f	\N	f
+2	The Botvrij.eu Data	Botvrij.eu	https://www.botvrij.eu/data/feed-osint	\N	f	3	0	0	t	misp	f	f	0	f	f	\N	network	f	f	\N	f
 \.
 
 
@@ -309,13 +309,13 @@ COPY public.regexp (id, regexp, replacement, type) FROM stdin;
 -- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.roles (id, name, created, modified, perm_add, perm_modify, perm_modify_org, perm_publish, perm_delegate, perm_sync, perm_admin, perm_audit, perm_full, perm_auth, perm_site_admin, perm_regexp_access, perm_tagger, perm_template, perm_sharing_group, perm_tag_editor, perm_sighting, perm_object_template, default_role, memory_limit, max_execution_time, restricted_to_site_admin, perm_publish_zmq, perm_publish_kafka) FROM stdin;
-1	admin	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	t	t	t	t	t	t	t	t	t	t	t	t	t	f			f	t	t
-2	Org Admin	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	f	t	t	f	t	f	f	t	t	t	t	t	f	f			f	t	t
-3	User	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	f	f	f	f	f	f	t	f	f	f	f	f	f	t	f	t			f	f	f
-4	Publisher	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	f	f	f	f	t	f	f	f	f	f	f	t	f	f			f	t	t
-5	Sync user	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	t	f	f	f	t	f	f	f	f	t	f	t	f	f			f	t	t
-6	Read Only	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	f	f	f	f	f	f	f	f	f	t	f	f	f	f	f	f	f	f	f			f	f	f
+COPY public.roles (id, name, created, modified, perm_add, perm_modify, perm_modify_org, perm_publish, perm_delegate, perm_sync, perm_admin, perm_audit, perm_full, perm_auth, perm_site_admin, perm_regexp_access, perm_tagger, perm_template, perm_sharing_group, perm_tag_editor, perm_sighting, perm_object_template, default_role, memory_limit, max_execution_time, restricted_to_site_admin, perm_publish_zmq, perm_publish_kafka, perm_decaying) FROM stdin;
+1	admin	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	t	t	t	t	t	t	t	t	t	t	t	t	t	f			f	t	t	t
+2	Org Admin	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	f	t	t	f	t	f	f	t	t	t	t	t	f	f			f	t	t	t
+3	User	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	f	f	f	f	f	f	t	f	f	f	f	f	f	t	f	t			f	f	f	t
+4	Publisher	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	f	f	f	f	t	f	f	f	f	f	f	t	f	f			f	t	t	t
+5	Sync user	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	t	t	t	t	t	t	f	f	f	t	f	f	f	f	t	f	t	f	f			f	t	t	t
+6	Read Only	2018-11-27 06:22:00+00	2018-11-27 06:22:00+00	f	f	f	f	f	f	f	f	f	t	f	f	f	f	f	f	f	f	f			f	f	f	f
 \.
 
 
@@ -323,7 +323,7 @@ COPY public.roles (id, name, created, modified, perm_add, perm_modify, perm_modi
 -- Data for Name: servers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.servers (id, name, url, authkey, org_id, push, pull, lastpulledid, lastpushedid, organization, remote_org_id, publish_without_email, unpublish_event, self_signed, pull_rules, push_rules, cert_file, client_cert_file, internal) FROM stdin;
+COPY public.servers (id, name, url, authkey, org_id, push, pull, push_sightings, lastpulledid, lastpushedid, organization, remote_org_id, publish_without_email, unpublish_event, self_signed, pull_rules, push_rules, cert_file, client_cert_file, internal) FROM stdin;
 \.
 
 

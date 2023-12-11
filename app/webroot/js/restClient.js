@@ -1,26 +1,27 @@
+"use strict";
+
+/* Codacy comment to notify that baseurl is a read-only global variable. */
+/* global baseurl */
+
 // tooltips
 var thread = null;
 function setApiInfoBox(isTyping) {
     clearTimeout(thread);
-    if (isTyping) {
-        var delay = 200;
-    } else {
-        var delay = 0;
-    }
-    var $this = $(this);
-    var payload = {
-        "url": $('#ServerUrl').val()
-    };
-    if (payload) {
+    var url = $('#ServerUrl').val();
+    if (url) {
+        var delay = isTyping ? 200 : 0;
+        var payload = {
+            "url": extractPathFromUrl(url)
+        };
         thread = setTimeout(
             function() {
                 $.ajax({
                     type: "POST",
-                    url: '/servers/getApiInfo',
+                    url: baseurl + '/api/getApiInfo',
                     data: payload,
-                    success:function (data, textStatus) {
+                    success: function (data) {
                         $('#apiInfo').html(data);
-                            addHoverInfo($('#ServerUrl').data('urlWithoutParam'));
+                        addHoverInfo($('#ServerUrl').data('urlWithoutParam'));
                     }
                 });
             },
@@ -32,18 +33,27 @@ function setApiInfoBox(isTyping) {
 }
 
 function loadRestClientHistory(k, data_container) {
-    $('#ServerMethod').val(data_container[k]['RestClientHistory']['http_method']);
-    $('#ServerUseFullPath').prop("checked", data_container[k]['RestClientHistory']['use_full_path']);
-    $('#ServerShowResult').prop("checked", data_container[k]['RestClientHistory']['show_result']);
-    $('#ServerSkipSslValidation').prop("checked", data_container[k]['RestClientHistory']['skip_ssl_validation']);
-    $('#ServerUrl').val(data_container[k]['RestClientHistory']['url']);
-    $('#ServerHeader').val(data_container[k]['RestClientHistory']['headers']);
+    var data = data_container[k];
+    $('#ServerMethod').val(data['http_method']);
+    $('#ServerUseFullPath').prop("checked", data['use_full_path']);
+    $('#ServerShowResult').prop("checked", data['show_result']);
+    $('#ServerSkipSslValidation').prop("checked", data['skip_ssl_validation']);
+    $('#ServerUrl').val(data['url']);
+    $('#ServerHeader').val(data['headers']);
     toggleRestClientBookmark();
-    $('#ServerBody').val(data_container[k]['RestClientHistory']['body']);
-    $('#TemplateSelect').val(data_container[k]['RestClientHistory']['url']).trigger("chosen:updated");
-    updateQueryTool(data_container[k]['RestClientHistory']['url'], false);
+    cm.setValue(data['body'])
+
+    var url = extractPathFromUrl(data['url'])
+    $('#TemplateSelect').val(url).trigger("chosen:updated");
+    updateQueryTool(url, false);
     $('#querybuilder').find('select').trigger('chosen:updated');
     setApiInfoBox(false);
+}
+
+function extractPathFromUrl(url) {
+    var el = document.createElement('a')
+    el.href = url
+    return el.pathname
 }
 
 function populate_rest_history(scope) {
@@ -54,7 +64,7 @@ function populate_rest_history(scope) {
         scope = '1';
         var container_class = 'bookmarked_queries';
     }
-    $.get("/rest_client_history/index/" + scope, function(data) {
+    $.get(baseurl + "/rest_client_history/index/" + scope, function(data) {
         $('.' + container_class).html(data);
     });
 }
@@ -70,7 +80,7 @@ function toggleRestClientBookmark() {
 function removeRestClientHistoryItem(id) {
     $.ajax({
         data: '[]',
-        success:function (data, textStatus) {
+        success: function () {
             populate_rest_history('bookmark');
             populate_rest_history('history');
         },
@@ -79,35 +89,43 @@ function removeRestClientHistoryItem(id) {
         },
         type:"post",
         cache: false,
-        url: '/rest_client_history/delete/' + id,
+        url: baseurl + '/rest_client_history/delete/' + id,
     });
 }
 
-
-
-
-    var allValidApis;
-    var fieldsConstraint;
-    var querybuilderTool;
+var allValidApis;
+var fieldsConstraint;
+var querybuilderTool;
+var debounceTimerUpdate;
 
     $('form').submit(function(e) {
         $('#querybuilder').remove();
         return true;
     });
 
-    $(document).ready(function () {
+    $(function () {
+        $.ajax({
+            dataType: "json",
+            url: baseurl + '/api/getAllApis',
+            success: function (data) {
+                allValidApis = data['allValidApis'];
+                fieldsConstraint = data['fieldsConstraint'];
+            }
+        });
+
         insertRawRestResponse();
         $('.format-toggle-button').bind('click', function() {
-            if ($(this).data('toggle-type') == 'Raw') {
+            var type = $(this).data('toggle-type');
+            if (type === 'Raw') {
                 $('#rest-response-container').empty();
                 insertRawRestResponse();
-            } else if ($(this).data('toggle-type') == 'HTML') {
+            } else if (type === 'HTML') {
                 $('#rest-response-container').empty();
                 insertHTMLRestResponse();
-            } else if ($(this).data('toggle-type') == 'JSON') {
+            } else if (type === 'JSON') {
                 $('#rest-response-container').empty();
                 insertJSONRestResponse();
-            } else if ($(this).data('toggle-type') == 'Download') {
+            } else if (type === 'Download') {
                 var download_content = $('#rest-response-hidden-container').text();
                 var extension = 'json';
                 var export_type = 'json';
@@ -129,30 +147,53 @@ function removeRestClientHistoryItem(id) {
             }
         });
 
-        $('#ServerUrl').keyup(function() {
-            $('#TemplateSelect').val($(this).val()).trigger("chosen:updated").trigger("change");
+        $('#TemplateSelect').val($('#ServerUrl').val()).trigger("chosen:updated").trigger("change");
+        $('#ServerUrl').keyup(function(e) {
+            var that = this
+            clearTimeout(debounceTimerUpdate);
+            var c = String.fromCharCode(e.keyCode);
+            var isWordCharacter = c.match(/\w/);
+            if (e.keyCode === undefined || isWordCharacter) {
+                debounceTimerUpdate = setTimeout(function() {
+                    $('#TemplateSelect').val($(that).val()).trigger("chosen:updated").trigger("change");
+                }, 200);
+            }
         });
 
         $('#TemplateSelect').change(function() {
             var selected_template = $('#TemplateSelect').val();
+            var previously_selected_template = $('#ServerUrl').data('urlWithoutParam')
             if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
                 $('#template_description').show();
-                $('#ServerMethod').val('POST');
+                if(allValidApis[selected_template].http_method !== undefined){
+                    $('#ServerMethod').val(allValidApis[selected_template].http_method);
+                } else {
+                    $('#ServerMethod').val('POST');
+                }
                 var server_url_changed = $('#ServerUrl').val() != allValidApis[selected_template].url;
-                $('#ServerUrl').val(allValidApis[selected_template].url);
-                $('#ServerUrl').data('urlWithoutParam', selected_template);
-                var body_value = $('#ServerBody').val();
-                if (body_value === '' || server_url_changed) {
-                    $('#ServerBody').val(allValidApis[selected_template].body);
+                $('#ServerUrl')
+                    .val(allValidApis[selected_template].url)
+                    .data('urlWithoutParam', selected_template);
+
+                var body_value = cm.getValue();
+                var body_changed = allValidApis[previously_selected_template] !== undefined ?
+                    JSON.stringify(allValidApis[previously_selected_template].body, null, 4) !== body_value :
+                    true;
+                var refreshBody = (body_value === '' || (server_url_changed && !body_changed))
+                if (refreshBody) {
+                    var body = JSON.stringify(allValidApis[selected_template].body, null, 4);
+                    $('#ServerBody').val(body);
+                    cm.setValue(body)
                 }
                 setApiInfoBox(false);
-                updateQueryTool(selected_template, true);
+                updateQueryTool(selected_template, refreshBody);
             }
         });
 
         $('#showQB').click(function() {
             $('#qb-div').toggle();
             if ($('#TemplateSelect').val() !== '') {
+                $('#ServerUrl').val('')
                 $('#TemplateSelect').trigger("change");
             }
         });
@@ -206,17 +247,29 @@ function removeRestClientHistoryItem(id) {
 
         /* Apply jquery chosen where applicable */
         $("#TemplateSelect").chosen();
+
+        populate_rest_history('history');
+        populate_rest_history('bookmark');
+        toggleRestClientBookmark();
+        setupCodeMirror();
     });
 
 
 function updateQueryTool(url, isEmpty) {
+    if ($('#qb-div').css('display') == 'none') {
+        return
+    }
     var apiJson = allValidApis[url];
     var filtersJson = fieldsConstraint[url];
 
     isEmpty = isEmpty === undefined ? false : isEmpty;
-    var body = $('#ServerBody').val();
+    var body = cm.getValue();
     if (!isEmpty && body !== undefined && body.length > 0) {
-        body = JSON.parse(body);
+        try {
+            body = JSON.parse(body);
+        } catch(e) {
+            body = {};
+        }
     } else {
         body = {};
     }
@@ -290,12 +343,22 @@ function updateQueryTool(url, isEmpty) {
             values.forEach(function(value) {
                 var r = $.extend({}, filtersJson[k], true);
                 r.value = value;
-                rules.rules[0].rules.push(r);
+                if (mandatoryFields !== undefined && mandatoryFields.length > 0) {
+                    rules.rules[0].rules.push(r);
+                } else {
+                    rules.rules.push(r);
+                }
             });
         } else {
             var r = filtersJson[k];
-            r.value = values;
-            rules.rules[0].rules.push(r);
+            if (r !== undefined) { // rule is not defined in the description
+                r.value = values;
+                if (mandatoryFields !== undefined && mandatoryFields.length > 0) {
+                    rules.rules[0].rules.push(r);
+                } else {
+                    rules.rules.push(r);
+                }
+            }
         }
     });
 
@@ -313,7 +376,6 @@ function updateQueryTool(url, isEmpty) {
             + '</div>');
         div.append(additionalInput);
     }
-
     querybuilderTool.setRules(rules, false);
 }
 
@@ -322,7 +384,7 @@ function injectQuerybuilterRulesToBody() {
     var result = {};
     recursiveInject(result, rules_root, false);
     var jres = JSON.stringify(result, null, '    ');
-    $('#ServerBody').val(jres);
+    cm.setValue(jres)
 
     // inject param to url
     var param = $('#paramInput').val();
@@ -396,13 +458,132 @@ function addHoverInfo(url) {
                     if(apiInfo !== undefined && apiInfo !== '') {
                         $('#infofield-'+field).popover({
                             trigger: 'hover',
-                            content: ''+field+':'+ apiInfo,
+                            content: field + ': ' + apiInfo,
                         });
                     } else { // no help, delete icon
                         $('#infofield-'+field).remove();
                     }
                 }
             });
+        }
+    });
+}
+
+function findPropertyFromValue(token) {
+    var absoluteIndex = cm.indexFromPos(CodeMirror.Pos(token.line, token.start))
+    var rawText = cm.getValue()
+    for (var index = absoluteIndex; index > 0; index--) {
+        var ch = rawText[index];
+        if (ch == ':') {
+            var token = cm.getTokenAt(cm.posFromIndex(index-2))
+            if (token.type == 'string property') {
+                return token.string.slice(1, token.string.length-1);
+            }
+        }
+    }
+    return false
+}
+
+function findMatchingHints(str, allHints) {
+    allHints = allHints.map(function(str) {
+        var strArray = typeof str === "object" ? String(str.value).split('&quot;') : str.split('&quot;')
+        return {
+            text: strArray.join('\\\"'), // transforms quoted elements into escaped quote
+            renderText: typeof str === "object" ? str.label : strArray.join('\"'),
+            render: function(elem, self, data) {
+                $(elem).append(data.renderText);
+            }
+        }
+    })
+    if (str.length > 0) {
+        var hints = []
+        var maxHints = 100
+        var hint
+        for (var i = 0; hints.length < maxHints && i < allHints.length; i++) {
+            hint = allHints[i];
+            if (hint.text.startsWith(str)) {
+                hints.push(hint)
+            }
+        }
+        return hints
+    } else {
+        return allHints
+    }
+}
+
+function getCompletions(token, isJSONKey) {
+    var hints = []
+    var url = $('#TemplateSelect').val()
+    if (allValidApis[url] === undefined) {
+        return hints
+    }
+    if (isJSONKey) {
+        var apiJson = allValidApis[url];
+        var allHints = (apiJson.mandatory !== undefined ? apiJson.mandatory : []).concat((apiJson.optional !== undefined ? apiJson.optional : []))
+        hints = findMatchingHints(token.string, allHints)
+    } else {
+        var jsonKey = findPropertyFromValue(token)
+        var filtersJson = fieldsConstraint[url];
+        if (filtersJson[jsonKey] !== undefined) {
+            var values = filtersJson[jsonKey].values
+            if (values !== undefined) {
+                allHints = Array.isArray(values) ? values : Object.keys(values)
+                hints = findMatchingHints(token.string, allHints)
+            }
+        }
+    }
+    return hints
+}
+
+function jsonHints() {
+    var cur = cm.getCursor()
+    var token = cm.getTokenAt(cur)
+    if (token.type != 'string property' && token.type != 'string') {
+        return
+    }
+    if (cm.getMode().helperType !== "json") return;
+    token.state = cm.state;
+    token.line = cur.line
+
+    if (/\"([^\"]*)\"/.test(token.string)) {
+      token.end = cur.ch;
+      token.string = token.string.slice(1, cur.ch - token.start);
+    }
+
+    return {
+        list: getCompletions(token, token.type == 'string property'),
+        from: CodeMirror.Pos(cur.line, token.start+1),
+        to: CodeMirror.Pos(cur.line, token.end)
+    }
+}
+
+var cm;
+function setupCodeMirror() {
+    var cmOptions = {
+        mode: "application/json",
+        theme:'default',
+        gutters: ["CodeMirror-lint-markers"],
+        lint: true,
+        lineNumbers: true,
+        indentUnit: 4,
+        showCursorWhenSelecting: true,
+        lineWrapping: true,
+        autoCloseBrackets: true,
+        extraKeys: {
+            "Esc": function(cm) {
+            },
+            "Ctrl-Space": "autocomplete",
+        },
+        hintOptions: {
+            completeSingle: false,
+            hint: jsonHints
+        },
+    }
+    cm = CodeMirror.fromTextArea(document.getElementById('ServerBody'), cmOptions);
+    cm.on("keyup", function (cm, event) {
+        if (!cm.state.completionActive && /*Enables keyboard navigation in autocomplete list*/
+            event.keyCode != 13) {     /*Enter - do not open autocomplete list just after item has been selected in it*/ 
+            cm.showHint()
         }
     });
 }

@@ -1,6 +1,6 @@
 <div class="template_element_add_attribute">
 <?php
-    echo $this->Form->create('TemplateElementAttribute', array('id', 'url' => '/templateElements/add/attribute/' . $id));
+    echo $this->Form->create('TemplateElementAttribute', array('id', 'url' => $baseurl . '/templateElements/add/attribute/' . $id));
 ?>
     <legend><?php echo __('Add Attribute Element To Template'); ?></legend>
     <fieldset>

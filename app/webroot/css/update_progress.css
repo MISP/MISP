@@ -64,6 +64,13 @@ table.updateProgressTable .small-state-text-in-td {
 
 }
 
+.single-update-pb {
+    height: 100%;
+    background: #149bdf;
+    transition: width 0.6s ease;
+    transform: rotateZ(360deg);
+}
+
 .back-and-forth-animation {
     position: relative;
     animation: backandforthAnim 2.0s infinite;

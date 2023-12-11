@@ -1,6 +1,6 @@
 <div class="template_element_add_text">
 <?php
-    echo $this->Form->create('TemplateElementText', array('id', 'url' => '/templateElements/edit/text/' . $id));
+    echo $this->Form->create('TemplateElementText', array('id', 'url' => $baseurl . '/templateElements/edit/text/' . $id));
 ?>
     <legend><?php echo __('Add Text Element To Template'); ?></legend>
     <fieldset>

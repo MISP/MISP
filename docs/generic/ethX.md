@@ -30,11 +30,15 @@ sudo update-grub  > /dev/null 2>&1
 ```
 
 !!! notice
-    On recent Ubuntu install Netplan is default and you need to change the Network name.
+    On recent Ubuntu install Netplan is default and you might need to change the Network name in its respective config file.
     ```
     sudo sed -i "s/enp0s3/eth0/" /etc/netplan/50-cloud-init.yaml
     ```
     OR on Ubuntu 19.04 (yay for changing this every 5 commits... #n00bs)
     ```
     sudo sed -i "s/enp0s3/eth0/" /etc/netplan/01-netcfg.yaml
+    ```
+    OR on Ubuntu 22.04
+    ```
+    sudo sed -i "s/enp0s3/eth0/" /etc/netplan/00-installer-config.yaml
     ```

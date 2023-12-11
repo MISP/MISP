@@ -1,85 +1,187 @@
-<div class="taxonomies index">
-    <h2><?php echo __('Warninglists');?></h2>
-    <div class="pagination">
-        <ul>
-        <?php
-        $this->Paginator->options(array(
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
-        ));
-
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-    <div id="hiddenFormDiv">
-    <?php
-        if ($isSiteAdmin) {
-            echo $this->Form->create('Warninglist', array('url' => '/warninglists/toggleEnable'));
-            echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
-            echo $this->Form->end();
-        }
-    ?>
-    </div>
-    <table class="table table-striped table-hover table-condensed">
-    <tr>
-            <th><?php echo $this->Paginator->sort('id');?></th>
-            <th><?php echo $this->Paginator->sort('name');?></th>
-            <th><?php echo $this->Paginator->sort('version');?></th>
-            <th><?php echo $this->Paginator->sort('description');?></th>
-            <th><?php echo $this->Paginator->sort('type');?></th>
-            <th><?php echo __('Valid attributes');?></th>
-            <th><?php echo $this->Paginator->sort('warninglist_entry_count', __('Entries'));?></th>
-            <th><?php echo $this->Paginator->sort('enabled');?></th>
-            <th class="actions"><?php echo __('Actions');?></th>
-    </tr><?php
-foreach ($warninglists as $k => $item): ?>
-    <tr>
-        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['id']); ?>&nbsp;</td>
-        <td ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['name']); ?>&nbsp;</td>
-        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['version']); ?>&nbsp;</td>
-        <td ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['description']); ?>&nbsp;</td>
-        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['type']); ?>&nbsp;</td>
-        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['valid_attributes']); ?>&nbsp;</td>
-        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['warninglist_entry_count']); ?>&nbsp;</td>
-        <td class="short" id ="checkbox_row_<?php echo h($item['Warninglist']['id']);?>">
-            <?php
-                if ($isSiteAdmin) {
-                    $onClick = 'onClick="toggleSetting(event, \'warninglist_enable\', \'' . h($item['Warninglist']['id']) . '\')"';
-                } else {
-                    $onClick = 'disabled';
-                }
-            ?>
-            <input id="checkBox_<?php echo h($item['Warninglist']['id']); ?>" type="checkbox" <?php echo $onClick; ?> <?php echo $item['Warninglist']['enabled'] ? 'checked' : ''; ?>/>
-        </td>
-        <td class="short action-links">
-            <a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
-            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Delete Warninglist');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete warninglist');?>" onClick="deleteObject('warninglists', 'delete', '<?php echo h($item['Warninglist']['id']); ?>', '<?php echo h($item['Warninglist']['id']); ?>');"></span>
-        </td>
-    </tr><?php
-endforeach; ?>
-    </table>
-    <p>
-    <?php
-    echo $this->Paginator->counter(array(
-    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-    ));
-    ?>
-    </p>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-</div>
 <?php
+    echo '<div class="index">';
+    if ($isSiteAdmin) {
+        echo '<div id="hiddenFormDiv">';
+        echo $this->Form->create('Warninglist', array('url' => $baseurl . '/warninglists/toggleEnable'));
+        echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
+        echo $this->Form->end();
+        echo '</div>';
+    }
+    echo $this->element('/genericElements/IndexTable/index_table', array(
+        'data' => array(
+            'data' => $warninglists,
+            'top_bar' => array(
+                'children' => array(
+                    array(
+                        'type' => 'simple',
+                        'children' => array(
+                            array(
+                                'url' => $baseurl . '/warninglists/index',
+                                'text' => __('All'),
+                                'active' => !isset($passedArgsArray['enabled']),
+                            ),
+                            array(
+                                'url' => $baseurl . '/warninglists/index/enabled:1',
+                                'text' => __('Enabled'),
+                                'active' => isset($passedArgsArray['enabled']) && $passedArgsArray['enabled'] === "1",
+                            ),
+                            array(
+                                'url' => $baseurl . '/warninglists/index/enabled:0',
+                                'text' => __('Disabled'),
+                                'active' => isset($passedArgsArray['enabled']) && $passedArgsArray['enabled'] === "0",
+                            )
+                        )
+                    ),
+                    array(
+                        'type' => 'search',
+                        'button' => __('Filter'),
+                        'placeholder' => __('Enter value to search'),
+                        'data' => '',
+                        'searchKey' => 'value'
+                    )
+                )
+            ),
+            'title' => __('Warninglists'),
+            'primary_id_path' => 'Warninglist.id',
+            'fields' => array(
+                array(
+                    'name' => __('ID'),
+                    'sort' => 'id',
+                    'class' => 'short',
+                    'data_path' => 'Warninglist.id',
+                    'element' => 'links',
+                    'url' => $baseurl . '/warninglists/view/%s'
+                ),
+                array(
+                    'name' => __('Name'),
+                    'sort' => 'name',
+                    'data_path' => 'Warninglist.name',
+                ),
+                array(
+                    'name' => __('Version'),
+                    'sort' => 'version',
+                    'class' => 'short',
+                    'data_path' => 'Warninglist.version',
+                ),
+                array(
+                    'name' => __('Description'),
+                    'data_path' => 'Warninglist.description',
+                ),
+                array(
+                    'name' => __('Category'),
+                    'sort' => 'category',
+                    'class' => 'short',
+                    'element' => 'custom',
+                    'function' => function (array $row) use ($possibleCategories) {
+                        return $possibleCategories[$row['Warninglist']['category']];
+                    }
+                ),
+                array(
+                    'name' => __('Type'),
+                    'sort' => 'type',
+                    'class' => 'short',
+                    'data_path' => 'Warninglist.type',
+                ),
+                array(
+                    'name' => __('Entries'),
+                    'sort' => 'warninglist_entry_count',
+                    'class' => 'short',
+                    'data_path' => 'Warninglist.warninglist_entry_count',
+                ),
+                array(
+                    'name' => __('Default'),
+                    'sort' => 'default',
+                    'class' => 'short',
+                    'element' => 'boolean',
+                    'data_path' => 'Warninglist.default',
+                ),
+                array(
+                    'name' => __('Enabled'),
+                    'sort' => 'enabled',
+                    'class' => 'short',
+                    'element' => 'boolean',
+                    'data_path' => 'Warninglist.enabled',
+                ),
+            ),
+            'actions' => array(
+                array(
+                    'title' => __('Enable'),
+                    'icon' => 'play',
+                    'onclick' => sprintf('toggleSetting(%s, \'%s\', \'%s\')', 'event', 'warninglist_enable', '[onclick_params_data_path]'),
+                    'onclick_params_data_path' => 'Warninglist.id',
+                    'complex_requirement' => array(
+                        'function' => function ($row, $options) {
+                            return $options['me']['Role']['perm_site_admin'] && !$options['datapath']['enabled'];
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'orgc' => 'Event.orgc_id',
+                                'enabled' => 'Warninglist.enabled'
+                            )
+                        )
+                    ),
+                ),
+                array(
+                    'title' => __('Disable'),
+                    'icon' => 'stop',
+                    'onclick' => sprintf('toggleSetting(%s, \'%s\', \'%s\')', 'event', 'warninglist_enable', '[onclick_params_data_path]'),
+                    'onclick_params_data_path' => 'Warninglist.id',
+                    'complex_requirement' => array(
+                        'function' => function ($row, $options) {
+                            return $options['me']['Role']['perm_site_admin'] && $options['datapath']['enabled'];
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'enabled' => 'Warninglist.enabled'
+                            )
+                        )
+                    ),
+                ),
+                array(
+                    'url' => $baseurl . '/warninglists/edit',
+                    'url_params_data_paths' => array(
+                        'Warninglist.id'
+                    ),
+                    'title' => __('Edit'),
+                    'icon' => 'edit',
+                    'complex_requirement' => [
+                        'function' => function($row) use ($me) {
+                            return $row['Warninglist']['default'] == 0 && ($me['Role']['perm_warninglist'] || $me['Role']['perm_site_admin']);
+                        }
+                    ]
+                ),
+                array(
+                    'url' => $baseurl . '/warninglists/view',
+                    'url_params_data_paths' => array(
+                        'Warninglist.id'
+                    ),
+                    'title' => __('View'),
+                    'icon' => 'eye',
+                    'dbclickAction' => true
+                ),
+                array(
+                    'title' => __('Delete'),
+                    'url' => $baseurl . '/warninglists/delete',
+                    'url_params_data_paths' => array(
+                        'Warninglist.id'
+                    ),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to delete the entry?'),
+                    'icon' => 'trash',
+                    'requirement' => $me['Role']['perm_site_admin'],
+                ),
+            )
+        )
+    ));
+    echo '</div>';
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'warninglist', 'menuItem' => 'index'));
 ?>
+<script type="text/javascript">
+    $(function() {
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter();
+        });
+    });
+</script>

@@ -125,12 +125,6 @@ var afterUpload = "<?php echo $file_uploaded; ?>";
 var selText = clearText =fileContent = '';
 var linesArray = [];
 var rowSelected;
-$("#accordion1").accordion({
-    heightStyle: "content"
-    })
-$("#accordion2").accordion({
-      heightStyle: "content"
-    })
 if(afterUpload == 1)
 {
     $('#afterUpload').show();
@@ -229,7 +223,7 @@ function processString(text)
         }
         $("#individualLines").find('tbody')
             .append($('<tr>')
-                .append($('<td>').html('<input type="checkbox" class="select"></input>'))
+                .append($('<td>').html('<input type="checkbox" class="select">'))
                 .append($('<td>').text(filepath))
                 .append($('<td>').text(size))
                 .append($('<td>').text(activity))

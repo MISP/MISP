@@ -21,12 +21,16 @@
                 'fields' => array('Tag.id', 'Tag.name'),
                 'sort' => array('lower(Tag.name) asc'),
             ));
+            $this->__extendedEventUUIDMapping = array();
             $this->__extended_view = $extended_view;
             $this->__lookupTables = array(
                 'analysisLevels' => $this->__eventModel->analysisLevels,
                 'distributionLevels' => $this->__eventModel->Attribute->distributionLevels
             );
             $this->__authorized_JSON_key = array('event_id', 'distribution', 'category', 'type', 'value', 'comment', 'uuid', 'to_ids', 'timestamp', 'id');
+
+            App::uses('ColourPaletteTool', 'Tools');
+            $this->__paletteTool = new ColourPaletteTool();
             return true;
         }
 
@@ -40,7 +44,7 @@
 
         private function __get_event($id)
         {
-            $this->__json['available_rotation_key'] = $this->__authorized_JSON_key;
+            $this->__json['available_pivot_key'] = $this->__authorized_JSON_key;
 
             $fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'extended' => $this->__extended_view));
             $event = array();
@@ -77,6 +81,11 @@
                 if (!($check1 && $check2)) {
                     unset($event['Object'][$i]);
                 }
+                foreach($obj['ObjectReference'] as $j => $rel) {
+                    if ($rel['deleted']) {
+                        unset($event['Object'][$i]['ObjectReference'][$j]);
+                    }
+                }
             }
             foreach ($event['Attribute'] as $i => $attr) {
                 $check1 = $this->__satisfy_val_filtering($attr, false);
@@ -108,7 +117,7 @@
                 }
             }
 
-            // value rule - search in the object's atribute value
+            // value rule - search in the object's attribute value
             $valueMatch = true;
             if (isset($obj['Attribute'])) {
                 foreach ($obj['Attribute'] as $attr) {
@@ -232,12 +241,12 @@
             $event = $this->__get_filtered_event($id);
             $this->__json['items'] = array();
             $this->__json['relations'] = array();
-            
+
             $this->__json['existing_object_relation'] = array();
             if (empty($event)) {
                 return $this->__json;
             }
-            
+
             if (!empty($event['Object'])) {
                 $object = $event['Object'];
             } else {
@@ -259,13 +268,16 @@
                     'label' => $attr['value'],
                     'event_id' => $attr['event_id'],
                     'node_type' => 'attribute',
+                    'comment' => $attr['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
+                $this->__extendedEventUUIDMapping[$toPush['event_id']] = '';
             }
 
+            $templatesCount = [];
             foreach ($object as $obj) {
                 $toPush = array(
-                    'id' => $obj['id'],
+                    'id' => sprintf('o-%s', $obj['id']),
                     'uuid' => $obj['uuid'],
                     'type' => $obj['name'],
                     'label' => '',
@@ -274,6 +286,7 @@
                     'meta-category' => $obj['meta-category'],
                     'template_uuid' => $obj['template_uuid'],
                     'event_id' => $obj['event_id'],
+                    'comment' => $obj['comment'],
                 );
                 if (isset($obj['Attribute'])) {
                     $toPush['Attribute'] = $obj['Attribute'];
@@ -283,21 +296,32 @@
                         $this->__json['existing_object_relation'][$attr['object_relation']] = 0; // set-alike
                     }
                 }
+                if (empty($templatesCount[$obj['template_uuid']])) {
+                    $templatesCount[$obj['template_uuid']] = 0;
+                }
+                $templatesCount[$obj['template_uuid']]++;
 
                 array_push($this->__json['items'], $toPush);
+                $this->__extendedEventUUIDMapping[$toPush['event_id']] = '';
 
                 foreach ($obj['ObjectReference'] as $rel) {
                     $toPush = array(
                         'id' => $rel['id'],
                         'uuid' => $rel['uuid'],
-                        'from' => $obj['id'],
-                        'to' => $rel['referenced_id'],
+                        'from' => sprintf('o-%s', $obj['id']),
+                        'to' => $rel['referenced_type'] == 1 ? sprintf('o-%s', $rel['referenced_id']) : $rel['referenced_id'],
                         'type' => $rel['relationship_type'],
                         'comment' => $rel['comment'],
                         'event_id' => $rel['event_id'],
                     );
                     array_push($this->__json['relations'], $toPush);
                 }
+            }
+            $this->__json['items'] = $this->addObjectColors($this->__json['items'], $templatesCount);
+
+            if ($this->__extended_view) {
+                $this->fetchEventUUIDFromId();
+                $this->__json['extended_event_uuid_mapping'] = $this->__extendedEventUUIDMapping;
             }
 
             return $this->__json;
@@ -312,7 +336,7 @@
             if (empty($event)) {
                 return $this->__json;
             }
-            
+
             if (!empty($event['Object'])) {
                 $object = $event['Object'];
             } else {
@@ -338,6 +362,7 @@
                     'label' => $attr['value'],
                     'event_id' => $attr['event_id'],
                     'node_type' => 'attribute',
+                    'comment' => $attr['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
 
@@ -347,6 +372,8 @@
                         'id' => 'tag_edge_id_' . $i,
                         'from' => $attr['id'],
                         'to' => $tag['name'],
+                        'type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                        'comment' => '',
                     );
                     $tagSet[$tag['name']] = $tag;
                     array_push($this->__json['relations'], $toPush);
@@ -354,9 +381,10 @@
                 }
             }
 
+            $j = 0;
             foreach ($object as $obj) {
                 $toPush = array(
-                    'id' => $obj['id'],
+                    'id' => sprintf('o-%s', $obj['id']),
                     'uuid' => $obj['uuid'],
                     'type' => $obj['name'],
                     'Attribute' => $obj['Attribute'],
@@ -365,25 +393,47 @@
                     'meta-category' => $obj['meta-category'],
                     'template_uuid' => $obj['template_uuid'],
                     'event_id' => $obj['event_id'],
+                    'comment' => $obj['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
-
-                // Record existing object_relation
-                foreach ($obj['Attribute'] as $attr) {
-                    $this->__json['existing_object_relation'][$attr['object_relation']] = 0; // set-alike
-                }
-
-                // get all tags in the Object's Attributes
+                
+                
+                // get all  attributes and tags in the Object's Attributes
                 $added_value = array();
                 foreach ($obj['Attribute'] as $ObjAttr) {
+                    // Record existing object_relation
+                    $this->__json['existing_object_relation'][$attr['object_relation']] = 0; // set-alike
                     $Tags = $ObjAttr['AttributeTag'];
                     foreach ($Tags as $tag) {
                         $tag = $tag['Tag'];
                         if (!in_array($tag['name'], $added_value)) {
                             $toPush = array(
+                                'id' => $ObjAttr['id'],
+                                'uuid' => $ObjAttr['uuid'],
+                                'type' => $ObjAttr['type'],
+                                'label' => $ObjAttr['value'],
+                                'event_id' => $ObjAttr['event_id'],
+                                'node_type' => 'attribute',
+                                'comment' => $ObjAttr['comment'],
+                            );
+                            array_push($this->__json['items'], $toPush);
+                            
+                            $toPush = array(
+                                'id' => 'obj_edge_id_' . $j,
+                                'from' => sprintf('o-%s', $obj['id']),
+                                'to' => $ObjAttr['id'],
+                                'type' => '',
+                                'comment' => '',
+                            );
+                            $j = $j + 1;
+                            array_push($this->__json['relations'], $toPush);
+
+                            $toPush = array(
                                 'id' => "tag_edge_id_" . $i,
-                                'from' => $obj['id'],
+                                'from' => $ObjAttr['id'],
                                 'to' => $tag['name'],
+                                'type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
+                                'comment' => '',
                             );
                             $tagSet[$tag['name']] = $tag;
                             array_push($added_value, $tag['name']);
@@ -419,7 +469,7 @@
             if (empty($event)) {
                 return $this->__json;
             }
-            
+
             if (!empty($event['Object'])) {
                 $object = $event['Object'];
             } else {
@@ -448,6 +498,7 @@
                     'label' => $attr['value'],
                     'event_id' => $attr['event_id'],
                     'node_type' => 'attribute',
+                    'comment' => $attr['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
 
@@ -466,7 +517,7 @@
 
             foreach ($object as $obj) {
                 $toPush = array(
-                    'id' => $obj['id'],
+                    'id' => sprintf('o-%s', $obj['id']),
                     'uuid' => $obj['uuid'],
                     'type' => $obj['name'],
                     'Attribute' => $obj['Attribute'],
@@ -475,6 +526,7 @@
                     'meta-category' => $obj['meta-category'],
                     'template_uuid' => $obj['template_uuid'],
                     'event_id' => $obj['event_id'],
+                    'comment' => $obj['comment'],
                 );
                 array_push($this->__json['items'], $toPush);
 
@@ -491,7 +543,7 @@
                     if (!in_array($keyVal, $added_value)) {
                         $toPush = array(
                             'id' => "keyType_edge_id_" . $i,
-                            'from' => $obj['id'],
+                            'from' => sprintf('o-%s', $obj['id']),
                             'to' => "keyType_" . $keyVal,
                         );
                         array_push($added_value, $keyVal);
@@ -499,6 +551,19 @@
                         array_push($this->__json['relations'], $toPush);
                         $i = $i + 1;
                     }
+                }
+
+                foreach ($obj['ObjectReference'] as $rel) {
+                    $toPush = array(
+                        'id' => $rel['id'],
+                        'uuid' => $rel['uuid'],
+                        'from' => sprintf('o-%s', $obj['id']),
+                        'to' => $rel['referenced_type'] == 1 ? sprintf('o-%s', $rel['referenced_id']) : $rel['referenced_id'],
+                        'type' => $rel['relationship_type'],
+                        'comment' => $rel['comment'],
+                        'event_id' => $rel['event_id'],
+                    );
+                    array_push($this->__json['relations'], $toPush);
                 }
             }
 
@@ -519,7 +584,7 @@
         public function get_reference_data($uuid)
         {
             $objectReference = $this->__refModel->ObjectReference->find('all', array(
-                'conditions' => array('ObjectReference.uuid' => $uuid),
+                'conditions' => array('ObjectReference.uuid' => $uuid, 'ObjectReference.deleted' => false),
                 'recursive' => -1,
                 //'fields' => array('ObjectReference.id', 'relationship_type', 'comment', 'referenced_uuid')
                 ));
@@ -541,5 +606,28 @@
                 throw new NotFoundException('No templates');
             }
             return $templates;
+        }
+
+        public function fetchEventUUIDFromId()
+        {
+            $eventUUIDs = $this->__eventModel->find('list', [
+                'conditions' => ['id' => array_keys($this->__extendedEventUUIDMapping)],
+                'fields' => ['uuid']
+            ]);
+            $this->__extendedEventUUIDMapping = $eventUUIDs;
+        }
+
+        private function addObjectColors($items, $templatesCount)
+        {
+            $colours = [];
+            foreach ($templatesCount as $templateUUID => $count) {
+                $colours[$templateUUID] = $this->__paletteTool->generatePaletteFromString($templateUUID, $count);
+            }
+            foreach ($items as $i => $item) {
+                if ($item['node_type'] == 'object') {
+                    $items[$i]['color'] = array_shift($colours[$item['template_uuid']]);
+                }
+            }
+            return $items;
         }
     }

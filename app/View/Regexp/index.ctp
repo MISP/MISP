@@ -3,13 +3,6 @@
     <div class="pagination">
         <ul>
         <?php
-        $this->Paginator->options(array(
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
-        ));
-
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
             echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
@@ -18,7 +11,7 @@
     </div>
     <table class="table table-striped table-hover table-condensed">
     <tr>
-            <th><?php echo $this->Paginator->sort('id');?></th>
+            <th><?php echo $this->Paginator->sort('id', __('ID'));?></th>
             <th><?php echo $this->Paginator->sort('regexp', __('Regexp'));?></th>
             <th><?php echo $this->Paginator->sort('replacement', __('Replacement'));?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>

@@ -1317,21 +1317,19 @@
           "name": "CIRCL",
           "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
         },
-        "Event": [
-          {
-            "id": "2006",
-            "date": "2015-08-27",
-            "threat_level_id": "1",
-            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec",
-            "published": true,
-            "uuid": "55df7369-7d68-428b-aa03-4f5d950d210b",
-            "analysis": "2",
-            "timestamp": "1440752388",
-            "distribution": "3",
-            "org_id": "2",
-            "orgc_id": "2"
-          }
-        ]
+        "Event": {
+          "id": "2006",
+          "date": "2015-08-27",
+          "threat_level_id": "1",
+          "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec",
+          "published": true,
+          "uuid": "55df7369-7d68-428b-aa03-4f5d950d210b",
+          "analysis": "2",
+          "timestamp": "1440752388",
+          "distribution": "3",
+          "org_id": "2",
+          "orgc_id": "2"
+        }
       },
       {
         "Org": {
@@ -1344,21 +1342,19 @@
           "name": "CIRCL",
           "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
         },
-        "Event": [
-          {
-            "id": "833",
-            "date": "2015-01-22",
-            "threat_level_id": "1",
-            "info": "OSINT - An analysis of Regin's Hopscotch and Legspin",
-            "published": true,
-            "uuid": "54c0ce92-9d00-42b7-8cfc-f03f950d210b",
-            "analysis": "2",
-            "timestamp": "1422266910",
-            "distribution": "3",
-            "org_id": "2",
-            "orgc_id": "2"
-          }
-        ]
+        "Event": {
+          "id": "833",
+          "date": "2015-01-22",
+          "threat_level_id": "1",
+          "info": "OSINT - An analysis of Regin's Hopscotch and Legspin",
+          "published": true,
+          "uuid": "54c0ce92-9d00-42b7-8cfc-f03f950d210b",
+          "analysis": "2",
+          "timestamp": "1422266910",
+          "distribution": "3",
+          "org_id": "2",
+          "orgc_id": "2"
+        }
       },
       {
         "Org": {
@@ -1371,21 +1367,19 @@
           "name": "CIRCL",
           "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
         },
-        "Event": [
-          {
-            "id": "697",
-            "date": "2014-11-24",
-            "threat_level_id": "1",
-            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance",
-            "published": true,
-            "uuid": "5472cdc5-3e3c-47c9-a3b1-47be950d210b",
-            "analysis": "2",
-            "timestamp": "1416818985",
-            "distribution": "3",
-            "org_id": "2",
-            "orgc_id": "2"
-          }
-        ]
+        "Event": {
+          "id": "697",
+          "date": "2014-11-24",
+          "threat_level_id": "1",
+          "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance",
+          "published": true,
+          "uuid": "5472cdc5-3e3c-47c9-a3b1-47be950d210b",
+          "analysis": "2",
+          "timestamp": "1416818985",
+          "distribution": "3",
+          "org_id": "2",
+          "orgc_id": "2"
+        }
       },
       {
         "Org": {
@@ -1398,21 +1392,19 @@
           "name": "CIRCL",
           "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
         },
-        "Event": [
-          {
-            "id": "699",
-            "date": "2014-11-24",
-            "threat_level_id": "1",
-            "info": "OSINT - The Regin Espionage Toolkit",
-            "published": true,
-            "uuid": "5472fbd1-1a38-484a-b3f4-4502950d210b",
-            "analysis": "2",
-            "timestamp": "1416821880",
-            "distribution": "3",
-            "org_id": "2",
-            "orgc_id": "2"
-          }
-        ]
+        "Event": {
+          "id": "699",
+          "date": "2014-11-24",
+          "threat_level_id": "1",
+          "info": "OSINT - The Regin Espionage Toolkit",
+          "published": true,
+          "uuid": "5472fbd1-1a38-484a-b3f4-4502950d210b",
+          "analysis": "2",
+          "timestamp": "1416821880",
+          "distribution": "3",
+          "org_id": "2",
+          "orgc_id": "2"
+        }
       },
       {
         "Org": {
@@ -1425,21 +1417,19 @@
           "name": "CIRCL",
           "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
         },
-        "Event": [
-          {
-            "id": "700",
-            "date": "2014-11-24",
-            "threat_level_id": "1",
-            "info": "Regin Yara rules",
-            "published": true,
-            "uuid": "5473051e-2db8-4467-b6d5-4b1d950d210b",
-            "analysis": "1",
-            "timestamp": "1417157341",
-            "distribution": "3",
-            "org_id": "2",
-            "orgc_id": "2"
-          }
-        ]
+        "Event": {
+          "id": "700",
+          "date": "2014-11-24",
+          "threat_level_id": "1",
+          "info": "Regin Yara rules",
+          "published": true,
+          "uuid": "5473051e-2db8-4467-b6d5-4b1d950d210b",
+          "analysis": "1",
+          "timestamp": "1417157341",
+          "distribution": "3",
+          "org_id": "2",
+          "orgc_id": "2"
+        }
       },
       {
         "Org": {
@@ -1452,21 +1442,19 @@
           "name": "CIRCL",
           "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
         },
-        "Event": [
-          {
-            "id": "709",
-            "date": "2014-11-24",
-            "threat_level_id": "1",
-            "info": "OSINT - Regin: Nation-state ownage of GSM networks",
-            "published": true,
-            "uuid": "5473429a-bc10-498d-a195-46e2950d2109",
-            "analysis": "2",
-            "timestamp": "1416843113",
-            "distribution": "3",
-            "org_id": "2",
-            "orgc_id": "2"
-          }
-        ]
+        "Event": {
+          "id": "709",
+          "date": "2014-11-24",
+          "threat_level_id": "1",
+          "info": "OSINT - Regin: Nation-state ownage of GSM networks",
+          "published": true,
+          "uuid": "5473429a-bc10-498d-a195-46e2950d2109",
+          "analysis": "2",
+          "timestamp": "1416843113",
+          "distribution": "3",
+          "org_id": "2",
+          "orgc_id": "2"
+        }
       }
     ],
     "Tag": [

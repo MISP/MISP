@@ -1,6 +1,6 @@
 <div class="confirmation">
     <?php
-    echo $this->Form->create('Attribute', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/attributes/editField/' . $object['id']));
+    echo $this->Form->create('Attribute', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/attributes/editField/' . $object['id']));
     echo $this->Form->input('to_ids', array(
         'options' => array(0 => 'No', 1 => 'Yes'),
         'label' => false,

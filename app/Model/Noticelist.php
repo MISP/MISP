@@ -7,7 +7,7 @@ class Noticelist extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
-            'Containable',
+        'Containable',
     );
 
     public $validate = array(
@@ -20,18 +20,20 @@ class Noticelist extends AppModel
     );
 
     public $hasMany = array(
-            'NoticelistEntry' => array(
-                'dependent' => true
-            )
+        'NoticelistEntry' => array(
+            'dependent' => true
+        )
     );
-
-    private $__entries = array();
 
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
-        $this->data['Noticelist']['ref'] = json_encode($this->data['Noticelist']['ref']);
-        $this->data['Noticelist']['geographical_area'] = json_encode($this->data['Noticelist']['geographical_area']);
+        if (isset($this->data['Noticelist']['ref'])) {
+            $this->data['Noticelist']['ref'] = json_encode($this->data['Noticelist']['ref']);
+        }
+        if (isset($this->data['Noticelist']['geographical_area'])) {
+            $this->data['Noticelist']['geographical_area'] = json_encode($this->data['Noticelist']['geographical_area']);
+        }
         return true;
     }
 
@@ -40,16 +42,14 @@ class Noticelist extends AppModel
         $directories = glob(APP . 'files' . DS . 'noticelists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
         $updated = array();
         foreach ($directories as $dir) {
-            $file = new File($dir . DS . 'list.json');
-            $list = json_decode($file->read(), true);
-            $file->close();
+            $list = FileAccessTool::readJsonFromFile($dir . DS . 'list.json');
             if (!isset($list['version'])) {
                 $list['version'] = 1;
             }
             $current = $this->find('first', array(
-                    'conditions' => array('name' => $list['name']),
-                    'recursive' => -1,
-                    'fields' => array('*')
+                'conditions' => array('name' => $list['name']),
+                'recursive' => -1,
+                'fields' => array('*')
             ));
             if (empty($current) || $list['version'] > $current['Noticelist']['version']) {
                 $result = $this->__updateList($list, $current);

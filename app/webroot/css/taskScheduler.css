@@ -1,0 +1,96 @@
+.toggle-switch-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 30px;
+    height: 16px;
+}
+.toggle-switch-wrapper > input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.toggle-switch-label {
+    margin-bottom: 0px;
+}
+.toggle-switch-label > span {
+    margin-left:4px;
+    font-weight: bold;
+    font-size: 12px;
+    user-select: none;
+}
+.toggle-switch {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 18px;
+    margin-bottom: 0px;
+
+    transform: rotateZ(360deg);
+    background-image: linear-gradient(90deg, #2196F3, #1db6ff, #2196F3);
+    background-position: 0% 50%;
+    background-repeat: no-repeat;
+    background-size: 0% 100%;
+}
+.toggle-switch-handle {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 1px;
+    bottom: 1px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 50%;
+}
+.toggle-switch-handle-timer {
+    height: 12px;
+    width: 12px;
+    top: 1px;
+    left: 1px;
+
+    transform: rotateZ(360deg);
+    background: linear-gradient(#daeff9, #daeff9);
+    background-position: 0% 100%;
+    background-repeat: no-repeat;
+    background-size: 100% 0%;
+}
+.toggle-switch-wrapper > input:checked + .toggle-switch {
+    background-color: #2196F3;
+}
+.toggle-switch-wrapper > input:focus + .toggle-switch {
+    box-shadow: 0 0 1px #2196F3;
+}
+.toggle-switch-wrapper > input:checked + label > .toggle-switch-handle {
+    -webkit-transform: translateX(1em);
+    -ms-transform: translateX(1em);
+    transform: translateX(1em);
+}
+.toggle-switch-animate-execution {
+    animation-name: toggleSwitchAnimateExecution;
+    animation-duration: 0.3s;
+    animation-iteration-count: 1;
+}
+.toggle-switch-animate-time-remaining {
+    animation-name: toggleSwitchAnimateTimeRemaining;
+    animation-iteration-count: 1;
+    animation-timing-function: linear
+}
+
+@keyframes toggleSwitchAnimateExecution {
+    0% {background-size: 0% 100%;}
+    50% {background-size: 100% 100%;}
+    100% {background-size: 500% 100%;}
+}
+
+@keyframes toggleSwitchAnimateTimeRemaining {
+    0% {background-size: 100% 0%;}
+    100% {background-size: 100% 100%;}
+}

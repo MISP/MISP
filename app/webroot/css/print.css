@@ -1,5 +1,5 @@
 /* bootstrap changes */
-.actions, .header, .footer, .cake-sql-log, .comment, .pagination, .action-links, .addTagTD .tagSecondHalf, .toggleButtons{
+.actions, .header, .footer, .cake-sql-log, .comment, .pagination, .action-links, .addTagTD .tagSecondHalf, #eventToggleButtons {
 	display: none;
 }
 

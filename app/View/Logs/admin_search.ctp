@@ -19,6 +19,9 @@
                 'label' => __('Title'),
                 'div' => 'input clear'));
         echo $this->Form->input('change', array('label' => __('Change')));
+        echo '<div class="input clear">';
+        echo $this->Form->input('from', array('label' => __('From'), 'class' => 'datepicker form-control'));
+        echo $this->Form->input('to', array('label' => __('To'), 'class' => 'datepicker form-control'));
     ?>
     </fieldset>
 <?php

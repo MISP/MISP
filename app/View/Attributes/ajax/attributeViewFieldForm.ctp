@@ -1,8 +1,14 @@
 <?php
-if ($value === 'No') {
-    echo '<input type="checkbox" disabled></input>';
-} else if ($value === 'Yes') {
-    echo '<input type="checkbox" checked disabled></input>';
+if ($field === 'value') {
+    echo $this->element('Events/View/value_field', ['object' => $object['Attribute']]);
+} elseif ($field === 'timestamp') {
+    echo $this->Time->date($value);
+} elseif ($field === 'distribution') {
+    if ($value == 0) {
+        echo '<span class="red">' . $shortDist[$value] . '</span>';
+    } else {
+        echo $shortDist[$value];
+    }
 } else {
-    echo nl2br(h($value)) . '&nbsp;';
+    echo nl2br(h($value), false);
 }

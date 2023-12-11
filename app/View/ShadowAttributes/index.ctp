@@ -1,149 +1,121 @@
 <div class="shadowAttributes index">
-    <h2><?php echo __('Proposals');?></h2>
-    <div class="pagination">
-        <ul>
-        <?php
-            $this->Paginator->options(array(
-                'update' => '.span12',
-                'evalScripts' => true,
-                'before' => '$(".progress").show()',
-                'complete' => '$(".progress").hide()',
-            ));
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-    <?php
-        $data = array(
-            'children' => array(
-                array(
-                    'children' => array(
-                        array(
-                            'text' => __('My Org\'s Events'),
-                            'active' => !$all,
-                            'url' => '/shadow_attributes/index/all:0'
-                        ),
-                        array(
-                            'text' => __('All Events'),
-                            'active' => $all,
-                            'url' => '/shadow_attributes/index/all:1'
+<?php
+    echo $this->element('/genericElements/IndexTable/index_table', array(
+        'data' => array(
+            'data' => $shadowAttributes,
+            'primary_id_path' => 'ShadowAttribute.id',
+            'top_bar' => array(
+                'children' => array(
+                    array(
+                        'children' => array(
+                            array(
+                                'text' => __('My Org\'s Events'),
+                                'active' => !$all,
+                                'url' => $baseurl . '/shadow_attributes/index/all:0'
+                            ),
+                            array(
+                                'text' => __('All Events'),
+                                'active' => $all,
+                                'url' => $baseurl . '/shadow_attributes/index/all:1'
+                            )
                         )
+                    ),
+                    array(
+                        'type' => 'search',
+                        'button' => __('Filter'),
+                        'placeholder' => __('Enter value to search'),
+                        'data' => '',
+                        'searchKey' => 'searchall'
                     )
+                )
+            ),
+            'fields' => array(
+                array(
+                    'name' => __('ID'),
+                    'sort' => 'ShadowAttribute.id',
+                    'class' => 'short',
+                    'data_path' => 'ShadowAttribute.id',
                 ),
                 array(
-                    'type' => 'search',
-                    'button' => __('Filter'),
-                    'placeholder' => __('Enter value to search'),
-                    'data' => '',
-                )
+                    'name' => __('Event ID'),
+                    'sort' => 'ShadowAttribute.event_id',
+                    'element' => 'links',
+                    'class' => 'short',
+                    'data_path' => 'ShadowAttribute.event_id',
+                    'url_params_data_paths' => 'ShadowAttribute.event_id',
+                    'url' => $baseurl . '/events/view',
+                ),
+                array(
+                    'name' => __('Proposal by'),
+                    'element' => 'org',
+                    'sort' => 'Org.name',
+                    'class' => 'short',
+                    'data_path' => 'Org',
+                ),
+                array(
+                    'name' => __('Change requested'),
+                    'sort' => 'ShadowAttribute.old_id',
+                    'class' => 'shortish',
+                    'element' => 'boolean',
+                    'data_path' => 'ShadowAttribute.old_id',
+                ),
+                array(
+                    'name' => __('Event creator'),
+                    'class' => 'shortish',
+                    'element' => 'org',
+                    'data_path' => 'Event.Orgc',
+                ),
+                array(
+                    'name' => __('Event info'),
+                    'class' => 'short',
+                    'sort' => 'Event.info',
+                    'data_path' => 'Event.info'
+                ),
+                array(
+                    'name' => __('Proposed value'),
+                    'data_path' => 'ShadowAttribute.value',
+                    'sort' => 'ShadowAttribute.value'
+                ),
+                array(
+                    'name' => __('Category'),
+                    'class' => 'short',
+                    'data_path' => 'ShadowAttribute.category',
+                    'sort' => 'ShadowAttribute.category',
+                ),
+                array(
+                    'name' => __('Type'),
+                    'class' => 'short',
+                    'data_path' => 'ShadowAttribute.type',
+                    'sort' => 'ShadowAttribute.type',
+                ),
+                array(
+                    'name' => __('Created'),
+                    'class' => 'short',
+                    'element' => 'datetime',
+                    'data_path' => 'ShadowAttribute.timestamp',
+                    'sort' => 'ShadowAttribute.timestamp'
+                ),
+            ),
+            'title' => __('Proposals'),
+            'actions' => array(
+                array(
+                    'url' => $baseurl . '/events/view',
+                    'url_params_data_paths' => 'ShadowAttribute.event_id',
+                    'url_named_params_data_paths' => ['focus' => 'ShadowAttribute.uuid'],
+                    'icon' => 'eye',
+                    'title' => __('View Event'),
+                    'dbclickAction' => true,
+                ),
             )
-        );
-        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
-    ?>
-    <table class="table table-striped table-hover table-condensed">
-        <tr>
-            <th><?php echo $this->Paginator->sort('id');?></th>
-            <th><?php echo __('Event');?></th>
-            <th>
-                <?php echo $this->Paginator->sort('org', __('Proposal by'));?>
-            </th>
-            <th>
-                <?php echo __('Type');?>
-            </th>
-            <th>
-                <?php echo $this->Paginator->sort('Event.Orgc.name', __('Event creator'));?>
-            </th>
-            <th>
-                <?php echo $this->Paginator->sort('id', __('Event Info'));?>
-            </th>
-            <th>
-                <?php echo $this->Paginator->sort('value', __('Proposed value'));?>
-            </th>
-            <th>
-                <?php echo $this->Paginator->sort('category', __('Category'));?>
-            </th>
-            <th>
-                <?php echo $this->Paginator->sort('type', __('Type'));?>
-            </th>
-            <th>
-                <?php echo $this->Paginator->sort('timestamp', __('Created'), array('direction' => 'desc'));?>
-            </th>
-        </tr>
-        <?php foreach ($shadowAttributes as $event):?>
-        <tr>
-            <td class="short">
-                <?php echo h($event['ShadowAttribute']['id']);?>
-            </td>
-            <td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-                <?php echo h($event['Event']['id']);?>
-            </td>
-            <td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-                <?php
-                    echo $this->OrgImg->getOrgImg(array('name' => $event['Org']['name'], 'id' => $event['Org']['id'], 'size' => 24));
-                ?>
-                &nbsp;
-            </td>
-            <td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-                <?php
-                    if ($event['ShadowAttribute']['old_id'] != 0) {
-                        echo __('Attribute edit');
-                    } else {
-                        echo __('New Attribute');
-                    }
-                ?>
-            </td>
-            <td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-                <?php echo h($event['Event']['Orgc']['name']); ?>
-            </td>
-            <td onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-                <?php echo h($event['Event']['info']); ?>
-            </td>
-            <td onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-                <?php echo h($event['ShadowAttribute']['value']);?>
-            </td>
-            <td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-                <?php echo h($event['ShadowAttribute']['category']);?>
-            </td>
-            <td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-                <?php echo h($event['ShadowAttribute']['type']);?>
-            </td>
-            <td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-                <?php echo date('Y-m-d H:i:s', $event['ShadowAttribute']['timestamp']);?>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
-    <p>
-    <?php
-    echo $this->Paginator->counter(array(
-    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
+        )
     ));
-    ?>
-    </p>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-</div>
-<?php
+    echo '</div>';
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewProposals'));
 ?>
 <script type="text/javascript">
-    $(document).ready(function() {
+    $(function(){
         $('#quickFilterButton').click(function() {
-            runIndexQuickFilter('/all:<?php echo h($all); ?>');
-        });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter('/all:<?php echo h($all); ?>');
-            }
+            runIndexQuickFilter();
         });
     });
 </script>

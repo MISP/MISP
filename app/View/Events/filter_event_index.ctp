@@ -10,7 +10,7 @@
                         'class' => 'input',
                         //'label' => 'Add Filtering Rule',
                         'onchange' => "indexRuleChange();",
-                        'style' => 'margin-right:3px;width:120px;',
+                        'style' => 'margin-right:3px;width:130px;',
                         'div' => false
                 ));
                 echo $this->Form->input('searchbool', array(
@@ -53,7 +53,7 @@
                         'options' => $sharingGroups,
                         'class' => 'input',
                         'label' => false,
-                        'style' => 'display:none;width:438px;',
+                        'style' => 'width:438px;',
                         'div' => false
                 ));
                 if ($showorg) {
@@ -61,19 +61,18 @@
                             'options' => $orgs,
                             'class' => 'input',
                             'label' => false,
-                            'style' => 'display:none;width:438px;',
+                            'style' => 'width:438px;',
                             'div' => false
                     ));
                 }
                 echo $this->Form->input('searchtag', array(
-                        'options' => array($tags),
+                        'options' => $tags,
                         'class' => 'input',
                         'label' => false,
-                        'style' => 'display:none;width:438px;',
+                        'style' => 'width:438px',
                         'div' => false
                 ));
                 echo $this->Form->input('searchdatefrom', array(
-                        'div' => 'input clear',
                         'class' => 'datepicker',
                         'data-date-format' => 'yyyy-mm-dd',
                         'label' => false,
@@ -88,6 +87,39 @@
                         'style' => 'display:none;width:236px;',
                         'div' => false
                 ));
+
+                echo $this->Form->input('searchtimestampfrom', array(
+                    'class' => 'input',
+                    'label' => false,
+                    'style' => 'display:none;width:236px;margin-right:3px;',
+                    'div' => false,
+                    'placeholder' => __("YYYY-MM-DD HH:mm:ss")
+                ));
+
+                echo $this->Form->input('searchtimestampuntil', array(
+                    'class' => 'input',
+                    'label' => false,
+                    'style' => 'display:none;width:236px;margin-right:3px;',
+                    'div' => false,
+                    'placeholder' => __("YYYY-MM-DD HH:mm:ss")
+                ));
+
+                echo $this->Form->input('searchpublishtimestampfrom', array(
+                    'class' => 'input',
+                    'label' => false,
+                    'style' => 'display:none;width:236px;margin-right:3px;',
+                    'div' => false,
+                    'placeholder' => __("YYYY:MM:DD HH:MM:SS")
+                ));
+
+                echo $this->Form->input('searchpublishtimestampuntil', array(
+                    'class' => 'input',
+                    'label' => false,
+                    'style' => 'display:none;width:236px;margin-right:3px;',
+                    'div' => false,
+                    'placeholder' => __("YYYY:MM:DD HH:MM:SS")
+                ));
+
                 echo $this->Form->input('searcheventinfo', array(
                         'label' => false,
                         'class' => 'input-large',
@@ -121,6 +153,12 @@
                         'style' => 'display:none;width:424px;',
                         'div' => false
                 ));
+                echo $this->Form->input('searchall', array(
+                        'label' => false,
+                        'class' => 'input-large',
+                        'style' => 'display:none;width:424px;',
+                        'div' => false
+                ));
             ?>
             <span id="addRuleButton" class="btn btn-inverse" style="margin-bottom:10px;display:none;"><?php echo __('Add');?></span>
             </div>
@@ -135,7 +173,7 @@
                         <th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
                     </tr>
                     <?php
-                        $fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'sharinggroup', 'attribute', 'hasproposal');
+                        $fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'sharinggroup', 'attribute', 'hasproposal', 'timestamp', 'publishtimestamp', 'all');
                         if ($isSiteAdmin) $fields[] = 'email';
                         foreach ($fields as $k => $field):
                     ?>
@@ -210,11 +248,11 @@ var filtering = <?php echo $filtering; ?>;
 
 var operators = ["<?php echo __('OR');?>", "<?php echo __('NOT');?>"];
 
-var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "hasproposal"];
+var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "hasproposal", "timestamp", "publishtimestamp", "all"];
 
-var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute"];
+var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "all"];
 
-var differentFilters = ["published", "date", "hasproposal"];
+var differentFilters = ["published", "date", "hasproposal", "timestamp", "publishtimestamp"];
 
 var typedFields = ["tag", "threatlevel", "distribution", "analysis"];
 
@@ -230,10 +268,12 @@ if (isSiteAdmin == 1) {
 
 var baseurl = "<?php echo $baseurl; ?>";
 
-$(document).ready(function() {
+$(function() {
     $('.datepicker').datepicker().on('changeDate', function(ev) {
         $('.dropdown-menu').hide();
     });
+    $('#EventSearchtag, #EventSearchorg, #EventSearchsharinggroup').chosen();
+    $('#EventSearchtag_chosen, #EventSearchorg_chosen, #EventSearchsharinggroup_chosen').css('top', '-5px');
     indexEvaluateFiltering();
 });
 

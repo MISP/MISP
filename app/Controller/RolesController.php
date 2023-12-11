@@ -9,15 +9,10 @@ App::uses('AppController', 'Controller');
  */
 class RolesController extends AppController
 {
-    public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage & Publish Organization Events'); // FIXME move this to Role Model
-
     public $components = array(
-        'Security',
         'Session',
         'RequestHandler'
     );
-
-    public $helpers = array('Js' => array('Jquery'));
 
     public $paginate = array(
             'limit' => 60,
@@ -26,60 +21,34 @@ class RolesController extends AppController
             )
     );
 
-    public function view($id = null)
+    public function view($id=false)
     {
-        $this->Role->id = $id;
-        if (!$this->Role->exists()) {
-            throw new NotFoundException(__('Invalid role'));
+        $this->CRUD->view($id);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($this->Role->read(null, $id), $this->response->type());
-        } else {
-            $this->set('premissionLevelName', $this->Role->premissionLevelName);
-            $this->set('role', $this->Role->read(null, $id));
-            $this->set('id', $id);
-        }
+        $this->set('permissionLevelName', $this->Role->premissionLevelName);
+        $this->set('permFlags', $this->Role->permFlags);
+        $this->set('menuData', ['menuList' => 'globalActions', 'menuItem' => 'roles']);
     }
 
     public function admin_add()
     {
-        if (!$this->_isSiteAdmin()) {
-            $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
-        }
-        if ($this->request->is('post')) {
-            $this->Role->create();
-            if ($this->Role->save($this->request->data)) {
-                if ($this->_isRest()) {
-                    $role = $this->Role->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('Role.id' => $this->Role->id)
-                    ));
-                    return $this->RestResponse->viewData($role, $this->response->type());
-                } else {
-                    $this->Flash->success(__('The Role has been saved'));
-                    $this->redirect(array('action' => 'index'));
-                }
-            } else {
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Role', 'admin_add', false, $this->Role->validationErrors, $this->response->type());
-                } else {
-                    if (!($this->Session->check('Message.flash'))) {
-                        $this->Role->Session->setFlash(__('The Role could not be saved. Please, try again.'));
-                    }
-                }
-            }
-        } elseif ($this->_isRest()) {
-            return $this->RestResponse->describe('Roles', 'admin_add', false, $this->response->type());
+        $params = ['redirect' => ['action' => 'index', 'admin' => false]];
+        $this->CRUD->add($params);
+        if ($this->restResponsePayload) {
+            return $this->restResponsePayload;
         }
         $this->set('permFlags', $this->Role->permFlags);
-        $this->set('options', $this->options);
+        $dropdownData = [
+            'options' => $this->Role->premissionLevelName,
+        ];
+        $this->set(compact('dropdownData'));
+        $this->set('menuData', array('menuList' => 'admin', 'menuItem' => 'addRole'));
     }
 
     public function admin_edit($id = null)
     {
-        if (!$this->_isSiteAdmin()) {
-            $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
-        }
         $this->Role->id = $id;
         if (!$this->Role->exists() && !$this->request->is('get')) {
             throw new NotFoundException(__('Invalid Role'));
@@ -98,7 +67,7 @@ class RolesController extends AppController
                     return $this->RestResponse->viewData($role, $this->response->type());
                 } else {
                     $this->Flash->success(__('The Role has been saved'));
-                    $this->redirect(array('action' => 'index'));
+                    $this->redirect(array('action' => 'index', 'admin' => false));
                 }
             } else {
                 if ($this->_isRest()) {
@@ -116,98 +85,88 @@ class RolesController extends AppController
             $this->request->data['Role']['id'] = $id;
             $this->request->data = $this->Role->read(null, $id);
         }
-        $this->set('options', $this->options);
+        $this->set('options', $this->Role->premissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);
         $this->set('id', $id);
     }
 
-    public function admin_index()
-    {
-        if (!$this->_isSiteAdmin()) {
-            $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
-        }
-        $this->recursive = 0;
-        if ($this->_isRest()) {
-            $roles = $this->Role->find('all', array(
-                'recursive' => -1
-            ));
-            return $this->RestResponse->viewData($roles, $this->response->type());
-        } else {
-            $this->set('list', $this->paginate());
-            $this->set('permFlags', $this->Role->permFlags);
-            $this->loadModel('AdminSetting');
-            $this->set('default_role_id', $this->AdminSetting->getSetting('default_role'));
-            $this->set('options', $this->options);
-        }
-    }
-
     public function admin_delete($id = null)
     {
-        if (!$this->request->is('post') && !$this->request->is('put') && !$this->request->is('delete')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->Role->id = $id;
-        if (!$this->Role->exists()) {
-            throw new NotFoundException(__('Invalid Role'));
-        }
-        if ($this->Role->delete()) {
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Roles', 'admin_delete', $id, $this->response->type());
-            } else {
-                $this->Flash->success(__('Role deleted'));
-                $this->redirect(array('action' => 'index'));
+        $this->CRUD->delete($id, [
+            'validate' => function (array $role) {
+                $usersWithRole = $this->User->find('count', [
+                    'conditions' => ['role_id' => $role['Role']['id']],
+                    'recursive' => -1,
+                ]);
+                if ($usersWithRole) {
+                    throw new Exception(__("It is not possible to delete role that is assigned to users."));
+                }
             }
-        }
-        if ($this->_isRest()) {
-            return $this->RestResponse->saveFailResponse('Roles', 'admin_delete', $id, $this->Role->validationErrors, $this->response->type());
-        } else {
-            $this->Flash->error(__('Role could not be deleted'));
-            $this->redirect(array('action' => 'index'));
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 
     public function index()
     {
-        $this->recursive = 0;
-        if ($this->_isRest()) {
-            $roles = $this->Role->find('all', array(
-                'recursive' => -1
-            ));
-            return $this->RestResponse->viewData($roles, $this->response->type());
-        } else {
-            $this->set('list', $this->paginate());
-            $this->set('permFlags', $this->Role->permFlags);
-            $this->loadModel('AdminSetting');
-            $this->set('default_role_id', $this->AdminSetting->getSetting('default_role'));
-            $this->set('options', $this->options);
+        $params = [
+            'filters' => ['name'],
+            'quickFilters' => ['name'],
+            'afterFind' => function($elements) {
+                $this->loadModel('AdminSetting');
+                $default_setting = $this->AdminSetting->getSetting('default_role');
+                foreach ($elements as &$role) {
+                    $role['Role']['default'] = $role['Role']['id'] == $default_setting;
+                }
+                return $elements;
+            }
+        ];
+        $this->CRUD->index($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
+        $this->set('options', $this->Role->premissionLevelName);
+        $this->set('permFlags', $this->Role->permFlags);
+        $this->set('menuData', $this->_isAdmin() ?
+            ['menuList' => 'admin', 'menuItem' => 'indexRole'] :
+            ['menuList' => 'globalActions', 'menuItem' => 'roles']
+        );
     }
 
     public function admin_set_default($role_id = false)
     {
-        $this->Role->id = $role_id;
-        if ((!is_numeric($role_id) && $role_id !== false) || !$this->Role->exists()) {
-            $message = 'Invalid Role.';
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $message, $this->response->type());
-            } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
+        if ($this->request->is('post')) {
+            $this->Role->id = $role_id;
+            if ((!is_numeric($role_id) && $role_id !== false) || !$this->Role->exists()) {
+                $message = 'Invalid Role.';
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $message, $this->response->type());
+                } else {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
+                }
             }
-        }
-        $this->loadModel('AdminSetting');
-        $result = $this->AdminSetting->changeSetting('default_role', $role_id);
-        if ($result === true) {
-            $message = $role_id ? __('Default role set.') : __('Default role unset.');
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Roles', 'admin_set_default', $role_id, $this->response->type(), $message);
+            $this->loadModel('AdminSetting');
+            $result = $this->AdminSetting->changeSetting('default_role', $role_id);
+            if ($result === true) {
+                $message = $role_id ? __('Default role set.') : __('Default role unset.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('Roles', 'admin_set_default', $role_id, $this->response->type(), $message);
+                } else {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+                }
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $result, $this->response->type());
+                } else {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'status'=>200, 'type' => 'json'));
+                }
             }
         } else {
             if ($this->_isRest()) {
-                return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $result, $this->response->type());
+                return $this->RestResponse->saveFailResponse('Role', 'admin_set_default', false, __('This endpoint expects a POST request.'), $this->response->type());
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'status'=>200, 'type' => 'json'));
+                $this->layout = false;
             }
         }
     }

@@ -79,7 +79,7 @@
                 ?>
             </table>
     <?php
-            echo $this->Form->create('Server', array('type' => 'file', 'url' => '/servers/uploadFile/' . $k));?>
+            echo $this->Form->create('Server', array('type' => 'file', 'url' => $baseurl . '/servers/uploadFile/' . $k));?>
                 <fieldset>
                     <?php
                     echo $this->Form->hidden('event_id');

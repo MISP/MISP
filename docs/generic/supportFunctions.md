@@ -25,8 +25,10 @@ usage () {
   space
   echo -e "${SCRIPT_NAME} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
   echo -e "                -M | ${LBLUE}MISP${NC} modules"        # modules
-  echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
-  echo -e "                -V | Viper"                            # viper
+  ## FIXME: The current state of misp-dashboard is broken, disabling any use.
+  ##echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
+  ## FIXME: The current state of Viper is broken, disabling any use.
+  ##echo -e "                -V | Viper"                            # viper
   echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"         # mail2
   echo -e "                -S | Experimental ssdeep correlations" # ssdeep
   echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
@@ -37,10 +39,23 @@ usage () {
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
-  echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
+  echo -e "Options can be combined: ${SCRIPT_NAME} -c -D # Will install Core+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
   echo -e "MISP + modules - ${SCRIPT_NAME} -c -M"
+  echo -e ""
+  echo -e ""
+  echo -e "Interesting environment variables that get considered are:"
+  echo -e ""
+  echo -e "MISP_USER/MISP_PASSWORD # Local username on machine, default: misp/opensslGeneratedPassword"
+  echo -e ""
+  echo -e "PATH_TO_MISP # Where MISP will be installed, default: /var/www/MISP (recommended)"
+  echo -e ""
+  echo -e "DBHOST/DBNAME # database hostname, MISP database name, default: localhost/misp"
+  echo -e "DBUSER_ADMIN/DBPASSWORD_ADMIN # MySQL admin user, default: root/opensslGeneratedPassword"
+  echo -e "DBUSER_MISP/DBPASSWORD_MISP # MISP database user, default: misp/opensslGeneratedPassword"
+  echo -e ""
+  echo -e "You need to export the variable(s) to be taken into account. (or specified in-line when invoking INSTALL.sh)"
   space
 }
 
@@ -72,6 +87,7 @@ setOpt () {
       ("-U") echo "upgrade"; UPGRADE=1 ;;
       ("-N") echo "nuke"; NUKE=1 ;;
       ("-u") echo "unattended"; UNATTENDED=1 ;;
+      ("-ni") echo "noninteractive"; NONINTERACTIVE=1 ;;
       ("-f") echo "force"; FORCE=1 ;;
       (*) echo "$o is not a valid argument"; exit 1 ;;
     esac
@@ -112,7 +128,7 @@ checkFlavour () {
     FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
   fi
 
-  case "$FLAVOUR" in
+  case "${FLAVOUR}" in
     ubuntu)
       if command_exists lsb_release; then
         dist_version="$(lsb_release --codename | cut -f2)"
@@ -135,16 +151,18 @@ checkFlavour () {
     centos)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+        dist_version=${dist_version:0:1}
       fi
-      echo "$FLAVOUR not supported at the moment"
-      exit 1
+      echo "${FLAVOUR} support is experimental at the moment"
     ;;
-    rhel|ol|sles)
+    rhel|ol|sles|fedora)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        # FIXME: On fedora the trimming fails
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+        dist_version=${dist_version:0:1}  # Only interested about major version
       fi
-      echo "$FLAVOUR not supported at the moment"
-      exit 1
+      # FIXME: Only tested for RHEL 7 so far 
+      echo "${FLAVOUR} support is experimental at the moment"
     ;;
     *)
       if command_exists lsb_release; then
@@ -157,7 +175,7 @@ checkFlavour () {
   esac
 
   # FIXME: The below want to be refactored
-  if [ "$FLAVOUR" == "ubuntu" ]; then
+  if [ "${FLAVOUR}" == "ubuntu" ]; then
     RELEASE=$(lsb_release -s -r)
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
   else
@@ -180,7 +198,7 @@ check_forked () {
     if [ "$lsb_release_exit_code" = "0" ]; then
       # Print info about current distro
       cat <<-EOF
-      You're using '$FLAVOUR' version '$dist_version'.
+      You're using '${FLAVOUR}' version '${dist_version}'.
 EOF
       # Get the upstream release info
       FLAVOUR=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
@@ -188,10 +206,10 @@ EOF
 
       # Print info about upstream distro
       cat <<-EOF
-      Upstream release is '$FLAVOUR' version '$dist_version'.
+      Upstream release is '${FLAVOUR}' version '$dist_version'.
 EOF
     else
-      if [ -r /etc/debian_version ] && [ "$FLAVOUR" != "ubuntu" ] && [ "$FLAVOUR" != "raspbian" ]; then
+      if [[ -r /etc/debian_version ]] && [[ "${FLAVOUR}" != "ubuntu" ]] && [[ "${FLAVOUR}" != "raspbian" ]]; then
         # We're Debian and don't even know it!
         FLAVOUR=debian
         dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
@@ -212,35 +230,49 @@ EOF
 }
 
 checkInstaller () {
-  # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
-  if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
-    sudo apt install libdigest-sha-perl -qyy
+  # Workaround: shasum is not available on RHEL, only checking sha512
+  if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]] || [[ "${FLAVOUR}" == "fedora" ]]; then
+  INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
+  /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
+        chsum=$(cat /tmp/INSTALL.sh.sha512)
+  if [[ "${chsum}" == "${INSTsum}" ]]; then
+    echo "SHA512 matches"
+  else
+    echo "SHA512: ${chsum} does not match the installer sum of: ${INSTsum}"
+    # exit 1 # uncomment when/if PR is merged
   fi
-  # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
-  SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
-  for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
-    /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
-    INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
-    chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
-
-    if [[ "${chsum}" == "${INSTsum}" ]]; then
-      echo "sha${sum} matches"
-    else
-      echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
-      echo "Delete installer, re-download and please run again."
-      exit 1
+  else
+    # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
+    if [[ $(which shasum > /dev/null 2>&1 ; echo $?) -ne 0 ]]; then
+      checkAptLock
+      sudo apt install libdigest-sha-perl -qyy
     fi
-  done
+    # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
+    SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
+    for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
+      /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
+      INSTsum=$(shasum -a ${sum} ${0} | cut -f1 -d\ )
+      chsum=$(cat /tmp/INSTALL.sh.sha${sum} | cut -f1 -d\ )
+
+      if [[ "${chsum}" == "${INSTsum}" ]]; then
+        echo "sha${sum} matches"
+      else
+        echo "sha${sum}: ${chsum} does not match the installer sum of: ${INSTsum}"
+        echo "Delete installer, re-download and please run again."
+        exit 1
+      fi
+    done
+  fi
 }
 
 # Extract manufacturer
 checkManufacturer () {
-  if [ -z $(which dmidecode) ]; then
+  if [[ -z $(which dmidecode) ]]; then
     checkAptLock
     sudo apt install dmidecode -qy
   fi
   MANUFACTURER=$(sudo dmidecode -s system-manufacturer)
-  echo $MANUFACTURER
+  debug ${MANUFACTURER}
 }
 
 # Dynamic horizontal spacer if needed, for autonomeous an no progress bar install, we are static.
@@ -302,7 +334,7 @@ progress () {
 checkLocale () {
   debug "Checking Locale"
   # If locale is missing, generate and install a common UTF-8
-  if [[ ! -f /etc/default/locale || $(wc -l /etc/default/locale| cut -f 1 -d\ ) == "1" ]]; then
+  if [[ ! -f /etc/default/locale || $(wc -l /etc/default/locale| cut -f 1 -d\ ) -eq "1" ]]; then
     checkAptLock
     sudo DEBIAN_FRONTEND=noninteractive apt install locales -qy
     sudo sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
@@ -313,6 +345,7 @@ checkLocale () {
 
 # Simple function to check command exit code
 checkFail () {
+  # '-ne' checks for numerical differences, '==' used for strings
   if [[ $2 -ne 0 ]]; then
     echo "iAmError: $1"
     echo "The last command exited with error code: $2"
@@ -349,15 +382,16 @@ clean () {
 # Check if misp user is present and if run as root
 checkID () {
   debug "Checking if run as root and $MISP_USER is present"
-  if [[ $EUID == 0 ]]; then
+  if [[ $EUID -eq 0 ]]; then
     echo "This script cannot be run as a root"
     clean > /dev/null 2>&1
     exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-    if [[ "$UNATTENDED" != "1" ]]; then 
+    if [[ "$UNATTENDED" != "1" ]]; then
       echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' (y) or continue as $USER (n)? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
+      INSTALL_USER=${USER}
     else
       ANSWER="y"
     fi
@@ -385,12 +419,12 @@ checkID () {
     sudo adduser $MISP_USER $WWW_USER
   fi
 
-  # FIXME: the below SUDO_USER check is a duplicate from global variables, try to have just one check
+  # FIXME: the below SUDO_CMD check is a duplicate from global variables, try to have just one check
   # sudo config to run $LUSER commands
   if [[ "$(groups ${MISP_USER} |grep -o 'staff')" == "staff" ]]; then
-    SUDO_USER="sudo -H -u ${MISP_USER} -g staff"
+    SUDO_CMD="sudo -H -u ${MISP_USER} -g staff"
   else
-    SUDO_USER="sudo -H -u ${MISP_USER}"
+    SUDO_CMD="sudo -H -u ${MISP_USER}"
   fi
 
 }
@@ -422,7 +456,7 @@ preInstall () {
   DBPASSWORD_MISP=$(cat database.php |grep -v // |grep -e password |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
   DBUSER_MISP=$(cat database.php |grep -v // |grep -e login |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
   DBNAME=$(cat database.php |grep -v // |grep -e database |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
-  AUTH_KEY=$(mysql --disable-column-names -B  -u $DBUSER_MISP -p"$DBPASSWORD_MISP" $DBNAME -e 'SELECT authkey FROM users WHERE role_id=1 LIMIT 1')
+  AUTH_KEY=$(mysql -h $DBHOST --disable-column-names -B  -u $DBUSER_MISP -p"$DBPASSWORD_MISP" $DBNAME -e 'SELECT authkey FROM users WHERE role_id=1 LIMIT 1')
 
   # Check if db exists
   [[ -d "/var/lib/mysql/$DBNAME" ]] && MISP_DB_DIR_EXISTS=1 && echo "/var/lib/mysql/$DBNAME exists"
@@ -438,7 +472,7 @@ upgrade () {
   Autho="Authorization:"
   CT="Content-Type:"
   MISP_BASEURL="https://127.0.0.1"
-  cd $PATH_TO_MISP/app ; $SUDO_WWW php composer.phar update $SUDO_WWW php composer.phar self-update
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar update ; php composer.phar self-update"
 
   for URN in $(echo "galaxies warninglists noticelists objectTemplates taxonomies"); do
     curl --header "$Autho $AUTH_KEY" --header "$Acc $headerJSON" --header "$CT $headerJSON" -k -X POST $MISP_BASEURL/$URN/update
@@ -477,14 +511,27 @@ kaliSpaceSaver () {
   echo "${RED}Not implement${NC}"
 }
 
-# Because Kali is l33t we make sure we run as root
-kaliOnRootR0ckz () {
-  if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root"
-   exit 1
-  elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-    useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
-    echo $MISP_USER:$MISP_PASSWORD | chpasswd
+# FIXME: Kali now uses kali/kali instead of root/toor
+# Because Kali is l33t we make sure we DO NOT run as root
+kaliOnTheR0ckz () {
+  totalRoot=$(df -k | grep /$ |awk '{ print $2 }')
+  totalMem=$(cat /proc/meminfo|grep MemTotal |grep -Eo '[0-9]{1,}')
+  overlay=$(df -kh |grep overlay; echo $?) # if 1 overlay NOT present
+
+  if [[ ${totalRoot} -lt 3059034 ]]; then
+    echo "(If?) You run Kali in LiveCD mode, you need more overlay disk space."
+    echo "This is defined by the total memory setting in you VM config."
+    echo "You currently have: ${totalMem}kB which is not enough."
+    echo "6-8Gb should be fine. (need >3Gb overlayFS)"
+    exit 1
+  fi
+
+  if [[ ${EUID} -eq 0 ]]; then
+    echo "This script must NOT be run as root"
+    exit 1
+  elif [[ $(id ${MISP_USER} >/dev/null; echo $?) -ne 0 ]]; then
+    sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff ${MISP_USER}
+    echo ${MISP_USER}:${MISP_PASSWORD} | sudo chpasswd
   else
     # TODO: Make sure we consider this further down the road
     echo "User ${MISP_USER} exists, skipping creation"
@@ -493,21 +540,25 @@ kaliOnRootR0ckz () {
 
 setBaseURL () {
   debug "Setting Base URL"
+
   CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
-  IFACE=`echo $CONN |awk {'print $1'}`
-  IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
-  # TODO: Consider "QEMU"
-  if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]]; then
-    debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
-    if [[ "$UNATTENDED" != "1" ]]; then 
+  IFACE=$(echo $CONN |awk {'print $1'})
+  IP=$(echo $CONN |awk {'print $2'}| cut -f1 -d/)
+
+  [[ -n ${MANUFACTURER} ]] || checkManufacturer
+
+  if [[ "${MANUFACTURER}" != "innotek GmbH" ]] && [[ "$MANUFACTURER" != "VMware, Inc." ]] && [[ "$MANUFACTURER" != "QEMU" ]]; then
+    debug "We guess that this is a physical machine and cannot reliably guess what the MISP_BASEURL might be."
+
+    if [[ "${UNATTENDED}" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
-      ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
-      if [[ "$ANSWER" == "y" ]]; then
-        if [[ ! -z $IP ]]; then
-          echo "It seems you have an interface called $IFACE UP with the following IP: $IP - FYI"
-          echo "Thus your Base URL could be: https://$IP"
+      ANSWER=$(echo ${ANSWER} |tr '[:upper:]' '[:lower:]')
+      if [[ "${ANSWER}" == "y" ]]; then
+        if [[ ! -z ${IP} ]]; then
+          echo "It seems you have an interface called ${IFACE} UP with the following IP: ${IP} - FYI"
+          echo "Thus your Base URL could be: https://${IP}"
         fi
         echo "Please enter the Base URL, e.g: 'https://example.org'"
         echo ""
@@ -521,16 +572,24 @@ setBaseURL () {
         # Webserver configuration
         FQDN='misp.local'
     fi
-  elif [[ $KALI == "1" ]]; then
+  elif [[ "${KALI}" == "1" ]]; then
     MISP_BASEURL="https://misp.local"
     # Webserver configuration
     FQDN='misp.local'
-  else
+  elif [[ "${MANUFACTURER}" == "innotek GmbH" ]]; then
     MISP_BASEURL='https://localhost:8443'
     IP=$(ip addr show | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}' |grep -v "127.0.0.1" |tail -1)
     sudo iptables -t nat -A OUTPUT -p tcp --dport 8443 -j DNAT --to ${IP}:443
     # Webserver configuration
     FQDN='localhost.localdomain'
+  elif [[ "${MANUFACTURER}" == "VMware, Inc." ]]; then
+    MISP_BASEURL='""'
+    # Webserver configuration
+    FQDN='misp.local'
+  else
+    MISP_BASEURL='""'
+    # Webserver configuration
+    FQDN='misp.local'
   fi
 }
 
@@ -554,10 +613,28 @@ installRNG () {
 # Kali upgrade
 kaliUpgrade () {
   debug "Running various Kali upgrade tasks"
-  sudo apt update
   checkAptLock
+  # Fix Missing keys early
+  sudo wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+  # /!\ The following is a very ugly dependency hack to make php7.4 work on Kali
+  wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+  sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+  wget http://ftp.debian.org/debian/pool/main/i/icu/libicu67_67.1-7_amd64.deb
+  sudo dpkg -i libicu67_67.1-7_amd64.deb
+  # EOH End-Of-Hack
+  sudo DEBIAN_FRONTEND=noninteractive apt update
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
   sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
+}
+
+# Kali 2022.x has only php81
+installDepsKaliPhp74 () {
+    sudo apt -y install lsb-release apt-transport-https ca-certificates 
+    sudo wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+    echo "deb https://packages.sury.org/php/ bullseye main" | sudo tee /etc/apt/sources.list.d/php.list
+    sudo apt update
+    wget http://ftp.us.debian.org/debian/pool/main/libf/libffi/libffi7_3.3-6_amd64.deb
+    sudo dpkg -i libffi7_3.3-6_amd64.deb
 }
 
 # Disables sleep
@@ -584,6 +661,9 @@ if [[ $(type -t checkAptLock) == "alias" ]]; then unalias checkAptLock; fi
 # Simple function to make sure APT is not locked
 checkAptLock () {
   SLEEP=3
+  if [[ -n ${APT_UPDATED} ]]; then
+    sudo apt update && APT_UPDATED=1
+  fi
   while [ "$DONE" != "0" ]; do
     sudo apt-get check 2> /dev/null > /dev/null && DONE=0
     echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds." > /dev/tty
@@ -599,12 +679,12 @@ installDepsPhp70 () {
   debug "Installing PHP 7.0 dependencies"
   PHP_ETC_BASE=/etc/php/7.0
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
+  checkAptLock
   sudo apt install -qy \
   libapache2-mod-php \
   php php-cli \
   php-dev \
-  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring php-zip \
   php-redis php-gnupg \
   php-gd
 
@@ -612,6 +692,8 @@ installDepsPhp70 () {
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 }
 # <snippet-end 0_installDepsPhp70.sh>
 
@@ -621,15 +703,30 @@ installDepsPhp73 () {
   debug "Installing PHP 7.3 dependencies"
   PHP_ETC_BASE=/etc/php/7.3
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
   checkAptLock
-  sudo apt install -qy \
-  libapache2-mod-php7.3 \
-  php7.3 php7.3-cli \
-  php7.3-dev \
-  php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-  php-redis php-gnupg \
-  php-gd
+  if [[ ! -n ${KALI} ]]; then
+    sudo apt install -qy \
+      libapache2-mod-php7.3 \
+      php7.3 php7.3-cli \
+      php7.3-dev \
+      php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+      php-redis php-gnupg \
+      php-gd
+  else
+      sudo apt install -qy \
+        libapache2-mod-php7.3 \
+        libgpgme-dev \
+        php7.3 php7.3-cli \
+        php7.3-dev \
+        php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+        php7.3-gd
+      sudo pecl channel-update pecl.php.net
+      #sudo pear config-set php_ini ${PHP_INI}
+      echo "" |sudo pecl install redis
+      sudo pecl install gnupg
+      echo extension=gnupg.so | sudo tee ${PHP_ETC_BASE}/mods-available/gnupg.ini
+      echo extension=redis.so | sudo tee ${PHP_ETC_BASE}/mods-available/redis.ini
+  fi
 }
 # <snippet-end 0_installDepsPhp73.sh>
 
@@ -637,7 +734,6 @@ installDepsPhp73 () {
 installDeps () {
   debug "Installing core dependencies"
   checkAptLock
-  sudo apt update
   sudo apt install -qy etckeeper
   # Skip dist-upgrade for now, pulls in 500+ updated packages
   #sudo apt -y dist-upgrade
@@ -653,82 +749,14 @@ installDeps () {
   [[ -n $KALI ]] || [[ -n $UNATTENDED ]] && sudo DEBIAN_FRONTEND=noninteractive apt install -qy postfix || sudo apt install -qy postfix
 
   sudo apt install -qy \
-  curl gcc git gnupg-agent make openssl redis-server neovim unzip zip libyara-dev python3-yara python3-redis python3-zmq sqlite3 \
+  curl gcc git gnupg-agent make openssl redis-server neovim unzip zip libyara-dev python3-yara python3-redis python3-zmq sqlite3 python3-virtualenv \
   mariadb-client \
   mariadb-server \
   apache2 apache2-doc apache2-utils \
   python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
-  libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools expect
+  libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
 
   installRNG
-}
-
-# On Kali, the redis start-up script is broken. This tries to fix it.
-fixRedis () {
-  # As of 20190124 redis-server init.d scripts are broken and need to be replaced
-  sudo mv /etc/init.d/redis-server /etc/init.d/redis-server_`date +%Y%m%d`
-
-  echo '#! /bin/sh
-### BEGIN INIT INFO
-# Provides:		redis-server
-# Required-Start:	$syslog
-# Required-Stop:	$syslog
-# Should-Start:		$local_fs
-# Should-Stop:		$local_fs
-# Default-Start:	2 3 4 5
-# Default-Stop:		0 1 6
-# Short-Description:	redis-server - Persistent key-value db
-# Description:		redis-server - Persistent key-value db
-### END INIT INFO
-
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/usr/bin/redis-server
-DAEMON_ARGS=/etc/redis/redis.conf
-NAME=redis-server
-DESC=redis-server
-PIDFILE=/var/run/redis.pid
-
-test -x $DAEMON || exit 0
-test -x $DAEMONBOOTSTRAP || exit 0
-
-set -e
-
-case "$1" in
-  start)
-	echo -n "Starting $DESC: "
-	touch $PIDFILE
-	chown redis:redis $PIDFILE
-	if start-stop-daemon --start --quiet --umask 007 --pidfile $PIDFILE --chuid redis:redis --exec $DAEMON -- $DAEMON_ARGS
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	;;
-  stop)
-	echo -n "Stopping $DESC: "
-	if start-stop-daemon --stop --retry 10 --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	rm -f $PIDFILE
-	;;
-
-  restart|force-reload)
-	${0} stop
-	${0} start
-	;;
-  *)
-	echo "Usage: /etc/init.d/$NAME {start|stop|restart|force-reload}" >&2
-	exit 1
-	;;
-esac
-
-exit 0' | sudo tee /etc/init.d/redis-server
-  sudo chmod 755 /etc/init.d/redis-server
-  sudo /etc/init.d/redis-server start
 }
 
 # generate MISP apache conf
@@ -769,79 +797,72 @@ genApacheConf () {
           ServerSignature Off
           Header set X-Content-Type-Options nosniff
           Header set X-Frame-Options DENY
-  </VirtualHost>" | tee /etc/apache2/sites-available/misp-ssl.conf
+  </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-ssl.conf
 }
 
 # Add git pull update mechanism to rc.local - TODO: Make this better
 gitPullAllRCLOCAL () {
-  sed -i -e '$i \git_dirs="/usr/local/src/misp-modules/ /var/www/misp-dashboard /usr/local/src/faup /usr/local/src/mail_to_misp /usr/local/src/misp-modules /usr/local/src/viper /var/www/misp-dashboard"\n' /etc/rc.local
-  sed -i -e '$i \for d in $git_dirs; do\n' /etc/rc.local
-  sed -i -e '$i \    echo "Updating ${d}"\n' /etc/rc.local
-  sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
-  sed -i -e '$i \done\n' /etc/rc.local
+  sudo sed -i -e '$i \git_dirs="/usr/local/src/misp-modules /var/www/misp-dashboard /usr/local/src/faup /usr/local/src/mail_to_misp /usr/local/src/misp-modules /usr/local/src/viper /var/www/misp-dashboard"\n' /etc/rc.local
+  sudo sed -i -e '$i \for d in $git_dirs; do\n' /etc/rc.local
+  sudo sed -i -e '$i \    echo "Updating ${d}"\n' /etc/rc.local
+  sudo sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
+  sudo sed -i -e '$i \done\n' /etc/rc.local
 }
 
+
+# Main composer function
+composer () {
+  sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install --no-dev"
+}
+
+# Legacy composer function
+composer74 () {
+  sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php7.4 composer.phar install --no-dev"
+}
+
+# TODO: FIX somehow the alias of the function does not work
 # Composer on php 7.0 does not need any special treatment the provided phar works well
-alias composer70='composer72'
-
+alias composer70=composer
 # Composer on php 7.2 does not need any special treatment the provided phar works well
-composer72 () {
-  cd $PATH_TO_MISP/app
-  mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
-  $SUDO_WWW php composer.phar install
-}
+alias composer72=composer
+# Composer on php 7.3 does not need any special treatment the provided phar works well
+alias composer73=composer
 
-# Composer on php 7.3 needs a recent version of composer.phar
-composer73 () {
-  cd $PATH_TO_MISP/app
-  mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
-  # Update composer.phar
-  # If hash changes, check here: https://getcomposer.org/download/ and replace with the correct one
-  # Current Sum for: v1.8.3
-  SHA384_SUM='48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5'
-  $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
-  checkFail "composer.phar checksum failed, please investigate manually. " $?
-  $SUDO_WWW php composer-setup.php
-  $SUDO_WWW php -r "unlink('composer-setup.php');"
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
-  $SUDO_WWW php composer.phar install
-}
-
+# TODO: this is probably a useless function
 # Enable various core services
 enableServices () {
-    update-rc.d mysql enable
-    update-rc.d apache2 enable
-    update-rc.d redis-server enable
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now  mysql
+    sudo systemctl enable --now  apache2
+    sudo systemctl enable --now  redis-server
 }
 
+# TODO: check if this makes sense
 # Generate rc.local
 genRCLOCAL () {
-  if [ ! -e /etc/rc.local ]; then
+  if [[ ! -e /etc/rc.local ]]; then
       echo '#!/bin/sh -e' | tee -a /etc/rc.local
-      echo 'exit 0' | tee -a /etc/rc.local
+      echo 'exit 0' | sudo tee -a /etc/rc.local
       chmod u+x /etc/rc.local
   fi
 
-  sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
-  sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
-  sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-  sed -i -e '$i \[ -f /etc/init.d/firstBoot ] && bash /etc/init.d/firstBoot\n' /etc/rc.local
+  sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
+  sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
+  sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
+  sudo sed -i -e '$i \[ -f /etc/init.d/firstBoot ] && bash /etc/init.d/firstBoot\n' /etc/rc.local
 }
 
 # Run PyMISP tests
 runTests () {
-  echo "url = ${MISP_BASEURL}
-key = ${AUTH_KEY}" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
+  echo "url = \"${MISP_BASEURL}\"
+key = \"${AUTH_KEY}\"" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
-  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
-  sudo -H -u $WWW_USER ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
-  sudo -H -u $WWW_USER git clone https://github.com/viper-framework/viper-test-files.git $PATH_TO_MISP/PyMISP/tests/viper-test-files
-  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
+  ${SUDO_WWW} sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin main"
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
+  ${SUDO_WWW} sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
 }
 
 # Nuke the install, meaning remove all MISP data but no packages, this makes testing the installer faster
@@ -850,32 +871,33 @@ nuke () {
   sleep 10
   sudo rm -rvf /usr/local/src/{misp-modules,viper,mail_to_misp,LIEF,faup}
   sudo rm -rvf /var/www/MISP
-  sudo mysqladmin drop misp
-  sudo mysql -e "DROP USER misp@localhost"
+  sudo mysqladmin -h $DBHOST drop misp
+  sudo mysql -h $DBHOST -e "DROP USER misp@localhost"
 }
 
 # Final function to let the user know what happened
 theEnd () {
   space
-  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_USER tee /home/${MISP_USER}/mysql.txt
-  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_USER tee -a /home/${MISP_USER}/mysql.txt
-  echo "Authkey: $AUTH_KEY" |$SUDO_USER tee -a /home/${MISP_USER}/MISP-authkey.txt
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_CMD tee /home/${MISP_USER}/mysql.txt
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_CMD tee -a /home/${MISP_USER}/mysql.txt
+  echo "Authkey: $AUTH_KEY" |$SUDO_CMD tee -a /home/${MISP_USER}/MISP-authkey.txt
 
-  clear
+  # Commenting out, see: https://github.com/MISP/MISP/issues/5368
+  # clear -x
   space
   echo -e "${LBLUE}MISP${NC} Installed, access here: ${MISP_BASEURL}"
   echo
   echo "User: admin@admin.test"
   echo "Password: admin"
   space
-  [[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
-  [[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
-  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && space
+  ##[[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
+  ##[[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
+  ##[[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && space
   echo -e "The following files were created and need either ${RED}protection or removal${NC} (${YELLOW}shred${NC} on the CLI)"
   echo "/home/${MISP_USER}/mysql.txt"
   echo -e "${RED}Contents:${NC}"
@@ -913,6 +935,30 @@ theEnd () {
     sudo su - ${MISP_USER}
   fi
 }
-## End Function Section Nothing allowed in .md after this line ##
 # <snippet-end 0_support-functions.sh>
+# <snippet-begin 0_installDepsPhp72.sh>
+# Install Php 7.2 dependencies
+installDepsPhp72 () {
+  debug "Installing PHP 7.2 dependencies"
+  PHP_ETC_BASE=/etc/php/7.2
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  checkAptLock
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring php-zip \
+  php-redis php-gnupg \
+  php-intl php-bcmath \
+  php-gd
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
+}
+## End Function Section Nothing allowed in .md after this line ##
+# <snippet-end 0_installDepsPhp72.sh>
 ```

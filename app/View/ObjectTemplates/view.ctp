@@ -1,12 +1,14 @@
 <?php
     $table_data = array();
-    $table_data[] = array('key' => __('Id'), 'value' => $template['ObjectTemplate']['id']);
+    $table_data[] = array('key' => __('ID'), 'value' => $template['ObjectTemplate']['id']);
     $table_data[] = array('key' => __('Name'), 'value' => $template['ObjectTemplate']['name'] ? $template['ObjectTemplate']['name'] : $template['ObjectTemplate']['type']);
     $table_data[] = array('key' => __('Organisation'), 'value' => $template['Organisation']['name']);
     $table_data[] = array('key' => __('UUID'), 'value' => $template['ObjectTemplate']['uuid']);
     $table_data[] = array('key' => __('Version'), 'value' => $template['ObjectTemplate']['version']);
     $table_data[] = array('key' => __('Meta-category'), 'value' => $template['ObjectTemplate']['meta-category']);
-    $table_data[] = array('key' => __('Description'), 'value' => $template['ObjectTemplate']['description']);
+    if (!empty($template['ObjectTemplate']['description'])) {
+        $table_data[] = array('key' => __('Description'), 'value' => $template['ObjectTemplate']['description']);
+    }
     if (!empty($template['ObjectTemplate']['requirements'])) {
         $requirements_contents = array();
         foreach ($template['ObjectTemplate']['requirements'] as $group => $requirements) {
@@ -23,7 +25,7 @@
                 );
             }
         }
-        $table_data[] = array('key' => __('Requirements'), 'html' => implode('<br />', $requirements_contents));
+        $table_data[] = array('key' => __('Requirements'), 'html' => implode('<br>', $requirements_contents));
     }
     echo sprintf(
         '<div class="roles view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s</div>%s',
@@ -42,7 +44,7 @@
 <?php
     $startingTab = 'all';
 ?>
-$(document).ready(function () {
+$(function () {
     objectTemplateViewContent('<?php echo $startingTab; ?>', '<?php echo h($id);?>');
 });
 </script>

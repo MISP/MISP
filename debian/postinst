@@ -1,0 +1,84 @@
+#!/bin/sh
+
+set -e
+
+#DEBHELPER#
+
+. /usr/share/debconf/confmodule
+
+if [ "$1" = "configure" ] ; then
+   cp /usr/share/misp/app/Config/bootstrap.default.php /usr/share/misp/app/Config/bootstrap.php
+   cp /usr/share/misp/app/Config/config.default.php /usr/share/misp/app/Config/config.php
+   cp /usr/share/misp/app/Config/core.default.php /usr/share/misp/app/Config/core.php
+   cp /usr/share/misp/app/Config/database.default.php /usr/share/misp/app/Config/database.php
+
+   chown -R www-data:www-data /usr/share/misp/app/tmp
+   chmod -R g+ws /usr/share/misp/app/tmp
+   chown -R www-data:www-data /usr/share/misp/app/files
+   chmod -R g+ws /usr/share/misp/app/files
+   chown -R www-data:www-data /usr/share/misp/app/Config
+   chmod -R 750 /usr/share/misp/app/Config
+
+   if [ ! -d "/var/www/.composer/" ]
+   then
+       mkdir /var/www/.composer
+   fi
+
+   chown www-data:www-data /var/www/.composer
+   chown -R www-data:www-data /usr/share/misp/
+
+   cd /usr/share/misp/app
+   sudo -u www-data composer dump-autoload
+   sudo -u www-data composer install --ignore-platform-reqs
+   
+   phpenmod redis
+   phpenmod gnupg   
+
+   a2dissite 000-default || true
+   a2ensite misp.apache2 || true
+   
+   db_get misp/mariadb_host
+   HOST=$RET
+   db_get misp/mariadb_rootpwd
+   ROOTPWD=$RET
+   db_get misp/mariadb_mispdb
+   MISPDB=$RET
+   db_get misp/mariadb_mispdbuser
+   MISPDBUSER=$RET
+   db_get misp/mariadb_setmisppwd
+   MISPDBUSERPWD=$RET
+   db_get misp/base_url
+   BASEURL=$RET
+   db_stop
+
+   mysql -h$HOST -uroot -p$ROOTPWD -e "CREATE USER IF NOT EXISTS '$MISPDBUSER'@'%' IDENTIFIED BY '$MISPDBUSERPWD';"
+   mysql -h$HOST -uroot -p$ROOTPWD -e "GRANT ALL PRIVILEGES ON misp.* TO '$MISPDBUSER'@'%';"
+   mysql -h$HOST -uroot -p$ROOTPWD -e "FLUSH PRIVILEGES;"
+   echo "Creating MISP Database..."
+   mysql -h$HOST -uroot -p$ROOTPWD -e "CREATE DATABASE $MISPDB;" && gunzip < /usr/share/doc/misp/MYSQL.sql.gz | mysql -h$HOST -u$MISPDBUSER -p$MISPDBUSERPWD $MISPDB || true
+
+   #   /usr/share/misp/app/Config/database.php
+   echo "Updating salt..."
+   sed -i -E "s/'salt'\s=>\s'(\S+)'/'salt' => '`openssl rand -base64 32|tr "/" "-"`'/" /usr/share/misp/app/Config/config.php
+
+   echo "Configuring Database..."
+   sed -i -E "s/'host'\s=>\s'localhost'/'host' => '$HOST'/" /usr/share/misp/app/Config/database.php
+   sed -i -E "s/'login'\s=>\s'db login'/'login' => '$MISPDBUSER'/" /usr/share/misp/app/Config/database.php
+   sed -i -E "s/'password'\s=>\s'db password'/'password' => '$MISPDBUSERPWD'/" /usr/share/misp/app/Config/database.php
+   sed -i -E "s/'database'\s=>\s'misp'/'database' => '$MISPDB'/" /usr/share/misp/app/Config/database.php
+
+   # composer require resque/php-resque || true
+   # No composer.json in current directory, do you want to use the one at /usr/share/misp/app? [Y,n]? Y
+   
+   sudo -u www-data /usr/share/misp/app/Console/cake admin setSetting MISP.baseurl "$BASEURL"
+
+   #
+   # Starting MISP Workers at every boot
+   #
+   chmod +x /usr/share/misp/app/Console/worker/start.sh
+   cat /usr/share/doc/misp/misp-workers.service > /etc/systemd/system/misp-workers.service
+   sed -i -E "s/\/var\/www\/MISP/\/usr\/share\/misp/" /etc/systemd/system/misp-workers.service
+
+#   systemctl enable --now misp-workers
+fi
+

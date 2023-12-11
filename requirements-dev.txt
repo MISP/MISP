@@ -1,0 +1,4 @@
+codecov
+coveralls
+nose
+requests-mock

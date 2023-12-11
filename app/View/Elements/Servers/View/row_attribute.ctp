@@ -1,5 +1,4 @@
 <?php
-if ($object['value'] == 'MERGE') debug($object);
   $tr_class = '';
   $linkClass = 'blue';
   $otherColour = 'blue';
@@ -24,8 +23,11 @@ if ($object['value'] == 'MERGE') debug($object);
       <?php echo date('Y-m-d', $object['timestamp']); ?>
     </td>
     <td class="short">
+      <?php echo $this->element('/Servers/View/seen_field', array('object' => $object)); ?>
+    </td>
+    <td class="short">
       <div id = "Attribute_<?php echo $object['id']; ?>_category_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_category_solid" class="inline-field-solid" ondblclick="activateField('Attribute', '<?php echo $object['id']; ?>', 'category', <?php echo $event['Event']['id'];?>);">
+      <div id = "Attribute_<?php echo $object['id']; ?>_category_solid" class="inline-field-solid">
         <?php echo h($object['category']); ?>
       </div>
     </td>
@@ -39,35 +41,16 @@ if ($object['value'] == 'MERGE') debug($object);
       ?>
       <div></div>
       <div id = "Attribute_<?php echo $object['id']; ?>_type_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_type_solid" class="inline-field-solid" ondblclick="activateField('Attribute', '<?php echo $object['id']; ?>', 'type', <?php echo $event['Event']['id'];?>);">
+      <div id = "Attribute_<?php echo $object['id']; ?>_type_solid" class="inline-field-solid">
         <?php echo h($object['type']); ?>
       </div>
     </td>
     <td id="Attribute_<?php echo h($object['id']); ?>_container" class="showspaces limitedWidth shortish">
       <div id="Attribute_<?php echo $object['id']; ?>_value_placeholder" class="inline-field-placeholder"></div>
-      <?php
-        if ('attachment' !== $object['type'] && 'malware-sample' !== $object['type']) $editable = ' ondblclick="activateField(\'Attribute\', \'' . $object['id'] . '\', \'value\', \'' . $event['Event']['id'] . '\');"';
-        else $editable = '';
-      ?>
-      <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
+      <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid">
         <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="Attribute" data-object-id="' . h($object['id']) . '"'?>>
-          <?php
-            echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
-          ?>
+          <?= $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)); ?>
         </span>
-        <?php
-          if (isset($object['warnings'])) {
-            $temp = '';
-            $components = array(1 => 0, 2 => 1);
-            $valueParts = explode('|', $object['value']);
-            foreach ($components as $component => $valuePart) {
-              if (isset($object['warnings'][$component]) && isset($valueParts[$valuePart])) {
-                foreach ($object['warnings'][$component] as $warning) $temp .= '<span class=\'bold\'>' . h($valueParts[$valuePart]) . '</span>: <span class=\'red\'>' . h($warning) . '</span><br />';
-              }
-            }
-            echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
-          }
-        ?>
       </div>
     </td>
     <td class="shortish">
@@ -80,7 +63,7 @@ if ($object['value'] == 'MERGE') debug($object);
     </td>
     <td class="showspaces bitwider">
       <div id = "Attribute_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid" ondblclick="activateField('Attribute', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+      <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
         <?php echo nl2br(h($object['comment'])); ?>&nbsp;
       </div>
     </td>
@@ -138,7 +121,7 @@ if ($object['value'] == 'MERGE') debug($object);
     </td>
     <td class="short">
       <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_solid" class="inline-field-solid" ondblclick="activateField('Attribute', '<?php echo $object['id']; ?>', 'to_ids', <?php echo $event['Event']['id'];?>);">
+      <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_solid" class="inline-field-solid">
         <?php echo $object['to_ids'] ? __('Yes') : __('No'); ?>
       </div>
     </td>

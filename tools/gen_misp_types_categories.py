@@ -79,6 +79,13 @@ def make_matrix_content(pos, max_cols):
     return out
 
 
+def jq_file(fname):
+    p1 = subprocess.Popen(['jq', '.', fname], stdout=subprocess.PIPE)
+    output = p1.stdout.read()
+    with open(fname, 'wb') as f:
+        f.write(output)
+
+
 # verify if the folders exist before continuing
 folders = ['PyMISP', 'misp-book', 'misp-website', 'misp-rfc']
 for folder in folders:
@@ -95,7 +102,7 @@ for folder in folders:
 # - read the JSON in python
 with open('../app/Model/Attribute.php', 'r') as f:
     attribute_php_file = f.read()
-re_match = re.search(r'\$this->categoryDefinitions\s?=\s?([^;]+);', attribute_php_file)
+re_match = re.search(r'function generateCategoryDefinitions\(\)\s*{\s*return(.*?\));\s*}', attribute_php_file, flags=re.MULTILINE + re.DOTALL)
 php_code_template = '''
 function __($s) {{ return $s; }}
 echo json_encode({});
@@ -106,7 +113,7 @@ category_definitions = json.loads(category_definitions_binary.decode('utf-8'))
 categories = list(category_definitions.keys())
 categories.sort()
 
-re_match = re.search(r'\$this->typeDefinitions\s?=\s?([^;]+);', attribute_php_file)
+re_match = re.search(r'function generateTypeDefinitions\(\)\s*{\s*return(.*?\));\s*}', attribute_php_file, flags=re.MULTILINE + re.DOTALL)
 php_code = php_code_template.format(re_match.group(1))
 type_definitions_binary = subprocess.run(['php', '-r', php_code], stdout=subprocess.PIPE).stdout
 type_definitions = json.loads(type_definitions_binary.decode('utf-8'))
@@ -160,10 +167,10 @@ with open('../../misp-book/categories-and-types/README.md', 'w') as f:
 # Find the offset of the start header: "### MISP default attributes and categories"
 # Find the offset of the end/next header:  "## MISP objects"
 # Replace our new content in between
-print("Updating MISP website - ../../misp-website/_pages/datamodels.md")
+print("Updating MISP website - ../../misp-website/content/datamodels.md")
 misp_website = []
 store_lines = True
-with open('../../misp-website/_pages/datamodels.md', 'r') as f:
+with open('../../misp-website/content/datamodels.md', 'r') as f:
     for line in f:
         # start marker
         if store_lines:
@@ -176,7 +183,7 @@ with open('../../misp-website/_pages/datamodels.md', 'r') as f:
         elif line.startswith('## MISP objects'):
             store_lines = True
             misp_website.append(line)
-with open('../../misp-website/_pages/datamodels.md', 'w') as f:
+with open('../../misp-website/content/datamodels.md', 'w') as f:
     f.write(''.join(misp_website))
 
 
@@ -232,6 +239,7 @@ describe_types = order_dict(describe_types)
 with open('../../PyMISP/pymisp/data/describeTypes.json', 'w') as f:
     json.dump(describe_types, f, sort_keys=True, indent=2)
     f.write('\n')
+jq_file('../../PyMISP/pymisp/data/describeTypes.json')
 
 
 # misp-objects
@@ -246,6 +254,7 @@ schema_objects['defs']['attribute']['properties']['categories']['items']['enum']
 with open('../../misp-objects/schema_objects.json', 'w') as f:
     json.dump(schema_objects, f, sort_keys=True, indent=2)
     f.write('\n')
+jq_file('../../misp-objects/schema_objects.json')
 
 # print(types)
 # print(categories)

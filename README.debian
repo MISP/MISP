@@ -1,0 +1,23 @@
+MISP Debian Package
+===================
+
+The actual MISP Debian package is experimental. It is not something that can be pushed to Debian yet,
+however it is still a valid Debian package that can be deployed and it makes the installation much
+easier.
+
+How to use?
+-----------
+
+* Get all the MISP dependencies into this tree, such as galaxies, whitelists, etc.
+* Rename to root folder to misp-2.4.220/
+* Run ./build-deb.sh
+
+Known Weaknesses
+----------------
+
+* For now, it only install MISP to use a MySQL backend.
+* We could not use the outdated CakePHP Debian package (2.x), it is now 4.x, so CakePHP must be pulled into app/Lib/cakephp
+* MISP is installed in /usr/share/misp/ including where it logs, etc.
+* No individual package for misp-galaxies, misp-taxonomies etc.
+* /usr/share/misp is set to www-data, it will be changed in a future version
+* It installs MISP using Apache only, no SSL etc.

@@ -2,52 +2,37 @@
 App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('AttachmentTool', 'Tools');
 
+/**
+ * @property ShadowAttribute $ShadowAttribute
+ */
 class ShadowAttributesController extends AppController
 {
-    public $components = array('Acl', 'Security', 'RequestHandler', 'Email');
+    public $components = array('RequestHandler');
 
     public $paginate = array(
             'limit' => 60,
             'maxLimit' => 9999,
         );
 
-    public $helpers = array('Js' => array('Jquery'));
-
     public function beforeFilter()
     {
         parent::beforeFilter();
         $this->set('title_for_layout', 'Proposals');
-        $this->Security->validatePost = true;
 
         // convert uuid to id if present in the url, and overwrite id field
         if (isset($this->params->query['uuid'])) {
             $params = array(
-                    'conditions' => array('ShadowAttribute.uuid' => $this->params->query['uuid']),
-                    'recursive' => 0,
-                    'fields' => 'ShadowAttribute.id'
-                    );
+                'conditions' => array('ShadowAttribute.uuid' => $this->params->query['uuid']),
+                'recursive' => 0,
+                'fields' => 'ShadowAttribute.id'
+            );
             $result = $this->ShadowAttribute->find('first', $params);
             if (isset($result['ShadowAttribute']) && isset($result['ShadowAttribute']['id'])) {
                 $id = $result['ShadowAttribute']['id'];
                 $this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
             }
-        }
-
-        // if not admin or own org, check private as well..
-        if (!$this->_isSiteAdmin()) {
-            $this->paginate = Set::merge($this->paginate, array(
-            'conditions' =>
-                    array('OR' =>
-                            array(
-                                'Event.org =' => $this->Auth->user('org_id'),
-                                'AND' => array(
-                                    'ShadowAttribute.org =' => $this->Auth->user('org_id'),
-                                    'Event.distribution >' => 0,
-                                    Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                                ),
-                            )
-            )));
         }
     }
 
@@ -70,36 +55,37 @@ class ShadowAttributesController extends AppController
         }
         $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $shadow, 'accept');
         $shadow = $shadow['ShadowAttribute'];
-        if ($this->ShadowAttribute->typeIsAttachment($shadow['type'])) {
+        if ($this->ShadowAttribute->typeIsAttachment($shadow['type']) && !$shadow['proposal_to_delete']) {
             $encodedFile = $this->ShadowAttribute->base64EncodeAttachment($shadow);
             $shadow['data'] = $encodedFile;
         }
         // If the old_id is set to anything but 0 then we're dealing with a proposed edit to an existing attribute
         if ($shadow['old_id'] != 0) {
             // Find the live attribute by the shadow attribute's uuid, so we can begin editing it
-            $this->Attribute->contain = 'Event';
-            $activeAttribute = $this->Attribute->findByUuid($shadow['uuid']);
+            $activeAttribute = $this->Attribute->find('first', [
+                'conditions' => ['Attribute.uuid' => $shadow['uuid']],
+                'contain' => ['Event'],
+            ]);
 
-            // Send those away that shouldn't be able to see this
-            if (!$this->_isSiteAdmin()) {
-                if ($activeAttribute['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify'])) {
-                    if ($this->_isRest()) {
-                        return array('false' => true, 'errors' => 'Proposal not found or you are not authorised to accept it.');
-                    } else {
-                        $this->Flash->error('You don\'t have permission to do that');
-                        $this->redirect(array('controller' => 'events', 'action' => 'view', $shadow['event_id']));
-                    }
+            // Send those away that shouldn't be able to edit this
+            if (!$this->__canModifyEvent($activeAttribute)) {
+                if ($this->_isRest()) {
+                    return array('false' => true, 'errors' => 'Proposal not found or you are not authorised to accept it.');
+                } else {
+                    $this->Flash->error('You don\'t have permission to do that');
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $shadow['event_id']));
                 }
             }
-            $date = new DateTime();
+
             if (isset($shadow['proposal_to_delete']) && $shadow['proposal_to_delete']) {
-                $this->Attribute->delete($activeAttribute['Attribute']['id']);
+                $this->Attribute->deleteAttribute($activeAttribute['Attribute']['id'], $this->Auth->user(), false);
             } else {
                 // Update the live attribute with the shadow data
-                $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids');
+                $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids', 'first_seen', 'last_seen');
                 foreach ($fieldsToUpdate as $f) {
                     $activeAttribute['Attribute'][$f] = $shadow[$f];
                 }
+                $date = new DateTime();
                 $activeAttribute['Attribute']['timestamp'] = $date->getTimestamp();
                 $this->Attribute->save($activeAttribute['Attribute']);
             }
@@ -115,7 +101,7 @@ class ShadowAttributesController extends AppController
             $this->Event->unpublishEvent($activeAttribute['Attribute']['event_id'], true);
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org_id' => $this->Auth->user('org_id'),
                 'model' => 'ShadowAttribute',
                 'model_id' => $id,
@@ -133,11 +119,9 @@ class ShadowAttributesController extends AppController
             $this->Event->recursive = -1;
             $event = $this->Event->read(null, $shadow['event_id']);
 
-            if (!$this->_isSiteAdmin()) {
-                if (($event['Event']['orgc_id'] != $this->Auth->user('org_id')) || (!$this->userRole['perm_modify'])) {
-                    $this->Flash->error('You don\'t have permission to do that');
-                    $this->redirect(array('controller' => 'events', 'action' => 'index'));
-                }
+            if (!$this->__canModifyEvent($event)) {
+                $this->Flash->error('You don\'t have permission to do that');
+                $this->redirect(array('controller' => 'events', 'action' => 'index'));
             }
             if (!$this->_isRest()) {
                 $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
@@ -161,7 +145,7 @@ class ShadowAttributesController extends AppController
             }
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org_id' => $this->Auth->user('org_id'),
                 'model' => 'ShadowAttribute',
                 'model_id' => $id,
@@ -186,7 +170,7 @@ class ShadowAttributesController extends AppController
                 $response['check_publish'] = true;
                 $this->set('name', $response['success']);
                 $this->set('message', $response['success']);
-                $this->set('url', '/shadow_attributes/accept/' . $id);
+                $this->set('url', $this->baseurl . '/shadow_attributes/accept/' . $id);
                 $this->set('_serialize', array('name', 'message', 'url'));
             } else {
                 throw new MethodNotAllowedException($response['errors']);
@@ -197,30 +181,13 @@ class ShadowAttributesController extends AppController
         }
     }
 
-    // If we accept a proposed attachment, then the attachment itself needs to be moved from files/eventId/shadow/shadowId to files/eventId/attributeId
-    private function _moveFile($shadowId, $newId, $eventId)
-    {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->ShadowAttribute->getDefaultAttachments_dir();
-        }
-        $pathOld = $attachments_dir . DS . 'shadow' . DS . $shadowId;
-        $pathNew = $attachments_dir . DS . $newId;
-        if (rename($pathOld, $pathNew)) {
-            return true;
-        } else {
-            $this->Flash->error(__('Moving of the file that this attachment references failed.', true), 'default', array());
-            $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
-        }
-    }
-
-
     private function __discard($id)
     {
         $sa = $this->ShadowAttribute->find(
                 'first',
                 array(
                     'recursive' => -1,
+                    'contain' => 'Event',
                     'conditions' => array(
                         'ShadowAttribute.id' => $id,
                         'deleted' => 0
@@ -230,33 +197,18 @@ class ShadowAttributesController extends AppController
         if (empty($sa)) {
             return false;
         }
-        $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $sa, 'discard');
-        $eventId = $sa['ShadowAttribute']['event_id'];
-        $this->loadModel('Event');
-        $this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
-        $this->Event->recursive = -1;
-        $this->Event->id = $eventId;
-        $this->Event->read();
-        // Send those away that shouldn't be able to see this
-        if (!$this->_isSiteAdmin()) {
-            if ((($this->Event->data['Event']['orgc_id'] != $this->Auth->user('org_id')) && ($this->Auth->user('org_id') != $sa['ShadowAttribute']['org_id'])) || (!$this->userRole['perm_modify'])) {
-                return false;
-            }
+        // Just auth of proposal or user that can edit event can discard proposal.
+        if (!$this->__canModifyEvent($sa) && $this->Auth->user('email') !== $sa['ShadowAttribute']['email']) {
+            return false;
         }
+        $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $sa, 'discard');
         if ($this->ShadowAttribute->setDeleted($id)) {
-            if ($this->Auth->user('org_id') == $this->Event->data['Event']['orgc_id']) {
-                $this->ShadowAttribute->setProposalLock($eventId, false);
+            if ($this->Auth->user('org_id') == $sa['Event']['orgc_id']) {
+                $this->ShadowAttribute->setProposalLock($sa['Event']['id'], false);
             }
+            $logTitle = "Proposal ({$sa['ShadowAttribute']['id']}) of {$sa['ShadowAttribute']['org_id']} discarded - {$sa['ShadowAttribute']['category']}/{$sa['ShadowAttribute']['type']} {$sa['ShadowAttribute']['value']}";
             $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                        'org_id' => $this->Auth->user('org_id'),
-                        'model' => 'ShadowAttribute',
-                        'model_id' => $id,
-                        'email' => $this->Auth->user('email'),
-                        'action' => 'discard',
-                        'title' => 'Proposal (' . $sa['ShadowAttribute']['id'] . ') of ' . $sa['ShadowAttribute']['org_id'] . ' discarded - ' . $sa['ShadowAttribute']['category'] . '/' . $sa['ShadowAttribute']['type'] . ' ' . $sa['ShadowAttribute']['value'],
-                ));
+            $this->Log->createLogEntry($this->Auth->user(), 'discard', 'ShadowAttribute', $id, $logTitle);
             return true;
         }
         return false;
@@ -270,7 +222,7 @@ class ShadowAttributesController extends AppController
                 if ($this->_isRest()) {
                     $this->set('name', 'Proposal discarded.');
                     $this->set('message', 'Proposal discarded.');
-                    $this->set('url', '/shadow_attributes/discard/' . $id);
+                    $this->set('url', $this->baseurl . '/shadow_attributes/discard/' . $id);
                     $this->set('_serialize', array('name', 'message', 'url'));
                 } else {
                     $this->autoRender = false;
@@ -278,7 +230,7 @@ class ShadowAttributesController extends AppController
                 }
             } else {
                 if ($this->_isRest()) {
-                    throw new MethodNotAllowedException(__('Could not discard proposal.'));
+                    throw new InternalErrorException(__('Could not discard proposal.'));
                 } else {
                     $this->autoRender = false;
                     return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not discard proposal.')), 'status'=>200, 'type' => 'json'));
@@ -304,20 +256,14 @@ class ShadowAttributesController extends AppController
     {
         if ($this->request->is('ajax')) {
             $this->set('ajax', true);
-            $this->layout = 'ajax';
+            $this->layout = false;
         } else {
             $this->set('ajax', false);
         }
-        if (empty($eventId)) {
-            if (empty($event)) {
-                throw new NotFoundException(__('Invalid Event'));
-            }
-        }
-        $event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
+        $event = $this->ShadowAttribute->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event'));
         }
-        $event = $event[0];
 
         if ($this->request->is('post')) {
             if (isset($this->request->data['request'])) {
@@ -340,9 +286,9 @@ class ShadowAttributesController extends AppController
             // TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
             if (isset($this->request->data['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($this->request->data['ShadowAttribute']['type']) && !$this->_isRest()) {
                 $this->Flash->error(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
-                $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+                $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
             }
-            $this->request->data['ShadowAttribute']['event_id'] = $eventId;
+            $this->request->data['ShadowAttribute']['event_id'] = $event['Event']['id'];
             //
             // multiple attributes in batch import
             //
@@ -396,7 +342,7 @@ class ShadowAttributesController extends AppController
                     if ($successes) {
                         // list the ones that succeeded
                         $emailResult = "";
-                        if (!$this->ShadowAttribute->sendProposalAlertEmail($eventId) === false) {
+                        if (!$this->ShadowAttribute->sendProposalAlertEmail($event['Event']['id']) === false) {
                             $emailResult = " but nobody from the owner organisation could be notified by e-mail.";
                         }
                         $this->Flash->success(__('The lines' . $successes . ' have been saved' . $emailResult, true));
@@ -410,7 +356,6 @@ class ShadowAttributesController extends AppController
                 //
                 // create the attribute
                 $this->ShadowAttribute->create();
-                $savedId = $this->ShadowAttribute->getID();
                 $this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
                 $this->request->data['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
                 $this->request->data['ShadowAttribute']['event_uuid'] = $event['Event']['uuid'];
@@ -433,7 +378,7 @@ class ShadowAttributesController extends AppController
                             array(
                                 'conditions' => array('ShadowAttribute.id' => $this->ShadowAttribute->id),
                                 'recursive' => -1,
-                                'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp')
+                                'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp', 'first_seen', 'last_seen')
                             )
                         );
                         $this->set('ShadowAttribute', $sa['ShadowAttribute']);
@@ -459,63 +404,48 @@ class ShadowAttributesController extends AppController
             }
         } else {
             // set the event_id in the form
-            $this->request->data['ShadowAttribute']['event_id'] = $eventId;
+            $this->request->data['ShadowAttribute']['event_id'] = $event['Event']['id'];
         }
-        $this->set('event_id', $eventId);
+        $this->set('event_id', $event['Event']['id']);
+        $this->set('event', $event);
         // combobox for types
-        $types = array_keys($this->ShadowAttribute->typeDefinitions);
-        foreach ($types as $key => $value) {
-            if (in_array($value, array('malware-sample', 'attachment'))) {
-                unset($types[$key]);
-            }
-        }
+        $types = $this->ShadowAttribute->Attribute->getNonAttachmentTypes();
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
         // combobox for categories
-        $categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
+        $categories = array_keys($this->ShadowAttribute->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
-        $this->set('categories', compact('categories'));
-        foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        $this->set('info', $info);
-        $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
+        $this->set('categories', $categories);
+        $this->__common();
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
     }
 
-    public function download($id = null)
+    public function download($id)
     {
-        $this->ShadowAttribute->id = $id;
-        if (!$this->ShadowAttribute->exists()) {
-            throw new NotFoundException(__('Invalid Proposal'));
-        }
+        $conditions = $this->ShadowAttribute->buildConditions($this->Auth->user());
+        $conditions['ShadowAttribute.id'] = $id;
+        $conditions['ShadowAttribute.deleted'] = 0;
+
         $sa = $this->ShadowAttribute->find('first', array(
             'recursive' => -1,
-            'contain' => array('Event' => array('fields' => array('Event.org_id', 'Event.distribution', 'Event.id'))),
-            'conditions' => array('ShadowAttribute.id' => $id)
+            'contain' => ['Event', 'Attribute'], // required because of conditions
+            'conditions' => $conditions,
         ));
-        if (!$this->ShadowAttribute->Event->checkIfAuthorised($this->Auth->user(), $sa['Event']['id'])) {
-            throw new UnauthorizedException(__('You do not have the permission to view this event.'));
+        if (!$sa) {
+            throw new NotFoundException(__('Invalid Proposal'));
         }
         $this->__downloadAttachment($sa['ShadowAttribute']);
     }
 
-    private function __downloadAttachment($shadowAttribute)
+    private function __downloadAttachment(array $shadowAttribute)
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->ShadowAttribute->getDefaultAttachments_dir();
-        }
-        $path = $attachments_dir . DS . 'shadow' . DS . $shadowAttribute['event_id'] . DS;
-        $file = $shadowAttribute['id'];
-        if ('attachment' == $shadowAttribute['type']) {
+        $file = $this->ShadowAttribute->getAttachmentFile($shadowAttribute);
+
+        if ('attachment' === $shadowAttribute['type']) {
             $filename = $shadowAttribute['value'];
             $fileExt = pathinfo($filename, PATHINFO_EXTENSION);
             $filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
-        } elseif ('malware-sample' == $shadowAttribute['type']) {
+        } elseif ('malware-sample' === $shadowAttribute['type']) {
             $filenameHash = explode('|', $shadowAttribute['value']);
             $filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
             $fileExt = "zip";
@@ -524,17 +454,15 @@ class ShadowAttributesController extends AppController
         }
         $this->autoRender = false;
         $this->response->type($fileExt);
-        $this->response->file($path . $file, array('download' => true, 'name' => $filename . '.' . $fileExt));
+        $this->response->file($file->path, array('download' => true, 'name' => $filename . '.' . $fileExt));
     }
 
     public function add_attachment($eventId = null)
     {
-        $event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
+        $event = $this->ShadowAttribute->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event'));
         }
-        $event = $event[0];
-
         if ($this->request->is('post')) {
             // Check if there were problems with the file upload
             // only keep the last part of the filename, this should prevent directory attacks
@@ -548,7 +476,7 @@ class ShadowAttributesController extends AppController
                     throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
                 }
             } else {
-                $this->Flash->error(__('There was a problem to upload the file.', true));
+                $this->Flash->error(__('There was a problem to upload the file.'));
                 $this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
             }
 
@@ -558,7 +486,7 @@ class ShadowAttributesController extends AppController
             if ($this->request->data['ShadowAttribute']['malware']) {
                 $result = $this->ShadowAttribute->Event->Attribute->handleMaliciousBase64($this->request->data['ShadowAttribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
                 if (!$result['success']) {
-                    $this->Flash->error(__('There was a problem to upload the file.', true), 'default', array(), 'error');
+                    $this->Flash->error(__('There was a problem to upload the file.'), 'default', array(), 'error');
                     $this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
                 }
                 foreach ($hashes as $hash => $typeName) {
@@ -593,19 +521,19 @@ class ShadowAttributesController extends AppController
                 }
             } else {
                 $shadowAttribute = array(
-                        'ShadowAttribute' => array(
-                                'value' => $filename,
-                                'category' => $this->request->data['ShadowAttribute']['category'],
-                                'type' => 'attachment',
-                                'event_id' => $this->request->data['ShadowAttribute']['event_id'],
-                                'comment' => $this->request->data['ShadowAttribute']['comment'],
-                                'data' => base64_encode($tmpfile->read()),
-                                'to_ids' => 0,
-                                'email' => $this->Auth->user('email'),
-                                'org_id' => $this->Auth->user('org_id'),
-                                'event_uuid' => $event['Event']['uuid'],
-                                'event_org_id' => $event['Event']['orgc_id'],
-                        )
+                    'ShadowAttribute' => array(
+                        'value' => $filename,
+                        'category' => $this->request->data['ShadowAttribute']['category'],
+                        'type' => 'attachment',
+                        'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+                        'comment' => $this->request->data['ShadowAttribute']['comment'],
+                        'data' => base64_encode($tmpfile->read()),
+                        'to_ids' => 0,
+                        'email' => $this->Auth->user('email'),
+                        'org_id' => $this->Auth->user('org_id'),
+                        'event_uuid' => $event['Event']['uuid'],
+                        'event_org_id' => $event['Event']['orgc_id'],
+                    )
                 );
                 $this->ShadowAttribute->create();
                 $r = $this->ShadowAttribute->save($shadowAttribute);
@@ -626,42 +554,43 @@ class ShadowAttributesController extends AppController
             $this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
         } else {
             // set the event_id in the form
-            $this->request->data['ShadowAttribute']['event_id'] = $eventId;
+            $this->request->data['ShadowAttribute']['event_id'] = $event['Event']['id'];
         }
 
-        // combobox for categories
-        $categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
-        $categories = $this->_arrayToValuesIndexArray($categories);
         // just get them with attachments..
         $selectedCategories = array();
-        foreach ($categories as $category) {
-            if (isset($this->ShadowAttribute->categoryDefinitions[$category])) {
-                $types = $this->ShadowAttribute->categoryDefinitions[$category]['types'];
-                $alreadySet = false;
-                foreach ($types as $type) {
-                    if ($this->ShadowAttribute->typeIsAttachment($type) && !$alreadySet) {
-                        // add to the whole..
-                        $selectedCategories[] = $category;
-                        $alreadySet = true;
-                    }
+        foreach ($this->ShadowAttribute->categoryDefinitions as $category => $values) {
+            foreach ($values['types'] as $type) {
+                if ($this->ShadowAttribute->typeIsAttachment($type)) {
+                    $selectedCategories[] = $category;
+                    break;
                 }
             }
         }
+
+        // Create list of categories that should be marked as malware sample by default
+        $isMalwareSampleCategory = [];
+        foreach ($selectedCategories as $category) {
+            $possibleMalwareSample = false;
+            foreach ($this->ShadowAttribute->categoryDefinitions[$category]['types'] as $type) {
+                if ($this->ShadowAttribute->typeIsMalware($type)) {
+                    $possibleMalwareSample = true;
+                    break;
+                }
+            }
+            $isMalwareSampleCategory[$category] = $possibleMalwareSample;
+        }
+
         $categories = $this->_arrayToValuesIndexArray($selectedCategories);
         $this->set('categories', $categories);
-        foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        $this->set('info', $info);
+        $this->__common();
         $this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
-
-        $this->set('zippedDefinitions', $this->ShadowAttribute->zippedDefinitions);
-        $this->set('uploadDefinitions', $this->ShadowAttribute->uploadDefinitions);
+        $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
+        $this->set('mayModify', $this->__canModifyEvent($event));
+        $this->set('event', $event);
+        $this->set('title_for_layout', __('Propose attachment'));
     }
 
     // Propose an edit to an attribute
@@ -670,19 +599,18 @@ class ShadowAttributesController extends AppController
     // if any of these fields is set, it will create a proposal
     public function edit($id = null)
     {
-        $id = $this->Toolbox->findIdByUuid($this->ShadowAttribute->Event->Attribute, $id);
-        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-                'contain' => array('Event' => array('fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'))),
-                'conditions' => array('Attribute.id' => $id),
-                'flatten' => 1
+        $existingAttribute = $this->ShadowAttribute->Attribute->fetchAttributes($this->Auth->user(), array(
+            'contain' => ['Event' => ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid', 'Event.user_id']]],
+            'conditions' => $this->__attributeIdToConditions($id),
+            'flatten' => 1
         ));
         if (empty($existingAttribute)) {
-            throw new MethodNotAllowedException(__('Invalid Attribute.'));
+            throw new NotFoundException(__('Invalid Attribute.'));
         }
         $existingAttribute = $existingAttribute[0];
 
         // Check if the attribute is an attachment, if yes, block the type and the value fields from being edited.
-        if ('attachment' == $existingAttribute['Attribute']['type'] || 'malware-sample' == $existingAttribute['Attribute']['type']) {
+        if ($this->ShadowAttribute->Attribute->typeIsAttachment($existingAttribute['Attribute']['type'])) {
             $this->set('attachment', true);
             $attachment = true;
         } else {
@@ -706,13 +634,13 @@ class ShadowAttributesController extends AppController
             }
             if ($attachment) {
                 $fields = array(
-                        'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id', 'category' => 'Attribute.category', 'type' => 'Attribute.type'),
-                        'optional' => array('value', 'to_ids', 'comment')
+                    'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id', 'category' => 'Attribute.category', 'type' => 'Attribute.type'),
+                    'optional' => array('value', 'to_ids', 'comment', 'first_seen', 'last_seen')
                 );
             } else {
                 $fields = array(
-                        'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id'),
-                        'optional' => array('category', 'type', 'value', 'to_ids', 'comment')
+                    'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id'),
+                    'optional' => array('category', 'type', 'value', 'to_ids', 'comment', 'first_seen', 'last_seen')
                 );
                 if ($existingAttribute['Attribute']['object_id']) {
                     unset($fields['optional']['type']);
@@ -747,9 +675,9 @@ class ShadowAttributesController extends AppController
                     $sa = $this->ShadowAttribute->find(
                             'first',
                             array(
-                                    'conditions' => array('ShadowAttribute.id' => $this->ShadowAttribute->id),
-                                    'recursive' => -1,
-                                    'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp')
+                                'conditions' => array('ShadowAttribute.id' => $this->ShadowAttribute->id),
+                                'recursive' => -1,
+                                'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp', 'first_seen', 'last_seen')
                             )
                     );
                     $this->set('ShadowAttribute', $sa['ShadowAttribute']);
@@ -764,9 +692,9 @@ class ShadowAttributesController extends AppController
                     foreach ($this->ShadowAttribute->validationErrors as $k => $v) {
                         $message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;
                     }
-                    throw new NotFoundException(__('Could not save the proposal. Errors: %s', $message));
+                    throw new InternalErrorException(__('Could not save the proposal. Errors: %s', $message));
                 } else {
-                    $this->Flash->error(__('The ShadowAttribute could not be saved. Please, try again.'));
+                    $this->Flash->error(__('The proposed Attribute could not be saved. Please, try again.'));
                 }
             }
         } else {
@@ -777,12 +705,7 @@ class ShadowAttributesController extends AppController
         }
 
         // combobox for types
-        $types = array_keys($this->ShadowAttribute->typeDefinitions);
-        foreach ($types as $key => $value) {
-            if (in_array($value, array('malware-sample', 'attachment'))) {
-                unset($types[$key]);
-            }
-        }
+        $types = $this->ShadowAttribute->Attribute->getNonAttachmentTypes();
         if ($existingAttribute['Attribute']['object_id']) {
             $this->set('objectAttribute', true);
         } else {
@@ -791,15 +714,10 @@ class ShadowAttributesController extends AppController
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
         // combobox for categories
-        $categories = $this->_arrayToValuesIndexArray(array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions));
+        $categories = $this->_arrayToValuesIndexArray(array_keys($this->ShadowAttribute->Attribute->categoryDefinitions));
         $categories = $this->_arrayToValuesIndexArray($categories);
-        foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        $categoryDefinitions = $this->ShadowAttribute->Event->Attribute->categoryDefinitions;
+
+        $categoryDefinitions = $this->ShadowAttribute->Attribute->categoryDefinitions;
         if ($existingAttribute['Attribute']['object_id']) {
             foreach ($categoryDefinitions as $k => $v) {
                 if (!in_array($existingAttribute['Attribute']['type'], $v['types'])) {
@@ -812,29 +730,32 @@ class ShadowAttributesController extends AppController
                 }
             }
         }
+        $this->set('event', ['Event' => $existingAttribute['Event']]);
         $this->set('categories', $categories);
-        $this->set('info', $info);
+        $this->__common();
         $this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
-        $this->set('categoryDefinitions', $this->ShadowAttribute->Event->Attribute->categoryDefinitions);
+        $this->set('categoryDefinitions', $this->ShadowAttribute->Attribute->categoryDefinitions);
+    }
+
+    private function __common()
+    {
+        $fieldDesc = ['category' => [], 'type' => []];
+        foreach ($this->ShadowAttribute->categoryDefinitions as $key => $value) {
+            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
+        }
+        foreach ($this->ShadowAttribute->typeDefinitions as $key => $value) {
+            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
+        }
+        $this->set('fieldDesc', $fieldDesc);
     }
 
     public function delete($id)
     {
-        if (strlen($id) == 36) {
-            $this->ShadowAttribute->Event->recursive = -1;
-            $temp = $this->ShadowAttribute->Event->Attribute->find('first', array('recursive' => -1, 'conditions' => array('Attribute.uuid' => $id), 'fields' => array('id')));
-            if ($temp == null) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            $id = $temp['Attribute']['id'];
-        }
-
-        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
-        if (empty($existingAttribute)) {
-            throw new NotFoundException(__('Invalid attribute.'));
-        }
-
+        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes(
+            $this->Auth->user(),
+            array('conditions' => $this->__attributeIdToConditions($id), 'flatten' => true)
+        );
         if ($this->request->is('post')) {
             if (empty($existingAttribute)) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid Attribute.')), 'status'=>200, 'type' => 'json'));
@@ -851,6 +772,8 @@ class ShadowAttributesController extends AppController
                     'type' => $existingAttribute['Attribute']['type'],
                     'to_ids' => $existingAttribute['Attribute']['to_ids'],
                     'value' => $existingAttribute['Attribute']['value'],
+                    'first_seen' => $existingAttribute['Attribute']['first_seen'],
+                    'last_seen' => $existingAttribute['Attribute']['last_seen'],
                     'email' => $this->Auth->user('email'),
                     'org_id' => $this->Auth->user('org_id'),
                     'proposal_to_delete' => true,
@@ -866,10 +789,10 @@ class ShadowAttributesController extends AppController
             }
         } else {
             if (empty($existingAttribute)) {
-                throw new NotFoundException(__('Invalid Attribute'));
+                throw new NotFoundException(__('Invalid attribute'));
             }
             $existingAttribute = $existingAttribute[0];
-            $this->set('id', $id);
+            $this->set('id', $existingAttribute['Attribute']['id']);
             $this->set('event_id', $existingAttribute['Attribute']['event_id']);
             $this->render('ajax/deletionProposalConfirmationForm');
         }
@@ -877,42 +800,62 @@ class ShadowAttributesController extends AppController
 
     public function view($id)
     {
-        $distConditions = array();
-        if (!$this->_isSiteAdmin()) {
-            $distConditions = array(
-                    'OR' => array(
-                            'Event.distribution >' => 0,
-                            'Event.org_id' => $this->Auth->user('org_id'),
-                            'Event.orgc_id' => $this->Auth->user('org_id'),
-                    ),
-            );
-        }
+        $conditions = $this->ShadowAttribute->buildConditions($this->Auth->user());
+        $conditions['ShadowAttribute.id'] = $id;
+        $conditions['ShadowAttribute.deleted'] = 0;
+
         $sa = $this->ShadowAttribute->find('first', array(
-                'recursive' => -1,
-                'contain' => 'Event',
-                'fields' => array(
-                    'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id',
-                    'Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'
-                ),
-                'conditions' => array('AND' => array('ShadowAttribute.id' => $id, $distConditions, 'ShadowAttribute.deleted' => 0))
+            'recursive' => -1,
+            'contain' => ['Event', 'Attribute'], // required because of conditions
+            'fields' => array(
+                'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen',
+            ),
+            'conditions' => $conditions,
         ));
         if (empty($sa)) {
             throw new NotFoundException(__('Invalid proposal.'));
         }
-        if (!$this->_isSiteAdmin()) {
-            if ($sa['ShadowAttribute']['old_id'] != 0 && $sa['Event']['org_id'] != $this->Auth->user('org_id') && $sa['Event']['orgc_id'] != $this->Auth->user('org_id')) {
-                $a = $this->ShadowAttribute->Event->Attribute->find('first', array(
-                    'recursive' => -1,
-                    'fields' => array('Attribute.id', 'Attribute.distribution'),
-                    'conditions' => array('Attribute.id' => $sa['ShadowAttribute']['old_id'], 'Attribute.distribution >' => 0)
-                ));
-                if (empty($a)) {
-                    throw new NotFoundException(__('Invalid proposal.'));
-                }
-            }
-        }
         $this->set('ShadowAttribute', $sa['ShadowAttribute']);
         $this->set('_serialize', array('ShadowAttribute'));
+    }
+
+    public function viewPicture($id, $thumbnail=false)
+    {
+        $conditions = $this->ShadowAttribute->buildConditions($this->Auth->user());
+        $conditions['ShadowAttribute.id'] = $id;
+        $conditions['ShadowAttribute.type'] = 'attachment';
+
+        $sa = $this->ShadowAttribute->find('first', array(
+            'recursive' => -1,
+            'contain' => ['Event', 'Attribute'], // required because of conditions
+            'fields' => array(
+                'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen',
+            ),
+            'conditions' => $conditions,
+        ));
+        if (empty($sa)) {
+            throw new NotFoundException(__('Invalid proposal.'));
+        }
+        
+        if (!$this->ShadowAttribute->Attribute->isImage($sa['ShadowAttribute'])) {
+            throw new NotFoundException("ShadowAttribute is not an image.");
+        }
+        if ($this->_isRest()) {
+            if ($this->ShadowAttribute->typeIsAttachment($sa['ShadowAttribute']['type'])) {
+                $encodedFile = $this->ShadowAttribute->base64EncodeAttachment($sa['ShadowAttribute']);
+                $sa['ShadowAttribute']['data'] = $encodedFile;
+            }
+        }
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($sa['ShadowAttribute']['data'], $this->response->type());
+        } else {
+            $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
+            $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
+            $imageData = $this->ShadowAttribute->getPictureData($sa, $thumbnail, $width, $height);
+            $extension = pathinfo($sa['ShadowAttribute']['value'], PATHINFO_EXTENSION);
+            return new CakeResponse(array('body' => $imageData, 'type' => strtolower($extension)));
+        }
     }
 
     public function index($eventId = false)
@@ -924,7 +867,7 @@ class ShadowAttributesController extends AppController
             $all = 1;
         }
         $eventId = $this->Toolbox->findIdByUuid($this->ShadowAttribute->Event, $eventId, true);
-        if ($eventId && is_numeric($eventId)) {
+        if ($eventId) {
             $conditions['ShadowAttribute.event_id'] = $eventId;
         }
         $temp = $this->ShadowAttribute->buildConditions($this->Auth->user());
@@ -936,22 +879,23 @@ class ShadowAttributesController extends AppController
             $conditions['AND'][] = array('Event.orgc_id' =>$this->Auth->user('org_id'));
         }
         if (!empty($this->request['named']['searchall'])) {
+            $term = '%' . strtolower(trim($this->request['named']['searchall'])) . '%';
             $conditions['AND'][] = array('OR' => array(
-                'LOWER(ShadowAttribute.value1) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
-                'LOWER(ShadowAttribute.value2) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
-                'LOWER(ShadowAttribute.comment) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
-                'LOWER(Event.info) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
-                'LOWER(Org.name) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
-                'LOWER(Org.uuid) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
-                'LOWER(ShadowAttribute.uuid) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%',
-                'LOWER(Event.uuid) LIKE' => '%' . strtolower(trim($this->request['named']['searchall'])) . '%'
+                'LOWER(ShadowAttribute.value1) LIKE' => $term,
+                'LOWER(ShadowAttribute.value2) LIKE' => $term,
+                'LOWER(ShadowAttribute.comment) LIKE' => $term,
+                'LOWER(Event.info) LIKE' => $term,
+                'LOWER(Org.name) LIKE' => $term,
+                'LOWER(Org.uuid) LIKE' => $term,
+                'LOWER(ShadowAttribute.uuid) LIKE' => $term,
+                'LOWER(Event.uuid) LIKE' => $term,
             ));
         }
         if (isset($this->request['named']['deleted'])) {
             $conditions['AND'][] = array(
                 'ShadowAttribute.deleted' => $this->request['named']['deleted']
             );
-        }
+       }
         if (!empty($this->request['named']['timestamp'])) {
             $conditions['AND'][] = array(
                 'ShadowAttribute.timestamp >=' => $this->request['named']['timestamp']
@@ -962,11 +906,28 @@ class ShadowAttributesController extends AppController
         }
         $params = array(
             'conditions' => $conditions,
-            'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
+            'fields' => array(
+                'ShadowAttribute.id',
+                'ShadowAttribute.old_id',
+                'ShadowAttribute.event_id',
+                'ShadowAttribute.type',
+                'ShadowAttribute.category',
+                'ShadowAttribute.uuid',
+                'ShadowAttribute.to_ids',
+                'ShadowAttribute.value',
+                'ShadowAttribute.comment',
+                'ShadowAttribute.org_id',
+                'ShadowAttribute.timestamp',
+                'ShadowAttribute.first_seen',
+                'ShadowAttribute.last_seen',
+                'ShadowAttribute.deleted',
+                'ShadowAttribute.proposal_to_delete',
+                'ShadowAttribute.disable_correlation'
+            ),
             'contain' => array(
                     'Event' => array(
                             'fields' => array('id', 'org_id', 'info', 'orgc_id', 'uuid'),
-                            'Orgc' => array('fields' => array('Orgc.name'))
+                            'Orgc' => array('fields' => array('Orgc.name', 'Orgc.id', 'Orgc.uuid'))
                     ),
                     'Org' => array(
                         'fields' => array('name', 'uuid'),
@@ -1019,154 +980,6 @@ class ShadowAttributesController extends AppController
         }
     }
 
-    // takes a uuid and finds all proposals that belong to an event with the given uuid. These are then returned.
-    public function getProposalsByUuid($uuid)
-    {
-        if (!$this->_isRest() || !$this->userRole['perm_sync']) {
-            throw new MethodNotAllowedException(__('This feature is only available using the API to Sync users'));
-        }
-        if (strlen($uuid) != 36) {
-            throw new NotFoundException(__('Invalid UUID'));
-        }
-        $temp = $this->ShadowAttribute->find('all', array(
-                'conditions' => array('event_uuid' => $uuid),
-                'recursive' => -1,
-                'contain' => array(
-                    'Org' => array('fields' => array('uuid', 'name')),
-                    'EventOrg' => array('fields' => array('uuid', 'name')),
-                )
-        ));
-        foreach ($temp as $key => $t) {
-            if ($this->ShadowAttribute->typeIsAttachment($t['ShadowAttribute']['type'])) {
-                $temp[$key]['ShadowAttribute']['data'] = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
-            }
-        }
-        if ($temp == null) {
-            $this->response->statusCode(404);
-            $this->set('name', 'No proposals found.');
-            $this->set('message', 'No proposals found');
-            $this->set('errors', 'No proposals found');
-            $this->set('url', '/shadow_attributes/getProposalsByUuid/' . $uuid);
-            $this->set('_serialize', array('name', 'message', 'url', 'errors'));
-            $this->response->send();
-            return false;
-        } else {
-            $this->set('proposal', $temp);
-            $this->render('get_proposals_by_uuid');
-        }
-    }
-
-    // deprecated function, returns empty array - proposal sync on more modern versions (>=2.4.111) happens via the shadow_attributes/index endpoint
-    public function getProposalsByUuidList()
-    {
-        return $this->RestResponse->viewData(array());
-    }
-
-    public function fetchEditForm($id, $field = null)
-    {
-        $validFields = array('value', 'comment', 'type', 'category', 'to_ids');
-        if (!isset($field) || !in_array($field, $validFields)) {
-            throw new MethodNotAllowedException(__('Invalid field requested.'));
-        }
-        $this->loadModel('Attribute');
-        $this->Attribute->id = $id;
-        if (!$this->Attribute->exists()) {
-            throw new NotFoundException(__('Invalid attribute'));
-        }
-
-        $fields = array('id', 'distribution', 'event_id');
-        if ($field == 'category' || $field == 'type') {
-            $fields[] = 'type';
-            $fields[] = 'category';
-        } else {
-            $fields[] = $field;
-        }
-        $attribute = $this->Attribute->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Attribute.id' => $id),
-                'fields' => $fields,
-                'contain' => array(
-                        'Event' => array(
-                                'fields' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id'),
-                        )
-                )
-        ));
-        if (!$this->_isSiteAdmin()) {
-            if ($attribute['Event']['orgc_id'] != $this->Auth->user('org_id') && ($attribute['Event']['org_id'] == $this->Auth->user('org_id') || $attribute['Event']['distribution'] > 0)) {
-                // Allow the edit
-            } else {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-        }
-        $this->layout = 'ajax';
-        if ($field == 'distribution') {
-            $this->set('distributionLevels', $this->Attribute->distributionLevels);
-        }
-        if ($field == 'category') {
-            $typeCategory = array();
-            foreach ($this->Attribute->categoryDefinitions as $k => $category) {
-                foreach ($category['types'] as $type) {
-                    $typeCategory[$type][] = $k;
-                }
-            }
-            $this->set('typeCategory', $typeCategory);
-        }
-        if ($field == 'type') {
-            $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        }
-        $this->set('object', $attribute['Attribute']);
-        $fieldURL = ucfirst($field);
-        $this->render('ajax/attributeEdit' . $fieldURL . 'Form');
-    }
-
-    // ajax edit - post a single edited field and this method will attempt to create a proposal and return a json with the validation errors if they occur.
-    public function editField($id)
-    {
-        if ((!$this->request->is('post') && !$this->request->is('put')) || !$this->request->is('ajax')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->loadModel('Attribute');
-        $this->Attribute->id = $id;
-        if (!$this->Attribute->exists()) {
-            throw new NotFoundException(__('Invalid attribute'));
-        }
-        $this->Attribute->recursive = -1;
-        $this->Attribute->contain('Event');
-        $attribute = $this->Attribute->read();
-
-        if (!$this->_isSiteAdmin()) {
-            if ($attribute['Event']['orgc_id'] != $this->Auth->user('org_id') && ($attribute['Event']['org_id'] == $this->Auth->user('org_id') || $attribute['Event']['distribution'] > 0)) {
-                // Allow the edit
-            } else {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-        }
-
-        $keys = array_flip(array('uuid', 'event_id', 'value', 'type', 'category', 'to_ids'));
-
-        $proposal = array_intersect_key($attribute['Attribute'], $keys);
-        $proposal['email'] = $this->Auth->user('email');
-        $proposal['org_id'] = $this->Auth->user('org_id');
-        $proposal['event_uuid'] = $attribute['Event']['uuid'];
-        $proposal['event_org_id'] = $attribute['Event']['orgc_id'];
-        $proposal['old_id'] = $attribute['Attribute']['id'];
-        foreach ($this->request->data['ShadowAttribute'] as $changedKey => $changedField) {
-            if ($proposal[$changedKey] == $changedField) {
-                $this->autoRender = false;
-                return new CakeResponse(array('body'=> json_encode('nochange'), 'status'=>200, 'type' => 'json'));
-            }
-            $proposal[$changedKey] = $changedField;
-        }
-
-        if ($this->ShadowAttribute->save($proposal)) {
-            $this->autoRender = false;
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status'=>200, 'type' => 'json'));
-        } else {
-            $this->autoRender = false;
-            return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => $this->ShadowAttribute->validationErrors)), 'status'=>200, 'type' => 'json'));
-        }
-    }
-
     public function discardSelected($id)
     {
         if (!$this->request->is('post') || !$this->request->is('ajax')) {
@@ -1182,21 +995,24 @@ class ShadowAttributesController extends AppController
                     'recursive' => -1,
                     'fields' => array('id', 'orgc_id', 'user_id')
             ));
-            if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
+            if (!$event) {
+                return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid event.')), 'status' => 200, 'type' => 'json'));
+            }
+            if (!$this->__canModifyEvent($event)) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
             }
         }
 
         // find all attributes from the ID list that also match the provided event ID.
-        $shadowAttributes = $this->ShadowAttribute->find('all', array(
+        $shadowAttributes = $this->ShadowAttribute->find('list', array(
                 'recursive' => -1,
                 'conditions' => array('id' => $ids, 'event_id' => $id),
-                'fields' => array('id', 'event_id')
+                'fields' => array('id')
         ));
         $successes = array();
-        foreach ($shadowAttributes as $a) {
-            if ($this->discard($a['ShadowAttribute']['id'])) {
-                $successes[] = $a['ShadowAttribute']['id'];
+        foreach ($shadowAttributes as $id) {
+            if ($this->__discard($id)) {
+                $successes[] = $id;
             }
         }
         $fails = array_diff($ids, $successes);
@@ -1223,22 +1039,25 @@ class ShadowAttributesController extends AppController
                     'recursive' => -1,
                     'fields' => array('id', 'orgc_id', 'user_id')
             ));
-            if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
+            if (!$event) {
+                return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid event.')), 'status' => 200, 'type' => 'json'));
+            }
+            if (!$this->__canModifyEvent($event)) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
             }
         }
 
         // find all attributes from the ID list that also match the provided event ID.
-        $shadowAttributes = $this->ShadowAttribute->find('all', array(
+        $shadowAttributes = $this->ShadowAttribute->find('list', array(
                 'recursive' => -1,
                 'conditions' => array('id' => $ids, 'event_id' => $id),
-                'fields' => array('id', 'event_id')
+                'fields' => array('id')
         ));
         $successes = array();
-        foreach ($shadowAttributes as $a) {
-            $response = $this->__accept($a['ShadowAttribute']['id']);
+        foreach ($shadowAttributes as $shadowAttributeId) {
+            $response = $this->__accept($shadowAttributeId);
             if (isset($response['saved'])) {
-                $successes[] = $a['ShadowAttribute']['id'];
+                $successes[] = $shadowAttributeId;
             }
         }
         $this->ShadowAttribute->Event->unpublishEvent($id, true);
@@ -1261,27 +1080,41 @@ class ShadowAttributesController extends AppController
             $this->Flash->success(__('All done. ' . $k . ' proposals processed.'));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         } else {
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'generate proposal correlation',
-                    'job_input' => 'All attributes',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => 'ADMIN',
-                    'message' => 'Job created.',
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate proposal correlation',
+                'All attributes',
+                'Job created.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array('jobGenerateShadowAttributeCorrelation', $jobId)
+
+            $this->Attribute->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateShadowAttributeCorrelation',
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
+
             $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         }
+    }
+
+    private function __attributeIdToConditions($id)
+    {
+        if (is_numeric($id)) {
+            $conditions = array('Attribute.id' => $id);
+        } elseif (Validation::uuid($id)) {
+            $conditions = array('Attribute.uuid' => $id);
+        } else {
+            throw new NotFoundException(__('Invalid attribute ID.'));
+        }
+        return $conditions;
     }
 }

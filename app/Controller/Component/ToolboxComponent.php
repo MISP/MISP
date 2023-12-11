@@ -12,6 +12,9 @@ class ToolboxComponent extends Component
                 'recursive' => -1,
                 'fields' => array($model->alias . '.id')
             ));
+            if (empty($data)) {
+                throw new NotFoundException(__('Invalid %s.', $model->alias));
+            }
             return $data[$model->alias]['id'];
         } else {
             if (!is_numeric($id)) {

@@ -3,13 +3,6 @@
     <div class="pagination">
         <ul>
             <?php
-                $this->Paginator->options(array(
-                        'update' => '.span12',
-                        'evalScripts' => true,
-                        'before' => '$(".progress").show()',
-                        'complete' => '$(".progress").hide()',
-                ));
-
                 echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
                 echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
                 echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
@@ -19,7 +12,7 @@
     <div id="hiddenFormDiv">
     <?php
         if ($isSiteAdmin) {
-            echo $this->Form->create('ObjectTemplate', array('url' => '/ObjectTemplates/activate'));
+            echo $this->Form->create('ObjectTemplate', array('url' => $baseurl . '/ObjectTemplates/activate'));
             echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
             echo $this->Form->end();
         }
@@ -31,12 +24,12 @@
                 array(
                     'children' => array(
                         array(
-                            'url' => '/objectTemplates/index',
+                            'url' => $baseurl . '/objectTemplates/index',
                             'text' => __('Enabled'),
                             'active' => !$all
                         ),
                         array(
-                            'url' => '/objectTemplates/index/all',
+                            'url' => $baseurl . '/objectTemplates/index/all',
                             'text' => __('All'),
                             'active' => $all
                         )
@@ -118,7 +111,7 @@ foreach ($list as $template):
             ?>
         </td>
         <td class="short action-links">
-            <a href='/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
+            <a href='<?php echo $baseurl; ?>/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
             <?php
                 if ($isSiteAdmin):
                     echo $this->Form->postLink('', array('action' => 'update', $template['ObjectTemplate']['name'], 1), array('class' => 'fa fa-sync', 'title' => __('Force update')), __('Are you sure you want to force an update for template # %s?', $template['ObjectTemplate']['id']));
@@ -151,11 +144,6 @@ endforeach; ?>
     $(document).ready(function(){
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();
-        });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter();
-            }
         });
     });
 </script>

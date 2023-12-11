@@ -35,10 +35,11 @@
         </ul>
     </div>
 <br />
-<div id="attributeList" class="attributeListContainer">
+<div id="attributeList">
     <table class="table table-striped table-condensed">
         <tr>
             <th><?php echo $this->Paginator->sort('timestamp', __('Date'));?></th>
+            <th><?php echo __('First seen') ?> <i class="fas fa-arrow-right"></i> <?php echo __('Last seen') ?></th>
             <th><?php echo $this->Paginator->sort('category');?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>
             <th><?php echo $this->Paginator->sort('value');?></th>
@@ -46,6 +47,7 @@
             <th><?php echo $this->Paginator->sort('comment');?></th>
             <th><?php echo __('Related Events');?></th>
             <th><?php echo __('Feed hits');?></th>
+            <th><?php echo __('Distribution');?></th>
             <th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
         </tr>
         <?php
@@ -101,7 +103,7 @@
         </ul>
     </div>
 <script type="text/javascript">
-    var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/feeds/previewEvent/' . h($feed['Feed']['id']) . '/' . h($event['Event']['uuid']); ?>";
+    var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : $baseurl . '/feeds/previewEvent/' . h($feed['Feed']['id']) . '/' . h($event['Event']['uuid']); ?>";
     var lastSelected = false;
     var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
     $(document).ready(function() {
@@ -112,35 +114,6 @@
         <?php
             endif;
         ?>
-        $('.screenshot').click(function() {
-            screenshotPopup($(this).attr('src'), $(this).attr('title'));
-        });
-    });
-    $('.hex-value-convert').click(function() {
-        var val = $(this).parent().children(':first-child').text();
-        if ($(this).parent().children(':first-child').attr('data-original-title') == 'Hexadecimal representation') {
-            var bin = [];
-            var temp;
-            val.split('').forEach(function(entry) {
-                temp = parseInt(entry, 16).toString(2);
-                bin.push(Array(5 - (temp.length)).join('0') + temp);
-            });
-            bin = bin.join(' ');
-            $(this).parent().children(':first-child').text(bin);
-            $(this).parent().children(':first-child').attr('data-original-title', __('Binary representation'));
-            $(this).parent().children(':nth-child(2)').attr('data-original-title', __('Switch to hexadecimal representation'));
-            $(this).parent().children(':nth-child(2)').attr('aria-label', __('Switch to hexadecimal representation'));
-        } else {
-            val = val.split(' ');
-            hex = '';
-            val.forEach(function(entry) {
-                hex += parseInt(entry , 2).toString(16).toUpperCase();
-            });
-            $(this).parent().children(':first-child').text(hex);
-            $(this).parent().children(':first-child').attr('data-original-title', __('Hexadecimal representation'));
-            $(this).parent().children(':nth-child(2)').attr('data-original-title', __('Switch to binary representation'));
-            $(this).parent().children(':nth-child(2)').attr('aria-label', __('Switch to binary representation'));
-        }
     });
 </script>
 <?php

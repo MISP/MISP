@@ -1,46 +1,57 @@
-<div class="tag form">
-<?php echo $this->Form->create('Tag');?>
-    <fieldset>
-        <legend><?php echo __('Add Tag');?></legend>
-    <?php
-        echo $this->Form->input('name', array(
-        ));
-        echo $this->Form->input('colour', array(
-        ));
-        echo $this->Form->input('org_id', array(
+<?php
+echo $this->element('genericElements/Form/genericForm', [
+    'data' => [
+        'title' => isset($edit) ? __('Edit Tag') : __('Add Tag'),
+        'fields' => [
+            [
+                'field' => 'name',
+                'label' => __('Name')
+            ],
+            [
+                'field' => 'colour',
+                'label' => __('Colour'),
+                'class' => 'colorpicker-element'
+            ],
+            [
+                'field' => 'org_id',
+                'label' => __('Restrict tagging to org'),
                 'options' => $orgs,
-                'label' => __('Restrict tagging to org')
-        ));
-        if ($isSiteAdmin) {
-            echo $this->Form->input('user_id', array(
-                    'options' => $users,
-                    'label' => __('Restrict tagging to user')
-            ));
-        }
-    ?>
-        <div class="clear"></div>
-    <?php
-        echo $this->Form->input('exportable', array(
-            'type' => 'checkbox', 'checked' => true
-        ));
-    ?>
-        <div class="clear"></div>
-    <?php
-        echo $this->Form->input('hide_tag', array(
-            'type' => 'checkbox', 'checked' => false
-        ));
-    ?>
-    </fieldset>
-<?php
-echo $this->Form->button(__('Add'), array('class' => 'btn btn-primary'));
-echo $this->Form->end();
-?>
-</div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'tags', 'menuItem' => 'add'));
+                'type' => 'dropdown'
+            ],
+            [
+                'field' => 'user_id',
+                'label' => __('Restrict tagging to user'),
+                'options' => $isSiteAdmin ? $users : null,
+                'type' => 'dropdown',
+                'requirements' => $isSiteAdmin,
+            ],
+            [
+                'field' => 'exportable',
+                'default' => 1,
+                'type' => 'checkbox'
+            ],
+            [
+                'field' => 'hide_tag',
+                'type' => 'checkbox'
+            ],
+            [
+                'field' => 'local_only',
+                'label' => __('Enforce this tag to be used as local only'),
+                'type' => 'checkbox'
+            ]
+        ],
+        'submit' => [
+            'action' => $this->request->params['action'],
+            'ajaxSubmit' => 'submitGenericFormInPlace();'
+        ]
+    ]
+]);
+if (!$ajax) {
+    echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
+}
 ?>
 <script>
-    $(function(){
+    $(function() {
         $('#TagColour').colorpicker();
     });
 </script>

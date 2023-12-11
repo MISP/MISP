@@ -28,7 +28,7 @@ else
 fi
 
 if [[ "$ADVANCED" == "1" ]]; then
-  for worker in `echo cache default email prio scheduler`; do
+  for worker in `echo cache default email prio scheduler update`; do
     workerStatus=$(../cake Admin getWorkers |tail -n +7 |jq  -r ".$worker" |jq -r '.ok')
     PIDcount=$(../cake admin getWorkers |tail -n +7 |jq -r ".$worker.workers" |grep pid | wc -l)
     echo -n "$worker has $PIDcount PID(s)"
@@ -51,6 +51,7 @@ else
   ../cake CakeResque.CakeResque start --interval 5 --queue prio
   ../cake CakeResque.CakeResque start --interval 5 --queue cache
   ../cake CakeResque.CakeResque start --interval 5 --queue email
+  ../cake CakeResque.CakeResque start --interval 5 --queue update
   ../cake CakeResque.CakeResque startscheduler --interval 5
 
   exit 0

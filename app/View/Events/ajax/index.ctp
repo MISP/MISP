@@ -5,27 +5,16 @@
             <ul>
             <?php
                 $this->Paginator->options(array(
-                    'update' => '#eventIndexTable',
-                    'evalScripts' => true,
-                    'before' => '$(".progress").show()',
-                    'complete' => '$(".progress").hide()',
+                    'data-paginator' => '#eventIndexTable',
                 ));
-                echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-                echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-                echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+                $pagination = $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+                $pagination .= $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+                $pagination .= $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+                echo $pagination;
             ?>
             </ul>
         </div>
-        <?php
-            $tab = "Center";
-            if (!isset($simple)) $simple = false;
-            $filtered = false;
-            if (!$simple && count($passedArgsArray) > 0) {
-                $tab = "Left";
-                $filtered = true;
-            }
-            echo $this->element('Events/eventIndexTable');
-        ?>
+        <?= $this->element('Events/eventIndexTable'); ?>
         <p>
         <?php
         echo $this->Paginator->counter(array(
@@ -35,13 +24,8 @@
         </p>
         <div class="pagination">
             <ul>
-            <?php
-                echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-                echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-                echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-            ?>
+            <?= $pagination ?>
             </ul>
         </div>
     </div>
 </div>
-<?php echo $this->Js->writeBuffer(); ?>

@@ -1,6 +1,11 @@
 <?php
 if (!$isSiteAdmin) exit();
-if ($updateProgress['total'] !== 0 ) {
+$completeUpdateRemaining = $updateProgress['complete_update_remaining'];
+$towardDbVersion = $updateProgress['toward_db_version'];
+$updateLocked = $updateProgress['update_locked'];
+$lockRemainingTime = $updateProgress['lock_remaining_time'];
+$updateFailNumberReached = $updateProgress['update_fail_number_reached'];
+if (!empty($updateProgress['total'])) {
     $percentageFail = floor(count($updateProgress['failed_num']) / $updateProgress['total']*100);
     $percentage = floor(($updateProgress['current']) / $updateProgress['total']*100);
 } else {
@@ -13,16 +18,55 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
     $percentageFail = 100;
 }
 ?>
+
+<?php if (!$ajaxHtml): ?>
 <div class="servers form">
-    <div style="width: 50%;margin: 0 auto;">
+<?php endif; ?>
+
+<?php if ($updateLocked): ?>
+    <div style="width: 55%;margin: 20px auto;max-width: 1000px;" class="alert alert-danger UpdateLockedContainer">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        <div style="display:flex;flex-direction: row;justify-content: space-between;">
+            <span>
+                <?php if ($updateFailNumberReached): ?>
+                    <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Updates are locked due to to many update fails'); ?></h5>
+                <?php else: ?>
+                    <h5 style="margin: 5px 0px; display: inline-block"><?php echo __('Updates are locked due to an ongoing update process. Release the update lock only if you know what you are doing.'); ?></h5>
+                    <p><?= __('Before unlocking, make sure %s is healthy', sprintf('<a href="%s">%s</a>', $baseurl . '/servers/serverSettings/workers', __('the update worker'))) ?></p>
+                    <i>(<?php echo sprintf(__('automatically unlock in %smin %ssec'), '<span id="unlock_remaining_time_min">-</span>', '<span id="unlock_remaining_time_sec">-</span>'); ?>)</i>
+                <?php endif; ?>
+            </span>
+            <span>
+                <?php
+                    echo $this->Form->postButton('<i class="fa fa-lock-open"></i> ' . __('Release update lock'), $baseurl . '/servers/releaseUpdateLock', array(
+                        'style' => 'margin: 0px 0px;',
+                        'class' => 'btn btn-danger',
+                        'escape' => false
+                    ));
+                ?>
+            </span>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if ($completeUpdateRemaining != 0): ?>
+    <div style="width: 55%;margin: 20px auto;background-color: white;max-width: 1000px;" class="panel-container completeUpdateRemainingContainer">
+        <h3>
+            <?php echo(__('Complete update progression'));?>
+            <span style="float: right;font-size: smaller;"><?php echo(sprintf(__('%s remaining'), $completeUpdateRemaining));?></span>
+        </h3>
+    </div>
+<?php endif; ?>
+
+    <div style="width: 55%;margin: 0 auto;max-width: 1000px;">
         <?php if (count($updateProgress['commands']) > 0): ?>
-            <h2><?php echo(__('Database Update progress'));?></h2>
+            <h3><?php echo(sprintf(__('Database Update progress for update %s'), h($towardDbVersion)));?></h3>
             <div class="" style="max-width: 1000px;">
 
                 <div>
                     <h5 style='display: inline-block'>Pre update test status:</h5>
                     <?php
-                        $icon = isset($updateProgress['preTestSuccess']) ? ($updateProgress['preTestSuccess'] ? 'fa-check' : 'fa-times') : 'fa-question-circle ';
+                        $icon = isset($updateProgress['preTestSuccess']) ? ($updateProgress['preTestSuccess'] ? 'fa-check' : 'fa-times') : 'fa-check ';
                     ?>
                         <i class='fa <?php echo($icon); ?>' style="font-size: x-large"></i>
                 </div>
@@ -32,11 +76,15 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
                     <div id="pb-fail" class="bar" style="width: <?php echo h($percentageFail);?>%; background-color: #ee5f5b;"></div>
                 </div>
 
-                <table class="table table-bordered table-stripped updateProgressTable">
+                <table class="table table-bordered table-stripped updateProgressTable" data-towarddbversion="<?php echo h($towardDbVersion); ?>">
                     <thead>
                         <tr>
                             <th></th>
-                            <th>Update command</th>
+                            <th>
+                                Update command
+                                <span id="followUpdateSwitchContainer" style="float:right; display:flex; align-items:center;">
+                                </span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -130,7 +178,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
 
                                     <div id="single-update-progress-<?php echo $i;?>" class="single-update-progress hidden">
                                         <div class="small-pb-in-td">
-                                            <div id="single-update-pb-<?php echo $i;?>" style="height: 100%; background: #149bdf; transition: width 0.6s ease;"></div>
+                                            <div id="single-update-pb-<?php echo $i;?>" class="single-update-pb"></div>
                                         </div>
 
                                         <div id="small-state-text-<?php echo $i;?>" class="small-state-text-in-td badge" class="badge">Filling schema table</div>
@@ -145,16 +193,41 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
             <h2><?php echo __('No update in progress'); ?></h2>
         <?php endif; ?>
     </div>
+<?php if (!$ajaxHtml): ?>
 </div>
-<?php echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'updateProgress')); ?>
+<?php 
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'updateProgress'));
+    echo $this->element('genericElements/assetLoader', array(
+        'css' => array('update_progress', 'taskScheduler'),
+        'js' => array('update_progress', 'taskScheduler')
+    ));
+endif; ?>
+
+<?php
+if (!$ajaxHtml) {
+}
+?>
 
 <script>
     var updateProgress = <?php echo json_encode($updateProgress); ?>;
     var urlGetProgress = "<?php echo $baseurl; ?>/servers/updateProgress";
+    var checkboxLabel = "<?php echo __('Follow updates'); ?>";
+    $(document).ready(function() {
+        var lockRemainingTimeSeconds = "<?php echo h($lockRemainingTime); ?>";
+        var timer = setInterval(function() {
+            lockRemainingTimeSeconds--;
+            var parsedTime = parseRemainingTime(lockRemainingTimeSeconds)
+            $('#unlock_remaining_time_min').text(parsedTime.mins);
+            $('#unlock_remaining_time_sec').text(parsedTime.secs);
+        }, 1000);
+    });
+
+    function parseRemainingTime(seconds) {
+        return {
+            days : Math.floor(seconds / (60 * 60 * 24)),
+            hours: Math.floor((seconds % (60 * 60 * 24)) / (60 * 60)),
+            mins : Math.floor((seconds % (60 * 60)) / (60)),
+            secs : Math.floor((seconds % (60))),
+        };
+    }
 </script>
-<?php
-    echo $this->element('genericElements/assetLoader', array(
-        'css' => array('update_progress'),
-        'js' => array('update_progress')
-    ));
-?>

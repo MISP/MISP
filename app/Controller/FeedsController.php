@@ -1,20 +1,36 @@
 <?php
 App::uses('AppController', 'Controller');
-App::uses('Xml', 'Utility');
 
+/**
+ * @property Feed $Feed
+ */
 class FeedsController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');   // XXX ACL component
+    public $components = array(
+        'CRUD',
+        'RequestHandler'
+    );   // XXX ACL component
 
     public $paginate = array(
-            'limit' => 60,
-            'recursive' => -1,
-            'contain' => array('Tag', 'SharingGroup'),
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
-            'order' => array(
-                    'Feed.default' => 'DESC',
-                    'Feed.id' => 'ASC'
-            ),
+        'limit' => 60,
+        'recursive' => -1,
+        'contain' => array(
+            'Tag',
+            'SharingGroup',
+            'Orgc' => array(
+                'fields' => array(
+                    'Orgc.id',
+                    'Orgc.uuid',
+                    'Orgc.name',
+                    'Orgc.local'
+                )
+            )
+        ),
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
+        'order' => array(
+            'Feed.default' => 'DESC',
+            'Feed.id' => 'ASC'
+        ),
     );
 
     public $uses = array('Feed');
@@ -24,101 +40,124 @@ class FeedsController extends AppController
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'previewIndex';
         $this->Security->unlockedActions[] = 'feedCoverage';
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
-            throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
+    }
+
+    public function loadDefaultFeeds()
+    {
+        if ($this->request->is('post')) {
+            $this->Feed->load_default_feeds();
+            $message = __('Default feed metadata loaded.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Feed', 'loadDefaultFeeds', false, $this->response->type(), $message);
+            } else {
+                $this->Flash->success($message);
+                $this->redirect(array('controller' => 'Feeds', 'action' => 'index'));
+            }
         }
     }
 
     public function index()
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
-        $this->Feed->load_default_feeds();
+        $conditions = [];
         $scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : 'all';
         if ($scope !== 'all') {
             if ($scope == 'enabled') {
-                $this->paginate['conditions'][] = array(
+                $conditions[] = array(
                     'OR' => array(
                         'Feed.enabled' => 1,
                         'Feed.caching_enabled' => 1
                     )
                 );
             } else {
-                $this->paginate['conditions'][] = array(
+                $conditions[] = array(
                     'Feed.default' => $scope == 'custom' ? 0 : 1
                 );
             }
         }
-        if ($this->_isRest()) {
-            $keepFields = array('conditions', 'contain', 'recursive', 'sort');
-            $searchParams = array();
-            foreach ($keepFields as $field) {
-                if (!empty($this->paginate[$field])) {
-                    $searchParams[$field] = $this->paginate[$field];
-                }
-            }
 
-            $data = $this->Feed->find('all', $searchParams);
-        } else {
-            $data = $this->paginate();
+        $this->CRUD->index([
+            'filters' => [
+                'Feed.name',
+                'url',
+                'provider',
+                'source_format',
+                'enabled',
+                'caching_enabled',
+                'default'
+            ],
+            'quickFilters' => [
+                'Feed.name',
+                'url',
+                'provider',
+                'source_format'
+            ],
+            'conditions' => $conditions,
+            'afterFind' => function (array $feeds) {
+                if ($this->_isSiteAdmin()) {
+                    $feeds = $this->Feed->attachFeedCacheTimestamps($feeds);
+                }
+
+                if ($this->IndexFilter->isRest()) {
+                    foreach ($feeds as &$feed) {
+                        unset($feed['SharingGroup']);
+                        if (empty($feed['Tag']['id'])) {
+                            unset($feed['Tag']);
+                        }
+                    }
+                }
+
+                return $feeds;
+            }
+        ]);
+
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
+
+        $this->set('title_for_layout', __('Feeds'));
+        $this->set('menuData', [
+            'menuList' => 'feeds',
+            'menuItem' => 'index'
+        ]);
         $this->loadModel('Event');
-        foreach ($data as $key => $value) {
-            if ($value['Feed']['event_id'] != 0 && $value['Feed']['fixed_event']) {
-                $event = $this->Event->find('first', array('conditions' => array('Event.id' => $value['Feed']['event_id']), 'recursive' => -1, 'fields' => array('Event.id')));
-                if (empty($event)) {
-                    $data[$key]['Feed']['event_error'] = true;
-                }
-            }
-        }
-        if ($this->_isSiteAdmin()) {
-            $data = $this->Feed->attachFeedCacheTimestamps($data);
-        }
-        if ($this->_isRest()) {
-            foreach ($data as $k => $v) {
-                unset($data[$k]['SharingGroup']);
-                if (empty($data[$k]['Tag']['id'])) {
-                    unset($data[$k]['Tag']);
-                }
-            }
-            return $this->RestResponse->viewData($data, $this->response->type());
-        }
+        $distributionLevels = $this->Event->distributionLevels;
+        $distributionLevels[5] = __('Inherit from feed');
+        $this->set('distributionLevels', $distributionLevels);
         $this->set('scope', $scope);
-        $this->set('feeds', $data);
-        $this->loadModel('Event');
-        $this->set('feed_types', $this->Feed->feed_types);
-        $this->set('distributionLevels', $this->Event->distributionLevels);
     }
 
     public function view($feedId)
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
-        $feed = $this->Feed->find('first', array(
-            'conditions' => array('Feed.id' => $feedId),
-            'recursive' => -1,
-            'contain' => array('Tag')
-        ));
-        $feed['Feed']['cached_elements'] = $this->Feed->getCachedElements($feed['Feed']['id']);
-        $feed['Feed']['coverage_by_other_feeds'] = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', 'all') . '%';
-        if ($this->_isRest()) {
-            if (empty($feed['Tag']['id'])) {
-                unset($feed['Tag']);
+        $this->CRUD->view($feedId, [
+            'contain' => ['Tag'],
+            'afterFind' => function (array $feed) {
+                if (!$this->_isSiteAdmin()) {
+                    unset($feed['Feed']['headers']);
+                }
+
+                $feed['Feed']['cached_elements'] = $this->Feed->getCachedElements($feed['Feed']['id']);
+                $feed['Feed']['coverage_by_other_feeds'] = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', 'all') . '%';
+
+                if ($this->_isRest()) {
+                    if (empty($feed['Tag']['id'])) {
+                        unset($feed['Tag']);
+                    }
+                }
+
+                return $feed;
             }
-            return $this->RestResponse->viewData($feed, $this->response->type());
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        $feeds = $this->Feed->getAllCachingEnabledFeeds($feed['Feed']['id'], true);
-        $this->set('other_feeds', $feeds);
-        $this->set('feed', $feed);
+
+        $otherFeeds = $this->Feed->getAllCachingEnabledFeeds($feedId, true);
+        $this->set('other_feeds', $otherFeeds);
+        $this->set('feedId', $feedId);
     }
 
     public function feedCoverage($feedId)
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
         $feed = $this->Feed->find('first', array(
             'conditions' => array('Feed.id' => $feedId),
             'recursive' => -1,
@@ -126,13 +165,15 @@ class FeedsController extends AppController
         ));
         $result = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', $this->request->data);
         return $this->RestResponse->viewData($result, $this->response->type());
-
     }
 
     public function importFeeds()
     {
         if ($this->request->is('post')) {
-            $results = $this->Feed->importFeeds($this->request->data['Feed']['json'], $this->Auth->user());
+            if (isset($this->request->data['Feed']['json'])) {
+                $this->request->data = $this->request->data['Feed']['json'];
+            }
+            $results = $this->Feed->importFeeds($this->request->data, $this->Auth->user());
             if ($results['successes'] > 0) {
                 $flashType = 'success';
                 $message = $results['successes'] . ' new feeds added.';
@@ -154,111 +195,132 @@ class FeedsController extends AppController
 
     public function add()
     {
+        $params = [
+            'beforeSave' => function (array $feed) {
+                if ($this->IndexFilter->isRest()) {
+                    if (empty($feed['Feed']['source_format'])) {
+                        $feed['Feed']['source_format'] = 'freetext';
+                    }
+                    if (!isset($feed['Feed']['fixed_event'])) {
+                        $feed['Feed']['fixed_event'] = '1';
+                    }
+                }
+
+                if (isset($feed['Feed']['pull_rules'])) {
+                    $feed['Feed']['rules'] = $feed['Feed']['pull_rules'];
+                }
+                if (!isset($feed['Feed']['distribution'])) {
+                    $feed['Feed']['distribution'] = '0';
+                }
+                if ($feed['Feed']['distribution'] != 4) {
+                    $feed['Feed']['sharing_group_id'] = '0';
+                }
+                $feed['Feed']['default'] = '0';
+                if (!isset($feed['Feed']['source_format'])) {
+                    $feed['Feed']['source_format'] = 'freetext';
+                }
+                if (!empty($feed['Feed']['source_format']) && ($feed['Feed']['source_format'] == 'misp')) {
+                    if (!empty($feed['Feed']['orgc_id'])) {
+                        $feed['Feed']['orgc_id'] = '0';
+                    }
+                }
+                if ($feed['Feed']['source_format'] == 'freetext') {
+                    if ($feed['Feed']['fixed_event'] == 1) {
+                        if (!empty($feed['Feed']['target_event']) && is_numeric($feed['Feed']['target_event'])) {
+                            $feed['Feed']['event_id'] = $feed['Feed']['target_event'];
+                        }
+                    }
+                }
+                if (!isset($feed['Feed']['settings'])) {
+                    $feed['Feed']['settings'] = array();
+                } else {
+                    if (!empty($feed['Feed']['settings']['common']['excluderegex']) && !$this->__checkRegex($feed['Feed']['settings']['common']['excluderegex'])) {
+                        $regexErrorMessage = __('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
+                        if (!$this->IndexFilter->isRest()) {
+                            $this->Flash->error($regexErrorMessage);
+                        } else {
+                            return $this->RestResponse->saveFailResponse(
+                                'Feeds',
+                                'add',
+                                false,
+                                $regexErrorMessage,
+                                $this->response->type()
+                            );
+                        }
+                    }
+                }
+                if (isset($feed['Feed']['settings']['delimiter']) && empty($feed['Feed']['settings']['delimiter'])) {
+                    $feed['Feed']['settings']['delimiter'] = ',';
+                }
+                if (empty($feed['Feed']['target_event'])) {
+                    $feed['Feed']['target_event'] = 0;
+                }
+                if (empty($feed['Feed']['lookup_visible'])) {
+                    $feed['Feed']['lookup_visible'] = 0;
+                }
+                if (empty($feed['Feed']['input_source'])) {
+                    $feed['Feed']['input_source'] = 'network';
+                } else {
+                    $feed['Feed']['input_source'] = strtolower($feed['Feed']['input_source']);
+                }
+                if (!in_array($feed['Feed']['input_source'], array('network', 'local'))) {
+                    $feed['Feed']['input_source'] = 'network';
+                }
+                if (!isset($feed['Feed']['delete_local_file'])) {
+                    $feed['Feed']['delete_local_file'] = 0;
+                }
+                $feed['Feed']['settings'] = json_encode($feed['Feed']['settings']);
+                $feed['Feed']['event_id'] = !empty($feed['Feed']['fixed_event']) ? $feed['Feed']['target_event'] : 0;
+
+                return $feed;
+            }
+        ];
+
+        $this->CRUD->add($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+
         $this->loadModel('Event');
-        $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $distributionLevels = $this->Event->distributionLevels;
-        if (empty($sgs)) {
+        $distributionLevels[5] = __('Inherit from feed');
+        if (empty($sharingGroups)) {
             unset($distributionLevels[4]);
         }
-        $this->set('distributionLevels', $distributionLevels);
-        $this->set('sharingGroups', $sgs);
-        $this->set('feed_types', $this->Feed->getFeedTypesOptions());
+        $inputSources = array('network' => 'Network');
+        if (empty(Configure::read('Security.disable_local_feed_access'))) {
+            $inputSources['local'] = 'Local';
+        }
         $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
         $tags[0] = 'None';
-        $this->set('tags', $tags);
-        if (empty($this->request->data['Feed']['fixed_event'])) {
-            $this->request->data['Feed']['fixed_event'] = 1;
-        }
-        if ($this->request->is('post')) {
-            if ($this->_isRest()) {
-                if (empty($this->request->data['Feed'])) {
-                    $this->request->data['Feed'] = $this->request->data;
-                    if (empty($this->request->data['Feed']['source_format'])) {
-                        $this->request->data['Feed']['source_format'] = 'freetext';
-                    }
-                    if (empty($this->request->data['Feed']['fixed_event'])) {
-                        $this->request->data['Feed']['source_format'] = 1;
-                    }
-                }
-            }
-            $error = false;
-            if (isset($this->request->data['Feed']['pull_rules'])) {
-                $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
-            }
-            if (!isset($this->request->data['Feed']['distribution'])) {
-                $this->request->data['Feed']['distribution'] = 0;
-            }
-            if ($this->request->data['Feed']['distribution'] != 4) {
-                $this->request->data['Feed']['sharing_group_id'] = 0;
-            }
-            $this->request->data['Feed']['default'] = 0;
-            if (!isset($this->request->data['Feed']['source_format'])) {
-                $this->request->data['Feed']['source_format'] = 'freetext';
-            }
-            if ($this->request->data['Feed']['source_format'] == 'freetext') {
-                if ($this->request->data['Feed']['fixed_event'] == 1) {
-                    if (!empty($this->request->data['Feed']['target_event']) && is_numeric($this->request->data['Feed']['target_event'])) {
-                        $this->request->data['Feed']['event_id'] = $this->request->data['Feed']['target_event'];
-                    }
-                }
-            }
-            if (!isset($this->request->data['Feed']['settings'])) {
-                $this->request->data['Feed']['settings'] = array();
-            } else {
-                if (!empty($this->request->data['Feed']['settings']['common']['excluderegex']) && !$this->__checkRegex($this->request->data['Feed']['settings']['common']['excluderegex'])) {
-                    $this->Flash->error('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
-                    return true;
-                }
-            }
-            if (isset($this->request->data['Feed']['settings']['delimiter']) && empty($this->request->data['Feed']['settings']['delimiter'])) {
-                $this->request->data['Feed']['settings']['delimiter'] = ',';
-            }
-            if (empty($this->request->data['Feed']['target_event'])) {
-                $this->request->data['Feed']['target_event'] = 0;
-            }
-            if (empty($this->request->data['Feed']['lookup_visible'])) {
-                $this->request->data['Feed']['lookup_visible'] = 0;
-            }
-            if (empty($this->request->data['Feed']['input_source'])) {
-                $this->request->data['Feed']['input_source'] = 'network';
-            } else {
-                $this->request->data['Feed']['input_source'] = strtolower($this->request->data['Feed']['input_source']);
-            }
-            if (!in_array($this->request->data['Feed']['input_source'], array('network', 'local'))) {
-                $this->request->data['Feed']['input_source'] = 'network';
-            }
-            if (!isset($this->request->data['Feed']['delete_local_file'])) {
-                $this->request->data['Feed']['delete_local_file'] = 0;
-            }
-            $this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
-            $this->request->data['Feed']['event_id'] = !empty($this->request->data['Feed']['fixed_event']) ? $this->request->data['Feed']['target_event'] : 0;
-            if (!$error) {
-                $result = $this->Feed->save($this->request->data);
-                if ($result) {
-                    $message = __('Feed added.');
-                    if ($this->_isRest()) {
-                        $feed = $this->Feed->find('first', array('conditions' => array('Feed.id' => $this->Feed->id), 'recursive' => -1));
-                        return $this->RestResponse->viewData($feed, $this->response->type());
-                    }
-                    $this->Flash->success($message);
-                    $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
-                } else {
-                    $message = __('Feed could not be added. Invalid field: %s', array_keys($this->Feed->validationErrors)[0]);
-                    if ($this->_isRest()) {
-                        return $this->RestResponse->saveFailResponse('Feeds', 'add', false, $message, $this->response->type());
-                    }
-                    $this->Flash->error($message);
-                    $this->request->data['Feed']['settings'] = json_decode($this->request->data['Feed']['settings'], true);
-                }
-            }
-        } elseif ($this->_isRest()) {
-            return $this->RestResponse->describe('Feeds', 'add', false, $this->response->type());
-        }
+
+        $this->loadModel('Server');
+        $allTypes = $this->Server->getAllTypes();
+
+        $dropdownData = [
+            'orgs' => $this->Event->Orgc->find('list', array(
+                'fields' => array('id', 'name'),
+                'order' => 'LOWER(name)'
+            )),
+            'tags' => $tags,
+            'feedTypes' => $this->Feed->getFeedTypesOptions(),
+            'sharingGroups' => $sharingGroups,
+            'distributionLevels' => $distributionLevels,
+            'inputSources' => $inputSources
+        ];
+        $this->set('allAttributeTypes', $allTypes['attribute']);
+        $this->set('allObjectTypes', $allTypes['object']);
+        $this->set('supportedUrlparams', Feed::SUPPORTED_URL_PARAM_FILTERS);
+        $this->set(compact('dropdownData'));
+        $this->set('defaultPullRules', json_encode(Feed::DEFAULT_FEED_PULL_RULES));
+        $this->set('menuData', array('menuList' => 'feeds', 'menuItem' => 'add'));
+        $this->set('pull_scope', 'feed');
     }
 
     private function __checkRegex($pattern)
     {
-        if (@preg_match($pattern, null) === false) {
+        if (@preg_match($pattern, '') === false) {
             return false;
         }
         return true;
@@ -266,125 +328,160 @@ class FeedsController extends AppController
 
     public function edit($feedId)
     {
-        $this->Feed->id = $feedId;
-        if (!$this->Feed->exists()) {
-            throw new NotFoundException(__('Invalid feed.'));
-        }
-        $this->Feed->read();
-        $this->set('feed', $this->Feed->data);
-        $this->loadModel('Event');
-        $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
-        $distributionLevels = $this->Event->distributionLevels;
-        if (empty($sgs)) {
-            unset($distributionLevels[4]);
-        }
-        $this->set('distributionLevels', $distributionLevels);
-        $this->set('sharingGroups', $sgs);
-        $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
-        $tags[0] = 'None';
-        $this->set('feed_types', $this->Feed->getFeedTypesOptions());
-        $this->set('tags', $tags);
-        if (!empty($this->Feed->data['Feed']['settings'])) {
-            $this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
-        }
-        if ($this->request->is('post') || $this->request->is('put')) {
-            if ($this->_isRest()) {
-                if (empty($this->request->data['Feed'])) {
-                    $this->request->data['Feed'] = $this->request->data;
+        $this->CRUD->edit($feedId, [
+            'fields' => [
+                'name',
+                'provider',
+                'enabled',
+                'caching_enabled',
+                'pull_rules',
+                'rules',
+                'url',
+                'distribution',
+                'sharing_group_id',
+                'tag_id',
+                'event_id',
+                'publish',
+                'delta_merge',
+                'source_format',
+                'override_ids',
+                'settings',
+                'input_source',
+                'delete_local_file',
+                'lookup_visible',
+                'headers',
+                'orgc_id',
+                'fixed_event'
+            ],
+            'afterFind' => function (array $feed) {
+                $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+                if ($feed['Feed']['source_format'] == 'misp' && empty($feed['Feed']['rules'])) {
+                    $feed['Feed']['rules'] = json_encode(Feed::DEFAULT_FEED_PULL_RULES);
                 }
-            }
-            if (isset($this->request->data['Feed']['pull_rules'])) {
-                $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
-            }
-            if (isset($this->request->data['Feed']['distribution']) && $this->request->data['Feed']['distribution'] != 4) {
-                $this->request->data['Feed']['sharing_group_id'] = 0;
-            }
-            $this->request->data['Feed']['id'] = $feedId;
-            if (!empty($this->request->data['Feed']['source_format']) && ($this->request->data['Feed']['source_format'] == 'freetext' || $this->request->data['Feed']['source_format'] == 'csv')) {
-                if ($this->request->data['Feed']['fixed_event'] == 1) {
-                    if (isset($this->request->data['Feed']['target_event']) && is_numeric($this->request->data['Feed']['target_event'])) {
-                        $this->request->data['Feed']['event_id'] = $this->request->data['Feed']['target_event'];
-                    } else {
-                        $this->request->data['Feed']['event_id'] = 0;
+
+                return $feed;
+            },
+            'beforeSave' => function (array $feed) use ($feedId) {
+                if (!empty($feed['Feed']['settings']) && !is_array($feed['Feed']['settings'])) {
+                    $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+                }
+
+                if (isset($feed['Feed']['pull_rules'])) {
+                    $feed['Feed']['rules'] = $feed['Feed']['pull_rules'];
+                }
+                if (isset($feed['Feed']['distribution']) && $feed['Feed']['distribution'] != 4) {
+                    $feed['Feed']['sharing_group_id'] = '0';
+                }
+                $feed['Feed']['id'] = $feedId;
+                if (!empty($feed['Feed']['source_format']) && ($feed['Feed']['source_format'] == 'misp')) {
+                    if (!empty($feed['Feed']['orgc_id'])) {
+                        $feed['Feed']['orgc_id'] = '0';
                     }
                 }
-            }
-            if (!isset($this->request->data['Feed']['settings'])) {
-                $this->request->data['Feed']['settings'] = array();
-            } else {
-                if (!empty($this->request->data['Feed']['settings']['common']['excluderegex']) && !$this->__checkRegex($this->request->data['Feed']['settings']['common']['excluderegex'])) {
-                    $this->Flash->error('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
-                    return true;
+                if (!empty($feed['Feed']['source_format']) && ($feed['Feed']['source_format'] == 'freetext' || $feed['Feed']['source_format'] == 'csv')) {
+                    if ($feed['Feed']['fixed_event'] == 1) {
+                        if (isset($feed['Feed']['target_event']) && is_numeric($feed['Feed']['target_event'])) {
+                            $feed['Feed']['event_id'] = $feed['Feed']['target_event'];
+                        } else if (!empty($feed['Feed']['event_id'])) {
+                            $feed['Feed']['event_id'] = $feed['Feed']['event_id'];
+                        } else {
+                            $feed['Feed']['event_id'] = '0';
+                        }
+                    }
                 }
-            }
-            if (isset($this->request->data['Feed']['settings']['delimiter']) && empty($this->request->data['Feed']['settings']['delimiter'])) {
-                $this->request->data['Feed']['settings']['delimiter'] = ',';
-            }
-            $this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
-            $fields = array('id', 'name', 'provider', 'enabled', 'caching_enabled','rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'source_format', 'override_ids', 'settings', 'input_source', 'delete_local_file', 'lookup_visible', 'headers');
-            $feed = array();
-            foreach ($fields as $field) {
-                if (isset($this->request->data['Feed'][$field])) {
-                    $feed[$field] = $this->request->data['Feed'][$field];
+                if (!isset($feed['Feed']['settings'])) {
+                    if (!empty($feed['Feed']['settings'])) {
+                        $feed['Feed']['settings'] = $feed['Feed']['settings'];
+                    } else {
+                        $feed['Feed']['settings'] = array();
+                    }
+                } else {
+                    if (!empty($feed['Feed']['settings']['common']['excluderegex']) && !$this->__checkRegex($feed['Feed']['settings']['common']['excluderegex'])) {
+                        $regexErrorMessage = __('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
+                        if (!$this->IndexFilter->isRest()) {
+                            $this->Flash->error($regexErrorMessage);
+                            return true;
+                        } else {
+                            return $this->RestResponse->saveFailResponse(
+                                'Feeds',
+                                'edit',
+                                false,
+                                $regexErrorMessage,
+                                $this->response->type()
+                            );
+                        }
+                    }
                 }
-            }
-            $result = $this->Feed->save($feed);
-            if ($result) {
-                $feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feedId) . '.cache';
+                if (isset($feed['Feed']['settings']['delimiter']) && empty($feed['Feed']['settings']['delimiter'])) {
+                    $feed['Feed']['settings']['delimiter'] = ',';
+                }
+                $feed['Feed']['settings'] = json_encode($feed['Feed']['settings']);
+
+                return $feed;
+            },
+            'afterSave' => function (array $feed) {
+                $feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feed['Feed']['id']) . '.cache';
                 if (file_exists($feedCache)) {
                     unlink($feedCache);
                 }
-                $message = __('Feed added.');
-                if ($this->_isRest()) {
-                    $feed = $this->Feed->find('first', array('conditions' => array('Feed.id' => $this->Feed->id), 'recursive' => -1));
-                    return $this->RestResponse->viewData($feed, $this->response->type());
-                }
-                $this->Flash->success($message);
-                $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
-            } else {
-                $message = __('Feed could not be updated. Invalid fields: %s', implode(', ', array_keys($this->Feed->validationErrors)));
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Feeds', 'add', false, $message, $this->response->type());
-                }
-                $this->Flash->error($message);
+                return $feed;
             }
-        } else {
-            if ($this->_isRest()) {
-                return $this->RestResponse->describe('Feeds', 'edit', false, $this->response->type());
-            }
-            if (!isset($this->request->data['Feed'])) {
-                $this->request->data = $this->Feed->data;
-                if ($this->Feed->data['Feed']['event_id']) {
-                    $this->request->data['Feed']['target_event'] = $this->Feed->data['Feed']['event_id'];
-                }
-            }
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+
+        $this->loadModel('Event');
+        $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        $distributionLevels = $this->Event->distributionLevels;
+        $distributionLevels[5] = __('Inherit from feed');
+        if (empty($sharingGroups)) {
+            unset($distributionLevels[4]);
+        }
+        $inputSources = array('network' => 'Network');
+        if (empty(Configure::read('Security.disable_local_feed_access'))) {
+            $inputSources['local'] = 'Local';
+        }
+        $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
+        $tags[0] = 'None';
+
+        $this->loadModel('Server');
+        $allTypes = $this->Server->getAllTypes();
+        $this->set('allAttributeTypes', $allTypes['attribute']);
+        $this->set('allObjectTypes', $allTypes['object']);
+        $this->set('supportedUrlparams', Feed::SUPPORTED_URL_PARAM_FILTERS);
+
+        $dropdownData = [
+            'orgs' => $this->Event->Orgc->find('list', array(
+                'fields' => array('id', 'name'),
+                'order' => 'LOWER(name)'
+            )),
+            'tags' => $tags,
+            'feedTypes' => $this->Feed->getFeedTypesOptions(),
+            'sharingGroups' => $sharingGroups,
+            'distributionLevels' => $distributionLevels,
+            'inputSources' => $inputSources
+        ];
+        $this->set(compact('dropdownData'));
+        $this->set('menuData', [
+            'menuList' => 'feeds',
+            'menuItem' => 'edit',
+        ]);
+
+        $this->set('feedId', $feedId);
+        if(!empty($this->request->data['Feed']['rules'])){
             $this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
         }
+        $this->set('pull_scope', 'feed');
+        $this->render('add');
     }
 
     public function delete($feedId)
     {
-        if (!$this->request->is('post') && !$this->request->is('delete')) {
-            throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
+        $this->CRUD->delete($feedId);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        $this->Feed->id = $feedId;
-        if (!$this->Feed->exists()) {
-            throw new NotFoundException(__('Invalid feed.'));
-        }
-        if ($this->Feed->delete($feedId)) {
-            $message = 'Feed deleted.';
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Feeds', 'delete', $feedId, false, $message);
-            }
-            $this->Flash->success($message);
-        } else {
-            $message = 'Feed could not be deleted.';
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveFailResponse('Feeds', 'delete', false, $message, $this->response->type());
-            }
-            $this->Flash->error($message);
-        }
-        $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
     }
 
     public function fetchFromFeed($feedId)
@@ -398,30 +495,41 @@ class FeedsController extends AppController
             $this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
         }
         if (!$this->Feed->data['Feed']['enabled']) {
-            $this->Flash->info(__('Feed is currently not enabled. Make sure you enable it.'));
-            $this->redirect(array('action' => 'index'));
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData(
+                    array('result' => __('Feed is currently not enabled. Make sure you enable it.')),
+                    $this->response->type()
+                );
+            } else {
+                $this->Flash->error(__('Feed is currently not enabled. Make sure you enable it.'));
+                $this->redirect(array('action' => 'index'));
+            }
         }
         if (Configure::read('MISP.background_jobs')) {
-            $this->loadModel('Job');
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'fetch_feeds',
-                    'job_input' => 'Feed: ' . $feedId,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'message' => __('Starting fetch from Feed.'),
+
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $this->Auth->user(),
+                Job::WORKER_DEFAULT,
+                'fetch_feeds',
+                'Feed: ' . $feedId,
+                __('Starting fetch from Feed.')
             );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'ServerShell',
-                    array('fetchFeed', $this->Auth->user('id'), $feedId, $jobId),
-                    true
+
+            $this->Feed->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'fetchFeed',
+                    $this->Auth->user('id'),
+                    $feedId,
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $this->Job->saveField('process_id', $process_id);
+
             $message = __('Pull queued for background execution.');
         } else {
             $result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
@@ -468,26 +576,30 @@ class FeedsController extends AppController
                 continue;
             }
             if (Configure::read('MISP.background_jobs')) {
-                $this->loadModel('Job');
-                $this->Job->create();
-                $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'fetch_feed',
-                    'job_input' => 'Feed: ' . $feedId,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'message' => __('Starting fetch from Feed.'),
+
+                /** @var Job $job */
+                $job = ClassRegistry::init('Job');
+                $jobId = $job->createJob(
+                    $this->Auth->user(),
+                    Job::WORKER_DEFAULT,
+                    'fetch_feed',
+                    'Feed: ' . $feedId,
+                    __('Starting fetch from Feed.')
                 );
-                $this->Job->save($data);
-                $jobId = $this->Job->id;
-                $process_id = CakeResque::enqueue(
-                    'default',
-                    'ServerShell',
-                    array('fetchFeed', $this->Auth->user('id'), $feedId, $jobId),
-                    true
+
+                $this->Feed->getBackgroundJobsTool()->enqueue(
+                    BackgroundJobsTool::DEFAULT_QUEUE,
+                    BackgroundJobsTool::CMD_SERVER,
+                    [
+                        'fetchFeed',
+                        $this->Auth->user('id'),
+                        $feedId,
+                        $jobId
+                    ],
+                    true,
+                    $jobId
                 );
-                $this->Job->saveField('process_id', $process_id);
+
                 $message = 'Pull queued for background execution.';
             } else {
                 $result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
@@ -505,8 +617,15 @@ class FeedsController extends AppController
                 }
             }
         }
-        $this->Flash->success($message);
-        $this->redirect(array('action' => 'index'));
+        if (!isset($message)) {
+            $message = __('No feed enabled.');
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(array('result' => $message), $this->response->type());
+        } else {
+            $this->Flash->success($message);
+            $this->redirect(array('action' => 'index'));
+        }
     }
 
     public function getEvent($feedId, $eventUuid, $all = false)
@@ -517,7 +636,7 @@ class FeedsController extends AppController
         }
         $this->Feed->read();
         if (!$this->Feed->data['Feed']['enabled']) {
-            $this->Flash->info(__('Feed is currently not enabled. Make sure you enable it.'));
+            $this->Flash->error(__('Feed is currently not enabled. Make sure you enable it.'));
             $this->redirect(array('action' => 'previewIndex', $feedId));
         }
         try {
@@ -549,42 +668,38 @@ class FeedsController extends AppController
 
     public function previewIndex($feedId)
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
-        $this->Feed->id = $feedId;
-        if (!$this->Feed->exists()) {
+        $feed = $this->Feed->find('first', [
+            'conditions' => ['id' => $feedId],
+            'recursive' => -1,
+        ]);
+        if (empty($feed)) {
             throw new NotFoundException(__('Invalid feed.'));
         }
-        $this->Feed->read();
-        if (!empty($this->Feed->data['Feed']['settings'])) {
-            $this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
+        if (!empty($feed['Feed']['settings'])) {
+            $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
         }
         $params = array();
         if ($this->request->is('post')) {
             $params = $this->request->data['Feed'];
         }
-        if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-            return $this->__previewIndex($this->Feed->data, $params);
-        } elseif (in_array($this->Feed->data['Feed']['source_format'], array('freetext', 'csv'))) {
-            return $this->__previewFreetext($this->Feed->data);
+        if ($feed['Feed']['source_format'] === 'misp') {
+            return $this->__previewIndex($feed, $params);
+        } elseif (in_array($feed['Feed']['source_format'], ['freetext', 'csv'], true)) {
+            return $this->__previewFreetext($feed);
+        } else {
+            throw new Exception("Invalid feed format `{$feed['Feed']['source_format']}`.");
         }
     }
 
-    private function __previewIndex($feed, $filterParams = array())
+    private function __previewIndex(array $feed, $filterParams = array())
     {
-        if (isset($this->passedArgs['pages'])) {
-            $currentPage = $this->passedArgs['pages'];
-        } else {
-            $currentPage = 1;
-        }
         $urlparams = '';
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $passedArgs = array();
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
+        $HttpSocket = $syncTool->setupHttpSocketFeed();
         try {
             $events = $this->Feed->getManifest($feed, $HttpSocket);
         } catch (Exception $e) {
@@ -593,24 +708,25 @@ class FeedsController extends AppController
         }
 
         if (!empty($this->params['named']['searchall'])) {
+            $searchAll = trim(mb_strtolower($this->params['named']['searchall']));
             foreach ($events as $uuid => $event) {
-                $found = false;
-                if (strpos(strtolower($event['info']), strtolower($this->params['named']['searchall'])) !== false) {
-                    $found = true;
+                if ($uuid === $searchAll) {
+                    continue;
                 }
-                if (strpos(strtolower($event['Orgc']['name']), strtolower($this->params['named']['searchall'])) !== false) {
-                    $found = true;
+                if (strpos(mb_strtolower($event['info']), $searchAll) !== false) {
+                    continue;
+                }
+                if (strpos(mb_strtolower($event['Orgc']['name']), $searchAll) !== false) {
+                    continue;
                 }
                 if (!empty($event['Tag'])) {
                     foreach ($event['Tag'] as $tag) {
-                        if (strpos(strtolower($tag['name']), strtolower($this->params['named']['searchall'])) !== false) {
-                            $found = true;
+                        if (strpos(mb_strtolower($tag['name']), $searchAll) !== false) {
+                            continue 2;
                         }
                     }
                 }
-                if (!$found) {
-                    unset($events[$uuid]);
-                }
+                unset($events[$uuid]);
             }
         }
         foreach ($filterParams as $k => $filter) {
@@ -629,27 +745,13 @@ class FeedsController extends AppController
         $params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
         $this->params->params['paging'] = array($this->modelClass => $params);
         $events = $customPagination->sortArray($events, $params, true);
-        if (is_array($events)) {
-            $customPagination->truncateByPagination($events, $params);
-        }
+        $customPagination->truncateByPagination($events, $params);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($events, $this->response->type());
         }
-        if (isset($events['code'])) {
-            throw new NotFoundException(__('Feed could not be fetched. The HTTP error code returned was: ', $events['code']));
-        }
-        $pageCount = count($events);
-        App::uses('CustomPaginationTool', 'Tools');
-        $customPagination = new CustomPaginationTool();
-        if ($this->_isRest()) {
-            if (!isset($this->passedArgs['page'])) {
-                $this->passedArgs['page'] = 0;
-            }
-        }
         $this->set('events', $events);
         $this->loadModel('Event');
-        $threat_levels = $this->Event->ThreatLevel->find('all');
-        $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
@@ -662,7 +764,7 @@ class FeedsController extends AppController
         $this->set('passedArgsArray', $passedArgs);
     }
 
-    private function __previewFreetext($feed)
+    private function __previewFreetext(array $feed)
     {
         if (isset($this->passedArgs['page'])) {
             $currentPage = $this->passedArgs['page'];
@@ -671,26 +773,35 @@ class FeedsController extends AppController
         } else {
             $currentPage = 1;
         }
-        $urlparams = '';
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
         if (!in_array($feed['Feed']['source_format'], array('freetext', 'csv'))) {
             throw new MethodNotAllowedException(__('Invalid feed type.'));
         }
-        $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-        $params = array();
+        App::uses('SyncTool', 'Tools');
+        $syncTool = new SyncTool();
+        $HttpSocket = $syncTool->setupHttpSocketFeed();
         // params is passed as reference here, the pagination happens in the method, which isn't ideal but considering the performance gains here it's worth it
         try {
-            $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage, 60, $params);
+            $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format']);
         } catch (Exception $e) {
             $this->Flash->error("Could not fetch feed: {$e->getMessage()}");
             $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
         }
+
+        App::uses('CustomPaginationTool', 'Tools');
+        $customPagination = new CustomPaginationTool();
+        $params = $customPagination->createPaginationRules($resultArray, array('page' => $currentPage, 'limit' => 60), 'Feed', $sort = false);
+        if (!empty($currentPage) && $currentPage !== 'all') {
+            $start = ($currentPage - 1) * 60;
+            if ($start > count($resultArray)) {
+                return false;
+            }
+            $resultArray = array_slice($resultArray, $start, 60);
+        }
+
         $this->params->params['paging'] = array($this->modelClass => $params);
         $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
         // remove all duplicates
         $correlatingEvents = array();
-        //debug($resultArray);
         foreach ($resultArray as $k => $v) {
             if (!empty($resultArray[$k]['correlations'])) {
                 foreach ($resultArray[$k]['correlations'] as $correlatingEvent) {
@@ -716,60 +827,17 @@ class FeedsController extends AppController
         $this->render('freetext_index');
     }
 
-    private function __previewCSV($feed)
-    {
-        if (isset($this->passedArgs['pages'])) {
-            $currentPage = $this->passedArgs['pages'];
-        } else {
-            $currentPage = 1;
-        }
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        if ($feed['Feed']['source_format'] != 'csv') {
-            throw new MethodNotAllowedException(__('Invalid feed type.'));
-        }
-        $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-        try {
-            $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage);
-        } catch (Exception $e) {
-            $this->Flash->error("Could not fetch feed: {$e->getMessage()}");
-            $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
-        }
-        // we want false as a valid option for the split fetch, but we don't want it for the preview
-        if ($resultArray == false) {
-            $resultArray = array();
-        }
-        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
-        $resultArray = $this->Feed->getFreetextFeed2FeedCorrelations($resultArray);
-        // remove all duplicates
-        foreach ($resultArray as $k => $v) {
-            for ($i = 0; $i < $k; $i++) {
-                if (isset($resultArray[$i]) && $v == $resultArray[$i]) {
-                    unset($resultArray[$k]);
-                }
-            }
-        }
-        $resultArray = array_values($resultArray);
-        $this->loadModel('Attribute');
-        $this->set('distributionLevels', $this->Attribute->distributionLevels);
-        $this->set('feed', $feed);
-        $this->set('attributes', $resultArray);
-        $this->render('freetext_index');
-    }
-
-
     public function previewEvent($feedId, $eventUuid, $all = false)
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
-        $this->Feed->id = $feedId;
-        if (!$this->Feed->exists()) {
+        $feed = $this->Feed->find('first', [
+            'conditions' => ['id' => $feedId],
+            'recursive' => -1,
+        ]);
+        if (empty($feed)) {
             throw new NotFoundException(__('Invalid feed.'));
         }
-        $this->Feed->read();
         try {
-            $event = $this->Feed->downloadEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+            $event = $this->Feed->downloadEventFromFeed($feed, $eventUuid);
         } catch (Exception $e) {
             throw new Exception(__('Could not download the selected Event'), 0, $e);
         }
@@ -777,15 +845,20 @@ class FeedsController extends AppController
             return $this->RestResponse->viewData($event, $this->response->type());
         }
         if (is_array($event)) {
+            if (isset($event['Event']['Attribute'])) {
+                $this->loadModel('Warninglist');
+                $this->Warninglist->attachWarninglistToAttributes($event['Event']['Attribute']);
+            }
+
             $this->loadModel('Event');
             $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
             $this->params->params['paging'] = array('Feed' => $params);
             $this->set('event', $event);
-            $this->set('feed', $this->Feed->data);
+            $this->set('feed', $feed);
             $this->loadModel('Event');
             $dataForView = array(
-                    'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
-                    'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels')
+                'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
+                'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels')
             );
             foreach ($dataForView as $m => $variables) {
                 if ($m === 'Event') {
@@ -797,8 +870,7 @@ class FeedsController extends AppController
                     $this->set($alias, $currentModel->{$variable});
                 }
             }
-            $threat_levels = $this->Event->ThreatLevel->find('all');
-            $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+            $this->set('threatLevels', $this->Event->ThreatLevel->find('list'));
         } else {
             if ($event === 'blocked') {
                 throw new MethodNotAllowedException(__('This event is blocked by the Feed filters.'));
@@ -846,8 +918,8 @@ class FeedsController extends AppController
             throw new MethodNotAllowedException(__('Invalid Feed.'));
         }
         $feed = $this->Feed->find('first', array(
-                'conditions' => array('Feed.id' => $id),
-                'recursive' => -1
+            'conditions' => array('Feed.id' => $id),
+            'recursive' => -1
         ));
         $feed['Feed']['enabled'] = $enable;
         $result = array('result' => $this->Feed->save($feed));
@@ -887,30 +959,34 @@ class FeedsController extends AppController
     public function cacheFeeds($scope = 'freetext')
     {
         if (Configure::read('MISP.background_jobs')) {
-            $this->loadModel('Job');
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'cache_feeds',
-                    'job_input' => $scope,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'message' => __('Starting feed caching.'),
+
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $this->Auth->user(),
+                Job::WORKER_DEFAULT,
+                'cache_feeds',
+                $scope,
+                __('Starting feed caching.')
             );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'ServerShell',
-                    array('cacheFeed', $this->Auth->user('id'), $scope, $jobId),
-                    true
+
+            $this->Feed->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'cacheFeed',
+                    $this->Auth->user('id'),
+                    $scope,
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $this->Job->saveField('process_id', $process_id);
+
             $message = 'Feed caching job initiated.';
         } else {
             $result = $this->Feed->cacheFeedInitiator($this->Auth->user(), false, $scope);
-            if (!$result) {
+            if ($result['fails'] > 0) {
                 $this->Flash->error(__('Caching the feeds has failed.'));
                 $this->redirect(array('action' => 'index'));
             }
@@ -926,9 +1002,6 @@ class FeedsController extends AppController
 
     public function compareFeeds($id = false)
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
         $feeds = $this->Feed->compareFeeds($id);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($feeds, $this->response->type());
@@ -980,9 +1053,6 @@ class FeedsController extends AppController
 
     public function searchCaches()
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
         if (isset($this->passedArgs['pages'])) {
             $currentPage = $this->passedArgs['pages'];
         } else {
@@ -992,7 +1062,6 @@ class FeedsController extends AppController
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $passedArgs = array();
-        $hits = array();
         $value = false;
         if ($this->request->is('post')) {
             if (isset($this->request->data['Feed'])) {
@@ -1018,7 +1087,6 @@ class FeedsController extends AppController
         if (is_array($hits)) {
             $customPagination->truncateByPagination($hits, $params);
         }
-        $pageCount = count($hits);
         $this->set('urlparams', $urlparams);
         $this->set('passedArgs', json_encode($passedArgs));
         $this->set('passedArgsArray', $passedArgs);

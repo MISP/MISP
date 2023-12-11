@@ -1,5 +1,4 @@
 <?php
-if ($object['value'] == 'MERGE') debug($object);
   $tr_class = '';
   $linkClass = 'blue';
   $otherColour = 'blue';
@@ -22,6 +21,9 @@ if ($object['value'] == 'MERGE') debug($object);
 <tr id="Attribute_<?php echo h($object['uuid']); ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
     <td class="short">
       <?php echo date('Y-m-d', $object['timestamp']); ?>
+    </td>
+    <td class="short">
+      <?php echo $this->element('/Servers/View/seen_field', array('object' => $object)); ?>
     </td>
     <td class="short">
       <div id="Attribute_<?php echo $object['uuid']; ?>_category_solid" class="inline-field-solid">
@@ -49,17 +51,13 @@ if ($object['value'] == 'MERGE') debug($object);
           ?>
         </span>
         <?php
-          if (isset($object['warnings'])) {
+        if (isset($object['warnings'])) {
             $temp = '';
-            $components = array(1 => 0, 2 => 1);
-            $valueParts = explode('|', $object['value']);
-            foreach ($components as $component => $valuePart) {
-              if (isset($object['warnings'][$component]) && isset($valueParts[$valuePart])) {
-                foreach ($object['warnings'][$component] as $warning) $temp .= '<span class=\'bold\'>' . h($valueParts[$valuePart]) . '</span>: <span class=\'red\'>' . h($warning) . '</span><br />';
-              }
+            foreach ($object['warnings'] as $warning) {
+                $temp .= '<span class="bold">' . h($warning['match']) . ':</span> <span class="red">' . h($warning['warninglist_name']) . '</span><br>';
             }
-            echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
-          }
+            echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="fa fa-exclamation-triangle" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover" data-placement="right">&nbsp;</span>';
+        }
         ?>
       </div>
     </td>
@@ -82,10 +80,18 @@ if ($object['value'] == 'MERGE') debug($object);
     <td class="shortish">
       &nbsp;
     </td>
+    <td>
+        <?php
+        if ($object['distribution'] == 4) {
+            echo h($object['SharingGroup']['name']);
+        } else {
+            echo $distributionLevels[$object['distribution']];
+        }
+        ?>
+    </td>
     <td class="short">
       <div id="Attribute_<?php echo $object['uuid']; ?>_to_ids_solid" class="inline-field-solid">
         <?php echo $object['to_ids'] ? __('Yes') : __('No'); ?>
       </div>
     </td>
-  </td>
 </tr>

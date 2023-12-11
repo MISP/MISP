@@ -1,12 +1,131 @@
 <?php
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('FileAccessTool', 'Tools');
 require_once 'AppShell.php';
+
+/**
+ * @property User $User
+ * @property Event $Event
+ * @property Job $Job
+ * @property Tag $Tag
+ * @property Server $Server
+ * @property Correlation $Correlation
+ */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation', 'Tag');
 
-    public function doPublish() {
+    public function getOptionParser()
+    {
+        $parser = parent::getOptionParser();
+        $parser->addSubcommand('import', array(
+            'help' => __('Import event from file into MISP.'),
+            'parser' => array(
+                'arguments' => array(
+                    'user_id' => ['help' => __('User ID that will owner of uploaded event.'), 'required' => true],
+                    'file' => ['help' => __('Path to JSON MISP file, can be gzipped or bz2 compressed.'), 'required' => true],
+                ),
+                'options' => [
+                    'take-ownership' => ['boolean' => true],
+                    'publish' => ['boolean' => true],
+                ],
+            )
+        ));
+        $parser->addSubcommand('testEventNotificationEmail', [
+            'help' => __('Generate event notification email in EML format.'),
+            'parser' => [
+                'arguments' => [
+                    'event_id' => ['help' => __('Event ID'), 'required' => true],
+                    'user_id' => ['help' => __('User ID'), 'required' => true],
+                ],
+                'options' => [
+                    'send' => ['help' => __('Send email to given user'), 'boolean' => true],
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('duplicateTags', [
+            'help' => __('Show duplicate tags'),
+        ]);
+        $parser->addSubcommand('generateTopCorrelations', [
+            'help' => __('Generate top correlations'),
+        ]);
+        $parser->addSubcommand('mergeTags', [
+            'help' => __('Merge tags'),
+            'parser' => [
+                'arguments' => array(
+                    'source' => ['help' => __('Source tag ID or name. Source tag will be deleted.'), 'required' => true],
+                    'destination' => ['help' => __('Destination tag ID or name.'), 'required' => true],
+                )
+            ],
+        ]);
+        return $parser;
+    }
+
+    public function import()
+    {
+        list($userId, $path) = $this->args;
+        $user = $this->getUser($userId);
+
+        if (!file_exists($path)) {
+            $this->error("File '$path' does not exist.");
+        }
+        if (!is_readable($path)) {
+            $this->error("File '$path' is not readable.");
+        }
+
+        $pathInfo = pathinfo($path);
+        if ($pathInfo['extension'] === 'gz') {
+            $content = file_get_contents("compress.zlib://$path");
+            $extension = pathinfo($pathInfo['filename'], PATHINFO_EXTENSION);
+        } else if ($pathInfo['extension'] === 'bz2') {
+            $content = file_get_contents("compress.bzip2://$path");
+            $extension = pathinfo($pathInfo['filename'], PATHINFO_EXTENSION);
+        } else {
+            $content = file_get_contents($path);
+            $extension = $pathInfo['extension'];
+        }
+
+        if ($content === false) {
+            $this->error("Could not read content from '$path'.");
+        }
+
+        $isXml = $extension === 'xml';
+        $takeOwnership = $this->params['take-ownership'];
+        $publish = $this->params['publish'];
+        $results = $this->Event->addMISPExportFile($user, $content, $isXml, $takeOwnership, $publish);
+
+        foreach ($results as $result) {
+            if (is_numeric($result['result'])) {
+                $this->out("Event `{$result['info']}` already exists at ({$result['result']}).");
+            } else if ($result['result'] === true) {
+                $this->out("Event #{$result['id']}: {$result['info']} imported.");
+            } else {
+                $this->out("Could not import event because of validation errors: " . json_encode($result['validationIssues']));
+            }
+        }
+    }
+
+    public function mergeTags()
+    {
+        list($source, $destination) = $this->args;
+        $output = $this->Tag->mergeTag($source, $destination);
+        $this->out("Merged tag `{$output['source_tag']['Tag']['name']}` into `{$output['destination_tag']['Tag']['name']}`");
+        $this->out(__("%s attribute or event tags changed", $output['changed']));
+    }
+
+    public function duplicateTags()
+    {
+        $output = $this->Tag->duplicateTags();
+        $this->out($this->json($output));
+    }
+
+    public function doPublish()
+    {
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Do publish'] . PHP_EOL);
+        }
+
         $id = $this->args[0];
         $this->Event->id = $id;
         if (!$this->Event->exists()) {
@@ -19,7 +138,7 @@ class EventShell extends AppShell
             'job_input' => $id,
             'status' => 0,
             'retries' => 0,
-            //'org' => $jobOrg,
+            'org' => 0,
             'message' => 'Job created.',
         );
         $this->Job->save($data);
@@ -30,20 +149,52 @@ class EventShell extends AppShell
         $fieldList = array('published', 'id', 'info');
         $this->Event->save($event, array('fieldList' => $fieldList));
         // only allow form submit CSRF protection.
-        $this->Job->saveField('status', 1);
-        $this->Job->saveField('message', 'Job done.');
+        $this->Job->save([
+            'status' => Job::STATUS_COMPLETED,
+            'message' => 'Job done.'
+        ]);
     }
 
-    public function cache() {
+    public function correlateValue()
+    {
+        $value = $this->args[0];
+
+        if (!empty($this->args[1])) {
+            $this->Job->id = intval($this->args[1]);
+        } else {
+            $this->Job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'correlateValue',
+                $value,
+                'Job created.'
+            );
+        }
+
+        $this->Correlation->correlateValue($value, $this->Job->id);
+        $this->Job->save([
+            'status' => Job::STATUS_COMPLETED,
+            'message' => 'Job done.',
+            'progress' => 100
+        ]);
+    }
+
+    public function cache()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache event'] . PHP_EOL);
+        }
+
         $timeStart = time();
         $userId = $this->args[0];
         $id = $this->args[1];
-        $user = $this->User->getAuthUser($userId);
+        $user = $this->getUser($userId);
         $this->Job->id = $id;
         $export_type = $this->args[2];
         file_put_contents('/tmp/test', $export_type);
-        $typeData = $this->Event->export_types[$export_type];
-        if (!in_array($export_type, array_keys($this->Event->export_types))) {
+        $exportTypes = $this->Event->exportTypes();
+        $typeData = $exportTypes[$export_type];
+        if (!in_array($export_type, array_keys($exportTypes))) {
             $this->Job->saveField('progress', 100);
             $timeDelta = (time()-$timeStart);
             $this->Job->saveField('message', 'Job Failed due to invalid export format. (in '.$timeDelta.'s)');
@@ -84,307 +235,15 @@ class EventShell extends AppShell
         return true;
     }
 
-    public function cachexml() {
-        $timeStart = time();
-        $userId = $this->args[0];
-        $id = $this->args[1];
-        $user = $this->User->getAuthUser($userId);
-        $this->Job->id = $id;
-        // TEMP: change to passing an options array with the user!!
-        $eventIds = $this->Event->fetchEventIds($user);
-        $eventCount = count($eventIds);
-        $dir = new Folder(APP . 'tmp/cached_exports/xml', true, 0750);
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.xml' . '.ADMIN.xml');
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.xml' . '.' . $user['Organisation']['name'] . '.xml');
-        }
-        App::uses('XMLConverterTool', 'Tools');
-        $converter = new XMLConverterTool();
-        $file->write('<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>');
-        if (!empty($eventIds)) {
-            foreach ($eventIds as $k => $eventId) {
-                $temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id'], 'includeAttachments' => Configure::read('MISP.cached_attachments')));
-                $file->append($converter->convert($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
-                $this->Job->saveField('progress', ($k+1) / $eventCount *100);
-            }
-        }
-        $file->append('<xml_version>' . $this->Event->mispVersion . '</xml_version>');
-        $file->append('</response>' . PHP_EOL);
-        $file->close();
-        $timeDelta = (time()-$timeStart);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-    }
-
-    public function cachejson() {
-        $timeStart = time();
-        $userId = $this->args[0];
-        $id = $this->args[1];
-        $user = $this->User->getAuthUser($userId);
-        $this->Job->id = $id;
-        // TEMP: change to passing an options array with the user!!
-        $eventIds = $this->Event->fetchEventIds($user);
-        $eventCount = count($eventIds);
-        $dir = new Folder(APP . 'tmp/cached_exports/json', true, 0750);
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.json' . '.ADMIN.json');
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.json' . '.' . $user['Organisation']['name'] . '.json');
-        }
-        App::uses('JSONConverterTool', 'Tools');
-        $converter = new JSONConverterTool();
-        $file->write('{"response":[');
-        foreach ($eventIds as $k => $eventId) {
-            $result = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id'], 'includeAttachments' => Configure::read('MISP.cached_attachments')));
-            $file->append($converter->convert($result[0]));
-            if ($k < count($eventIds) -1 ) {
-                $file->append(',');
-            }
-            $this->Job->saveField('progress', ($k+1) / $eventCount *100);
-        }
-        $file->append(']}');
-        $file->close();
-        $timeDelta = (time()-$timeStart);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-    }
-
-    public function cachestix() {
-        $timeStart = time();
-        $userId = $this->args[0];
-        $id = $this->args[1];
-        $user = $this->User->getAuthUser($userId);
-        $this->Job->id = $id;
-        $dir = new Folder(APP . 'tmp/cached_exports/stix', true, 0750);
-        if ($user['Role']['perm_site_admin']) {
-            $stixFilePath = $dir->pwd() . DS . 'misp.stix' . '.ADMIN.xml';
-        } else {
-            $stixFilePath = $dir->pwd() . DS . 'misp.stix' . '.' . $user['Organisation']['name'] . '.xml';
-        }
-        $result = $this->Event->stix(false, false, Configure::read('MISP.cached_attachments'), $user, 'xml', false, false, false, $id, true);
-        $timeDelta = (time()-$timeStart);
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-        if ($result['success']) {
-            rename($result['data'], $stixFilePath);
-            unlink($result['data']);
-            $this->Job->saveField('progress', 100);
-            $this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
-        } else {
-            $log = ClassRegistry::init('Log');
-            $log->create();
-            $log->createLogEntry($user, 'export', 'STIX export failed', $result['message']);
-            throw new InternalErrorException();
-        }
-    }
-
-    private function __recursiveEcho($array) {
-        $text = "";
-        foreach ($array as $k => $v) {
-            if (is_array($v)) {
-                if (empty($v)) $text .= '<' . $k . '/>';
-                else {
-                    foreach ($v as $element) {
-                        $text .= '<' . $k . '>';
-                        $text .= $this->__recursiveEcho($element);
-                        $text .= '</' . $k . '>';
-                    }
-                }
-            } else {
-                if ($v === false) $v = 0;
-                if ($v === "" || $v === null) $text .= '<' . $k . '/>';
-                else {
-                    $text .= '<' . $k . '>' . $v . '</' . $k . '>';
-                }
-            }
-        }
-        return $text;
-    }
-
-    public function cachehids() {
-        $timeStart = time();
-        $userId = $this->args[0];
-        $user = $this->User->getAuthUser($userId);
-        $id = $this->args[1];
-        $this->Job->id = $id;
-        $extra = $this->args[2];
-        $this->Job->saveField('progress', 1);
-        $rules = $this->Attribute->hids($user, $extra, '', false, false, false, $id);
-        $this->Job->saveField('progress', 80);
-        $dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.txt');
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $user['Organisation']['name'] . '.txt');
-        }
-        $file->write('');
-        if (!empty($rules)) {
-            foreach ($rules as $rule) {
-                $file->append($rule . PHP_EOL);
-            }
-        } else {
-            $file->append("No exportable " . $type . "s found. " . PHP_EOL);
-        }
-        $file->close();
-        $timeDelta = (time()-$timeStart);
-        $this->Job->saveField('progress', '100');
-        $this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-    }
-
-    public function cacherpz() {
-        $timeStart = time();
-        $userId = $this->args[0];
-        $user = $this->User->getAuthUser($userId);
-        $id = $this->args[1];
-        $this->Job->id = $id;
-        $extra = $this->args[2];
-        $this->Job->saveField('progress', 1);
-        $eventIds = $this->Attribute->Event->fetchEventIds($user, false, false, false, true);
-        $values = array();
-        $eventCount = count($eventIds);
-        if ($eventCount) {
-            foreach ($eventIds as $k => $eventId) {
-                $values = array_merge_recursive($values, $this->Attribute->rpz($user, false, $eventId));
-                if ($k % 10 == 0) $this->Job->saveField('progress', $k * 80 / $eventCount);
-            }
-        }
-        $this->Job->saveField('progress', 80);
-        $dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.rpz.ADMIN.txt');
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.rpz.' . $user['Organisation']['name'] . '.txt');
-        }
-        App::uses('RPZExport', 'Export');
-        $rpzExport = new RPZExport();
-        $rpzSettings = array();
-        $lookupData = array('policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl', 'ns_alt');
-        foreach ($lookupData as $v) {
-            $tempSetting = Configure::read('Plugin.RPZ_' . $v);
-            if (isset($tempSetting)) $rpzSettings[$v] = Configure::read('Plugin.RPZ_' . $v);
-            else $rpzSettings[$v] = $this->Server->serverSettings['Plugin']['RPZ_' . $v]['value'];
-        }
-        $file->write($rpzExport->export($values, $rpzSettings));
-        $file->close();
-        $timeDelta = (time()-$timeStart);
-        $this->Job->saveField('progress', '100');
-        $this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-    }
-
-    public function cachecsv() {
-        $timeStart = time();
-        $userId = $this->args[0];
-        $user = $this->User->getAuthUser($userId);
-        $id = $this->args[1];
-        $this->Job->id = $id;
-        $extra = $this->args[2];
-        if ($extra == 'csv_all') $ignore = 1;
-        else $ignore = 0;
-        // TEMP: change to passing an options array with the user!!
-        $eventIds = $this->Event->fetchEventIds($user);
-        $eventCount = count($eventIds);
-        $attributes = array();
-        $dir = new Folder(APP . 'tmp/cached_exports/' . $extra, true, 0750);
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.csv');
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $user['Organisation']['name'] . '.csv');
-        }
-        $file->write('uuid,event_id,category,type,value,to_ids,date' . PHP_EOL);
-        foreach ($eventIds as $k => $eventId) {
-            $chunk = "";
-            $attributes = $this->Event->csv($user, $eventId['Event']['id'], $ignore);
-            $attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
-            foreach ($attributes as $attribute) {
-                $chunk .= $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'] . PHP_EOL;
-            }
-            $file->append($chunk);
-            if ($k % 10 == 0) {
-                $this->Job->saveField('progress', $k / $eventCount * 80);
-            }
-        }
-        $file->close();
-        $timeDelta = (time()-$timeStart);
-        $this->Job->saveField('progress', '100');
-        $this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-    }
-
-    public function cachetext() {
-        $timeStart = time();
-        $userId = $this->args[0];
-        $user = $this->User->getAuthUser($userId);
-        $id = $this->args[1];
-        $this->Job->id = $id;
-        $types = array_keys($this->Attribute->typeDefinitions);
-        $typeCount = count($types);
-        $dir = new Folder(APP . DS . '/tmp/cached_exports/text', true, 0750);
-        foreach ($types as $k => $type) {
-            $final = $this->Attribute->text($user, $type);
-            if ($user['Role']['perm_site_admin']) {
-                $file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.ADMIN.txt');
-            } else {
-                $file = new File($dir->pwd() . DS . 'misp.text_' . $type . '.' . $user['Organisation']['name'] . '.txt');
-            }
-            $file->write('');
-            foreach ($final as $attribute) {
-                $file->append($attribute['Attribute']['value'] . PHP_EOL);
-            }
-            $file->close();
-            $this->Job->saveField('progress', $k / $typeCount * 100);
-        }
-        $timeDelta = (time()-$timeStart);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-    }
-
-    public function cachenids() {
-        $timeStart = time();
-        $userId = $this->args[0];
-        $user = $this->User->getAuthUser($userId);
-        $id = $this->args[1];
-        $this->Job->id = $id;
-        $format = $this->args[2];
-        $eventIds = array_values($this->Event->fetchEventIds($user, false, false, false, true));
-        $eventCount = count($eventIds);
-        $dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format, true, 0750);
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.' . $format . '.ADMIN.rules');
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.' . $format . '.' . $user['Organisation']['name'] . '.rules');
-        }
-        $file->write('');
-        foreach ($eventIds as $k => $eventId) {
-            if ($k == 0) {
-                $temp = $this->Attribute->nids($user, $format, $eventId);
-            } else {
-                $temp = $this->Attribute->nids($user, $format, $eventId, true);
-            }
-            foreach ($temp as $line) {
-                $file->append($line . PHP_EOL);
-            }
-            if ($k % 10 == 0) {
-                $this->Job->saveField('progress', $k / $eventCount * 80);
-            }
-        }
-        $file->close();
-        $timeDelta = time()-$timeStart;
-        $this->Job->saveField('progress', '100');
-        $this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-    }
-
     public function cachebro()
     {
+        if (empty($this->args[0]) || empty($this->args[1])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache bro'] . PHP_EOL);
+        }
+
         $timeStart = time();
-        $broHeader = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url\tmeta.do_notice\tmeta.if_in\n";
         $userId = $this->args[0];
-        $user = $this->User->getAuthUser($userId);
+        $user = $this->getUser($userId);
         $id = $this->args[1];
         $this->Job->id = $id;
         $this->Job->saveField('progress', 1);
@@ -400,8 +259,10 @@ class EventShell extends AppShell
         }
 
         $file->write('');
+        $skipHeader = false;
         foreach ($types as $k => $type) {
-            $final = $this->Attribute->bro($user, $type);
+            $final = $this->Attribute->bro($user, $type, false, false, false, false, false, false, $skipHeader);
+            $skipHeader = true;
             foreach ($final as $attribute) {
                 $file->append($attribute . PHP_EOL);
             }
@@ -414,51 +275,77 @@ class EventShell extends AppShell
         $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
     }
 
-    public function alertemail() {
+    public function alertemail()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Alert email'] . PHP_EOL);
+        }
+
         $userId = $this->args[0];
-        $processId = $this->args[1];
-        $job = $this->Job->read(null, $processId);
+        $jobId = $this->args[1];
         $eventId = $this->args[2];
-        $oldpublish = $this->args[3];
-        $user = $this->User->getAuthUser($userId);
-        $result = $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $processId);
-        $job['Job']['progress'] = 100;
-        $job['Job']['message'] = 'Emails sent.';
-        //$job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $this->Job->save($job);
+        $oldpublish = isset($this->args[3]) ? $this->args[3] : null;
+        $user = $this->getUser($userId);
+        $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $jobId);
     }
 
-    public function contactemail() {
+    public function contactemail()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || !isset($this->args[2]) ||
+            empty($this->args[3]) || empty($this->args[4])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Contact email'] . PHP_EOL);
+        }
+
         $id = $this->args[0];
         $message = $this->args[1];
         $all = $this->args[2];
         $userId = $this->args[3];
-        $isSiteAdmin = $this->args[4];
-        $processId = $this->args[5];
-        $this->Job->id = $processId;
-        $user = $this->User->getAuthUser($userId);
-        $result = $this->Event->sendContactEmail($id, $message, $all, array('User' => $user), $isSiteAdmin);
-        $this->Job->saveField('progress', '100');
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-        if ($result != true) $this->Job->saveField('message', 'Job done.');
+        $jobId = $this->args[4];
+
+        $user = $this->getUser($userId);
+        $result = $this->Event->sendContactEmail($id, $message, $all, $user);
+        $this->Job->saveStatus($jobId, $result);
     }
 
-    public function postsemail() {
-        $userId = $this->args[0];
-        $postId = $this->args[1];
-        $eventId = $this->args[2];
+    public function postsemail()
+    {
+        if (
+            empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
+            empty($this->args[3]) || empty($this->args[4]) || empty($this->args[5])
+        ) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Posts email'] . PHP_EOL);
+        }
+
+        $userId = intval($this->args[0]);
+        $postId = intval($this->args[1]);
+        $eventId = intval($this->args[2]);
         $title = $this->args[3];
         $message = $this->args[4];
-        $processId = $this->args[5];
-        $this->Job->id = $processId;
+        $this->Job->id = intval($this->args[5]);
+
         $result = $this->Post->sendPostsEmail($userId, $postId, $eventId, $title, $message);
-        $job['Job']['progress'] = 100;
-        $job['Job']['message'] = 'Emails sent.';
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $this->Job->save($job);
+
+        if ($result) {
+            $this->Job->save([
+                'progress' => 100,
+                'message' => 'Emails sent.',
+                'date_modified' => date('Y-m-d H:i:s'),
+                'status' =>  Job::STATUS_COMPLETED
+            ]);
+        } else {
+            $this->Job->save([
+                'date_modified' => date('Y-m-d H:i:s'),
+                'status' =>  Job::STATUS_FAILED
+            ]);
+        }
     }
 
-    public function enqueueCaching() {
+    public function enqueueCaching()
+    {
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Enqueue caching'] . PHP_EOL);
+        }
+
         $timestamp = $this->args[0];
         $task = $this->Task->findByType('cache_exports');
 
@@ -499,7 +386,7 @@ class EventShell extends AppShell
         // the special cache files containing all events
         $i = 0;
         foreach ($users as $user) {
-            foreach ($this->Event->export_types as $k => $type) {
+            foreach ($this->Event->exportTypes() as $k => $type) {
                 if ($k == 'stix') continue;
                 $this->Job->cache($k, $user['User']);
                 $i++;
@@ -509,16 +396,32 @@ class EventShell extends AppShell
         $this->Task->saveField('message', $i . ' job(s) started at ' . date('d/m/Y - H:i:s') . '.');
     }
 
-    public function publish() {
+    public function publish()
+    {
+        if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish event'] . PHP_EOL);
+        }
+
         $id = $this->args[0];
         $passAlong = $this->args[1];
         $jobId = $this->args[2];
         $userId = $this->args[3];
-        $user = $this->User->getAuthUser($userId);
-        $job = $this->Job->read(null, $jobId);
+        $user = $this->getUser($userId);
+        $job = $this->Job->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'Job.id' => $jobId
+            ]
+        ]);
+        if (empty($job)) {
+            $log = ClassRegistry::init('Log');
+            $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): could not be published - valid job not found.', '');
+            return true;
+        }
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
         $result = $this->Event->publish($id, $passAlong);
         $job['Job']['progress'] = 100;
+        $job['Job']['status'] = Job::STATUS_COMPLETED;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         if ($result) {
             $job['Job']['message'] = 'Event published.';
@@ -527,21 +430,78 @@ class EventShell extends AppShell
         }
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'published () => (1)');
     }
 
-    public function enrichment() {
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['enrichment'] . PHP_EOL);
+    public function publish_sightings()
+    {
+        if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish sightings'] . PHP_EOL);
         }
+
+        list($id, $passAlong, $jobId, $userId) = $this->args;
+        $user = $this->getUser($userId);
+
+        $sightingsUuidsToPush = [];
+        if (isset($this->args[4])) { // push just specific sightings
+            $sightingsUuidsToPush = $this->getBackgroundJobsTool()->fetchDataFile($this->args[4]);
+        }
+
+        $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
+        $result = $this->Event->publishSightings($id, $passAlong, $sightingsUuidsToPush);
+
+        $count = count($sightingsUuidsToPush);
+        $message = $count === 0 ? "All sightings published" : "$count sightings published";
+        if ($result) {
+            $message .= '.';
+        } else {
+            $message .= ', but the upload to other instances may have failed.';
+        }
+        $this->Job->saveStatus($jobId, true, $message);
+
+        $log = ClassRegistry::init('Log');
+        $title = $count === 0 ? "All sightings for event published."  : "$count sightings for event published.";
+        $log->createLogEntry($user, 'publish_sightings', 'Event', $id, $title, 'publish_sightings updated');
+    }
+
+    public function publish_galaxy_clusters()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || !array_key_exists(3, $this->args)) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish Galaxy clusters'] . PHP_EOL);
+        }
+
+        $clusterId = $this->args[0];
+        $jobId = $this->args[1];
+        $userId = $this->args[2];
+        $passAlong = $this->args[3];
+        $user = $this->getUser($userId);
+        $job = $this->Job->read(null, $jobId);
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $result = $this->GalaxyCluster->publish($clusterId, $passAlong=$passAlong);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        if ($result) {
+            $job['Job']['message'] = 'Galaxy cluster published.';
+        } else {
+            $job['Job']['message'] = 'Galaxy cluster published, but the upload to other instances may have failed.';
+        }
+        $this->Job->save($job);
+        $log = ClassRegistry::init('Log');
+        $log->createLogEntry($user, 'publish', 'GalaxyCluster', $clusterId, 'GalaxyCluster (' . $clusterId . '): published.', 'published () => (1)');
+    }
+
+    public function enrichment()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run enrichment'] . PHP_EOL);
+        }
+
         $userId = $this->args[0];
-        $user = $this->User->getAuthUser($userId);
-        if (empty($user)) die('Invalid user.');
+        $user = $this->getUser($userId);
         $eventId = $this->args[1];
-        $modules = $this->args[2];
+        $modulesRaw = $this->args[2];
         try {
-            $modules = json_decode($modules);
+            $modules = json_decode($modulesRaw, true);
         } catch (Exception $e) {
             die('Invalid module JSON');
         }
@@ -552,7 +512,7 @@ class EventShell extends AppShell
             $data = array(
                     'worker' => 'default',
                     'job_type' => 'enrichment',
-                    'job_input' => 'Event: ' . $eventId . ' modules: ' . $modules,
+                    'job_input' => 'Event: ' . $eventId . ' modules: ' . $modulesRaw,
                     'status' => 0,
                     'retries' => 0,
                     'org' => $user['Organisation']['name'],
@@ -575,25 +535,27 @@ class EventShell extends AppShell
         } else {
             $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
         }
+	echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'enrichment', 'Event', $eventId, 'Event (' . $eventId . '): enriched.', 'enriched () => (1)');
     }
 
-    public function processfreetext() {
+    public function processfreetext()
+    {
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process free text'] . PHP_EOL);
+        }
+
         $inputFile = $this->args[0];
-        $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
-        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
-        $inputData = $tempFile->read();
-        $inputData = json_decode($inputData, true);
-        $tempFile->delete();
+        $inputData = $this->getBackgroundJobsTool()->fetchDataFile($inputFile);
+        Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processFreeTextData(
             $inputData['user'],
             $inputData['attributes'],
             $inputData['id'],
             $inputData['default_comment'],
-            $inputData['force'],
+            $inputData['proposals'],
             $inputData['adhereToWarninglists'],
             $inputData['jobId']
         );
@@ -602,11 +564,13 @@ class EventShell extends AppShell
 
     public function processmoduleresult()
     {
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process module result'] . PHP_EOL);
+        }
+
         $inputFile = $this->args[0];
-        $tempDir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
-        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
-        $inputData = json_decode($tempFile->read(), true);
-        $tempFile->delete();
+        $inputData = $this->getBackgroundJobsTool()->fetchDataFile($inputFile);
+        Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processModuleResultsData(
             $inputData['user'],
             $inputData['misp_format'],
@@ -615,5 +579,93 @@ class EventShell extends AppShell
             $inputData['jobId']
         );
         return true;
+    }
+
+    public function recoverEvent()
+    {
+        if (empty($this->args[0]) || empty($this->args[1])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Recover event'] . PHP_EOL);
+        }
+
+        $jobId = $this->args[0];
+        $id = $this->args[1];
+        $job = $this->Job->read(null, $jobId);
+        $job['Job']['progress'] = 1;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Recovering event %s', $id);
+        $this->Job->save($job);
+        $result = $this->Event->recoverEvent($id);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
+        $this->Job->save($job);
+    }
+
+    public function testEventNotificationEmail()
+    {
+        list($eventId, $userId) = $this->args;
+        $send = $this->param('send');
+
+        $user = $this->getUser($userId);
+        $eventForUser = $this->Event->fetchEvent($user, [
+            'eventid' => $eventId,
+            'includeAllTags' => true,
+            'includeEventCorrelations' => true,
+            'noEventReports' => true,
+            'noSightings' => true,
+            'metadata' => Configure::read('MISP.event_alert_metadata_only') || Configure::read('MISP.publish_alerts_summary_only'),
+        ]);
+        if (empty($eventForUser)) {
+            $this->error("Event with ID $eventId not exists or given user don't have permission to access it.");
+        }
+
+        $emailTemplate = $this->Event->prepareAlertEmail($eventForUser[0], $user);
+
+        App::uses('SendEmail', 'Tools');
+        App::uses('GpgTool', 'Tools');
+        $sendEmail = new SendEmail(GpgTool::initializeGpg());
+        if (!$send) {
+            $sendEmail->setTransport('Debug');
+        }
+        $result = $sendEmail->sendToUser(['User' => $user], null, $emailTemplate);
+
+        if ($send) {
+            var_dump($result);
+        } else {
+            echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
+        }
+    }
+
+    /**
+     * @param int $userId
+     * @return array
+     */
+    private function getUser($userId)
+    {
+        $user = $this->User->getAuthUser($userId, true);
+        if (empty($user)) {
+            $this->error("User with ID $userId does not exist.");
+        }
+        Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
+        return $user;
+    }
+
+    public function generateTopCorrelations()
+    {
+        $jobId = $this->args[0] ?? null;
+        if ($jobId) {
+            $job = $this->Job->read(null, $jobId);
+            $job['Job']['progress'] = 1;
+            $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+            $job['Job']['message'] = __('Generating top correlations list.');
+            $this->Job->save($job);
+        }
+        $this->Correlation->generateTopCorrelations($jobId);
+        if ($jobId) {
+            $job['Job']['progress'] = 100;
+            $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+            $job['Job']['message'] = __('Job done.');
+            $this->Job->save($job);
+        }
     }
 }

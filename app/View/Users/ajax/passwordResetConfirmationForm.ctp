@@ -19,7 +19,7 @@
         endif;
     ?>
     <p><?php echo $message; ?><br />
-    <?php echo $this->Form->input('firstTime', array('label' => false, 'type' => 'checkbox', 'div' => false, 'style' => 'border:0px;margin:0px;')); ?><?php echo __('First time registration');?>
+    <?php echo $this->Form->input('firstTime', array('label' => false, 'type' => 'checkbox', 'div' => false, 'style' => 'border:0px;margin:0px;')); ?> <?php echo __('First time registration');?>
     </p>
     <table>
         <tr>

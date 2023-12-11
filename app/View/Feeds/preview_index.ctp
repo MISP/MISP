@@ -1,15 +1,11 @@
 <div class="events index">
-<h4 class="visibleDL notPublished" ><?php echo __('You are currently viewing the event index of a feed (%s by %s).', h($feed['Feed']['name']),h($feed['Feed']['provider']));?></h4>
+<h4 class="visibleDL notPublished"><?php echo __('You are currently viewing the event index of a feed (%s by %s).', h($feed['Feed']['name']), h($feed['Feed']['provider']));?></h4>
     <div class="pagination">
         <ul>
         <?php
-            $eventViewURL = '/feeds/previewEvent/' . h($id) . '/';
+            $eventViewURL = $baseurl . '/feeds/previewEvent/' . h($id) . '/';
             $this->Paginator->options(array(
                 'url' => $id,
-                'update' => '.span12',
-                'evalScripts' => true,
-                'before' => '$(".progress").show()',
-                'complete' => '$(".progress").hide()',
             ));
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
@@ -43,34 +39,33 @@
             <th class="filter"><?php echo $this->Paginator->sort('info');?></th>
             <th class="filter"><?php echo $this->Paginator->sort('timestamp', __('Timestamp'), array('direction' => 'desc'));?></th>
             <th class="actions"><?php echo __('Actions');?></th>
-
         </tr>
         <?php if (!empty($events)) foreach ($events as $uuid => $event): ?>
         <tr>
-            <td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'"><?php echo h($event['Orgc']['name']); ?></td>
-            <td style = "max-width: 200px;width:10px;">
+            <td class="short dblclickElement"><?php echo h($event['Orgc']['name']); ?></td>
+            <td style="max-width: 200px;width:10px;">
                 <?php foreach ($event['Tag'] as $tag): ?>
                     <span class=tag style="margin-bottom:3px;background-color:<?php echo isset($tag['colour']) ? h($tag['colour']) : 'red';?>;color:<?php echo $this->TextColour->getTextColour(isset($tag['colour']) ? h($tag['colour']) : 'red');?>;" title="<?php echo h($tag['name']); ?>"><?php echo h($tag['name']); ?></span>
                 <?php endforeach; ?>
             </td>
-            <td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
-                <?php echo h($event['date']); ?>&nbsp;
+            <td class="short dblclickElement">
+                <?php echo h($event['date']); ?>
             </td>
-            <td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
+            <td class="short dblclickElement">
                 <?php
                     echo h($threatLevels[isset($event['threat_level_id']) ? $event['threat_level_id'] : (Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4)]);
                 ?>
             </td>
-            <td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
-                <?php echo $analysisLevels[$event['analysis']]; ?>&nbsp;
+            <td class="short dblclickElement">
+                <?php echo $analysisLevels[$event['analysis']]; ?>
             </td>
-            <td ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
-                <?php echo nl2br(h($event['info'])); ?>&nbsp;
+            <td class="dblclickElement">
+                <?php echo nl2br(h($event['info']), false); ?>
             </td>
-            <td ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'" class="short"><?php echo h($event['timestamp']); ?></td>
+            <td class="short dblclickElement"><?= $this->Time->time($event['timestamp']); ?></td>
             <td class="short action-links">
-                <?php if ($feed['Feed']['enabled'] && $isSiteAdmin) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'fa fa-arrow-circle-down', 'title' => __('Fetch the event')), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
-                <a href='<?php echo $eventViewURL . h($uuid);?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
+                <?php if ($feed['Feed']['enabled'] && $isSiteAdmin) echo $this->Form->postLink('', $baseurl . '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'fa fa-arrow-circle-down', 'title' => __('Fetch the event')), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
+                <a href='<?php echo $eventViewURL . h($uuid);?>' class="fa fa-eye dblclickActionElement" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
             </td>
         </tr>
         <?php endforeach; ?>
@@ -93,18 +88,12 @@
         </ul>
     </div>
 </div>
-<script type="text/javascript">
+<script>
     var passedArgsArray = <?php echo $passedArgs; ?>;
-    $(document).ready(function() {
+    $(function() {
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter('<?php echo '/' . h($feed['Feed']['id']);?>');
         });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter('<?php echo '/' . h($feed['Feed']['id']);?>');
-            }
-        });
     });
 </script>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewIndex', 'id' => $id));
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewIndex', 'id' => $id));

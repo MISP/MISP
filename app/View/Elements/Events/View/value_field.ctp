@@ -1,16 +1,52 @@
 <?php
-    $sigDisplay = $object['value'];
-    if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
-        if ($object['type'] == 'attachment' && isset($object['image'])) {
-            if (extension_loaded('gd')) {
-                $img = '<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>';
-                $img .= '<img class="screenshot screenshot-collapsed useCursorPointer img-rounded hidden" src="' . $baseurl . '/attributes/viewPicture/' . h($object['id']) . '/1' . '" title="' . h($object['value']) . '" onload="$(this).show(200); $(this).parent().find(\'.fa-spinner\').remove();"/>';
-                echo $img;
+$truncateLongText = function ($text, $maxLength = 500, $maxLines = 10) {
+    $truncated = false;
+    if (mb_strlen($text) > $maxLength) {
+        $text = mb_substr($text, 0, 500);
+        $truncated = true;
+    }
+
+    if (substr_count($text, "\n") > $maxLines) {
+        $lines = explode("\n", $text);
+        $text = implode("\n", array_slice($lines, 0, $maxLines));
+        $truncated = true;
+    }
+
+    if ($truncated) {
+        return $text;
+    }
+    return null;
+};
+
+$humanReadableFilesize = function ($bytes, $dec = 2) {
+    $size = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    $factor = floor((strlen($bytes) - 1) / 3);
+    return sprintf("%.{$dec}f&nbsp;%s", ($bytes / (1024 ** $factor)), $size[$factor]);
+};
+
+if (!isset($linkClass)) {
+    $linkClass = null;
+}
+
+switch ($object['type']) {
+    case 'attachment':
+    case 'malware-sample':
+        if ($object['type'] === 'attachment' && isset($object['image'])) {
+            if ($object['image'] === true) {
+                if ($object['objectType'] === 'proposal') {
+                    $src = $baseurl . '/shadowAttributes/viewPicture/' . (int)$object['id'] . '/1';
+                    echo '<img class="screenshot useCursorPointer img-rounded" src="' . $src . '" title="' . h($object['value']) . '" loading="lazy">';
+                } else { // attribute
+                    $src = $baseurl . '/attributes/viewPicture/' . (int)$object['id'] . '/';
+                    echo '<picture>';
+                    echo '<source srcset="' . $src . 'webp" type="image/webp">';
+                    echo '<img class="screenshot useCursorPointer img-rounded" src="' . $src . '1" title="' . h($object['value']) . '" loading="lazy">';
+                    echo '</picture>';
+                }
             } else {
-                $extension = explode('.', $object['value']);
-                $extension = end($extension);
+                $extension = pathinfo($object['value'], PATHINFO_EXTENSION);
                 $uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
-                echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '" />';
+                echo '<img class="screenshot useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '">';
             }
         } else {
             $filenameHash = explode('|', h($object['value']));
@@ -18,46 +54,152 @@
                 $filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
                 $filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
                 echo h($filepath);
-                echo '<a href="' . $baseurl . '/attributes/download/' . h($object['id']) . '" class="' . $linkClass . '">' . h($filename) . '</a>';
             } else {
-                echo '<a href="' . $baseurl . '/attributes/download/' . h($object['id']) . '" class="' . $linkClass . '">' . h($filenameHash[0]) . '</a>';
+                $filename = $filenameHash[0];
             }
-            if (isset($filenameHash[1])) echo '<br />' . $filenameHash[1];
+
+            if (isset($object['objectType']) && isset($object['id'])) {
+                if (array_key_exists('infected', $object) && $object['infected'] !== false) { // it is not possible to use isset
+                    if ($object['infected'] === null) {
+                        $confirm = __('This file was not checked by AV scan. Do you really want to download it?');
+                    } else {
+                        $confirm = __('According to AV scan, this file contains %s malware. Do you really want to download it?', $object['infected']);
+                    }
+                } else if ($object['type'] === 'malware-sample') {
+                    $confirm = __('You are going to download file that is probably malware. For your safety, the file is compressed in encrypted ZIP file. To decrypt use password `infected`.');
+                } else {
+                    $confirm = null;
+                }
+
+                $controller = $object['objectType'] === 'proposal' ? 'shadow_attributes' : 'attributes';
+                $url = ['controller' => $controller, 'action' => 'download', $object['id']];
+                echo $this->Html->link($filename, $url, ['class' => $linkClass], $confirm);
+            } else {
+                echo $filename;
+            }
+            if (isset($filenameHash[1])) {
+                echo '<br>' . $filenameHash[1];
+            }
+            if (isset($object['infected']) && $object['infected'] !== false) {
+                echo ' <i class="fas fa-virus" title="' . __('This file contains malware %s', $object['infected'])  . '"></i>';
+            }
         }
-    } else if (strpos($object['type'], '|') !== false) {
-        $separator = in_array($object['type'], array('ip-dst|port', 'ip-src|port')) ? ':' : '<br />';
-        $value_pieces = explode('|', $object['value']);
-        foreach ($value_pieces as $k => $v) {
-            $value_pieces[$k] = h($v);
-        }
-        $object['value'] = implode($separator, $value_pieces);
-        echo ($object['value']);
-    } else if ('vulnerability' == $object['type']) {
-        $cveUrl = (is_null(Configure::read('MISP.cveurl'))) ? "http://cve.circl.lu/cve/" : Configure::read('MISP.cveurl');
-        echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank', 'class' => $linkClass));
-    } else if ('weakness' == $object['type']) {
-        $cweUrl = (is_null(Configure::read('MISP.cweurl'))) ? "http://cve.circl.lu/cwe/" : Configure::read('MISP.cweurl');
-        echo $this->Html->link($sigDisplay, $cweUrl . explode("-", $sigDisplay)[1], array('target' => '_blank', 'class' => $linkClass));
-    } else if ('link' == $object['type'] && (substr($object['value'], 0, 7) === 'http://' || substr($object['value'], 0, 8) === 'https://')) {
-        echo $this->Html->link($sigDisplay, $sigDisplay, array('class' => $linkClass));
-    } else if ('cortex' == $object['type']) {
-        echo '<div class="cortex-json" data-cortex-json="' . h($object['value']) . '">Cortex object</div>';
-    } else if ('text' == $object['type']) {
-        if (($object['category'] == 'Internal reference' || $object['category'] == 'External analysis') && preg_match('/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i', $object['value'])) {
-            echo '<a href="' . $baseurl . '/events/view/' . h($object['value']) . '" class="' . $linkClass . '">' . h($object['value']) . '</a>';
+        break;
+
+    case 'datetime':
+        echo $this->Time->time($object['value']);
+        break;
+
+    case 'vulnerability':
+        $cveUrl = Configure::read('MISP.cveurl') ?: 'https://cve.circl.lu/cve/';
+        echo $this->Html->link($object['value'], $cveUrl . $object['value'], [
+            'target' => '_blank',
+            'class' => $linkClass,
+            'rel' => 'noreferrer noopener',
+            'title' => __('Show more information about this vulnerability in external tool'),
+        ]);
+        break;
+
+    case 'weakness':
+        $cweUrl = Configure::read('MISP.cweurl') ?: 'https://cve.circl.lu/cwe/';
+        $link = $cweUrl . explode("-", $object['value'])[1];
+        echo $this->Html->link($object['value'], $link, [
+            'target' => '_blank',
+            'class' => $linkClass,
+            'rel' => 'noreferrer noopener',
+            'title' => __('Show more information about this weakness in external tool'),
+        ]);
+        break;
+
+    case 'link':
+        echo $this->Html->link($object['value'], $object['value'], ['class' => $linkClass, 'rel' => 'noreferrer noopener']);
+        break;
+
+    case 'cortex':
+        echo '<span data-full="' . h($object['value']) . '" data-full-type="cortex"><a href="#">' . __('Cortex object') . '</a></span>';
+        break;
+
+    case 'text':
+        if (in_array($object['category'], ['External analysis', 'Internal reference'], true) && Validation::uuid($object['value'])) {
+            $url = ['controller' => 'events', 'action' => 'view', $object['value']];
+            echo $this->Html->link($object['value'], $url, ['class' => $linkClass]);
         } else {
-            $sigDisplay = str_replace("\r", '', h($sigDisplay));
-            $sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
-            echo $sigDisplay;
+            $value = str_replace("\r", '', $object['value']);
+            $truncated = $truncateLongText($value);
+            if ($truncated) {
+                echo '<span style="white-space: pre-wrap;" data-full="' . h($object['value']) .'" data-full-type="text">' .
+                    str_replace(" ", '&nbsp;', h(rtrim($truncated)));
+                echo ' <b>&hellip;</b><br><a href="#">' . __('Show all') . '</a></span>';
+            } else {
+                echo '<span style="white-space: pre-wrap;">' . str_replace(" ", '&nbsp;', h($value)) . '</span>';
+            }
         }
-    } else if ('hex' == $object['type']) {
-        $sigDisplay = str_replace("\r", '', $sigDisplay);
-        echo '<span class="hex-value" title="' . __('Hexadecimal representation') . '">' . h($sigDisplay) . '</span>&nbsp;<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="icon-repeat hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
-    } else {
-        $sigDisplay = str_replace("\r", '', $sigDisplay);
-        echo h($sigDisplay);
+        break;
+
+    case 'hex':
+        echo '<span class="hex-value" title="' . __('Hexadecimal representation') . '">' . h($object['value']) . '</span>&nbsp;';
+        echo '<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="fas fa-redo hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
+        break;
+
+    case 'size-in-bytes':
+        $value = intval($object['value']);
+        echo $value;
+        if ($value > 1024) {
+            echo '<br>' . $humanReadableFilesize($value);
+        }
+        break;
+
+    case 'ip-dst|port':
+    case 'ip-src|port':
+    case 'hostname|port':
+        $valuePieces = explode('|', $object['value']);
+        if (substr_count($valuePieces[0], ':') >= 2) {
+            echo '[' . h($valuePieces[0]) . ']:' . h($valuePieces[1]); // IPv6 style
+        } else {
+            echo h($valuePieces[0]) . ':' . h($valuePieces[1]);
+        }
+        break;
+
+    /** @noinspection PhpMissingBreakStatementInspection */
+    case 'domain':
+        if (strpos($object['value'], 'xn--') !== false && function_exists('idn_to_utf8')) {
+            echo '<span title="' . h(idn_to_utf8($object['value'])) . '">' . h($object['value']) . '</span>';
+            break;
+        }
+
+    default:
+        if (strpos($object['type'], '|') !== false) {
+            $valuePieces = explode('|', $object['value']);
+            foreach ($valuePieces as $k => $v) {
+                $valuePieces[$k] = h($v);
+            }
+            echo implode('<br>', $valuePieces);
+        } else {
+            $value = str_replace("\r", '', $object['value']);
+            $truncated = $truncateLongText($value);
+            if ($truncated) {
+                $rawTypes = ['email-header', 'yara', 'pgp-private-key', 'pgp-public-key', 'url'];
+                $dataFullType = in_array($object['type'], $rawTypes, true) ? 'raw' : 'text';
+                echo '<span style="white-space:pre-wrap" data-full="' . h($value) .'" data-full-type="' . $dataFullType .'">' . h($truncated) .
+                    ' <b>&hellip;</b><br><a href="#">' . __('Show all') . '</a></span>';
+            } else {
+                echo '<span style="white-space:pre-wrap">' . h($value) . '</span>';
+            }
+        }
+}
+
+if (isset($object['validationIssue'])) {
+    echo ' <span class="fa fa-exclamation-triangle" title="' . __('Warning, this doesn\'t seem to be a legitimate %s value', strtoupper(h($object['type']))) . '">&nbsp;</span>';
+}
+
+if (isset($object['warnings'])) {
+    $temp = '';
+    foreach ($object['warnings'] as $warning) {
+        $temp .= '<span class="bold">' . h($warning['match']) . ':</span> <span class="red">' . h($warning['warninglist_name']) . '</span>';
+        if (isset($warning['comment'])) {
+            $temp .= ' (' . h($warning['comment']) . ')';
+        }
+        $temp .= '<br>';
     }
-    if (isset($object['validationIssue'])) {
-        echo ' <span class="fa fa-exclamation-triangle" title="' . __('Warning, this doesn\'t seem to be a legitimate ') . strtoupper(h($object['type'])) . __(' value') . '">&nbsp;</span>';
-    }
-?>
+    echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="fa fa-exclamation-triangle" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
+}

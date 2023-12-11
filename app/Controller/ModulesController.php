@@ -1,11 +1,14 @@
 <?php
 App::uses('AppController', 'Controller');
+
+/**
+ * @property Module $Module
+ */
 class ModulesController extends AppController
 {
     public $components = array(
-    'Security',
-    'RequestHandler'
-  );
+        'RequestHandler'
+    );
 
     public function queryEnrichment()
     {
@@ -19,11 +22,7 @@ class ModulesController extends AppController
         if (!Configure::read('Plugin.Enrichment_' . $modname . '_enabled')) {
             throw new MethodNotAllowedException('Module not found or not available.');
         }
-        if (
-      !$this->_isSiteAdmin &&
-      Configure::read('Plugin.Enrichment_' . $modname . '_restrict') &&
-      Configure::read('Plugin.Enrichment_' . $modname . '_restrict') != $this->Auth->user('org_id')
-    ) {
+        if (!$this->Module->canUse($this->Auth->user(), 'Enrichment', $modname)) {
             throw new MethodNotAllowedException('Module not found or not available.');
         }
         $options = array();
@@ -42,7 +41,7 @@ class ModulesController extends AppController
         }
 
         // Query
-        $result = $this->Module->queryModuleServer('/query', json_encode($data), true);
+        $result = $this->Module->queryModuleServer($data, true);
         if (!$result) {
             $result = array('error' => 'Something went wrong, no response from module.');
         }

@@ -3,11 +3,13 @@ Developers
 
 * Christophe Vandeplas <christophe@vandeplas.com> (original author)
 * Andras Iklody <andras.iklody@gmail.com> (lead developer)
+* Many more
 
 Contributors
 ------------
 
 Aaron Kaplan
+Andreas Ziegler
 Airbus Group CERT (AiG CERT)
 Alexander Jaeger
 Alexandre Dulaunoy
@@ -17,25 +19,35 @@ Andreas Ziegler
 Andrzej Dereszowski
 Bâkır Emre
 Chris Clark
+Christian Studer
 Christophe Vandeplas
 David André
 Guilherme Capilé
 Gábor Molnár
 Iglocska
+Jakub Onderka
 Koen Van Impe
 L. Aaron Kaplan
 Noud de Brouwer
 Raphaël Vinot
 Richard van den Berg
+Sami Mokaddem
+Steve Clement
 nullprobe
 remg427
 
-Copyright (C) 2012 Christophe Vandeplas
-Copyright (C) 2012 Belgian Defence
-Copyright (C) 2012 NATO / NCIRC
-Copyright (C) 2013-2018 Andras Iklody
-Copyright (C) 2015-2018 CIRCL - Computer Incident Response Center Luxembourg
-Copyright (C) 2016 Andreas Ziegler
+
+* Copyright (C) 2012-2020 Christophe Vandeplas
+* Copyright (C) 2012 Belgian Defence
+* Copyright (C) 2012 NATO / NCIRC
+* Copyright (C) 2013-2020 Andras Iklody
+* Copyright (C) 2015-2020 CIRCL - Computer Incident Response Center Luxembourg
+* Copyright (C) 2016 Andreas Ziegler
+* Copyright (C) 2018-2020 Sami Mokaddem
+* Copyright (C) 2018-2020 Christian Studer
+* Copyright (C) 2015-2020 Alexandre Dulaunoy
+* Copyright (C) 2018-2020 Steve Clement
+* Copyright (C) 2020 Jakub Onderka
 
 MISP is licensed under the GNU AFFERO GENERAL PUBLIC LICENSE version 3.
 

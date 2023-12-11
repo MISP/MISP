@@ -1,43 +1,53 @@
 <div class="users form">
-<?php echo $this->Form->create('User', array('novalidate'=>true));?>
+<?php echo $this->Form->create('User', array('novalidate' => true));?>
     <fieldset>
         <legend><?php echo __('Admin Edit User'); ?></legend>
     <?php
-        echo $this->Form->input('email');
+        echo $this->Form->input('email', [
+            'disabled' => !$canChangeLogin,
+            'data-disabled-reason' => !$canChangePassword ? __('User login change is disabled on this instance') : '',
+        ]);
     ?>
         <div class="clear"></div>
     <?php
         $password = true;
-        if (Configure::read('Plugin.CustomAuth_enable')):
-            if (Configure::read('Plugin.CustomAuth_required')):
+        if (Configure::read('Plugin.CustomAuth_enable')) {
+            if (Configure::read('Plugin.CustomAuth_required')) {
                 $password = false;
-            else:
+            } else {
                 $userType = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-                echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => $userType . ' user'));
-            endif;
-
-    ?>
-        <div class="clear"></div>
-        <div id="externalAuthDiv">
-        <?php
-            echo $this->Form->input('external_auth_key', array('type' => 'text'));
-        ?>
-        </div>
-    <?php
-        endif;
+                echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => h($userType) . ' user'));
+            }
+            echo sprintf(
+                '<div class="clear"></div><div %s>%s</div>',
+                (
+                    (
+                        !empty(Configure::read('Plugin.CustomAuth_required')) &&
+                        !empty(Configure::read('Plugin.CustomAuth_enable'))
+                    ) ? '' : sprintf('id="externalAuthDiv"')
+                ),
+                $this->Form->input('external_auth_key', array('type' => 'text'))
+            );
+        }
     ?>
     <div class="clear"></div>
-    <div id="passwordDivDiv">
+    <div id="passwordDivDiv" style="<?= (!empty(Configure::read('Plugin.CustomAuth_required')) && !empty(Configure::read('Plugin.CustomAuth_enable'))) ? 'display:none;' : ''?>">
         <?php
-            echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => __('Set password')));
+            echo $this->Form->input('enable_password', [
+                'type' => 'checkbox',
+                'label' => __('Set password'),
+                'disabled' => !$canChangePassword,
+                'data-disabled-reason' => !$canChangePassword ? __('User password change is disabled on this instance') : '',
+            ]);
         ?>
         <div id="PasswordDiv">
             <div class="clear"></div>
             <?php
-                $passwordPopover = '<span class=\"blue bold\">' . __('Length') .'</span>: ' . h($length) . '<br />';
-                $passwordPopover .= '<span class=\"blue bold\">' . __('Complexity') .'</span>: ' . h($complexity);
+                $passwordPopover = '<span class="blue bold">' . __('Length') .'</span>: ' . h($length) . '<br>';
+                $passwordPopover .= '<span class="blue bold">' . __('Complexity') .'</span>: ' . h($complexity);
                 echo $this->Form->input('password', array(
-                    'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+                    'label' => __('Password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) .'" class="fas fa-info-circle"></span>',
+                    'autocomplete' => 'new-password'
                 ));
                 echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
             ?>
@@ -51,33 +61,54 @@
                     'label' => __('Organisation'),
             ));
         }
-        echo $this->Form->input('role_id', array('label' => __('Role')));   // TODO ACL, User edit role_id.
-        echo $this->Form->input('authkey', array('disabled' => 'disabled', 'div' => 'input clear'));
-        echo $this->Form->input('nids_sid');
+        echo $this->Form->input('role_id', array(
+            'label' => __('Role'),
+            'div' => empty(Configure::read('Security.advanced_authkeys')) ? null : 'input clear'
+        ));
+        if (empty(Configure::read('Security.advanced_authkeys'))) {
+            $authkeyLabel = __('Authkey') . ' <a class="useCursorPointer" onclick="$(\'#resetAuthKeyForm\').submit();">' . __('(Reset)') . '</a>';
+            echo $this->Form->input('authkey', array('disabled' => true, 'div' => 'input clear', 'label' => $authkeyLabel));
+        }
+        echo $this->Form->input('nids_sid', ['label' => __('NIDS SID')]);
     ?>
-        <div id = "syncServers" class="hidden">
+        <div id="syncServers" class="hidden">
     <?php
             echo $this->Form->input('server_id', array('label' => __('Sync user for'), 'div' => 'clear', 'options' => $servers));
     ?>
         </div>
     <?php
-        echo $this->Form->input('gpgkey', array('label' => __('GnuPG key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s GnuPG key here or try to retrieve it from the CIRCL key server by clicking on "Fetch GnuPG key" below.')));
+        $placeholder = $canFetchPgpKey ? __('Paste the user\'s PGP key here or try to retrieve it from the CIRCL key server by clicking on "Fetch PGP key" below.')
+            :  __('Paste the user\'s PGP key here');
+        echo $this->Form->input('gpgkey', array('label' => __('PGP key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => $placeholder));
+        if ($canFetchPgpKey):
     ?>
-        <div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch the user\'s GnuPG key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GnuPG key');?></span></div>
+        <div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch the user\'s PGP key');?>" onclick="lookupPGPKey();" class="btn btn-inverse" style="margin-bottom:10px;"><?= __('Fetch PGP key');?></span></div>
     <?php
-        if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('SMIME key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s SMIME public key in PEM format here.')));
+        endif;
+        if (Configure::read('SMIME.enabled')) {
+            echo $this->Form->input('certif_public', array('label' => __('S/MIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s S/MIME public key in PEM format here.')));
+        }
+        echo '<div class="user-edit-checkboxes">';
         echo $this->Form->input('termsaccepted', array('type' => 'checkbox', 'label' => __('Terms accepted')));
-        echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => __('Change Password')));
-        echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
-        echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
-
-        echo $this->Html->link(__('Reset Auth Key'), array('controller' => 'users', 'action' => 'resetauthkey', $currentId));
+        echo $this->Form->input('change_pw', [
+            'type' => 'checkbox',
+            'label' => __('User must change password'),
+            'disabled' => !$canChangePassword,
+            'data-disabled-reason' => !$canChangePassword ? __('User password change is disabled on this instance') : '',
+        ]);
+        echo $this->Form->input('contactalert', array('label' => __('Receive email alerts from "Contact reporter" requests'), 'type' => 'checkbox'));
+        echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Immediately disable this user account')));
+        echo '</div>';
     ?>
-        <div class="clear"></div>
+    <h5><?= __('Subscribe to the following notification:') ?></h5>
+    <div class="user-edit-checkboxes">
     <?php
-        echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Disable this user account')));
-
+        echo $this->Form->input('autoalert', array('label' => __('Event published notification'), 'type' => 'checkbox'));
+        echo $this->Form->input('notification_daily', array('label' => __('Daily notifications'), 'type' => 'checkbox'));
+        echo $this->Form->input('notification_weekly', array('label' => __('Weekly notifications'), 'type' => 'checkbox'));
+        echo $this->Form->input('notification_monthly', array('label' => __('Monthly notifications'), 'type' => 'checkbox'));
     ?>
+    </div>
     </fieldset>
     <div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>
     <div class="clear" style="margin-top:10px;">
@@ -88,8 +119,14 @@
 ?>
     </div>
 <?php
-    echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
-echo $this->Form->end();?>
+    echo $this->Form->button(__('Edit user'), array('class' => 'btn btn-primary'));
+    echo $this->Form->end();
+    echo $this->Form->create('User', array(
+        'url' => array('controller' => 'users', 'action' => 'resetauthkey', $id),
+        'id' => 'resetAuthKeyForm'
+    ));
+    echo $this->Form->end();
+?>
 </div>
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'editUser'));
@@ -97,7 +134,7 @@ echo $this->Form->end();?>
 
 <script type="text/javascript">
     var syncRoles = <?php echo json_encode($syncRoles); ?>;
-    $(document).ready(function() {
+    $(function() {
         syncUserSelected();
         $('#UserRoleId').change(function() {
             syncUserSelected();
@@ -109,12 +146,6 @@ echo $this->Form->end();?>
         });
         $('#UserExternalAuthRequired').change(function() {
             checkUserExternalAuth();
-        });
-        $('#PasswordPopover').popover("destroy").popover({
-            placement: 'right',
-            html: 'true',
-            trigger: 'hover',
-            content: '<?php echo $passwordPopover; ?>'
         });
     });
 </script>

@@ -1,0 +1,6 @@
+{
+    "misp_url": "https://localhost",
+    "misp_key": "YOUR_MISP_AUTH_KEY_HERE",
+    "misp_verifycert": true,
+    "relative_path": "events/restSearch"
+}

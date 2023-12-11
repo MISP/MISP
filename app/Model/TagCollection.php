@@ -2,6 +2,9 @@
 
 App::uses('AppModel', 'Model');
 
+/**
+ * @property TagCollectionTag $TagCollectionTag
+ */
 class TagCollection extends AppModel
 {
     public $useTable = 'tag_collections';
@@ -9,6 +12,7 @@ class TagCollection extends AppModel
     public $displayField = 'name';
 
     public $actsAs = array(
+        'AuditLog',
             'Trim',
             'SysLogLogable.SysLogLogable' => array(
                     'roleModel' => 'Role',
@@ -31,8 +35,6 @@ class TagCollection extends AppModel
         )
     );
 
-    public $whitelistedItems = false;
-
     public $validate = array(
         'name' => array(
             'valueNotEmpty' => array(
@@ -42,7 +44,13 @@ class TagCollection extends AppModel
                     'rule' => 'isUnique',
                     'message' => 'A similar name already exists.',
             ),
-        )
+        ),
+        'uuid' => array(
+            'uuid' => array(
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ),
+        ),
     );
 
     public function beforeValidate($options = array())
@@ -51,19 +59,16 @@ class TagCollection extends AppModel
         // generate UUID if it doesn't exist
         if (empty($this->data['TagCollection']['uuid'])) {
             $this->data['TagCollection']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['TagCollection']['uuid'] = strtolower($this->data['TagCollection']['uuid']);
         }
         return true;
     }
 
-    public function fetchTagCollection($user, $params = array())
+    public function fetchTagCollection(array $user, $params = array())
     {
         if (empty($user['Role']['perm_site_admin'])) {
-            $params['conditions']['AND'][] = array(
-                'OR' => array(
-                    'TagCollection.org_id' => $user['org_id'],
-                    'TagCollection.all_orgs' => 1
-                )
-            );
+            $params['conditions']['AND'][] = $this->createConditions($user);
         }
         if (empty($params['contain'])) {
             $params['contain'] = array(
@@ -77,27 +82,17 @@ class TagCollection extends AppModel
         return $tagCollections;
     }
 
-    public function checkAccess($user, $tagCollection, $accessLevel = 'read')
+    /**
+     * @param array $user
+     * @param array $tagCollections
+     * @return array|
+     */
+    public function cullBlockedTags(array $user, array $tagCollections)
     {
-        if (isset($tagCollection['TagCollection'])) {
-            $tagCollection = $tagCollection['TagCollection'];
+        if (empty($tagCollections)) {
+            return [];
         }
-        if (!empty($user['Role']['perm_site_admin'])) {
-            return true;
-        }
-        if (!$tagCollection['all_orgs'] && $user['org_id'] != $tagCollection['org_id']) {
-            return false;
-        }
-        if ($accessLevel === 'write') {
-            if ($tagCollection['org_id'] !== $user['org_id']) {
-                return false;
-            }
-        }
-        return true;
-    }
 
-    public function cullBlockedTags($user, $tagCollections)
-    {
         $single = false;
         if (!isset($tagCollections[0])) {
             $tagCollections = array(0 => $tagCollections);
@@ -162,7 +157,6 @@ class TagCollection extends AppModel
                 if (!empty($collection['Galaxy'])) {
                     foreach ($collection['Galaxy'] as $galaxy) {
                         foreach ($galaxy['GalaxyCluster'] as $cluster) {
-                            debug($galaxy);
                             $tag_id = $this->TagCollectionTag->Tag->lookupTagIdFromName($cluster['tag_name']);
                             if ($tag_id === -1) {
                                 $tag = array(
@@ -181,5 +175,21 @@ class TagCollection extends AppModel
             }
         }
         return $results;
+    }
+
+    /**
+     * @param array $user
+     * @return array[]
+     */
+    public function createConditions(array $user)
+    {
+        if ($user['Role']['perm_site_admin']) {
+            return [];
+        }
+
+        return ['OR' => [
+            'TagCollection.all_orgs' => 1,
+            'TagCollection.org_id' => $user['org_id'],
+        ]];
     }
 }

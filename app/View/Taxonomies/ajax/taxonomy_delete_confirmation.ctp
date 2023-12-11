@@ -8,7 +8,7 @@
 ?>
 <legend><?php echo __('Taxonomy Deletion');?></legend>
 <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-<p><?php echo __('Are you sure you want to delete Taxonomy #<?php echo h($id); ?>?<br /> Associated tags will not be removed. You can reload the taxonomy at any time by updating your taxonomies.');?></p>
+<p><?php echo __('Are you sure you want to delete Taxonomy #%s?<br /> Associated tags will not be removed. You can reload the taxonomy at any time by updating your taxonomies.', h($id));?></p>
     <table>
         <tr>
             <td style="vertical-align:top">

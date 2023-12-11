@@ -1,90 +1,108 @@
-<div class="roles view">
-<h2><?php  echo __('Sharing Group');?></h2>
 <?php
-    $fields = array('id', 'uuid', 'name', 'releasability', 'description', 'active');
-?>
-    <dl>
-        <?php
-            foreach ($fields as $f):
-        ?>
-        <dt><?php
-            if ($f != 'active') echo ucfirst($f);
-            else echo __('Selectable');
-        ?></dt>
-        <dd>
-            <?php
-                if ($f !== 'active') echo h($sg['SharingGroup'][$f]);
-                else echo '<span class="' . ($sg['SharingGroup'][$f] ? 'icon-ok' : 'icon-remove') . '"></span>';
-            ?>&nbsp;
-        </dd>
-        <?php
-            endforeach;
-        ?>
-        <dt><?php echo __('Created by');?></dt>
-        <dd><a href="/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
-        <?php
-            if ($sg['SharingGroup']['sync_user_id']):
-        ?>
-            <dt><?php echo __('Synced by');?></dt>
-            <dd><a href="/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
-        <?php
-            endif;
-        ?>
-    </dl><br />
-    <div class="row" style="width:100%;">
-    <?php
-        if (isset($sg['SharingGroupOrg'])):
-    ?>
-        <div class="span6">
-        <b><?php echo __('Organisations');?></b>
-            <table class="table table-striped table-hover table-condensed">
-                <tr>
-                    <th><?php echo __('Name');?></th>
-                    <th><?php echo __('Local');?></th>
-                    <th><?php echo __('Extend');?></th>
-                </tr>
-                <?php
-                    foreach ($sg['SharingGroupOrg'] as $sgo):
-                ?>
-                <tr>
-                    <td><a href="/organisations/view/<?php echo h($sgo['Organisation']['id']); ?>"><?php echo h($sgo['Organisation']['name']); ?></a></td>
-                    <td><span class="<?php echo ($sgo['Organisation']['local'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-                    <td><span class="<?php echo ($sgo['extend'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-                </tr>
-                <?php
-                    endforeach;
-                ?>
-            </table>
-        </div>
-    <?php
-        endif;
-        if (!$sg['SharingGroup']['roaming']):
-    ?>
-        <div class="span6">
-        <b>Instances</b>
-            <table class="table table-striped table-hover table-condensed">
-                <tr>
-                    <th><?php echo __('Name');?></th>
-                    <th><?php echo __('Url');?></th>
-                    <th><?php echo __('All orgs');?></th>
-                </tr>
-                <?php
-                        foreach ($sg['SharingGroupServer'] as $sgs): ?>
-                <tr>
-                    <td><?php echo h($sgs['Server']['name']); ?></td>
-                    <td><?php echo h($sgs['Server']['url']); ?></td>
-                    <td><span class="<?php echo ($sgs['all_orgs'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-                </tr>
-                <?php
-                        endforeach;
-                ?>
-            </table>
-        </div>
-    <?php
-        endif;
-    ?>
-    </div>
-</div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewSG'));
-?>
+
+echo $this->element(
+    'genericElements/SingleViews/single_view',
+    [
+        'title' => __('Sharing Group %s', $sg['SharingGroup']['name']),
+        'data' => $sg,
+        'fields' => [
+            [
+                'key' => __('ID'),
+                'path' => 'SharingGroup.id'
+            ],
+            [
+                'key' => __('UUID'),
+                'path' => 'SharingGroup.uuid'
+            ],
+            [
+                'key' => __('Name'),
+                'path' => 'SharingGroup.name'
+            ],
+            [
+                'key' => __('Releasability'),
+                'path' => 'SharingGroup.releasability'
+            ],
+            [
+                'key' => __('Description'),
+                'path' => 'SharingGroup.description'
+            ],
+            [
+                'key' => __('Selectable'),
+                'path' => 'SharingGroup.active',
+                'type' => 'boolean'
+            ],
+            [
+                'key' => __('Created by'),
+                'path' => 'Organisation',
+                'type' => 'org'
+            ],
+            [
+                'key' => __('Synced by'),
+                'path' => 'SharingGroup.sync_org',
+                'type' => 'org',
+                'requirement' => isset($sg['SharingGroup']['sync_org'])
+            ],
+            [
+                'key' => __('Events'),
+                'raw' => __n('%s event', '%s events', $sg['SharingGroup']['event_count'], $sg['SharingGroup']['event_count']),
+                'url' => sprintf('/events/index/searchsharinggroup:%s', h($sg['SharingGroup']['id']))
+            ],
+            [
+                'key' => __('Organisations'),
+                'type' => 'custom',
+                'requirement' => isset($sg['SharingGroupOrg']),
+                'function' => function (array $sharingGroup) {
+                    echo sprintf(
+                        '<div class="span6">
+                         <table class="table table-striped table-hover table-condensed">
+                            <tr>
+                                <th>%s</th>
+                                <th>%s</th>
+                                <th>%s</th>
+                            </tr>',
+                        __('Name'),
+                        __('Is local'),
+                        __('Can extend')
+                    );
+                    foreach ($sharingGroup['SharingGroupOrg'] as $sgo) {
+                        echo '<tr>';
+                        echo sprintf('<td>%s</td>', $this->OrgImg->getNameWithImg($sgo));
+                        echo sprintf('<td><span class="%s"></span></td>', $sgo['Organisation']['local'] ? 'fas fa-check' : 'fas fa-times');
+                        echo sprintf('<td><span class="%s"></span></td>', $sgo['extend'] ? 'fas fa-check' : 'fas fa-times');
+                        echo '</tr>';
+                    }
+                    echo '</table>
+                    </div>';
+                }
+            ],
+            [
+                'key' => __('Instances'),
+                'type' => 'custom',
+                'requirement' => isset($sg['SharingGroupServer']),
+                'function' => function (array $sharingGroup) {
+                    echo sprintf(
+                        '<div class="span6">
+                         <table class="table table-striped table-hover table-condensed">
+                            <tr>
+                                <th>%s</th>
+                                <th>%s</th>
+                                <th>%s</th>
+                            </tr>',
+                        __('Name'),
+                        __('URL'),
+                        __('All orgs')
+                    );
+                    foreach ($sharingGroup['SharingGroupServer'] as $sgs) {
+                        echo '<tr>';
+                        echo sprintf('<td>%s</td>', h($sgs['Server']['name']));
+                        echo sprintf('<td>%s</td>', h($sgs['Server']['url']));
+                        echo sprintf('<td><span class="%s"></span></td>', $sgs['all_orgs'] ? 'fas fa-check' : 'fas fa-times');
+                        echo '</tr>';
+                    }
+                    echo '</table>
+                    </div>';
+                }
+            ]
+        ]
+    ]
+);

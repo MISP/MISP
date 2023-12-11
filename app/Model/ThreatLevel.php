@@ -22,4 +22,11 @@ class ThreatLevel extends AppModel
             ),
         ),
     );
+
+    public function listThreatLevels()
+    {
+        return $this->find('list', [
+            'fields' => ['id', 'name'],
+        ]);
+    }
 }

@@ -1,44 +1,40 @@
 <?php
-  $tr_class = '';
-  $linkClass = 'white';
-  $currentType = 'denyForm';
   $tr_class = 'tableHighlightBorderTop borderBlue';
   if ($event['Event']['id'] != $object['event_id']) {
-    if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
-      $mayModify = false;
-    }
+      $objectEvent = $event['extensionEvents'][$object['event_id']];
+      $objectEvent = ['Event' => $objectEvent, 'Orgc' => $objectEvent['Orgc']]; // fix format to match standard event format
+      $mayModify = $this->Acl->canMofiyEvent($objectEvent);
+  } else {
+      $objectEvent = $event;
   }
+  $isNew = $object['timestamp'] > $event['Event']['publish_timestamp'];
   if ($object['deleted']) $tr_class .= ' lightBlueRow';
   else $tr_class .= ' blueRow';
   if (!empty($k)) {
     $tr_class .= ' row_' . h($k);
   }
+$quickEdit = function($fieldName) use ($mayModify) {
+    if (!$mayModify) {
+        return ''; // without permission it is not possible to edit object
+    }
+    return " data-edit-field=\"$fieldName\"";
+};
+$objectId = intval($object['id']);
 ?>
-<tr id = "Object_<?php echo $object['id']; ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
+<tr id="Object_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0">
   <?php
     if ($mayModify || $extended):
   ?>
-    <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
-      <?php
-        if ($mayModify):
-      ?>
-        <input id = "select_object_<?php echo $object['id']; ?>" class="select_object row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
-      <?php
-        endif;
-      ?>
-    </td>
+    <td style="width:10px;"></td>
   <?php
     endif;
   ?>
+  <td class="short context hidden"><?= $objectId ?></td>
+  <td class="short context hidden uuid quickSelect"><?php echo h($object['uuid']); ?></td>
   <td class="short context hidden">
-    <?php echo h($object['id']); ?>
+      <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
-  <td class="short context hidden">
-    <?php echo h($object['uuid']); ?>
-  </td>
-  <td class="short">
-    <?php echo date('Y-m-d', $object['timestamp']); ?>
-  </td>
+  <td class="short timestamp <?= $isNew ? 'bold red' : '' ?>" <?= $isNew ? 'title="' . __('Element or modification to an existing element has not been published yet.') . '"' : '' ?>><?= $this->Time->date($object['timestamp']) . ($isNew ? '*' : '') ?></td>
   <?php
     if ($extended):
   ?>
@@ -48,24 +44,20 @@
   <?php
     endif;
   ?>
+  <?php if ($includeOrgColumn): ?>
   <td class="short">
     <?php
       if ($extended):
-        if ($object['event_id'] != $event['Event']['id']):
-          $extensionOrg = $event['extensionEvents'][$object['event_id']]['Orgc'];
-          echo $this->OrgImg->getOrgImg(array('name' => $extensionOrg['name'], 'id' => $extensionOrg['id'], 'size' => 24));
-        else:
-          echo $this->OrgImg->getOrgImg(array('name' => $event['Orgc']['name'], 'id' => $event['Orgc']['id'], 'size' => 24));
-        endif;
+          echo $this->OrgImg->getOrgImg(array('name' => $objectEvent['Orgc']['name'], 'id' => $objectEvent['Orgc']['id'], 'size' => 24));
       endif;
     ?>
-    &nbsp;
   </td>
-  <td colspan="5">
-    <span class="bold"><?php echo __('Name: ');?></span><?php echo h($object['name']);?>
-    <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_collapsible"></span>
-    <br />
-    <div id="Object_<?php echo $object['id']; ?>_collapsible" class="collapse">
+  <?php endif; ?>
+  <td colspan="<?= $includeRelatedTags ? 6 : 5 ?>">
+    <span class="bold"><?php echo __('Object name: ');?></span><?php echo h($object['name']);?>
+    <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $objectId ?>_collapsible"></span>
+    <br>
+    <div id="Object_<?= $objectId ?>_collapsible" class="collapse">
         <span class="bold"><?php echo __('UUID');?>: </span><?php echo h($object['uuid']);?><br />
         <span class="bold"><?php echo __('Meta-category: ');?></span><?php echo h($object['meta-category']);?><br />
         <span class="bold"><?php echo __('Description: ');?></span><?php echo h($object['description']);?><br />
@@ -85,67 +77,96 @@
       }
     ?>
   </td>
-  <td class="shortish">
-    <?php echo h($object['comment']); ?>
-  </td>
-  <td colspan="4">&nbsp;
-  </td>
-  <td class="shortish">
-    <?php
-      $turnRed = '';
-      if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
-    ?>
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class = "inline-field-placeholder"></div>
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
-      <?php
-        if ($object['objectType'] == 0) {
-          if ($object['distribution'] == 4):
-      ?>
-          <a href="/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
-      <?php
-          else:
-            echo h($shortDist[$object['distribution']]);
-          endif;
-        }
-      ?>&nbsp;
+  <td class="showspaces bitwider"<?= $quickEdit('comment') ?>>
+    <div class="inline-field-solid">
+      <?= nl2br(h($object['comment']), false); ?>
     </div>
   </td>
-  <td>&nbsp;</td>
-  <td>&nbsp;</td>
+  <td colspan="<?= $me['Role']['perm_view_feed_correlations'] ? 4 : 3 ?>"></td>
+  <td class="shortish"<?= $quickEdit('distribution') ?>>
+    <div class="inline-field-solid">
+      <?php
+          if ($object['distribution'] == 4):
+      ?>
+        <a href="<?php echo $baseurl; ?>/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
+      <?php
+          else:
+              if ($object['distribution'] == 0) {
+                  echo '<span class="red">' . h($shortDist[$object['distribution']]) . '</span>';
+              } else {
+                  echo h($shortDist[$object['distribution']]);
+              }
+          endif;
+      ?>
+    </div>
+  </td>
+  <td colspan="2"></td>
+  <?php
+    $paddedFields = array('includeSightingdb', 'includeDecayScore');
+    foreach ($paddedFields as $paddedField) {
+        if (!empty(${$paddedField})) {
+            echo '<td>&nbsp;</td>';
+        }
+    }
+  ?>
   <td class="short action-links">
     <?php
-      if ($mayModify && empty($object['deleted'])) {
-        echo sprintf(
-          '<a href="%s/objects/edit/%s" title="Edit" aria-label="Edit" class="fa fa-edit icon-white useCursorPointer"></a>',
-          $baseurl,
-          h($object['id'])
-        );
-        echo sprintf(
-          '<span class="fa fa-trash icon-white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
-          (empty($event['Event']['publish_timestamp']) ? __('Permanently delete object') : __('Soft delete object')),
-          sprintf(
-            'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',
-            empty($event['Event']['publish_timestamp']) ? h($object['id']) . '/true' : h($object['id']),
-            h($event['Event']['id'])
-          )
-        );
+      if ($mayModify) {
+          if (Configure::read('Plugin.Enrichment_services_enable') && ($isSiteAdmin || $mayModify) && (isset($modules) && isset($modules['types'][$object['name']]))) {
+            echo sprintf(
+              '<span class="fa fa-asterisk white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onclick="%2$s"></span> ',
+              __('Add enrichment'),
+              sprintf(
+                'simplePopup(\'%s/events/queryEnrichment/%s/0/Enrichment/Object\');',
+                  $baseurl, $objectId
+              )
+            );
+          }
+
+          if (empty($object['deleted'])) {
+            echo sprintf(
+              '<a href="%s/objects/edit/%s" title="%s" aria-label="%s" class="fa fa-edit white"></a> ',
+              $baseurl,
+                $objectId,
+              __('Edit'),
+              __('Edit')
+            );
+            echo sprintf(
+              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onclick="%2$s"></span>',
+              (empty($event['Event']['publish_timestamp']) ? __('Permanently delete object') : __('Soft delete object')),
+              sprintf(
+                'deleteObject(\'objects\', \'delete\', \'%s\');',
+                empty($event['Event']['publish_timestamp']) ? $objectId . '/true' : $objectId
+              )
+            );
+        } else {
+            echo sprintf(
+              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onclick="%2$s"></span>',
+              __('Permanently delete object'),
+              sprintf(
+                'deleteObject(\'objects\', \'delete\', \'%s\');',
+                  $objectId . '/true'
+              )
+            );
+        }
       }
     ?>
   </td>
 </tr>
 <?php
-  if (!empty($object['Attribute'])) {
+if (!empty($object['Attribute'])) {
     end($object['Attribute']);
     $lastElement = key($object['Attribute']);
     foreach ($object['Attribute'] as $attrKey => $attribute) {
-      echo $this->element('/Events/View/row_' . $attribute['objectType'], array(
-        'object' => $attribute,
-        'mayModify' => $mayModify,
-        'mayChangeCorrelation' => $mayChangeCorrelation,
-        'page' => $page,
-        'fieldCount' => $fieldCount,
-        'child' => $attrKey == $lastElement ? 'last' : true
-      ));
+        echo $this->element('/Events/View/row_' . $attribute['objectType'], array(
+            'object' => $attribute,
+            'mayModify' => $mayModify,
+            'mayChangeCorrelation' => $mayChangeCorrelation,
+            'fieldCount' => $fieldCount,
+            'child' => $attrKey === $lastElement ? 'last' : true,
+        ));
     }
-  }
-?>
+    if ($mayModify) {
+        echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') . '" data-popover-popup="' . $baseurl . '/objects/quickFetchTemplateWithValidObjectAttributes/' . $objectId . '"></span></td></tr>';
+    }
+}
