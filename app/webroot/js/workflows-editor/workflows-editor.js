@@ -1132,7 +1132,7 @@ function mergeNodeAndModuleFilters(node, moduleFilters) {
 
 /* API */
 function fetchWorkflow(id, callback) {
-    var url = '/workflows/view/' + id + '.json'
+    var url = baseurl + '/workflows/view/' + id + '.json'
     $.ajax({
         beforeSend: function () {
             toggleEditorLoading(true, 'Loading workflow')
