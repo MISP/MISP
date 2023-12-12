@@ -13,7 +13,6 @@ use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Cake\Http\Exception\BadRequestException;
 use Cake\Http\Exception\NotFoundException;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\ORM\RulesChecker;
 use Cake\Validation\Validator;
 use Exception;
@@ -22,7 +21,6 @@ use InvalidArgumentException;
 
 class UsersTable extends AppTable
 {
-    use LocatorAwareTrait;
     use LogExtendedTrait;
 
     private const PERIODIC_USER_SETTING_KEY = 'periodic_notification_filters';

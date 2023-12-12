@@ -20,7 +20,6 @@ use Cake\Event\EventInterface;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Http\Exception\NotFoundException;
 use Cake\I18n\FrozenTime;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\ORM\Query;
 use Cake\ORM\RulesChecker;
 use Cake\Utility\Hash;
@@ -38,8 +37,6 @@ use Exception;
  */
 class GalaxyClustersTable extends AppTable
 {
-    use LocatorAwareTrait;
-
     private $__assetCache = [];
     private $__clusterCache = [];
     private $deletedClusterUUID;

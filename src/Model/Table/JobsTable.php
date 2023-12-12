@@ -8,13 +8,10 @@ use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Event\EventInterface;
 use Cake\Http\Exception\MethodNotAllowedException;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use Exception;
 
 class JobsTable extends AppTable
 {
-    use LocatorAwareTrait;
-
     public function initialize(array $config): void
     {
         parent::initialize($config);
@@ -53,7 +50,6 @@ class JobsTable extends AppTable
         $EventsTable = $this->fetchTable('Events');
 
         if (in_array($type, array_keys($EventsTable->exportTypes())) && $type !== 'bro') {
-
             BackgroundJobsTool::getInstance()->enqueue(
                 BackgroundJobsTool::CACHE_QUEUE,
                 BackgroundJobsTool::CMD_EVENT,
@@ -67,7 +63,6 @@ class JobsTable extends AppTable
                 $jobId
             );
         } elseif ($type === 'bro') {
-
             BackgroundJobsTool::getInstance()->enqueue(
                 BackgroundJobsTool::CACHE_QUEUE,
                 BackgroundJobsTool::CMD_EVENT,

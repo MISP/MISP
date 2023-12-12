@@ -6,6 +6,7 @@ use Cake\Collection\CollectionInterface;
 use Cake\Database\Expression\QueryExpression;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\I18n\FrozenTime;
+use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\ORM\Query;
 use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
@@ -14,11 +15,16 @@ use InvalidArgumentException;
 
 class AppTable extends Table
 {
+    use LocatorAwareTrait;
+
+    /** @var LogsTable */
+    public $Log = null;
+
     public function initialize(array $config): void
     {
     }
 
-    public function getStatisticsUsageForModel(Object $table, array $scopes, array $options = []): array
+    public function getStatisticsUsageForModel(object $table, array $scopes, array $options = []): array
     {
         $defaultOptions = [
             'limit' => 5,
@@ -39,9 +45,9 @@ class AppTable extends Table
             if ($queryTopUsage->getDefaultTypes()[$scope] != 'boolean') {
                 $queryTopUsage->where(
                     function (QueryExpression $exp) use ($scope) {
-                    return $exp
-                        ->isNotNull($scope)
-                        ->notEq($scope, '');
+                        return $exp
+                            ->isNotNull($scope)
+                            ->notEq($scope, '');
                     }
                 );
             }
@@ -101,7 +107,7 @@ class AppTable extends Table
     }
 
     // Move this into a tool
-    public function getActivityStatisticsForModel(Object $table, int $days = 30): array
+    public function getActivityStatisticsForModel(object $table, int $days = 30): array
     {
         $statistics = [];
         if ($table->hasBehavior('Timestamp')) {
@@ -115,7 +121,7 @@ class AppTable extends Table
         return $statistics;
     }
 
-    public function getActivityStatistic(Object $table, int $days = 30, string $field = 'modified', bool $includeTimeline = true): array
+    public function getActivityStatistic(object $table, int $days = 30, string $field = 'modified', bool $includeTimeline = true): array
     {
         $statistics = [];
         $statistics['days'] = $days;
@@ -130,7 +136,7 @@ class AppTable extends Table
         return $statistics;
     }
 
-    public function buildTimeline(Object $table, int $days = 30, string $field = 'modified'): array
+    public function buildTimeline(object $table, int $days = 30, string $field = 'modified'): array
     {
         $timeline = [];
         $authorizedFields = ['modified', 'created'];
@@ -285,5 +291,16 @@ class AppTable extends Table
             return $order_model . '.' . $order_field . ' ' . $direction;
         }
         return null;
+    }
+
+    /**
+     * @return LogsTable
+     */
+    protected function loadLog()
+    {
+        if (!isset($this->Log)) {
+            $this->Log = $this->fetchTable('Logs');
+        }
+        return $this->Log;
     }
 }
