@@ -13,7 +13,6 @@ use Cake\Utility\Inflector;
 
 class ACLComponent extends Component
 {
-
     private $user = null;
     protected $components = ['Navigation'];
 
@@ -182,14 +181,15 @@ class ACLComponent extends Component
             'view' =>  ['*']
         ],
         'SharingGroups' => [
-            'add' => ['perm_org_admin'],
-            'addOrg' => ['perm_org_admin'],
-            'delete' => ['perm_org_admin'],
-            'edit' => ['perm_org_admin'],
+            'add' => ['perm_sharing_group'],
+            'addServer' => ['perm_sharing_group'],
+            'addOrg' => ['perm_sharing_group'],
+            'delete' => ['perm_sharing_group'],
+            'edit' => ['perm_sharing_group'],
             'index' => ['*'],
-            'listOrgs' => ['*'],
-            'removeOrg' => ['perm_org_admin'],
-            'view' => ['*']
+            'removeServer' => ['perm_sharing_group'],
+            'removeOrg' => ['perm_sharing_group'],
+            'view' => ['*'],
         ],
         'Users' => [
             'add' => ['perm_org_admin'],

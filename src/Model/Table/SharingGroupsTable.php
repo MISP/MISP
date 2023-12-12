@@ -321,7 +321,8 @@ class SharingGroupsTable extends AppTable
                 function (QueryExpression $exp, Query $q) use ($serverToFetch) {
                     return $exp->in('id', array_keys($serverToFetch));
                 }
-            )->disableHydration()->toArray();;
+            )->disableHydration()->toArray();
+            ;
 
             $serversById = array_column(array_column($servers, 'Server'), null, 'id');
         }
@@ -390,7 +391,7 @@ class SharingGroupsTable extends AppTable
                     if (isset($org['Organisation'][0])) {
                         $org['Organisation'] = $org['Organisation'][0];
                     }
-                    if ($org['Organisation']['uuid'] == $user['Organisation']['uuid']) {
+                    if ($org['uuid'] == $user['Organisation']['uuid']) {
                         if ($user['Role']['perm_sync'] || $org['extend'] == 1) {
                             $orgCheck = true;
                             break;
@@ -404,7 +405,7 @@ class SharingGroupsTable extends AppTable
                         $server['Server'] = $server['Server'][0];
                     }
                     if (
-                        $server['Server']['url'] == Configure::read('MISP.baseurl') ||
+                        $server['url'] == Configure::read('MISP.baseurl') ||
                         (!empty(Configure::read('MISP.external_baseurl')) && Configure::read('MISP.external_baseurl') === $server['Server']['url'])
                     ) {
                         $serverCheck = true;
@@ -851,11 +852,12 @@ class SharingGroupsTable extends AppTable
     {
         if (!isset($sg['Organisation'])) {
             if (!isset($sg['SharingGroupOrg'])) {
-                $sg['SharingGroupOrg'] = [[
-                    'extend' => 1,
-                    'uuid' => $user['Organisation']['uuid'],
-                    'name' => $user['Organisation']['name'],
-                ]
+                $sg['SharingGroupOrg'] = [
+                    [
+                        'extend' => 1,
+                        'uuid' => $user['Organisation']['uuid'],
+                        'name' => $user['Organisation']['name'],
+                    ]
                 ];
                 return $user['org_id'];
             } else {
@@ -961,7 +963,7 @@ class SharingGroupsTable extends AppTable
                         }
                     }
                 } else {
-                    $sharingGroupOrgEntity =$this->SharingGroupOrgs->newEntity(
+                    $sharingGroupOrgEntity = $this->SharingGroupOrgs->newEntity(
                         [
                             'sharing_group_id' => $sg_id,
                             'org_id' => $sg['SharingGroupOrg'][$k]['org_id'],

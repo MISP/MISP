@@ -25,11 +25,14 @@ class AddSharingGroupApiTest extends TestCase
         'app.SharingGroupServers',
     ];
 
-    public function testAddSharingGroup(): void
+    /**
+     * @dataProvider userDataProvider
+     */
+    public function testAddSharingGroup($user): void
     {
         $this->skipOpenApiValidations();
 
-        $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
+        $this->setAuthToken($user['authkey']);
 
         $faker = \Faker\Factory::create();
         $uuid = $faker->uuid();
@@ -43,7 +46,12 @@ class AddSharingGroupApiTest extends TestCase
             ]
         );
 
-        $this->assertResponseOk();
+        $this->assertResponseCode($user['expectedStatusCode']);
+
+        if ($user['expectedStatusCode'] != 200) {
+            return;
+        }
+
         $this->assertDbRecordExists(
             'SharingGroups',
             [
@@ -54,11 +62,14 @@ class AddSharingGroupApiTest extends TestCase
         );
     }
 
-    public function testAddSharingGroupOrganisation(): void
+    /**
+     * @dataProvider userDataProvider
+     */
+    public function testAddSharingGroupOrganisation($user): void
     {
         $this->skipOpenApiValidations();
 
-        $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
+        $this->setAuthToken($user['authkey']);
 
         $faker = \Faker\Factory::create();
         $uuid = $faker->uuid();
@@ -78,7 +89,12 @@ class AddSharingGroupApiTest extends TestCase
             ]
         );
 
-        $this->assertResponseOk();
+        $this->assertResponseCode($user['expectedStatusCode']);
+
+        if ($user['expectedStatusCode'] != 200) {
+            return;
+        }
+
         $this->assertDbRecordExists(
             'SharingGroups',
             [
@@ -94,11 +110,14 @@ class AddSharingGroupApiTest extends TestCase
         );
     }
 
-    public function testAddSharingGroupServer(): void
+    /**
+     * @dataProvider userDataProvider
+     */
+    public function testAddSharingGroupServer($user): void
     {
         $this->skipOpenApiValidations();
 
-        $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
+        $this->setAuthToken($user['authkey']);
 
         $faker = \Faker\Factory::create();
         $uuid = $faker->uuid();
@@ -121,7 +140,13 @@ class AddSharingGroupApiTest extends TestCase
                 ]
             ]
         );
-        $this->assertResponseOk();
+
+
+        $this->assertResponseCode($user['expectedStatusCode']);
+
+        if ($user['expectedStatusCode'] != 200) {
+            return;
+        }
 
         $sharingGroup = $this->getJsonResponseAsArray();
 
@@ -139,5 +164,44 @@ class AddSharingGroupApiTest extends TestCase
                 'sharing_group_id' => $sharingGroup['id']
             ]
         );
+    }
+
+    public function allowedUserDataProvider(): array
+    {
+        return [];
+    }
+
+    public function userDataProvider(): array
+    {
+        return [
+            [
+                [
+                    'role' => 'Admin',
+                    'authkey' => AuthKeysFixture::ADMIN_API_KEY,
+                    'expectedStatusCode' => 200
+                ]
+            ],
+            [
+                [
+                    'role' => 'Org Admin',
+                    'authkey' => AuthKeysFixture::ORG_ADMIN_API_KEY,
+                    'expectedStatusCode' => 403
+                ]
+            ],
+            [
+                [
+                    'role' => 'Sync User',
+                    'authkey' => AuthKeysFixture::SYNC_API_KEY,
+                    'expectedStatusCode' => 403
+                ]
+            ],
+            [
+                [
+                    'role' => 'Regular User',
+                    'authkey' => AuthKeysFixture::REGULAR_USER_API_KEY,
+                    'expectedStatusCode' => 405
+                ]
+            ]
+        ];
     }
 }
