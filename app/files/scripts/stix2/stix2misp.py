@@ -67,7 +67,7 @@ def _process_stix_file(args: argparse.ArgumentParser):
             )
         stix_version = getattr(bundle, 'version', '2.1')
         to_call, arguments = _get_stix_parser(_from_misp(bundle.objects), args)
-        parser = globals()[f'{to_call}STIX2toMISPParser'](**arguments)
+        parser = globals()[to_call](**arguments)
         parser.load_stix_bundle(bundle)
         parser.parse_stix_bundle()
         with open(f'{args.input}.out', 'wt', encoding='utf-8') as f:
