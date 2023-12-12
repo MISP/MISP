@@ -33,6 +33,21 @@ from misp_stix_converter import (
 from stix2.parsing import parse as stix2_parser
 
 
+def _get_stix_parser(from_misp, args):
+    arguments = {
+        'distribution': args.distribution,
+        'galaxies_as_tags': args.galaxies_as_tags
+    }
+    if args.distribution == 4 and args.sharing_group_id is not None:
+        arguments['sharing_group_id'] = args.sharing_group_id
+    if from_misp:
+        return 'InternalSTIX2toMISPParser', arguments
+    arguments['cluster_distribution'] = args.cluster_distribution
+    if args.cluster_distribution == 4 and args.cluster_sharing_group_id is not None:
+        arguments['cluster_sharing_group_id'] = args.cluster_sharing_group_id
+    return 'ExternalSTIX2toMISPParser', arguments
+
+
 def _handle_return_message(traceback):
     if isinstance(traceback, dict):
         messages = []
@@ -51,13 +66,7 @@ def _process_stix_file(args: argparse.ArgumentParser):
                 f.read(), allow_custom=True, interoperability=True
             )
         stix_version = getattr(bundle, 'version', '2.1')
-        to_call = 'Internal' if _from_misp(bundle.objects) else 'External'
-        arguments = {
-            'distribution': args.distribution,
-            'galaxies_as_tags': args.galaxies_as_tags
-        }
-        if args.distribution == 4 and args.sharing_group_id is not None:
-            arguments['sharing_group_id'] = args.sharing_group_id
+        to_call, arguments = _get_stix_parser(_from_misp(bundle.objects), args)
         parser = globals()[f'{to_call}STIX2toMISPParser'](**arguments)
         parser.load_stix_bundle(bundle)
         parser.parse_stix_bundle()
@@ -106,6 +115,14 @@ if __name__ == '__main__':
     argparser.add_argument(
         '--galaxies_as_tags', action='store_true',
         help='Import MISP Galaxies as tag names.'
+    )
+    argparser.add_argument(
+        '--cluster_distribution', type=int, default=0,
+        help='Cluster distribution level for clusters generated from STIX 2.x objects'
+    )
+    argparser.add_argument(
+        '--cluster_sharing_group_id', type=int,
+        help='Cluster sharing group id when the cluster distribution level is 4.'
     )
     try:
         args = argparser.parse_args()

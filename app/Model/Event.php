@@ -5925,12 +5925,18 @@ class Event extends AppModel
      * @param string $stix_version
      * @param string $original_file
      * @param bool $publish
+     * @param int $distribution
+     * @param int $sharingGroupId
+     * @param bool $galaxiesAsTags
+     * @param int $clusterDistribution
+     * @param int $clusterSharingGroupId
+     * @param bool $debug
      * @return int|string|array
      * @throws JsonException
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $distribution, $sharingGroupId, $galaxiesAsTags, $debug = false)
+    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $distribution, $sharingGroupId, $galaxiesAsTags, $clusterDistribution, $clusterSharingGroupId, $debug = false)
     {
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stix_version == '2' || $stix_version == '2.0' || $stix_version == '2.1') {
@@ -5947,6 +5953,11 @@ class Event extends AppModel
             }
             if ($galaxiesAsTags) {
                 $shell_command[] = '--galaxies_as_tags';
+            } else {
+                array_push($shell_command, '--cluster_distribution', $clusterDistribution);
+                if ($clusterDistribution == 4) {
+                    array_push($shell_command, '--cluster_sharing_group_id', $clusterSharingGroupId);
+                }
             }
             if ($debug) {
                 $shell_command[] = '--debug';
