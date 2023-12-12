@@ -13,15 +13,12 @@ use Cake\Event\Event;
 use Cake\Event\EventInterface;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Log\Engine\SyslogLog;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\Validation\Validator;
 use Exception;
 use InvalidArgumentException;
 
 class LogsTable extends AppTable
 {
-    use LocatorAwareTrait;
-
     const WARNING_ACTIONS = [
         'warning',
         'change_pw',

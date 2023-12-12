@@ -11,7 +11,6 @@ use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Http\Exception\NotFoundException;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\Utility\Inflector;
 use Exception;
 use GlobIterator;
@@ -24,8 +23,6 @@ use RuntimeException;
  */
 class GalaxiesTable extends AppTable
 {
-    use LocatorAwareTrait;
-
     public $useTable = 'galaxies';
 
     public $recursive = -1;

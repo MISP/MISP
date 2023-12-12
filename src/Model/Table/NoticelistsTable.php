@@ -5,13 +5,10 @@ namespace App\Model\Table;
 use App\Lib\Tools\FileAccessTool;
 use App\Model\Entity\NoticelistEntry;
 use App\Model\Table\AppTable;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\Validation\Validator;
 
 class NoticelistsTable extends AppTable
 {
-    use LocatorAwareTrait;
-
     public function initialize(array $config): void
     {
         parent::initialize($config);

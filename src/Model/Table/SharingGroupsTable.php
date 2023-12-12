@@ -11,7 +11,6 @@ use Cake\Database\Expression\QueryExpression;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Cake\Http\Exception\MethodNotAllowedException;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\ORM\Query;
 use Cake\ORM\RulesChecker;
 use Cake\Utility\Text;
@@ -21,8 +20,6 @@ use InvalidArgumentException;
 
 class SharingGroupsTable extends AppTable
 {
-    use LocatorAwareTrait;
-
     public function initialize(array $config): void
     {
         parent::initialize($config);

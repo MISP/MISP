@@ -4,7 +4,6 @@ namespace App\Model\Table;
 
 use App\Model\Entity\Distribution;
 use App\Model\Table\AppTable;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\Utility\Hash;
 use Cake\Validation\Validator;
 
@@ -15,8 +14,6 @@ use Cake\Validation\Validator;
  */
 class GalaxyClusterRelationsTable extends AppTable
 {
-    use LocatorAwareTrait;
-
     public $useTable = 'galaxy_cluster_relations';
 
     public $recursive = -1;
