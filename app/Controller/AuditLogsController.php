@@ -91,6 +91,21 @@ class AuditLogsController extends AppController
         ];
     }
 
+    private function __applyAuditACL(array $user)
+    {
+        $acl = [];
+        if (empty($user['Role']['perm_site_admin'])) {
+            if (!empty($user['Role']['perm_admin'])) {
+                // ORG admins can see their own org info
+                $acl = ['AuditLog.org_id' => $user['org_id']];
+            } else {
+                // users can see their own info
+                $acl = ['AuditLog.user_id' => $user['id']];
+            }
+        }
+        return $acl;
+    }
+
     public function admin_index()
     {
         $this->paginate['fields'][] = 'ip';
@@ -119,6 +134,10 @@ class AuditLogsController extends AppController
         ]);
 
         $this->paginate['conditions'] = $this->__searchConditions($params);
+        $acl = $this->__applyAuditACL($this->Auth->user());
+        if ($acl) {
+            $this->paginate['conditions']['AND'][] = $acl;
+        }
         $list = $this->paginate();
 
         if ($this->_isRest()) {
@@ -156,7 +175,6 @@ class AuditLogsController extends AppController
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');
         }
-
         $this->paginate['conditions'] = $this->__createEventIndexConditions($event);
         $this->set('passedArgsArray', ['eventId' => $eventId, 'org' => $org]);
 
@@ -233,6 +251,7 @@ class AuditLogsController extends AppController
      */
     private function __searchConditions(array $params)
     {
+        $conditions = [];
         $qbRules = [];
         foreach ($params as $key => $value) {
             if ($key === 'model' && strpos($value, ':') !== false) {
@@ -263,7 +282,6 @@ class AuditLogsController extends AppController
         }
         $this->set('qbRules', $qbRules);
 
-        $conditions = [];
         if (isset($params['user'])) {
             if (strtoupper($params['user']) === 'SYSTEM') {
                 $conditions['AuditLog.user_id'] = 0;
@@ -351,7 +369,6 @@ class AuditLogsController extends AppController
             // Site admins and event owners can see all changes
             return ['event_id' => $event['Event']['id']];
         }
-
         $event = $this->AuditLog->Event->fetchEvent($this->Auth->user(), [
             'eventid' => $event['Event']['id'],
             'sgReferenceOnly' => 1,
@@ -361,7 +378,6 @@ class AuditLogsController extends AppController
             'includeEventCorrelations' => false,
             'excludeGalaxy' => true,
         ])[0];
-
         $attributeIds = [];
         $objectIds = [];
         $proposalIds = array_column($event['ShadowAttribute'], 'id');
