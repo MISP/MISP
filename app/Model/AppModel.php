@@ -86,7 +86,7 @@ class AppModel extends Model
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
-        117 => false
+        117 => false, 118 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2002,6 +2002,9 @@ class AppModel extends Model
                     KEY `geoip` (`geoip`),
                     INDEX `user_id` (`user_id`)
                   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 118:
+                $sqlArray[] = "ALTER TABLE `event_reports` MODIFY `content` mediumtext;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
