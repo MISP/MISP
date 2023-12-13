@@ -56,6 +56,8 @@ return [
         'log_paranoid_include_sql_queries' => false,
         'log_new_audit_compress' => false,
         'log_paranoid_include_post_body' => false,
+        'redis_host' => 'redis',
+        'redis_port' => 6379,
     ],
     'BackgroundJobs' => [
         'enabled' => true,

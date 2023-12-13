@@ -9,7 +9,7 @@ class TagsTable extends AppTable
 {
     public function initialize(array $config): void
     {
-        $this->setDisplayField('name'); // Change to name?
+        $this->setDisplayField('name');
 
         $this->belongsTo(
             'Organisation',
@@ -63,7 +63,6 @@ class TagsTable extends AppTable
         $this->hasMany('TagCollectionTag');
         $this->hasMany('GalaxyClusterRelationTag');
     }
-
 
     /**
      * @param array $tag
@@ -159,5 +158,27 @@ class TagsTable extends AppTable
         } else {
             return false;
         }
+    }
+
+    /**
+     * @param string $namespace
+     * @param bool $containTagConnectors
+     * @return array Uppercase tag name in key
+     */
+    public function getTagsForNamespace($namespace, $containTagConnectors = true)
+    {
+        $tag_params = [
+            'recursive' => -1,
+            'conditions' => ['LOWER(name) LIKE' => strtolower($namespace) . '%'],
+        ];
+        if ($containTagConnectors) {
+            $tag_params['contain'] = ['EventTag', 'AttributeTag'];
+        }
+        $tags_temp = $this->find('all', $tag_params);
+        $tags = [];
+        foreach ($tags_temp as $temp) {
+            $tags[strtoupper($temp['Tag']['name'])] = $temp;
+        }
+        return $tags;
     }
 }
