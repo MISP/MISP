@@ -120,7 +120,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 			'action' => 'auth',
 			'title' => $logmessage
 		];
-		$this->Log->save($log);
+		$this->Log->saveOrFailSilently($log);
 		CakeLog::write($level, $logmessage);
 
 		return true;

@@ -73,7 +73,7 @@ class EventDelegationsController extends AppController
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             if (empty($result)) {
-                $this->Log->save(array(
+                $this->Log->saveOrFailSilently(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Event',
                         'model_id' => $event['Event']['id'],
@@ -85,7 +85,7 @@ class EventDelegationsController extends AppController
                 ));
                 throw new InvalidArgumentException('Invalid input, could not create the Delegation Request.');
             }
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => $this->Auth->user('Organisation')['name'],
                     'model' => 'Event',
                     'model_id' => $event['Event']['id'],
@@ -150,7 +150,7 @@ class EventDelegationsController extends AppController
         if ($this->request->is('post')) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => $this->Auth->user('Organisation')['name'],
                     'model' => 'Event',
                     'model_id' => $delegation['Event']['id'],
@@ -164,7 +164,7 @@ class EventDelegationsController extends AppController
             $this->EventDelegation->delete($delegation['EventDelegation']['id']);
             if ($result) {
                 $this->Log->create();
-                $this->Log->save(array(
+                $this->Log->saveOrFailSilently(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Event',
                         'model_id' => 0,

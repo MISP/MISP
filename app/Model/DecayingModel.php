@@ -404,7 +404,7 @@ class DecayingModel extends AppModel
                 } catch (Exception $e) {
                     $this->Log = ClassRegistry::init('Log');
                     $this->Log->create();
-                    $this->Log->save(array(
+                    $this->Log->saveOrFailSilently(array(
                         'org' => 'SYSTEM',
                         'model' => 'DecayingModel',
                         'model_id' => 0,

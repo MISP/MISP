@@ -4669,7 +4669,7 @@ class EventsController extends AppController
                 )
             );
             if (!$result) {
-                $this->Log->save(array(
+                $this->Log->saveOrFailSilently(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Event',
                         'model_id' => 0,

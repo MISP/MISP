@@ -311,7 +311,7 @@ class AppModel extends Model
         } else {
             $entry['change'] = 'Tried adding new feeds but something went wrong.';
         }
-        $this->Log->save($entry);
+        $this->Log->saveOrFailSilently($entry);
     }
 
     // SQL scripts for updates
@@ -2123,7 +2123,7 @@ class AppModel extends Model
                     $this->__setUpdateProgress($i, false);
                     $this->query($sql);
                     $this->Log->create();
-                    $this->Log->save(array(
+                    $this->Log->saveOrFailSilently(array(
                         'org' => 'SYSTEM',
                         'model' => 'Server',
                         'model_id' => 0,
@@ -2158,7 +2158,7 @@ class AppModel extends Model
                     } else {
                         $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is allowed, the update went through.');
                     }
-                    $this->Log->save($logMessage);
+                    $this->Log->saveOrFailSilently($logMessage);
                 }
             }
         }
@@ -2200,7 +2200,7 @@ class AppModel extends Model
         }
         if ($flagStop && $errorCount > 0) {
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org' => 'SYSTEM',
                 'model' => 'Server',
                 'model_id' => 0,
@@ -2276,7 +2276,7 @@ class AppModel extends Model
                 $result = false;
             }
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org' => 'SYSTEM',
                 'model' => 'Server',
                 'model_id' => 0,
@@ -2313,7 +2313,7 @@ class AppModel extends Model
             $result = false;
         }
         $this->Log->create();
-        $this->Log->save(array(
+        $this->Log->saveOrFailSilently(array(
             'org' => 'SYSTEM',
             'model' => 'Server',
             'model_id' => 0,
@@ -2474,7 +2474,7 @@ class AppModel extends Model
                 // is only to limit the load.
                 if ($this->isUpdateLocked()) { // prevent creation of useless workers
                     $this->Log->create();
-                    $this->Log->save(array(
+                    $this->Log->saveOrFailSilently(array(
                         'org' => 'SYSTEM',
                         'model' => 'Server',
                         'model_id' => 0,
@@ -2531,7 +2531,7 @@ class AppModel extends Model
                 // (could happens if multiple prio workers are up)
                 if ($this->isUpdateLocked()) {
                     $this->Log->create();
-                    $this->Log->save(array(
+                    $this->Log->saveOrFailSilently(array(
                         'org' => 'SYSTEM',
                         'model' => 'Server',
                         'model_id' => 0,
@@ -3491,7 +3491,7 @@ class AppModel extends Model
                 'title' => 'Bumped the timestamps of locked events containing object references.',
                 'change' => sprintf('Event timestamps updated: %s; Object timestamps updated: %s', count($event_ids), count($object_ids))
             );
-            $this->Log->save($entry);
+            $this->Log->saveOrFailSilently($entry);
         }
         return true;
     }

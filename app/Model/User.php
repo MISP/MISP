@@ -875,7 +875,7 @@ class User extends AppModel
         } catch (SendEmailException $e) {
             $this->logException("Exception during sending e-mail", $e);
             $log->create();
-            $log->save(array(
+            $log->saveOrFailSilently(array(
                 'org' => 'SYSTEM',
                 'model' => 'User',
                 'model_id' => $user['User']['id'],
@@ -892,7 +892,7 @@ class User extends AppModel
         $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $result['subject'] . '".';
 
         $log->create();
-        $log->save(array(
+        $log->saveOrFailSilently(array(
             'org' => 'SYSTEM',
             'model' => 'User',
             'model_id' => $user['User']['id'],
@@ -1410,7 +1410,7 @@ class User extends AppModel
                 $error[$key] = $key . ': ' . implode(', ', $errors);
             }
             $error = implode(PHP_EOL, $error);
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => 'SYSTEM',
                     'model' => 'User',
                     'model_id' => $added_by['id'],
@@ -1425,7 +1425,7 @@ class User extends AppModel
                 'recursive' => -1,
                 'conditions' => array('id' => $this->id)
             ));
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org' => 'SYSTEM',
                 'model' => 'User',
                 'model_id' => $added_by['id'],

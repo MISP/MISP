@@ -1554,7 +1554,7 @@ class ServersController extends AppController
             if (!Configure::read('MISP.system_setting_db') && !is_writeable(APP . 'Config/config.php')) {
                 $this->loadModel('Log');
                 $this->Log->create();
-                $this->Log->save(array(
+                $this->Log->saveOrFailSilently(array(
                     'org' => $this->Auth->user('Organisation')['name'],
                     'model' => 'Server',
                     'model_id' => 0,
