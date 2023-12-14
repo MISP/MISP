@@ -35,13 +35,23 @@ if (!empty($breadcrumb)) {
         if (!empty($entry['url_vars'])) {
             $entry['url'] = $this->DataFromPath->buildStringFromDataPath($entry['url'], $entity, $entry['url_vars']);
         }
-        $this->Breadcrumbs->add(h($entry['label']), Router::url($entry['url']), [
+        $options = [
             'title' => h($entry['label']),
             'templateVars' => [
                 'linkClass' => 'icon-link icon-link-hover ' . ($i == 0 ? 'fw-light' : ''),
-                'icon' => ($i == 0 && !empty($entry['icon'])) ? $this->FontAwesome->getClass(h($entry['icon'])) : ''
-            ]
-        ]);
+                //'icon' => ($i == 0 && !empty($entry['icon'])) ? $this->FontAwesome->getClass(h($entry['icon'])) : ''
+            ]];
+        if ($i == 0 && !empty($entry['icon'])) {
+            if (!is_array($entry['icon'])) {
+                $options['templateVars']['icon'] = $this->FontAwesome->getClass(h($entry['icon']));
+            } else {
+                // FIXME in some cases like Cerebrate $entry['icon'] is an array ['image' => '/path/to/img.png']
+                $options['templateVars']['icon'] = '';
+            }
+        } else {
+            $options['templateVars']['icon'] = '';
+        }
+        $this->Breadcrumbs->add(h($entry['label']), Router::url($entry['url']), $options);
     }
 }
 
