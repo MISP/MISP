@@ -181,4 +181,21 @@ class TagsTable extends AppTable
         }
         return $tags;
     }
+
+    public function getTagsByName($tag_names, $containTagConnectors = true)
+    {
+        $tag_params = [
+            'recursive' => -1,
+            'conditions' => ['name IN' => $tag_names]
+        ];
+        if ($containTagConnectors) {
+            $tag_params['contain'] = ['EventTags', 'AttributeTags'];
+        }
+        $tags_temp = $this->find('all', $tag_params);
+        $tags = [];
+        foreach ($tags_temp as $temp) {
+            $tags[mb_strtolower($temp['Tag']['name'])] = $temp;
+        }
+        return $tags;
+    }
 }

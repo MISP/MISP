@@ -2,14 +2,14 @@
 
 namespace App\Model\Table;
 
-use App\Model\Table\AppTable;
-use Cake\Core\Configure;
-use Cake\Validation\Validator;
-use Exception;
 use App\Lib\Tools\ColourPaletteTool;
 use App\Lib\Tools\FileAccessTool;
 use App\Lib\Tools\RedisTool;
+use App\Model\Table\AppTable;
+use Cake\Core\Configure;
 use Cake\Utility\Hash;
+use Cake\Validation\Validator;
+use Exception;
 
 class TaxonomiesTable extends AppTable
 {
@@ -41,14 +41,17 @@ class TaxonomiesTable extends AppTable
 
     public function update()
     {
-        $existing = $this->find('all', array(
-            'recursive' => -1,
-            'fields' => array('version', 'enabled', 'namespace')
-        ))->toArray();
-        $existing = array_column(array_column($existing, 'Taxonomy'), null, 'namespace');
+        $existing = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'fields' => ['version', 'enabled', 'namespace']
+            ]
+        )->toArray();
+        $existing = array_column($existing, null, 'namespace');
 
         $directories = glob(APP . '..' . DS . 'libraries' . DS .  'misp-taxonomies' . DS . '*', GLOB_ONLYDIR);
-        $updated = array();
+        $updated = [];
         foreach ($directories as $dir) {
             $dir = basename($dir);
             if ($dir === 'tools' || $dir === 'mapping') {
@@ -83,12 +86,12 @@ class TaxonomiesTable extends AppTable
                 $current = $existing[$vocab['namespace']] ?? [];
                 $result = $this->__updateVocab($vocab, $current);
                 if (is_numeric($result)) {
-                    $updated['success'][$result] = array('namespace' => $vocab['namespace'], 'new' => $vocab['version']);
+                    $updated['success'][$result] = ['namespace' => $vocab['namespace'], 'new' => $vocab['version']];
                     if (!empty($current)) {
                         $updated['success'][$result]['old'] = $current['version'];
                     }
                 } else {
-                    $updated['fails'][] = array('namespace' => $vocab['namespace'], 'fail' => json_encode($result));
+                    $updated['fails'][] = ['namespace' => $vocab['namespace'], 'fail' => json_encode($result)];
                 }
             }
         }
@@ -121,12 +124,15 @@ class TaxonomiesTable extends AppTable
         if (!isset($vocab['version'])) {
             $vocab['version'] = 1;
         }
-        $current = $this->find('all', array(
-            'conditions' => array('namespace' => $vocab['namespace']),
-            'recursive' => -1,
-            'fields' => array('version', 'enabled', 'namespace', 'highlighted')
-        ))->first();
-        $current = empty($current) ? [] : $current['Taxonomy'];
+        $current = $this->find(
+            'all',
+            [
+                'conditions' => ['namespace' => $vocab['namespace']],
+                'recursive' => -1,
+                'fields' => ['version', 'enabled', 'namespace', 'highlighted']
+            ]
+        )->first();
+        $current = is_null($current) ? [] : $current->toArray();
         $result = $this->__updateVocab($vocab, $current);
         if (is_array($result)) {
             throw new Exception('Could not save taxonomy because of validation errors: ' . json_encode($result));
@@ -155,7 +161,7 @@ class TaxonomiesTable extends AppTable
             'enabled' => $enabled,
             'highlighted' => !empty($vocab['highlighted']),
         ];
-        $predicateLookup = array();
+        $predicateLookup = [];
         foreach ($vocab['predicates'] as $k => $predicate) {
             $taxonomy['TaxonomyPredicate'][$k] = $predicate;
             $predicateLookup[$predicate['value']] = $k;
@@ -197,16 +203,16 @@ class TaxonomiesTable extends AppTable
         } else {
             $conditions = ['Taxonomies.id' => $id];
         }
-        $taxonomy_params = array(
+        $taxonomy_params = [
             'recursive' => -1,
-            'contain' => array('TaxonomyPredicates' => array('TaxonomyEntries')),
+            'contain' => ['TaxonomyPredicates' => ['TaxonomyEntries']],
             'conditions' => $conditions
-        );
+        ];
         $taxonomy = $this->find('all', $taxonomy_params)->first();
         if (empty($taxonomy)) {
             return false;
         }
-        $entries = array();
+        $entries = [];
         foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
             if (isset($predicate['TaxonomyEntry']) && !empty($predicate['TaxonomyEntry'])) {
                 foreach ($predicate['TaxonomyEntry'] as $entry) {
@@ -266,16 +272,19 @@ class TaxonomiesTable extends AppTable
      */
     public function getAllTaxonomyTags($inverse = false, $user = false, $full = false, $hideUnselectable = true, $local_tag = false)
     {
-        $taxonomies = $this->find('all', [
-            'fields' => ['namespace'],
-            'recursive' => -1,
-            'contain' => [
-                'TaxonomyPredicate' => [
-                    'fields' => ['value'],
-                    'TaxonomyEntry' => ['fields' => ['value']]
+        $taxonomies = $this->find(
+            'all',
+            [
+                'fields' => ['namespace'],
+                'recursive' => -1,
+                'contain' => [
+                    'TaxonomyPredicate' => [
+                        'fields' => ['value'],
+                        'TaxonomyEntry' => ['fields' => ['value']]
+                    ],
                 ],
-            ],
-        ]);
+            ]
+        );
 
         $allTaxonomyTags = [];
         foreach ($taxonomies as $taxonomy) {
@@ -297,8 +306,8 @@ class TaxonomiesTable extends AppTable
 
         $conditions = ['Tag.is_galaxy' => 0];
         if ($user && !$user['Role']['perm_site_admin']) {
-            $conditions[] = array('Tag.org_id' => array(0, $user['org_id']));
-            $conditions[] = array('Tag.user_id' => array(0, $user['id']));
+            $conditions[] = ['Tag.org_id' => [0, $user['org_id']]];
+            $conditions[] = ['Tag.user_id' => [0, $user['id']]];
         }
         if (Configure::read('MISP.incoming_tags_disabled_by_default') || $hideUnselectable) {
             $conditions['Tag.hide_tag'] = 0;
@@ -308,18 +317,24 @@ class TaxonomiesTable extends AppTable
             $conditions['Tag.local_only'] = 0;
         }
         if ($full) {
-            $allTags = $TagsTable->find('all', [
-                'fields' => array('id', 'name', 'colour'),
-                'order' => array('UPPER(Tag.name) ASC'),
-                'conditions' => $conditions,
-                'recursive' => -1
-            ]);
+            $allTags = $TagsTable->find(
+                'all',
+                [
+                    'fields' => ['id', 'name', 'colour'],
+                    'order' => ['UPPER(Tag.name) ASC'],
+                    'conditions' => $conditions,
+                    'recursive' => -1
+                ]
+            );
         } else {
-            $allTags = $TagsTable->find('list', [
-                'fields' => array('name'),
-                'order' => array('UPPER(Tag.name) ASC'),
-                'conditions' => $conditions
-            ]);
+            $allTags = $TagsTable->find(
+                'list',
+                [
+                    'fields' => ['name'],
+                    'order' => ['UPPER(Tag.name) ASC'],
+                    'conditions' => $conditions
+                ]
+            );
         }
         foreach ($allTags as $k => $tag) {
             $needle = $full ? $tag['Tag']['name'] : $tag;
@@ -340,12 +355,12 @@ class TaxonomiesTable extends AppTable
         $taxonomy = $this->__getTaxonomy($id);
         if ($existingOnly) {
             $TagsTable = $this->fetchTable('Tags');
-            $tags = $TagsTable->find('list', array('fields' => array('name'), 'order' => array('UPPER(Tag.name) ASC')));
+            $tags = $TagsTable->find('list', ['fields' => ['name'], 'order' => ['UPPER(Tag.name) ASC']]);
             foreach ($tags as $key => $tag) {
                 $tags[$key] = strtoupper($tag);
             }
         }
-        $entries = array();
+        $entries = [];
         if ($taxonomy) {
             foreach ($taxonomy['entries'] as $entry) {
                 $searchTerm = $upperCase ? strtoupper($entry['tag']) : $entry['tag'];
@@ -395,7 +410,7 @@ class TaxonomiesTable extends AppTable
         return $taxonomy;
     }
 
-    private function __updateTags($id, $skipUpdateFields = array())
+    private function __updateTags($id, $skipUpdateFields = [])
     {
         $paletteTool = new ColourPaletteTool();
         $taxonomy = $this->__getTaxonomy($id);
@@ -432,7 +447,7 @@ class TaxonomiesTable extends AppTable
     public function addTags($id, $tagList = false)
     {
         if ($tagList && !is_array($tagList)) {
-            $tagList = array($tagList);
+            $tagList = [$tagList];
         }
         $TagsTable = $this->fetchTable('Tags');
 
@@ -476,10 +491,10 @@ class TaxonomiesTable extends AppTable
     public function disableTags($id, $tagList = false)
     {
         if ($tagList && !is_array($tagList)) {
-            $tagList = array($tagList);
+            $tagList = [$tagList];
         }
         $TagsTable = $this->fetchTable('Tags');
-        $tags = array();
+        $tags = [];
         if ($tagList) {
             $tags = $tagList;
         } else {
@@ -491,10 +506,13 @@ class TaxonomiesTable extends AppTable
         if (empty($tags)) {
             return true;
         }
-        $tags = $TagsTable->find('all', array(
-            'conditions' => array('Tag.name' => $tags, 'Tag.hide_tag' => 0),
-            'recursive' => -1
-        ));
+        $tags = $TagsTable->find(
+            'all',
+            [
+                'conditions' => ['Tag.name' => $tags, 'Tag.hide_tag' => 0],
+                'recursive' => -1
+            ]
+        );
         if (empty($tags)) {
             return true;
         }
@@ -505,7 +523,7 @@ class TaxonomiesTable extends AppTable
     public function hideTags($id, $tagList = false)
     {
         if ($tagList && !is_array($tagList)) {
-            $tagList = array($tagList);
+            $tagList = [$tagList];
         }
         $TagsTable = $this->fetchTable('Tags');
         $paletteTool = new ColourPaletteTool();
@@ -537,7 +555,7 @@ class TaxonomiesTable extends AppTable
     public function unhideTags($id, $tagList = false)
     {
         if ($tagList && !is_array($tagList)) {
-            $tagList = array($tagList);
+            $tagList = [$tagList];
         }
         $TagsTable = $this->fetchTable('Tags');
         $paletteTool = new ColourPaletteTool();
@@ -566,21 +584,24 @@ class TaxonomiesTable extends AppTable
         return true;
     }
 
-    public function listTaxonomies($options = array('full' => false, 'enabled' => false))
+    public function listTaxonomies($options = ['full' => false, 'enabled' => false])
     {
         $recursive = -1;
         if (isset($options['full']) && $options['full']) {
             $recursive = 2;
         }
-        $conditions = array();
+        $conditions = [];
         if (isset($options['enabled']) && $options['enabled']) {
-            $conditions[] = array('Taxonomy.enabled' => 1);
+            $conditions[] = ['Taxonomy.enabled' => 1];
         }
-        $temp = $this->find('all', array(
-            'recursive' => $recursive,
-            'conditions' => $conditions
-        ));
-        $taxonomies = array();
+        $temp = $this->find(
+            'all',
+            [
+                'recursive' => $recursive,
+                'conditions' => $conditions
+            ]
+        );
+        $taxonomies = [];
         foreach ($temp as $t) {
             if (isset($options['full']) && $options['full']) {
                 $t['Taxonomy']['TaxonomyPredicate'] = $t['TaxonomyPredicate'];
@@ -621,33 +642,36 @@ class TaxonomiesTable extends AppTable
         }
 
         if (isset($splits['value'])) {
-            $contain = array(
-                'TaxonomyPredicate' => array(
-                    'TaxonomyEntry' => array()
-                )
-            );
+            $contain = [
+                'TaxonomyPredicate' => [
+                    'TaxonomyEntry' => []
+                ]
+            ];
             if (!$fullTaxonomy) {
-                $contain['TaxonomyPredicate']['conditions'] = array(
+                $contain['TaxonomyPredicate']['conditions'] = [
                     'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate']),
-                );
-                $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = array(
+                ];
+                $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = [
                     'LOWER(TaxonomyEntry.value)' => mb_strtolower($splits['value']),
-                );
+                ];
             }
         } else {
-            $contain = array('TaxonomyPredicate' => array());
+            $contain = ['TaxonomyPredicate' => []];
             if (!$fullTaxonomy) {
-                $contain['TaxonomyPredicate']['conditions'] = array(
+                $contain['TaxonomyPredicate']['conditions'] = [
                     'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate'])
-                );
+                ];
             }
         }
 
-        $taxonomy = $this->find('all', array(
-            'recursive' => -1,
-            'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
-            'contain' => $contain
-        ))->first();
+        $taxonomy = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => ['LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])],
+                'contain' => $contain
+            ]
+        )->first();
 
         if (isset($redis)) {
             $redis->setex($key, 1800, RedisTool::compress(RedisTool::serialize($taxonomy)));
@@ -678,7 +702,7 @@ class TaxonomiesTable extends AppTable
      * @param array $tagNameList
      * @return bool
      */
-    public function checkIfNewTagIsAllowedByTaxonomy($newTagName, array $tagNameList = array())
+    public function checkIfNewTagIsAllowedByTaxonomy($newTagName, array $tagNameList = [])
     {
         $newTagShortened = $this->stripLastTagComponent($newTagName);
         $prefixIsFree = true;
@@ -720,8 +744,8 @@ class TaxonomiesTable extends AppTable
             ];
         }
 
-        $eventTags = array();
-        $localEventTags = array();
+        $eventTags = [];
+        $localEventTags = [];
         foreach ($tagList as $tag) {
             if ($tag['local'] == 0) {
                 $eventTags[] = $tag['Tag']['name'];
@@ -731,16 +755,16 @@ class TaxonomiesTable extends AppTable
         }
         $tagConflicts = $this->getTagConflicts($eventTags);
         $localTagConflicts = $this->getTagConflicts($localEventTags);
-        return array(
+        return [
             'global' => $tagConflicts,
             'local' => $localTagConflicts
-        );
+        ];
     }
 
     public function getTagConflicts($tagNameList)
     {
-        $potentiallyConflictingTaxonomy = array();
-        $conflictingTaxonomy = array();
+        $potentiallyConflictingTaxonomy = [];
+        $conflictingTaxonomy = [];
         foreach ($tagNameList as $tagName) {
             $tagShortened = $this->stripLastTagComponent($tagName);
             // No exclusivity in non taxonomy tags.
@@ -771,20 +795,20 @@ class TaxonomiesTable extends AppTable
             if ($potTaxonomy['count'] > 1) {
                 $taxonomy = $this->__taxonomyConflicts[$taxonomyName];
                 if (isset($taxonomy['Taxonomy']['exclusive']) && $taxonomy['Taxonomy']['exclusive']) {
-                    $conflictingTaxonomy[] = array(
+                    $conflictingTaxonomy[] = [
                         'tags' => $potTaxonomy['tagNames'],
                         'taxonomy' => $taxonomy,
                         'conflict' => sprintf(__('Taxonomy `%s` is an exclusive Taxonomy'), $taxonomy['Taxonomy']['namespace'])
-                    );
+                    ];
                 } elseif (isset($taxonomy['TaxonomyPredicate'][0]['exclusive']) && $taxonomy['TaxonomyPredicate'][0]['exclusive']) {
-                    $conflictingTaxonomy[] = array(
+                    $conflictingTaxonomy[] = [
                         'tags' => $potTaxonomy['tagNames'],
                         'taxonomy' => $taxonomy,
                         'conflict' => sprintf(
                             __('Predicate `%s` is exclusive'),
                             $taxonomy['TaxonomyPredicate'][0]['value']
                         )
-                    );
+                    ];
                 }
             }
         }
@@ -813,10 +837,13 @@ class TaxonomiesTable extends AppTable
 
     private function __craftTaxonomiesTags()
     {
-        $taxonomies = $this->find('all', [
-            'fields' => ['namespace'],
-            'contain' => ['TaxonomyPredicate' => ['TaxonomyEntry']],
-        ]);
+        $taxonomies = $this->find(
+            'all',
+            [
+                'fields' => ['namespace'],
+                'contain' => ['TaxonomyPredicate' => ['TaxonomyEntry']],
+            ]
+        );
         $allTaxonomyTags = [];
         foreach ($taxonomies as $taxonomy) {
             $namespace = $taxonomy['Taxonomy']['namespace'];
@@ -890,11 +917,14 @@ class TaxonomiesTable extends AppTable
      */
     public function getHighlightedTaxonomies()
     {
-        return $this->find('all', [
-            'conditions' => [
-                'highlighted' => 1,
+        return $this->find(
+            'all',
+            [
+                'conditions' => [
+                    'highlighted' => 1,
+                ]
             ]
-        ]);
+        );
     }
 
     /**

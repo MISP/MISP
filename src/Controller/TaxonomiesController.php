@@ -3,28 +3,28 @@
 namespace App\Controller;
 
 use App\Controller\AppController;
-use Cake\Http\Exception\NotFoundException;
-use Exception;
-use Cake\Http\Exception\MethodNotAllowedException;
 use App\Lib\Tools\CustomPaginationTool;
+use Cake\Http\Exception\MethodNotAllowedException;
+use Cake\Http\Exception\NotFoundException;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use Exception;
 
 class TaxonomiesController extends AppController
 {
     use LocatorAwareTrait;
 
-    public $paginate = array(
+    public $paginate = [
         'limit' => 60,
-        'contain' => array(
-            'TaxonomyPredicates' => array(
-                'fields' => array('TaxonomyPredicates.id', 'TaxonomyPredicates.taxonomy_id', 'TaxonomyPredicates.value'),
-                'TaxonomyEntries' => array('fields' => array('TaxonomyEntries.id', 'TaxonomyEntries.taxonomy_predicate_id', 'TaxonomyEntries.value'))
-            )
-        ),
-        'order' => array(
+        'contain' => [
+            'TaxonomyPredicates' => [
+                'fields' => ['TaxonomyPredicates.id', 'TaxonomyPredicates.taxonomy_id', 'TaxonomyPredicates.value'],
+                'TaxonomyEntries' => ['fields' => ['TaxonomyEntries.id', 'TaxonomyEntries.taxonomy_predicate_id', 'TaxonomyEntries.value']]
+            ]
+        ],
+        'order' => [
             'Taxonomies.id' => 'DESC'
-        ),
-    );
+        ],
+    ];
 
     public function index()
     {
@@ -39,8 +39,8 @@ class TaxonomiesController extends AppController
         }
 
         if ($this->ParamHandler->isRest()) {
-            $keepFields = array('conditions', 'contain', 'recursive', 'sort');
-            $searchParams = array();
+            $keepFields = ['conditions', 'contain', 'recursive', 'sort'];
+            $searchParams = [];
             foreach ($keepFields as $field) {
                 if (!empty($this->paginate[$field])) {
                     $searchParams[$field] = $this->paginate[$field];
@@ -76,7 +76,7 @@ class TaxonomiesController extends AppController
         $this->set('id', $taxonomy['Taxonomy']['id']);
     }
 
-    public function taxonomy_tags($id)
+    public function taxonomyTags($id)
     {
         $urlparams = '';
         $filter = isset($this->request->getQueryParams()['filter']) ? $this->request->getQueryParams()['filter'] : false;
@@ -109,7 +109,7 @@ class TaxonomiesController extends AppController
             $params['sort'] = 'tag';
         }
         $params['options'] = ['filter' => $filter];
-        $this->params->params['paging'] = array('Taxonomies' => $params);
+        $this->paginate = ['Taxonomies' => $params];
         $params = $customPagination->applyRulesOnArray($taxonomy['entries'], $params, 'taxonomies');
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($taxonomy, $this->response->getType());
@@ -134,20 +134,23 @@ class TaxonomiesController extends AppController
 
     public function export($id)
     {
-        $taxonomy = $this->Taxonomies->find('all', [
-            'recursive' => -1,
-            'contain' => ['TaxonomyPredicate' => ['TaxonomyEntry']],
-            'conditions' => is_numeric($id) ? ['Taxonomy.id' => $id] : ['LOWER(Taxonomy.namespace)' => mb_strtolower($id)],
-        ])->first();
+        $taxonomy = $this->Taxonomies->find(
+            'all',
+            [
+                'recursive' => -1,
+                'contain' => ['TaxonomyPredicates' => ['TaxonomyEntries']],
+                'conditions' => is_numeric($id) ? ['id' => $id] : ['LOWER(namespace)' => mb_strtolower($id)],
+            ]
+        )->first();
         if (empty($taxonomy)) {
             throw new NotFoundException(__('Taxonomy not found.'));
         }
 
         $data = [
-            'namespace' => $taxonomy['Taxonomy']['namespace'],
-            'description' => $taxonomy['Taxonomy']['description'],
-            'version' => (int)$taxonomy['Taxonomy']['version'],
-            'exclusive' => $taxonomy['Taxonomy']['exclusive'],
+            'namespace' => $taxonomy['namespace'],
+            'description' => $taxonomy['description'],
+            'version' => (int)$taxonomy['version'],
+            'exclusive' => $taxonomy['exclusive'],
             'predicates' => [],
         ];
 
@@ -185,10 +188,13 @@ class TaxonomiesController extends AppController
     {
         $this->request->allowMethod(['post']);
 
-        $taxonomy = $this->Taxonomies->find('all', array(
-            'recursive' => -1,
-            'conditions' => array('Taxonomy.id' => $id),
-        ))->first();
+        $taxonomy = $this->Taxonomies->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => ['Taxonomy.id' => $id],
+            ]
+        )->first();
         if (empty($taxonomy)) {
             $message = __('Invalid taxonomy.');
             if ($this->ParamHandler->isRest()) {
@@ -216,10 +222,13 @@ class TaxonomiesController extends AppController
     {
         $this->request->allowMethod(['post']);
 
-        $taxonomy = $this->Taxonomies->find('all', array(
-            'recursive' => -1,
-            'conditions' => array('Taxonomy.id' => $id),
-        ))->first();
+        $taxonomy = $this->Taxonomies->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => ['Taxonomy.id' => $id],
+            ]
+        )->first();
         if (empty($taxonomy)) {
             $message = __('Invalid taxonomy.');
             if ($this->ParamHandler->isRest()) {
@@ -299,7 +308,7 @@ class TaxonomiesController extends AppController
             return $this->RestResponse->saveSuccessResponse('Taxonomy', 'update', false, $this->response->getType(), $message);
         } else {
             $this->Flash->{$flashType}($message);
-            $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+            $this->redirect(['controller' => 'taxonomies', 'action' => 'index']);
         }
     }
 
@@ -331,7 +340,7 @@ class TaxonomiesController extends AppController
                     $data['Tag'] = $data['Tag']['request'];
                 }
                 if (!isset($data['Tag']['nameList'])) {
-                    $data['Tag']['nameList'] = array($data['Tag']['name']);
+                    $data['Tag']['nameList'] = [$data['Tag']['name']];
                 } else {
                     $data['Tag']['nameList'] = json_decode($data['Tag']['nameList'], true);
                 }
@@ -370,7 +379,7 @@ class TaxonomiesController extends AppController
                 $data['Tag'] = $data['Tag']['request'];
             }
             if (!isset($data['Tag']['nameList'])) {
-                $data['Tag']['nameList'] = array($data['Tag']['name']);
+                $data['Tag']['nameList'] = [$data['Tag']['name']];
             } else {
                 $data['Tag']['nameList'] = json_decode($data['Tag']['nameList'], true);
             }
@@ -400,7 +409,7 @@ class TaxonomiesController extends AppController
                 $data['Tag'] = $data['Tag']['request'];
             }
             if (!isset($data['Tag']['nameList'])) {
-                $data['Tag']['nameList'] = array($data['Tag']['name']);
+                $data['Tag']['nameList'] = [$data['Tag']['name']];
             } else {
                 $data['Tag']['nameList'] = json_decode($data['Tag']['nameList'], true);
             }
@@ -443,7 +452,7 @@ class TaxonomiesController extends AppController
                     $data['Tag'] = $data['Tag']['request'];
                 }
                 if (!isset($data['Tag']['nameList'])) {
-                    $data['Tag']['nameList'] = array($data['Tag']['name']);
+                    $data['Tag']['nameList'] = [$data['Tag']['name']];
                 } else {
                     $data['Tag']['nameList'] = json_decode($data['Tag']['nameList'], true);
                 }
@@ -482,10 +491,10 @@ class TaxonomiesController extends AppController
             $result = $this->Taxonomies->delete($id, true);
             if ($result) {
                 $this->Flash->success(__('Taxonomy successfully deleted.'));
-                $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+                $this->redirect(['controller' => 'taxonomies', 'action' => 'index']);
             } else {
                 $this->Flash->error(__('Taxonomy could not be deleted.'));
-                $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+                $this->redirect(['controller' => 'taxonomies', 'action' => 'index']);
             }
         } else {
             if ($this->request->is('ajax')) {
@@ -499,10 +508,13 @@ class TaxonomiesController extends AppController
 
     public function toggleRequired($id)
     {
-        $taxonomy = $this->Taxonomies->find('all', array(
-            'recursive' => -1,
-            'conditions' => array('Taxonomy.id' => $id)
-        ))->first();
+        $taxonomy = $this->Taxonomies->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => ['Taxonomy.id' => $id]
+            ]
+        )->first();
         if (empty($taxonomy)) {
             return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleRequired', $id, 'Invalid Taxonomy', $this->response->getType());
         }
@@ -525,10 +537,13 @@ class TaxonomiesController extends AppController
 
     public function toggleHighlighted($id)
     {
-        $taxonomy = $this->Taxonomies->find('all', array(
-            'recursive' => -1,
-            'conditions' => array('Taxonomy.id' => $id)
-        ))->first();
+        $taxonomy = $this->Taxonomies->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => ['Taxonomy.id' => $id]
+            ]
+        )->first();
         if (empty($taxonomy)) {
             return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleHighlighted', $id, 'Invalid Taxonomy', $this->response->getType());
         }
@@ -594,13 +609,16 @@ class TaxonomiesController extends AppController
 
         $TagsTable = $this->fetchTable('Tags');
         if (!empty($tags)) {
-            $existingTags = $TagsTable->find('column', [
-                'fields' => ['Tags.name'],
-                'conditions' => [
-                    'lower(name) IN' => array_keys($tags),
-                    'hide_tag' => 0
-                ],
-            ]);
+            $existingTags = $TagsTable->find(
+                'column',
+                [
+                    'fields' => ['Tags.name'],
+                    'conditions' => [
+                        'lower(name) IN' => array_keys($tags),
+                        'hide_tag' => 0
+                    ],
+                ]
+            );
         } else {
             $existingTags = $TagsTable->find('column', ['fields' => ['name']]);
         }
@@ -619,33 +637,51 @@ class TaxonomiesController extends AppController
     {
         $value = mb_strtolower(trim($value));
         $searchTerm = "%$value%";
-        $taxonomyPredicateIds = $this->Taxonomies->TaxonomyPredicates->TaxonomyEntry->find('column', [
-            'fields' => ['TaxonomyEntry.taxonomy_predicate_id'],
-            'conditions' => ['OR' => [
-                'LOWER(value) LIKE' => $searchTerm,
-                'LOWER(expanded) LIKE' => $searchTerm,
-            ]],
-            'unique' => true,
-        ]);
+        $taxonomyPredicateIds = $this->Taxonomies->TaxonomyPredicates->TaxonomyEntry->find(
+            'column',
+            [
+                'fields' => ['TaxonomyEntry.taxonomy_predicate_id'],
+                'conditions' => [
+                    'OR' => [
+                        'LOWER(value) LIKE' => $searchTerm,
+                        'LOWER(expanded) LIKE' => $searchTerm,
+                    ]
 
-        $taxonomyIds = $this->Taxonomies->TaxonomyPredicates->find('column', [
-            'fields' => ['TaxonomyPredicate.taxonomy_id'],
-            'conditions' => ['OR' => [
-                'id' => $taxonomyPredicateIds,
-                'LOWER(value) LIKE' => $searchTerm,
-                'LOWER(expanded) LIKE' => $searchTerm,
-            ]],
-            'unique' => true,
-        ]);
+                ],
+                'unique' => true,
+            ]
+        );
 
-        $taxonomyIds = $this->Taxonomies->find('column', [
-            'fields' => ['Taxonomy.id'],
-            'conditions' => ['OR' => [
-                'id' => $taxonomyIds,
-                'LOWER(namespace) LIKE' => $searchTerm,
-                'LOWER(description) LIKE' => $searchTerm,
-            ]],
-        ]);
+        $taxonomyIds = $this->Taxonomies->TaxonomyPredicates->find(
+            'column',
+            [
+                'fields' => ['TaxonomyPredicate.taxonomy_id'],
+                'conditions' => [
+                    'OR' => [
+                        'id' => $taxonomyPredicateIds,
+                        'LOWER(value) LIKE' => $searchTerm,
+                        'LOWER(expanded) LIKE' => $searchTerm,
+                    ]
+
+                ],
+                'unique' => true,
+            ]
+        );
+
+        $taxonomyIds = $this->Taxonomies->find(
+            'column',
+            [
+                'fields' => ['Taxonomy.id'],
+                'conditions' => [
+                    'OR' => [
+                        'id' => $taxonomyIds,
+                        'LOWER(namespace) LIKE' => $searchTerm,
+                        'LOWER(description) LIKE' => $searchTerm,
+                    ]
+
+                ],
+            ]
+        );
 
         return $taxonomyIds;
     }
@@ -656,6 +692,6 @@ class TaxonomiesController extends AppController
         $this->request->allowMethod(['post', 'put']);
         $conversionResult = $this->Taxonomies->normalizeCustomTagsToTaxonomyFormat();
         $this->Flash->success(__('%s tags successfully converted. %s row updated.', $conversionResult['tag_converted'], $conversionResult['row_updated']));
-        $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+        $this->redirect(['controller' => 'taxonomies', 'action' => 'index']);
     }
 }
