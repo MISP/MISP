@@ -509,7 +509,7 @@ class TaxonomiesTable extends AppTable
         $tags = $TagsTable->find(
             'all',
             [
-                'conditions' => ['Tag.name' => $tags, 'Tag.hide_tag' => 0],
+                'conditions' => ['name IN' => $tags, 'hide_tag' => 0],
                 'recursive' => -1
             ]
         );

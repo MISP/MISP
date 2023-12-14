@@ -198,4 +198,12 @@ class TagsTable extends AppTable
         }
         return $tags;
     }
+
+    public function disableTags($tags)
+    {
+        foreach ($tags as $k => $v) {
+            $tags[$k]['hide_tag'] = 1;
+        }
+        return $this->saveMany($tags);
+    }
 }

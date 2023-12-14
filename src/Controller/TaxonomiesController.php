@@ -192,7 +192,7 @@ class TaxonomiesController extends AppController
             'all',
             [
                 'recursive' => -1,
-                'conditions' => ['Taxonomy.id' => $id],
+                'conditions' => ['id' => $id],
             ]
         )->first();
         if (empty($taxonomy)) {
@@ -204,10 +204,10 @@ class TaxonomiesController extends AppController
                 $this->redirect($this->referer());
             }
         } else {
-            $taxonomy['Taxonomy']['enabled'] = true;
+            $taxonomy['enabled'] = true;
             $this->Taxonomies->save($taxonomy);
 
-            $this->__log('enable', $id, 'Taxonomy enabled', $taxonomy['Taxonomy']['namespace'] . ' - enabled');
+            $this->__log('enable', $id, 'Taxonomy enabled', $taxonomy['namespace'] . ' - enabled');
 
             if ($this->ParamHandler->isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Taxonomy', 'enable', $id, $this->response->getType());
@@ -226,7 +226,7 @@ class TaxonomiesController extends AppController
             'all',
             [
                 'recursive' => -1,
-                'conditions' => ['Taxonomy.id' => $id],
+                'conditions' => ['id' => $id],
             ]
         )->first();
         if (empty($taxonomy)) {
@@ -239,10 +239,10 @@ class TaxonomiesController extends AppController
             }
         } else {
             $this->Taxonomies->disableTags($id);
-            $taxonomy['Taxonomy']['enabled'] = 0;
+            $taxonomy['enabled'] = 0;
             $this->Taxonomies->save($taxonomy);
 
-            $this->__log('disable', $id, 'Taxonomy disabled', $taxonomy['Taxonomy']['namespace'] . ' - disabled');
+            $this->__log('disable', $id, 'Taxonomy disabled', $taxonomy['namespace'] . ' - disabled');
 
             if ($this->ParamHandler->isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Taxonomy', 'disable', $id, $this->response->getType());
