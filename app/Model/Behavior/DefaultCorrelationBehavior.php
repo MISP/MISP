@@ -626,6 +626,6 @@ class DefaultCorrelationBehavior extends ModelBehavior
         ]);
         $Model->deleteAll([
             'Correlation.value_id' => $valueIds
-        ]);
+        ], false);
     }
 }
