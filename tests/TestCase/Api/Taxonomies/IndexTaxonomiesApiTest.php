@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Taxonomies;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\TaxonomiesFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class IndexTaxonomiesApiTest extends TestCase
 {
@@ -20,6 +20,8 @@ class IndexTaxonomiesApiTest extends TestCase
         'app.Users',
         'app.AuthKeys',
         'app.Taxonomies',
+        'app.TaxonomyPredicates',
+        'app.TaxonomyEntries',
     ];
 
     public function testIndexTaxonomies(): void

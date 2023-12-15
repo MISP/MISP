@@ -46,7 +46,6 @@ class ExportGalaxyApiTest extends TestCase
                 ]
             ]
         );
-        // $this->markTestSkipped("This is not implemented yet.");
 
         $this->assertResponseOk();
         $galaxy = $this->getJsonResponseAsArray();
