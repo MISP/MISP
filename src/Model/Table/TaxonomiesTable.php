@@ -15,6 +15,8 @@ class TaxonomiesTable extends AppTable
 {
     private $__taxonomyConflicts = [];
 
+    private $taxonomiesPath;
+
     public function initialize(array $config): void
     {
         $this->setDisplayField('name');
@@ -28,6 +30,8 @@ class TaxonomiesTable extends AppTable
                 'dependent' => true,
             ]
         );
+
+        $this->taxonomiesPath = Configure::read('MISP.custom_taxonomies_path', APP . '..' . DS . 'libraries' . DS .  'misp-taxonomies' . DS);
     }
 
     public function validationDefault(Validator $validator): Validator
@@ -50,7 +54,7 @@ class TaxonomiesTable extends AppTable
         )->toArray();
         $existing = array_column($existing, null, 'namespace');
 
-        $directories = glob(APP . '..' . DS . 'libraries' . DS .  'misp-taxonomies' . DS . '*', GLOB_ONLYDIR);
+        $directories = glob($this->taxonomiesPath . '*', GLOB_ONLYDIR);
         $updated = [];
         foreach ($directories as $dir) {
             $dir = basename($dir);
@@ -58,7 +62,7 @@ class TaxonomiesTable extends AppTable
                 continue;
             }
 
-            $machineTagPath = APP . '..' . DS . 'libraries' . DS .  'misp-taxonomies' . DS . $dir . DS . 'machinetag.json';
+            $machineTagPath = $this->taxonomiesPath . $dir . DS . 'machinetag.json';
 
             try {
                 $vocab = FileAccessTool::readJsonFromFile($machineTagPath);

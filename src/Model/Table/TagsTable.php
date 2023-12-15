@@ -184,6 +184,10 @@ class TagsTable extends AppTable
 
     public function getTagsByName($tag_names, $containTagConnectors = true)
     {
+        if (empty($tag_names)) {
+            return [];
+        }
+
         $tag_params = [
             'recursive' => -1,
             'conditions' => ['name IN' => $tag_names]

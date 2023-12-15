@@ -488,7 +488,9 @@ class TaxonomiesController extends AppController
     public function delete($id)
     {
         if ($this->request->is('post')) {
-            $result = $this->Taxonomies->delete($id, true);
+            // TODO: handle API request
+            $taxonomy = $this->Taxonomies->get($id);
+            $result = $this->Taxonomies->delete($taxonomy);
             if ($result) {
                 $this->Flash->success(__('Taxonomy successfully deleted.'));
                 $this->redirect(['controller' => 'taxonomies', 'action' => 'index']);
