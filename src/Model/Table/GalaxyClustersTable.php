@@ -697,19 +697,19 @@ class GalaxyClustersTable extends AppTable
         $relation_ids = $this->GalaxyClusterRelations->find(
             'all',
             [
-                'conditions' => ['galaxy_cluster_id in' => $cluster_ids],
+                'conditions' => ['galaxy_cluster_id IN' => $cluster_ids],
                 'fields' => ['id']
             ]
         )->toArray();
         $relation_ids = Hash::extract($relation_ids, '{n}.id');
         $this->deleteAll(['GalaxyCluster.default' => true], false, false);
-        $this->GalaxyElements->deleteAll(['GalaxyElement.galaxy_cluster_id in' => $cluster_ids], false, false);
-        $this->GalaxyClusterRelations->deleteAll(['GalaxyClusterRelations.galaxy_cluster_id in' => $cluster_ids], false, false);
+        $this->GalaxyElements->deleteAll(['GalaxyElement.galaxy_cluster_id IN' => $cluster_ids], false, false);
+        $this->GalaxyClusterRelations->deleteAll(['GalaxyClusterRelations.galaxy_cluster_id IN' => $cluster_ids], false, false);
         $this->GalaxyClusterRelations->updateAll(
             ['referenced_galaxy_cluster_id' => 0],
-            ['referenced_galaxy_cluster_uuid in' => $cluster_uuids] // For all default clusters being referenced
+            ['referenced_galaxy_cluster_uuid IN' => $cluster_uuids] // For all default clusters being referenced
         );
-        $this->GalaxyClusterRelations->GalaxyClusterRelationTags->deleteAll(['galaxy_cluster_relation_id in' => $relation_ids], false, false);
+        $this->GalaxyClusterRelations->GalaxyClusterRelationTags->deleteAll(['galaxy_cluster_relation_id IN' => $relation_ids], false, false);
         $LogTable = $this->fetchTable('Logs');
         $LogTable->createLogEntry('SYSTEM', 'wipe_default', 'GalaxyCluster', 0, "Wiping default galaxy clusters");
     }
@@ -1248,7 +1248,7 @@ class GalaxyClustersTable extends AppTable
                         'SharingGroup',
                     ],
                     'conditions' => [
-                        'referenced_galaxy_cluster_id in' => $clusterIds,
+                        'referenced_galaxy_cluster_id IN' => $clusterIds,
                     ]
                 ]
             )->toArray();

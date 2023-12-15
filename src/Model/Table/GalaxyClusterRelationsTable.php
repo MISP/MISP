@@ -425,7 +425,7 @@ class GalaxyClusterRelationsTable extends AppTable
             'all',
             [
                 'recursive' => -1,
-                'conditions' => ['galaxy_cluster_id in' => array_keys($lookupSavedIds)],
+                'conditions' => ['galaxy_cluster_id IN' => array_keys($lookupSavedIds)],
                 'fields' => ['id', 'galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid']
             ]
         );

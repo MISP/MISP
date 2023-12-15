@@ -7,3 +7,6 @@
 [submodule "libraries/misp-galaxy"]
 	path = libraries/misp-galaxy
 	url = https://github.com/MISP/misp-galaxy
+[submodule "libraries/misp-taxonomies"]
+	path = libraries/misp-taxonomies
+	url = https://github.com/MISP/misp-taxonomies

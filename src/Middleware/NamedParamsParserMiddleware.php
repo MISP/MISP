@@ -10,7 +10,6 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class NamedParamsParserMiddleware implements MiddlewareInterface
 {
-
     /**
      * This middleware allows to configure named params for specific controller/actions to keep CakePHP 2.x backwards compatibility.
      * Reads Configure::read('NamedParams') and parses the named params from the request->pass array.
@@ -20,6 +19,8 @@ class NamedParamsParserMiddleware implements MiddlewareInterface
     public const NAMED_PARAMS = [
         'events.index' => ['limit', 'order', 'page', 'sort', 'direction', 'fields', 'search'],
         'galaxies.index' => ['limit', 'order', 'page', 'sort', 'direction', 'value'],
+        'taxonomies.addTag' => ['taxonomy_id'],
+        'taxonomies.disableTag' => ['taxonomy_id'],
     ];
 
     public function process(

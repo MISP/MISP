@@ -1,0 +1,22 @@
+{
+    "values": [
+        {
+            "entry": [
+                {
+                    "expanded": "Test Taxonomy Library Entry 1",
+                    "value": "test-library-entry-1"
+                }
+            ],
+            "predicate": "test-library-predicate-1"
+        }
+    ],
+    "predicates": [
+        {
+            "expanded": "Test Taxonomy Library Predicate 1",
+            "value": "test-library-predicate-1"
+        }
+    ],
+    "version": 1,
+    "description": "Test Taxonomy Library 1",
+    "namespace": "test-library-taxonomy-1"
+}
