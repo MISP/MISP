@@ -29,9 +29,13 @@ class EncryptedValue implements JsonSerializable
      * @throws JsonException
      * @throws Exception
      */
-    public function decrypt()
+    public function decrypt($key=false)
     {
-        $decrypt = BetterSecurity::decrypt(substr($this->value, 2), Configure::read('Security.encryption_key'));
+        if (!$key) {
+            $key = Configure::read('Security.encryption_key');
+        }
+        if (!$key) return '';
+        $decrypt = BetterSecurity::decrypt(substr($this->value, 2), $key);
         return $this->isJson ? JsonTool::decode($decrypt) : $decrypt;
     }
 
@@ -51,13 +55,33 @@ class EncryptedValue implements JsonSerializable
      * @return string
      * @throws Exception
      */
-    public static function encryptIfEnabled($value)
+    public static function encryptIfEnabled($value, $key=false)
     {
-        $key = Configure::read('Security.encryption_key');
+        if (!$key) {
+            $key = Configure::read('Security.encryption_key');
+        }
         if ($key) {
             return EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($value, $key);
         }
         return $value;
+    }
+
+    /**
+     * Decrypt if value is encrypted. If not encrypted, input value will be returned.
+     * @param string $value
+     * @return string
+     * @throws Exception
+     */
+    public static function decryptIfEncrypted($value, $key=false)
+    {
+        if(is_resource($value))
+            $value = stream_get_contents($value);
+        if (EncryptedValue::isEncrypted($value)) {
+            $self = new EncryptedValue($value);
+            return $self->decrypt($key); 
+        } else {
+            return $value;
+        }
     }
 
     /**
