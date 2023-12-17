@@ -14,6 +14,7 @@ class ServersTable extends AppTable
     {
         parent::initialize($config);
         $this->addBehavior('AuditLog');
+        $this->addBehavior('EncryptedFields', ['fields' => ['authkey']]);
     }
 
     public function captureServer($server, $user)

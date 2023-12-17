@@ -1687,16 +1687,20 @@ class Server extends AppModel
                         }
                         return true;
                     },
+                    // $table->behaviors()->has('EncryptedFields');
                     'afterHook' => function ($setting, $new, $old) {
+                        // LATER change code to automatically search for xxTables with EncryptedFieldsBehalvior and re-encrypte all the keys using changeKey($old) of the Behavior
+                        // although at first sight this is complex and requires filesystem listings
                         /** @var SystemSetting $systemSetting */
                         $systemSetting = $this->fetchTable('SystemSettings');
-                        $systemSetting->reencrypt($old, $new);
+                        $systemSetting->changeKey($old);
 
-                        $this->reencryptAuthKeys($old, $new);
+                        /** Server */
+                        $this->changeKey($old);
 
                         /** @var Cerebrate $cerebrate */
                         $cerebrate = $this->fetchTable('Cerebrates');
-                        $cerebrate->reencryptAuthKeys($old, $new);
+                        $cerebrate->changeKey($old);
                         return true;
                     },
                     'type' => 'string',
@@ -2974,43 +2978,4 @@ class Server extends AppModel
         return $options;
     }
 
-    /**
-     * @param string|null $old Old (or current) encryption key.
-     * @param string|null $new New encryption key. If empty, encrypted values will be decrypted.
-     * @throws Exception
-     */
-    public function reencryptAuthKeys($old, $new)
-    {
-        $ServersTable = $this->fetchTable('Servers');
-
-        $servers = $ServersTable->find(
-            'list',
-            [
-                'fields' => ['Server.id', 'Server.authkey'],
-            ]
-        );
-        $toSave = [];
-        foreach ($servers as $id => $authkey) {
-            if (EncryptedValue::isEncrypted($authkey)) {
-                try {
-                    $authkey = BetterSecurity::decrypt(substr($authkey, 2), $old);
-                } catch (Exception $e) {
-                    throw new Exception("Could not decrypt auth key for server #$id", 0, $e);
-                }
-            }
-            if (!empty($new)) {
-                $authkey = EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($authkey, $new);
-            }
-            $toSave[] = [
-                'Server' => [
-                    'id' => $id,
-                    'authkey' => $authkey,
-                ]
-            ];
-        }
-        if (empty($toSave)) {
-            return true;
-        }
-        return $ServersTable->saveMany($toSave, ['validate' => false, 'fields' => ['authkey']]);
-    }
 }
