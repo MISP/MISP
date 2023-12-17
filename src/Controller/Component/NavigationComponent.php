@@ -46,7 +46,7 @@ class NavigationComponent extends Component
         'Correlations' => 'project-diagram',
         'Servers' => 'network-wired',
         'Communities' => 'handshake-simple',
-        'Cerebrate' => ['image' => '/img/cerebrate-icon-purple.png',],
+        'Cerebrates' => ['image' => '/img/cerebrate-icon-purple.png',],
         'TaxiiServers' => ['image' => '/img/taxii-icon.png',],
         'ServerSettings' => 'cogs',
         'Jobs' => 'robot',
@@ -86,6 +86,7 @@ class NavigationComponent extends Component
         'Events',
         'Noticelists',
         'ObjectTemplates',
+        'Cerebrates'
     ];
 
     public function initialize(array $config): void

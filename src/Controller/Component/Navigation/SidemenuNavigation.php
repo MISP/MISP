@@ -178,9 +178,9 @@ class SidemenuNavigation
                             'icon' => $this->iconTable['Communities'],
                             'url' => '/communities/index',
                         ],
-                        'Cerebrate' => [
+                        'Cerebrates' => [
                             'label' => __('Cerebrate'),
-                            'icon' => $this->iconTable['Cerebrate'],
+                            'icon' => $this->iconTable['Cerebrates'],
                             'url' => '/cerebrates/index',
                         ],
                         'TaxiiServers' => [
