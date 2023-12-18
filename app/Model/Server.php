@@ -6137,7 +6137,7 @@ class Server extends AppModel
                 ],
                 'block_publishing_for_same_creator' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Enable this setting will make MISP blocks publishing if the publisher is the same as the event creator'),
+                    'description' => __('Enabling this setting will make MISP block event publishing in the case of the publisher being the same user as the event creator.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
