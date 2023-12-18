@@ -3764,7 +3764,7 @@ class Event extends AppModel
         }
         unset($data['Event']['id']);
         if (
-            Configure::read('MISP.block_publishing_for_same_creator', false) ||
+            (Configure::read('MISP.block_publishing_for_same_creator', false) && !$user['Role']['perm_sync']) ||
             (isset($data['Event']['published']) && $data['Event']['published'] && $user['Role']['perm_publish'] == 0)
         ) {
             $data['Event']['published'] = 0;
@@ -3913,9 +3913,7 @@ class Event extends AppModel
                 if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($this->id, $user);
                 }
-                if (!Configure::read('MISP.block_publishing_for_same_creator', false)) {
-                    $this->publish($this->id, $passAlong);
-                }
+                $this->publish($this->id, $passAlong);
             }
             if (empty($data['Event']['locked']) && !empty(Configure::read('MISP.default_event_tag_collection'))) {
                 $this->TagCollection = ClassRegistry::init('TagCollection');
@@ -4086,7 +4084,7 @@ class Event extends AppModel
         }
         if (
             (!empty($data['Event']['published']) && !$user['Role']['perm_publish']) ||
-            (Configure::read('MISP.block_publishing_for_same_creator', false) && $user['id'] == $existingEvent['Event']['user_id'])
+            (Configure::read('MISP.block_publishing_for_same_creator', false) && $user['id'] == $existingEvent['Event']['user_id'] && !$user['Role']['perm_sync'])
         ) {
             $data['Event']['published'] = 0;
         }
@@ -6019,7 +6017,7 @@ class Event extends AppModel
                     $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
                 }
                 if ($publish && $user['Role']['perm_publish']) {
-                    if (!Configure::read('MISP.block_publishing_for_same_creator', false)) {
+                    if (!Configure::read('MISP.block_publishing_for_same_creator', false) || $user['Role']['perm_sync']) {
                         $this->publish($created_id);
                     }
                 }
