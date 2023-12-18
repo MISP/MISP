@@ -4083,8 +4083,8 @@ class Event extends AppModel
             return array('error' => 'Event could not be saved: Could not find the local event.');
         }
         if (
-            (!empty($data['Event']['published']) && !$user['Role']['perm_publish']) ||
-            (Configure::read('MISP.block_publishing_for_same_creator', false) && $user['id'] == $existingEvent['Event']['user_id'] && !$user['Role']['perm_sync'])
+            (Configure::read('MISP.block_publishing_for_same_creator', false) && !$user['Role']['perm_sync'] && $user['id'] == $existingEvent['Event']['user_id']) ||
+            (!empty($data['Event']['published']) && !$user['Role']['perm_publish'])
         ) {
             $data['Event']['published'] = 0;
         }
