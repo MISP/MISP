@@ -3763,7 +3763,10 @@ class Event extends AppModel
             unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
         }
         unset($data['Event']['id']);
-        if (isset($data['Event']['published']) && $data['Event']['published'] && $user['Role']['perm_publish'] == 0) {
+        if (
+            Configure::read('MISP.block_publishing_for_same_creator', false) ||
+            (isset($data['Event']['published']) && $data['Event']['published'] && $user['Role']['perm_publish'] == 0)
+        ) {
             $data['Event']['published'] = 0;
         }
         if (isset($data['Event']['uuid'])) {
@@ -3910,7 +3913,9 @@ class Event extends AppModel
                 if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($this->id, $user);
                 }
-                $this->publish($this->id, $passAlong);
+                if (!Configure::read('MISP.block_publishing_for_same_creator', false)) {
+                    $this->publish($this->id, $passAlong);
+                }
             }
             if (empty($data['Event']['locked']) && !empty(Configure::read('MISP.default_event_tag_collection'))) {
                 $this->TagCollection = ClassRegistry::init('TagCollection');
@@ -4079,7 +4084,10 @@ class Event extends AppModel
         } else {
             return array('error' => 'Event could not be saved: Could not find the local event.');
         }
-        if (!empty($data['Event']['published']) && !$user['Role']['perm_publish']) {
+        if (
+            (!empty($data['Event']['published']) && !$user['Role']['perm_publish']) ||
+            (Configure::read('MISP.block_publishing_for_same_creator', false) && $user['id'] == $existingEvent['Event']['user_id'])
+        ) {
             $data['Event']['published'] = 0;
         }
         if (!isset($data['Event']['published'])) {
@@ -4210,7 +4218,7 @@ class Event extends AppModel
                 if ((true != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($id, $user, $existingEvent['Event']['publish_timestamp']);
                 }
-                $this->publish($existingEvent['Event']['id']);
+                $this->publish($existingEvent['Event']['id'], $passAlong);
             }
             if ($jobId) {
                 $eventLock->deleteBackgroundJobLock($data['Event']['id'], $jobId);
@@ -6011,7 +6019,9 @@ class Event extends AppModel
                     $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
                 }
                 if ($publish && $user['Role']['perm_publish']) {
-                    $this->publish($created_id);
+                    if (!Configure::read('MISP.block_publishing_for_same_creator', false)) {
+                        $this->publish($created_id);
+                    }
                 }
                 return $created_id;
             } else if (is_numeric($result)) {
