@@ -65,6 +65,19 @@ class ACLComponent extends Component
             'testConnection' => ['perm_admin'],
             'view' => ['perm_admin']
         ],
+        'Cerebrates' => [
+            'add' => [],
+            'delete' => [],
+            'download_org' => [],
+            'download_sg' => [],
+            'edit' => [],
+            'index' => [],
+            'preview_orgs' => [],
+            'preview_sharing_groups' => [],
+            'pull_orgs' => [],
+            'pull_sgs' => [],
+            'view' => []
+        ],
         'EncryptionKeys' => [
             'view' => ['*'],
             'add' => ['*'],

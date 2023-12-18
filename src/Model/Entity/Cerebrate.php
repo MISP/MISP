@@ -3,6 +3,8 @@
 namespace App\Model\Entity;
 
 use App\Model\Entity\AppModel;
+use Cake\Core\Exception\CakeException;
+
 
 /**
  * Cerebrate Entity
@@ -52,35 +54,41 @@ class Cerebrate extends AppModel
 
     public function queryInstance($options)
     {
-        // FIXME chri - convert this to an entity model where the entity already contains the data, and not the $options
-    //     $url = $options['cerebrate']['Cerebrate']['url'] . $options['path'];
-    //     $url_params = [];
 
-    //     $HttpSocket = $this->setupHttpSocket($options['cerebrate']);
-    //     $request = $this->setupSyncRequest($options['cerebrate'], 'Cerebrate');
-    //     try {
-    //         if (!empty($options['type']) && $options['type'] === 'post') {
-    //             $response = $HttpSocket->post($url, json_encode($options['body']), $request);
-    //         } else {
-    //             $response = $HttpSocket->get(
-    //                 $url,
-    //                 (isset($options['params']) ? $options['params'] : []),
-    //                 $request
-    //             );
-    //         }
-    //         if ($response->isOk()) {
-    //             return json_decode($response->body, true);
-    //         }
-    //     } catch (SocketException $e) {
-    //         throw new BadRequestException(__('Something went wrong. Error returned: %s', $e->getMessage));
-    //     }
-    //     if ($response->code === 403 || $response->code === 401) {
-    //         throw new ForbiddenException(__('Authentication failed.'));
-    //     }
-    //     throw new BadRequestException(__('Something went wrong with the request or the remote side is having issues.'));
+        throw new CakeException('Not implemented');
+
+        // // FIXME chri - convert this to an entity model where the entity already contains the data, and not the $options
+        // $url = $this->url . $options['path'];
+        // $url_params = [];
+
+        // $HttpSocket = $this->setupHttpSocket($options['cerebrate']);
+        // $request = $this->setupSyncRequest($options['cerebrate'], 'Cerebrate');
+        // try {
+        //     if (!empty($options['type']) && $options['type'] === 'post') {
+        //         $response = $HttpSocket->post($url, json_encode($options['body']), $request);
+        //     } else {
+        //         $response = $HttpSocket->get(
+        //             $url,
+        //             (isset($options['params']) ? $options['params'] : []),
+        //             $request
+        //         );
+        //     }
+        //     if ($response->isOk()) {
+        //         return json_decode($response->body, true);
+        //     }
+        // } catch (SocketException $e) {
+        //     throw new BadRequestException(__('Something went wrong. Error returned: %s', $e->getMessage));
+        // }
+        // if ($response->code === 403 || $response->code === 401) {
+        //     throw new ForbiddenException(__('Authentication failed.'));
+        // }
+        // throw new BadRequestException(__('Something went wrong with the request or the remote side is having issues.'));
     }
 
-    public function convertOrg($org_data) {
+    public function convertOrg($org_data) 
+    {
+        throw new CakeException('Not implemented');
+
         // $mapping = [
         //     'name' => [
         //         'field' => 'name',
@@ -116,6 +124,8 @@ class Cerebrate extends AppModel
 
     public function saveRemoteOrgs($orgs)
     {
+        throw new CakeException('Not implemented');
+
         // $outcome = [
         //     'add' => 0,
         //     'edit' => 0,
@@ -142,6 +152,8 @@ class Cerebrate extends AppModel
 
     public function saveRemoteSgs($sgs, $user)
     {
+        throw new CakeException('Not implemented');
+
         // $outcome = [
         //     'add' => 0,
         //     'edit' => 0,
@@ -166,7 +178,10 @@ class Cerebrate extends AppModel
         // return $outcome;
     }
 
-    public function captureOrg($org_data, &$edit=false, &$noChange=false) {
+    public function captureOrg($org_data, &$edit=false, &$noChange=false) 
+    {
+        throw new CakeException('Not implemented');
+
         // $org = $this->convertOrg($org_data);
         // if ($org) {
         //     $existingOrg = $this->Organisation->find('first', [
@@ -236,6 +251,8 @@ class Cerebrate extends AppModel
      */
     public function checkRemoteOrgs($orgs)
     {
+        throw new CakeException('Not implemented');
+
         // $uuids = Hash::extract($orgs, '{n}.uuid');
         // $existingOrgs = $this->Organisation->find('all', [
         //     'recursive' => -1,
@@ -274,6 +291,8 @@ class Cerebrate extends AppModel
 
     private function __compareNames($name1, $name2)
     {
+        throw new CakeException('Not implemented');
+
         // if (preg_match('/\_[0-9]{4}$/i', $name1)) {
         //     if (substr($name1, 0, -5) === $name2) {
         //         return true;
@@ -286,6 +305,8 @@ class Cerebrate extends AppModel
 
     private function __compareMembers($existingMembers, $remoteMembers)
     {
+        throw new CakeException('Not implemented');
+
         // $memberFound = [];
         // $memberNotFound = [];
         // foreach ($remoteMembers as $remoteMember) {
@@ -311,6 +332,8 @@ class Cerebrate extends AppModel
      */
     public function checkRemoteSharingGroups($sgs)
     {
+        throw new CakeException('Not implemented');
+
         // $this->SharingGroup = ClassRegistry::init('SharingGroup');
         // $uuids = Hash::extract($sgs, '{n}.uuid');
         // $existingSgs = $this->SharingGroup->find('all', [
@@ -343,6 +366,8 @@ class Cerebrate extends AppModel
 
     private function compareSgs($existingSg, $remoteSg)
     {
+        throw new CakeException('Not implemented');
+
         // $differences = [];
         // $fieldsToCheck = ['name', 'releasability', 'description'];
 
@@ -367,6 +392,8 @@ class Cerebrate extends AppModel
 
     private function convertSg($sg_data)
     {
+        throw new CakeException('Not implemented');
+
         // $mapping = [
         //     'name' => [
         //         'field' => 'name',
@@ -409,7 +436,10 @@ class Cerebrate extends AppModel
         // return $sg;
     }
 
-    public function captureSg($sg_data, $user, &$edit=false, &$noChange=false) {
+    public function captureSg($sg_data, $user, &$edit=false, &$noChange=false) 
+    {
+        throw new CakeException('Not implemented');
+
         // $this->SharingGroup = ClassRegistry::init('SharingGroup');
         // $sg = $this->convertSg($sg_data);
         // if ($sg) {
