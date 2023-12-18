@@ -3187,7 +3187,7 @@ class EventsController extends AppController
         $event = $this->Event->find('first', [
             'conditions' => Validation::uuid($id) ? ['Event.uuid' => $id] : ['Event.id' => $id],
             'recursive' => -1,
-            'fields' => ['id', 'info', 'publish_timestamp', 'orgc_id'],
+            'fields' => ['id', 'info', 'publish_timestamp', 'orgc_id', 'user_id'],
         ]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
@@ -3205,6 +3205,16 @@ class EventsController extends AppController
                     $this->redirect(['action' => 'view', $event['Event']['id']]);
                 }
             }
+        }
+        if (
+            Configure::read('MISP.block_publishing_for_same_creator', false) &&
+            $this->Auth->user()['id'] == $event['Event']['user_id']
+        ) {
+            $message = __('Could not publish event, the user cannot be the same as the event creator');
+            if (!$this->_isRest()) {
+                $this->Flash->error($message);
+            }
+            throw new MethodNotAllowedException($message);
         }
 
         return $event;
