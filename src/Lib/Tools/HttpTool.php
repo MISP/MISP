@@ -2,25 +2,101 @@
 
 namespace App\Lib\Tools;
 
-use Cake\Core\Exception\CakeException;
+use App\Lib\Tools\CurlAdvanced;
 use Cake\Core\Configure;
-use Cake\Http\Client;
+use Cake\Core\Exception\CakeException;
+use Cake\Http\Client as CakeClient;
+use Cake\Http\Client\Request;
+use Cake\Http\Client\Response;
+use Cake\Http\Exception\NotImplementedException;
 use Cake\I18n\FrozenTime;
 
-class HttpTool
+
+class HttpTool extends CakeClient
 {
 
-    public function createRequest(array $params = []): Client
+    public function __construct(array $config = [])
     {
-        // Use own CA PEM file
+        $this->buildDefaultConfigFromSettings();
+
+        // Custom Curl Adapter to give extra features, including SSL Cert dumping
+        // $config['adapter'] = CurlAdvanced::class;
+
+        parent::__construct($config);
+    }
+
+        
+    /**
+     * buildDefaultConfigFromSettings
+     *
+     * @return array
+     */
+    public function buildDefaultConfigFromSettings()
+    {
+        /*
+        ## CakeClient settings
+        headers - Array of additional headers
+        cookie - Array of cookies to use.
+        proxy - Array of proxy information.
+        auth - Array of authentication data, the type key is used to delegate to an authentication strategy. By default Basic auth is used.
+        ssl_verify_peer - defaults to true. Set to false to disable SSL certification verification (not recommended).
+        ssl_verify_peer_name - defaults to true. Set to false to disable host name verification when verifying SSL certificates (not recommended).
+        ssl_verify_depth - defaults to 5. Depth to traverse in the CA chain.
+        ssl_verify_host - defaults to true. Validate the SSL certificate against the host name.
+        ssl_cafile - defaults to built in cafile. Overwrite to use custom CA bundles.
+        timeout - Duration to wait before timing out in seconds.
+        type - Send a request body in a custom content type. Requires $data to either be a string, or the _content option to be set when doing GET requests.
+        redirect - Number of redirects to follow. Defaults to false.
+        curl - An array of additional curl options (if the curl adapter is used), for example, [CURLOPT_SSLKEY => 'key.pem'].
+        
+        ## MISP global settings
+        MISP.ca_path - certificate store
+        Proxy.host, port, user, pass, method
+        Security.min_tls_version
+
+        ## MISP server/cerebrate setting
+        These settings are loaded in the _doRequest() function
+        - cert_file - translates to 'ssl_cafile'
+        - client_cert_file - translates to 'ssl_local_cert' - SSL client side authentication - see CURLOPT_SSLKEY
+        - self_signed - translates to 'ssl_allow_self_signed', 'ssl_verify_peer_name', 'ssl_verify_peer'
+        - skip_proxy - 
+        */
+        
+
+        // proxy settings
+        $proxy = Configure::read('Proxy');
+        // proxy array as CakeClient likes it 
+        // ['username' => 'mark',
+        //  'password' => 'testing',
+        //  'proxy' => '127.0.0.1:8080'] 
+
+        if (isset($proxy['host'])) {
+            $this->_defaultConfig['proxy'] = ['proxy' => $proxy['host'] . ":" . (empty($proxy['port']) ? 3128 : $proxy['port'])];
+            
+            if (isset($proxy['user']) && isset($proxy['password']) && !isset($proxy['method'])) {
+                $proxy['method'] = 'basic';
+            }
+            if (isset($proxy['method'])) {
+                if (strtolower($proxy['method']) == 'basic' && isset($proxy['user']) && isset($proxy['password'])) {
+                    $this->_defaultConfig['proxy']['username'] = $proxy['user'];
+                    $this->_defaultConfig['proxy']['password'] = $proxy['password'];
+                }
+                if (strtolower($proxy['method']) == 'digest') {
+                    throw new NotImplementedException('Digest proxy auth is not implemented'); // FIXME chri support Digest proxy auth
+                }
+            }
+        }
+
+        // global Certificate Authority
         $caPath = Configure::read('MISP.ca_path');
-        if (!isset($params['ssl_cafile']) && $caPath) {
+        if ($caPath) {
             if (!file_exists($caPath)) {
                 throw new CakeException("CA file '$caPath' doesn't exists.");
             }
-            $params['ssl_cafile'] = $caPath;
+            $this->_defaultConfig['ssl_cafile'] = $caPath;
         }
 
+        // min TLS version
         if ($minTlsVersion = Configure::read('Security.min_tls_version')) {
             $version = 0;
             switch ($minTlsVersion) {
@@ -40,20 +116,77 @@ class HttpTool
                 default:
                     throw new CakeException("Invalid `Security.min_tls_version` option $minTlsVersion");
             }
-            $params['ssl_crypto_method'] = $version;
+            $this->_defaultConfig['ssl_crypto_method'] = $version;
         }
-        //require_once(ROOT . '/src/Lib/Tools/HttpSocketExtended.php');
-        //$HttpSocket = new HttpSocketExtended($params);
-        // $client = new Client();
-        $proxy = Configure::read('Proxy');
-        if (empty($params['skip_proxy']) && isset($proxy['host']) && !empty($proxy['host'])) {
-            $params['proxy'] = [
-                'username' => $proxy['user'],
-                'password' => $proxy['password'],
-                'proxy' => $proxy['host'] . (empty($proxy['port']) ? '' : ':' . $proxy['port'])
-            ];
+
+        // Add user-agent
+        // FIXME chri - add user-agent
+    }
+
+    /**
+     * Helper method for doing non-GET requests. This method is there to provide us a wrapper implementing our custom options.
+     *
+     * @param string $method HTTP method.
+     * @param string $url URL to request.
+     * @param mixed $data The request body.
+     * @param array<string, mixed> $options The options to use. Contains auth, proxy, etc.
+     * @return \Cake\Http\Client\Response
+     */
+    protected function _doRequest(string $method, string $url, $data, $options): Response
+    {
+        if (isset($options['self_signed']) && $options['self_signed'] === true) {
+            $options = array_merge($options, [
+                'ssl_verify_peer' => false,
+                'ssl_verify_host' => false]);
         }
-        return new Client($params);
+        if (isset($options['skip_proxy']) && $options['skip_proxy'] === true) {
+            unset($options['proxy']); 
+        }
+        return parent::_doRequest($method, $url, $data, $options);
+    }
+
+    /**
+     * @deprecated createRequest - return an instance of HttpTool with automatic configuration
+     * @deprecated do not use this function, but use the HttpTool directly instead
+     * @param  mixed $config
+     * @return HttpTool
+     */
+    public function createRequest(array $config = []): HttpTool
+    {
+        return new HttpTool($config);
+    }
+
+        
+    /**
+     * fetchCertificate - download the SSL certificate from the remote server
+     *
+     * @return string the certificate in pem format
+     */
+    public function fetchCertificates(string $url, array $options = []) : array
+    {
+        $options = $this->_mergeOptions($options);
+        $options['ssl_verify_peer'] = false;
+        $options['ssl_verify_host'] = false;
+        $options['ssl_verify_peer_name'] = false;
+        // set CURL options, this is the place where magic happens.
+        $data = [];
+        $url = $this->buildUrl($url, $data, $options);
+        $request = $this->_createRequest(
+            Request::METHOD_GET,
+            $url,
+            $data,
+            $options
+        );
+        $curl = new CurlAdvanced();
+        $certificates = $curl->getCertificateChain($request, $options);
+        debug($certificates);
+        return $certificates;
+        // FIXME chri - now we need to find the right certificate
+        // $certificate = openssl_x509_read($caCertificate);
+        // if (!$certificate) {
+        //     throw new CakeException("Couldn't read certificate: " . openssl_error_string());
+        // }
+        // return $caCertificate;
     }
 
     /**
@@ -122,7 +255,7 @@ class HttpTool
      * @return array
      * @throws Exception
      */
-    private static function parseCertificate(mixed $certificate): array
+    public static function parseCertificate(mixed $certificate): array
     {
         $parsed = openssl_x509_parse($certificate);
         if (!$parsed) {
