@@ -3792,11 +3792,21 @@ class EventsController extends AppController
         if ($id === false) {
             $id = $this->request->data['event'];
         }
-        $this->Event->recursive = -1;
-        $event = $this->Event->read(array(), $id);
+        $conditions = ['Event.id' => $id];
+        if (Validation::uuid($id)) {
+            $conditions = ['Event.uuid' => $id];
+        }
+        $event = $this->Event->find(
+            'first',
+            [
+                'recursive' => -1,
+                'conditions' => $conditions
+            ]
+        );
         if (empty($event)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
         }
+        $id = $event['Event']['id'];
         $local = !empty($this->params['named']['local']);
         if (!$this->request->is('post')) {
             $this->set('local', $local);
