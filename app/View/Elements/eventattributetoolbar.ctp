@@ -105,7 +105,7 @@
                     ),
                     array(
                         'id' => 'multi-galaxy-button',
-                        'title' => __('Add new cluster to selected Attributes'),
+                        'title' => __('Add new local cluster to selected Attributes'),
                         'class' => 'mass-select hidden',
                         'fa-icon' => 'empire',
                         'fa-source' => 'fab',
