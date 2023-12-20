@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Users;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\UsersFixture;
 use App\Test\Helper\ApiTestTrait;
 use Cake\Auth\FormAuthenticate;
-use Cake\Http\ServerRequest;
-use Cake\Http\Response;
 use Cake\Controller\ComponentRegistry;
+use Cake\Http\Response;
+use Cake\Http\ServerRequest;
+use Cake\TestSuite\TestCase;
 
 class ChangePasswordApiTest extends TestCase
 {
@@ -28,6 +28,7 @@ class ChangePasswordApiTest extends TestCase
     protected $fixtures = [
         'app.Organisations',
         'app.Individuals',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];
@@ -39,9 +40,12 @@ class ChangePasswordApiTest extends TestCase
         $this->initializeOpenApiValidator();
 
         $this->collection = new ComponentRegistry();
-        $this->auth = new FormAuthenticate($this->collection, [
-            'userModel' => 'Users',
-        ]);
+        $this->auth = new FormAuthenticate(
+            $this->collection,
+            [
+                'userModel' => 'Users',
+            ]
+        );
     }
 
     public function testChangePasswordOwnUser(): void
@@ -60,13 +64,15 @@ class ChangePasswordApiTest extends TestCase
         $this->assertResponseOk();
 
         // Test new password with form login
-        $request = new ServerRequest([
-            'url' => 'users/login',
-            'post' => [
-                'username' => UsersFixture::USER_REGULAR_USER_EMAIL,
-                'password' => $newPassword
-            ],
-        ]);
+        $request = new ServerRequest(
+            [
+                'url' => 'users/login',
+                'post' => [
+                    'username' => UsersFixture::USER_REGULAR_USER_EMAIL,
+                    'password' => $newPassword
+                ],
+            ]
+        );
         $result = $this->auth->authenticate($request, new Response());
 
         $this->assertEquals(UsersFixture::USER_REGULAR_USER_ID, $result['id']);

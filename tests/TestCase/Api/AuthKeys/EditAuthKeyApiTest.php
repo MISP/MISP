@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\AuthKeys;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class EditAuthKeyApiTest extends TestCase
 {
@@ -16,6 +16,7 @@ class EditAuthKeyApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];
@@ -38,10 +39,13 @@ class EditAuthKeyApiTest extends TestCase
         );
 
         $this->assertResponseOk();
-        $this->assertDbRecordExists('AuthKeys', [
-            'id' => AuthKeysFixture::REGULAR_USER_API_ID,
-            'read_only' => true,
-            'comment' => $new_comment
-        ]);
+        $this->assertDbRecordExists(
+            'AuthKeys',
+            [
+                'id' => AuthKeysFixture::REGULAR_USER_API_ID,
+                'read_only' => true,
+                'comment' => $new_comment
+            ]
+        );
     }
 }

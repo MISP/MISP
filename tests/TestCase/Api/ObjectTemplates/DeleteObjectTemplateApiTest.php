@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\ObjectTemplates;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Helper\ApiTestTrait;
 use App\Test\Fixture\ObjectTemplatesFixture;
+use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class DeleteObjectTemplateApiTest extends TestCase
 {
@@ -17,6 +17,7 @@ class DeleteObjectTemplateApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.ObjectTemplates',

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Allowedlists\Admin;
 
-use Cake\TestSuite\TestCase;
+use App\Test\Fixture\AllowedlistsFixture;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Helper\ApiTestTrait;
-use App\Test\Fixture\AllowedlistsFixture;
+use Cake\TestSuite\TestCase;
 
 class EditAllowedlistApiTest extends TestCase
 {
@@ -17,6 +17,7 @@ class EditAllowedlistApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.Allowedlists'
@@ -39,9 +40,12 @@ class EditAllowedlistApiTest extends TestCase
         );
 
         $this->assertResponseOk();
-        $this->assertDbRecordExists('Allowedlists', [
-            'id' => AllowedlistsFixture::ALLOWED_LIST_2_ID,
-            'name' => $new_regex,
-        ]);
+        $this->assertDbRecordExists(
+            'Allowedlists',
+            [
+                'id' => AllowedlistsFixture::ALLOWED_LIST_2_ID,
+                'name' => $new_regex,
+            ]
+        );
     }
 }

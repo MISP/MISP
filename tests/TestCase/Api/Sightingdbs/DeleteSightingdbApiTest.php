@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Allowedlists\Admin;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Helper\ApiTestTrait;
 use App\Test\Fixture\SightingdbsFixture;
+use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class DeleteSightingdbApiTest extends TestCase
 {
@@ -17,6 +17,7 @@ class DeleteSightingdbApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.Sightingdbs'

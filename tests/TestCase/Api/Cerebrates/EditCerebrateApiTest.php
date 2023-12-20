@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Cerebrates;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\CerebratesFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class EditCerebrateApiTest extends TestCase
 {
@@ -18,6 +18,7 @@ class EditCerebrateApiTest extends TestCase
     protected $fixtures = [
         'app.Organisations',
         'app.Cerebrates',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];
@@ -36,10 +37,13 @@ class EditCerebrateApiTest extends TestCase
         );
 
         $this->assertResponseOk();
-        $this->assertDbRecordExists('Cerebrates', [
-            'id' => CerebratesFixture::SERVER_A_ID,
-            'description' => 'new description'
-        ]);
+        $this->assertDbRecordExists(
+            'Cerebrates',
+            [
+                'id' => CerebratesFixture::SERVER_A_ID,
+                'description' => 'new description'
+            ]
+        );
     }
 
     public function testEditNotAllowedAsRegularUser(): void
@@ -55,9 +59,12 @@ class EditCerebrateApiTest extends TestCase
             ]
         );
         $this->assertResponseCode(405);
-        $this->assertDbRecordNotExists('Cerebrates', [
-            'id' => CerebratesFixture::SERVER_A_ID,
-            'description' => 'new description'
-        ]);
+        $this->assertDbRecordNotExists(
+            'Cerebrates',
+            [
+                'id' => CerebratesFixture::SERVER_A_ID,
+                'description' => 'new description'
+            ]
+        );
     }
 }

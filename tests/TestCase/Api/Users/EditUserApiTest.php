@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Users;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\UsersFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class EditUserApiTest extends TestCase
 {
@@ -17,6 +17,7 @@ class EditUserApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];
@@ -35,10 +36,13 @@ class EditUserApiTest extends TestCase
         );
 
         $this->assertResponseOk();
-        $this->assertDbRecordExists('Users', [
-            'id' => UsersFixture::USER_REGULAR_USER_ID,
-            'role_id' => UsersFixture::ROLE_ORG_ADMIN_ID
-        ]);
+        $this->assertDbRecordExists(
+            'Users',
+            [
+                'id' => UsersFixture::USER_REGULAR_USER_ID,
+                'role_id' => UsersFixture::ROLE_ORG_ADMIN_ID
+            ]
+        );
     }
 
     public function testEditRoleNotAllowedAsRegularUser(): void
@@ -53,9 +57,12 @@ class EditUserApiTest extends TestCase
         );
 
         $this->assertResponseOk();
-        $this->assertDbRecordNotExists('Users', [
-            'id' => UsersFixture::USER_REGULAR_USER_ID,
-            'role_id' => UsersFixture::ROLE_ADMIN_ID
-        ]);
+        $this->assertDbRecordNotExists(
+            'Users',
+            [
+                'id' => UsersFixture::USER_REGULAR_USER_ID,
+                'role_id' => UsersFixture::ROLE_ADMIN_ID
+            ]
+        );
     }
 }
