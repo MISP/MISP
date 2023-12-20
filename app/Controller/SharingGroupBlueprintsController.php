@@ -193,4 +193,91 @@ class SharingGroupBlueprintsController extends AppController
             $this->render('/genericTemplates/confirm');
         }
     }
+
+    public function generateUuidList($id)
+    {
+        $orgs = $this->__getUuidList($id);
+        return $this->RestResponse->viewData($orgs, 'json');
+    }
+
+    private function __getUuidList($id)
+    {
+        $conditions = [];
+        if (empty($id)) {
+            throw new MethodNotAllowedException(__('No ID specified.'));
+        }
+        $conditions['SharingGroupBlueprint.id'] = $id;
+        if (!$this->Auth->user('Role')['perm_admin']) {
+            $conditions['SharingGroupBlueprint.org_id'] = $this->Auth->user('org_id');
+        }
+        $sharingGroupBlueprint = $this->SharingGroupBlueprint->find('first', ['conditions' => $conditions, 'recursive' => -1]);
+        if (empty($sharingGroupBlueprint)) {
+            throw new NotFoundException(__('Invalid Sharing Group Blueprint'));
+        }
+        // we create a fake user to restrict the visible sharing groups to the creator of the SharingGroupBlueprint, in case an admin wants to update it
+        $fake_user = [
+            'Role' => [
+                'perm_site_admin' => false
+            ],
+            'org_id' => $sharingGroupBlueprint['SharingGroupBlueprint']['org_id'],
+            'id' => 1
+        ];
+        $temp = $this->SharingGroupBlueprint->evaluateSharingGroupBlueprint($sharingGroupBlueprint, $fake_user);
+        $orgs = $this->SharingGroupBlueprint->SharingGroup->Organisation->find('list', [
+            'recursive' => -1,
+            'fields' => ['uuid'],
+            'conditions' => ['id' => $temp['orgs']]
+        ]);
+        return array_values($orgs);
+    }
+
+    public function encodeSyncRule($id)
+    {
+        $org_uuids = $this->__getUuidList($id);
+        $this->loadModel('Server');
+        if ($this->request->is('post')) {
+            if (!isset($this->request->data['SharingGroupBlueprint'])) {
+                $this->request->data = ['SharingGroupBlueprint' => $this->request->data];
+            }
+            $server = $this->Server->find('first', [
+                'conditions' => ['Server.id' => $this->request->data['SharingGroupBlueprint']['server_id']],
+                'recursive' => -1
+            ]);
+            if (empty($server)) {
+                throw new NotFoundException(__('Invalid server.'));
+            }
+            $server['Server']['pull_rules'] = json_decode($server['Server']['pull_rules'], true);
+            $server['Server']['push_rules'] = json_decode($server['Server']['push_rules'], true);
+            $rules = [];
+            $type_to_update = empty($this->request->data['SharingGroupBlueprint']['type']) ? 'pull' : $this->request->data['SharingGroupBlueprint']['type'];
+            $rule_to_update = empty($this->request->data['SharingGroupBlueprint']['rule']) ? 'OR' : $this->request->data['SharingGroupBlueprint']['rule'];
+            $rules[$type_to_update][$rule_to_update] = $org_uuids;
+            $server['Server'][$type_to_update . '_rules']['orgs'][$rule_to_update] = $rules[$type_to_update][$rule_to_update];
+            $server['Server']['pull_rules'] = json_encode($server['Server']['pull_rules']);
+            $server['Server']['push_rules'] = json_encode($server['Server']['push_rules']);
+            if (!$this->Server->save($server)) {
+                throw new InvalidArgumentException(__('Could not update the server - something went wrong.'));
+            } else {
+                if ($this->_isRest()) {
+                    $server = $this->Server->find('first', [
+                        'recursive' => -1,
+                        'conditions' => ['Server.id' => $this->request->data['SharingGroupBlueprint']['server_id']]
+                    ]);
+                    return $this->RestResponse->viewData($server, 'json');
+                } else {
+                    $this->Flash->success(__('Server %s\'s %s rules\' %s branch updated with the blueprint\'s rules.', $server['Server']['id'], $type_to_update, $rule_to_update));
+                    $this->redirect('/servers/index');
+                }
+            }
+        }
+        $servers = $this->Server->find('all', ['recursive' => -1]);
+        if (empty($servers)) {
+            throw new NotFoundException(__('No valid servers found.'));
+        }
+        $server_data = [];
+        foreach ($servers as $s) {
+            $server_data[$s['Server']['id']] = $s['Server']['name'];
+        }
+        $this->set('servers', $server_data);
+    }
 }
