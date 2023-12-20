@@ -6,7 +6,6 @@ namespace App\Test\TestCase\Api\Roles;
 
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\RolesFixture;
-use App\Test\Fixture\UsersFixture;
 use App\Test\Helper\ApiTestTrait;
 use Cake\TestSuite\TestCase;
 
@@ -18,9 +17,9 @@ class ViewRoleApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
-        'app.Roles'
     ];
 
 

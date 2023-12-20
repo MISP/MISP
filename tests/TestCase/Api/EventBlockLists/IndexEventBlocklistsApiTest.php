@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\EventBlocklists;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\EventBlocklistsFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class IndexEventBlocklistsApiTest extends TestCase
 {
@@ -17,6 +17,7 @@ class IndexEventBlocklistsApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.EventBlocklists'

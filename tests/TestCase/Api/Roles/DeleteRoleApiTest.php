@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Users;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\RolesFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class DeleteRoleApiTest extends TestCase
 {
@@ -17,9 +17,9 @@ class DeleteRoleApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
-        'app.Roles',
     ];
 
     public function testDeleteRole(): void

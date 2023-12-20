@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Roles;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class IndexRolesApiTest extends TestCase
 {
@@ -16,9 +16,9 @@ class IndexRolesApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
-        'app.AuthKeys',
-        'app.Roles'
+        'app.AuthKeys'
     ];
 
     public function testIndexRoles(): void

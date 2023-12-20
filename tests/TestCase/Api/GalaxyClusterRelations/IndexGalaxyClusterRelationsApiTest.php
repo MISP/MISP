@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\GalaxyClusters;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\GalaxyClusterRelationsFixture;
 use App\Test\Fixture\GalaxyClustersFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class IndexGalaxyClusterRelationsApiTest extends TestCase
 {
@@ -18,6 +18,7 @@ class IndexGalaxyClusterRelationsApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.Galaxies',

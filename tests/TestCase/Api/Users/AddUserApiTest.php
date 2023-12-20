@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Users;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Fixture\UsersFixture;
 use App\Test\Fixture\OrganisationsFixture;
+use App\Test\Fixture\UsersFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class AddUserApiTest extends TestCase
 {
@@ -18,6 +18,7 @@ class AddUserApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];

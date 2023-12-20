@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\CryptographicKeys;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\CryptographicKeysFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class DeleteCryptographicKeyApiTest extends TestCase
 {
@@ -17,6 +17,7 @@ class DeleteCryptographicKeyApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.CryptoGraphicKeys'

@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Users;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Fixture\SightingdbsFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class IndexSightingdbsApiTest extends TestCase
 {
@@ -18,6 +17,7 @@ class IndexSightingdbsApiTest extends TestCase
     protected $fixtures = [
         'app.Sightingdbs',
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];

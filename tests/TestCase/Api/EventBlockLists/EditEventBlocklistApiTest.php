@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\EventBlocklists;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Helper\ApiTestTrait;
 use App\Test\Fixture\EventBlocklistsFixture;
+use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class EditEventBlocklistApiTest extends TestCase
 {
@@ -17,6 +17,7 @@ class EditEventBlocklistApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.EventBlocklists'
@@ -43,11 +44,14 @@ class EditEventBlocklistApiTest extends TestCase
         );
 
         $this->assertResponseOk();
-        $this->assertDbRecordExists('EventBlocklists', [
-            'event_uuid' => EventBlocklistsFixture::EVENT_BLOCK_LIST_1_EVENT_UUID,
-            'event_info' => $new_event_info,
-            'comment' => $new_comment,
-            'event_orgc' => $new_event_orgc
-        ]);
+        $this->assertDbRecordExists(
+            'EventBlocklists',
+            [
+                'event_uuid' => EventBlocklistsFixture::EVENT_BLOCK_LIST_1_EVENT_UUID,
+                'event_info' => $new_event_info,
+                'comment' => $new_comment,
+                'event_orgc' => $new_event_orgc
+            ]
+        );
     }
 }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\AuthKeys;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class IndexAuthKeysApiTest extends TestCase
 {
@@ -16,6 +16,7 @@ class IndexAuthKeysApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];

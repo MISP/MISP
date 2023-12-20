@@ -6,8 +6,6 @@ namespace App\Test\TestCase\Api\Taxonomies;
 
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\TaxonomiesFixture;
-use App\Test\Fixture\TaxonomyEntriesFixture;
-use App\Test\Fixture\TaxonomyPredicatesFixture;
 use App\Test\Helper\ApiTestTrait;
 use Cake\TestSuite\TestCase;
 
@@ -19,6 +17,7 @@ class GetTaxonomyTagsApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.Taxonomies',

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Allowedlists;
 
-use Cake\TestSuite\TestCase;
-use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\AllowedlistsFixture;
+use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class IndexAllowedlistsApiTest extends TestCase
 {
@@ -17,6 +17,7 @@ class IndexAllowedlistsApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.Allowedlists',

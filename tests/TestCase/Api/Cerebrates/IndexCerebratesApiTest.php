@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Cerebrates;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\CerebratesFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class IndexCerebratesApiTest extends TestCase
 {
@@ -18,6 +18,7 @@ class IndexCerebratesApiTest extends TestCase
     protected $fixtures = [
         'app.Organisations',
         'app.Cerebrates',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];
