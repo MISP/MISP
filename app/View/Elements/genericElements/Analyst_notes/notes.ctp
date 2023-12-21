@@ -173,15 +173,15 @@ $notes = [
             {{=it.analyst_note}} \
         </div> \
     ')
-    var opinionStars = '\
-        <div style="display: flex; width: fit-content;" class="star-opinion-container-<?= $seed ?>"> \
-            <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
-            <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
-            <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
-            <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
-            <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
-        </div> \
-    '
+    // var opinionStars = '\
+    //     <div style="display: flex; width: fit-content;" class="star-opinion-container-<?= $seed ?>"> \
+    //         <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
+    //         <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
+    //         <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
+    //         <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
+    //         <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
+    //     </div> \
+    // '
     var opinionGradient = '\
         <div class="opinion-gradient-container" style="width: 10rem; height: 6px;">\
             <span class="opinion-gradient-dot"></span> \
@@ -198,7 +198,7 @@ $notes = [
                 <span style="font-size: 0.7em; font-weight: lighter; color: #999">/100</span> \
             </span> \
         </div> \
-        <div style="max-width: 40vw; margin-top: 0.5rem;"> \
+        <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
             {{=it.comment}} \
         </div> \
     ')
@@ -319,6 +319,21 @@ $notes = [
     .reply-to-note-collapse-button.collapsed {
         margin-bottom: -0.25rem !important;
     }
+
+    .v-bar-text-opinion::after {
+        content: '';
+        margin-right: 5px;
+        margin-left: 2px;
+        border-left: 1px solid;
+        border-bottom: 1px solid;
+        height: 1.3rem;
+        width: 5px;
+        display: inline-block;
+        float: left;
+        margin-top: -12px;
+        border-color: #969696;
+    }
+
     .reply-to-note-collapse-button.collapsed > i {
         transform: rotate(180deg);
     }
@@ -354,11 +369,11 @@ $notes = [
         background-color: white;
     }
 
-    .star-opinion {
+    /* .star-opinion {
         display: inline-block;
         position: relative;
         color: #d3d3d3;
-    }
+    } */
 
 <?php
 if(!function_exists("genStyleForOpinionNotes")) {
@@ -380,11 +395,10 @@ if(!function_exists("genStyleForOpinionNote")) {
         $opinion = min(100, max(0, intval($note['opinion'])));
         $star_number = floor($opinion / 100 * 5);
         $star_remaining_number = ($opinion / 100 * 5) - floor($opinion / 100 * 5);
-        // $color = $opinion > 20 ? ($opinion >= 80 ? '#468847' : '#009edb') : '#b94a48';
         $color = $opinion >= 50 ? '#468847' : '#b94a48';
 
         ?>
-        #note-<?= $note['id'] ?> .star-opinion:nth-last-child(n+<?= 6 - $star_number ?>) {
+        /* #note-<?= $note['id'] ?> .star-opinion:nth-last-child(n+<?= 6 - $star_number ?>) {
             color: <?= $color ?>;
         }
 
@@ -397,7 +411,7 @@ if(!function_exists("genStyleForOpinionNote")) {
             width: <?= $star_remaining_number * 100 ?>%;
             overflow: hidden;
             color: <?= $color ?>;
-        }
+        } */
 
         #note-<?= $note['id'] ?> .opinion-gradient-<?= $opinion >= 50 ? 'negative' : 'positive' ?> {
             opacity: 0;
@@ -405,7 +419,7 @@ if(!function_exists("genStyleForOpinionNote")) {
         #note-<?= $note['id'] ?> .opinion-gradient-dot {
             left: calc(<?= $opinion ?>% - 6px);
             /* background-color: <?= $opinion >= 50 ? '#468847' : '#b94a48' ?>; */
-            background-color: <?= $opinion_color_scale_100[$opinion] ?>;
+            background-color: <?= $opinion == 50 ? '#555' : $opinion_color_scale_100[$opinion] ?>;
         }
         <?php if ($opinion >= 50): ?>
             #note-<?= $note['id'] ?> .opinion-gradient-positive {
