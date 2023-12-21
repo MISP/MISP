@@ -1,7 +1,124 @@
 <?php if (empty($notes)) {
-    return;
+    // return;
 }
 $seed = mt_rand();
+
+$URL_ADD = '/analyst-notes/add/';
+$URL_EDIT = '/analyst-notes/edit/';
+$URL_DELETE = '/analyst-notes/delete/';
+
+$uuid = $event['Event']['uuid'];
+$object_uuid = 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a';
+$object_type = 'event';
+$notes = [
+    [
+        'analyst_note' => 'This is a note',
+        'note_type' => 0,
+        'authors' => ['adulau', 'iglocska'],
+        'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'orgc_uuid' => '27e68e2e-c7a9-4aba-9949-ca3383facb24',
+        'Organisation' => ['id' => 23, 'uuid' => '27e68e2e-c7a9-4aba-9949-ca3383facb24', 'name' => 'ORG_1'],
+        'created' => new DateTime(),
+        'modified' => new DateTime(),
+        'distribution' => 2,
+        'id' => 1,
+        'uuid' => '91bc1aa1-2322-43b9-9aad-c0262e6248b3',
+        'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a'
+    ],
+    [
+        'analyst_note' => 'This is another note',
+        'note_type' => 0,
+        'authors' => ['mokaddem',],
+        'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'orgc_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'Organisation' => ['id' => 2, 'uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0', 'name' => 'CIRCL'],
+        'created' => new DateTime(),
+        'modified' => new DateTime(),
+        'distribution' => 3,
+        'id' => 2,
+        'uuid' => '5a019778-6f0f-4e80-94c5-2e9ec33c9a92',
+        'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a',
+        'notes' => [
+            [
+                'opinion' => 10,
+                'comment' => 'This is analysis is really bad!',
+                'note_type' => 1,
+                'authors' => ['chrisr3d',],
+                'org_uuid' => '27e68e2e-c7a9-4aba-9949-ca3383facb24',
+                'orgc_uuid' => '27e68e2e-c7a9-4aba-9949-ca3383facb24',
+                'Organisation' => ['id' => 23, 'uuid' => '27e68e2e-c7a9-4aba-9949-ca3383facb24', 'name' => 'ORG_1'],
+                'created' => new DateTime(),
+                'modified' => new DateTime(),
+                'distribution' => 2,
+                'id' => 6,
+                'uuid' => 'a3aca875-e5d8-4b74-8a2f-63100f17afe0',
+                'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a',
+                'notes' => [
+                    [
+                        'opinion' => 100,
+                        'comment' => 'No! It\'s really good!',
+                        'note_type' => 1,
+                        'authors' => ['chrisr3d',],
+                        'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+                        'orgc_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+                        'Organisation' => ['id' => 2, 'uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0', 'name' => 'CIRCL'],
+                        'created' => new DateTime(),
+                        'modified' => new DateTime(),
+                        'distribution' => 2,
+                        'id' => 7,
+                        'uuid' => '4d8585ea-bf5a-42c2-876b-02b6c9f470e0',
+                        'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a'
+                    ],
+                ]
+            ],
+            [
+                'opinion' => 70,
+                'comment' => 'After further analysis, it\'s OK.',
+                'note_type' => 1,
+                'authors' => ['chrisr3d',],
+                'org_uuid' => '27e68e2e-c7a9-4aba-9949-ca3383facb24',
+                'orgc_uuid' => '27e68e2e-c7a9-4aba-9949-ca3383facb24',
+                'Organisation' => ['id' => 23, 'uuid' => '27e68e2e-c7a9-4aba-9949-ca3383facb24', 'name' => 'ORG_1'],
+                'created' => new DateTime(),
+                'modified' => new DateTime(),
+                'distribution' => 0,
+                'id' => 8,
+                'uuid' => 'a3aca875-e5d8-4b74-8a2f-63100f17afe0',
+                'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a',
+            ],
+        ]
+    ],
+    [
+        'opinion' => 80,
+        'comment' => 'This is a second opinion',
+        'note_type' => 1,
+        'authors' => ['mokaddem',],
+        'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'orgc_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'Organisation' => ['id' => 3, 'uuid' => '5d6d3b30-9db0-44b9-8869-7f56a5e38e14', 'name' => 'Training'],
+        'created' => new DateTime(),
+        'modified' => new DateTime(),
+        'distribution' => 3,
+        'id' => 4,
+        'uuid' => '41c2ad07-4529-4014-ab8c-0a3f0d6fccc1',
+        'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a'
+    ],
+    [
+        'opinion' => 50,
+        'comment' => 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        'note_type' => 1,
+        'authors' => ['mokaddem',],
+        'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'orgc_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'Organisation' => ['id' => 3, 'uuid' => '5d6d3b30-9db0-44b9-8869-7f56a5e38e14', 'name' => 'Training'],
+        'created' => new DateTime(),
+        'modified' => new DateTime(),
+        'distribution' => 3,
+        'id' => 5,
+        'uuid' => '24957461-344c-4b7e-81fe-1321f3e9949a',
+        'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a'
+    ],
+];
 ?>
 
 <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" onclick="openNotes(this)" title="<?= __('Notes and opinions for this UUID') ?>"></i>
@@ -16,6 +133,7 @@ $seed = mt_rand();
     ')
     var baseNoteTemplate = doT.template('\
         <div id="note-{{=it.id}}" \
+            class="analyst-note" \
             style="display: flex; flex-direction: row; align-items: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 1px 5px -2px rgb(0 0 0 / 0.5); border-radius: 0.25rem; padding: 0.25rem; margin-bottom: 0.0rem; background-color: #fff" \
         > \
             <div style="flex-grow: 1;"> \
@@ -30,11 +148,19 @@ $seed = mt_rand();
                         <span style="display: inline-block; font-weight: lighter; color: #999">{{=it.modified_relative}} • {{=it.modified}}</span> \
                         </i><span style="margin-left: 0.5rem; flex-grow: 1; text-align: right; color: {{=it.distribution_color}}">{{=it.distribution_text}}</span> \
                         <i style="color: #777; margin: 0 0.5rem;">•</i> \
-                        <span style="margin-left: auto; display: flex;"> \
-                            <span role="button"><i title="<?= __('Add an opinion to this note') ?>" class="<?= $this->FontAwesome->getClass('gavel') ?> useCursorPointer"></i></button> \
-                            <span role="button"><i title="<?= __('Add a note to this note') ?>" class="<?= $this->FontAwesome->getClass('comment-alt') ?> useCursorPointer"></i></button> \
-                            <span role="button"><i title="<?= __('Edit this note') ?>" class="<?= $this->FontAwesome->getClass('edit') ?> useCursorPointer"></i></button> \
-                            <span role="button"><i title="<?= __('Delete this note') ?>" class="<?= $this->FontAwesome->getClass('trash') ?> useCursorPointer"></i></button> \
+                        <span style="margin-left: auto; display: flex; gap: 0.2rem;"> \
+                            {{? it._permissions.can_add }} \
+                                <span role="button" onclick="addOpinion(this, \'{{=it.uuid}}\')" title="<?= __('Add an opinion to this note') ?>"><i class="<?= $this->FontAwesome->getClass('gavel') ?> useCursorPointer"></i></span> \
+                            {{?}} \
+                            {{? it._permissions.can_add }} \
+                            <span role="button" onclick="addNote(this, \'{{=it.uuid}}\')" title="<?= __('Add a note to this note') ?>"><i class="<?= $this->FontAwesome->getClass('comment-alt') ?> useCursorPointer"></i></span> \
+                            {{?}} \
+                            {{? it._permissions.can_edit }} \
+                            <span role="button" onclick="editNote(this, {{=it.id}})" title="<?= __('Edit this note') ?>"><i class="<?= $this->FontAwesome->getClass('edit') ?> useCursorPointer"></i></span> \
+                            {{?}} \
+                            {{? it._permissions.can_delete }} \
+                            <span role="button" onclick="deleteNote(this, {{=it.id}})" title="<?= __('Delete this note') ?>" href="<?= $baseurl . $URL_DELETE ?>{{=it.id}}"><i class="<?= $this->FontAwesome->getClass('trash') ?> useCursorPointer"></i></span> \
+                            {{?}} \
                         </span> \
                     </div> \
                     <div style="">{{=it.content}}</div> \
@@ -43,7 +169,9 @@ $seed = mt_rand();
         </div> \
     ')
     var analystTemplate = doT.template('\
-        {{=it.analyst_note}} \
+        <div style="max-width: 40vw; margin-top: 0.5rem;"> \
+            {{=it.analyst_note}} \
+        </div> \
     ')
     var opinionStars = '\
         <div style="display: flex; width: fit-content;" class="star-opinion-container-<?= $seed ?>"> \
@@ -70,14 +198,21 @@ $seed = mt_rand();
                 <span style="font-size: 0.7em; font-weight: lighter; color: #999">/100</span> \
             </span> \
         </div> \
-        <div style="max-width: 40vw;">{{=it.comment}}</div> \
+        <div style="max-width: 40vw; margin-top: 0.5rem;"> \
+            {{=it.comment}} \
+        </div> \
     ')
     var replyNoteTemplate = doT.template('\
-        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-left: 3px; border-left: 4px solid #ccccccaa; background: #0035dc10; padding: 0.5rem; border-radius: 5px; border-top-left-radius: 0;"> \
+        <span class="reply-to-note-collapse-button" onclick="$(this).toggleClass(\'collapsed\').next().toggle()" title="<?= __('Toggle annotation for this note') ?>" \
+            style="width: 12px; height: 12px; border-radius: 50%; border: 1px solid #0035dc20; background: #ccccccdd; box-sizing: border-box; line-height: 12px; padding: 0 1px; cursor: pointer; margin: calc(-0.5rem - 6px) 0 calc(-0.5rem - 6px) -1px; z-index: 2;" \
+        > \
+            <i class="<?= $this->FontAwesome->getClass('angle-up') ?>" style="line-height: 8px;"></i> \
+        </span> \
+        <div class="reply-to-note" style="position: relative; display: flex; flex-direction: column; gap: 0.5rem; margin-left: 3px; border-left: 4px solid #ccccccaa; background: #0035dc10; padding: 0.5rem; border-radius: 5px; border-top-left-radius: 0;"> \
             {{=it.notes_html}} \
         </div> \
     ')
-    var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button"> \
+    var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $uuid ?>\')"> \
         <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= 'Add a note' ?> \
     </button>'
 
@@ -89,20 +224,26 @@ $seed = mt_rand();
     function openNotes(clicked) {
         openPopover(clicked, renderedNotes, undefined, undefined, function() {
             $('.popover').css('top', '150px')
+            $(clicked).removeClass('have-a-popover') // avoid closing the popover if a confirm popover (like the delete one) is called
         })
     }
 
     function renderNotes(notes) {
         var renderedNotesArray = []
-        notes.forEach(function(note) {
-            var noteHtml = renderNote(note)
+        if (notes.length == 0)  {
+            var emptyHtml = '<span style="text-align: center; color: #777;"><?= __('No notes for this UUID.') ?></span>'
+            renderedNotesArray.push(emptyHtml)
+        } else {
+            notes.forEach(function(note) {
+                var noteHtml = renderNote(note)
+    
+                if (note.notes) { // The notes has more notes attached
+                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.notes)})
+                }
 
-            if (note.notes) { // The notes has more notes attached
-                noteHtml += replyNoteTemplate({notes_html: renderNotes(note.notes)})
-            }
-
-            renderedNotesArray.push(noteHtml)
-        });
+                renderedNotesArray.push(noteHtml)
+            });
+        }
         return renderedNotesArray.join('')
     }
 
@@ -114,10 +255,15 @@ $seed = mt_rand();
         note.distribution_text = note.distribution != 4 ? shortDist[note.distribution] : note.SharingGroup.name
         note.distribution_color = note.distribution == 0 ? '#ff0000' : (note.distribution == 4 ? '#0000ff' : '#000')
         note.authors = Array.isArray(note.authors) ? note.authors.join(', ') : note.authors;
+        note._permissions = {
+            can_edit: true,
+            can_delete: true,
+            can_add: true,
+        }
         if (note.note_type == 0) { // analyst note
             note.content = analystTemplate(note)
         } else if (note.note_type == 1) { // opinion
-            note.opinion_color = note.opinion > 50 ? '#468847' : '#b94a48';
+            note.opinion_color = note.opinion == 50 ? '#333' : ( note.opinion > 50 ? '#468847' : '#b94a48');
             note.opinion_text = (note.opinion  >= 81) ? '<?= __("Strongly Agree") ?>' : ((note.opinion  >= 61) ? '<?= __("Agree") ?>' : ((note.opinion  >= 41) ? '<?= __("Neutral") ?>' : ((note.opinion  >= 21) ? '<?= __("Disagree") ?>' : '<?= __("Strongly Disagree") ?>')))
             note.content = opinionTemplate(note)
         } else {
@@ -131,12 +277,52 @@ $seed = mt_rand();
         renderedNotes = nodeContainerTemplate({content: renderNotes(notes) + addNoteButton})
     }
 
+    function createNewNote(clicked, object_type, object_uuid) {
+        note_type = 0;
+        openGenericModal(baseurl + '<?= $URL_ADD ?>' + object_type + '/' + object_uuid + '/' + note_type)
+    }
+
+    function addNote(clicked, note_uuid) {
+        object_type = 'note';
+        note_type = 0;
+        openGenericModal(baseurl + '<?= $URL_ADD ?>' + object_type + '/' + note_uuid + '/' + note_type)
+    }
+
+    function addOpinion(clicked, note_uuid) {
+        object_type = 'note';
+        note_type = 1;
+        openGenericModal(baseurl + '<?= $URL_ADD ?>' + object_type + '/' + note_uuid + '/' + note_type)
+    }
+
+    function editNote(clicked, note_id) {
+        openGenericModal(baseurl + '<?= $URL_EDIT ?>' + note_id)
+    }
+    
+    function deleteNote(clicked, note_id) {
+        var deletionSuccessCallback = function(data) {
+            $(clicked).closest('.analyst-note').remove()
+        }
+        popoverConfirm(clicked, '<?= __('Confirm deletion of this note') ?>', undefined, deletionSuccessCallback)
+    }
+
+    function registerListeners() {
+    }
+
+
     $(document).ready(function() {
         renderAllNotesWithForm()
+        registerListeners()
     })
 </script>
 
 <style>
+    .reply-to-note-collapse-button.collapsed {
+        margin-bottom: -0.25rem !important;
+    }
+    .reply-to-note-collapse-button.collapsed > i {
+        transform: rotate(180deg);
+    }
+
     .opinion-gradient-container {
         display: flex;
         position: relative;
