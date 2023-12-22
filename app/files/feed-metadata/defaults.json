@@ -1737,7 +1737,7 @@
       "lookup_visible": true,
       "caching_enabled": true
     }
-  }
+  },
   {
      "Feed": {
        "name": "List of malicious hashes",
