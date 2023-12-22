@@ -5062,6 +5062,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
+                'enable_automatic_garbage_collection' => [
+                    'level' => 1,
+                    'description' => __('Enable to execute an automatic garbage collection of temporary data such as export files. When enabled, on agerage every 100th query will check whether to garbage collect. Garbage collection can run at maximum once an hour.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
                 'server_settings_skip_backup_rotate' => array(
                     'level' => 1,
                     'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),

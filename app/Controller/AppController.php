@@ -362,6 +362,10 @@ class AppController extends Controller
                 }
             }
         }
+        if (Configure::read('MISP.enable_automatic_garbage_collection') && mt_rand(1,100) % 100 == 0) {
+            $this->loadModel('AdminSetting');
+            $this->AdminSetting->garbageCollect();
+        }
     }
 
     public function beforeRender()
