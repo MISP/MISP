@@ -12,6 +12,7 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
  * @property Organisation $Organisation
  * @property Role $Role
  * @property UserSetting $UserSetting
+ * @property UserLoginProfile $UserLoginProfile
  * @property Event $Event
  * @property AuthKey $AuthKey
  * @property Server $Server

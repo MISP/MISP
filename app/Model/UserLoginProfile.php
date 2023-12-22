@@ -1,7 +1,9 @@
 <?php
-
 App::uses('AppModel', 'Model');
 
+/**
+ * @property User $User
+ */
 class UserLoginProfile extends AppModel
 {
     public $actsAs = array(
@@ -20,34 +22,37 @@ class UserLoginProfile extends AppModel
             'rule' => '/^(trusted|malicious)$/',
             'message' => 'Must be one of: trusted, malicious'
         ],
-        
     ];
 
     public $order = array("UserLoginProfile.id" => "DESC");
 
     public $belongsTo = [
-    'User' => [
-        'className' => 'User',
-        'foreignKey' => 'user_id',
-        'conditions' => '',
-        'fields' => '',
-        'order' => ''
-    ]];
+        'User' => [
+            'className' => 'User',
+            'foreignKey' => 'user_id',
+            'conditions' => '',
+            'fields' => '',
+            'order' => ''
+        ]
+    ];
 
-    protected $browscapCacheDir = APP . DS . 'tmp' . DS . 'browscap';
-    protected $browscapIniFile = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
-    protected $geoIpDbFile = APP . DS . 'files' . DS . 'geo-open' . DS . 'GeoOpen-Country.mmdb';  // GeoIP file managed by MISP - https://data.public.lu/en/datasets/geo-open-ip-address-geolocation-per-country-in-mmdb-format/
+    const BROWSER_CACHE_DIR = APP . DS . 'tmp' . DS . 'browscap';
+    const BROWSER_INI_FILE = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
+    const GEOIP_DB_FILE = APP . DS . 'files' . DS . 'geo-open' . DS . 'GeoOpen-Country.mmdb';  // GeoIP file managed by MISP - https://data.public.lu/en/datasets/geo-open-ip-address-geolocation-per-country-in-mmdb-format/
+
+    private $userProfile;
 
     private $knownUserProfiles = [];
 
-    public function _buildBrowscapCache() {
+    public function _buildBrowscapCache()
+    {
         $this->log("Browscap - building new cache from browscap.ini file.", "info");
-        $fileCache = new \Doctrine\Common\Cache\FilesystemCache($this->browscapCacheDir);
+        $fileCache = new \Doctrine\Common\Cache\FilesystemCache(UserLoginProfile::BROWSER_CACHE_DIR);
         $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
 
         $logger = new \Monolog\Logger('name');
         $bc = new \BrowscapPHP\BrowscapUpdater($cache, $logger);
-        $bc->convertFile($this->browscapIniFile);
+        $bc->convertFile(UserLoginProfile::BROWSER_INI_FILE);
     }
 
     public function beforeSave($options = [])
@@ -56,7 +61,8 @@ class UserLoginProfile extends AppModel
         return true;
     }
 
-    public function hash($data) {
+    public function hash($data)
+    {
         unset($data['hash']);
         unset($data['created_at']);
         return md5(serialize($data));
@@ -66,12 +72,13 @@ class UserLoginProfile extends AppModel
      * slow function - don't call it too often 
      * @return array
      */
-    public function _getUserProfile() {
+    public function _getUserProfile()
+    {
         if (!$this->userProfile) {
             // below uses https://github.com/browscap/browscap-php 
             if (class_exists('\BrowscapPHP\Browscap')) {
                 try {
-                    $fileCache = new \Doctrine\Common\Cache\FilesystemCache($this->browscapCacheDir);
+                    $fileCache = new \Doctrine\Common\Cache\FilesystemCache(UserLoginProfile::BROWSER_CACHE_DIR);
                     $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
                     $logger = new \Monolog\Logger('name');
                     $bc = new \BrowscapPHP\Browscap($cache, $logger);
@@ -82,7 +89,7 @@ class UserLoginProfile extends AppModel
                 }
             } else {
                 // a primitive OS & browser extraction capability
-                $ua = env('HTTP_USER_AGENT');
+                $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
                 $browser = new stdClass();
                 $browser->browser_name_pattern = $ua;
                 if (mb_strpos($ua, 'Linux') !== false)  $browser->platform = "Linux";
@@ -95,16 +102,16 @@ class UserLoginProfile extends AppModel
             }
             $ip = $this->_remoteIp();
             if (class_exists('GeoIp2\Database\Reader')) {
-                $geoDbReader = new GeoIp2\Database\Reader($this->geoIpDbFile);
+                $geoDbReader = new GeoIp2\Database\Reader(UserLoginProfile::GEOIP_DB_FILE);
                 $record = $geoDbReader->country($ip);
                 $country = $record->country->isoCode;
             } else {
                 $country = 'None';
             }
             $this->userProfile = [
-                'user_agent' => env('HTTP_USER_AGENT'),
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
                 'ip' => $ip,
-                'accept_lang' => env('HTTP_ACCEPT_LANGUAGE'),
+                'accept_lang' => $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? null,
                 'geoip' => $country,
                 'ua_pattern' => $browser->browser_name_pattern,
                 'ua_platform' => $browser->platform,
@@ -114,16 +121,20 @@ class UserLoginProfile extends AppModel
         return $this->userProfile;
     }
 
-    public function _fromLog($logEntry) {
-        $data = json_decode('{"user_agent": "", "ip": "", "accept_lang":"", "geoip":"", "ua_pattern":"", "ua_platform":"", "ua_browser":""}', true);
-        $data = array_merge($data, json_decode($logEntry['change'], true) ?? []);
+    public function _fromLog($logEntry)
+    {
+        $data = ["user_agent" => "", "ip" => "", "accept_lang" => "", "geoip" => "", "ua_pattern" => "", "ua_platform" => "", "ua_browser" => ""];
+        $data = array_merge($data, JsonTool::decode($logEntry['change']) ?? []);
         $data['ip'] = $logEntry['ip'];
         $data['timestamp'] = $logEntry['created'];
-        if ($data['user_agent'] == "") return false;
+        if ($data['user_agent'] == "") {
+            return false;
+        }
         return $data;
     }
 
-    public function _isSimilar($a, $b) {
+    public function _isSimilar($a, $b)
+    {
         // if one is not initialized
         if (!$a || !$b) return false;
         // transition for old logs where UA was not known
@@ -146,7 +157,8 @@ class UserLoginProfile extends AppModel
         return false;
     }
 
-    public function _isIdentical($a, $b) {
+    public function _isIdentical($a, $b)
+    {
         if ($a['ip'] == $b['ip'] &&
             $a['ua_browser'] == $b['ua_browser'] && 
             $a['ua_platform'] == $b['ua_platform'] &&
@@ -157,7 +169,8 @@ class UserLoginProfile extends AppModel
         return false;
     }
 
-    public function _getTrustStatus($userProfileToCheck, $user_id = null) {
+    public function _getTrustStatus($userProfileToCheck, $user_id = null)
+    {
         if (!$user_id) {
             $user_id = AuthComponent::user('id');
         }
@@ -183,17 +196,19 @@ class UserLoginProfile extends AppModel
         return 'unknown';
     }
     
-    public function _isTrusted() {
+    public function _isTrusted()
+    {
         if (strpos($this->_getTrustStatus($this->_getUserProfile()), 'trusted') !== false) {
             return true;
         }
         return false;
     }
 
-    public function _isSuspicious() {
+    public function _isSuspicious()
+    {
         // previously marked loginuserprofile as malicious by the user
         if (strpos($this->_getTrustStatus($this->_getUserProfile()), 'malicious') !== false) {
-            return _('A user reported a similar login profile as malicious.');
+            return __('A user reported a similar login profile as malicious.');
         }
         // same IP as previous malicious user
         $maliciousWithSameIP = $this->find('first', [
@@ -205,7 +220,7 @@ class UserLoginProfile extends AppModel
             'fields' => array('UserLoginProfile.*')]
         );
         if ($maliciousWithSameIP) {
-            return _('The source IP was reported as as malicious by a user.');
+            return __('The source IP was reported as as malicious by a user.');
         }
         // LATER - use other data to identify suspicious logins, such as:
         // - what with use-case where a user marks something as legitimate, but is marked by someone else as suspicious?
@@ -214,7 +229,8 @@ class UserLoginProfile extends AppModel
         return false;
     }
 
-    public function email_newlogin($user) {
+    public function email_newlogin($user)
+    {
         if (!Configure::read('MISP.disable_emailing')) {
             $date_time = date('c');
 
@@ -233,7 +249,8 @@ class UserLoginProfile extends AppModel
         }
     }
 
-    public function email_report_malicious($user, $userLoginProfile) {
+    public function email_report_malicious($user, $userLoginProfile)
+    {
         // inform the org admin
         $date_time = $userLoginProfile['timestamp']; // LATER not ideal as timestamp is string without timezone info
         $body = new SendEmailTemplate('userloginprofile_report_malicious');
@@ -259,7 +276,8 @@ class UserLoginProfile extends AppModel
         }
     }
 
-    public function email_suspicious($user, $suspiciousness_reason) {
+    public function email_suspicious($user, $suspiciousness_reason)
+    {
         if (!Configure::read('MISP.disable_emailing')) {
             $date_time = date('c');
             // inform the user
@@ -300,6 +318,4 @@ class UserLoginProfile extends AppModel
             }            
         }
     }
-
-
 }
