@@ -159,11 +159,6 @@ class Log extends AppModel
         if (!in_array($this->data['Log']['model'], ['Log', 'Workflow'])) {
             $trigger_id = 'log-after-save';
             $workflowErrors = [];
-            $logging = [
-                'model' => 'Log',
-                'action' => 'execute_workflow',
-                'id' => $this->data['Log']['user_id']
-            ];
             $this->executeTrigger($trigger_id, $this->data, $workflowErrors);
         }
         return true;
@@ -206,7 +201,7 @@ class Log extends AppModel
             $validDates = $this->query($sql);
         }
         $data = array();
-        foreach ($validDates as $k => $date) {
+        foreach ($validDates as $date) {
             $data[$date[0]['Date']] = intval($date[0]['count']);
         }
         return $data;
@@ -286,7 +281,7 @@ class Log extends AppModel
     public function validationError($user, $action, $model, $title, array $validationErrors, array $fullObject)
     {
         $this->log($title, LOG_WARNING);
-        $change = 'Validation errors: ' . json_encode($validationErrors) . ' Full ' . $model  . ': ' . json_encode($fullObject);
+        $change = 'Validation errors: ' . JsonTool::encode($validationErrors) . ' Full ' . $model  . ': ' . JsonTool::encode($fullObject);
         $this->createLogEntry($user, $action, $model, 0, $title, $change);
     }
 
@@ -365,7 +360,7 @@ class Log extends AppModel
         }
     }
 
-    public function logData($data)
+    private function logData(array $data)
     {
         if ($this->pubToZmq('audit')) {
             $this->getPubSubTool()->publish($data, 'audit', 'log');
@@ -386,6 +381,13 @@ class Log extends AppModel
         }
 
         // write to syslogd as well if enabled
+        $this->sendToSyslog($data);
+
+        return true;
+    }
+
+    private function sendToSyslog(array $data)
+    {
         if ($this->syslog === null) {
             if (Configure::read('Security.syslog')) {
                 $options = [];
@@ -424,7 +426,6 @@ class Log extends AppModel
             }
             $this->syslog->write($action, $entry);
         }
-        return true;
     }
 
     public function filterSiteAdminSensitiveLogs($list)
