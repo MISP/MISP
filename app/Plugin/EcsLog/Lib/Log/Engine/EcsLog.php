@@ -11,8 +11,8 @@ class EcsLog implements CakeLogInterface
     /** @var false|resource */
     private static $socket;
 
-    /** @var false|int */
-    private static $pid;
+    /** @var array[] */
+    private static $meta;
 
     /** @var string|null */
     private static $ip;
@@ -76,7 +76,7 @@ class EcsLog implements CakeLogInterface
     /**
      * @return string|null
      */
-    private static function ip()
+    private static function clientIp()
     {
         if (static::$ip) {
             return static::$ip;
@@ -84,6 +84,57 @@ class EcsLog implements CakeLogInterface
 
         $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
         return static::$ip = isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
+    }
+
+    /**
+     * @return array[]
+     */
+    private static function generateMeta()
+    {
+        if (self::$meta) {
+            return self::$meta;
+        }
+
+        $meta = [
+            'process' => [
+                'pid' => getmypid(),
+            ],
+        ];
+
+        // Add metadata if log was generated because of HTTP request
+        if (PHP_SAPI !== 'cli') {
+            if (isset($_SERVER['HTTP_X_REQUEST_ID'])) {
+                $meta['http'] = ['request' => ['id' => $_SERVER['HTTP_X_REQUEST_ID']]];
+            }
+
+            $clientIp = static::clientIp();
+            if ($clientIp === $_SERVER['REMOTE_ADDR']) {
+                $meta['client'] = ['ip' => static::clientIp()];
+            } else {
+                $meta['client'] = [
+                    'ip' => static::clientIp(),
+                    'nat' => [
+                        'ip' => $_SERVER['REMOTE_ADDR'],
+                    ],
+                ];
+            }
+
+            if (strpos($_SERVER['HTTP_HOST'], ':') !== 0) {
+                list($domain, $port) = explode(':', $_SERVER['HTTP_HOST'], 2);
+                $meta['url'] = [
+                    'domain' => $domain,
+                    'port' => (int) $port,
+                    'path' => $_SERVER['REQUEST_URI'],
+                ];
+            } else {
+                $meta['url'] = [
+                    'domain' => $_SERVER['HTTP_HOST'],
+                    'path' => $_SERVER['REQUEST_URI'],
+                ];
+            }
+        }
+
+        return self::$meta = $meta;
     }
 
     /**
@@ -97,19 +148,7 @@ class EcsLog implements CakeLogInterface
             static::$socket = stream_socket_client('unix://' . static::SOCKET_PATH, $errorCode, $errorMessage);
         }
 
-        if (static::$pid === null) {
-            static::$pid = getmypid();
-        }
-
-        $message['process'] = ['id' => self::$pid];
-
-        if (PHP_SAPI !== 'cli') {
-            if (isset($_SERVER['HTTP_X_REQUEST_ID'])) {
-                $message['http'] = ['request' => ['id' => $_SERVER['HTTP_X_REQUEST_ID']]];
-            }
-            $message['client'] = ['ip' => static::ip()];
-            $message['url'] = ['path' => $_SERVER['REQUEST_URI']];
-        }
+        $message = array_merge($message, self::generateMeta());
 
         if (static::$socket) {
             fwrite(static::$socket, JsonTool::encode($message) . "\n");
