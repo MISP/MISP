@@ -437,16 +437,17 @@ class Log extends AppModel
      */
     private function sendToEcs(array $data)
     {
-        $action = 'info';
-        if (isset($data['Log']['action'])) {
-            if (in_array($data['Log']['action'], self::ERROR_ACTIONS, true)) {
-                $action = 'error';
-            } else if (in_array($data['Log']['action'], self::WARNING_ACTIONS, true)) {
-                $action = 'warning';
+        $action = $data['Log']['action'];
+        $type = 'info';
+        if (isset($action)) {
+            if (in_array($action, self::ERROR_ACTIONS, true)) {
+                $type = 'error';
+            } else if (in_array($action, self::WARNING_ACTIONS, true)) {
+                $type = 'warning';
             }
         }
 
-        $message = $data['Log']['action'];
+        $message = $action;
         if (!empty($data['Log']['title'])) {
             $message .= " -- {$data['Log']['title']}";
         }
@@ -456,7 +457,7 @@ class Log extends AppModel
             $message .= " -- " . JsonTool::encode($data['Log']['change']);
         }
 
-        EcsLog::writeApplicationLog($action, $message);
+        EcsLog::writeApplicationLog($type, $action, $message);
     }
 
     public function filterSiteAdminSensitiveLogs($list)

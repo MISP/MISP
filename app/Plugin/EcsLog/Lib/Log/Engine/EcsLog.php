@@ -1,4 +1,5 @@
 <?php
+App::uses('JsonTool', 'Tools');
 
 /**
  * Logging class that sends logs in JSON format to UNIX socket in Elastic Common Schema (ECS) format
@@ -47,11 +48,13 @@ class EcsLog implements CakeLogInterface
 
     /**
      * @param string $type
+     * @param string $action
+     * @param string $userEmail
      * @param string $message
      * @return void
      * @throws JsonException
      */
-    public static function writeApplicationLog($type, $message)
+    public static function writeApplicationLog($type, $action, $message)
     {
         $message = [
             '@timestamp' => date('Y-m-d\TH:i:s.uP'),
@@ -63,12 +66,21 @@ class EcsLog implements CakeLogInterface
                 'provider' => 'misp',
                 'module' => 'application',
                 'dataset' => 'application.logs',
+                'action' => $action,
             ],
             'log' => [
                 'level' => $type,
             ],
             'message' => $message,
         ];
+
+        if (in_array($action, ['auth', 'auth_fail', 'auth_alert', 'change_pw', 'login', 'login_fail', 'logout', 'password_reset'], true)) {
+            $message['event']['category'] = 'authentication';
+
+            if (in_array($action, ['auth_fail', 'login_fail'], true)) {
+                $message['event']['outcome'] = 'failure';
+            }
+        }
 
         static::writeMessage($message);
     }
@@ -89,17 +101,13 @@ class EcsLog implements CakeLogInterface
     /**
      * @return array[]
      */
-    private static function generateMeta()
+    private static function createLogMeta()
     {
         if (self::$meta) {
             return self::$meta;
         }
 
-        $meta = [
-            'process' => [
-                'pid' => getmypid(),
-            ],
-        ];
+        $meta = ['process' => ['pid' => getmypid()]];
 
         // Add metadata if log was generated because of HTTP request
         if (PHP_SAPI !== 'cli') {
@@ -108,14 +116,17 @@ class EcsLog implements CakeLogInterface
             }
 
             $clientIp = static::clientIp();
+            $client = [
+                'ip' => $_SERVER['REMOTE_ADDR'],
+                'port' => $_SERVER['REMOTE_PORT'],
+            ];
+
             if ($clientIp === $_SERVER['REMOTE_ADDR']) {
-                $meta['client'] = ['ip' => static::clientIp()];
+                $meta['client'] = $client;
             } else {
                 $meta['client'] = [
                     'ip' => static::clientIp(),
-                    'nat' => [
-                        'ip' => $_SERVER['REMOTE_ADDR'],
-                    ],
+                    'nat' => $client,
                 ];
             }
 
@@ -132,9 +143,50 @@ class EcsLog implements CakeLogInterface
                     'path' => $_SERVER['REQUEST_URI'],
                 ];
             }
+        } else {
+            $meta['process']['argv'] = $_SERVER['argv'];
+        }
+
+        $userMeta = self::createUserMeta();
+        if ($userMeta) {
+            $meta['user'] = $userMeta;
         }
 
         return self::$meta = $meta;
+    }
+
+    private static function createUserMeta()
+    {
+        if (PHP_SAPI === 'cli') {
+            $currentUserId = Configure::read('CurrentUserId');
+            if (!empty($currentUserId)) {
+                /** @var User $userModel */
+                $userModel = ClassRegistry::init('User');
+                $user = $userModel->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['id' => $currentUserId],
+                    'fields' => ['sub', 'email'],
+                ]);
+                if (!empty($user)) {
+                    return [
+                        'id' => empty($user['User']['sub']) ? $currentUserId : $user['User']['sub'],
+                        'email' => $user['User']['email'],
+                    ];
+                }
+            }
+
+        } else {
+            App::uses('AuthComponent', 'Controller/Component');
+            $authUser = AuthComponent::user();
+            if (!empty($authUser)) {
+                return [
+                    'id' => empty($authUser['sub']) ? $authUser['id'] : $authUser['sub'],
+                    'email' => $authUser['email'],
+                ];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -145,13 +197,24 @@ class EcsLog implements CakeLogInterface
     private static function writeMessage(array $message)
     {
         if (static::$socket === null) {
-            static::$socket = stream_socket_client('unix://' . static::SOCKET_PATH, $errorCode, $errorMessage);
+            static::connect();
         }
-
-        $message = array_merge($message, self::generateMeta());
 
         if (static::$socket) {
-            fwrite(static::$socket, JsonTool::encode($message) . "\n");
+            $message = array_merge($message, self::createLogMeta());
+            $data = JsonTool::encode($message) . "\n";
+            $bytesWritten = fwrite(static::$socket, $data);
+
+            // In case of failure, try reconnect and send log again
+            if ($bytesWritten === false) {
+                static::connect();
+                fwrite(static::$socket, $data);
+            }
         }
+    }
+
+    private static function connect()
+    {
+        static::$socket = stream_socket_client('unix://' . static::SOCKET_PATH, $errorCode, $errorMessage);
     }
 }
