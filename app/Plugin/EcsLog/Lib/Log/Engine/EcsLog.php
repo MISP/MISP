@@ -42,13 +42,41 @@ class EcsLog implements CakeLogInterface
             'message' => $message,
         ];
 
-        $this->writeMessage($message);
+        static::writeMessage($message);
+    }
+
+    /**
+     * @param string $type
+     * @param string $message
+     * @return void
+     * @throws JsonException
+     */
+    public static function writeApplicationLog($type, $message)
+    {
+        $message = [
+            '@timestamp' => date('Y-m-d\TH:i:s.uP'),
+            'ecs' => [
+                'version' => '8.11',
+            ],
+            'event' => [
+                'kind' => 'event',
+                'provider' => 'misp',
+                'module' => 'application',
+                'dataset' => 'application.logs',
+            ],
+            'log' => [
+                'level' => $type,
+            ],
+            'message' => $message,
+        ];
+
+        static::writeMessage($message);
     }
 
     /**
      * @return string|null
      */
-    private function ip()
+    private static function ip()
     {
         if (static::$ip) {
             return static::$ip;
@@ -63,7 +91,7 @@ class EcsLog implements CakeLogInterface
      * @return void
      * @throws JsonException
      */
-    private function writeMessage(array $message)
+    private static function writeMessage(array $message)
     {
         if (static::$socket === null) {
             static::$socket = stream_socket_client('unix://' . static::SOCKET_PATH, $errorCode, $errorMessage);
@@ -75,12 +103,12 @@ class EcsLog implements CakeLogInterface
 
         $message['process'] = ['id' => self::$pid];
 
-        $isShell = defined('CAKEPHP_SHELL') && CAKEPHP_SHELL;
-        if (!$isShell) {
+        if (PHP_SAPI !== 'cli') {
             if (isset($_SERVER['HTTP_X_REQUEST_ID'])) {
                 $message['http'] = ['request' => ['id' => $_SERVER['HTTP_X_REQUEST_ID']]];
             }
-            $message['client'] = ['ip' => $this->ip()];
+            $message['client'] = ['ip' => static::ip()];
+            $message['url'] = ['path' => $_SERVER['REQUEST_URI']];
         }
 
         if (static::$socket) {

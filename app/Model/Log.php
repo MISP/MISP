@@ -382,6 +382,7 @@ class Log extends AppModel
 
         // write to syslogd as well if enabled
         $this->sendToSyslog($data);
+        $this->sendToEcs($data);
 
         return true;
     }
@@ -409,8 +410,7 @@ class Log extends AppModel
             if (isset($data['Log']['action'])) {
                 if (in_array($data['Log']['action'], self::ERROR_ACTIONS, true)) {
                     $action = LOG_ERR;
-                }
-                if (in_array($data['Log']['action'], self::WARNING_ACTIONS, true)) {
+                } else if (in_array($data['Log']['action'], self::WARNING_ACTIONS, true)) {
                     $action = LOG_WARNING;
                 }
             }
@@ -422,10 +422,41 @@ class Log extends AppModel
             if (!empty($data['Log']['description'])) {
                 $entry .= " -- {$data['Log']['description']}";
             } else if (!empty($data['Log']['change'])) {
-                $entry .= " -- " . json_encode($data['Log']['change']);
+                $entry .= " -- " . JsonTool::encode($data['Log']['change']);
             }
             $this->syslog->write($action, $entry);
         }
+    }
+
+    /**
+     * TODO: Check if ECS is enabled
+     *
+     * @param array $data
+     * @return void
+     * @throws JsonException
+     */
+    private function sendToEcs(array $data)
+    {
+        $action = 'info';
+        if (isset($data['Log']['action'])) {
+            if (in_array($data['Log']['action'], self::ERROR_ACTIONS, true)) {
+                $action = 'error';
+            } else if (in_array($data['Log']['action'], self::WARNING_ACTIONS, true)) {
+                $action = 'warning';
+            }
+        }
+
+        $message = $data['Log']['action'];
+        if (!empty($data['Log']['title'])) {
+            $message .= " -- {$data['Log']['title']}";
+        }
+        if (!empty($data['Log']['description'])) {
+            $message .= " -- {$data['Log']['description']}";
+        } else if (!empty($data['Log']['change'])) {
+            $message .= " -- " . JsonTool::encode($data['Log']['change']);
+        }
+
+        EcsLog::writeApplicationLog($action, $message);
     }
 
     public function filterSiteAdminSensitiveLogs($list)
