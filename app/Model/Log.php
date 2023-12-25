@@ -429,14 +429,16 @@ class Log extends AppModel
     }
 
     /**
-     * TODO: Check if ECS is enabled
-     *
      * @param array $data
      * @return void
      * @throws JsonException
      */
     private function sendToEcs(array $data)
     {
+        if (!Configure::read('Security.ecs_log')) {
+            return;
+        }
+
         $action = $data['Log']['action'];
         $type = 'info';
         if (isset($action)) {
