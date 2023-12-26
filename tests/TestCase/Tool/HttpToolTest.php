@@ -86,6 +86,8 @@ xWV4oBk=
 
     public function testSelfSignedCustomCa()
     {
+        $this->markTestSkipped("This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.");
+
         // write CA file to disk, load it from there
         $fname = '/tmp/ca.pem';
         $certfile = new \SplFileObject($fname, "w+");
