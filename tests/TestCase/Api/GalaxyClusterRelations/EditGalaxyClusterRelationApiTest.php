@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\GalaxyClusters;
 
-use App\Model\Entity\GalaxyClusterRelation;
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Fixture\GalaxiesFixture;
 use App\Test\Fixture\GalaxyClusterRelationsFixture;
 use App\Test\Fixture\GalaxyClustersFixture;
 use App\Test\Helper\ApiTestTrait;
@@ -20,6 +18,7 @@ class EditGalaxyClusterRelationApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.Galaxies',

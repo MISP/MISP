@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\SharingGroups;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Helper\ApiTestTrait;
-use App\Test\Fixture\EventBlocklistsFixture;
 use App\Test\Fixture\SharingGroupsFixture;
+use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class EditSharingGroupApiTest extends TestCase
 {
@@ -18,6 +17,7 @@ class EditSharingGroupApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.Servers',
@@ -43,9 +43,12 @@ class EditSharingGroupApiTest extends TestCase
         );
 
         $this->assertResponseOk();
-        $this->assertDbRecordExists('SharingGroups', [
-            'uuid' => SharingGroupsFixture::SHARING_GROUP_A_UUID,
-            'name' => $new_name,
-        ]);
+        $this->assertDbRecordExists(
+            'SharingGroups',
+            [
+                'uuid' => SharingGroupsFixture::SHARING_GROUP_A_UUID,
+                'name' => $new_name,
+            ]
+        );
     }
 }

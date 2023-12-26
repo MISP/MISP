@@ -6,8 +6,6 @@ namespace App\Test\TestCase\Api\Galaxies;
 
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\GalaxiesFixture;
-use App\Test\Fixture\GalaxyClusterRelationsFixture;
-use App\Test\Fixture\GalaxyClusterRelationTagsFixture;
 use App\Test\Fixture\GalaxyClustersFixture;
 use App\Test\Helper\ApiTestTrait;
 use Cake\TestSuite\TestCase;
@@ -20,6 +18,7 @@ class DeleteGalaxyApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.Galaxies',

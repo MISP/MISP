@@ -16,6 +16,7 @@ class UpdateNoticelistsApiTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys',
         'app.Noticelists',

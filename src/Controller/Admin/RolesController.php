@@ -3,37 +3,38 @@
 namespace App\Controller\Admin;
 
 use App\Controller\AppController;
-use Cake\Utility\Hash;
-use Cake\Utility\Text;
-use Cake\Database\Expression\QueryExpression;
-use Cake\Http\Exception\NotFoundException;
-use Cake\Http\Exception\ForbiddenException;
+use Cake\Http\Response;
+use Cake\ORM\Locator\LocatorAwareTrait;
+use Exception;
 
 class RolesController extends AppController
 {
+    use LocatorAwareTrait;
 
     public $filterFields = ['name', 'uuid', 'perm_admin', 'Users.id', 'perm_org_admin'];
     public $quickFilterFields = ['name'];
     public $containFields = [];
 
-    public $paginate = array(
-            'limit' => 60,
-            'order' => array(
-                    'Role.name' => 'ASC'
-            )
-    );
+    public $paginate = [
+        'limit' => 60,
+        'order' => [
+            'Role.name' => 'ASC'
+        ]
+    ];
 
     public function add()
     {
         $rolesModel = $this->Roles;
-        $this->CRUD->add([
-            'afterSave' => function ($data) use ($rolesModel) {
-                if ($data['is_default']) {
-                    $rolesModel->query()->update()->set(['is_default' => false])->where(['id !=' => $data->id])->execute();
+        $this->CRUD->add(
+            [
+                'afterSave' => function ($data) use ($rolesModel) {
+                    if ($data['is_default']) {
+                        $rolesModel->query()->update()->set(['is_default' => false])->where(['id !=' => $data->id])->execute();
+                    }
+                    return true;
                 }
-                return true;
-            }
-        ]);
+            ]
+        );
         $responsePayload = $this->CRUD->getResponsePayload();
         if (!empty($responsePayload)) {
             return $responsePayload;
@@ -62,28 +63,36 @@ class RolesController extends AppController
 
     public function delete($id = null)
     {
-        $this->CRUD->delete($id, [
-            'validate' => function (array $role) {
-                $usersWithRole = $this->User->find('count', [
-                    'conditions' => ['role_id' => $role['Role']['id']],
-                    'recursive' => -1,
-                ]);
-                if ($usersWithRole) {
-                    throw new Exception(__("It is not possible to delete role that is assigned to users."));
+        $this->CRUD->delete(
+            $id,
+            [
+                'validate' => function (array $role) {
+                    $usersWithRole = $this->User->find(
+                        'count',
+                        [
+                            'conditions' => ['role_id' => $role['Role']['id']],
+                            'recursive' => -1,
+                        ]
+                    );
+                    if ($usersWithRole) {
+                        throw new Exception(__("It is not possible to delete role that is assigned to users."));
+                    }
                 }
-            }
-        ]);
-        if ($this->IndexFilter->isRest()) {
+            ]
+        );
+        if ($this->ParamHandler->isRest()) {
             return $this->restResponsePayload;
         }
     }
 
     public function index()
     {
-        $this->CRUD->index([
-            'filters' => $this->filterFields,
-            'quickFilters' => $this->quickFilterFields
-        ]);
+        $this->CRUD->index(
+            [
+                'filters' => $this->filterFields,
+                'quickFilters' => $this->quickFilterFields
+            ]
+        );
         $responsePayload = $this->CRUD->getResponsePayload();
         if (!empty($responsePayload)) {
             return $responsePayload;
@@ -92,7 +101,7 @@ class RolesController extends AppController
         $this->set('permFlags', $this->Roles->permFlags());
         $this->set('metaGroup', $this->isAdmin ? 'Administration' : 'Cerebrate');
     }
-/*
+    /*
     public function index()
     {
         $params = [
@@ -120,37 +129,37 @@ class RolesController extends AppController
     }
     */
 
-    public function set_default($role_id = false)
+    public function setDefault($role_id = false)
     {
         if ($this->request->is('post')) {
-            $this->Role->id = $role_id;
-            if ((!is_numeric($role_id) && $role_id !== false) || !$this->Role->exists()) {
+            $role = $this->Roles->get($role_id);
+            if ((!is_numeric($role_id) && $role_id !== false) || !$role) {
                 $message = 'Invalid Role.';
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $message, $this->response->type());
+                if ($this->ParamHandler->isRest()) {
+                    return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $message, $this->response->getType());
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => false, 'errors' => $message]), 'status' => 200, 'type' => 'json']);
                 }
             }
-            $this->loadModel('AdminSetting');
-            $result = $this->AdminSetting->changeSetting('default_role', $role_id);
+            $AdminSettingsTable = $this->fetchTable('AdminSettings');
+            $result = $AdminSettingsTable->changeSetting('default_role', $role_id);
             if ($result === true) {
                 $message = $role_id ? __('Default role set.') : __('Default role unset.');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('Roles', 'admin_set_default', $role_id, $this->response->type(), $message);
+                if ($this->ParamHandler->isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('Roles', 'admin_set_default', $role_id, $this->response->getType(), $message);
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => true, 'success' => $message]), 'status' => 200, 'type' => 'json']);
                 }
             } else {
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $result, $this->response->type());
+                if ($this->ParamHandler->isRest()) {
+                    return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $result, $this->response->getType());
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'status'=>200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => false, 'errors' => $result]), 'status' => 200, 'type' => 'json']);
                 }
             }
         } else {
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveFailResponse('Role', 'admin_set_default', false, __('This endpoint expects a POST request.'), $this->response->type());
+            if ($this->ParamHandler->isRest()) {
+                return $this->RestResponse->saveFailResponse('Role', 'admin_set_default', false, __('This endpoint expects a POST request.'), $this->response->getType());
             } else {
                 $this->layout = false;
             }

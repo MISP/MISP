@@ -18,6 +18,7 @@ class EditSightingdbsApiTest extends TestCase
     protected $fixtures = [
         'app.Sightingdbs',
         'app.Organisations',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];

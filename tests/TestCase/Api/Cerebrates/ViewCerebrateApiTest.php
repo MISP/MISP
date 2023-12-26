@@ -18,6 +18,7 @@ class ViewCerebrateApiTest extends TestCase
     protected $fixtures = [
         'app.Organisations',
         'app.Cerebrates',
+        'app.Roles',
         'app.Users',
         'app.AuthKeys'
     ];
