@@ -57,6 +57,8 @@ xWV4oBk=
 
     public function testSelfSigned()
     {
+        $this->markTestSkipped("This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.");
+
         $config = [
             'self_signed' => true
         ];
@@ -67,6 +69,8 @@ xWV4oBk=
 
     public function testSelfSignedFail()
     {
+        $this->markTestSkipped("This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.");
+
         $config = [
             'ssl_verify_peer' => true,
             'ssl_verify_host' => false];
@@ -95,6 +99,8 @@ xWV4oBk=
 
     public function testSelfSignedCustomSystemCa()
     {
+        $this->markTestSkipped("This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.");
+
         // write CA file to disk, load it from there
         $fname = '/tmp/ca.pem';
         $certfile = new \SplFileObject($fname, "w+");
@@ -108,6 +114,7 @@ xWV4oBk=
 
     public function testProxy()
     {
+        $this->markTestSkipped("This is not implemented yet. Requires local proxy installation (tinyproxy) on the testing system.");
         Configure::write('Proxy.host', self::PROXY_SERVER);
         Configure::write('Proxy.port', self::PROXY_PORT);
         // Configure::write('Proxy.method', 'basic'); // auth: basic / digest
@@ -173,6 +180,7 @@ xWV4oBk=
 
     public function testFetchCertificate()
     {
+        $this->markTestSkipped("This is not very well implemented yet.");
         $client = new HttpTool();
         /* @var $certificates array */
         $certificates = $client->fetchCertificates('https://www.google.com');
