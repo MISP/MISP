@@ -5,6 +5,7 @@ namespace App\Test\TestCase\Tool;
 use App\Lib\Tools\HttpTool;
 use Cake\Core\Configure;
 use Cake\Http\Client\Exception\NetworkException;
+use Cake\I18n\FrozenTime;
 use Cake\TestSuite\TestCase;
 
 class HttpToolTest extends TestCase
@@ -127,41 +128,60 @@ xWV4oBk=
 
     public function testParseCertificate()
     {
-        $certificate = self::HTTPS_SELF_SIGNED_CA;
+        $certificate = "-----BEGIN CERTIFICATE-----
+        MIIEhjCCA26gAwIBAgIQMSLF87fiqdsJ4To3xUynTTANBgkqhkiG9w0BAQsFADBG
+        MQswCQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExM
+        QzETMBEGA1UEAxMKR1RTIENBIDFDMzAeFw0yMzExMjAwODA5NDdaFw0yNDAyMTIw
+        ODA5NDZaMBkxFzAVBgNVBAMTDnd3dy5nb29nbGUuY29tMFkwEwYHKoZIzj0CAQYI
+        KoZIzj0DAQcDQgAEMjh0kjVaHQP0RikHoIcq7BTU2pFd2rvDX0dDmPV4YsdhPzBI
+        b1Ix36udTFzdP5fureCpNaucNEFoiGqex1K7JqOCAmYwggJiMA4GA1UdDwEB/wQE
+        AwIHgDATBgNVHSUEDDAKBggrBgEFBQcDATAMBgNVHRMBAf8EAjAAMB0GA1UdDgQW
+        BBQ3xGOil9FWeb8g19g0kjiXUwXSUDAfBgNVHSMEGDAWgBSKdH+vhc3ulc09nNDi
+        RhTzcTUdJzBqBggrBgEFBQcBAQReMFwwJwYIKwYBBQUHMAGGG2h0dHA6Ly9vY3Nw
+        LnBraS5nb29nL2d0czFjMzAxBggrBgEFBQcwAoYlaHR0cDovL3BraS5nb29nL3Jl
+        cG8vY2VydHMvZ3RzMWMzLmRlcjAZBgNVHREEEjAQgg53d3cuZ29vZ2xlLmNvbTAh
+        BgNVHSAEGjAYMAgGBmeBDAECATAMBgorBgEEAdZ5AgUDMDwGA1UdHwQ1MDMwMaAv
+        oC2GK2h0dHA6Ly9jcmxzLnBraS5nb29nL2d0czFjMy9mVkp4YlYtS3Rtay5jcmww
+        ggEDBgorBgEEAdZ5AgQCBIH0BIHxAO8AdgB2/4g/Crb7lVHCYcz1h7o0tKTNuync
+        aEIKn+ZnTFo6dAAAAYvr/jkgAAAEAwBHMEUCIQDvPoaGuwS/SVhLU2NRxM14RSK2
+        0+rvm3ii8PXCrEqLgwIgZqR6d58UvJbFqCI6CnbJlKzARYNH2Qe/q+VYGnnRF5AA
+        dQBVgdTCFpA2AUrqC5tXPFPwwOQ4eHAlCBcvo6odBxPTDAAAAYvr/jkHAAAEAwBG
+        MEQCICsZCXVYTj6rAkxERKNOKVKUEwUn9AcSdATanhGFgW3uAiAPvNgBitcTLHBc
+        BGtXp/3rvSK9R/O4GoWglRLWbLtnwjANBgkqhkiG9w0BAQsFAAOCAQEAfneqoNRs
+        kK+9Rba3Ru8xbU3s3XGeD9WFdMY4bBs0Xkcd6YXGkMvr6zmfCPbdTTLfGA49Fc85
+        kUXCQYDmoUdh9NFJS6kfRtH36DOq2fXhU47bfC6di1MIw4oBKCBhwVMQut2syBnV
+        AUwkPflKgFi+5tagqpMj7Ydg5kE69Biee6wKnk4zYlvUzoBWheeYaiQNsKebcCYa
+        BMtndiBl9bF3W5ShAiXYlZq/kN9B9uco0v0OdvZIH0c5vwlyVXEW6Xg8qb89p379
+        y2d2fXUN6tjbZ1gE1LWMazNwkShdPvDOx1hL5MBkkhoRpUuKKfuI9Do9R57Owj14
+        pmxnRfR3SsTR1w==
+-----END CERTIFICATE-----
+        ";
         $result = HttpTool::parseCertificate($certificate);
-
-        $this->assertArrayHasKey('serial_number', $result);
-        // $what_it_should_be = [
-        //     'serial_number' => '6B0792551E9BBE18988F9B115465A83D8A4B445E'
-        //     'signature_type' => 'RSA-SHA256'
-        //     'valid_from' => Cake\I18n\FrozenTime Object &000000000000015f0000000000000000 (
-        //         'date' => '2023-12-18 18:45:31.000000'
-        //         'timezone_type' => 1
-        //         'timezone' => '+00:00'
-        //     )
-        //     'valid_to' => Cake\I18n\FrozenTime Object &00000000000001600000000000000000 (
-        //         'date' => '2026-09-12 18:45:31.000000'
-        //         'timezone_type' => 1
-        //         'timezone' => '+00:00'
-        //     )
-        //     'public_key_size' => 4096
-        //     'public_key_type' => 'RSA'
-        //     'public_key_size_ok' => true
-        //     'valid_from_ok' => true
-        //     'valid_to_ok' => true
-        //     'subject' => 'C=LU, ST=Some-State, O=Internet Widgits Pty Ltd, CN=172.16.40.133'
-        //     'issuer' => 'C=LU, ST=Some-State, O=Internet Widgits Pty Ltd, CN=172.16.40.133'
-        // ];
         // debug($result);
-        // $this->assertTrue(array_diff($result, $what_it_should_be));
+        $this->assertEquals($result['serial_number'], '3122C5F3B7E2A9DB09E13A37C54CA74D');
+        $this->assertEquals($result['subject'], 'CN=www.google.com');
+        $this->assertEquals($result['issuer'], 'C=US, O=Google Trust Services LLC, CN=GTS CA 1C3');
+        $this->assertEquals($result['public_key_size_ok'], true);
+        $this->assertEquals($result['valid_from_ok'], true);
+        $this->assertEquals($result['valid_to_ok'], true);
+        $this->assertEquals($result['valid_from'], new FrozenTime("2023-11-20 08:09:47.000000+00:00"));
+        $this->assertEquals($result['valid_to'], new FrozenTime("2024-02-12 08:09:46.000000+00:00"));
+        $this->assertEquals($result['signature_type'], "RSA-SHA256");
+        $this->assertEquals($result['public_key_size'], 256);
+        $this->assertEquals($result['public_key_type'], 'EC (prime256v1)');
     }
 
     public function testFetchCertificate()
     {
         $client = new HttpTool();
+        /* @var $certificates array */
         $certificates = $client->fetchCertificates('https://www.google.com');
         // $certificates = $client->fetchCertificates(self::HTTPS_SELF_SIGNED_URI);
         // $certificates = $client->fetchCertificates('http://www.google.com');
-        
+        // we get one or more certificates from the server. No function yet to select "the right one"
+        foreach($certificates as $certificate) {
+            // debug($certificate);
+        }
     }
+
 }

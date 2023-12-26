@@ -12,7 +12,11 @@ class CurlAdvanced extends Curl
 {
 
     /**
-     * @inheritDoc
+     * getCertificateChain - returns the list of certificates offered by the server
+     *
+     * @param  mixed $request
+     * @param  mixed $options
+     * @return array
      */
     public function getCertificateChain(RequestInterface $request, array $options): array
     {
@@ -22,9 +26,9 @@ class CurlAdvanced extends Curl
 
         $ch = curl_init();
         $options['curl'] = [
-            CURLOPT_CERTINFO => true,
+            CURLOPT_CERTINFO => true,    // ask curl for the certificate information
             // CURLOPT_VERBOSE => true,
-            CURLOPT_NOBODY => true,
+            CURLOPT_NOBODY => true,      // no need for the body
         ];
      
         $options = $this->buildOptions($request, $options);

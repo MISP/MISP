@@ -120,7 +120,7 @@ class HttpTool extends CakeClient
         }
 
         // Add user-agent
-        // FIXME chri - add user-agent
+        $this->_defaultConfig['headers']['User-Agent'] = "MISP - Threat Intelligence & Sharing Platform"; // LATER add MISP version 
     }
 
     /**
@@ -160,7 +160,7 @@ class HttpTool extends CakeClient
     /**
      * fetchCertificate - download the SSL certificate from the remote server
      *
-     * @return string the certificate in pem format
+     * @return array the list of certificates including pem
      */
     public function fetchCertificates(string $url, array $options = []) : array
     {
@@ -179,17 +179,11 @@ class HttpTool extends CakeClient
         );
         $curl = new CurlAdvanced();
         $certificates = $curl->getCertificateChain($request, $options);
-        debug($certificates);
         return $certificates;
-        // FIXME chri - now we need to find the right certificate
-        // $certificate = openssl_x509_read($caCertificate);
-        // if (!$certificate) {
-        //     throw new CakeException("Couldn't read certificate: " . openssl_error_string());
-        // }
-        // return $caCertificate;
     }
 
     /**
+     * getServerClientCertificateInfo - extract certificate info from a Client certificate from a $server.
      * @param array $server
      * @return array|void
      * @throws Exception
@@ -207,6 +201,7 @@ class HttpTool extends CakeClient
     }
 
     /**
+     * getServerCaCertificateInfo - extract certificate info from a certificate from a $server.
      * @param array $server
      * @return array|void
      * @throws Exception
@@ -229,6 +224,7 @@ class HttpTool extends CakeClient
     }
 
     /**
+     * getClientCertificateInfo - extract client certificate info from a PEM encoded cert + key, only if the cert+key are valid
      * @param string $certificateContent PEM encoded certificate and private key.
      * @return array
      * @throws Exception
@@ -251,12 +247,14 @@ class HttpTool extends CakeClient
     }
 
     /**
+     * parseCertificate - extract certificate info from a PEM encoded certificate
      * @param mixed $certificate
      * @return array
      * @throws Exception
      */
     public static function parseCertificate(mixed $certificate): array
     {
+        /* @var $parsed array */
         $parsed = openssl_x509_parse($certificate);
         if (!$parsed) {
             throw new CakeException("Couldn't get parse X.509 certificate: " . openssl_error_string());
