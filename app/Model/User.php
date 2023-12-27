@@ -890,7 +890,11 @@ class User extends AppModel
 
         $logTitle = $result['encrypted'] ? 'Encrypted email' : 'Email';
         // Intentional two spaces to pass test :)
-        $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $result['subject'] . '".';
+        $logTitle .= $replyToLog  . '  to ' . $result['to'] . ' sent, titled "' . $result['subject'] . '".';
+
+        if (Configure::read('Security.ecs_log')) {
+            EcsLog::writeEmailLog($logTitle, $result, $replyToUser ? $replyToUser['User']['email'] : null);
+        }
 
         $log->create();
         $log->saveOrFailSilently(array(

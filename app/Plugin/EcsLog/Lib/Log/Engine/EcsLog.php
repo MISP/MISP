@@ -7,6 +7,8 @@ App::uses('JsonTool', 'Tools');
  */
 class EcsLog implements CakeLogInterface
 {
+    const ECS_VERSION = '8.11';
+
     const SOCKET_PATH = '/run/vector';
 
     /** @var false|resource */
@@ -24,9 +26,9 @@ class EcsLog implements CakeLogInterface
     public function write($type, $message)
     {
         $message = [
-            '@timestamp' => date('Y-m-d\TH:i:s.uP'),
+            '@timestamp' => self::timestamp(),
             'ecs' => [
-                'version' => '8.11',
+                'version' => self::ECS_VERSION,
             ],
             'event' => [
                 'kind' => 'event',
@@ -52,10 +54,14 @@ class EcsLog implements CakeLogInterface
      */
     public static function writeApplicationLog($type, $action, $message)
     {
+        if ($action === 'email') {
+            return; // do not log email actions as it is logged with more details by `writeEmailLog` function
+        }
+
         $message = [
-            '@timestamp' => date('Y-m-d\TH:i:s.uP'),
+            '@timestamp' => self::timestamp(),
             'ecs' => [
-                'version' => '8.11',
+                'version' => self::ECS_VERSION,
             ],
             'event' => [
                 'kind' => 'event',
@@ -76,6 +82,47 @@ class EcsLog implements CakeLogInterface
             if (in_array($action, ['auth_fail', 'login_fail'], true)) {
                 $message['event']['outcome'] = 'failure';
             }
+        }
+
+        static::writeMessage($message);
+    }
+
+    /**
+     * Include more meta information about email than would provide default `writeApplicationLog` log
+     * @param string $logTitle
+     * @param array $emailResult
+     * @param string|null $replyTo
+     * @return void
+     * @throws JsonException
+     */
+    public static function writeEmailLog($logTitle, array $emailResult, $replyTo = null)
+    {
+        $message = [
+            '@timestamp' => self::timestamp(),
+            'ecs' => [
+                'version' => self::ECS_VERSION,
+            ],
+            'event' => [
+                'kind' => 'event',
+                'provider' => 'misp',
+                'module' => 'application',
+                'dataset' => 'application.logs',
+                'category' => 'email',
+                'action' => 'email',
+                'type' => 'info',
+            ],
+            'email' => [
+                'message_id' => $emailResult['message_id'],
+                'subject' => $emailResult['subject'],
+                'to' => [
+                    'address' => $emailResult['to'],
+                ],
+            ],
+            'message' => $logTitle,
+        ];
+
+        if ($replyTo) {
+            $message['email']['reply_to'] = ['address' => $replyTo];
         }
 
         static::writeMessage($message);
@@ -186,6 +233,14 @@ class EcsLog implements CakeLogInterface
     }
 
     /**
+     * @return string
+     */
+    public static function timestamp()
+    {
+        return date('Y-m-d\TH:i:s.uP');
+    }
+
+    /**
      * @param array $message
      * @return void
      * @throws JsonException
@@ -204,7 +259,9 @@ class EcsLog implements CakeLogInterface
             // In case of failure, try reconnect and send log again
             if ($bytesWritten === false) {
                 static::connect();
-                fwrite(static::$socket, $data);
+                if (static::$socket) {
+                    fwrite(static::$socket, $data);
+                }
             }
         }
     }
