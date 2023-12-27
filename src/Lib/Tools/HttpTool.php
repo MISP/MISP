@@ -124,7 +124,36 @@ class HttpTool extends CakeClient
     }
 
     /**
-     * Helper method for doing non-GET requests. This method is there to provide us a wrapper implementing our custom options.
+     * Set HttpTool configuration from Server data, such as Certificate Authority and other
+     * 
+     * @param array $server Server array
+     */
+    public function configFromServer(array $server)
+    {
+        if (!empty($server)) {
+            if ($server['cert_file']) {
+                $this->_defaultConfig['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server['id'] . '.pem';
+            }
+            if ($server['client_cert_file']) {
+                if (!isset($this->_defaultConfig['curl'])) $this->_defaultConfig['curl'] = [];
+                $this->_defaultConfig['curl'][CURLOPT_SSLKEY] = APP . "files" . DS . "certs" . DS . $server['id'] . '_client.pem';
+            }
+            if ($server['self_signed']) {
+                $this->_defaultConfig['ssl_verify_peer_name'] = false;
+                if (!isset($server['cert_file'])) {
+                    $this->_defaultConfig['ssl_verify_peer'] = false;
+                }
+            }
+            if (!empty($server['skip_proxy'])) {
+                $this->_defaultConfig['skip_proxy'] = true;
+            }
+        }
+
+    }
+
+
+    /**
+     * Helper method for doing requests. This method is there to provide us a wrapper implementing custom MISP options.
      *
      * @param string $method HTTP method.
      * @param string $url URL to request.
@@ -140,7 +169,7 @@ class HttpTool extends CakeClient
                 'ssl_verify_host' => false]);
         }
         if (isset($options['skip_proxy']) && $options['skip_proxy'] === true) {
-            unset($options['proxy']); 
+            unset($options['proxy']);
         }
         return parent::_doRequest($method, $url, $data, $options);
     }
@@ -229,7 +258,7 @@ class HttpTool extends CakeClient
      * @return array
      * @throws Exception
      */
-    private static function getClientCertificateInfo(string $certificateContent): array
+    public static function getClientCertificateInfo(string $certificateContent): array
     {
         $certificate = openssl_x509_read($certificateContent);
         if (!$certificate) {
