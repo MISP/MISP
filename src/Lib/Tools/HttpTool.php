@@ -14,14 +14,26 @@ use Cake\I18n\FrozenTime;
 
 class HttpTool extends CakeClient
 {
-
-    public function __construct(array $config = [])
+    
+    /**
+     * Create a new MISP specific HTTP Client
+     * {@inheritdoc}   In addition brings some MISP specifics to the game.
+     * Additional settings that are loaded in the _doRequest() function
+     *   - cert_file - translates to 'ssl_cafile'
+     *   - client_cert_file - translates to 'ssl_local_cert' - SSL client side authentication - see CURLOPT_SSLKEY
+     *   - self_signed - translates to 'ssl_allow_self_signed', 'ssl_verify_peer_name', 'ssl_verify_peer'
+     *   - skip_proxy - skips proxy ;-)
+     * MISP global settings are loaded automagically
+     *   - MISP.ca_path - certificate store
+     *   - Proxy.host, port, user, pass, method
+     *   - Security.min_tls_version
+     *   
+     * @param  mixed $server Server array with custom settings for a specific server, cerebrate, ...
+     */
+    public function __construct(array $config = [], array $server = [])
     {
         $this->buildDefaultConfigFromSettings();
-
-        // Custom Curl Adapter to give extra features, including SSL Cert dumping
-        // $config['adapter'] = CurlAdvanced::class;
-
+        if (!empty($server)) $this->configFromServer($server);
         parent::__construct($config);
     }
 
@@ -148,7 +160,6 @@ class HttpTool extends CakeClient
                 $this->_defaultConfig['skip_proxy'] = true;
             }
         }
-
     }
 
 
