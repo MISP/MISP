@@ -15,9 +15,6 @@ class EcsLog implements CakeLogInterface
     /** @var array[] */
     private static $meta;
 
-    /** @var string|null */
-    private static $ip;
-
     /**
      * @param string $type The type of log you are making.
      * @param string $message The message you want to log.
@@ -49,7 +46,6 @@ class EcsLog implements CakeLogInterface
     /**
      * @param string $type
      * @param string $action
-     * @param string $userEmail
      * @param string $message
      * @return void
      * @throws JsonException
@@ -90,12 +86,8 @@ class EcsLog implements CakeLogInterface
      */
     private static function clientIp()
     {
-        if (static::$ip) {
-            return static::$ip;
-        }
-
         $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-        return static::$ip = isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
+        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
     }
 
     /**
@@ -125,7 +117,7 @@ class EcsLog implements CakeLogInterface
                 $meta['client'] = $client;
             } else {
                 $meta['client'] = [
-                    'ip' => static::clientIp(),
+                    'ip' => $clientIp,
                     'nat' => $client,
                 ];
             }
@@ -155,6 +147,10 @@ class EcsLog implements CakeLogInterface
         return self::$meta = $meta;
     }
 
+    /**
+     * Get user metadata (use unique id and email address)
+     * @return array|null
+     */
     private static function createUserMeta()
     {
         if (PHP_SAPI === 'cli') {
@@ -169,7 +165,7 @@ class EcsLog implements CakeLogInterface
                 ]);
                 if (!empty($user)) {
                     return [
-                        'id' => empty($user['User']['sub']) ? $currentUserId : $user['User']['sub'],
+                        'id' => $user['User']['sub'] ?? $currentUserId,
                         'email' => $user['User']['email'],
                     ];
                 }
@@ -180,7 +176,7 @@ class EcsLog implements CakeLogInterface
             $authUser = AuthComponent::user();
             if (!empty($authUser)) {
                 return [
-                    'id' => empty($authUser['sub']) ? $authUser['id'] : $authUser['sub'],
+                    'id' => $authUser['sub'] ?? $authUser['id'],
                     'email' => $authUser['email'],
                 ];
             }
