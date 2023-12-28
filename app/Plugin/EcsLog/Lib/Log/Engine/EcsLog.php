@@ -26,7 +26,7 @@ class EcsLog implements CakeLogInterface
     public function write($type, $message)
     {
         $message = [
-            '@timestamp' => self::timestamp(),
+            '@timestamp' => self::now(),
             'ecs' => [
                 'version' => self::ECS_VERSION,
             ],
@@ -59,7 +59,7 @@ class EcsLog implements CakeLogInterface
         }
 
         $message = [
-            '@timestamp' => self::timestamp(),
+            '@timestamp' => self::now(),
             'ecs' => [
                 'version' => self::ECS_VERSION,
             ],
@@ -98,7 +98,7 @@ class EcsLog implements CakeLogInterface
     public static function writeEmailLog($logTitle, array $emailResult, $replyTo = null)
     {
         $message = [
-            '@timestamp' => self::timestamp(),
+            '@timestamp' => self::now(),
             'ecs' => [
                 'version' => self::ECS_VERSION,
             ],
@@ -233,11 +233,12 @@ class EcsLog implements CakeLogInterface
     }
 
     /**
+     * ISO 8601 timestamp with microsecond precision
      * @return string
      */
-    public static function timestamp()
+    public static function now()
     {
-        return date('Y-m-d\TH:i:s.uP');
+        return (new DateTime())->format('Y-m-d\TH:i:s.uP');
     }
 
     /**
