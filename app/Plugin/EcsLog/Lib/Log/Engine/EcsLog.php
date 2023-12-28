@@ -157,7 +157,7 @@ class EcsLog implements CakeLogInterface
             $clientIp = static::clientIp();
             $client = [
                 'ip' => $_SERVER['REMOTE_ADDR'],
-                'port' => $_SERVER['REMOTE_PORT'],
+                'port' => (int) $_SERVER['REMOTE_PORT'],
             ];
 
             if ($clientIp === $_SERVER['REMOTE_ADDR']) {
@@ -169,7 +169,7 @@ class EcsLog implements CakeLogInterface
                 ];
             }
 
-            if (strpos($_SERVER['HTTP_HOST'], ':') !== 0) {
+            if (strpos($_SERVER['HTTP_HOST'], ':') !== false) {
                 list($domain, $port) = explode(':', $_SERVER['HTTP_HOST'], 2);
                 $meta['url'] = [
                     'domain' => $domain,
