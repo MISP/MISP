@@ -4022,9 +4022,9 @@ class AppModel extends Model
      */
     public function _remoteIp()
     {
-        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: null;
-        if ($ipHeader && isset($_SERVER[$ipHeader])) {
-            return trim($_SERVER[$ipHeader]);
+        $clientIpHeader = Configure::read('MISP.log_client_ip_header');
+        if ($clientIpHeader && isset($_SERVER[$clientIpHeader])) {
+            return trim($_SERVER[$clientIpHeader]);
         }
         return $_SERVER['REMOTE_ADDR'] ?? null;
     }
