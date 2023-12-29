@@ -3,12 +3,12 @@
 namespace App\Controller\Admin;
 
 use App\Controller\AppController;
-use Cake\Core\Configure;
-use Cake\Http\Exception\NotFoundException;
 use App\Model\Entity\AuditLog;
+use Cake\Core\Configure;
 use Cake\Http\Exception\MethodNotAllowedException;
-use Exception;
+use Cake\Http\Exception\NotFoundException;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use Exception;
 
 class AuditLogsController extends AppController
 {
@@ -59,10 +59,9 @@ class AuditLogsController extends AppController
         'WorkflowBlueprint',
     ];
 
-    // TODO: [3.x-MIGRATION] handle `changed` (blog column, use JsonFieldBehavior)
     public $paginate = [
         'limit' => 60,
-    'fields' => ['id', 'created', 'user_id', 'org_id', 'request_action','model', 'model_id', 'model_title', 'event_id', /* 'changed' */],
+        'fields' => ['id', 'created', 'user_id', 'org_id', 'request_action', 'model', 'model_id', 'model_title', 'event_id', 'changed'],
         'contain' => [
             'Users' => ['fields' => ['id', 'email', 'org_id']],
             'Organisations' => ['fields' => ['id', 'name', 'uuid']],
@@ -121,20 +120,22 @@ class AuditLogsController extends AppController
         if (!Configure::read('MISP.log_new_audit')) {
             $this->Flash->warning(__("Audit log is not enabled. See 'MISP.log_new_audit' in the Server Settings. (Administration -> Server Settings -> MISP tab)"));
         }
-        $params = $this->harvestParameters([
-            'ip',
-            'user',
-            'request_id',
-            'authkey_id',
-            'model',
-            'model_id',
-            'event_id',
-            'model_title',
-            'action',
-            'org',
-            'created',
-            'request_type',
-        ]);
+        $params = $this->harvestParameters(
+            [
+                'ip',
+                'user',
+                'request_id',
+                'authkey_id',
+                'model',
+                'model_id',
+                'event_id',
+                'model_title',
+                'action',
+                'org',
+                'created',
+                'request_type',
+            ]
+        );
 
         $this->paginate['conditions'] = $this->__searchConditions($params);
         $acl = $this->__applyAuditACL($this->ACL->getUser()->toArray());
@@ -153,19 +154,22 @@ class AuditLogsController extends AppController
         }
 
         $this->set('list', $list);
-        $this->set('actions', [
-            AuditLog::ACTION_ADD => __('Add'),
-            AuditLog::ACTION_EDIT => __('Edit'),
-            AuditLog::ACTION_SOFT_DELETE => __('Soft delete'),
-            AuditLog::ACTION_DELETE => __('Delete'),
-            AuditLog::ACTION_UNDELETE => __('Undelete'),
-            AuditLog::ACTION_TAG . '||' . AuditLog::ACTION_TAG_LOCAL => __('Tag'),
-            AuditLog::ACTION_REMOVE_TAG . '||' . AuditLog::ACTION_REMOVE_TAG_LOCAL => __('Remove tag'),
-            AuditLog::ACTION_GALAXY . '||' . AuditLog::ACTION_GALAXY_LOCAL  => __('Galaxy cluster'),
-            AuditLog::ACTION_REMOVE_GALAXY . '||' . AuditLog::ACTION_REMOVE_GALAXY_LOCAL => __('Remove galaxy cluster'),
-            AuditLog::ACTION_PUBLISH => __('Publish'),
-            AuditLog::ACTION_PUBLISH_SIGHTINGS => $this->actions[AuditLog::ACTION_PUBLISH_SIGHTINGS],
-        ]);
+        $this->set(
+            'actions',
+            [
+                AuditLog::ACTION_ADD => __('Add'),
+                AuditLog::ACTION_EDIT => __('Edit'),
+                AuditLog::ACTION_SOFT_DELETE => __('Soft delete'),
+                AuditLog::ACTION_DELETE => __('Delete'),
+                AuditLog::ACTION_UNDELETE => __('Undelete'),
+                AuditLog::ACTION_TAG . '||' . AuditLog::ACTION_TAG_LOCAL => __('Tag'),
+                AuditLog::ACTION_REMOVE_TAG . '||' . AuditLog::ACTION_REMOVE_TAG_LOCAL => __('Remove tag'),
+                AuditLog::ACTION_GALAXY . '||' . AuditLog::ACTION_GALAXY_LOCAL  => __('Galaxy cluster'),
+                AuditLog::ACTION_REMOVE_GALAXY . '||' . AuditLog::ACTION_REMOVE_GALAXY_LOCAL => __('Remove galaxy cluster'),
+                AuditLog::ACTION_PUBLISH => __('Publish'),
+                AuditLog::ACTION_PUBLISH_SIGHTINGS => $this->actions[AuditLog::ACTION_PUBLISH_SIGHTINGS],
+            ]
+        );
         $models = $this->models;
         sort($models);
         $this->set('models', $models);
@@ -191,10 +195,13 @@ class AuditLogsController extends AppController
 
         if (!$this->isSiteAdmin()) {
             // Remove all user info about users from different org
-            $orgUserIds = $this->Users->find('column', [
-                'conditions' => ['Users.org_id' => $this->Auth->user('org_id')],
-                'fields' => ['Users.id'],
-            ]);
+            $orgUserIds = $this->Users->find(
+                'column',
+                [
+                    'conditions' => ['Users.org_id' => $this->Auth->user('org_id')],
+                    'fields' => ['Users.id'],
+                ]
+            );
             foreach ($list as $k => $item) {
                 if ($item['AuditLog']['user_id'] == 0) {
                     continue;
@@ -216,20 +223,26 @@ class AuditLogsController extends AppController
 
         $this->set('data', $list);
         $this->set('event', $event);
-        $this->set('mayModify', $this->canModifyEvent($event));
-        $this->set('menuData', [
-            'menuList' => 'event',
-            'menuItem' => 'eventLog'
-        ]);
+        $this->set('mayModify', $this->ACL->canModifyEvent($event));
+        $this->set(
+            'menuData',
+            [
+                'menuList' => 'event',
+                'menuItem' => 'eventLog'
+            ]
+        );
     }
 
     public function fullChange($id)
     {
-        $log = $this->AuditLogs->find('first', [
-            'conditions' => ['id' => $id],
-            'recursive' => -1,
-            'fields' => ['changed', 'request_action'],
-        ]);
+        $log = $this->AuditLogs->find(
+            'first',
+            [
+                'conditions' => ['id' => $id],
+                'recursive' => -1,
+                'fields' => ['changed', 'request_action'],
+            ]
+        );
         if (empty($log)) {
             throw new Exception('Log not found.');
         }
@@ -291,10 +304,13 @@ class AuditLogsController extends AppController
             } else if (is_numeric($params['user'])) {
                 $conditions['AuditLog.user_id'] = $params['user'];
             } else {
-                $user = $this->Users->find('first', [
-                    'conditions' => ['Users.email' => $params['user']],
-                    'fields' => ['id'],
-                ]);
+                $user = $this->Users->find(
+                    'first',
+                    [
+                        'conditions' => ['Users.email' => $params['user']],
+                        'fields' => ['id'],
+                    ]
+                );
                 if (!empty($user)) {
                     $conditions['AuditLog.user_id'] = $user['User']['id'];
                 } else {
@@ -372,15 +388,18 @@ class AuditLogsController extends AppController
             // Site admins and event owners can see all changes
             return ['event_id' => $event['Event']['id']];
         }
-        $event = $this->AuditLogs->Event->fetchEvent($this->Auth->user(), [
-            'eventid' => $event['Event']['id'],
-            'sgReferenceOnly' => 1,
-            'deleted' => [0, 1],
-            'deleted_proposals' => 1,
-            'noSightings' => true,
-            'includeEventCorrelations' => false,
-            'excludeGalaxy' => true,
-        ])[0];
+        $event = $this->AuditLogs->Event->fetchEvent(
+            $this->Auth->user(),
+            [
+                'eventid' => $event['Event']['id'],
+                'sgReferenceOnly' => 1,
+                'deleted' => [0, 1],
+                'deleted_proposals' => 1,
+                'noSightings' => true,
+                'includeEventCorrelations' => false,
+                'excludeGalaxy' => true,
+            ]
+        )[0];
         $attributeIds = [];
         $objectIds = [];
         $proposalIds = array_column($event['ShadowAttribute'], 'id');
@@ -456,35 +475,46 @@ class AuditLogsController extends AppController
 
         if (isset($models['ObjectReference'])) {
             $ObjectReferencesTable = $this->fetchTable('ObjectReferences');
-            $objectReferences = $ObjectReferencesTable->find('list', [
-                'conditions' => ['ObjectReference.id' => array_unique($models['ObjectReference'])],
-                'fields' => ['ObjectReference.id', 'ObjectReference.object_id'],
-            ])->toArray();
+            $objectReferences = $ObjectReferencesTable->find(
+                'list',
+                [
+                    'conditions' => ['ObjectReference.id' => array_unique($models['ObjectReference'])],
+                    'fields' => ['ObjectReference.id', 'ObjectReference.object_id'],
+                ]
+            )->toArray();
         }
 
         if (isset($models['Object']) || isset($objectReferences)) {
-            $objectIds = array_unique(array_merge(
-                isset($models['Object']) ? $models['Object'] : [],
-                isset($objectReferences) ? array_values($objectReferences) : []
-            ));
+            $objectIds = array_unique(
+                array_merge(
+                    isset($models['Object']) ? $models['Object'] : [],
+                    isset($objectReferences) ? array_values($objectReferences) : []
+                )
+            );
             $MispObjectsTable = $this->fetchTable('MispObjects');
             $conditions = $MispObjectsTable->buildConditions($this->Auth->user());
             $conditions['Object.id'] = $objectIds;
-            $objects = $this->MispObject->find('all', [
-                'conditions' => $conditions,
-                'contain' => ['Event'],
-                'fields' => ['Object.id', 'Object.event_id', 'Object.uuid', 'Object.deleted'],
-            ]);
+            $objects = $this->MispObject->find(
+                'all',
+                [
+                    'conditions' => $conditions,
+                    'contain' => ['Event'],
+                    'fields' => ['Object.id', 'Object.event_id', 'Object.uuid', 'Object.deleted'],
+                ]
+            );
             $objects = array_column(array_column($objects, 'Object'), null, 'id');
             $eventIds = array_merge($eventIds, array_column($objects, 'event_id'));
         }
 
         if (isset($models['Attribute'])) {
             $AttributesTable = $this->fetchTable('Attributes');
-            $attributes = $AttributesTable->fetchAttributesSimple($this->Auth->user(), [
-                'conditions' => ['Attribute.id' => array_unique($models['Attribute'])],
-                'fields' => ['Attribute.id', 'Attribute.event_id', 'Attribute.uuid', 'Attribute.deleted'],
-            ]);
+            $attributes = $AttributesTable->fetchAttributesSimple(
+                $this->Auth->user(),
+                [
+                    'conditions' => ['Attribute.id' => array_unique($models['Attribute'])],
+                    'fields' => ['Attribute.id', 'Attribute.event_id', 'Attribute.uuid', 'Attribute.deleted'],
+                ]
+            );
             $attributes = array_column(array_column($attributes, 'Attribute'), null, 'id');
             $eventIds = array_merge($eventIds, array_column($attributes, 'event_id'));
         }
@@ -493,11 +523,14 @@ class AuditLogsController extends AppController
             $ShadowAttributesTable = $this->fetchTable('ShadowAttributes');
             $conditions = $ShadowAttributesTable->buildConditions($this->Auth->user());
             $conditions['AND'][] = ['ShadowAttribute.id' => array_unique($models['ShadowAttribute'])];
-            $shadowAttributes = $ShadowAttributesTable->find('all', [
-                'conditions' => $conditions,
-                'fields' => ['ShadowAttribute.id', 'ShadowAttribute.event_id', 'ShadowAttribute.uuid', 'ShadowAttribute.deleted'],
-                'contain' => ['Event', 'Attribute'],
-            ])->toArray();
+            $shadowAttributes = $ShadowAttributesTable->find(
+                'all',
+                [
+                    'conditions' => $conditions,
+                    'fields' => ['ShadowAttribute.id', 'ShadowAttribute.event_id', 'ShadowAttribute.uuid', 'ShadowAttribute.deleted'],
+                    'contain' => ['Event', 'Attribute'],
+                ]
+            )->toArray();
             $shadowAttributes = array_column(array_column($shadowAttributes, 'ShadowAttribute'), null, 'id');
             $eventIds = array_merge($eventIds, array_column($shadowAttributes, 'event_id'));
         }
@@ -506,10 +539,13 @@ class AuditLogsController extends AppController
             $EventsTable = $this->fetchTable('Events');
             $conditions = $EventsTable->createEventConditions($this->Auth->user());
             $conditions['Event.id'] = array_unique($eventIds);
-            $events = $EventsTable->find('list', [
-                'conditions' => $conditions,
-                'fields' => ['Event.id', 'Event.info'],
-            ]);
+            $events = $EventsTable->find(
+                'list',
+                [
+                    'conditions' => $conditions,
+                    'fields' => ['Event.id', 'Event.info'],
+                ]
+            );
         }
 
         $links = [
@@ -530,10 +566,13 @@ class AuditLogsController extends AppController
         foreach ($links as $modelName => $foo) {
             if (isset($models[$modelName])) {
                 $ModelTable = $this->fetchTable($modelName);
-                $data = $ModelTable->find('column', [
-                    'conditions' => ['id' => array_unique($models[$modelName])],
-                    'fields' => ['id'],
-                ])->toArray();
+                $data = $ModelTable->find(
+                    'column',
+                    [
+                        'conditions' => ['id' => array_unique($models[$modelName])],
+                        'fields' => ['id'],
+                    ]
+                )->toArray();
                 $existingObjects[$modelName] = array_flip($data);
             }
         }
