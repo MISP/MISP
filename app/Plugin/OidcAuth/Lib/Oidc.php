@@ -522,8 +522,7 @@ class Oidc
     private function log($username, $message)
     {
         $sessionId = substr(session_id(), 0, 6);
-        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-        $ip = isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
+        $ip = $this->User->_remoteIp();
 
         if ($username) {
             $message = "OIDC user `$username` [$ip;$sessionId] – $message";
