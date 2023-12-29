@@ -168,20 +168,8 @@ class EcsLog implements CakeLogInterface
                     'nat' => $client,
                 ];
             }
+            $meta['url'] = self::createUrlMeta();
 
-            if (strpos($_SERVER['HTTP_HOST'], ':') !== false) {
-                list($domain, $port) = explode(':', $_SERVER['HTTP_HOST'], 2);
-                $meta['url'] = [
-                    'domain' => $domain,
-                    'port' => (int) $port,
-                    'path' => $_SERVER['REQUEST_URI'],
-                ];
-            } else {
-                $meta['url'] = [
-                    'domain' => $_SERVER['HTTP_HOST'],
-                    'path' => $_SERVER['REQUEST_URI'],
-                ];
-            }
         } else {
             $meta['process']['argv'] = $_SERVER['argv'];
         }
@@ -192,6 +180,32 @@ class EcsLog implements CakeLogInterface
         }
 
         return self::$meta = $meta;
+    }
+
+    /**
+     * @return array
+     */
+    private static function createUrlMeta()
+    {
+        if (strpos($_SERVER['REQUEST_URI'], '?') !== false) {
+            list($path, $query) = explode('?', $_SERVER['REQUEST_URI'], 2);
+            $url = [
+                'path' => $path,
+                'query' => $query,
+            ];
+        } else {
+            $url = ['path' => $_SERVER['REQUEST_URI']];
+        }
+
+        if (strpos($_SERVER['HTTP_HOST'], ':') !== false) {
+            list($domain, $port) = explode(':', $_SERVER['HTTP_HOST'], 2);
+            $url['domain'] = $domain;
+            $url['port'] = (int) $port;
+        } else {
+            $url['domain'] = $_SERVER['HTTP_HOST'];
+        }
+
+        return $url;
     }
 
     /**
