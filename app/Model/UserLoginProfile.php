@@ -127,7 +127,7 @@ class UserLoginProfile extends AppModel
         $data = array_merge($data, JsonTool::decode($logEntry['change']) ?? []);
         $data['ip'] = $logEntry['ip'];
         $data['timestamp'] = $logEntry['created'];
-        if ($data['user_agent'] == "") {
+        if ($data['user_agent'] === "") {
             return false;
         }
         return $data;
@@ -141,48 +141,48 @@ class UserLoginProfile extends AppModel
         if (!$a['ua_browser']) 
             return false;
         // really similar session, from same browser, region, but different IP
-        if ($a['ua_browser'] == $b['ua_browser'] && 
-            $a['ua_platform'] == $b['ua_platform'] &&
-            $a['accept_lang'] == $b['accept_lang'] &&
-            $a['geoip'] == $b['geoip']) {
+        if ($a['ua_browser'] === $b['ua_browser'] &&
+            $a['ua_platform'] === $b['ua_platform'] &&
+            $a['accept_lang'] === $b['accept_lang'] &&
+            $a['geoip'] === $b['geoip']) {
             return true;
         }
         // similar browser pattern, OS and region
-        if ($a['ua_pattern'] == $b['ua_pattern'] && 
-            $a['ua_platform'] == $b['ua_platform'] &&
-            $a['accept_lang'] == $b['accept_lang'] &&
-            $a['geoip'] == $b['geoip']) {
+        if ($a['ua_pattern'] === $b['ua_pattern'] &&
+            $a['ua_platform'] === $b['ua_platform'] &&
+            $a['accept_lang'] === $b['accept_lang'] &&
+            $a['geoip'] === $b['geoip']) {
             return true;
         }
         return false;
     }
 
-    public function _isIdentical($a, $b)
+    public function _isIdentical(array $a, array $b)
     {
-        if ($a['ip'] == $b['ip'] &&
-            $a['ua_browser'] == $b['ua_browser'] && 
-            $a['ua_platform'] == $b['ua_platform'] &&
-            $a['accept_lang'] == $b['accept_lang'] &&
-            $a['geoip'] == $b['geoip']) {
+        if ($a['ip'] === $b['ip'] &&
+            $a['ua_browser'] === $b['ua_browser'] &&
+            $a['ua_platform'] === $b['ua_platform'] &&
+            $a['accept_lang'] === $b['accept_lang'] &&
+            $a['geoip'] === $b['geoip']) {
             return true;
         }
         return false;
     }
 
-    public function _getTrustStatus($userProfileToCheck, $user_id = null)
+    public function _getTrustStatus(array $userProfileToCheck, $userId = null)
     {
-        if (!$user_id) {
-            $user_id = AuthComponent::user('id');
+        if (!$userId) {
+            $userId = AuthComponent::user('id');
         }
         // load Singleton / caching
-        if (!isset($this->knownUserProfiles[$user_id])) {
-            $this->knownUserProfiles[$user_id] = $this->find('all', [
-                'conditions' => ['UserLoginProfile.user_id' => $user_id],
-                'recursive' => 0]
-            );
+        if (!isset($this->knownUserProfiles[$userId])) {
+            $this->knownUserProfiles[$userId] = $this->find('all', [
+                'conditions' => ['UserLoginProfile.user_id' => $userId],
+                'recursive' => 0
+            ]);
         }
         // perform check on all entries, and stop when check OK
-        foreach ($this->knownUserProfiles[$user_id] as $knownUserProfile) {
+        foreach ($this->knownUserProfiles[$userId] as $knownUserProfile) {
             // when it is the same
             if ($this->_isIdentical($knownUserProfile['UserLoginProfile'], $userProfileToCheck)) {
                 return $knownUserProfile['UserLoginProfile']['status'];
@@ -240,12 +240,7 @@ class UserLoginProfile extends AppModel
             $body->set('misp_org', Configure::read('MISP.org'));
             $body->set('date_time', $date_time);
             // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
-            $result = $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] New sign in.");
-            if ($result) {
-                // all is well, email sent to user
-            } else {
-                // email flow system already logs errors
-            }
+            $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] New sign in.");
         }
     }
 
@@ -262,17 +257,12 @@ class UserLoginProfile extends AppModel
         $org_admins = $this->User->getOrgAdminsForOrg($user['User']['org_id']);
         $admins = $this->User->getSiteAdmins();
         $all_admins = array_unique(array_merge($org_admins, $admins));
-        foreach($all_admins as $admin_email) {
+        foreach ($all_admins as $admin_email) {
             $admin = $this->User->find('first', array(
                 'recursive' => -1,
                 'conditions' => ['User.email' => $admin_email]
             ));
-            $result = $this->User->sendEmail($admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login reported.");
-            if ($result) {
-                // all is well, email sent to user
-            } else {
-                // email flow system already logs errors
-            }
+            $this->User->sendEmail($admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login reported.");
         }
     }
 
@@ -289,12 +279,8 @@ class UserLoginProfile extends AppModel
             $body->set('date_time', $date_time);
             $body->set('suspiciousness_reason', $suspiciousness_reason);
             // inform the user
-            $result = $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login with your account.");
-            if ($result) {
-                // all is well, email sent to user
-            } else {
-                // email flow system already logs errors
-            }
+            $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login with your account.");
+
             // inform the org admin
             $body = new SendEmailTemplate('userloginprofile_suspicious_orgadmin');
             $body->set('userLoginProfile', $this->_getUserProfile());
@@ -303,18 +289,14 @@ class UserLoginProfile extends AppModel
             $body->set('misp_org', Configure::read('MISP.org'));
             $body->set('date_time', $date_time);
             $body->set('suspiciousness_reason', $suspiciousness_reason);
+
             $org_admins = $this->User->getOrgAdminsForOrg($user['User']['org_id']);
-            foreach($org_admins as $org_admin_email) {
+            foreach ($org_admins as $org_admin_email) {
                 $org_admin = $this->User->find('first', array(
                     'recursive' => -1,
                     'conditions' => ['User.email' => $org_admin_email]
                 ));
-                $result = $this->User->sendEmail($org_admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login detected.");
-                if ($result) {
-                    // all is well, email sent to user
-                } else {
-                    // email flow system already logs errors
-                }
+                $this->User->sendEmail($org_admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login detected.");
             }            
         }
     }
