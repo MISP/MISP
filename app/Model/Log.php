@@ -439,24 +439,25 @@ class Log extends AppModel
             return;
         }
 
-        $action = $data['Log']['action'];
-        $type = 'info';
-        if (isset($action)) {
-            if (in_array($action, self::ERROR_ACTIONS, true)) {
-                $type = 'error';
-            } else if (in_array($action, self::WARNING_ACTIONS, true)) {
-                $type = 'warning';
-            }
+        $log = $data['Log'];
+
+        $action = $log['action'];
+        if (in_array($action, self::ERROR_ACTIONS, true)) {
+            $type = 'error';
+        } else if (in_array($action, self::WARNING_ACTIONS, true)) {
+            $type = 'warning';
+        } else {
+            $type = 'info';
         }
 
         $message = $action;
-        if (!empty($data['Log']['title'])) {
-            $message .= " -- {$data['Log']['title']}";
+        if (!empty($log['title'])) {
+            $message .= " -- {$log['title']}";
         }
-        if (!empty($data['Log']['description'])) {
-            $message .= " -- {$data['Log']['description']}";
-        } else if (!empty($data['Log']['change'])) {
-            $message .= " -- " . JsonTool::encode($data['Log']['change']);
+        if (!empty($log['description'])) {
+            $message .= " -- {$log['description']}";
+        } else if (!empty($log['change'])) {
+            $message .= " -- " . (is_string($log['change']) ? $log['change'] : JsonTool::encode($log['change']));
         }
 
         EcsLog::writeApplicationLog($type, $action, $message);
