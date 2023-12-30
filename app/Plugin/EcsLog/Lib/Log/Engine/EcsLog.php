@@ -9,10 +9,14 @@ class EcsLog implements CakeLogInterface
 {
     const ECS_VERSION = '8.11';
 
+    /** @var string Unix socket path where logs will be send in JSONL format */
     const SOCKET_PATH = '/run/vector';
 
     /** @var false|resource */
     private static $socket;
+
+    /** @var string[]  */
+    private static $messageBuffer = [];
 
     /** @var array[] */
     private static $meta;
@@ -250,39 +254,64 @@ class EcsLog implements CakeLogInterface
      * ISO 8601 timestamp with microsecond precision
      * @return string
      */
-    public static function now()
+    private static function now()
     {
         return (new DateTime())->format('Y-m-d\TH:i:s.uP');
     }
 
     /**
      * @param array $message
-     * @return void
+     * @return bool True when message was successfully send to socket, false if message was saved to buffer
      * @throws JsonException
      */
     private static function writeMessage(array $message)
     {
+        $message = array_merge($message, self::createLogMeta());
+        $data = JsonTool::encode($message) . "\n";
+
         if (static::$socket === null) {
             static::connect();
         }
 
         if (static::$socket) {
-            $message = array_merge($message, self::createLogMeta());
-            $data = JsonTool::encode($message) . "\n";
             $bytesWritten = fwrite(static::$socket, $data);
+            if ($bytesWritten !== false) {
+                return true;
+            }
 
             // In case of failure, try reconnect and send log again
-            if ($bytesWritten === false) {
-                static::connect();
-                if (static::$socket) {
-                    fwrite(static::$socket, $data);
+            static::connect();
+            if (static::$socket) {
+                $bytesWritten = fwrite(static::$socket, $data);
+                if ($bytesWritten !== false) {
+                    return true;
                 }
             }
         }
+
+        // If sending message was not successful, save to buffer
+        self::$messageBuffer[] = $data;
+        if (count(self::$messageBuffer) > 100) {
+            array_shift(self::$messageBuffer); // remove oldest log
+        }
+
+        return false;
     }
 
     private static function connect()
     {
+        static::$socket = null;
+
+        if (!file_exists(static::SOCKET_PATH)) {
+            return;
+        }
+
         static::$socket = stream_socket_client('unix://' . static::SOCKET_PATH, $errorCode, $errorMessage);
+        if (static::$socket) {
+            foreach (self::$messageBuffer as $message) {
+                fwrite(static::$socket, $message);
+            }
+            self::$messageBuffer = [];
+        }
     }
 }
