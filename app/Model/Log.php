@@ -442,6 +442,10 @@ class Log extends AppModel
         $log = $data['Log'];
 
         $action = $log['action'];
+        if ($action === 'email') {
+            return; // do not log email actions as it is logged with more details by `writeEmailLog` function
+        }
+
         if (in_array($action, self::ERROR_ACTIONS, true)) {
             $type = 'error';
         } else if (in_array($action, self::WARNING_ACTIONS, true)) {
