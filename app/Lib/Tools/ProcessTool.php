@@ -127,7 +127,7 @@ class ProcessTool
     {
         $logMessage = '[' . date("Y-m-d H:i:s") . ' ' . getmypid() . "] $message\n";
         if ($stderr) {
-            $logMessage = $stderr . "\n" . $logMessage;
+            $logMessage = rtrim($stderr) . "\n" . $logMessage;
         }
         file_put_contents(self::LOG_FILE, $logMessage, FILE_APPEND | LOCK_EX);
     }

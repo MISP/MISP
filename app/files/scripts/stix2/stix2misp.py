@@ -44,7 +44,7 @@ def _handle_return_message(traceback):
     return '\n - '.join(traceback)
 
 
-def _process_stix_file(args: argparse.ArgumentParser):
+def _process_stix_file(args: argparse.Namespace):
     try:
         with open(args.input, 'rt', encoding='utf-8') as f:
             bundle = stix2_parser(
@@ -81,8 +81,11 @@ def _process_stix_file(args: argparse.ArgumentParser):
                         file=sys.stderr
                     )
     except Exception as e:
-        print(json.dumps({'error': e.__str__()}))
+        error = type(e).__name__ + ': ' + e.__str__()
+        print(json.dumps({'error': error}))
         traceback.print_tb(e.__traceback__)
+        print(error, file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == '__main__':
@@ -109,8 +112,7 @@ if __name__ == '__main__':
     )
     try:
         args = argparser.parse_args()
-        _process_stix_file(args)
-    except SystemExit:
+    except SystemExit as e:
         print(
             json.dumps(
                 {
@@ -118,4 +120,6 @@ if __name__ == '__main__':
                 }
             )
         )
+        sys.exit(1)
 
+    _process_stix_file(args)
