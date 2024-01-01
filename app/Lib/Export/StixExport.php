@@ -6,13 +6,14 @@ App::uses('ProcessTool', 'Tools');
 
 abstract class StixExport
 {
+    const SCRIPTS_DIR = APP . 'files/scripts/',
+        FRAMING_SCRIPT = APP . 'files/scripts/misp_framing.py';
+
     public $additional_params = array(
         'includeEventTags' => 1,
         'includeGalaxy' => 1
     );
     protected $__return_format = 'json';
-    protected $__scripts_dir = APP . 'files/scripts/';
-    protected $__framing_script = APP . 'files/scripts/misp_framing.py';
     protected $__return_type = null;
 
     /** @var array Full paths to files to convert */
