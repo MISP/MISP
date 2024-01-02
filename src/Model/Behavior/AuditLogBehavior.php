@@ -18,7 +18,7 @@ class AuditLogBehavior extends Behavior
     private $old;
 
     /** @var AuditLog|null */
-    private $AuditLogs;
+    private $AuditLogs = null;
 
     // Hash is faster that in_array
     private $skipFields = [
@@ -50,21 +50,9 @@ class AuditLogBehavior extends Behavior
             },
             ARRAY_FILTER_USE_KEY
         );
-        // Do not fetch old version when just few fields will be fetched
-        $fieldToFetch = [];
-        if (!empty($options['fieldList'])) {
-            foreach ($options['fieldList'] as $field) {
-                if (!isset($this->skipFields[$field])) {
-                    $fieldToFetch[] = $field;
-                }
-            }
-            if (empty($fieldToFetch)) {
-                $this->old = null;
-                return true;
-            }
-        }
+
         if ($entity->id) {
-            $this->old = $this->_table->find()->where(['id' => $entity->id])->contain($fieldToFetch)->first();
+            $this->old = $this->_table->find()->where(['id' => $entity->id])->contain($fieldsToFetch)->first();
         } else {
             $this->old = null;
         }

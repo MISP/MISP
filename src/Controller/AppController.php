@@ -51,6 +51,9 @@ class AppController extends Controller
     public $MetaTemplates = null;
     public $Users = null;
 
+    /** @var AuditLog|null */
+    protected $AuditLogs = null;
+
     /**
      * Initialization hook method.
      *
