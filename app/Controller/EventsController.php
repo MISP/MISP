@@ -2469,7 +2469,7 @@ class EventsController extends AppController
                         $original_file,
                         $this->data['Event']['publish'],
                         $this->data['Event']['distribution'],
-                        $this->data['Event']['sharing_group_id'],
+                        $this->data['Event']['sharing_group_id'] ?? null,
                         $this->data['Event']['galaxies_handling'],
                         $debug
                     );

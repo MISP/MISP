@@ -5926,7 +5926,7 @@ class Event extends AppModel
      * @param string $originalFile
      * @param bool $publish
      * @param int $distribution
-     * @param int $sharingGroupId
+     * @param int|null $sharingGroupId
      * @param bool $galaxiesAsTags
      * @param bool $debug
      * @return int|string|array
@@ -5996,7 +5996,7 @@ class Event extends AppModel
      * @param string $stixVersion
      * @param string $file
      * @param int $distribution
-     * @param int $sharingGroupId
+     * @param int|null $sharingGroupId
      * @param bool $galaxiesAsTags
      * @param bool $debug
      * @return array
