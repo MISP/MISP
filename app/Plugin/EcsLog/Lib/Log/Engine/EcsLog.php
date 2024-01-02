@@ -9,19 +9,33 @@ class EcsLog implements CakeLogInterface
 {
     const ECS_VERSION = '8.11';
 
+    /** @var string Unix socket path where logs will be send in JSONL format */
     const SOCKET_PATH = '/run/vector';
 
     /** @var false|resource */
     private static $socket;
 
+    /** @var string[]  */
+    private static $messageBuffer = [];
+
     /** @var array[] */
     private static $meta;
+
+    const LOG_LEVEL_STRING = [
+        LOG_EMERG => 'emergency',
+        LOG_ALERT => 'alert',
+        LOG_CRIT => 'critical',
+        LOG_ERR => 'error',
+        LOG_WARNING => 'warning',
+        LOG_NOTICE => 'notice',
+        LOG_INFO => 'info',
+        LOG_DEBUG => 'debug',
+    ];
 
     /**
      * @param string $type The type of log you are making.
      * @param string $message The message you want to log.
      * @return void
-     * @throws JsonException
      */
     public function write($type, $message)
     {
@@ -50,14 +64,9 @@ class EcsLog implements CakeLogInterface
      * @param string $action
      * @param string $message
      * @return void
-     * @throws JsonException
      */
     public static function writeApplicationLog($type, $action, $message)
     {
-        if ($action === 'email') {
-            return; // do not log email actions as it is logged with more details by `writeEmailLog` function
-        }
-
         $message = [
             '@timestamp' => self::now(),
             'ecs' => [
@@ -93,7 +102,6 @@ class EcsLog implements CakeLogInterface
      * @param array $emailResult
      * @param string|null $replyTo
      * @return void
-     * @throws JsonException
      */
     public static function writeEmailLog($logTitle, array $emailResult, $replyTo = null)
     {
@@ -125,6 +133,87 @@ class EcsLog implements CakeLogInterface
             $message['email']['reply_to'] = ['address' => $replyTo];
         }
 
+        static::writeMessage($message);
+    }
+
+    /**
+     * @param int $code
+     * @param string $description
+     * @param string|null $file
+     * @param int|null $line
+     * @return void
+     */
+    public static function handleError($code, $description, $file = null, $line = null)
+    {
+        list($name, $log) = ErrorHandler::mapErrorCode($code);
+        $level = self::LOG_LEVEL_STRING[$log];
+
+        $message = [
+            '@timestamp' => self::now(),
+            'ecs' => [
+                'version' => self::ECS_VERSION,
+            ],
+            'event' => [
+                'kind' => 'event',
+                'provider' => 'misp',
+                'module' => 'system',
+                'dataset' => 'system.logs',
+                'type' => 'error',
+            ],
+            'error' => [
+                'code' => $code,
+                'message' => $description,
+            ],
+            'log' => [
+                'level' => $level,
+                'origin' => [
+                    'file' => [
+                        'name' => $file,
+                        'line' => $line,
+                    ],
+                ],
+            ],
+        ];
+        static::writeMessage($message);
+    }
+
+    /**
+     * @param Exception $exception
+     * @return void
+     */
+    public static function handleException(Exception $exception)
+    {
+        $code = $exception->getCode();
+        $code = ($code && is_int($code)) ? $code : 1;
+
+        $message = [
+            '@timestamp' => self::now(),
+            'ecs' => [
+                'version' => self::ECS_VERSION,
+            ],
+            'event' => [
+                'kind' => 'event',
+                'provider' => 'misp',
+                'module' => 'system',
+                'dataset' => 'system.logs',
+                'type' => 'error',
+            ],
+            'error' => [
+                'code' => $code,
+                'type' => get_class($exception),
+                'message' => $exception->getMessage(),
+                'stack_trace' => $exception->getTraceAsString(),
+            ],
+            'log' => [
+                'level' => 'error',
+                'origin' => [
+                    'file' => [
+                        'name' => $exception->getFile(),
+                        'line' => $exception->getLine(),
+                    ],
+                ],
+            ],
+        ];
         static::writeMessage($message);
     }
 
@@ -250,39 +339,67 @@ class EcsLog implements CakeLogInterface
      * ISO 8601 timestamp with microsecond precision
      * @return string
      */
-    public static function now()
+    private static function now()
     {
         return (new DateTime())->format('Y-m-d\TH:i:s.uP');
     }
 
     /**
      * @param array $message
-     * @return void
-     * @throws JsonException
+     * @return bool True when message was successfully send to socket, false if message was saved to buffer
      */
     private static function writeMessage(array $message)
     {
+        $message = array_merge($message, self::createLogMeta());
+        try {
+            $data = JsonTool::encode($message) . "\n";
+        } catch (JsonException $e) {
+            return null;
+        }
+
         if (static::$socket === null) {
             static::connect();
         }
 
         if (static::$socket) {
-            $message = array_merge($message, self::createLogMeta());
-            $data = JsonTool::encode($message) . "\n";
             $bytesWritten = fwrite(static::$socket, $data);
+            if ($bytesWritten !== false) {
+                return true;
+            }
 
             // In case of failure, try reconnect and send log again
-            if ($bytesWritten === false) {
-                static::connect();
-                if (static::$socket) {
-                    fwrite(static::$socket, $data);
+            static::connect();
+            if (static::$socket) {
+                $bytesWritten = fwrite(static::$socket, $data);
+                if ($bytesWritten !== false) {
+                    return true;
                 }
             }
         }
+
+        // If sending message was not successful, save to buffer
+        self::$messageBuffer[] = $data;
+        if (count(self::$messageBuffer) > 100) {
+            array_shift(self::$messageBuffer); // remove oldest log
+        }
+
+        return false;
     }
 
     private static function connect()
     {
+        static::$socket = null;
+
+        if (!file_exists(static::SOCKET_PATH)) {
+            return;
+        }
+
         static::$socket = stream_socket_client('unix://' . static::SOCKET_PATH, $errorCode, $errorMessage);
+        if (static::$socket) {
+            foreach (self::$messageBuffer as $message) {
+                fwrite(static::$socket, $message);
+            }
+            self::$messageBuffer = [];
+        }
     }
 }

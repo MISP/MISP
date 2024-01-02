@@ -49,14 +49,14 @@ def _process_misp_files(
         version: str, input_names: Union[list, None], debug: bool):
     if input_names is None:
         print(json.dumps({'error': 'No input file provided.'}))
-        return
+        sys.exit(1)
     try:
         parser = MISPtoSTIX20Parser() if version == '2.0' else MISPtoSTIX21Parser()
         for name in input_names:
             parser.parse_json_content(name)
             with open(f'{name}.out', 'wt', encoding='utf-8') as f:
                 f.write(
-                    f'{json.dumps(parser.stix_objects, cls=STIXJSONEncoder)}'
+                    json.dumps(parser.stix_objects, cls=STIXJSONEncoder)
                 )
         if parser.errors:
             _handle_messages('Errors', parser.errors)
@@ -64,8 +64,11 @@ def _process_misp_files(
             _handle_messages('Warnings', parser.warnings)
         print(json.dumps({'success': 1}))
     except Exception as e:
-        print(json.dumps({'error': e.__str__()}))
+        error = type(e).__name__ + ': ' + e.__str__()
+        print(json.dumps({'error': error}))
         traceback.print_tb(e.__traceback__)
+        print(error, file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
@@ -84,7 +87,6 @@ if __name__ == "__main__":
     )
     try:
         args = argparser.parse_args()
-        _process_misp_files(args.version, args.input, args.debug)
     except SystemExit:
         print(
             json.dumps(
@@ -94,3 +96,7 @@ if __name__ == "__main__":
                 }
             )
         )
+        sys.exit(1)
+
+    _process_misp_files(args.version, args.input, args.debug)
+    sys.exit(0)
