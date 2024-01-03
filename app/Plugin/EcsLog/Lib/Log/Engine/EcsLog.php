@@ -338,8 +338,8 @@ class EcsLog implements CakeLogInterface
                     ];
                 }
             }
-
-        } else {
+        } else if (session_status() === PHP_SESSION_ACTIVE) {
+            // include session data just when session is active to avoid unnecessary session starting
             App::uses('AuthComponent', 'Controller/Component');
             $authUser = AuthComponent::user();
             if (!empty($authUser)) {
