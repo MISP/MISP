@@ -126,10 +126,12 @@ class UserLoginProfile extends AppModel
         return $this->userProfile;
     }
 
-    public function _fromLog($logEntry)
+    public function _fromLog(array $logEntry)
     {
         $data = ["user_agent" => "", "ip" => "", "accept_lang" => "", "geoip" => "", "ua_pattern" => "", "ua_platform" => "", "ua_browser" => ""];
-        $data = array_merge($data, JsonTool::decode($logEntry['change']) ?? []);
+        if ($logEntry['change']) {
+            $data = array_merge($data, JsonTool::decode($logEntry['change']));
+        }
         $data['ip'] = $logEntry['ip'];
         $data['timestamp'] = $logEntry['created'];
         if ($data['user_agent'] === "") {
