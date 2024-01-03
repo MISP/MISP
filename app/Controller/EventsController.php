@@ -2469,7 +2469,7 @@ class EventsController extends AppController
                         $original_file,
                         $this->data['Event']['publish'],
                         $this->data['Event']['distribution'],
-                        $this->data['Event']['sharing_group_id'],
+                        $this->data['Event']['sharing_group_id'] ?? null,
                         $this->data['Event']['galaxies_handling'],
                         $debug
                     );
@@ -2501,15 +2501,31 @@ class EventsController extends AppController
         foreach ($distributionLevels as $key => $value) {
             $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
         }
-        $debugOptions = $this->Event->debugOptions;
+
+        $debugOptions = [
+            0 => __('Standard debugging'),
+            1 => __('Advanced debugging'),
+        ];
+        $debugDescriptions = [
+            0 => __('The critical errors are logged in the usual log file.'),
+            1 => __('All the errors and warnings are logged in the usual log file.'),
+        ];
+        $galaxiesOptions = [
+            0 => __('As MISP standard format'),
+            1 => __('As tag names'),
+        ];
+        $galaxiesOptionsDescriptions = [
+            0 => __('Galaxies and Clusters are passed as MISP standard format. New generic Galaxies and Clusters are created when there is no match with existing ones.'),
+            1 => __('Galaxies are passed as tags and there is only a simple search with existing galaxy tag names.'),
+        ];
+
         $this->set('debugOptions', $debugOptions);
         foreach ($debugOptions as $key => $value) {
-            $fieldDesc['debug'][$key] = $this->Event->debugDescriptions[$key];
+            $fieldDesc['debug'][$key] = $debugDescriptions[$key];
         }
-        $galaxiesOptions = $this->Event->galaxiesOptions;
         $this->set('galaxiesOptions', $galaxiesOptions);
         foreach ($galaxiesOptions as $key => $value) {
-            $fieldDesc['galaxies_handling'][$key] = $this->Event->galaxiesOptionsDescriptions[$key];
+            $fieldDesc['galaxies_handling'][$key] = $galaxiesOptionsDescriptions[$key];
         }
         $this->set('sharingGroups', $sgs);
         $this->set('fieldDesc', $fieldDesc);

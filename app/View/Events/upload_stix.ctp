@@ -27,9 +27,6 @@
         'label' => __('Distribution ') . $distributionFormInfo,
         'selected' => $initialDistribution,
     ));
-?>
-<div id="SGContainer" style="display:none;">
-<?php
     if (!empty($sharingGroups)) {
         echo $this->Form->input('sharing_group_id', array(
             'options' => array($sharingGroups),
@@ -37,7 +34,6 @@
         ));
     }
 ?>
-</div>
 <div class="input clear"></div>
 <?php
     echo $this->Form->input('publish', array(
@@ -52,7 +48,7 @@
         'label' => __('Include the original imported file as attachment')
     ));
     if ($me['Role']['perm_site_admin'] || $me['Role']['perm_galaxy_editor']) {
-        $galaxiesFormInfo = $this-> element(
+        $galaxiesFormInfo = $this->element(
             'genericElements/Form/formInfo',
             [
                 'field' => [
@@ -101,11 +97,8 @@
 <script>
 $(function(){
     $('#EventDistribution').change(function() {
-        if ($(this).val() == 4) {
-            $('#SGContainer').show();
-        } else {
-            $('#SGContainer').hide();
-        }
-    }).change();
+        checkSharingGroup('Event');
+    });
+    checkSharingGroup('Event');
 });
 </script>

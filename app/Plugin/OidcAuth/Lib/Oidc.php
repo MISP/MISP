@@ -521,15 +521,16 @@ class Oidc
      */
     private function log($username, $message)
     {
-        $sessionId = substr(session_id(), 0, 6);
-        $ip = $this->User->_remoteIp();
+        $log = $username ? "OIDC user `$username`" : "OIDC";
 
-        if ($username) {
-            $message = "OIDC user `$username` [$ip;$sessionId] – $message";
+        if (PHP_SAPI !== 'cli') {
+            $sessionId = substr(session_id(), 0, 6);
+            $ip = $this->User->_remoteIp();
+            $log .= " [$ip;$sessionId] - $message";
         } else {
-            $message = "OIDC [$ip;$sessionId] – $message";
+            $log .= " - $message";
         }
 
-        CakeLog::info($message);
+        CakeLog::info($log);
     }
 }
