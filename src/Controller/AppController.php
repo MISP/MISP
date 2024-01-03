@@ -113,6 +113,8 @@ class AppController extends Controller
             Configure::write('DebugKit.forceEnable', true);
         }
         $this->loadComponent('CustomPagination');
+
+        $this->AuditLogs = $this->fetchTable('AuditLogs');
         // $this->loadComponent('FloodProtection'); // TODO: enable after flood protection table exists
         /*
          * Enable the following component for recommended CakePHP form protection settings.

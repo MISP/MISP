@@ -236,13 +236,13 @@ class AuditLogsController extends AppController
     public function fullChange($id)
     {
         $log = $this->AuditLogs->find(
-            'first',
+            'all',
             [
                 'conditions' => ['id' => $id],
                 'recursive' => -1,
                 'fields' => ['changed', 'request_action'],
             ]
-        );
+        )->first();
         if (empty($log)) {
             throw new Exception('Log not found.');
         }
