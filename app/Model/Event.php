@@ -63,11 +63,6 @@ class Event extends AppModel
         2 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'The event creator considers the analysis complete')
     );
 
-    public $debugDescriptions = array(
-        0 => 'The critical errors are logged in the usual log file.',
-        1 => 'All the errors and warnings are logged in the usual log file.'
-    );
-
     public $distributionDescriptions = [
         self::DISTRIBUTION_ORGANISATION => [
             'desc' => 'This field determines the current distribution of the event',
@@ -91,16 +86,6 @@ class Event extends AppModel
         ],
     ];
 
-    public $galaxiesOptionsDescriptions = array(
-        0 => 'Galaxies and Clusters are passed as MISP standard format. New generic Galaxies and Clusters are created when there is no match with existing ones.',
-        1 => 'Galaxies are passed as tags and there is only a simple search with existing galaxy tag names.'
-    );
-
-    public $debugOptions = array(
-        0 => 'Standard debugging',
-        1 => 'Advanced debugging'
-    );
-
     public $distributionLevels = [
         self::DISTRIBUTION_ORGANISATION => 'Your organisation only',
         self::DISTRIBUTION_COMMUNITY => 'This community only',
@@ -108,11 +93,6 @@ class Event extends AppModel
         self::DISTRIBUTION_ALL => 'All communities',
         self::DISTRIBUTION_SHARING_GROUP => 'Sharing group',
     ];
-
-    public $galaxiesOptions = array(
-        0 => 'As MISP standard format',
-        1 => 'As tag names'
-    );
 
     public $analysisLevels = array(
         0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'
