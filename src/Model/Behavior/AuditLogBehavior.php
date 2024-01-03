@@ -43,14 +43,17 @@ class AuditLogBehavior extends Behavior
     {
         $fields = $entity->extract($entity->getVisible(), true);
         $skipFields = $this->skipFields;
-        $fieldsToFetch = array_filter(
-            $fields,
-            function ($key) use ($skipFields) {
-                return strpos($key, '_') !== 0 && !isset($skipFields[$key]);
-            },
-            ARRAY_FILTER_USE_KEY
+        $fieldsToFetch = array_keys(
+            array_filter(
+                $fields,
+                function ($key) use ($skipFields) {
+                    return strpos($key, '_') !== 0 && !isset($skipFields[$key]);
+                },
+                ARRAY_FILTER_USE_KEY
+            )
         );
-        $fieldsToFetch = array_keys($fieldsToFetch);
+        $availableColumns = $this->_table->getSchema()->columns();
+        $fieldsToFetch = array_intersect($fieldsToFetch, $availableColumns);
 
         if ($entity->id) {
             $this->old = $this->_table->find()->where(['id' => $entity->id])->select($fieldsToFetch)->first();
