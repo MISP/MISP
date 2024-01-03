@@ -218,12 +218,15 @@ class EcsLog implements CakeLogInterface
     }
 
     /**
-     * @return string|null
+     * @return array|null
      */
-    private static function clientIp()
+    private static function clientIpFromHeaders()
     {
-        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: null;
+        if ($ipHeader && isset($_SERVER[$ipHeader])) {
+            return array_map('trim', explode(',', $_SERVER[$ipHeader]));
+        }
+        return null;
     }
 
     /**
@@ -243,20 +246,7 @@ class EcsLog implements CakeLogInterface
                 $meta['http'] = ['request' => ['id' => $_SERVER['HTTP_X_REQUEST_ID']]];
             }
 
-            $clientIp = static::clientIp();
-            $client = [
-                'ip' => $_SERVER['REMOTE_ADDR'],
-                'port' => (int) $_SERVER['REMOTE_PORT'],
-            ];
-
-            if ($clientIp === $_SERVER['REMOTE_ADDR']) {
-                $meta['client'] = $client;
-            } else {
-                $meta['client'] = [
-                    'ip' => $clientIp,
-                    'nat' => $client,
-                ];
-            }
+            $meta['client'] = self::createClientMeta();
             $meta['url'] = self::createUrlMeta();
 
         } else {
@@ -269,6 +259,30 @@ class EcsLog implements CakeLogInterface
         }
 
         return self::$meta = $meta;
+    }
+
+    /**
+     * @return array
+     */
+    private static function createClientMeta()
+    {
+        $client = [
+            'ip' => $_SERVER['REMOTE_ADDR'],
+            'port' => (int) $_SERVER['REMOTE_PORT'],
+        ];
+
+        $clientIps = static::clientIpFromHeaders();
+        if ($clientIps) {
+            $clientIps[] = $_SERVER['REMOTE_ADDR'];
+            return [
+                'address' => $clientIps,
+                'ip' => $clientIps[0], // consider first IP as real client IP address
+                'nat' => $client,
+            ];
+        }
+
+        $client['address'] = [$client['ip']];
+        return $client;
     }
 
     /**
