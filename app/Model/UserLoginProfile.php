@@ -44,9 +44,9 @@ class UserLoginProfile extends AppModel
 
     private $knownUserProfiles = [];
 
-    public function _buildBrowscapCache()
+    private function _buildBrowscapCache()
     {
-        $this->log("Browscap - building new cache from browscap.ini file.", "info");
+        $this->log("Browscap - building new cache from browscap.ini file.", LOG_INFO);
         $fileCache = new \Doctrine\Common\Cache\FilesystemCache(UserLoginProfile::BROWSER_CACHE_DIR);
         $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
 
@@ -102,9 +102,14 @@ class UserLoginProfile extends AppModel
             }
             $ip = $this->_remoteIp();
             if (class_exists('GeoIp2\Database\Reader')) {
-                $geoDbReader = new GeoIp2\Database\Reader(UserLoginProfile::GEOIP_DB_FILE);
-                $record = $geoDbReader->country($ip);
-                $country = $record->country->isoCode;
+                try {
+                    $geoDbReader = new GeoIp2\Database\Reader(UserLoginProfile::GEOIP_DB_FILE);
+                    $record = $geoDbReader->country($ip);
+                    $country = $record->country->isoCode;
+                } catch (InvalidArgumentException $e) {
+                    $this->logException("Could not get country code for IP address", $e);
+                    $country = 'None';
+                }
             } else {
                 $country = 'None';
             }
