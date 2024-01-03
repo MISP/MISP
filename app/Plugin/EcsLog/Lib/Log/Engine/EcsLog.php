@@ -39,6 +39,10 @@ class EcsLog implements CakeLogInterface
      */
     public function write($type, $message)
     {
+        if (strpos($message, 'Could not convert ECS log message into JSON: ') !== false) {
+            return; // prevent recursion when saving logs
+        }
+
         $message = [
             '@timestamp' => self::now(),
             'ecs' => [
@@ -368,6 +372,7 @@ class EcsLog implements CakeLogInterface
         try {
             $data = JsonTool::encode($message) . "\n";
         } catch (JsonException $e) {
+            CakeLog::error('Could not convert ECS log message into JSON: ' . $e->getMessage());
             return null;
         }
 
