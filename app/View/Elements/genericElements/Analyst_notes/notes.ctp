@@ -171,15 +171,6 @@ $notes = [
             {{=it.analyst_note}} \
         </div> \
     ')
-    // var opinionStars = '\
-    //     <div style="display: flex; width: fit-content;" class="star-opinion-container-<?= $seed ?>"> \
-    //         <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
-    //         <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
-    //         <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
-    //         <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
-    //         <i class="<?= $this->FontAwesome->getClass('star') ?> star-opinion"></i> \
-    //     </div> \
-    // '
     var opinionGradient = '\
         <div class="opinion-gradient-container" style="width: 10rem; height: 6px;">\
             <span class="opinion-gradient-dot"></span> \
@@ -367,11 +358,6 @@ $notes = [
         background-color: white;
     }
 
-    /* .star-opinion {
-        display: inline-block;
-        position: relative;
-        color: #d3d3d3;
-    } */
 
 <?php
 if(!function_exists("genStyleForOpinionNotes")) {
@@ -396,20 +382,6 @@ if(!function_exists("genStyleForOpinionNote")) {
         $color = $opinion >= 50 ? '#468847' : '#b94a48';
 
         ?>
-        /* #note-<?= $note['id'] ?> .star-opinion:nth-last-child(n+<?= 6 - $star_number ?>) {
-            color: <?= $color ?>;
-        }
-
-        #note-<?= $note['id'] ?> .star-opinion:nth-child(<?= 1 + $star_number ?>)::after {
-            font-family: FontAwesome;
-            content: "\f005";
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: <?= $star_remaining_number * 100 ?>%;
-            overflow: hidden;
-            color: <?= $color ?>;
-        } */
 
         #note-<?= $note['id'] ?> .opinion-gradient-<?= $opinion >= 50 ? 'negative' : 'positive' ?> {
             opacity: 0;
