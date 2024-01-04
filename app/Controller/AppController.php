@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '157';
-    public $pyMispVersion = '2.4.182';
+    public $pyMispVersion = '2.4.183';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -362,6 +362,10 @@ class AppController extends Controller
                 }
             }
         }
+        if (Configure::read('MISP.enable_automatic_garbage_collection') && mt_rand(1,100) % 100 == 0) {
+            $this->loadModel('AdminSetting');
+            $this->AdminSetting->garbageCollect();
+        }
     }
 
     public function beforeRender()
@@ -440,8 +444,7 @@ class AppController extends Controller
                     // User found in the db, add the user info to the session
                     if (Configure::read('MISP.log_auth')) {
                         $this->loadModel('Log');
-                        $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
-                        $change = $this->UserLoginProfile->_getUserProfile();
+                        $change = $this->User->UserLoginProfile->_getUserProfile();
                         $change['http_method'] = $_SERVER['REQUEST_METHOD'];
                         $change['target'] = $this->request->here;
                         $this->Log->createLogEntry(
@@ -564,8 +567,7 @@ class AppController extends Controller
         if ($user['disabled'] || (isset($user['logged_by_authkey']) && $user['logged_by_authkey']) && !$this->User->checkIfUserIsValid($user)) {
             if ($this->_shouldLog('disabled:' . $user['id'])) {
                 $this->Log = ClassRegistry::init('Log');
-                $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
-                $change = $this->UserLoginProfile->_getUserProfile();
+                $change = $this->User->UserLoginProfile->_getUserProfile();
                 $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], 'Login attempt by disabled user.', json_encode($change));
             }
 
@@ -585,9 +587,9 @@ class AppController extends Controller
             if ($user['authkey_expiration'] < $time) {
                 if ($this->_shouldLog('expired:' . $user['authkey_id'])) {
                     $this->Log = ClassRegistry::init('Log');
-                    $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
-                    $change = $this->UserLoginProfile->_getUserProfile();
-                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt by expired auth key {$user['authkey_id']}.", json_encode($change));                }
+                    $change = $this->User->UserLoginProfile->_getUserProfile();
+                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt by expired auth key {$user['authkey_id']}.", json_encode($change));
+                }
                 $this->Auth->logout();
                 throw new ForbiddenException('Auth key is expired');
             }
@@ -604,9 +606,9 @@ class AppController extends Controller
             if (!$cidrTool->contains($remoteIp)) {
                 if ($this->_shouldLog('not_allowed_ip:' . $user['authkey_id'] . ':' . $remoteIp)) {
                     $this->Log = ClassRegistry::init('Log');
-                    $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
-                    $change = $this->UserLoginProfile->_getUserProfile();
-                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt from not allowed IP address {$remoteIp} for auth key {$user['authkey_id']}.", json_encode($change));                }
+                    $change = $this->User->UserLoginProfile->_getUserProfile();
+                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt from not allowed IP address {$remoteIp} for auth key {$user['authkey_id']}.", json_encode($change));
+                }
                 $this->Auth->logout();
                 throw new ForbiddenException('It is not possible to use this Auth key from your IP address');
             }
@@ -878,7 +880,7 @@ class AppController extends Controller
             ConnectionManager::create('default', $db->config);
         }
         $dataSource = $dataSourceConfig['datasource'];
-        if (!in_array($dataSource, ['Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver', 'Database/MysqlExtended'], true)) {
+        if (!in_array($dataSource, ['Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver', 'Database/MysqlExtended', 'Database/MysqlObserverExtended'], true)) {
             throw new Exception('Datasource not supported: ' . $dataSource);
         }
     }
@@ -1149,8 +1151,7 @@ class AppController extends Controller
                     $this->Session->write(AuthComponent::$sessionKey, $user['User']);
                     if (Configure::read('MISP.log_auth')) {
                         $this->Log = ClassRegistry::init('Log');
-                        $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
-                        $change = $this->UserLoginProfile->_getUserProfile();
+                        $change = $this->User->UserLoginProfile->_getUserProfile();
                         $change['http_method'] = $_SERVER['REQUEST_METHOD'];
                         $change['target'] = $this->request->here;
                         $this->Log->createLogEntry(
@@ -1166,8 +1167,7 @@ class AppController extends Controller
                     // User not authenticated correctly
                     // reset the session information
                     $this->Log = ClassRegistry::init('Log');
-                    $this->UserLoginProfile = ClassRegistry::init('UserLoginProfile');
-                    $change = $this->UserLoginProfile->_getUserProfile();
+                    $change = $this->User->UserLoginProfile->_getUserProfile();
                     $this->Log->createLogEntry(
                         'SYSTEM',
                         'auth_fail',
@@ -1434,13 +1434,12 @@ class AppController extends Controller
 
     /**
      * @return string|null
+     * @deprecated Use User::_remoteIp() instead
      */
     protected function _remoteIp()
     {
-        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
+        return $this->User->_remoteIp();
     }
-
 
     /**
      * @param string $key

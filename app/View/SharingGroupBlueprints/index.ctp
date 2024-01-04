@@ -104,6 +104,16 @@
                     ],
                     [
                         'onclick' => sprintf(
+                            'openGenericModal(\'%s/SharingGroupBlueprints/encodeSyncRule/[onclick_params_data_path]\');',
+                            $baseurl
+                        ),
+                        'onclick_params_data_path' => 'SharingGroupBlueprint.id',
+                        'icon' => 'filter',
+                        'title' => __('Encode blueprint\'s contents as a sync rule'),
+                        'requirements' => $me['Role']['perm_site_admin']
+                    ],
+                    [
+                        'onclick' => sprintf(
                             'openGenericModal(\'%s/SharingGroupBlueprints/delete/[onclick_params_data_path]\');',
                             $baseurl
                         ),

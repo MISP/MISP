@@ -63,11 +63,6 @@ class Event extends AppModel
         2 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'The event creator considers the analysis complete')
     );
 
-    public $debugDescriptions = array(
-        0 => 'The critical errors are logged in the usual log file.',
-        1 => 'All the errors and warnings are logged in the usual log file.'
-    );
-
     public $distributionDescriptions = [
         self::DISTRIBUTION_ORGANISATION => [
             'desc' => 'This field determines the current distribution of the event',
@@ -91,16 +86,6 @@ class Event extends AppModel
         ],
     ];
 
-    public $galaxiesOptionsDescriptions = array(
-        0 => 'Galaxies and Clusters are passed as MISP standard format. New generic Galaxies and Clusters are created when there is no match with existing ones.',
-        1 => 'Galaxies are passed as tags and there is only a simple search with existing galaxy tag names.'
-    );
-
-    public $debugOptions = array(
-        0 => 'Standard debugging',
-        1 => 'Advanced debugging'
-    );
-
     public $distributionLevels = [
         self::DISTRIBUTION_ORGANISATION => 'Your organisation only',
         self::DISTRIBUTION_COMMUNITY => 'This community only',
@@ -108,11 +93,6 @@ class Event extends AppModel
         self::DISTRIBUTION_ALL => 'All communities',
         self::DISTRIBUTION_SHARING_GROUP => 'Sharing group',
     ];
-
-    public $galaxiesOptions = array(
-        0 => 'As MISP standard format',
-        1 => 'As tag names'
-    );
 
     public $analysisLevels = array(
         0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'
@@ -5922,61 +5902,24 @@ class Event extends AppModel
     /**
      * @param array $user
      * @param string $file Path
-     * @param string $stix_version
-     * @param string $original_file
+     * @param string $stixVersion
+     * @param string $originalFile
      * @param bool $publish
+     * @param int $distribution
+     * @param int|null $sharingGroupId
+     * @param bool $galaxiesAsTags
+     * @param bool $debug
      * @return int|string|array
      * @throws JsonException
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $distribution, $sharingGroupId, $galaxiesAsTags, $debug = false)
+    public function upload_stix(array $user, $file, $stixVersion, $originalFile, $publish, $distribution, $sharingGroupId, $galaxiesAsTags, $debug = false)
     {
-        $scriptDir = APP . 'files' . DS . 'scripts';
-        if ($stix_version == '2' || $stix_version == '2.0' || $stix_version == '2.1') {
-            $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
-            $output_path = $file . '.out';
-            $shell_command = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                '-i', $file,
-                '--distribution', $distribution
-            ];
-            if ($distribution == 4) {
-                array_push($shell_command, '--sharing_group_id', $sharingGroupId);
-            }
-            if ($galaxiesAsTags) {
-                $shell_command[] = '--galaxies_as_tags';
-            }
-            if ($debug) {
-                $shell_command[] = '--debug';
-            }
-            $stix_version = "STIX 2.1";
-        } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
-            $scriptFile = $scriptDir . DS . 'stix2misp.py';
-            $output_path = $file . '.json';
-            $shell_command = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                $file,
-                Configure::read('MISP.default_event_distribution'),
-                Configure::read('MISP.default_attribute_distribution'),
-                $this->__getTagNamesFromSynonyms($scriptDir)
-            ];
-            $stix_version = "STIX 1.1";
-        } else {
-            throw new InvalidArgumentException('Invalid STIX version');
-        }
+        $decoded = $this->convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $galaxiesAsTags, $debug);
 
-        $result = ProcessTool::execute($shell_command, null, true);
-        $result = preg_split("/\r\n|\n|\r/", trim($result));
-        $result = trim(end($result));
-        $tempFile = file_get_contents($file);
-        unlink($file);
-        $decoded = JsonTool::decode($result);
         if (!empty($decoded['success'])) {
-            $data = FileAccessTool::readAndDelete($output_path);
-            $data = $this->jsonDecode($data);
+            $data = JsonTool::decodeArray($decoded['converted']);
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
@@ -6000,15 +5943,13 @@ class Event extends AppModel
                     }
                 }
             }
-            if (!empty($decoded['stix_version'])) {
-                $stix_version = 'STIX ' . $decoded['stix_version'];
-            }
+            $stixVersion = $decoded['stix_version'];
             $created_id = false;
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
             if ($result === true) {
-                if ($original_file) {
-                    $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
+                if ($originalFile) {
+                    $this->add_original_file($decoded['original'], $originalFile, $created_id, $stixVersion);
                 }
                 if ($publish && $user['Role']['perm_publish']) {
                     $this->publish($created_id);
@@ -6029,6 +5970,76 @@ class Event extends AppModel
         }
         $response .= ' ' . __('check whether the dependencies for STIX are met via the diagnostic tool.');
         return $response;
+    }
+
+    /**
+     * @param string $stixVersion
+     * @param string $file
+     * @param int $distribution
+     * @param int|null $sharingGroupId
+     * @param bool $galaxiesAsTags
+     * @param bool $debug
+     * @return array
+     * @throws Exception
+     */
+    private function convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $galaxiesAsTags, $debug)
+    {
+        $scriptDir = APP . 'files' . DS . 'scripts';
+        if ($stixVersion === '2' || $stixVersion === '2.0' || $stixVersion === '2.1') {
+            $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
+            $outputPath = $file . '.out';
+            $shellCommand = [
+                ProcessTool::pythonBin(),
+                $scriptFile,
+                '-i', $file,
+                '--distribution', $distribution,
+            ];
+            if ($distribution == 4) {
+                array_push($shellCommand, '--sharing_group_id', $sharingGroupId);
+            }
+            if ($galaxiesAsTags) {
+                $shellCommand[] = '--galaxies_as_tags';
+            }
+            if ($debug) {
+                $shellCommand[] = '--debug';
+            }
+            $stixVersion = "STIX 2.1";
+        } else if ($stixVersion === '1' || $stixVersion === '1.1' || $stixVersion === '1.2') {
+            $scriptFile = $scriptDir . DS . 'stix2misp.py';
+            $outputPath = $file . '.json';
+            $shellCommand = [
+                ProcessTool::pythonBin(),
+                $scriptFile,
+                $file,
+                Configure::read('MISP.default_event_distribution'),
+                Configure::read('MISP.default_attribute_distribution'),
+                $this->__getTagNamesFromSynonyms($scriptDir)
+            ];
+            $stixVersion = "STIX 1.1";
+        } else {
+            throw new InvalidArgumentException('Invalid STIX version');
+        }
+
+        try {
+            $stdout = ProcessTool::execute($shellCommand, null, true);
+        } catch (ProcessException $e) {
+            $stdout = $e->stdout();
+        }
+
+        $stdout = preg_split("/\r\n|\n|\r/", trim($stdout));
+        $stdout = trim(end($stdout));
+        $decoded = JsonTool::decode($stdout);
+
+        if (empty($decoded['stix_version'])) {
+            $decoded['stix_version'] = $stixVersion;
+        }
+
+        $decoded['original'] = FileAccessTool::readAndDelete($file);
+        if (!empty($decoded['success'])) {
+            $decoded['converted'] = FileAccessTool::readAndDelete($outputPath);
+        }
+
+        return $decoded;
     }
 
     private function __handleGalaxiesAndClusters($user, &$data)

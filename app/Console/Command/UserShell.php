@@ -213,16 +213,18 @@ class UserShell extends AppShell
     public function authkey_valid()
     {
         $cache = [];
+        $randomKey = random_bytes(16);
         do {
             $authkey = fgets(STDIN); // read line from STDIN
             $authkey = trim($authkey);
             if (strlen($authkey) !== 40) {
                 fwrite(STDOUT, "0\n");  // authkey is not in valid format
+                $this->log("Authkey in incorrect format provided.", LOG_WARNING);
                 continue;
             }
             $time = time();
             // Generate hash from authkey to not store raw authkey in memory
-            $keyHash = hash('sha256', $authkey, true);
+            $keyHash = sha1($authkey . $randomKey, true);
             if (isset($cache[$keyHash]) && $cache[$keyHash][1] > $time) {
                 fwrite(STDOUT, $cache[$keyHash][0] ? "1\n" : "0\n");
                 continue;
@@ -250,6 +252,13 @@ class UserShell extends AppShell
             }
 
             $user = (bool)$user;
+            if (!$user) {
+                $start = substr($authkey, 0, 4);
+                $end = substr($authkey, -4);
+                $authKeyToStore = $start . str_repeat('*', 32) . $end;
+                $this->log("Not valid authkey $authKeyToStore provided.", LOG_WARNING);
+            }
+
             // Cache results for 5 seconds
             $cache[$keyHash] = [$user, $time + 5];
             fwrite(STDOUT, $user ? "1\n" : "0\n");
