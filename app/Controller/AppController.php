@@ -38,8 +38,6 @@ class AppController extends Controller
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
-    public $pythonmin = '3.6';
-    public $pythonrec = '3.7';
     private $isApiAuthed = false;
 
     public $baseurl = '';

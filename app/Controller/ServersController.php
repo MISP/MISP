@@ -1279,12 +1279,10 @@ class ServersController extends AppController
         $this->set('workerIssueCount', $workerIssueCount);
         $priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
         $this->set('priorityErrorColours', $priorityErrorColours);
-        $this->set('phpversion', phpversion());
+        $this->set('phpversion', PHP_VERSION);
         $this->set('phpmin', $this->phpmin);
         $this->set('phprec', $this->phprec);
         $this->set('phptoonew', $this->phptoonew);
-        $this->set('pythonmin', $this->pythonmin);
-        $this->set('pythonrec', $this->pythonrec);
         $this->set('title_for_layout', __('Diagnostics'));
     }
 
