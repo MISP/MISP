@@ -2181,7 +2181,7 @@ class ServersController extends AppController
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'addFromJson', false, $this->Server->validationErrors, $this->response->type());
                 } else {
-                    $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Server->validationErrors, true)));
+                    $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Server->validationErrors)));
                     $this->redirect(array('action' => 'index'));
                 }
             }
