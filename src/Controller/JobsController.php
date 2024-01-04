@@ -15,17 +15,17 @@ class JobsController extends AppController
 {
     use LocatorAwareTrait;
 
+    protected $conditions = [];
+    protected $contain = [
+        'Organisations' => [
+            'fields' => ['id', 'name', 'uuid'],
+        ],
+    ];
     public $paginate = [
         'limit' => 20,
-        'recursive' => 0,
         'order' => [
             'Job.id' => 'DESC'
         ],
-        'contain' => [
-            'Organisations' => [
-                'fields' => ['id', 'name', 'uuid'],
-            ],
-        ]
     ];
 
     public function beforeFilter(EventInterface $event)
@@ -46,9 +46,16 @@ class JobsController extends AppController
         $workers = $ServerTable->workerDiagnostics($issueCount);
         $queues = ['email', 'default', 'cache', 'prio', 'update'];
         if ($queue && in_array($queue, $queues, true)) {
-            $this->paginate['conditions'] = ['Job.worker' => $queue];
+            $this->conditions = ['Job.worker' => $queue];
         }
-        $jobs = $this->paginate()->toArray();
+        $query = $this->Jobs->find(
+            'all',
+            [
+                'conditions' => $this->conditions,
+                'contain' => $this->contain,
+            ]
+        );
+        $jobs = $this->paginate($query)->toArray();
         foreach ($jobs as &$job) {
             if (!empty($job['process_id'])) {
                 $job['job_status'] = $this->getJobStatus($job['process_id']);

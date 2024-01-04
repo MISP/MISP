@@ -14,7 +14,8 @@ class UsersControllerTest extends TestCase
 
     protected $fixtures = [
         'app.Organisations',
-        'app.Users'
+        'app.Users',
+        'app.Roles',
     ];
 
     public function testLogin(): void

@@ -6,17 +6,16 @@ use App\Controller\AppController;
 
 class ObjectTemplateElementsController extends AppController
 {
-    public $paginate = array(
+    public $paginate = [
         'limit' => 60,
-        'order' => array(
+        'order' => [
             'ObjectTemplateElement.id' => 'desc'
-        ),
-        'recursive' => -1
-    );
+        ],
+    ];
 
     public function viewElements($id, $context = 'all')
     {
-        $this->paginate['conditions'] = array('ObjectTemplateElements.object_template_id' => $id);
+        $this->paginate['conditions'] = ['ObjectTemplateElements.object_template_id' => $id];
         $elements = $this->paginate();
         $this->set('list', $elements);
         $this->layout = false;
