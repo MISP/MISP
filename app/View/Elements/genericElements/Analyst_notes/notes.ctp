@@ -5,8 +5,7 @@ $URL_ADD = '/analyst-notes/add/';
 $URL_EDIT = '/analyst-notes/edit/';
 $URL_DELETE = '/analyst-notes/delete/';
 
-$uuid = $event['Event']['uuid'];
-$object_uuid = 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a';
+$object_uuid = 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a'; // e.g. $event['Event']['uuid']
 $object_type = 'event';
 $notes = [
     [
@@ -135,8 +134,8 @@ $noteCount = countNotes($notes);
 <?php if (empty($notes)): ?>
     <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" onclick="openNotes(this)" title="<?= __('Notes and opinions for this UUID') ?>"></i>
 <?php else: ?>
-    <span class="label label-info" title="<?= __n('This UUID has %s note', 'This UUID has %s notes', $noteCount, $noteCount) ?>">
-        <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" onclick="openNotes(this)" title="<?= __('Notes and opinions for this UUID') ?>"></i>
+    <span class="label label-info useCursorPointer" onclick="openNotes(this)" >
+        <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" title="<?= __('Notes and opinions for this UUID') ?>"></i>
         <?= $noteCount; ?>
     </span>
 <?php endif; ?>
@@ -221,7 +220,7 @@ $noteCount = countNotes($notes);
             {{=it.notes_html}} \
         </div> \
     ')
-    var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $uuid ?>\')"> \
+    var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
         <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= 'Add a note' ?> \
     </button>'
 
