@@ -2017,7 +2017,7 @@ class AppModel extends Model
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
                     `note` mediumtext,
-                    `language` varchar(16) DEFAULT 'en'
+                    `language` varchar(16) DEFAULT 'en',
                     PRIMARY KEY (`id`),
                     UNIQUE KEY `uuid` (`uuid`),
                     KEY `object_uuid` (`object_uuid`),
@@ -2041,7 +2041,7 @@ class AppModel extends Model
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
                     `opinion` int(10) unsigned,
-                    `comment` text
+                    `comment` text,
                     PRIMARY KEY (`id`),
                     UNIQUE KEY `uuid` (`uuid`),
                     KEY `object_uuid` (`object_uuid`),
@@ -2050,7 +2050,7 @@ class AppModel extends Model
                     KEY `orgc_uuid` (`orgc_uuid`),
                     KEY `distribution` (`distribution`),
                     KEY `sharing_group_id` (`sharing_group_id`),
-                    KEY `opinion`
+                    KEY `opinion` (`opinion`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
                 $sqlArray[] = "CREATE TABLE `relationships` (
