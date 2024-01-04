@@ -16,7 +16,7 @@
                 [
                     'key' => 'UUID',
                     'path' => 'Event.uuid',
-                    'class' => 'quickSelect',
+                    'class' => '',
                     'type' => 'uuid',
                     'action_buttons' => [
                         [

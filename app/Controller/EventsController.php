@@ -1679,6 +1679,60 @@ class EventsController extends AppController
         $this->set('sightingsDbEnabled', (bool)Configure::read('Plugin.Sightings_sighting_db_enable'));
     }
 
+    public function getThread($scope, $uuid)
+    {
+        $object_uuid = 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a';
+        $scope = 'event';
+        $notes = [
+            [
+                'analyst_note' => 'This is a note',
+                'authors' => ['adulau', 'iglocska'],
+                'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+                'orgc_uuid' => '27e68e2e-c7a9-4aba-9949-ca3383facb24',
+                'Organisation' => ['id' => 23, 'uuid' => '27e68e2e-c7a9-4aba-9949-ca3383facb24', 'name' => 'ORG_1'],
+                'created' => new DateTime(),
+                'modified' => new DateTime(),
+                'distribution' => 2,
+                'id' => 1,
+                'uuid' => '91bc1aa1-2322-43b9-9aad-c0262e6248b3',
+                'note_type' => 0,
+                'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a'
+            ],
+            [
+                'analyst_note' => 'This is another note',
+                'authors' => ['mokaddem',],
+                'org_uuid' => '	1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+                'orgc_uuid' => '	1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+                'Organisation' => ['id' => 2, 'uuid' => '	1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0', 'name' => 'CIRCL'],
+                'created' => new DateTime(),
+                'modified' => new DateTime(),
+                'distribution' => 0,
+                'id' => 2,
+                'uuid' => '5a019778-6f0f-4e80-94c5-2e9ec33c9a92',
+                'note_type' => 0,
+                'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a'
+            ],
+            [
+                'analyst_note' => 'This is an opinion',
+                'authors' => ['mokaddem',],
+                'org_uuid' => '	1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+                'orgc_uuid' => '	1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+                'Organisation' => ['id' => 3, 'uuid' => '	5d6d3b30-9db0-44b9-8869-7f56a5e38e14', 'name' => 'Training'],
+                'created' => new DateTime(),
+                'modified' => new DateTime(),
+                'distribution' => 0,
+                'id' => 2,
+                'uuid' => '5a019778-6f0f-4e80-94c5-2e9ec33c9a92',
+                'note_type' => 1,
+                'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a'
+            ],
+        ];
+
+        $this->set('notes', $notes);
+        $this->set('scope', $scope);
+        $this->set('object_uuid', $object_uuid);
+    }
+
     public function view($id = null, $continue = false, $fromEvent = null)
     {
         if ($this->request->is('head')) { // Just check if event exists
