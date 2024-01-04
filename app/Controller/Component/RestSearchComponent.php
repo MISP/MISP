@@ -90,6 +90,7 @@ class RestSearchComponent extends Component
             'publish_timestamp',
             'timestamp',
             'event_timestamp', // redundant, but kept for backwards compatibility
+            'event_tags',
             'published',
             'enforceWarninglist',
             'sgReferenceOnly',
