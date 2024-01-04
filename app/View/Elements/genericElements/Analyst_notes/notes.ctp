@@ -212,7 +212,7 @@ $notes = [
 
     function openNotes(clicked) {
         openPopover(clicked, renderedNotes, undefined, undefined, function() {
-            $('.popover').css('top', '150px')
+            $('.popover').css('top', '75px')
             $(clicked).removeClass('have-a-popover') // avoid closing the popover if a confirm popover (like the delete one) is called
         })
     }
