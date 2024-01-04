@@ -4285,27 +4285,9 @@ function feedFormUpdate() {
     checkSharingGroup('Feed');
 }
 
-function setContextFields() {
-    if (typeof showContext === "undefined") {
-        showContext = false;
-    }
-
-    var $button = $('#show_attribute_context');
-    if (showContext) {
-        $('.context').show();
-        $button.removeClass("btn-inverse").addClass("btn-primary");
-    } else {
-        $('.context').hide();
-        $button.removeClass("btn-primary").addClass("btn-inverse");
-    }
-}
-
 function toggleContextFields() {
-    if (typeof showContext === "undefined") {
-        showContext = false;
-    }
-    showContext = !showContext;
-    setContextFields();
+    $('.context').toggle()
+    $('#show_attribute_context').toggleClass("btn-inverse").toggleClass("btn-primary")
 }
 
 function checkOrphanedAttributes() {

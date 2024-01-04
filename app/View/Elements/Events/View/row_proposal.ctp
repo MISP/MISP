@@ -45,7 +45,10 @@
       echo h($object['id']);
     ?>
   </td>
-  <td class="short context hidden uuid quickSelect"><?= h($object['uuid']) ?></td>
+  <td class="short context hidden uuid">
+        <span class="quickSelect"><?php echo h($object['uuid']); ?></span>
+        <?php echo $this->element('genericElements/Analyst_notes/notes', ['uuid' => $object['uuid'], 'notes' => !empty($object['notes']) ? $object['notes'] : [], 'object_type' => 'attribute']); ?>
+      </td>
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
@@ -55,6 +58,9 @@
         else echo '&nbsp';
       ?>
   </td>
+  <td class="short context">
+        <?php echo $this->element('/genericElements/shortUuidWithNotes', ['uuid' => $object['uuid'], 'notes' => !empty($object['notes']) ? $object['notes'] : [], 'object_type' => 'proposals']); ?>
+      </td>
   <?php
     if ($extended):
   ?>

@@ -153,8 +153,12 @@ class EventReport extends AppModel
     {
         $errors = array();
         if (!isset($report['EventReport']['uuid'])) {
-            $errors[] = __('Event Report doesn\'t have an UUID');
-            return $errors;
+            if ($fromPull) {
+                $report['EventReport']['uuid'] = $attribute['uuid'] = CakeText::uuid();
+            } else {
+                $errors[] = __('Event Report doesn\'t have an UUID');
+                return $errors;
+            }
         }
         $report['EventReport']['event_id'] = $eventId;
         $existingReport = $this->find('first', array(

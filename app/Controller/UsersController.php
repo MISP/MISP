@@ -3179,7 +3179,7 @@ class UsersController extends AppController
                         // We didn't filter the data at SQL query too much, nor by age, as we want to show "enough" data, even if old
         $rows = 0;
         // group authentications by type of loginprofile, to make the list shorter
-        foreach($logs as $logEntry) {
+        foreach ($logs as $logEntry) {
             $loginProfile = $this->UserLoginProfile->_fromLog($logEntry['Log']);
             if (!$loginProfile) continue; // skip if empty log
             $loginProfile['ip'] = $logEntry['Log']['ip'] ?? null; // transitional workaround

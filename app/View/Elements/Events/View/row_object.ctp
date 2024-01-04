@@ -30,11 +30,17 @@ $objectId = intval($object['id']);
     endif;
   ?>
   <td class="short context hidden"><?= $objectId ?></td>
-  <td class="short context hidden uuid quickSelect"><?php echo h($object['uuid']); ?></td>
+  <td class="short context hidden uuid">
+        <span class="quickSelect"><?php echo h($object['uuid']); ?></span>
+        <?php echo $this->element('genericElements/Analyst_notes/notes', ['uuid' => $object['uuid'], 'notes' => !empty($object['notes']) ? $object['notes'] : [], 'object_type' => 'attribute']); ?>
+      </td>
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
   <td class="short timestamp <?= $isNew ? 'bold red' : '' ?>" <?= $isNew ? 'title="' . __('Element or modification to an existing element has not been published yet.') . '"' : '' ?>><?= $this->Time->date($object['timestamp']) . ($isNew ? '*' : '') ?></td>
+  <td class="short context">
+        <?php echo $this->element('/genericElements/shortUuidWithNotes', ['uuid' => $object['uuid'], 'notes' => !empty($object['notes']) ? $object['notes'] : [], 'object_type' => 'object']); ?>
+      </td>
   <?php
     if ($extended):
   ?>

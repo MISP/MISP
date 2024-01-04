@@ -12,6 +12,7 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
  * @property Organisation $Organisation
  * @property Role $Role
  * @property UserSetting $UserSetting
+ * @property UserLoginProfile $UserLoginProfile
  * @property Event $Event
  * @property AuthKey $AuthKey
  * @property Server $Server
@@ -889,7 +890,11 @@ class User extends AppModel
 
         $logTitle = $result['encrypted'] ? 'Encrypted email' : 'Email';
         // Intentional two spaces to pass test :)
-        $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $result['subject'] . '".';
+        $logTitle .= $replyToLog  . '  to ' . $result['to'] . ' sent, titled "' . $result['subject'] . '".';
+
+        if (Configure::read('Security.ecs_log')) {
+            EcsLog::writeEmailLog($logTitle, $result, $replyToUser ? $replyToUser['User']['email'] : null);
+        }
 
         $log->create();
         $log->saveOrFailSilently(array(
@@ -1264,37 +1269,44 @@ class User extends AppModel
         return $newkey;
     }
 
-    public function extralog($user, $action = null, $description = null, $fieldsResult = null, $modifiedUser = null)
+    /**
+     * @param string|array $user
+     * @param string $action
+     * @param string $description
+     * @param string $fieldsResult
+     * @param array|null $modifiedUser
+     * @return void
+     * @throws JsonException
+     */
+    public function extralog($user, $action, $description = null, $fieldsResult = null, $modifiedUser = null)
     {
-        if (!is_array($user) && $user === 'SYSTEM') {
+        if ($user === 'SYSTEM') {
             $user = [
                 'id' => 0,
                 'email' => 'SYSTEM',
                 'Organisation' => [
                     'name' => 'SYSTEM'
-                ]
+                ],
             ];
         }
         // new data
-        $model = 'User';
         $modelId = $user['id'];
         if (!empty($modifiedUser)) {
             $modelId = $modifiedUser['User']['id'];
         }
-        if ($action == 'login') {
+        if ($action === 'login') {
             $description = "User (" . $user['id'] . "): " . $user['email'];
-            $fieldsResult = json_encode($this->UserLoginProfile->_getUserProfile());
-        } elseif ($action == 'logout') {
+            $fieldsResult = JsonTool::encode($this->UserLoginProfile->_getUserProfile());
+        } else if ($action === 'logout') {
             $description = "User (" . $user['id'] . "): " . $user['email'];
-        } elseif ($action == 'edit') {
+        } else if ($action === 'edit') {
             $description = "User (" . $modifiedUser['User']['id'] . "): " . $modifiedUser['User']['email'];
-        } elseif ($action == 'change_pw') {
+        } else if ($action === 'change_pw') {
             $description = "User (" . $modifiedUser['User']['id'] . "): " . $modifiedUser['User']['email'];
             $fieldsResult = "Password changed.";
         }
 
-        // query
-        $result = $this->loadLog()->createLogEntry($user, $action, $model, $modelId, $description, $fieldsResult);
+        $result = $this->loadLog()->createLogEntry($user, $action, 'User', $modelId, $description, $fieldsResult);
         // write to syslogd as well
         if ($result) {
             App::import('Lib', 'SysLog.SysLog');

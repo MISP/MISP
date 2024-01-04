@@ -86,7 +86,7 @@ class AppModel extends Model
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
-        117 => false, 118 => false
+        117 => false, 118 => false, 119 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2004,6 +2004,9 @@ class AppModel extends Model
                   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 118:
+                $sqlArray[] = "ALTER TABLE `event_reports` MODIFY `content` mediumtext;";
+                break;
+            case 119:
                 $sqlArray[] = "CREATE TABLE `notes` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -4095,14 +4098,20 @@ class AppModel extends Model
      */
     public function _remoteIp()
     {
-        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: null;
-        if ($ipHeader && isset($_SERVER[$ipHeader])) {
-            return trim($_SERVER[$ipHeader]);
+        $clientIpHeader = Configure::read('MISP.log_client_ip_header');
+        if ($clientIpHeader && isset($_SERVER[$clientIpHeader])) {
+            $headerValue = $_SERVER[$clientIpHeader];
+            // X-Forwarded-For can contain multiple IPs, see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
+            if (($commaPos = strpos($headerValue, ',')) !== false) {
+                $headerValue = substr($headerValue, 0, $commaPos);
+            }
+            return trim($headerValue);
         }
         return $_SERVER['REMOTE_ADDR'] ?? null;
     }
 
-    public function find($type = 'first', $query = array()) {
+    public function find($type = 'first', $query = array())
+    {
         if (!empty($query['order']) && $this->validOrderClause($query['order']) === false) {
             throw new InvalidArgumentException('Invalid order clause');
         }
@@ -4110,9 +4119,10 @@ class AppModel extends Model
         return parent::find($type, $query);
     }
 
-    private function validOrderClause($order){
+    private function validOrderClause($order)
+    {
         $pattern = '/^[\w\_\-\.\(\) ]+$/';
-        if(is_string($order) && preg_match($pattern, $order)){
+        if (is_string($order) && preg_match($pattern, $order)) {
             return true;
         }
 
@@ -4121,7 +4131,7 @@ class AppModel extends Model
                 if (is_string($key) && is_string($value) && preg_match($pattern, $key) && in_array(strtolower($value), ['asc', 'desc'])) {
                     return true;
                 }
-                if(is_numeric($key) && is_string($value) && preg_match($pattern, $value)){
+                if (is_numeric($key) && is_string($value) && preg_match($pattern, $value)) {
                     return true;
                 }
             }
