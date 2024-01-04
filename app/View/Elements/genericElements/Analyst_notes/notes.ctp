@@ -117,9 +117,29 @@ $notes = [
         'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a'
     ],
 ];
+
+if(!function_exists("countNotes")) {
+    function countNotes($notes) {
+        $noteCount = count($notes);
+        foreach ($notes as $note) {
+            if (!empty($note['notes'])) {
+                $noteCount += countNotes($note['notes']);
+            }
+        }
+        return $noteCount;
+    }
+}
+$noteCount = countNotes($notes);
 ?>
 
-<i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" onclick="openNotes(this)" title="<?= __('Notes and opinions for this UUID') ?>"></i>
+<?php if (empty($notes)): ?>
+    <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" onclick="openNotes(this)" title="<?= __('Notes and opinions for this UUID') ?>"></i>
+<?php else: ?>
+    <span class="label label-info" title="<?= __n('This UUID has %s note', 'This UUID has %s notes', $noteCount, $noteCount) ?>">
+        <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" onclick="openNotes(this)" title="<?= __('Notes and opinions for this UUID') ?>"></i>
+        <?= $noteCount; ?>
+    </span>
+<?php endif; ?>
 
 <script>
     var notes = <?= json_encode($notes) ?>;
