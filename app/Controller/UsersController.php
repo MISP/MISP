@@ -3133,71 +3133,65 @@ class UsersController extends AppController
         }
     }
 
-    public function view_login_history($user_id = null)
+    public function view_login_history($userId = null)
     {
-        if ($user_id && $this->_isAdmin()) {   // org and site admins
-            $user = $this->User->find('first', array(
-                'recursive' => -1,
-                'conditions' => $this->__adminFetchConditions($user_id),
-                'contain' => [
-                    'UserSetting',
-                    'Role',
-                    'Organisation'
-                ]
-            ));
-            if (empty($user)) {
+        if ($userId && $this->_isAdmin()) {   // org and site admins
+            $userExists = $this->User->hasAny($this->__adminFetchConditions($userId));
+            if (!$userExists) {
                 throw new NotFoundException(__('Invalid user'));
             }
         } else {
-            $user_id = $this->Auth->user('id');
+            $userId = $this->Auth->user('id');
         }
 
         $this->loadModel('Log');
         $logs = $this->Log->find('all', array(
             'conditions' => array(
-                'Log.user_id' => $user_id,
-                'OR' => array ('Log.action' => array('login', 'login_fail', 'auth', 'auth_fail'))
+                'Log.user_id' => $userId,
+                'OR' => array('Log.action' => array('login', 'login_fail', 'auth', 'auth_fail'))
             ),
             'fields' => array('Log.action', 'Log.created', 'Log.ip', 'Log.change', 'Log.id'),
-            'order' => array('Log.created DESC'),
+            'order' => array('Log.id DESC'),
             'limit' => 100          // relatively high limit, as we'll be grouping data afterwards.
         ));
 
-        $lst = array();
+        $profiles = [];
         $prevProfile = null;
         $prevCreatedLast = null;
         $prevCreatedFirst = null;
         $prevLogEntry = null;
         $prevActions = array();
 
-        $actions_translator = [
+        $actionsTranslator = [
             'auth_fail' => 'API:failed',
             'auth' => 'API:login',
             'login' => 'web:login',
             'login_fail' => 'web:failed'
         ];
         
-        $max_rows = 6;  // limit to a few rows, to prevent cluttering the interface. 
+        $maxRows = 6;  // limit to a few rows, to prevent cluttering the interface.
                         // We didn't filter the data at SQL query too much, nor by age, as we want to show "enough" data, even if old
         $rows = 0;
         // group authentications by type of loginprofile, to make the list shorter
         foreach ($logs as $logEntry) {
             $loginProfile = $this->User->UserLoginProfile->_fromLog($logEntry['Log']);
-            if (!$loginProfile) continue; // skip if empty log
+            if (!$loginProfile) {
+                continue; // skip if empty log
+            }
             $loginProfile['ip'] = $logEntry['Log']['ip'] ?? null; // transitional workaround
             if ($this->User->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
                 // continue find as same type of login
                 $prevCreatedFirst = $logEntry['Log']['created'];
-                $prevActions[] = $actions_translator[$logEntry['Log']['action']] ?? $logEntry['Log']['action'];
+                $prevActions[] = $actionsTranslator[$logEntry['Log']['action']];
             } else {
                 // add as new entry
-                if (null != $prevProfile) {
+                if (null !== $prevProfile) {
                     $actionsString = '';  // count actions
                     foreach (array_count_values($prevActions) as $action => $cnt) {
                         $actionsString .=  $action . ' (' . $cnt . "x) ";
                     }
-                    $lst[] = array(
-                        'status' => $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
+                    $profiles[] = [
+                        'status' => $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $userId),
                         'platform' => $prevProfile['ua_platform'],
                         'browser' => $prevProfile['ua_browser'],
                         'region' => $prevProfile['geoip'],
@@ -3206,39 +3200,43 @@ class UsersController extends AppController
                         'last_seen' => $prevCreatedLast,
                         'first_seen' => $prevCreatedFirst,
                         'actions' => $actionsString,
-                        'actions_button' => ('unknown' == $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
+                        'actions_button' => ('unknown' == $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $userId)) ? true : false,
                         'id' => $prevLogEntry
-                    );
+                    ];
                 }
                 // build new entry
                 $prevProfile = $loginProfile;
                 $prevCreatedFirst = $prevCreatedLast = $logEntry['Log']['created'];
-                $prevActions[] = $actions_translator[$logEntry['Log']['action']] ?? $logEntry['Log']['action'];
+                $prevActions[] = $actionsTranslator[$logEntry['Log']['action']];
                 $prevLogEntry = $logEntry['Log']['id'];
-                $rows += 1;
-                if ($rows == $max_rows) break;
+                $rows++;
+                if ($rows === $maxRows) {
+                    break;
+                }
             }
         }
         // add last entry
-        $actionsString = '';  // count actions
-        foreach (array_count_values($prevActions) as $action => $cnt) {
-            $actionsString .=  $action . ' (' . $cnt . "x) ";
+        if (null !== $prevProfile) {
+            $actionsString = '';  // count actions
+            foreach (array_count_values($prevActions) as $action => $cnt) {
+                $actionsString .= $action . ' (' . $cnt . "x) ";
+            }
+            $profiles[] = array(
+                'status' => $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $userId),
+                'platform' => $prevProfile['ua_platform'],
+                'browser' => $prevProfile['ua_browser'],
+                'region' => $prevProfile['geoip'],
+                'ip' => $prevProfile['ip'],
+                'accept_lang' => $prevProfile['accept_lang'],
+                'last_seen' => $prevCreatedLast,
+                'first_seen' => $prevCreatedFirst,
+                'actions' => $actionsString,
+                'actions_button' => ('unknown' == $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $userId)) ? true : false,
+                'id' => $prevLogEntry
+            );
         }
-        $lst[] = array(
-            'status' => $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
-            'platform' => $prevProfile['ua_platform'],
-            'browser' => $prevProfile['ua_browser'],
-            'region' => $prevProfile['geoip'],
-            'ip' =>  $prevProfile['ip'],
-            'accept_lang' => $prevProfile['accept_lang'],
-            'last_seen' => $prevCreatedLast,
-            'first_seen' => $prevCreatedFirst,
-            'actions' => $actionsString,
-            'actions_button' => ('unknown' == $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
-            'id' => $prevLogEntry
-        );
-        $this->set('data', $lst);
-        $this->set('user_id', $user_id);
+        $this->set('data', $profiles);
+        $this->set('user_id', $userId);
     }
 
     public function logout401()

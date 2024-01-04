@@ -125,17 +125,24 @@ class UserLoginProfile extends AppModel
         return $this->userProfile;
     }
 
+    /**
+     * @param array $logEntry
+     * @return array|false|string[]
+     * @throws JsonException
+     */
     public function _fromLog(array $logEntry)
     {
-        $data = ["user_agent" => "", "ip" => "", "accept_lang" => "", "geoip" => "", "ua_pattern" => "", "ua_platform" => "", "ua_browser" => ""];
-        if ($logEntry['change']) {
-            $data = array_merge($data, JsonTool::decode($logEntry['change']));
+        if (!$logEntry['change']) {
+            return false;
         }
-        $data['ip'] = $logEntry['ip'];
-        $data['timestamp'] = $logEntry['created'];
+
+        $data = ["user_agent" => "", "ip" => "", "accept_lang" => "", "geoip" => "", "ua_pattern" => "", "ua_platform" => "", "ua_browser" => ""];
+        $data = array_merge($data, JsonTool::decode($logEntry['change']));
         if ($data['user_agent'] === "") {
             return false;
         }
+        $data['ip'] = $logEntry['ip'];
+        $data['timestamp'] = $logEntry['created'];
         return $data;
     }
 
