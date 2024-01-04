@@ -68,6 +68,13 @@ class SecurityAudit
             ];
         }
 
+        if (!Configure::read('Security.alert_on_suspicious_logins')) {
+            $output['Login'][] = [
+                'warning',
+                __('Warning about suspicious logins is disabled. You can enable alert by setting `Security.alert_on_suspicious_logins` to `true`.'),
+            ];
+        }
+
         if (empty(Configure::read('Security.disable_browser_cache'))) {
             $output['Browser'][] = [
                 'warning',

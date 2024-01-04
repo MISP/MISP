@@ -271,6 +271,7 @@ jobs:
               pushd PyMISP/examples/events/
               python ./create_massive_dummy_events.py -l 5 -a 30
               popd
+              pip install jsonschema
               python tools/misp-feed/validate.py
               deactivate
 

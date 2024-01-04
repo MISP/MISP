@@ -25,7 +25,7 @@ if (!function_exists('str_contains')) {
     }
 }
 
-foreach($data as $entry ){
+foreach ($data as $entry) {
     $platform = h(strtolower($entry['platform']));
     if (str_contains($platform, 'win')) $platform = 'windows';
     if (str_contains($platform, 'macosx')) $platform = 'apple';
@@ -34,7 +34,7 @@ foreach($data as $entry ){
     if (str_contains($entry['status'], 'malicious')) $bgcolor = '#ffdddd';
     elseif (str_contains($entry['status'], 'trusted')) $bgcolor = '#ddffdd';
 ?>
-    <div class="device-overview"style="background-color:<?= $bgcolor ?>;">
+    <div class="device-overview" style="background-color:<?= $bgcolor ?>;">
         <div>
         <span class="device-icon fab fa-<?= h(strtolower($platform))?>" style="font-size:30px;"></span>
         <span class="device-icon fab fa-<?= h(strtolower($entry['browser']))?>" style="font-size:30px;"></span>
@@ -79,5 +79,4 @@ echo '</div>';
 
 if (!$this->request->is('ajax')) {
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view'));
-
 }
