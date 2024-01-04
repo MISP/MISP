@@ -1332,34 +1332,37 @@ class UsersController extends AppController
 
     private function _postlogin()
     {
-        $this->User->extralog($this->Auth->user(), "login");
+        $authUser = $this->Auth->user();
+        $this->User->extralog($authUser, "login");
+
         $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
-        $this->User->id = $this->Auth->user('id');
         $user = $this->User->find('first', array(
             'conditions' => array(
-                'User.id' => $this->Auth->user('id')
+                'User.id' => $authUser['id'],
             ),
+            'fields' => ['User.id', 'User.current_login', 'User.last_login'],
             'recursive' => -1
         ));
-        unset($user['User']['password']);
         // update login timestamp and welcome user
         $this->User->updateLoginTimes($user['User']);
-        $lastUserLogin = $user['User']['last_login'];
         $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
+
+        $lastUserLogin = $user['User']['last_login'];
         if ($lastUserLogin) {
             $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
             $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
         }
+
         if (Configure::read('Security.alert_on_suspicious_logins')) {
             try {
                 // there are reasons to believe there is evil happening, suspicious. Inform user and (org)admins.
-                $suspiciousness_reason = $this->User->UserLoginProfile->_isSuspicious();
-                if ($suspiciousness_reason) {
+                $suspiciousnessReason = $this->User->UserLoginProfile->_isSuspicious();
+                if ($suspiciousnessReason) {
                     // raise an alert (the SIEM component should ensure (org)admins are informed)
                     $this->loadModel('Log');
-                    $this->Log->createLogEntry($this->Auth->user(), 'auth_alert', 'User', $this->Auth->user('id'), 'Suspicious login.', $suspiciousness_reason);
+                    $this->Log->createLogEntry($authUser, 'auth_alert', 'User', $authUser['id'], 'Suspicious login.', $suspiciousnessReason);
                     // Line below commented out to NOT inform user/org admin of the suspicious login.
-                    // The reason is that we want to prevent other user actions cause trouble. 
+                    // The reason is that we want to prevent other user actions cause trouble.
                     // However this also means we're sitting on data that could be used to detect new evil logins.
                     // As we're generating alerts, the sysadmin should be keeping an eye on these
                     // $this->User->UserLoginProfile->email_suspicious($user, $suspiciousness_reason);
@@ -1367,11 +1370,12 @@ class UsersController extends AppController
                 // verify UserLoginProfile trust status and perform informative actions
                 if (!$this->User->UserLoginProfile->_isTrusted()) {
                     // send email to inform the user
-                    $this->User->UserLoginProfile->email_newlogin($user);
+                    $this->User->UserLoginProfile->emailNewLogin($authUser);
                 }
             } catch (Exception $e) {
                 // At first login after code update and before DB schema update we might end up with problems.
                 // Just catch it cleanly here to prevent problems.
+                $this->log($e->getMessage(), LOG_WARNING);
             }
         }
 
@@ -3065,7 +3069,7 @@ class UsersController extends AppController
      * @return array
      * @throws NotFoundException
      */
-    private function __adminFetchConditions($id, $edit = True)
+    private function __adminFetchConditions($id, $edit = true)
     {
         if (empty($id)) {
             throw new NotFoundException(__('Invalid user'));
@@ -3076,7 +3080,7 @@ class UsersController extends AppController
         if (!$user['Role']['perm_site_admin']) {
             $conditions['User.org_id'] = $user['org_id']; // org admin
             if ($edit) {
-                $conditions['Role.perm_site_admin'] = False;
+                $conditions['Role.perm_site_admin'] = false;
             }
         }
         return $conditions;
@@ -3096,106 +3100,102 @@ class UsersController extends AppController
             }
         }
         if (!empty($conditions)) {
-            $user_ids = $this->User->find('list', [
+            $userIds = $this->User->find('list', [
                 'recursive' => -1,
                 'fields' => ['email', 'id'],
                 'conditions' => $conditions
             ]);
         } else {
-            $user_ids = [__('Every user') => 'all'];
+            $userIds = [__('Every user') => 'all'];
         }
         if ($this->request->is('post')) {
             $redis = RedisTool::init();
-            $kill_before = time();
-            foreach (array_values($user_ids) as $user_id) {
-                $redis->set('misp:session_destroy:' . $user_id, $kill_before);
+            $killBefore = time();
+            foreach ($userIds as $userId) {
+                $redis->set('misp:session_destroy:' . $userId, $killBefore);
             }
             $message = __(
                 'Session destruction cutoff set to the current timestamp for the given selection (%s). Session(s) will be destroyed on the next user interaction.',
-                implode(', ', array_keys($user_ids))
+                implode(', ', array_keys($userIds))
             );
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('User', 'admin_destroy', false, $this->response->type(), $message);
+                return $this->RestResponse->successResponse(null, $message);
             }
             $this->Flash->success($message);
             $this->redirect($this->referer());
-        } else {
-            $this->set(
-                'question',
-                __(
-                    'Do you really wish to destroy the session for: %s ? The session destruction will occur when the users try to interact with MISP the next time.',
-                    implode(', ', array_keys($user_ids))
-                )
-            );
-            $this->set('title', __('Destroy sessions'));
-            $this->set('actionName', 'Destroy');
-            $this->render('/genericTemplates/confirm');
         }
+
+        $this->set(
+            'question',
+            __(
+                'Do you really wish to destroy the session for: %s? The session destruction will occur when the users try to interact with MISP the next time.',
+                implode(', ', array_keys($userIds))
+            )
+        );
+        $this->set('title', __('Destroy sessions'));
+        $this->set('actionName', 'Destroy');
+        $this->render('/genericTemplates/confirm');
     }
 
-    public function view_login_history($user_id = null) { 
-        if ($user_id && $this->_isAdmin()) {   // org and site admins
-            $user = $this->User->find('first', array(
-                'recursive' => -1,
-                'conditions' => $this->__adminFetchConditions($user_id),
-                'contain' => [
-                    'UserSetting',
-                    'Role',
-                    'Organisation'
-                ]
-            ));
-            if (empty($user)) {
+    public function view_login_history($userId = null)
+    {
+        if ($userId && $this->_isAdmin()) {   // org and site admins
+            $userExists = $this->User->hasAny($this->__adminFetchConditions($userId));
+            if (!$userExists) {
                 throw new NotFoundException(__('Invalid user'));
             }
         } else {
-            $user_id = $this->Auth->user('id');
+            $userId = $this->Auth->user('id');
         }
-        $this->loadModel('UserLoginProfile');
+
         $this->loadModel('Log');
         $logs = $this->Log->find('all', array(
             'conditions' => array(
-                'Log.user_id' => $user_id,
-                'OR' => array ('Log.action' => array('login', 'login_fail', 'auth', 'auth_fail'))
+                'Log.user_id' => $userId,
+                'OR' => array('Log.action' => array('login', 'login_fail', 'auth', 'auth_fail'))
             ),
             'fields' => array('Log.action', 'Log.created', 'Log.ip', 'Log.change', 'Log.id'),
-            'order' => array('Log.created DESC'),
+            'order' => array('Log.id DESC'),
             'limit' => 100          // relatively high limit, as we'll be grouping data afterwards.
         ));
-        $lst = array();
+
+        $profiles = [];
         $prevProfile = null;
         $prevCreatedLast = null;
         $prevCreatedFirst = null;
         $prevLogEntry = null;
         $prevActions = array();
 
-        $actions_translator = [
+        $actionsTranslator = [
             'auth_fail' => 'API:failed',
             'auth' => 'API:login',
             'login' => 'web:login',
             'login_fail' => 'web:failed'
         ];
         
-        $max_rows = 6;  // limit to a few rows, to prevent cluttering the interface. 
+        $maxRows = 6;  // limit to a few rows, to prevent cluttering the interface.
                         // We didn't filter the data at SQL query too much, nor by age, as we want to show "enough" data, even if old
         $rows = 0;
         // group authentications by type of loginprofile, to make the list shorter
-        foreach($logs as $logEntry) {
-            $loginProfile = $this->UserLoginProfile->_fromLog($logEntry['Log']);
-            if (!$loginProfile) continue; // skip if empty log
+        foreach ($logs as $logEntry) {
+            $loginProfile = $this->User->UserLoginProfile->_fromLog($logEntry['Log']);
+            if (!$loginProfile) {
+                continue; // skip if empty log
+            }
             $loginProfile['ip'] = $logEntry['Log']['ip'] ?? null; // transitional workaround
-            if ($this->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
+            if ($this->User->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
                 // continue find as same type of login
                 $prevCreatedFirst = $logEntry['Log']['created'];
-                $prevActions[] = $actions_translator[$logEntry['Log']['action']] ?? $logEntry['Log']['action'];
+                $prevActions[] = $actionsTranslator[$logEntry['Log']['action']];
             } else {
                 // add as new entry
-                if (null != $prevProfile) {
+                if (null !== $prevProfile) {
                     $actionsString = '';  // count actions
-                    foreach(array_count_values($prevActions) as $action => $cnt) {
+                    foreach (array_count_values($prevActions) as $action => $cnt) {
                         $actionsString .=  $action . ' (' . $cnt . "x) ";
                     }
-                    $lst[] = array(
-                        'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
+                    $profiles[] = [
+                        'status' => $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $userId),
                         'platform' => $prevProfile['ua_platform'],
                         'browser' => $prevProfile['ua_browser'],
                         'region' => $prevProfile['geoip'],
@@ -3204,40 +3204,47 @@ class UsersController extends AppController
                         'last_seen' => $prevCreatedLast,
                         'first_seen' => $prevCreatedFirst,
                         'actions' => $actionsString,
-                        'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
-                        'id' => $prevLogEntry);
+                        'actions_button' => ('unknown' == $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $userId)) ? true : false,
+                        'id' => $prevLogEntry
+                    ];
                 }
                 // build new entry
                 $prevProfile = $loginProfile;
                 $prevCreatedFirst = $prevCreatedLast = $logEntry['Log']['created'];
-                $prevActions[] = $actions_translator[$logEntry['Log']['action']] ?? $logEntry['Log']['action'];
+                $prevActions[] = $actionsTranslator[$logEntry['Log']['action']];
                 $prevLogEntry = $logEntry['Log']['id'];
-                $rows += 1;
-                if ($rows == $max_rows) break;
+                $rows++;
+                if ($rows === $maxRows) {
+                    break;
+                }
             }
         }
         // add last entry
-        $actionsString = '';  // count actions
-        foreach(array_count_values($prevActions) as $action => $cnt) {
-            $actionsString .=  $action . ' (' . $cnt . "x) ";
+        if (null !== $prevProfile) {
+            $actionsString = '';  // count actions
+            foreach (array_count_values($prevActions) as $action => $cnt) {
+                $actionsString .= $action . ' (' . $cnt . "x) ";
+            }
+            $profiles[] = array(
+                'status' => $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $userId),
+                'platform' => $prevProfile['ua_platform'],
+                'browser' => $prevProfile['ua_browser'],
+                'region' => $prevProfile['geoip'],
+                'ip' => $prevProfile['ip'],
+                'accept_lang' => $prevProfile['accept_lang'],
+                'last_seen' => $prevCreatedLast,
+                'first_seen' => $prevCreatedFirst,
+                'actions' => $actionsString,
+                'actions_button' => ('unknown' == $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $userId)) ? true : false,
+                'id' => $prevLogEntry
+            );
         }
-        $lst[] = array(
-            'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
-            'platform' => $prevProfile['ua_platform'],
-            'browser' => $prevProfile['ua_browser'],
-            'region' => $prevProfile['geoip'],
-            'ip' =>  $prevProfile['ip'],
-            'accept_lang' => $prevProfile['accept_lang'],
-            'last_seen' => $prevCreatedLast,
-            'first_seen' => $prevCreatedFirst,
-            'actions' => $actionsString,
-            'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
-            'id' => $prevLogEntry);
-        $this->set('data', $lst);
-        $this->set('user_id', $user_id);
+        $this->set('data', $profiles);
+        $this->set('user_id', $userId);
     }
 
-    public function logout401() {
+    public function logout401()
+    {
         # You should read the documentation in docs/CONFIG.ApacheSecureAuth.md
         # before using this endpoint. It is not useful without webserver config
         # changes.
@@ -3262,16 +3269,9 @@ class UsersController extends AppController
             if (empty($this->request->data['User']['email'])) {
                 throw new MethodNotAllowedException(__('No email provided, cannot generate password reset message.'));
             }
-            $user = [
-                'id' => 0,
-                'email' => 'SYSTEM',
-                'Organisation' => [
-                    'name' => 'SYSTEM'
-                ]
-            ];
             $this->loadModel('Log');
-            $this->Log->createLogEntry($user, 'forgot', 'User', 0, 'Password reset requested for: ' . $this->request->data['User']['email']);
-            $this->User->forgotRouter($this->request->data['User']['email'], $this->_remoteIp());
+            $this->Log->createLogEntry('SYSTEM', 'forgot', 'User', 0, 'Password reset requested for: ' . $this->request->data['User']['email']);
+            $this->User->forgotRouter($this->request->data['User']['email'], $this->User->_remoteIp());
             $message = __('Password reset request submitted. If a valid user is found, you should receive an e-mail with a temporary reset link momentarily. Please be advised that this link is only valid for 10 minutes.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('User', 'forgot', false, $this->response->type(), $message);
@@ -3308,5 +3308,4 @@ class UsersController extends AppController
             return $this->__pw_change(['User' => $user], 'password_reset', $abortPost, $token, true);
         }
     }
-
 }

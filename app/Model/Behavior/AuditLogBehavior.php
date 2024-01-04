@@ -25,6 +25,7 @@ class AuditLogBehavior extends ModelBehavior
         'date_modified' => true, // User
         'current_login' => true, // User
         'last_login' => true, // User
+        'last_api_access' => true, // User
         'newsread' => true, // User
         'unique_ips' => true, // User
         'proposal_email_lock' => true, // Event

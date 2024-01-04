@@ -555,14 +555,18 @@ class SendEmail
         }
 
         try {
-            return [
-                'contents' => $email->send(),
-                'encrypted' => $encrypted,
-                'subject' => $subject,
-            ];
+            $content = $email->send();
         } catch (Exception $e) {
             throw new SendEmailException('The message could not be sent.', 0, $e);
         }
+
+        return [
+            'to' => $user['User']['email'],
+            'message_id' => $email->messageId(),
+            'contents' => $content,
+            'encrypted' => $encrypted,
+            'subject' => $subject,
+        ];
     }
 
     /**

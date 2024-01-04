@@ -3,16 +3,30 @@ App::uses('AppModel', 'Model');
 
 class Log extends AppModel
 {
-    const WARNING_ACTIONS = array(
+    const WARNING_ACTIONS = [
         'warning',
         'change_pw',
         'login_fail',
         'version_warning',
         'auth_fail'
-    );
-    const ERROR_ACTIONS = array(
+    ];
+
+    const ERROR_ACTIONS = [
         'error'
-    );
+    ];
+
+    const AUTH_ACTIONS = [
+        'auth',
+        'auth_fail',
+        'auth_alert',
+        'change_pw',
+        'login',
+        'login_fail',
+        'logout',
+        'password_reset',
+        'forgot',
+    ];
+
     public $validate = array(
         'action' => array(
             'rule' => array(
@@ -159,11 +173,6 @@ class Log extends AppModel
         if (!in_array($this->data['Log']['model'], ['Log', 'Workflow'])) {
             $trigger_id = 'log-after-save';
             $workflowErrors = [];
-            $logging = [
-                'model' => 'Log',
-                'action' => 'execute_workflow',
-                'id' => $this->data['Log']['user_id']
-            ];
             $this->executeTrigger($trigger_id, $this->data, $workflowErrors);
         }
         return true;
@@ -206,7 +215,7 @@ class Log extends AppModel
             $validDates = $this->query($sql);
         }
         $data = array();
-        foreach ($validDates as $k => $date) {
+        foreach ($validDates as $date) {
             $data[$date[0]['Date']] = intval($date[0]['count']);
         }
         return $data;
@@ -286,7 +295,7 @@ class Log extends AppModel
     public function validationError($user, $action, $model, $title, array $validationErrors, array $fullObject)
     {
         $this->log($title, LOG_WARNING);
-        $change = 'Validation errors: ' . json_encode($validationErrors) . ' Full ' . $model  . ': ' . json_encode($fullObject);
+        $change = 'Validation errors: ' . JsonTool::encode($validationErrors) . ' Full ' . $model  . ': ' . JsonTool::encode($fullObject);
         $this->createLogEntry($user, $action, $model, 0, $title, $change);
     }
 
@@ -365,7 +374,7 @@ class Log extends AppModel
         }
     }
 
-    public function logData($data)
+    private function logData(array $data)
     {
         if ($this->pubToZmq('audit')) {
             $this->getPubSubTool()->publish($data, 'audit', 'log');
@@ -386,6 +395,14 @@ class Log extends AppModel
         }
 
         // write to syslogd as well if enabled
+        $this->sendToSyslog($data);
+        $this->sendToEcs($data);
+
+        return true;
+    }
+
+    private function sendToSyslog(array $data)
+    {
         if ($this->syslog === null) {
             if (Configure::read('Security.syslog')) {
                 $options = [];
@@ -407,8 +424,7 @@ class Log extends AppModel
             if (isset($data['Log']['action'])) {
                 if (in_array($data['Log']['action'], self::ERROR_ACTIONS, true)) {
                     $action = LOG_ERR;
-                }
-                if (in_array($data['Log']['action'], self::WARNING_ACTIONS, true)) {
+                } else if (in_array($data['Log']['action'], self::WARNING_ACTIONS, true)) {
                     $action = LOG_WARNING;
                 }
             }
@@ -420,11 +436,49 @@ class Log extends AppModel
             if (!empty($data['Log']['description'])) {
                 $entry .= " -- {$data['Log']['description']}";
             } else if (!empty($data['Log']['change'])) {
-                $entry .= " -- " . json_encode($data['Log']['change']);
+                $entry .= " -- " . JsonTool::encode($data['Log']['change']);
             }
             $this->syslog->write($action, $entry);
         }
-        return true;
+    }
+
+    /**
+     * @param array $data
+     * @return void
+     * @throws JsonException
+     */
+    private function sendToEcs(array $data)
+    {
+        if (!Configure::read('Security.ecs_log')) {
+            return;
+        }
+
+        $log = $data['Log'];
+
+        $action = $log['action'];
+        if ($action === 'email') {
+            return; // do not log email actions as it is logged with more details by `writeEmailLog` function
+        }
+
+        if (in_array($action, self::ERROR_ACTIONS, true)) {
+            $type = 'error';
+        } else if (in_array($action, self::WARNING_ACTIONS, true)) {
+            $type = 'warning';
+        } else {
+            $type = 'info';
+        }
+
+        $message = $action;
+        if (!empty($log['title'])) {
+            $message .= " -- {$log['title']}";
+        }
+        if (!empty($log['description'])) {
+            $message .= " -- {$log['description']}";
+        } else if (!empty($log['change'])) {
+            $message .= " -- " . (is_string($log['change']) ? $log['change'] : JsonTool::encode($log['change']));
+        }
+
+        EcsLog::writeApplicationLog($type, $action, $message);
     }
 
     public function filterSiteAdminSensitiveLogs($list)
@@ -1176,11 +1230,17 @@ class Log extends AppModel
         return $this->elasticSearchClient;
     }
 
+    /**
+     * @param $data
+     * @param $options
+     * @return array|bool|mixed
+     */
     public function saveOrFailSilently($data, $options = null)
     {
         try {
             return $this->save($data, $options);
         } catch (Exception $e) {
+            $this->logException('Could not save log to database', $e);
             return false;
         }
     }

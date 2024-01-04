@@ -44,7 +44,7 @@ class Oidc
         if (!$user) { // User by sub not found, try to find by email
             $user = $this->_findUser($settings, ['User.email' => $mispUsername]);
             if ($user && $user['sub'] !== null && $user['sub'] !== $sub) {
-                $this->log($mispUsername, "User sub doesn't match ({$user['sub']} != $sub), could not login.");
+                $this->log($mispUsername, "User sub doesn't match ({$user['sub']} != $sub), could not login.", LOG_ERR);
                 return false;
             }
         }
@@ -66,7 +66,7 @@ class Oidc
         $roleProperty = $this->getConfig('roles_property', 'roles');
         $roles = $claims->{$roleProperty} ?? $oidc->requestUserInfo($roleProperty);
         if ($roles === null) {
-            $this->log($mispUsername, "Role property `$roleProperty` is missing in claims.");
+            $this->log($mispUsername, "Role property `$roleProperty` is missing in claims.", LOG_WARNING);
             return false;
         }
 
@@ -78,6 +78,8 @@ class Oidc
             }
             return false;
         }
+
+        $offlineAccessEnabled = $this->getConfig('offline_access', false);
 
         if ($user) {
             $this->log($mispUsername, "Found in database with ID {$user['id']}.");
@@ -112,7 +114,10 @@ class Oidc
                 $user['disabled'] = false;
             }
 
-            $refreshToken = $this->getConfig('offline_access', false) ? $oidc->getRefreshToken() : null;
+            $refreshToken = $offlineAccessEnabled ? $oidc->getRefreshToken() : null;
+            if ($offlineAccessEnabled && $refreshToken === null) {
+                $this->log($mispUsername, 'Refresh token requested, but not provided.', LOG_WARNING);
+            }
             $this->storeMetadata($user['id'], $claims, $refreshToken);
 
             $this->log($mispUsername, 'Logged in.');
@@ -138,7 +143,10 @@ class Oidc
             throw new RuntimeException("Could not create user `$mispUsername` in database.");
         }
 
-        $refreshToken = $this->getConfig('offline_access', false) ? $oidc->getRefreshToken() : null;
+        $refreshToken = $offlineAccessEnabled ? $oidc->getRefreshToken() : null;
+        if ($offlineAccessEnabled && $refreshToken === null) {
+            $this->log($mispUsername, 'Refresh token requested, but not provided.', LOG_WARNING);
+        }
         $this->storeMetadata($this->User->id, $claims, $refreshToken);
 
         $this->log($mispUsername, "User created in database with ID {$this->User->id}");
@@ -518,19 +526,20 @@ class Oidc
     /**
      * @param string|null $username
      * @param string $message
+     * @param int $type
      */
-    private function log($username, $message)
+    private function log($username, $message, $type = LOG_INFO)
     {
-        $sessionId = substr(session_id(), 0, 6);
-        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-        $ip = isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
+        $log = $username ? "OIDC user `$username`" : "OIDC";
 
-        if ($username) {
-            $message = "OIDC user `$username` [$ip;$sessionId] – $message";
+        if (PHP_SAPI !== 'cli') {
+            $sessionId = substr(session_id(), 0, 6);
+            $ip = $this->User->_remoteIp();
+            $log .= " [$ip;$sessionId] - $message";
         } else {
-            $message = "OIDC [$ip;$sessionId] – $message";
+            $log .= " - $message";
         }
 
-        CakeLog::info($message);
+        CakeLog::write($type, $log);
     }
 }

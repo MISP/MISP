@@ -255,7 +255,7 @@ class AttachmentScan extends AppModel
                 }
                 $scanned++;
             } catch (NotFoundException $e) {
-                // skip
+                // skip if file doesn't exists
             } catch (Exception $e) {
                 $this->logException("Could not scan attachment for $type {$attribute['Attribute']['id']}", $e);
                 $fails++;
@@ -341,7 +341,17 @@ class AttachmentScan extends AppModel
             $file = $this->attachmentTool()->getShadowFile($attribute['event_id'], $attribute['id']);
         }
 
-        if (in_array('attachment', $moduleInfo['types'])) {
+        if (in_array('attachment', $moduleInfo['types'], true)) {
+            $fileSize = $file->size();
+            if ($fileSize === false) {
+                throw new Exception("Could not read size of file '$file->path'.");
+            }
+
+            if ($fileSize === 0) {
+                return false; // empty file is automatically considered as not infected
+            }
+
+
             /* if ($file->size() > 50 * 1024 * 1024) {
              $this->log("File '$file->path' is bigger than 50 MB, will be not scanned.", LOG_NOTICE);
              return false;
@@ -349,7 +359,7 @@ class AttachmentScan extends AppModel
 
             $fileContent = $file->read();
             if ($fileContent === false) {
-                throw new Exception("Could not read content of  file '$file->path'.");
+                throw new Exception("Could not read content of file '$file->path'.");
             }
             $attribute['data'] = base64_encode($fileContent);
         } else {
