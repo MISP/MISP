@@ -3657,13 +3657,11 @@ class AppModel extends Model
     {
         // If Sentry is installed, send exception to Sentry
         if (function_exists('\Sentry\captureException') && $type === LOG_ERR) {
-            \Sentry\captureException($exception);
+            \Sentry\captureException(new Exception($message, $type, $exception));
         }
 
-        $message .= "\n";
-
         do {
-            $message .= sprintf("[%s] %s", get_class($exception), $exception->getMessage());
+            $message .= sprintf("\n[%s] %s", get_class($exception), $exception->getMessage());
             $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
             $exception = $exception->getPrevious();
         } while ($exception !== null);
