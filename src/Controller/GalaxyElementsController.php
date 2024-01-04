@@ -10,7 +10,6 @@ class GalaxyElementsController extends AppController
 {
     public $paginate = [
         'limit' => 20,
-        'recursive' => -1,
         'order' => [
             'GalaxyElement.key' => 'ASC'
         ]

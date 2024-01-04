@@ -18,30 +18,30 @@ class GalaxyClustersController extends AppController
 {
     use LocatorAwareTrait;
 
+    protected $conditions = [];
+    protected $contain =  [
+        'Tag' => [
+            'fields' => ['Tag.id'],
+            /*
+            'EventTag' => array(
+                'fields' => array('EventTag.event_id')
+            ),
+            'AttributeTag' => array(
+                'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
+            )
+            */
+        ],
+        'GalaxyElement' => [
+            'conditions' => ['GalaxyElement.key' => 'synonyms'],
+            'fields' => ['value']
+        ],
+    ];
     public $paginate = [
         'limit' => 60,
-        'recursive' => -1,
         'order' => [
             'GalaxyClusters.version' => 'DESC',
             'GalaxyClusters.value' => 'ASC'
         ],
-        'contain' => [
-            'Tag' => [
-                'fields' => ['Tag.id'],
-                /*
-                'EventTag' => array(
-                    'fields' => array('EventTag.event_id')
-                ),
-                'AttributeTag' => array(
-                    'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
-                )
-                */
-            ],
-            'GalaxyElement' => [
-                'conditions' => ['GalaxyElement.key' => 'synonyms'],
-                'fields' => ['value']
-            ],
-        ]
     ];
 
     public function initialize(): void
@@ -124,11 +124,19 @@ class GalaxyClustersController extends AppController
             return $this->RestResponse->viewData($clusters, $this->response->getType());
         }
 
-        $this->paginate['conditions']['AND'][] = $contextConditions;
-        $this->paginate['conditions']['AND'][] = $searchConditions;
-        $this->paginate['conditions']['AND'][] = $aclConditions;
-        $this->paginate['contain'] = array_merge($this->paginate['contain'], ['Org', 'Orgc', 'SharingGroup', 'GalaxyClusterRelation', 'TargetingClusterRelation']);
-        $clusters = $this->paginate();
+        $this->conditions['AND'][] = $contextConditions;
+        $this->conditions['AND'][] = $searchConditions;
+        $this->conditions['AND'][] = $aclConditions;
+        $this->contain = array_merge($this->contain, ['Org', 'Orgc', 'SharingGroup', 'GalaxyClusterRelation', 'TargetingClusterRelation']);
+
+        $query = $this->GalaxyClusters->find(
+            'all',
+            [
+                'conditions' => $this->conditions,
+                'contain' => $this->contain
+            ]
+        );
+        $clusters = $this->paginate($query);
 
         $this->GalaxyClusters->attachExtendByInfo($this->ACL->getUser()->toArray(), $clusters);
 
