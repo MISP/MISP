@@ -599,7 +599,7 @@ class AppController extends Controller
         if (!empty($user['allowed_ips'])) {
             App::uses('CidrTool', 'Tools');
             $cidrTool = new CidrTool($user['allowed_ips']);
-            $remoteIp = $this->_remoteIp();
+            $remoteIp = $this->User->_remoteIp();
             if ($remoteIp === null) {
                 $this->Auth->logout();
                 throw new ForbiddenException('Auth key is limited to IP address, but IP address not found');
@@ -692,7 +692,7 @@ class AppController extends Controller
             return;
         }
 
-        $remoteAddress = $this->_remoteIp();
+        $remoteAddress = $this->User->_remoteIp();
 
         $pipe = $redis->pipeline();
         // keep for 30 days
@@ -735,7 +735,7 @@ class AppController extends Controller
             $includeRequestBody = !empty(Configure::read('MISP.log_paranoid_include_post_body')) || $userMonitoringEnabled;
             /** @var AccessLog $accessLog */
             $accessLog = ClassRegistry::init('AccessLog');
-            $accessLog->logRequest($user, $this->_remoteIp(), $this->request, $includeRequestBody);
+            $accessLog->logRequest($user, $this->User->_remoteIp(), $this->request, $includeRequestBody);
         }
 
         if (
@@ -1133,14 +1133,14 @@ class AppController extends Controller
                 $headerNamespace = '';
             }
             if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
-                if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $this->_remoteIp()) {
+                if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $this->User->_remoteIp()) {
                     $this->Log = ClassRegistry::init('Log');
                     $this->Log->createLogEntry(
                         'SYSTEM',
                         'auth_fail',
                         'User',
                         0,
-                        'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->_remoteIp(),
+                        'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->User->_remoteIp(),
                         null);
                     $this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
                 }
