@@ -89,7 +89,7 @@ class EcsLog implements CakeLogInterface
             'message' => $message,
         ];
 
-        if (in_array($action, ['auth', 'auth_fail', 'auth_alert', 'change_pw', 'login', 'login_fail', 'logout', 'password_reset'], true)) {
+        if (in_array($action, Log::AUTH_ACTIONS, true)) {
             $message['event']['category'] = 'authentication';
 
             if (in_array($action, ['auth_fail', 'login_fail'], true)) {

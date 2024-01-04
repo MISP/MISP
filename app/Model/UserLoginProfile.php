@@ -14,7 +14,6 @@ class UserLoginProfile extends AppModel
                 'userKey' => 'user_id',
                 'change' => 'full'
             ),
-            'Containable'
     );
 
     public $validate = [
@@ -61,7 +60,7 @@ class UserLoginProfile extends AppModel
         return true;
     }
 
-    public function hash($data)
+    public function hash(array $data)
     {
         unset($data['hash']);
         unset($data['created_at']);
@@ -251,7 +250,7 @@ class UserLoginProfile extends AppModel
         }
     }
 
-    public function email_report_malicious($user, $userLoginProfile)
+    public function emailReportMalicious(array $user, array $userLoginProfile)
     {
         // inform the org admin
         $date_time = $userLoginProfile['timestamp']; // LATER not ideal as timestamp is string without timezone info
@@ -261,19 +260,22 @@ class UserLoginProfile extends AppModel
         $body->set('baseurl', Configure::read('MISP.baseurl'));
         $body->set('misp_org', Configure::read('MISP.org'));
         $body->set('date_time', $date_time);
-        $org_admins = $this->User->getOrgAdminsForOrg($user['User']['org_id']);
-        $admins = $this->User->getSiteAdmins();
-        $all_admins = array_unique(array_merge($org_admins, $admins));
-        foreach ($all_admins as $admin_email) {
+
+        $orgAdmins = array_keys($this->User->getOrgAdminsForOrg($user['User']['org_id']));
+        $admins = array_keys($this->User->getSiteAdmins());
+        $allAdmins = array_unique(array_merge($orgAdmins, $admins));
+
+        $subject = __("[%s MISP] Suspicious login reported.", Configure::read('MISP.org'));
+        foreach ($allAdmins as $adminUserId) {
             $admin = $this->User->find('first', array(
                 'recursive' => -1,
-                'conditions' => ['User.email' => $admin_email]
+                'conditions' => ['User.id' => $adminUserId]
             ));
-            $this->User->sendEmail($admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login reported.");
+            $this->User->sendEmail($admin, $body, false, $subject);
         }
     }
 
-    public function email_suspicious($user, $suspiciousness_reason)
+    public function email_suspicious(array $user, $suspiciousness_reason)
     {
         if (!Configure::read('MISP.disable_emailing')) {
             $date_time = date('c');
@@ -297,11 +299,11 @@ class UserLoginProfile extends AppModel
             $body->set('date_time', $date_time);
             $body->set('suspiciousness_reason', $suspiciousness_reason);
 
-            $org_admins = $this->User->getOrgAdminsForOrg($user['User']['org_id']);
-            foreach ($org_admins as $org_admin_email) {
+            $orgAdmins = array_keys($this->User->getOrgAdminsForOrg($user['User']['org_id']));
+            foreach ($orgAdmins as $orgAdminID) {
                 $org_admin = $this->User->find('first', array(
                     'recursive' => -1,
-                    'conditions' => ['User.email' => $org_admin_email]
+                    'conditions' => ['User.id' => $orgAdminID]
                 ));
                 $this->User->sendEmail($org_admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login detected.");
             }            

@@ -3065,7 +3065,7 @@ class UsersController extends AppController
      * @return array
      * @throws NotFoundException
      */
-    private function __adminFetchConditions($id, $edit = True)
+    private function __adminFetchConditions($id, $edit = true)
     {
         if (empty($id)) {
             throw new NotFoundException(__('Invalid user'));
@@ -3076,7 +3076,7 @@ class UsersController extends AppController
         if (!$user['Role']['perm_site_admin']) {
             $conditions['User.org_id'] = $user['org_id']; // org admin
             if ($edit) {
-                $conditions['Role.perm_site_admin'] = False;
+                $conditions['Role.perm_site_admin'] = false;
             }
         }
         return $conditions;
@@ -3133,7 +3133,8 @@ class UsersController extends AppController
         }
     }
 
-    public function view_login_history($user_id = null) { 
+    public function view_login_history($user_id = null)
+    {
         if ($user_id && $this->_isAdmin()) {   // org and site admins
             $user = $this->User->find('first', array(
                 'recursive' => -1,
@@ -3150,7 +3151,7 @@ class UsersController extends AppController
         } else {
             $user_id = $this->Auth->user('id');
         }
-        $this->loadModel('UserLoginProfile');
+
         $this->loadModel('Log');
         $logs = $this->Log->find('all', array(
             'conditions' => array(
@@ -3161,6 +3162,7 @@ class UsersController extends AppController
             'order' => array('Log.created DESC'),
             'limit' => 100          // relatively high limit, as we'll be grouping data afterwards.
         ));
+
         $lst = array();
         $prevProfile = null;
         $prevCreatedLast = null;
@@ -3180,10 +3182,10 @@ class UsersController extends AppController
         $rows = 0;
         // group authentications by type of loginprofile, to make the list shorter
         foreach ($logs as $logEntry) {
-            $loginProfile = $this->UserLoginProfile->_fromLog($logEntry['Log']);
+            $loginProfile = $this->User->UserLoginProfile->_fromLog($logEntry['Log']);
             if (!$loginProfile) continue; // skip if empty log
             $loginProfile['ip'] = $logEntry['Log']['ip'] ?? null; // transitional workaround
-            if ($this->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
+            if ($this->User->UserLoginProfile->_isSimilar($loginProfile, $prevProfile)) {
                 // continue find as same type of login
                 $prevCreatedFirst = $logEntry['Log']['created'];
                 $prevActions[] = $actions_translator[$logEntry['Log']['action']] ?? $logEntry['Log']['action'];
@@ -3191,11 +3193,11 @@ class UsersController extends AppController
                 // add as new entry
                 if (null != $prevProfile) {
                     $actionsString = '';  // count actions
-                    foreach(array_count_values($prevActions) as $action => $cnt) {
+                    foreach (array_count_values($prevActions) as $action => $cnt) {
                         $actionsString .=  $action . ' (' . $cnt . "x) ";
                     }
                     $lst[] = array(
-                        'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
+                        'status' => $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
                         'platform' => $prevProfile['ua_platform'],
                         'browser' => $prevProfile['ua_browser'],
                         'region' => $prevProfile['geoip'],
@@ -3204,8 +3206,9 @@ class UsersController extends AppController
                         'last_seen' => $prevCreatedLast,
                         'first_seen' => $prevCreatedFirst,
                         'actions' => $actionsString,
-                        'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
-                        'id' => $prevLogEntry);
+                        'actions_button' => ('unknown' == $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
+                        'id' => $prevLogEntry
+                    );
                 }
                 // build new entry
                 $prevProfile = $loginProfile;
@@ -3218,11 +3221,11 @@ class UsersController extends AppController
         }
         // add last entry
         $actionsString = '';  // count actions
-        foreach(array_count_values($prevActions) as $action => $cnt) {
+        foreach (array_count_values($prevActions) as $action => $cnt) {
             $actionsString .=  $action . ' (' . $cnt . "x) ";
         }
         $lst[] = array(
-            'status' => $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
+            'status' => $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $user_id),
             'platform' => $prevProfile['ua_platform'],
             'browser' => $prevProfile['ua_browser'],
             'region' => $prevProfile['geoip'],
@@ -3231,13 +3234,15 @@ class UsersController extends AppController
             'last_seen' => $prevCreatedLast,
             'first_seen' => $prevCreatedFirst,
             'actions' => $actionsString,
-            'actions_button' => ('unknown' == $this->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
-            'id' => $prevLogEntry);
+            'actions_button' => ('unknown' == $this->User->UserLoginProfile->_getTrustStatus($prevProfile, $user_id)) ? true : false,
+            'id' => $prevLogEntry
+        );
         $this->set('data', $lst);
         $this->set('user_id', $user_id);
     }
 
-    public function logout401() {
+    public function logout401()
+    {
         # You should read the documentation in docs/CONFIG.ApacheSecureAuth.md
         # before using this endpoint. It is not useful without webserver config
         # changes.
@@ -3262,16 +3267,9 @@ class UsersController extends AppController
             if (empty($this->request->data['User']['email'])) {
                 throw new MethodNotAllowedException(__('No email provided, cannot generate password reset message.'));
             }
-            $user = [
-                'id' => 0,
-                'email' => 'SYSTEM',
-                'Organisation' => [
-                    'name' => 'SYSTEM'
-                ]
-            ];
             $this->loadModel('Log');
-            $this->Log->createLogEntry($user, 'forgot', 'User', 0, 'Password reset requested for: ' . $this->request->data['User']['email']);
-            $this->User->forgotRouter($this->request->data['User']['email'], $this->_remoteIp());
+            $this->Log->createLogEntry('SYSTEM', 'forgot', 'User', 0, 'Password reset requested for: ' . $this->request->data['User']['email']);
+            $this->User->forgotRouter($this->request->data['User']['email'], $this->User->_remoteIp());
             $message = __('Password reset request submitted. If a valid user is found, you should receive an e-mail with a temporary reset link momentarily. Please be advised that this link is only valid for 10 minutes.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('User', 'forgot', false, $this->response->type(), $message);
@@ -3308,5 +3306,4 @@ class UsersController extends AppController
             return $this->__pw_change(['User' => $user], 'password_reset', $abortPost, $token, true);
         }
     }
-
 }

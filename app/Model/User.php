@@ -1032,18 +1032,18 @@ class User extends AppModel
     }
 
     /**
-     * @param int $org_id
+     * @param int $orgId
      * @param int|false $excludeUserId
-     * @return array
+     * @return array User ID => Email
      */
-    public function getOrgAdminsForOrg($org_id, $excludeUserId = false)
+    public function getOrgAdminsForOrg($orgId, $excludeUserId = false)
     {
         $adminRoles = $this->Role->find('column', array(
             'conditions' => array('perm_admin' => 1),
             'fields' => array('Role.id')
         ));
         $conditions = array(
-            'User.org_id' => $org_id,
+            'User.org_id' => $orgId,
             'User.disabled' => 0,
             'User.role_id' => $adminRoles
         );
@@ -1059,7 +1059,12 @@ class User extends AppModel
         ));
     }
 
-    public function getSiteAdmins($excludeUserId = false) {
+    /**
+     * @param int|false $excludeUserId
+     * @return array User ID => Email
+     */
+    public function getSiteAdmins($excludeUserId = false)
+    {
         $adminRoles = $this->Role->find('column', array(
             'conditions' => array('perm_site_admin' => 1),
             'fields' => array('Role.id')

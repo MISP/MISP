@@ -3,16 +3,30 @@ App::uses('AppModel', 'Model');
 
 class Log extends AppModel
 {
-    const WARNING_ACTIONS = array(
+    const WARNING_ACTIONS = [
         'warning',
         'change_pw',
         'login_fail',
         'version_warning',
         'auth_fail'
-    );
-    const ERROR_ACTIONS = array(
+    ];
+
+    const ERROR_ACTIONS = [
         'error'
-    );
+    ];
+
+    const AUTH_ACTIONS = [
+        'auth',
+        'auth_fail',
+        'auth_alert',
+        'change_pw',
+        'login',
+        'login_fail',
+        'logout',
+        'password_reset',
+        'forgot',
+    ];
+
     public $validate = array(
         'action' => array(
             'rule' => array(
