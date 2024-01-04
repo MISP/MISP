@@ -79,7 +79,7 @@ class UserLoginProfilesController extends AppController
                 'fields' => ['UserLoginProfile.*']
             ));
             if (empty($profile)) {
-                throw new NotFoundException(__('Invalid UserLoginProfile'));
+                throw new NotFoundException(__('Invalid user login profile'));
             }
             if ($this->UserLoginProfile->delete($id)) {
                 $this->loadModel('Log');
@@ -87,13 +87,13 @@ class UserLoginProfilesController extends AppController
                 $this->Log->createLogEntry($this->Auth->user(), 'delete', 'UserLoginProfile', $id, $fieldsDescrStr, json_encode($profile));
                 
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('UserLoginProfile', 'admin_delete', $id, $this->response->type(), 'UserLoginProfile deleted.');
+                    return $this->RestResponse->saveSuccessResponse('UserLoginProfile', 'admin_delete', $id, $this->response->type(), 'User login profile deleted.');
                 } else {
                     $this->Flash->success(__('UserLoginProfile deleted'));
                     $this->redirect(array('admin'=> false, 'controller' => 'userLoginProfiles', 'action' => 'index', $profile['UserLoginProfile']['user_id']));
                 }
             }
-            $this->Flash->error(__('UserLoginProfile was not deleted'));
+            $this->Flash->error(__('User login profile was not deleted'));
             $this->redirect(array('admin'=> false, 'controller' => 'userLoginProfiles', 'action' => 'index', $profile['UserLoginProfile']['user_id']));
         }
     }
@@ -110,7 +110,7 @@ class UserLoginProfilesController extends AppController
     {
         if ($this->request->is('post')) {
             $userLoginProfile = $this->__setTrust($logId, 'malicious');
-            $this->Flash->info(__('You marked a login suspicious. You must change your password NOW !'));
+            $this->Flash->info(__('You marked a login suspicious. You must change your password NOW!'));
             $this->loadModel('Log');
             $details = 'User reported suspicious login for log ID: '. $logId;
             // raise an alert (the SIEM component should ensure (org)admins are informed)
@@ -123,9 +123,9 @@ class UserLoginProfilesController extends AppController
                 'recursive' => -1
             ));
             unset($user['User']['password']);
-            $this->UserLoginProfile->email_report_malicious($user, $userLoginProfile);
+            $this->UserLoginProfile->emailReportMalicious($user, $userLoginProfile);
             // change account info to force password change, redirect to new password page.
-            $this->User->id =  $this->Auth->user('id');
+            $this->User->id = $this->Auth->user('id');
             $this->User->saveField('change_pw', 1);
             $this->redirect(array('controller' => 'users', 'action' => 'change_pw'));
             return;
@@ -153,14 +153,13 @@ class UserLoginProfilesController extends AppController
         $data['hash'] = $this->UserLoginProfile->hash($data);
 
         // add the userLoginProfile trust status if it not already there, based on the hash
-        $result = $this->UserLoginProfile->find('count', array(
-            'conditions' => array('UserLoginProfile.hash' => $data['hash'])
-        ));
-        if ($result == 0) {
+        $exists = $this->UserLoginProfile->hasAny([
+            'UserLoginProfile.hash' => $data['hash']
+        ]);
+        if (!$exists) {
             // no row yet, save it. 
             $this->UserLoginProfile->save($data);
         }
         return $data;
     }
-
 }
