@@ -2671,12 +2671,15 @@ class AttributesController extends AppController
             $fails = 0;
             $this->Taxonomy = ClassRegistry::init('Taxonomy');
             foreach ($idList as $id) {
+                $conditions = $this->__idToConditions($id);
+                $conditions['Attribute.deleted'] = 0;
                 $attribute = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
-                    'conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0),
+                    'conditions' => $conditions,
                 ]);
                 if (empty($attribute)) {
                     throw new NotFoundException(__('Invalid attribute'));
                 }
+                $id = $attribute['Attribute']['id'];
                 if (!$this->__canModifyTag($attribute, $local)) {
                     $fails++;
                     continue;

@@ -32,7 +32,7 @@ echo $this->element('genericElements/Form/genericForm', [
             ],
             [
                 'field' => 'read_only',
-                'label' => __('Read only (it will be not possible to do any change operation with this token)'),
+                'label' => __('Read only (it will unset all permissions. This should not be used for sync users)'),
                 'type' => 'checkbox',
             ]
         ],

@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('SyncTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -152,8 +153,12 @@ class EventReport extends AppModel
     {
         $errors = array();
         if (!isset($report['EventReport']['uuid'])) {
-            $errors[] = __('Event Report doesn\'t have an UUID');
-            return $errors;
+            if ($fromPull) {
+                $report['EventReport']['uuid'] = $attribute['uuid'] = CakeText::uuid();
+            } else {
+                $errors[] = __('Event Report doesn\'t have an UUID');
+                return $errors;
+            }
         }
         $report['EventReport']['event_id'] = $eventId;
         $existingReport = $this->find('first', array(
@@ -896,31 +901,53 @@ class EventReport extends AppModel
         return $toReturn;
     }
 
-    public function downloadMarkdownFromURL($event_id, $url)
+    public function downloadMarkdownFromURL($event_id, $url, $format = 'html')
     {
         $this->Module = ClassRegistry::init('Module');
-        $module = $this->isFetchURLModuleEnabled();
+        $formatMapping = [
+            'html' => 'html_to_markdown',
+            'pdf' => 'pdf_enrich',
+            'pptx' => 'pptx_enrich',
+            'xlsx' => 'xlsx_enrich',
+            'ods' => 'ods_enrich',
+            'odt' => 'odt_enrich',
+            'docx' => 'docx_enrich'
+        ];
+        $module = $this->isFetchURLModuleEnabled($formatMapping[$format]);
         if (!is_array($module)) {
             return false;
         }
         $modulePayload = [
             'module' => $module['name'],
-            'event_id' => $event_id,
-            'url' => $url
+            'event_id' => $event_id
         ];
+        if ($format === 'html') {
+            $modulePayload['url'] = $url;
+        } else {
+            $url = filter_var($url, FILTER_SANITIZE_URL);
+            $modulePayload['attachment'] = 'temp.foo';
+            $modulePayload['data'] = base64_encode(file_get_contents($url));
+        }
         if (!empty($module)) {
             $result = $this->Module->queryModuleServer($modulePayload, false, 'Enrichment', false, []);
-            if (empty($result['results'][0]['values'][0])) {
-                return '';
+            if ($format === 'html') {
+                if (empty($result['results'][0]['values'][0])) {
+                    return '';
+                }
+                return $result['results'][0]['values'][0];
+            } else {
+                if (empty($result['results'][0]['values'])) {
+                    return '';
+                }
+                return $result['results'][0]['values'];
             }
-            return $result['results'][0]['values'][0];
         }
         return false;
     }
 
-    public function isFetchURLModuleEnabled() {
+    public function isFetchURLModuleEnabled($moduleName = 'html_to_markdown') {
         $this->Module = ClassRegistry::init('Module');
-        $module = $this->Module->getEnabledModule('html_to_markdown', 'expansion');
+        $module = $this->Module->getEnabledModule($moduleName, 'expansion');
         return !empty($module) ? $module : false;
     }
 
@@ -958,6 +985,78 @@ class EventReport extends AppModel
         $reportGenerator = new ReportFromEvent();
         $reportGenerator->construct($this->Event, $user, $options);
         $report = $reportGenerator->generate();
+        return $report;
+    }
+
+    public function sendToLLM($report, $user, &$errors)
+    {
+        $syncTool = new SyncTool();
+        $config = [];
+        $HttpSocket = $syncTool->setupHttpSocket($config, $this->timeout);
+        $LLMFeatureEnabled = Configure::read('Plugin.CTIInfoExtractor_enable', false);
+        $url = Configure::read('Plugin.CTIInfoExtractor_url');
+        $apiKey = Configure::read('Plugin.CTIInfoExtractor_authentication');
+        if (!$LLMFeatureEnabled || empty($url)) {
+            $errors[] = __('LLM Feature disabled or no URL provided');
+            return false;
+        }
+        $reportContent = $report['EventReport']['content'];
+        $data = json_encode(['text' => $reportContent]);
+        $version = implode('.', $this->Event->checkMISPVersion());
+        $request = [
+            'header' => array_merge([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
+                'x-api-key' => $apiKey,
+            ])
+        ];
+        
+        $response = $HttpSocket->post($url, $data, $request);
+        if (!$response->isOk()) {
+            $errors[] = __('LLM server failed to process the request, code: %s.', $response->code);
+            return false;
+        }
+        $data = json_decode($response->body, true);
+        if (!empty($data['error'])) {
+            $errors[] = $data['error'];
+            return false;
+        }
+/*
+        debug($data);
+        
+        $data = array(
+	'AI_ThreatActor' => 'Sofacy',
+	'AI_AttributedCountry' => 'unknown',
+	'AI_Type' => 'Developments in IT Security',
+	'AI_Motivation' => 'Espionage',
+	'AI_ExecutiveSummary' => 'The Sofacy group, also known as APT28 or Fancy Bear, continues to target government and strategic organizations primarily in North America and Europe. They have recently been using a tool called Zebrocy, delivered via phishing attacks, to cast a wider net within target organizations. They have also been observed leveraging the Dynamic Data Exchange (DDE) exploit technique to deliver different payloads, including the Koadic toolkit. This report provides details on the campaigns and tactics used by the Sofacy group.',
+	'AI_CouldWeBeAffected' => true
+);
+*/
+        
+        if (!empty($data['AI_ExecutiveSummary'])) {
+            $report['EventReport']['content'] = '# Executive Summary' . PHP_EOL . $data['AI_ExecutiveSummary'] . PHP_EOL . PHP_EOL . '# Report' . PHP_EOL . $report['EventReport']['content'];
+        }
+        $this->save($report);
+        $event = $this->Event->find('first', [
+            'conditions' => ['Event.id' => $report['EventReport']['event_id']],
+            'recursive' => -1
+        ]);
+        if (!empty($data['AI_ThreatActor'])) {
+            $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor="' . $data['AI_ThreatActor'] . '"'], $user);
+            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+        }
+
+        if (!empty($data['AI_AttributedCountry'])) {
+            $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor-country="' . $data['AI_AttributedCountry'] . '"'], $user);
+            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+        }
+
+        if (!empty($data['AI_Motivation'])) {
+            $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor-motivation="' . $data['AI_Motivation'] . '"'], $user);
+            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+        }
         return $report;
     }
 }

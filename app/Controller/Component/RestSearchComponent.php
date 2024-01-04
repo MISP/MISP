@@ -59,7 +59,18 @@ class RestSearchComponent extends Component
             'event_ids',
             'includeAllTags',
             'includeAttributeUuid',
-            'includeGalaxy'
+            'includeGalaxy',
+            'order',
+            'policy',
+            'walled_garden',
+            'ns',
+            'email',
+            'serial',
+            'refresh',
+            'retry',
+            'expiry',
+            'minimum_ttl',
+            'ttl'
         ],
         'Event' => [
             'returnFormat',
@@ -79,6 +90,7 @@ class RestSearchComponent extends Component
             'publish_timestamp',
             'timestamp',
             'event_timestamp', // redundant, but kept for backwards compatibility
+            'event_tags',
             'published',
             'enforceWarninglist',
             'sgReferenceOnly',
@@ -121,7 +133,17 @@ class RestSearchComponent extends Component
             'noShadowAttributes',
             'order',
             'protected',
-            'includeGranularCorrelations'
+            'includeGranularCorrelations',
+            'policy',
+            'walled_garden',
+            'ns',
+            'email',
+            'serial',
+            'refresh',
+            'retry',
+            'expiry',
+            'minimum_ttl',
+            'ttl'
         ],
         'Object' => [
             'returnFormat',
@@ -188,7 +210,8 @@ class RestSearchComponent extends Component
             'minimal',
             'list',
             'first',
-            'count'
+            'count',
+            'order'
         ],
     );
 

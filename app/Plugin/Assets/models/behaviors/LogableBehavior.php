@@ -539,7 +539,7 @@ class LogableBehavior extends ModelBehavior {
 			$logData['Log']['description'] .= '.';
 		}
 		$this->Log->create($logData);
-		$this->Log->save(null, array(
+		$this->Log->saveOrFailSilently(null, array(
 				'validate' => false,
 				'callbacks' => false));
 	}

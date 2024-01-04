@@ -1,0 +1,33 @@
+{
+    "misp_instance": {
+        "source": {
+            "url": "https://misp_src_url/",
+            "api_key": "API_KEY",
+            "verify_ssl": true
+        },
+        "destination": {
+            "url": "https://misp_dst_url/",
+            "api_key": "API_KEY",
+            "verify_ssl": true
+        }
+    },
+    "filters": {
+        "tags": [
+            "tlp:clear"
+        ]
+    },
+    "delegation": {
+        "target_org_uuid": "ORG_UUID",
+        "desired_distribution": "DISTRIBUTION_LEVEL",
+        "sharing_group_uuid": "SHARINGGROUP_UUID",
+        "message": "DELEGATION_MESSAGE"
+    },
+    "incremental_sync": true,
+    "unpublish_event_on_remote": true,
+    "tag_actions": {
+        "attach": [
+        ],
+        "detach": [
+        ]
+    }
+}

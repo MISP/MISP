@@ -125,12 +125,6 @@ var afterUpload = "<?php echo $file_uploaded; ?>";
 var selText = clearText =fileContent = '';
 var linesArray = [];
 var rowSelected;
-$("#accordion1").accordion({
-    heightStyle: "content"
-    })
-$("#accordion2").accordion({
-      heightStyle: "content"
-    })
 if(afterUpload == 1)
 {
     $('#afterUpload').show();

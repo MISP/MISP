@@ -63,11 +63,6 @@ class Event extends AppModel
         2 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'The event creator considers the analysis complete')
     );
 
-    public $debugDescriptions = array(
-        0 => 'The critical errors are logged in the usual log file.',
-        1 => 'All the errors and warnings are logged in the usual log file.'
-    );
-
     public $distributionDescriptions = [
         self::DISTRIBUTION_ORGANISATION => [
             'desc' => 'This field determines the current distribution of the event',
@@ -91,16 +86,6 @@ class Event extends AppModel
         ],
     ];
 
-    public $galaxiesOptionsDescriptions = array(
-        0 => 'Galaxies and Clusters are passed as MISP standard format. New generic Galaxies and Clusters are created when there is no match with existing ones.',
-        1 => 'Galaxies are passed as tags and there is only a simple search with existing galaxy tag names.'
-    );
-
-    public $debugOptions = array(
-        0 => 'Standard debugging',
-        1 => 'Advanced debugging'
-    );
-
     public $distributionLevels = [
         self::DISTRIBUTION_ORGANISATION => 'Your organisation only',
         self::DISTRIBUTION_COMMUNITY => 'This community only',
@@ -108,11 +93,6 @@ class Event extends AppModel
         self::DISTRIBUTION_ALL => 'All communities',
         self::DISTRIBUTION_SHARING_GROUP => 'Sharing group',
     ];
-
-    public $galaxiesOptions = array(
-        0 => 'As MISP standard format',
-        1 => 'As tag names'
-    );
 
     public $analysisLevels = array(
         0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'
@@ -372,6 +352,8 @@ class Event extends AppModel
 
     /** @var array|null */
     private $eventBlockRule;
+
+    public $fast_update = false;
 
     public function beforeDelete($cascade = true)
     {
@@ -2057,7 +2039,7 @@ class Event extends AppModel
             $params['page'] = $options['page'];
         }
         if (!empty($options['order'])) {
-            $options['order'] = $this->findOrder(
+            $params['order'] = $this->findOrder(
                 $options['order'],
                 'Event',
                 ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
@@ -2075,7 +2057,10 @@ class Event extends AppModel
         if ((!empty($options['includeDecayScore']) || !empty($options['includeScoresOnEvent'])) && !isset($this->DecayingModel)) {
             $this->DecayingModel = ClassRegistry::init('DecayingModel');
         }
-        if ($options['includeServerCorrelations'] && !$isSiteAdmin && $user['org_id'] != Configure::read('MISP.host_org_id')) {
+        if (
+            $options['includeServerCorrelations'] &&
+            (!$isSiteAdmin && $user['org_id'] != Configure::read('MISP.host_org_id') && !Configure::read('MISP.show_server_correlations_for_all_users', false))
+        ) {
             $options['includeServerCorrelations'] = false; // not permission to see server correlations
         }
         if (($options['includeFeedCorrelations'] || $options['includeServerCorrelations']) && !isset($this->Feed)) {
@@ -2113,7 +2098,7 @@ class Event extends AppModel
             if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
-                $this->Log->save(array(
+                $this->Log->saveOrFailSilently(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Event',
                     'model_id' => $event['Event']['id'],
@@ -3102,7 +3087,7 @@ class Event extends AppModel
         if (Configure::read('MISP.disable_emailing')) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => 'SYSTEM',
                     'model' => 'Event',
                     'model_id' => $id,
@@ -3120,7 +3105,7 @@ class Event extends AppModel
             $banError = $banStatus['error'] || $banStatusUser['error'];
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => 'SYSTEM',
                     'model' => 'Event',
                     'model_id' => $id,
@@ -3838,10 +3823,14 @@ class Event extends AppModel
             if (!empty($data['Event']['Attribute'])) {
                 $attributeHashes = [];
                 foreach ($data['Event']['Attribute'] as $attribute) {
-                    $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
-                    if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
-                        $attributeHashes[$attributeHash] = true;
+                    if (!empty($attribute['deleted'])) {
                         $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                    } else {
+                        $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
+                        if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
+                            $attributeHashes[$attributeHash] = true;
+                            $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                        }
                     }
                 }
                 unset($attributeHashes);
@@ -3978,12 +3967,11 @@ class Event extends AppModel
         return true;
     }
 
-    public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false)
+    public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false, $fast_update = false)
     {
         $data = $this->cleanupEventArrayFromXML($data);
         unset($this->Attribute->validate['event_id']);
         unset($this->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-
         // reposition to get the event.id with given uuid
         if (isset($data['Event']['uuid'])) {
             $conditions = ['Event.uuid' => $data['Event']['uuid']];
@@ -3993,7 +3981,6 @@ class Event extends AppModel
             throw new InvalidArgumentException("No event UUID or ID provided.");
         }
         $existingEvent = $this->find('first', ['conditions' => $conditions, 'recursive' => -1]);
-
         if ($passAlong) {
             $this->Server = ClassRegistry::init('Server');
             $server = $this->Server->find('first', array(
@@ -4109,19 +4096,20 @@ class Event extends AppModel
                     'Event'
                 );
             }
-
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
-                foreach ($data['Event']['Attribute'] as $attribute) {
+                $attributes = [];
+                foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $nothingToChange = false;
                     $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
-                    if ($result !== true) {
-                        $validationErrors['Attribute'][] = $result;
+                    if (is_array($result)) {
+                        $attributes[] = $result;
                     }
                     if (!$nothingToChange) {
                         $changed = true;
                     }
                 }
+                $this->Attribute->editAttributeBulk($attributes, $saveResult, $user);
             }
             if (isset($data['Event']['Object'])) {
                 $data['Event']['Object'] = array_values($data['Event']['Object']);
@@ -5914,61 +5902,24 @@ class Event extends AppModel
     /**
      * @param array $user
      * @param string $file Path
-     * @param string $stix_version
-     * @param string $original_file
+     * @param string $stixVersion
+     * @param string $originalFile
      * @param bool $publish
+     * @param int $distribution
+     * @param int|null $sharingGroupId
+     * @param bool $galaxiesAsTags
+     * @param bool $debug
      * @return int|string|array
      * @throws JsonException
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function upload_stix(array $user, $file, $stix_version, $original_file, $publish, $distribution, $sharingGroupId, $galaxiesAsTags, $debug = false)
+    public function upload_stix(array $user, $file, $stixVersion, $originalFile, $publish, $distribution, $sharingGroupId, $galaxiesAsTags, $debug = false)
     {
-        $scriptDir = APP . 'files' . DS . 'scripts';
-        if ($stix_version == '2' || $stix_version == '2.0' || $stix_version == '2.1') {
-            $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
-            $output_path = $file . '.out';
-            $shell_command = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                '-i', $file,
-                '--distribution', $distribution
-            ];
-            if ($distribution == 4) {
-                array_push($shell_command, '--sharing_group_id', $sharingGroupId);
-            }
-            if ($galaxiesAsTags) {
-                $shell_command[] = '--galaxies_as_tags';
-            }
-            if ($debug) {
-                $shell_command[] = '--debug';
-            }
-            $stix_version = "STIX 2.1";
-        } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
-            $scriptFile = $scriptDir . DS . 'stix2misp.py';
-            $output_path = $file . '.json';
-            $shell_command = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                $file,
-                Configure::read('MISP.default_event_distribution'),
-                Configure::read('MISP.default_attribute_distribution'),
-                $this->__getTagNamesFromSynonyms($scriptDir)
-            ];
-            $stix_version = "STIX 1.1";
-        } else {
-            throw new InvalidArgumentException('Invalid STIX version');
-        }
+        $decoded = $this->convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $galaxiesAsTags, $debug);
 
-        $result = ProcessTool::execute($shell_command, null, true);
-        $result = preg_split("/\r\n|\n|\r/", trim($result));
-        $result = trim(end($result));
-        $tempFile = file_get_contents($file);
-        unlink($file);
-        $decoded = JsonTool::decode($result);
         if (!empty($decoded['success'])) {
-            $data = FileAccessTool::readAndDelete($output_path);
-            $data = $this->jsonDecode($data);
+            $data = JsonTool::decodeArray($decoded['converted']);
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
@@ -5992,15 +5943,13 @@ class Event extends AppModel
                     }
                 }
             }
-            if (!empty($decoded['stix_version'])) {
-                $stix_version = 'STIX ' . $decoded['stix_version'];
-            }
+            $stixVersion = $decoded['stix_version'];
             $created_id = false;
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
             if ($result === true) {
-                if ($original_file) {
-                    $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
+                if ($originalFile) {
+                    $this->add_original_file($decoded['original'], $originalFile, $created_id, $stixVersion);
                 }
                 if ($publish && $user['Role']['perm_publish']) {
                     $this->publish($created_id);
@@ -6021,6 +5970,76 @@ class Event extends AppModel
         }
         $response .= ' ' . __('check whether the dependencies for STIX are met via the diagnostic tool.');
         return $response;
+    }
+
+    /**
+     * @param string $stixVersion
+     * @param string $file
+     * @param int $distribution
+     * @param int|null $sharingGroupId
+     * @param bool $galaxiesAsTags
+     * @param bool $debug
+     * @return array
+     * @throws Exception
+     */
+    private function convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $galaxiesAsTags, $debug)
+    {
+        $scriptDir = APP . 'files' . DS . 'scripts';
+        if ($stixVersion === '2' || $stixVersion === '2.0' || $stixVersion === '2.1') {
+            $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
+            $outputPath = $file . '.out';
+            $shellCommand = [
+                ProcessTool::pythonBin(),
+                $scriptFile,
+                '-i', $file,
+                '--distribution', $distribution,
+            ];
+            if ($distribution == 4) {
+                array_push($shellCommand, '--sharing_group_id', $sharingGroupId);
+            }
+            if ($galaxiesAsTags) {
+                $shellCommand[] = '--galaxies_as_tags';
+            }
+            if ($debug) {
+                $shellCommand[] = '--debug';
+            }
+            $stixVersion = "STIX 2.1";
+        } else if ($stixVersion === '1' || $stixVersion === '1.1' || $stixVersion === '1.2') {
+            $scriptFile = $scriptDir . DS . 'stix2misp.py';
+            $outputPath = $file . '.json';
+            $shellCommand = [
+                ProcessTool::pythonBin(),
+                $scriptFile,
+                $file,
+                Configure::read('MISP.default_event_distribution'),
+                Configure::read('MISP.default_attribute_distribution'),
+                $this->__getTagNamesFromSynonyms($scriptDir)
+            ];
+            $stixVersion = "STIX 1.1";
+        } else {
+            throw new InvalidArgumentException('Invalid STIX version');
+        }
+
+        try {
+            $stdout = ProcessTool::execute($shellCommand, null, true);
+        } catch (ProcessException $e) {
+            $stdout = $e->stdout();
+        }
+
+        $stdout = preg_split("/\r\n|\n|\r/", trim($stdout));
+        $stdout = trim(end($stdout));
+        $decoded = JsonTool::decode($stdout);
+
+        if (empty($decoded['stix_version'])) {
+            $decoded['stix_version'] = $stixVersion;
+        }
+
+        $decoded['original'] = FileAccessTool::readAndDelete($file);
+        if (!empty($decoded['success'])) {
+            $decoded['converted'] = FileAccessTool::readAndDelete($outputPath);
+        }
+
+        return $decoded;
     }
 
     private function __handleGalaxiesAndClusters($user, &$data)
@@ -7410,7 +7429,7 @@ class Event extends AppModel
         if ($largest_event/$memory_scaling_factor > $memory_in_mb) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => 'SYSTEM',
                     'model' => 'Event',
                     'model_id' => 0,

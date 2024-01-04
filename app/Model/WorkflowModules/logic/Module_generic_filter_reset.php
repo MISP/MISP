@@ -28,9 +28,9 @@ class Module_generic_filter_reset extends WorkflowFilteringLogicModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         parent::exec($node, $roamingData, $errors);
-        $params = $this->getParamsWithValues($node);
-        $filteringLabel = $params['filtering-label']['value'];
         $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
+        $filteringLabel = $params['filtering-label']['value'];
 
         $newRData = $rData['_unfilteredData'];
         if (in_array($filteringLabel, array_keys($this->_genFilteringLabels()))) {

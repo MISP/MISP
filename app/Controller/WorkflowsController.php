@@ -172,6 +172,12 @@ class WorkflowsController extends AppController
     {
         if ($this->request->is('post') || $this->request->is('put')) {
             $blockingErrors = [];
+            if (!JsonTool::isValid($this->request->data['Workflow']['data'])) {
+                return $this->RestResponse->viewData([
+                    'success' => false,
+                    'outcome' => __('Invalid JSON'),
+                ], $this->response->type());
+            }
             $data = JsonTool::decode($this->request->data['Workflow']['data']);
             $result = $this->Workflow->executeWorkflow($workflow_id, $data, $blockingErrors);
             if (!empty($logging) && empty($result['success'])) {

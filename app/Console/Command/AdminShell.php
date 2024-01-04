@@ -540,6 +540,10 @@ class AdminShell extends AppShell
         $whoami = ProcessTool::whoami();
         if (in_array($whoami, ['httpd', 'www-data', 'apache', 'wwwrun', 'travis', 'www'], true) || $whoami === Configure::read('MISP.osuser')) {
             $this->out('Executing all updates to bring the database up to date with the current version.');
+            $lock = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'update_locked')));
+            if (!empty($lock)) {
+                $this->AdminSetting->delete($lock['AdminSetting']['id']);
+            }
             $processId = empty($this->args[0]) ? false : $this->args[0];
             $this->Server->runUpdates(true, false, $processId);
             $this->Server->cleanCacheFiles();

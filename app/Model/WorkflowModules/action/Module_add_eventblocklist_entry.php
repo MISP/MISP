@@ -58,9 +58,8 @@ class Module_add_eventblocklist_entry extends WorkflowBaseActionModule
 
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
-        $params = $this->getParamsWithValues($node);
-
         $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
 
         $eventUUIDExtractionPath = $params['uuid_hash_path']['value'];
         $eventUUID = Hash::get($rData, $eventUUIDExtractionPath);

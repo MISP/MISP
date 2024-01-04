@@ -54,6 +54,7 @@ class Attribute extends AppModel
     const EDITABLE_FIELDS = [
         'timestamp',
         'category',
+        'type',
         'value',
         'value1',
         'value2',
@@ -82,6 +83,8 @@ class Attribute extends AppModel
 
     /** @var array */
     private $old;
+
+    private $updateLookupTable = [];
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -327,6 +330,8 @@ class Attribute extends AppModel
         'sha512' => 128,
     );
 
+    public $fast_update = false;
+
     public function afterFind($results, $primary = false)
     {
         foreach ($results as &$v) {
@@ -347,7 +352,7 @@ class Attribute extends AppModel
         if (empty($attribute['uuid'])) {
             $attribute['uuid'] = CakeText::uuid();
         }
-        if (!empty($attribute['id'])) {
+        if (!$this->fast_update && !empty($attribute['id'])) {
             $this->old = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Attribute.id' => $attribute['id']),
@@ -439,37 +444,41 @@ class Attribute extends AppModel
                 $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tagId);
             }
         }
-        // update correlation...
-        if (isset($attribute['deleted']) && $attribute['deleted']) {
-            $this->Correlation->beforeSaveCorrelation($attribute);
-            $this->Correlation->advancedCorrelationsUpdate($attribute);
-            if (isset($attribute['event_id'])) {
-                $this->__alterAttributeCount($attribute['event_id'], false);
-            }
-        } else {
-            /*
-             * Only recorrelate if:
-             * - We are dealing with a new attribute OR
-             * - The existing attribute's previous state is known AND
-             *   value, type, disable correlation or distribution have changed
-             * This will avoid recorrelations when it's not really needed, such as adding a tag
-             */
-            if (!$created) {
-                if (
-                    empty($this->old) ||
-                    $attribute['value'] != $this->old['Attribute']['value'] ||
-                    $attribute['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
-                    $attribute['type'] != $this->old['Attribute']['type'] ||
-                    $attribute['distribution'] != $this->old['Attribute']['distribution'] ||
-                    $attribute['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']
-                ) {
-                    $this->Correlation->beforeSaveCorrelation($attribute);
+        // Let's store all the uuid -> ID lookups so we can extract the IDs after a SaveMany() easily
+        $this->updateLookupTable[$attribute['uuid']] = $attribute['id'];
+        if (!$this->fast_update) {
+            // update correlation...
+            if (isset($attribute['deleted']) && $attribute['deleted']) {
+                $this->Correlation->beforeSaveCorrelation($attribute);
+                $this->Correlation->advancedCorrelationsUpdate($attribute);
+                if (isset($attribute['event_id'])) {
+                    $this->__alterAttributeCount($attribute['event_id'], false);
+                }
+            } else {
+                /*
+                * Only recorrelate if:
+                * - We are dealing with a new attribute OR
+                * - The existing attribute's previous state is known AND
+                *   value, type, disable correlation or distribution have changed
+                * This will avoid recorrelations when it's not really needed, such as adding a tag
+                */
+                if (!$created) {
+                    if (
+                        empty($this->old) ||
+                        $attribute['value'] != $this->old['Attribute']['value'] ||
+                        $attribute['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
+                        $attribute['type'] != $this->old['Attribute']['type'] ||
+                        $attribute['distribution'] != $this->old['Attribute']['distribution'] ||
+                        $attribute['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']
+                    ) {
+                        $this->Correlation->beforeSaveCorrelation($attribute);
+                        $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
+                        $this->Correlation->advancedCorrelationsUpdate($attribute);
+                    }
+                } else {
                     $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
                     $this->Correlation->advancedCorrelationsUpdate($attribute);
                 }
-            } else {
-                $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
-                $this->Correlation->advancedCorrelationsUpdate($attribute);
             }
         }
         $result = true;
@@ -484,47 +493,49 @@ class Attribute extends AppModel
                 $result = $this->saveAttachment($attribute);
             }
         }
-        $pubToZmq = $this->pubToZmq('attribute');
-        $kafkaTopic = $this->kafkaTopic('attribute');
-        $isTriggerCallable = $this->isTriggerCallable('attribute-after-save');
-        if ($pubToZmq || $kafkaTopic || $isTriggerCallable) {
-            $attributeForPublish = $this->fetchAttribute($this->id);
-            if (!empty($attributeForPublish)) {
-                $user = array(
-                    'org_id' => -1,
-                    'Role' => array(
-                        'perm_site_admin' => 1
-                    )
-                );
-                $attributeForPublish['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attributeForPublish, $user, $attributeForPublish);
-                $action = $created ? 'add' : 'edit';
-                if (!empty($attribute['deleted'])) {
-                    $action = 'soft-delete';
-                }
-                if ($pubToZmq) {
-                    if (Configure::read('Plugin.ZeroMQ_include_attachments') && $this->typeIsAttachment($attributeForPublish['Attribute']['type'])) {
-                        $attributeForPublish['Attribute']['data'] = $this->base64EncodeAttachment($attributeForPublish['Attribute']);
+        if (!$this->fast_update) {
+            $pubToZmq = $this->pubToZmq('attribute');
+            $kafkaTopic = $this->kafkaTopic('attribute');
+            $isTriggerCallable = $this->isTriggerCallable('attribute-after-save');
+            if ($pubToZmq || $kafkaTopic || $isTriggerCallable) {
+                $attributeForPublish = $this->fetchAttribute($this->id);
+                if (!empty($attributeForPublish)) {
+                    $user = array(
+                        'org_id' => -1,
+                        'Role' => array(
+                            'perm_site_admin' => 1
+                        )
+                    );
+                    $attributeForPublish['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attributeForPublish, $user, $attributeForPublish);
+                    $action = $created ? 'add' : 'edit';
+                    if (!empty($attribute['deleted'])) {
+                        $action = 'soft-delete';
                     }
-                    $pubSubTool = $this->getPubSubTool();
-                    $pubSubTool->attribute_save($attributeForPublish, $action);
-                    unset($attributeForPublish['Attribute']['data']);
-                }
-                if ($kafkaTopic) {
-                    if (Configure::read('Plugin.Kafka_include_attachments') && $this->typeIsAttachment($attributeForPublish['Attribute']['type'])) {
-                        $attributeForPublish['Attribute']['data'] = $this->base64EncodeAttachment($attributeForPublish['Attribute']);
+                    if ($pubToZmq) {
+                        if (Configure::read('Plugin.ZeroMQ_include_attachments') && $this->typeIsAttachment($attributeForPublish['Attribute']['type'])) {
+                            $attributeForPublish['Attribute']['data'] = $this->base64EncodeAttachment($attributeForPublish['Attribute']);
+                        }
+                        $pubSubTool = $this->getPubSubTool();
+                        $pubSubTool->attribute_save($attributeForPublish, $action);
+                        unset($attributeForPublish['Attribute']['data']);
                     }
-                    $kafkaPubTool = $this->getKafkaPubTool();
-                    $kafkaPubTool->publishJson($kafkaTopic, $attributeForPublish, $action);
-                }
-                if ($isTriggerCallable) {
-                    $workflowErrors = [];
-                    $logging = [
-                        'model' => 'Attribute',
-                        'action' => $action,
-                        'id' => $attributeForPublish['Attribute']['id'],
-                    ];
-                    $triggerData = $attributeForPublish;
-                    $this->executeTrigger('attribute-after-save', $triggerData, $workflowErrors, $logging);
+                    if ($kafkaTopic) {
+                        if (Configure::read('Plugin.Kafka_include_attachments') && $this->typeIsAttachment($attributeForPublish['Attribute']['type'])) {
+                            $attributeForPublish['Attribute']['data'] = $this->base64EncodeAttachment($attributeForPublish['Attribute']);
+                        }
+                        $kafkaPubTool = $this->getKafkaPubTool();
+                        $kafkaPubTool->publishJson($kafkaTopic, $attributeForPublish, $action);
+                    }
+                    if ($isTriggerCallable) {
+                        $workflowErrors = [];
+                        $logging = [
+                            'model' => 'Attribute',
+                            'action' => $action,
+                            'id' => $attributeForPublish['Attribute']['id'],
+                        ];
+                        $triggerData = $attributeForPublish;
+                        $this->executeTrigger('attribute-after-save', $triggerData, $workflowErrors, $logging);
+                    }
                 }
             }
         }
@@ -609,6 +620,14 @@ class Attribute extends AppModel
             return false;
         }
 
+        $attribute = $this->beforeValidateMassage($attribute);
+        // return true, otherwise the object cannot be saved
+        return true;
+    }
+
+    public function beforeValidateMassage($attribute)
+    {
+        $type = $attribute['type'];
         // If `value1` or `value2` provided and `value` is empty, merge them into `value` because of validation
         if (empty($attribute['value'])) {
             if (!empty($attribute['value1']) && !empty($attribute['value2'])) {
@@ -623,11 +642,13 @@ class Attribute extends AppModel
         // make some changes to the inserted value
         $attribute['value'] = AttributeValidationTool::modifyBeforeValidation($type, $attribute['value']);
         // Run user defined regexp to attribute value
-        $result = $this->runRegexp($type, $attribute['value']);
-        if ($result === false) {
-            $this->invalidate('value', 'This value is blocked by a regular expression in the import filters.');
-        } else {
-            $attribute['value'] = $result;
+        if (!$this->fast_update) {
+            $result = $this->runRegexp($type, $attribute['value']);
+            if ($result === false) {
+                $this->invalidate('value', 'This value is blocked by a regular expression in the import filters.');
+            } else {
+                $attribute['value'] = $result;
+            }
         }
 
         if (empty($attribute['comment'])) {
@@ -676,9 +697,7 @@ class Attribute extends AppModel
                 $attribute['disable_correlation'] = true;
             }
         }
-
-        // return true, otherwise the object cannot be saved
-        return true;
+        return $attribute;
     }
 
     public function validComposite($fields)
@@ -729,6 +748,13 @@ class Attribute extends AppModel
      */
     public function valueIsUnique($fields)
     {
+        // This is somewhat dangerous, fast_update assumes that you are just updating an existing attribute's
+        // non uniqueness modifying fields (first/last seen, comment, tags, timestamp, etc)
+        // By ignoring this warning, you are introducing potential duplicates.
+        if ($this->fast_update) {
+            return true;
+        }
+
         if (!empty($this->data['Attribute']['deleted'])) {
             return true;
         }
@@ -1688,7 +1714,7 @@ class Attribute extends AppModel
         }
         $params['order'] = [];
         if (!empty($options['order'])) {
-            $options['order'] = $this->findOrder(
+            $params['order'] = $this->findOrder(
                 $options['order'],
                 'Attribute',
                 ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
@@ -2557,12 +2583,16 @@ class Attribute extends AppModel
 
     public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false, $server = null)
     {
+        if ($this->fast_update) {
+            $this->Behaviors->unload('SysLogLogable.SysLogLogable');
+        }
         $eventId = $event['Event']['id'];
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId;
         if (isset($attribute['encrypt'])) {
             $attribute = $this->onDemandEncrypt($attribute);
         }
+        $attribute['_materialChange'] = false;
         unset($attribute['id']);
         if (isset($attribute['uuid'])) {
             $existingAttribute = $this->find('first', array(
@@ -2594,10 +2624,18 @@ class Attribute extends AppModel
                 } else {
                     $attribute['timestamp'] = time();
                 }
+                foreach (['value','type','distribution','sharing_group_id'] as $relevantField) {
+                    if (isset($attribute[$relevantField]) && $existingAttribute['Attribute'][$relevantField] !== $attribute[$relevantField]) {
+                        $attribute['_materialChange'] = true;
+                    }
+                }
             } else {
+                $attribute['_materialChange'] = true;
                 $this->create();
             }
         } else {
+            $attribute['uuid'] = CakeText::uuid();
+            $attribute['_materialChange'] = true;
             $this->create();
         }
         $attribute['event_id'] = $eventId;
@@ -2615,57 +2653,167 @@ class Attribute extends AppModel
                     'Attribute dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $attribute_short,
                     'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
                 );
-                return 'Invalid sharing group choice.';
+                return true;
             }
         } else if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = $this->defaultDistribution();
         }
-        $fieldList = self::EDITABLE_FIELDS;
-        if (empty($existingAttribute)) {
-            $addableFieldList = array('event_id', 'type', 'uuid');
-            $fieldList = array_merge($fieldList, $addableFieldList);
-        }
-        if ($objectId) {
-            $fieldList[] = 'object_id';
-            $fieldList[] = 'object_relation';
-        }
-        if (!$this->save(['Attribute' => $attribute], ['fieldList' => $fieldList, 'parentEvent' => $event])) {
-            $this->logDropped($user, $attribute, 'edit');
-            return $this->validationErrors;
-        }
-        if (!empty($attribute['Sighting'])) {
-            $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
-        }
-        if ($user['Role']['perm_tagger']) {
-            /*
-                We should unwrap the line below and remove the server option in the future once we have tag soft-delete
-                A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
-                has a version below x
-            */
-            if (isset($server) && isset($server['Server']['remove_missing_tags']) && $server['Server']['remove_missing_tags']) {
-                $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
-            }
 
-            if (isset($attribute['Tag'])) {
-                foreach ($attribute['Tag'] as $tag) {
-                    $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
-                    if ($tag_id) {
-                        $tag['id'] = $tag_id;
-                        // fix the IDs here
-                        $this->AttributeTag->handleAttributeTag($this->id, $attribute['event_id'], $tag);
-                    } else {
-                        // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
-                        // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
-                        // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
-                        if ($user['Role']['perm_tag_editor']) {
-                            $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', $this->id, 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.');
+        // This is somewhat dangerous, fast_update assumes that you are just updating an existing attribute's
+        // non uniqueness modifying fields (first/last seen, comment, tags, timestamp, etc)
+        // By ignoring this warning, you are introducing potential duplicates.
+        if ($this->fast_update) {
+            $saveOptions['skipAuditLog'] = true;
+        }
+        return $attribute;
+    }
+
+    public function editAttributeBulk($attributes, $event, $user)
+    {
+        $fieldList = self::EDITABLE_FIELDS;
+        $addableFieldList = array('event_id', 'type', 'uuid', 'object_id', 'object_relation');
+        $fieldList = array_merge($fieldList, $addableFieldList);
+        $saveOptions = [
+            'fieldList' => $fieldList,
+            'parentEvent' => $event,
+            'atomic' => true,
+            'validate' => 'only'
+        ];
+
+        // run the beforevalidation massage at this point so we can skip validation in round 2
+        foreach ($attributes as $k => $attribute) {
+            $attributes[$k] = $this->beforeValidateMassage($attribute);
+        }
+
+        // validation only so we can cull the problematic attributes
+        $this->saveAll($attributes, $saveOptions);
+        if (!empty($this->validationErrors)) {
+            foreach ($this->validationErrors as $key => $validationError) {
+                $this->logDropped($user, $attributes[$key], 'edit', $validationError);
+                unset($this->updateLookupTable[$attributes[$key]['uuid']]);
+                unset($attributes[$key]);
+            }
+        }
+        $saveOptions['validate'] = false;
+        // actual save, though we still need to validate in order for the beforeValidate massaging scripts to fire.
+        if (!empty($attributes)) {
+            $this->saveMany($attributes, $saveOptions);
+        }
+        return $this->editAttributePostProcessing($attributes, $event, $user);
+    }
+
+    public function editAttributePostProcessing($attributes, $event, $user)
+    {
+        $eventId = $event['Event']['id'];
+        $tagActions = [];
+        foreach ($attributes as $attribute) {
+            if (!isset($this->updateLookupTable[$attribute['uuid']])) {
+                continue;
+            }
+            $attributeId = $this->updateLookupTable[$attribute['uuid']];
+            if (!empty($attribute['Sighting'])) {
+                $this->Sighting->captureSightings($attribute['Sighting'], $attributeId, $eventId, $user);
+            }
+            if ($user['Role']['perm_tagger']) {
+                /*
+                    We should unwrap the line below and remove the server option in the future once we have tag soft-delete
+                    A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
+                    has a version below x
+                */
+                if (isset($server) && isset($server['Server']['remove_missing_tags']) && $server['Server']['remove_missing_tags']) {
+                    $existingTags = $this->AttributeTag->find('all', [
+                        'recursive' => -1,
+                        'conditions' => ['attribute_id' => $attribute['id']]
+                    ]);
+                    $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingTags['AttributeTag']);
+                }
+                $tag_id_store = [];
+                if (isset($attribute['Tag'])) {
+                    foreach ($attribute['Tag'] as $tag) {
+                        if (empty($tag_id_store[$tag['name']])) {
+                            $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
+                            if ($tag_id) {
+                                $tag_id_store[$tag['name']] = $tag_id;
+                            }
+                        } else {
+                            $tag_id = $tag_id_store[$tag['name']];
+                        }
+                        if ($tag_id) {
+                            $tag['id'] = $tag_id;
+                            // fix the IDs here
+                            $tag_result = $this->AttributeTag->handleAttributeTag($attributeId, $attribute['event_id'], $tag, true);
+                            if (isset($tag_result['attach'])) {
+                                $tagActions['attach'][$attributeId . '-' . $tag_id] = $tag_result['attach'];
+                            } else if(isset($tag_result['detach'])) {
+                                $tagActions['detach'][] = $tag_result['detach'];
+                            }
+                        } else {
+                            // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
+                            // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
+                            // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
+                            if ($user['Role']['perm_tag_editor']) {
+                                $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', $attributeId, 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.');
+                            }
                         }
                     }
                 }
             }
         }
+        if (!empty($tagActions['attach'])) {
+            foreach ($tagActions['attach'] as $k => $attach) {
+                $existingAssociation = $this->AttributeTag->find('first', [
+                    'conditions' => [
+                        'tag_id' => $attach['tag_id'],
+                        'attribute_id' => $attach['attribute_id']
+                    ],
+                    'recursive' => -1
+                ]);
+                if (!empty($existingAssociation)) {
+                    $attach['id'] = $existingAssociation['AttributeTag']['id'];
+                    if ($attach['local'] == $existingAssociation['AttributeTag']['local'] && $attach['relationship_type'] == $existingAssociation['AttributeTag']['relationship_type']) {
+                        unset($tagActions['attach'][$k]);
+                    }
+                }
+            }
+            if (!empty($tagActions['attach'])) {
+                $this->AttributeTag->saveMany($tagActions['attach']);
+            }
+            
+        }
+        if (!empty($tagActions['detach'])) {
+            foreach ($tagActions['detach'] as $detach) {
+                $conditions = [
+                    'attribute_id' => $detach['attribute_id'],
+                    'tag_id' => $detach['tag_id']
+                ];
+                $this->AttributeTag->deleteAll($conditions, false);
+            }
+        }
+        if ($this->fast_update) {
+            // Let's recorrelate the event
+            foreach ($attributes as $attribute) {
+                if (!empty($attribute['_materialChange'])) {
+                    $this->Correlation->generateCorrelation(false, $event['Event']['id'], $attributeId);
+                }
+            }
+            // Instead of incrementing / decrementing the event 
+            $attribute_count = $this->find('count', [
+                'conditions' => [
+                    'Attribute.event_id' => $event['Event']['id'],
+                    'Attribute.deleted' => 0
+                ],
+                'recursive' => -1
+            ]);
+            $temp_event = [
+                'id' => $event['Event']['id'],
+                'attribute_count' => $attribute_count
+            ];
+            $this->Event->save($temp_event);
+            $this->__alterAttributeCount($event['Event']['id']);
+        }
         return true;
     }
+    
 
     /**
      * @param int $id Attribute ID
@@ -3199,14 +3347,17 @@ class Attribute extends AppModel
      * @param string $action
      * @throws JsonException
      */
-    public function logDropped(array $user, array $attribute, $action = 'add')
+    public function logDropped(array $user, array $attribute, $action = 'add', $validationError = false)
     {
         $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+        if ($validationError === false) {
+            $validationError = $this->validationErrors;
+        }
         $eventId = $attribute['event_id'];
         $modelId = $action === 'add' ? 0 : $this->id;
         $this->loadLog()->createLogEntry($user, $action, 'Attribute',  $modelId,
             "Attribute dropped due to validation for Event $eventId failed: $attribute_short",
-            'Validation errors: ' . JsonTool::encode($this->validationErrors) . ' Full Attribute: ' . JsonTool::encode($attribute)
+            'Validation errors: ' . JsonTool::encode($validationError) . ' Full Attribute: ' . JsonTool::encode($attribute)
         );
     }
 
@@ -3547,7 +3698,7 @@ class Attribute extends AppModel
         if (isset($attribute['id'])) {
             $conditions['Attribute.id !='] = $attribute['id'];
         }
-
+        
         return $this->find('first', [
             'recursive' => -1,
             'conditions' => $conditions,

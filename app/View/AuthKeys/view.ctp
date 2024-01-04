@@ -15,77 +15,80 @@ if (isset($keyUsage)) {
     $uniqueIps = null;
 }
 
+$fields = [
+    [
+        'key' => __('ID'),
+        'path' => 'AuthKey.id'
+    ],
+    [
+        'key' => __('UUID'),
+        'path' => 'AuthKey.uuid',
+    ],
+    [
+        'key' => __('Auth Key'),
+        'path' => 'AuthKey',
+        'type' => 'authkey'
+    ],
+    [
+        'key' => __('User'),
+        'path' => 'User.id',
+        'pathName' => 'User.email',
+        'model' => 'users',
+        'type' => 'model'
+    ],
+    [
+        'key' => __('Comment'),
+        'path' => 'AuthKey.comment'
+    ],
+    [
+        'key' => __('Allowed IPs'),
+        'type' => 'custom',
+        'function' => function (array $data) {
+            if (is_array($data['AuthKey']['allowed_ips'])) {
+                return implode("<br />", array_map('h', $data['AuthKey']['allowed_ips']));
+            }
+            return __('All');
+        }
+    ],
+    [
+        'key' => __('Created'),
+        'path' => 'AuthKey.created',
+        'type' => 'datetime'
+    ],
+    [
+        'key' => __('Expiration'),
+        'path' => 'AuthKey.expiration',
+        'type' => 'expiration'
+    ],
+    [
+        'key' => __('Read only'),
+        'path' => 'AuthKey.read_only',
+        'type' => 'boolean'
+    ],
+    [
+        'key' => __('Key usage'),
+        'type' => 'sparkline',
+        'path' => 'AuthKey.id',
+        'csv' => [
+            'data' => $keyUsageCsv,
+        ],
+        'requirement' => isset($keyUsage),
+    ],
+    [
+        'key' => __('Last used'),
+        'raw' => $lastUsed ? $this->Time->time($lastUsed) : __('Not used yet'),
+        'requirement' => isset($keyUsage),
+    ],
+];
+if (!Configure::read("MISP.disable_seen_ips_authkeys")) {
+    $fields[] =[
+        'key' => __('Seen IPs'),
+        'path' => 'AuthKey.unique_ips',
+        'type' => 'authkey_pin'
+    ];
+}
 echo $this->element('genericElements/SingleViews/single_view', [
     'title' => 'Auth key view',
     'data' => $data,
-    'fields' => [
-        [
-            'key' => __('ID'),
-            'path' => 'AuthKey.id'
-        ],
-        [
-            'key' => __('UUID'),
-            'path' => 'AuthKey.uuid',
-        ],
-        [
-            'key' => __('Auth Key'),
-            'path' => 'AuthKey',
-            'type' => 'authkey'
-        ],
-        [
-            'key' => __('User'),
-            'path' => 'User.id',
-            'pathName' => 'User.email',
-            'model' => 'users',
-            'type' => 'model'
-        ],
-        [
-            'key' => __('Comment'),
-            'path' => 'AuthKey.comment'
-        ],
-        [
-            'key' => __('Allowed IPs'),
-            'type' => 'custom',
-            'function' => function (array $data) {
-                if (is_array($data['AuthKey']['allowed_ips'])) {
-                    return implode("<br />", array_map('h', $data['AuthKey']['allowed_ips']));
-                }
-                return __('All');
-            }
-        ],
-        [
-            'key' => __('Created'),
-            'path' => 'AuthKey.created',
-            'type' => 'datetime'
-        ],
-        [
-            'key' => __('Expiration'),
-            'path' => 'AuthKey.expiration',
-            'type' => 'expiration'
-        ],
-        [
-            'key' => __('Read only'),
-            'path' => 'AuthKey.read_only',
-            'type' => 'boolean'
-        ],
-        [
-            'key' => __('Key usage'),
-            'type' => 'sparkline',
-            'path' => 'AuthKey.id',
-            'csv' => [
-                'data' => $keyUsageCsv,
-            ],
-            'requirement' => isset($keyUsage),
-        ],
-        [
-            'key' => __('Last used'),
-            'raw' => $lastUsed ? $this->Time->time($lastUsed) : __('Not used yet'),
-            'requirement' => isset($keyUsage),
-        ],
-        [
-            'key' => __('Seen IPs'),
-            'path' => 'AuthKey.unique_ips',
-            'type' => 'authkey_pin'
-        ]
-    ],
+    'fields' => $fields,
 ]);

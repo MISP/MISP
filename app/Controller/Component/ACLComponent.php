@@ -203,6 +203,7 @@ class ACLComponent extends Component
                 'extractFromReport' => array('*'),
                 'replaceSuggestionInReport' => array('*'),
                 'importReportFromUrl' => array('*'),
+                'sendToLLM' => ['*'],
             ),
             'events' => array(
                     'add' => array('perm_add'),
@@ -595,7 +596,9 @@ class ACLComponent extends Component
                 'delete' => array('perm_sharing_group'),
                 'detach' => array('perm_sharing_group'),
                 'edit' => array('perm_sharing_group'),
+                'encodeSyncRule' => ['perm_site_admin'],
                 'execute' => array('perm_sharing_group'),
+                'generateUuidList' => ['perm_sharing_group'],
                 'index' => array('perm_sharing_group'),
                 'view' => array('perm_sharing_group'),
                 'viewOrgs' => array('perm_sharing_group'),
@@ -617,6 +620,7 @@ class ACLComponent extends Component
                 'advanced' => array('perm_sighting'),
                 'delete' => ['AND' => ['perm_sighting', 'perm_modify_org']],
                 'index' => array('*'),
+                'view' => array('*'),
                 'listSightings' => array('*'),
                 'quickDelete' => ['AND' => ['perm_sighting', 'perm_modify_org']],
                 'viewSightings' => array('*'),
@@ -779,6 +783,13 @@ class ACLComponent extends Component
                 'viewPeriodicSummary' => ['*'],
                 'getGpgPublicKey' => array('*'),
                 'unsubscribe' => ['*'],
+                'view_login_history' => ['*']
+            ),
+            'userLoginProfiles' => array(
+                'index' => ['*'],
+                'trust' => ['*'],
+                'malicious' => ['*'],
+                'admin_delete' => ['perm_admin']
             ),
             'userSettings' => array(
                 'index' => array('*'),
@@ -1139,7 +1150,7 @@ class ACLComponent extends Component
                     if ($hit) {
                         $this->Log = ClassRegistry::init('Log');
                         $this->Log->create();
-                        $this->Log->save(array(
+                        $this->Log->saveOrFailSilently(array(
                                 'org' => 'SYSTEM',
                                 'model' => 'User',
                                 'model_id' => $user['id'],

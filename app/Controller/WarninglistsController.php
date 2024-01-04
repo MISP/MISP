@@ -78,7 +78,7 @@ class WarninglistsController extends AppController
                         $change = $success['name'] . ' v' . $success['new'] . ' installed';
                     }
                     $this->Log->create();
-                    $this->Log->save(array(
+                    $this->Log->saveOrFailSilently(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Warninglist',
                         'model_id' => $id,
@@ -94,7 +94,7 @@ class WarninglistsController extends AppController
             if (isset($result['fails'])) {
                 foreach ($result['fails'] as $id => $fail) {
                     $this->Log->create();
-                    $this->Log->save(array(
+                    $this->Log->saveOrFailSilently(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Warninglist',
                         'model_id' => $id,
@@ -109,7 +109,7 @@ class WarninglistsController extends AppController
             }
         } else {
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org' => $this->Auth->user('Organisation')['name'],
                 'model' => 'Warninglist',
                 'model_id' => 0,
@@ -157,6 +157,9 @@ class WarninglistsController extends AppController
                     unset($warninglist['Warninglist']['entries']);
                     $warninglist['WarninglistEntry'] = $entries;
                 }
+                if (empty($warninglist['WarninglistEntry'])) {
+                    $warninglist['Warninglist']['entries'] = ''; // Make model validation fails
+                }
                 if (empty($warninglist['Warninglist']['matching_attributes'])) {
                     $warninglist['Warninglist']['matching_attributes'] = ['ALL'];
                 }
@@ -194,6 +197,9 @@ class WarninglistsController extends AppController
                     $entries = $this->Warninglist->parseFreetext($warninglist['Warninglist']['entries']);
                     unset($warninglist['Warninglist']['entries']);
                     $warninglist['WarninglistEntry'] = $entries;
+                }
+                if (empty($warninglist['WarninglistEntry'])) {
+                    $warninglist['Warninglist']['entries'] = ''; // Make model validation fails
                 }
                 if (isset($warninglist['Warninglist']['matching_attributes']) && is_array($warninglist['Warninglist']['matching_attributes'])) {
                     $warninglist['WarninglistType'] = [];

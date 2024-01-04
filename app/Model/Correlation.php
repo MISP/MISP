@@ -125,7 +125,9 @@ class Correlation extends AppModel
         $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
         $this->FuzzyCorrelateSsdeep->purge($eventId, $attributeId);
 
-        $this->OverCorrelatingValue->truncateTable();
+        if (empty($eventId) && empty($attributeId)) {
+            $this->OverCorrelatingValue->truncateTable();
+        }
 
         if (!$eventId) {
             $eventIds = $this->Event->find('column', [

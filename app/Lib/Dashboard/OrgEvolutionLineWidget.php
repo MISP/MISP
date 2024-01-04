@@ -13,7 +13,8 @@ class OrgEvolutionLineWidget
     public $params = [
         'filter' => 'A list of filters by organisation meta information (nationality, sector, type, name, uuid) to include. (dictionary, prepending values with ! uses them as a negation)',
         'start_date' => 'Start date, expressed in Y-m-d format (e.g. 2012-10-01)',
-        'local' => 'Should the list only show local organisations? (boolean or list of booleans, defaults to 1. To get both sets, use [0,1])'
+        'local' => 'Should the list only show local organisations? (boolean or list of booleans, defaults to 1. To get both sets, use [0,1])',
+        'cumulative' => '(default: on), should the data counted cumulatively over time',
     ];
     private $validFilterKeys = [
         'nationality',
@@ -48,6 +49,7 @@ class OrgEvolutionLineWidget
     public function handler($user, $options = array())
     {
         $this->Organisation = ClassRegistry::init('Organisation');
+        $isCumulative = isset($options['cumulative']) && empty($options['cumulative']);
         $params = [
             'conditions' => [
                 'AND' => ['Organisation.local' => !isset($options['local']) ? 1 : $options['local']]
@@ -83,7 +85,7 @@ class OrgEvolutionLineWidget
             'recursive' => -1,
             'conditions' => $params['conditions'],
             'fields' => ['DATE_FORMAT(date_created, "%Y-%m") AS date', 'count(id) AS count'],
-            'group' => ['MONTH(date_created), YEAR(date_created)', ]
+            'group' => ['MONTH(date_created), YEAR(date_created)', 'date']
             
         ]);
         usort($raw, [$this, 'sortByCreationDate']);
@@ -103,7 +105,11 @@ class OrgEvolutionLineWidget
         $total = 0;
         foreach ($raw_padded as $date => $count) {
             $total += $count;
-            $raw_padded[$date] = $total;
+            if ($isCumulative) {
+                $raw_padded[$date] = $count;
+            } else {
+                $raw_padded[$date] = $total;
+            }
         }
         $data = [];
         foreach ($raw_padded as $date => $count) {

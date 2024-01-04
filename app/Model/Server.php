@@ -1069,7 +1069,7 @@ class Server extends AppModel
             $message = __('Push to server %s failed. Reason: %s', $id, $push);
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org' => $user['Organisation']['name'],
                 'model' => 'Server',
                 'model_id' => $id,
@@ -1233,7 +1233,7 @@ class Server extends AppModel
 
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
-        $this->Log->save(array(
+        $this->Log->saveOrFailSilently(array(
             'org' => $user['Organisation']['name'],
             'model' => 'Server',
             'model_id' => $id,
@@ -2366,7 +2366,7 @@ class Server extends AppModel
             if ($beforeResult !== true) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
-                $this->Log->save(array(
+                $this->Log->saveOrFailSilently(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Server',
                     'model_id' => 0,
@@ -3898,7 +3898,7 @@ class Server extends AppModel
                 'change' => sprintf(__('Stopping a worker. Worker was of type %s with pid %s'), $queue, $pid)
             )
         );
-        $this->Log->save(array(
+        $this->Log->saveOrFailSilently(array(
             'org' => $user['Organisation']['name'],
             'model' => 'User',
             'model_id' => $user['id'],
@@ -4621,9 +4621,6 @@ class Server extends AppModel
             $pipe = $redis->pipeline();
             foreach ($data as $entry) {
                 list($value, $uuid) = explode(',', $entry);
-                if (!Validation::uuid($uuid)) {
-                    break 2;
-                }
                 if (!empty($value)) {
                     $redis->sAdd('misp:server_cache:' . $serverId, $value);
                     $redis->sAdd('misp:server_cache:combined', $value);
@@ -5064,6 +5061,14 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
+                ],
+                'enable_automatic_garbage_collection' => [
+                    'level' => 1,
+                    'description' => __('Enable to execute an automatic garbage collection of temporary data such as export files. When enabled, on agerage every 100th query will check whether to garbage collect. Garbage collection can run at maximum once an hour.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
                 ],
                 'server_settings_skip_backup_rotate' => array(
                     'level' => 1,
@@ -5701,6 +5706,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
+                'disable_seen_ips_authkeys' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('Disable the storing of IP addresses used to make API calls with an AuthKey against this AuthKey in the database.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'log_new_audit' => [
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('Enable new audit log system.'),
@@ -5946,6 +5959,14 @@ class Server extends AppModel
                 'allow_disabling_correlation' => array(
                     'level' => 0,
                     'description' => __('*WARNING* This setting will give event creators the possibility to disable the correlation of individual events / attributes that they have created.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'show_server_correlations_for_all_users' => array(
+                    'level' => 1,
+                    'description' => __('This setting will reveal correlations from other remote servers visible to all users.'),
                     'value' => false,
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
@@ -6314,6 +6335,14 @@ class Server extends AppModel
                     'editable' => false,
                     'redacted' => true
                 ),
+                'alert_on_suspicious_logins' => [
+                    'level' => 1,
+                    'description' => __('When enabled, MISP will alert users of logins from new devices / suspicious logins. Please make sure that your logs table has additional indexes (on the user_id and action fields) for this not to be a performance bottleneck for now (expected to be resolved soon).'),
+                    'value' => false,
+                    'null' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
                 'log_each_individual_auth_fail' => [
                     'level' => 1,
                     'description' => __('By default API authentication failures that happen within the same hour for the same key are omitted and a single log entry is generated. This allows administrators to more easily keep track of attackers that try to brute force API authentication, by reducing the noise generated by expired API keys. On the other hand, this makes little sense for internal MISP instances where detecting the misconfiguration of tools becomes more interesting, so if you fall into the latter category, enable this feature.'),
@@ -7618,6 +7647,29 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
+                ],
+                'CTIInfoExtractor_enable' => [
+                    'level' => 1,
+                    'description' => __('Enable the experimental CTI info extractor plugin to use a connected LLM server to extract additional information from markdown reports.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'CTIInfoExtractor_url' => [
+                    'level' => 1,
+                    'description' => __('The url of the LLM REST service.'),
+                    'value' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => 'true'
+                ],
+                'CTIInfoExtractor_authentication' => [
+                    'level' => 1,
+                    'description' => __('The authentication key for the LLM REST service.'),
+                    'value' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => 'true'
                 ]
             ),
             'SimpleBackgroundJobs' => [

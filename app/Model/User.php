@@ -12,6 +12,7 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
  * @property Organisation $Organisation
  * @property Role $Role
  * @property UserSetting $UserSetting
+ * @property UserLoginProfile $UserLoginProfile
  * @property Event $Event
  * @property AuthKey $AuthKey
  * @property Server $Server
@@ -214,6 +215,7 @@ class User extends AppModel
         ),
         'Post',
         'UserSetting',
+        'UserLoginProfile'
         // 'AuthKey' - readd once the initial update storm is over
     );
 
@@ -874,7 +876,7 @@ class User extends AppModel
         } catch (SendEmailException $e) {
             $this->logException("Exception during sending e-mail", $e);
             $log->create();
-            $log->save(array(
+            $log->saveOrFailSilently(array(
                 'org' => 'SYSTEM',
                 'model' => 'User',
                 'model_id' => $user['User']['id'],
@@ -888,10 +890,14 @@ class User extends AppModel
 
         $logTitle = $result['encrypted'] ? 'Encrypted email' : 'Email';
         // Intentional two spaces to pass test :)
-        $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $result['subject'] . '".';
+        $logTitle .= $replyToLog  . '  to ' . $result['to'] . ' sent, titled "' . $result['subject'] . '".';
+
+        if (Configure::read('Security.ecs_log')) {
+            EcsLog::writeEmailLog($logTitle, $result, $replyToUser ? $replyToUser['User']['email'] : null);
+        }
 
         $log->create();
-        $log->save(array(
+        $log->saveOrFailSilently(array(
             'org' => 'SYSTEM',
             'model' => 'User',
             'model_id' => $user['User']['id'],
@@ -1026,18 +1032,44 @@ class User extends AppModel
     }
 
     /**
-     * @param int $org_id
+     * @param int $orgId
      * @param int|false $excludeUserId
-     * @return array
+     * @return array User ID => Email
      */
-    public function getOrgAdminsForOrg($org_id, $excludeUserId = false)
+    public function getOrgAdminsForOrg($orgId, $excludeUserId = false)
     {
         $adminRoles = $this->Role->find('column', array(
             'conditions' => array('perm_admin' => 1),
             'fields' => array('Role.id')
         ));
         $conditions = array(
-            'User.org_id' => $org_id,
+            'User.org_id' => $orgId,
+            'User.disabled' => 0,
+            'User.role_id' => $adminRoles
+        );
+        if ($excludeUserId) {
+            $conditions['User.id !='] = $excludeUserId;
+        }
+        return $this->find('list', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => array(
+                'User.id', 'User.email'
+            )
+        ));
+    }
+
+    /**
+     * @param int|false $excludeUserId
+     * @return array User ID => Email
+     */
+    public function getSiteAdmins($excludeUserId = false)
+    {
+        $adminRoles = $this->Role->find('column', array(
+            'conditions' => array('perm_site_admin' => 1),
+            'fields' => array('Role.id')
+        ));
+        $conditions = array(
             'User.disabled' => 0,
             'User.role_id' => $adminRoles
         );
@@ -1242,36 +1274,44 @@ class User extends AppModel
         return $newkey;
     }
 
-    public function extralog($user, $action = null, $description = null, $fieldsResult = null, $modifiedUser = null)
+    /**
+     * @param string|array $user
+     * @param string $action
+     * @param string $description
+     * @param string $fieldsResult
+     * @param array|null $modifiedUser
+     * @return void
+     * @throws JsonException
+     */
+    public function extralog($user, $action, $description = null, $fieldsResult = null, $modifiedUser = null)
     {
-        if (!is_array($user) && $user === 'SYSTEM') {
+        if ($user === 'SYSTEM') {
             $user = [
                 'id' => 0,
                 'email' => 'SYSTEM',
                 'Organisation' => [
                     'name' => 'SYSTEM'
-                ]
+                ],
             ];
         }
         // new data
-        $model = 'User';
         $modelId = $user['id'];
         if (!empty($modifiedUser)) {
             $modelId = $modifiedUser['User']['id'];
         }
-        if ($action == 'login') {
+        if ($action === 'login') {
             $description = "User (" . $user['id'] . "): " . $user['email'];
-        } elseif ($action == 'logout') {
+            $fieldsResult = JsonTool::encode($this->UserLoginProfile->_getUserProfile());
+        } else if ($action === 'logout') {
             $description = "User (" . $user['id'] . "): " . $user['email'];
-        } elseif ($action == 'edit') {
+        } else if ($action === 'edit') {
             $description = "User (" . $modifiedUser['User']['id'] . "): " . $modifiedUser['User']['email'];
-        } elseif ($action == 'change_pw') {
+        } else if ($action === 'change_pw') {
             $description = "User (" . $modifiedUser['User']['id'] . "): " . $modifiedUser['User']['email'];
             $fieldsResult = "Password changed.";
         }
 
-        // query
-        $result = $this->loadLog()->createLogEntry($user, $action, $model, $modelId, $description, $fieldsResult);
+        $result = $this->loadLog()->createLogEntry($user, $action, 'User', $modelId, $description, $fieldsResult);
         // write to syslogd as well
         if ($result) {
             App::import('Lib', 'SysLog.SysLog');
@@ -1387,7 +1427,7 @@ class User extends AppModel
                 $error[$key] = $key . ': ' . implode(', ', $errors);
             }
             $error = implode(PHP_EOL, $error);
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                     'org' => 'SYSTEM',
                     'model' => 'User',
                     'model_id' => $added_by['id'],
@@ -1402,7 +1442,7 @@ class User extends AppModel
                 'recursive' => -1,
                 'conditions' => array('id' => $this->id)
             ));
-            $this->Log->save(array(
+            $this->Log->saveOrFailSilently(array(
                 'org' => 'SYSTEM',
                 'model' => 'User',
                 'model_id' => $added_by['id'],
@@ -2014,29 +2054,36 @@ class User extends AppModel
         return $users;
     }
 
-    public function checkForSessionDestruction($id)
+    /**
+     * @param int $id
+     * @param int $sessionCreationTimestamp
+     * @return bool
+     * @throws RedisException
+     */
+    public function checkForSessionDestruction($id, $sessionCreationTimestamp)
     {
-        if (empty(CakeSession::read('creation_timestamp'))) {
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
             return false;
         }
-        $redis = $this->setupRedis();
-        if ($redis) {
-            $cutoff = $redis->get('misp:session_destroy:' . $id);
-            $allcutoff = $redis->get('misp:session_destroy:all');
-            if (
-                empty($cutoff) || 
-                (
-                    !empty($cutoff) &&
-                    !empty($allcutoff) &&
-                    $allcutoff < $cutoff
-                ) 
-            ) {
-                $cutoff = $allcutoff;
-            }
-            if ($cutoff && CakeSession::read('creation_timestamp') < $cutoff) {
-                return true;
-            }
+
+        $cutoff = $redis->get('misp:session_destroy:' . $id);
+        $allcutoff = $redis->get('misp:session_destroy:all');
+        if (
+            empty($cutoff) ||
+            (
+                !empty($cutoff) &&
+                !empty($allcutoff) &&
+                $allcutoff < $cutoff
+            )
+        ) {
+            $cutoff = $allcutoff;
         }
+        if ($cutoff && $sessionCreationTimestamp < $cutoff) {
+            return true;
+        }
+
         return false;
     }
 

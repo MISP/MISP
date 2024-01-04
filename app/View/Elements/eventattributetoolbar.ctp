@@ -104,6 +104,16 @@
                         ],
                     ),
                     array(
+                        'id' => 'multi-galaxy-button',
+                        'title' => __('Add new local cluster to selected Attributes'),
+                        'class' => 'mass-select hidden',
+                        'fa-icon' => 'empire',
+                        'fa-source' => 'fab',
+                        'data' => [
+                            'popover-popup' => $baseurl . '/galaxies/selectGalaxyNamespace/selected/attribute/local:1/eventid:' . $eventId,
+                        ],
+                    ),
+                    array(
                         'id' => 'group-into-object-button',
                         'title' => __('Group selected Attributes into an Object'),
                         'class' => 'mass-select hidden',

@@ -1,6 +1,8 @@
 openapi: 3.0.0
+
 info:
   title: MISP Automation API
+  version: "2.4"
   description: |
 
     ### Getting Started
@@ -5487,13 +5489,13 @@ components:
       type: integer
       format: int32
       nullable: true
-      minimum: 0
+      minimum: 1
 
     LimitSearchFilter:
       type: integer
       format: int32
       nullable: true
-      minimum: 1
+      minimum: 0
 
     SortSearchField:
       description: Field to be used to sort the result

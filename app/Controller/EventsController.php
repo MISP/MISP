@@ -2469,7 +2469,7 @@ class EventsController extends AppController
                         $original_file,
                         $this->data['Event']['publish'],
                         $this->data['Event']['distribution'],
-                        $this->data['Event']['sharing_group_id'],
+                        $this->data['Event']['sharing_group_id'] ?? null,
                         $this->data['Event']['galaxies_handling'],
                         $debug
                     );
@@ -2501,15 +2501,31 @@ class EventsController extends AppController
         foreach ($distributionLevels as $key => $value) {
             $fieldDesc['distribution'][$key] = $this->Event->distributionDescriptions[$key]['formdesc'];
         }
-        $debugOptions = $this->Event->debugOptions;
+
+        $debugOptions = [
+            0 => __('Standard debugging'),
+            1 => __('Advanced debugging'),
+        ];
+        $debugDescriptions = [
+            0 => __('The critical errors are logged in the usual log file.'),
+            1 => __('All the errors and warnings are logged in the usual log file.'),
+        ];
+        $galaxiesOptions = [
+            0 => __('As MISP standard format'),
+            1 => __('As tag names'),
+        ];
+        $galaxiesOptionsDescriptions = [
+            0 => __('Galaxies and Clusters are passed as MISP standard format. New generic Galaxies and Clusters are created when there is no match with existing ones.'),
+            1 => __('Galaxies are passed as tags and there is only a simple search with existing galaxy tag names.'),
+        ];
+
         $this->set('debugOptions', $debugOptions);
         foreach ($debugOptions as $key => $value) {
-            $fieldDesc['debug'][$key] = $this->Event->debugDescriptions[$key];
+            $fieldDesc['debug'][$key] = $debugDescriptions[$key];
         }
-        $galaxiesOptions = $this->Event->galaxiesOptions;
         $this->set('galaxiesOptions', $galaxiesOptions);
         foreach ($galaxiesOptions as $key => $value) {
-            $fieldDesc['galaxies_handling'][$key] = $this->Event->galaxiesOptionsDescriptions[$key];
+            $fieldDesc['galaxies_handling'][$key] = $galaxiesOptionsDescriptions[$key];
         }
         $this->set('sharingGroups', $sgs);
         $this->set('fieldDesc', $fieldDesc);
@@ -2793,7 +2809,15 @@ class EventsController extends AppController
                 if (!isset($this->request->data['Event'])) {
                     $this->request->data = array('Event' => $this->request->data);
                 }
-                $result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id);
+                $fast_update = $this->request->param('named.fast_update');
+                if (!empty($this->request->data['Event']['fast_update'])) {
+                    $fast_update = (bool)$this->request->data['Event']['fast_update'];
+                }
+                if ($fast_update) {
+                    $this->Event->fast_update = true;
+                    $this->Event->Attribute->fast_update = true;
+                }
+                $result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id, null, null, false);
                 if ($result === true) {
                     // REST users want to see the newly created event
                     $metadata = $this->request->param('named.metadata');
@@ -3784,11 +3808,21 @@ class EventsController extends AppController
         if ($id === false) {
             $id = $this->request->data['event'];
         }
-        $this->Event->recursive = -1;
-        $event = $this->Event->read(array(), $id);
+        $conditions = ['Event.id' => $id];
+        if (Validation::uuid($id)) {
+            $conditions = ['Event.uuid' => $id];
+        }
+        $event = $this->Event->find(
+            'first',
+            [
+                'recursive' => -1,
+                'conditions' => $conditions
+            ]
+        );
         if (empty($event)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
         }
+        $id = $event['Event']['id'];
         $local = !empty($this->params['named']['local']);
         if (!$this->request->is('post')) {
             $this->set('local', $local);
@@ -4661,7 +4695,7 @@ class EventsController extends AppController
                 )
             );
             if (!$result) {
-                $this->Log->save(array(
+                $this->Log->saveOrFailSilently(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Event',
                         'model_id' => 0,
@@ -6014,7 +6048,6 @@ class EventsController extends AppController
             $this->set('file_uploaded', "1");
             $this->set('file_name', $this->request['data']['Event']['analysis_file']['name']);
             $this->set('file_content', file_get_contents($this->request['data']['Event']['analysis_file']['tmp_name']));
-
         //$result = $this->Event->upload_mactime($this->Auth->user(), );
         } elseif ($this->request->is('post') && $this->request['data']['SelectedData']['mactime_data']) {
             // Find the event that is to be updated
@@ -6042,7 +6075,7 @@ class EventsController extends AppController
                     'meta-category' => 'file',
                     'description' => 'Mactime template, used in forensic investigations to describe the timeline of a file activity',
                     'template_version' => 1,
-                    'template_uuid' => '9297982e-be62-4772-a665-c91f5a8d639'
+                    'template_uuid' => '58149b06-eabe-4937-9dac-01d63f504e14'
                 );
 
                 $object['Attribute'] = array(
@@ -6105,7 +6138,7 @@ class EventsController extends AppController
 
                     );
                 $this->loadModel('MispObject');
-                $ObjectResult = $this->MispObject->saveObject($object, $eventId, "", "");
+                $ObjectResult = $this->MispObject->saveObject($object, $eventId, false, $this->Auth->user());
                 $temp = $this->MispObject->ObjectReference->Object->find('first', array(
                     'recursive' => -1,
                     'fields' => array('Object.uuid','Object.id'),

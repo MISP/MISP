@@ -1,4 +1,7 @@
 <?php
+
+App::uses('HttpSocket', 'Network/Http');
+
 class StatisticsShell extends AppShell {
 
     public $uses = array('Event', 'User', 'Organisation', 'Log', 'Correlation');
@@ -7,6 +10,8 @@ class StatisticsShell extends AppShell {
     {
         $from = empty($this->args[0]) ? null : $this->args[0];
         $to = empty($this->args[1]) ? null : $this->args[1];
+        $prs = $this->__getPRs($from, $to);
+        echo PHP_EOL . PHP_EOL . "PRs opened: " . $prs['opened'] . PHP_EOL . "PRs merged: " . $prs['merged'] . PHP_EOL;
         $repos = [
             ROOT,
             ROOT . '/PyMISP',
@@ -25,6 +30,46 @@ class StatisticsShell extends AppShell {
         foreach ($results as $email => $count) {
             echo $email . ': ' . $count . PHP_EOL;
         }
+    }
+
+    private function __getPRs($from, $to)
+    {
+        $PRs = 0;
+        $merged = 0;
+        $projects = [
+            'MISP/PyMISP',
+            'MISP/MISP',
+            'MISP/misp-objects',
+            'MISP/taxonomies',
+            'MISP/warninglists',
+            'MISP/misp-galaxy'
+        ];
+        $HttpSocket = new HttpSocket();
+        foreach ($projects as $project) {
+            $url = sprintf(
+                'https://api.github.com/search/issues?q=repo:%s+is:pr%s%s',
+                $project,
+                $from ? '+created:>=' . $from : '',
+                $to ? '+created:<=' . $to : ''
+            );
+            $result = $HttpSocket->get($url);
+            $result = json_decode($result, true);
+            if (!empty($result['total_count'])) {
+                $PRs += $result['total_count'];
+            }
+            $url = sprintf(
+                'https://api.github.com/search/issues?q=repo:%s+is:pr+is:closed+merged:%s..%s',
+                $project,
+                $from ? $from : '2012-01-01',
+                $to ? $to : date("Y-m-d")
+            );
+            $result = $HttpSocket->get($url);
+            $result = json_decode($result, true);
+            if (!empty($result['total_count'])) {
+                $merged += $result['total_count'];
+            }
+        }
+        return ['opened' => $PRs, 'merged' => $merged];
     }
 
     private function extract($results, $repo, $from, $to)

@@ -6972,6 +6972,10 @@ msgstr "එක් එක් ඉල්ලීම මත පරිශීලක IPs 
 msgid "Log user IP and key usage on each API request. All logs for given keys are deleted after one year when this key is not used."
 msgstr "එක් එක් API ඉල්ලීම මත පරිශීලක IP සහ යතුරු භාවිතය ලොග් කරන්න. මෙම යතුර භාවිතා නොකරන විට ලබා දී ඇති යතුරු සඳහා සියලුම ලොග් වසරකට පසුව මකා දමනු ලැබේ."
 
+#: Model/Server.php:5706
+msgid "Store IP addresses used to make API calls with an AuthKey against this AuthKey in the database."
+msgstr ""
+
 #: Model/Server.php:5330
 msgid "Enable new audit log system."
 msgstr "නව විගණන ලොග් පද්ධතිය සබල කරන්න."

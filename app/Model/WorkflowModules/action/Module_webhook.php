@@ -8,7 +8,7 @@ class Module_webhook extends WorkflowBaseActionModule
 {
     public $id = 'webhook';
     public $name = 'Webhook';
-    public $version = '0.6';
+    public $version = '0.7';
     public $description = 'Allow to perform custom callbacks to the provided URL';
     public $icon_path = 'webhook.png';
     public $inputs = 1;
@@ -28,6 +28,7 @@ class Module_webhook extends WorkflowBaseActionModule
                 'label' => __('URL'),
                 'type' => 'input',
                 'placeholder' => 'https://example.com/test',
+                'jinja_supported' => true,
             ],
             [
                 'id' => 'content_type',
@@ -67,12 +68,14 @@ class Module_webhook extends WorkflowBaseActionModule
                 'type' => 'textarea',
                 'default' => '',
                 'placeholder' => '',
+                'jinja_supported' => true,
             ],
             [
                 'id' => 'headers',
                 'label' => __('Headers'),
                 'type' => 'textarea',
                 'placeholder' => 'Authorization: foobar',
+                'jinja_supported' => true,
             ],
         ];
     }
@@ -103,16 +106,16 @@ class Module_webhook extends WorkflowBaseActionModule
             $errors[] = __('`Security.rest_client_enable_arbitrary_urls` is turned off');
             return false;
         }
-        $params = $this->getParamsWithValues($node);
+        $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
         if (empty($params['url']['value'])) {
             $errors[] = __('URL not provided.');
             return false;
         }
 
-        $rData = $roamingData->getData();
         $payload = '';
         if (strlen($params['payload']['value']) > 0) {
-            $payload = $this->render_jinja_template($params['payload']['value'], $rData);
+            $payload = $params['payload']['value'];
         } else {
             $payload = $rData;
         }

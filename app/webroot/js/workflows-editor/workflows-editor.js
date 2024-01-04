@@ -1132,7 +1132,7 @@ function mergeNodeAndModuleFilters(node, moduleFilters) {
 
 /* API */
 function fetchWorkflow(id, callback) {
-    var url = '/workflows/view/' + id + '.json'
+    var url = baseurl + '/workflows/view/' + id + '.json'
     $.ajax({
         beforeSend: function () {
             toggleEditorLoading(true, 'Loading workflow')
@@ -1548,7 +1548,7 @@ function afterNodeDrawCallback() {
     var $nodes = $drawflow.find('.drawflow-node')
     $nodes.find('.start-chosen').each(function() {
         var chosenOptions = $(this).data('chosen_options')
-        $(this).chosen(chosenOptions)
+        $(this).chosen(chosenOptions).trigger('change')
     })
     toggleDisplayOnFields()
     enablePickerCreateNewOptions()
@@ -1558,7 +1558,7 @@ function afterNodeDrawCallback() {
 function afterModalShowCallback() {
     $blockModal.find('.start-chosen').each(function() {
         var chosenOptions = $(this).data('chosen_options')
-        $(this).chosen(chosenOptions)
+        $(this).chosen(chosenOptions).trigger('change')
     })
     var cmOptions = {
         theme: 'default',
@@ -1734,6 +1734,19 @@ function genParameterWarning(options) {
     return ''
 }
 
+function genJinjaIconIfSupported(options) {
+    if (!options.jinja_supported) {
+        return ''
+    }
+    return $('<img/>').attr({
+        src: "/img/jinja.png",
+        alt: "Jinja icon",
+        title: "This input supports Jinja2 templating",
+        width: "36",
+        height: "12",
+    })
+}
+
 function genSelect(options, forNode = true) {
     var $container = $('<div>')
         .addClass('node-param-container')
@@ -1796,7 +1809,7 @@ function genSelect(options, forNode = true) {
     })
     if (options.value !== undefined) {
         $select.find('option').filter(function() {
-            if (options.multiple) {
+            if (options.multiple && Array.isArray(options.value)) {
                 return options.value.includes(this.value)
             } else {
                 return this.value == options.value
@@ -1843,6 +1856,7 @@ function genInput(options, isTextArea, forNode = true) {
             marginBbottom: 0,
         })
         .append(
+            genJinjaIconIfSupported(options),
             $('<span>').text(options.label),
             genParameterWarning(options)
         )
@@ -1855,6 +1869,9 @@ function genInput(options, isTextArea, forNode = true) {
         }
     } else {
         $input = $('<input>').attr('type', 'text').css({height: '30px'})
+    }
+    if (options['jinja_supported']) {
+        $input.addClass('jinja')
     }
     $input.css({
         width: '100%',

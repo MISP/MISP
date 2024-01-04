@@ -32,18 +32,19 @@ class Module_telegram_send_alert extends Module_webhook
                 'label' => 'Message Body Template',
                 'type' => 'textarea',
                 'placeholder' => __('Template redendered using Jinja2'),
+                'jinja_supported' => true,
             ],
         ];
     }
 
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
-	$params = $this->getParamsWithValues($node);
-	$rData = $roamingData->getData();
+        $rData = $roamingData->getData();
+        $params = $this->getParamsWithValues($node, $rData);
 
 	$bot_token = $params['bot_token']['value'];
 	$chat_id = $params['chat_id']['value'];
-	$message_body = $this->render_jinja_template($params['message_body_template']['value'], $rData);
+	$message_body = $params['message_body_template']['value'];
 
 	$data = [
 		'chat_id' =>  $chat_id,

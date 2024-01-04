@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        php: ['7.2', '7.3', '7.4']
+        php: ['7.4']
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -271,14 +271,24 @@ jobs:
               pushd PyMISP/examples/events/
               python ./create_massive_dummy_events.py -l 5 -a 30
               popd
+              pip install jsonschema
               python tools/misp-feed/validate.py
               deactivate
 
+      - name: Check requirements.txt
+        run: python tests/check_requirements.py
+
       - name: Logs
         if: ${{ always() }}
+        # update logs_test.sh when adding more logsources here
         run: |
               tail -n +1 `pwd`/app/tmp/logs/*
               tail -n +1 /var/log/apache2/*.log
 
               sudo -u $USER app/Console/cake Log export /tmp/logs.json.gz --without-changes
               zcat /tmp/logs.json.gz
+
+      - name: Errors in Logs
+        if: ${{ always() }}
+        run: |
+              ./tests/logs_tests.sh
