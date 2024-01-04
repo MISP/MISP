@@ -1,6 +1,4 @@
-<?php if (empty($notes)) {
-    // return;
-}
+<?php
 $seed = mt_rand();
 
 $URL_ADD = '/analyst-notes/add/';
@@ -320,7 +318,7 @@ $notes = [
         margin-bottom: -0.25rem !important;
     }
 
-    .v-bar-text-opinion::after {
+    .v-bar-text-opinion::before {
         content: '';
         margin-right: 5px;
         margin-left: 2px;
