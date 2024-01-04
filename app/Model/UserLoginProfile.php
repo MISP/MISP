@@ -182,6 +182,11 @@ class UserLoginProfile extends AppModel
         return false;
     }
 
+    /**
+     * @param array $userProfileToCheck
+     * @param int $userId
+     * @return mixed|string
+     */
     public function _getTrustStatus(array $userProfileToCheck, $userId = null)
     {
         if (!$userId) {
@@ -191,7 +196,7 @@ class UserLoginProfile extends AppModel
         if (!isset($this->knownUserProfiles[$userId])) {
             $this->knownUserProfiles[$userId] = $this->find('all', [
                 'conditions' => ['UserLoginProfile.user_id' => $userId],
-                'recursive' => 0
+                'recursive' => -1,
             ]);
         }
         // perform check on all entries, and stop when check OK
@@ -223,15 +228,12 @@ class UserLoginProfile extends AppModel
         if (strpos($this->_getTrustStatus($this->_getUserProfile()), 'malicious') !== false) {
             return __('A user reported a similar login profile as malicious.');
         }
+
         // same IP as previous malicious user
-        $maliciousWithSameIP = $this->find('first', [
-            'conditions' => [
-                'UserLoginProfile.ip' => $this->_getUserProfile()['ip'],
-                'UserLoginProfile.status' => 'malicious'
-            ],
-            'recursive' => 0,
-            'fields' => array('UserLoginProfile.*')]
-        );
+        $maliciousWithSameIP = $this->hasAny([
+            'UserLoginProfile.ip' => $this->_getUserProfile()['ip'],
+            'UserLoginProfile.status' => 'malicious'
+        ]);
         if ($maliciousWithSameIP) {
             return __('The source IP was reported as as malicious by a user.');
         }
@@ -242,7 +244,7 @@ class UserLoginProfile extends AppModel
         return false;
     }
 
-    public function email_newlogin($user)
+    public function emailNewLogin(array $user)
     {
         if (!Configure::read('MISP.disable_emailing')) {
             $date_time = date('c');
