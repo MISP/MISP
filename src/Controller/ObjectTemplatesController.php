@@ -22,7 +22,6 @@ class ObjectTemplatesController extends AppController
         'order' => [
             'Object.id' => 'desc'
         ],
-        'recursive' => -1
     ];
 
     public function beforeFilter(EventInterface $event)
@@ -41,17 +40,20 @@ class ObjectTemplatesController extends AppController
         $metas = $this->ObjectTemplate->find(
             'column',
             [
-            'conditions' => ['ObjectTemplate.active' => 1],
-            'fields' => ['ObjectTemplate.meta_category'],
-            'order' => ['ObjectTemplate.meta_category asc'],
-            'unique' => true,
+                'conditions' => ['ObjectTemplate.active' => 1],
+                'fields' => ['ObjectTemplate.meta_category'],
+                'order' => ['ObjectTemplate.meta_category asc'],
+                'unique' => true,
             ]
         );
 
-        $items = [[
-            'name' => __('All Objects'),
-            'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/0"
-        ]];
+        $items = [
+            [
+                'name' => __('All Objects'),
+                'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/0"
+            ]
+
+        ];
         foreach ($metas as $meta) {
             $items[] = [
                 'name' => $meta,
@@ -63,7 +65,7 @@ class ObjectTemplatesController extends AppController
         $this->set(
             'options',
             [
-            'multiple' => 0,
+                'multiple' => 0,
             ]
         );
         $this->render('/Elements/generic_picker');
@@ -80,10 +82,10 @@ class ObjectTemplatesController extends AppController
         $templates_raw = $this->ObjectTemplate->find(
             'all',
             [
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'fields' => ['id', 'meta_category', 'name', 'description'],
-            'order' => ['ObjectTemplate.name asc']
+                'recursive' => -1,
+                'conditions' => $conditions,
+                'fields' => ['id', 'meta_category', 'name', 'description'],
+                'order' => ['ObjectTemplate.name asc']
             ]
         );
 
@@ -105,11 +107,11 @@ class ObjectTemplatesController extends AppController
         $this->set(
             'options',
             [
-            'functionName' => 'redirectAddObject',
-            'multiple' => 0,
-            'select_options' => [
-                'additionalData' => ['event_id' => $event_id],
-            ],
+                'functionName' => 'redirectAddObject',
+                'multiple' => 0,
+                'select_options' => [
+                    'additionalData' => ['event_id' => $event_id],
+                ],
             ]
         );
         $this->render('/Elements/generic_picker');
@@ -121,10 +123,10 @@ class ObjectTemplatesController extends AppController
             $temp = $this->ObjectTemplates->find(
                 'all',
                 [
-                'recursive' => -1,
-                'conditions' => ['ObjectTemplates.uuid' => $id],
-                'fields' => ['ObjectTemplates.id', 'ObjectTemplates.uuid'],
-                'order' => ['ObjectTemplates.version desc']
+                    'recursive' => -1,
+                    'conditions' => ['ObjectTemplates.uuid' => $id],
+                    'fields' => ['ObjectTemplates.id', 'ObjectTemplates.uuid'],
+                    'order' => ['ObjectTemplates.version desc']
                 ]
             )->first();
             if (empty($temp)) {
@@ -191,12 +193,14 @@ class ObjectTemplatesController extends AppController
             $conditions['ObjectTemplates.active'] = 1;
         }
 
-        $this->CRUD->index([
-            'filters' => $this->filterFields,
-            'quickFilters' => $this->quickFilterFields,
-            'quickFilterForMetaField' => ['enabled' => true, 'wildcard_search' => true],
-            'conditions' => $conditions
-        ]);
+        $this->CRUD->index(
+            [
+                'filters' => $this->filterFields,
+                'quickFilters' => $this->quickFilterFields,
+                'quickFilterForMetaField' => ['enabled' => true, 'wildcard_search' => true],
+                'conditions' => $conditions
+            ]
+        );
 
         $responsePayload = $this->CRUD->getResponsePayload();
 
@@ -234,14 +238,14 @@ class ObjectTemplatesController extends AppController
                     }
                     $logEntry = $this->Log->newEntity(
                         [
-                        'org' => $this->ACL->getUser()->Organisation->name,
-                        'model' => 'ObjectTemplate',
-                        'model_id' => $id,
-                        'email' => $this->ACL->getUser()->email,
-                        'action' => 'update',
-                        'user_id' => $this->ACL->getUser()->id,
-                        'title' => 'Object template updated',
-                        'change' => $change,
+                            'org' => $this->ACL->getUser()->Organisation->name,
+                            'model' => 'ObjectTemplate',
+                            'model_id' => $id,
+                            'email' => $this->ACL->getUser()->email,
+                            'action' => 'update',
+                            'user_id' => $this->ACL->getUser()->id,
+                            'title' => 'Object template updated',
+                            'change' => $change,
                         ]
                     );
                     $this->Log->save($logEntry);
@@ -252,14 +256,14 @@ class ObjectTemplatesController extends AppController
                 foreach ($result['fails'] as $id => $fail) {
                     $logEntry = $this->Log->newEntity(
                         [
-                        'org' => $this->ACL->getUser()->Organisation->name,
-                        'model' => 'ObjectTemplate',
-                        'model_id' => $id,
-                        'email' => $this->ACL->getUser()->email,
-                        'action' => 'update',
-                        'user_id' => $this->Auth->user('id'),
-                        'title' => 'Object template failed to update',
-                        'change' => $fail['name'] . ' could not be installed/updated. Error: ' . $fail['fail'],
+                            'org' => $this->ACL->getUser()->Organisation->name,
+                            'model' => 'ObjectTemplate',
+                            'model_id' => $id,
+                            'email' => $this->ACL->getUser()->email,
+                            'action' => 'update',
+                            'user_id' => $this->Auth->user('id'),
+                            'title' => 'Object template failed to update',
+                            'change' => $fail['name'] . ' could not be installed/updated. Error: ' . $fail['fail'],
                         ]
                     );
                     $this->Log->save($logEntry);
@@ -269,14 +273,14 @@ class ObjectTemplatesController extends AppController
         } else {
             $logEntry = $this->Log->newEntity(
                 [
-                'org' => $this->ACL->getUser()->Organisation->name,
-                'model' => 'ObjectTemplate',
-                'model_id' => 0,
-                'email' => $this->ACL->getUser()->email,
-                'action' => 'update',
-                'user_id' => $this->ACL->getUser()->id,
-                'title' => 'Object template update (nothing to update)',
-                'change' => 'Executed an update of the Object Template library, but there was nothing to update.',
+                    'org' => $this->ACL->getUser()->Organisation->name,
+                    'model' => 'ObjectTemplate',
+                    'model_id' => 0,
+                    'email' => $this->ACL->getUser()->email,
+                    'action' => 'update',
+                    'user_id' => $this->ACL->getUser()->id,
+                    'title' => 'Object template update (nothing to update)',
+                    'change' => 'Executed an update of the Object Template library, but there was nothing to update.',
                 ]
             );
             $this->Log->save($logEntry);

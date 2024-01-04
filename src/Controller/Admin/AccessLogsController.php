@@ -3,19 +3,19 @@
 namespace App\Controller\Admin;
 
 use App\Controller\AppController;
+use App\Model\Entity\AccessLog;
 use Cake\Core\Configure;
 use Cake\Http\Exception\NotFoundException;
 
 class AccessLogsController extends AppController
 {
+    protected $fields = ['id', 'created', 'user_id', 'org_id', 'authkey_id', 'ip', 'request_method', 'user_agent', 'request_id', 'controller', 'action', 'url', 'response_code', 'memory_usage', 'duration', 'query_count', 'request'];
+    protected $contain = [
+        'Users' => ['fields' => ['id', 'email', 'org_id']],
+        'Organisations' => ['fields' => ['id', 'name', 'uuid']],
+    ];
     public $paginate = [
-        'recursive' => -1,
         'limit' => 60,
-        'fields' => ['id', 'created', 'user_id', 'org_id', 'authkey_id', 'ip', 'request_method', 'user_agent', 'request_id', 'controller', 'action', 'url', 'response_code', 'memory_usage', 'duration', 'query_count', 'request'],
-        'contain' => [
-            'Users' => ['fields' => ['id', 'email', 'org_id']],
-            'Organisations' => ['fields' => ['id', 'name', 'uuid']],
-        ],
         'order' => [
             'AccessLogs.id' => 'DESC'
         ],
@@ -77,7 +77,7 @@ class AccessLogsController extends AppController
             ]
         );
 
-        // $conditions =  $this->__searchConditions($params);
+        $conditions =  $this->__searchConditions($params);
 
         $afterFindHandler = function ($entry) {
             if (!empty($entry['request'])) {
@@ -91,6 +91,9 @@ class AccessLogsController extends AppController
                 'filters' => $this->filterFields,
                 'quickFilters' => $this->quickFilterFields,
                 'afterFind' => $afterFindHandler,
+                'conditions' => $conditions,
+                'contain' => $this->contain,
+                'fields' => $this->fields,
             ]
         );
 
@@ -108,8 +111,8 @@ class AccessLogsController extends AppController
         $request = $this->AccessLogs->find(
             'all',
             [
-                'conditions' => ['AccessLogs.id' => $id],
-                'fields' => ['AccessLogs.request'],
+                'conditions' => ['id' => $id],
+                'fields' => ['request'],
             ]
         )->first();
         if (empty($request)) {
@@ -163,5 +166,112 @@ class AccessLogsController extends AppController
     public function filtering()
     {
         $this->CRUD->filtering();
+    }
+
+    /**
+     * @param array $params
+     * @return array
+     */
+    private function __searchConditions(array $params)
+    {
+        $qbRules = [];
+        foreach ($params as $key => $value) {
+            if ($key === 'created') {
+                $qbRules[] = [
+                    'id' => $key,
+                    'operator' => is_array($value) ? 'between' : 'greater_or_equal',
+                    'value' => $value,
+                ];
+            } else {
+                if (is_array($value)) {
+                    $value = implode('||', $value);
+                }
+                $qbRules[] = [
+                    'id' => $key,
+                    'value' => $value,
+                ];
+            }
+        }
+        $this->set('qbRules', $qbRules);
+
+        $conditions = [];
+        if (isset($params['user'])) {
+            if (is_numeric($params['user'])) {
+                $conditions['user_id'] = $params['user'];
+            } else {
+                $user = $this->User->find(
+                    'first',
+                    [
+                        'conditions' => ['User.email' => $params['user']],
+                        'fields' => ['id'],
+                    ]
+                );
+                if (!empty($user)) {
+                    $conditions['user_id'] = $user['User']['id'];
+                } else {
+                    $conditions['user_id'] = -1;
+                }
+            }
+        }
+        if (isset($params['ip'])) {
+            $conditions['ip'] = inet_pton($params['ip']);
+        }
+        foreach (['authkey_id', 'request_id', 'controller', 'action'] as $field) {
+            if (isset($params[$field])) {
+                $conditions['' . $field] = $params[$field];
+            }
+        }
+        if (isset($params['url'])) {
+            $conditions['url LIKE'] = "%{$params['url']}%";
+        }
+        if (isset($params['user_agent'])) {
+            $conditions['user_agent LIKE'] = "%{$params['user_agent']}%";
+        }
+        if (isset($params['memory_usage'])) {
+            $conditions['memory_usage >='] = ($params['memory_usage'] * 1024);
+        }
+        if (isset($params['memory_usage'])) {
+            $conditions['memory_usage >='] = ($params['memory_usage'] * 1024);
+        }
+        if (isset($params['duration'])) {
+            $conditions['duration >='] = $params['duration'];
+        }
+        if (isset($params['query_count'])) {
+            $conditions['query_count >='] = $params['query_count'];
+        }
+        if (isset($params['request_method'])) {
+            $methodId = array_flip(AccessLog::REQUEST_TYPES)[$params['request_method']] ?? -1;
+            $conditions['request_method'] = $methodId;
+        }
+        if (isset($params['org'])) {
+            if (is_numeric($params['org'])) {
+                $conditions['org_id'] = $params['org'];
+            } else {
+                $org = $this->AccessLog->Organisation->fetchOrg($params['org']);
+                if ($org) {
+                    $conditions['org_id'] = $org['id'];
+                } else {
+                    $conditions['org_id'] = -1;
+                }
+            }
+        }
+        if (isset($params['created'])) {
+            $tempData = is_array($params['created']) ? $params['created'] : [$params['created']];
+            foreach ($tempData as $k => $v) {
+                $tempData[$k] = $this->AccessLog->resolveTimeDelta($v);
+            }
+            if (count($tempData) === 1) {
+                $conditions['created >='] = date("Y-m-d H:i:s", $tempData[0]);
+            } else {
+                if ($tempData[0] < $tempData[1]) {
+                    $temp = $tempData[1];
+                    $tempData[1] = $tempData[0];
+                    $tempData[0] = $temp;
+                }
+                $conditions['AND'][] = ['created <=' => date("Y-m-d H:i:s", $tempData[0])];
+                $conditions['AND'][] = ['created >=' => date("Y-m-d H:i:s", $tempData[1])];
+            }
+        }
+        return $conditions;
     }
 }

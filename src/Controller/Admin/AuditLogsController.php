@@ -59,13 +59,15 @@ class AuditLogsController extends AppController
         'WorkflowBlueprint',
     ];
 
+    // Pagination
+    protected $fields = ['id', 'created', 'user_id', 'org_id', 'request_action', 'model', 'model_id', 'model_title', 'event_id', 'changed'];
+    protected $contain = [
+        'Users' => ['fields' => ['id', 'email', 'org_id']],
+        'Organisations' => ['fields' => ['id', 'name', 'uuid']],
+    ];
+    protected $conditions = [];
     public $paginate = [
         'limit' => 60,
-        'fields' => ['id', 'created', 'user_id', 'org_id', 'request_action', 'model', 'model_id', 'model_title', 'event_id', 'changed'],
-        'contain' => [
-            'Users' => ['fields' => ['id', 'email', 'org_id']],
-            'Organisations' => ['fields' => ['id', 'name', 'uuid']],
-        ],
         'order' => [
             'id' => 'DESC'
         ],
@@ -110,12 +112,14 @@ class AuditLogsController extends AppController
 
     public function index()
     {
-        $this->paginate['fields'][] = 'ip';
-        $this->paginate['fields'][] = 'request_type';
-        $this->paginate['fields'][] = 'authkey_id';
+
+
+        $this->fields[] = 'ip';
+        $this->fields[] = 'request_type';
+        $this->fields[] = 'authkey_id';
 
         if ($this->ParamHandler->isRest()) {
-            $this->paginate['fields'][] = 'request_id';
+            $this->fields[] = 'request_id';
         }
         if (!Configure::read('MISP.log_new_audit')) {
             $this->Flash->warning(__("Audit log is not enabled. See 'MISP.log_new_audit' in the Server Settings. (Administration -> Server Settings -> MISP tab)"));
@@ -137,12 +141,22 @@ class AuditLogsController extends AppController
             ]
         );
 
-        $this->paginate['conditions'] = $this->__searchConditions($params);
+        $this->conditions = $this->__searchConditions($params);
         $acl = $this->__applyAuditACL($this->ACL->getUser()->toArray());
         if ($acl) {
-            $this->paginate['conditions']['AND'][] = $acl;
+            $this->conditions['AND'][] = $acl;
         }
-        $list = $this->paginate()->toArray();
+
+        $query = $this->AuditLogs->find(
+            'all',
+            [
+                'conditions' => $this->conditions,
+                'fields' => $this->fields,
+                'contain' => $this->contain,
+            ]
+        );
+
+        $list = $this->paginate($query)->toArray();
 
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($list, 'json');
