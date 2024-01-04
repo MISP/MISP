@@ -101,9 +101,7 @@ class AppController extends Controller
     {
         $controller = $this->request->params['controller'];
         $action = $this->request->params['action'];
-        if (empty($this->Session->read('creation_timestamp'))) {
-            $this->Session->write('creation_timestamp', time());
-        }
+
         if (Configure::read('MISP.system_setting_db')) {
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
@@ -544,13 +542,18 @@ class AppController extends Controller
             }
         }
 
+        $sessionCreationTime = $this->Session->read('creation_timestamp');
+        if (empty($sessionCreationTime)) {
+            $sessionCreationTime = $_SERVER['REQUEST_TIME'] ?? time();
+            $this->Session->write('creation_timestamp', $sessionCreationTime);
+        }
+
         // kill existing sessions for a user if the admin/instance decides so
         // exclude API authentication as it doesn't make sense
-        if (!$this->isApiAuthed && $this->User->checkForSessionDestruction($user['id'])) {
+        if (!$this->isApiAuthed && $this->User->checkForSessionDestruction($user['id'], $sessionCreationTime)) {
             $this->Auth->logout();
             $this->Session->destroy();
-            $message = __('User deauthenticated on administrator request. Please reauthenticate.');
-            $this->Flash->warning($message);
+            $this->Flash->warning(__('User deauthenticated on administrator request. Please reauthenticate.'));
             $this->_redirectToLogin();
             return false;
         }
