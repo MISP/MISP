@@ -25,6 +25,7 @@ class CRUDComponent extends Component
             }
             $options['filters'][] = 'quickFilter';
         }
+        $this->Controller->includeAnalystData->{$this->Controller->modelClass}->includeAnalystData = true;
         $params = $this->Controller->IndexFilter->harvestParameters(empty($options['filters']) ? [] : $options['filters']);
         $query = [];
         $query = $this->setFilters($params, $query);
@@ -231,6 +232,7 @@ class CRUDComponent extends Component
         if (empty($id)) {
             throw new NotFoundException(__('Invalid %s.', $modelName));
         }
+        $this->Controller->{$modelName}->includeAnalystData = true;
         $query = [
             'recursive' => -1,
             'conditions' => [$modelName . '.id' => $id],

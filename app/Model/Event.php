@@ -40,7 +40,8 @@ class Event extends AppModel
             'change' => 'full'),
         'Trim',
         'Containable',
-        'EventWarning'
+        'EventWarning',
+        'AnalystDataParent'
     );
 
     public $displayField = 'id';

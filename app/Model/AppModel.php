@@ -47,6 +47,8 @@ class AppModel extends Model
     /** @var Workflow|null */
     private $Workflow;
 
+    public $includeAnalystData;
+
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
     const OLD_DB_CHANGES = array(

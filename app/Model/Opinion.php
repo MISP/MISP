@@ -1,6 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
-class Opinion extends AppModel
+class Opinion extends AnalystData
 {
 
     public $recursive = -1;

@@ -755,7 +755,7 @@ class EventsController extends AppController
         if ($nothing) {
             $this->paginate['conditions']['AND'][] = ['Event.id' => -1]; // do not fetch any event
         }
-
+        $this->Event->includeAnalystData = true;
         $events = $this->paginate();
 
         if (count($events) === 1 && isset($this->passedArgs['searchall'])) {
@@ -1695,7 +1695,7 @@ class EventsController extends AppController
         }
 
         $namedParams = $this->request->params['named'];
-
+        $this->Event->includeAnalystData = true;
         if ($this->_isRest()) {
             $conditions['includeAttachments'] = isset($namedParams['includeAttachments']) ? $namedParams['includeAttachments'] : true;
         } else {
@@ -1790,7 +1790,6 @@ class EventsController extends AppController
         } else {
             $user = $this->Auth->user();
         }
-
         $results = $this->Event->fetchEvent($user, $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
