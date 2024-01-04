@@ -3096,41 +3096,41 @@ class UsersController extends AppController
             }
         }
         if (!empty($conditions)) {
-            $user_ids = $this->User->find('list', [
+            $userIds = $this->User->find('list', [
                 'recursive' => -1,
                 'fields' => ['email', 'id'],
                 'conditions' => $conditions
             ]);
         } else {
-            $user_ids = [__('Every user') => 'all'];
+            $userIds = [__('Every user') => 'all'];
         }
         if ($this->request->is('post')) {
             $redis = RedisTool::init();
-            $kill_before = time();
-            foreach (array_values($user_ids) as $user_id) {
-                $redis->set('misp:session_destroy:' . $user_id, $kill_before);
+            $killBefore = time();
+            foreach ($userIds as $userId) {
+                $redis->set('misp:session_destroy:' . $userId, $killBefore);
             }
             $message = __(
                 'Session destruction cutoff set to the current timestamp for the given selection (%s). Session(s) will be destroyed on the next user interaction.',
-                implode(', ', array_keys($user_ids))
+                implode(', ', array_keys($userIds))
             );
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('User', 'admin_destroy', false, $this->response->type(), $message);
+                return $this->RestResponse->successResponse(null, $message);
             }
             $this->Flash->success($message);
             $this->redirect($this->referer());
-        } else {
-            $this->set(
-                'question',
-                __(
-                    'Do you really wish to destroy the session for: %s ? The session destruction will occur when the users try to interact with MISP the next time.',
-                    implode(', ', array_keys($user_ids))
-                )
-            );
-            $this->set('title', __('Destroy sessions'));
-            $this->set('actionName', 'Destroy');
-            $this->render('/genericTemplates/confirm');
         }
+
+        $this->set(
+            'question',
+            __(
+                'Do you really wish to destroy the session for: %s? The session destruction will occur when the users try to interact with MISP the next time.',
+                implode(', ', array_keys($userIds))
+            )
+        );
+        $this->set('title', __('Destroy sessions'));
+        $this->set('actionName', 'Destroy');
+        $this->render('/genericTemplates/confirm');
     }
 
     public function view_login_history($user_id = null) { 

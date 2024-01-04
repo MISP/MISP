@@ -2049,29 +2049,36 @@ class User extends AppModel
         return $users;
     }
 
-    public function checkForSessionDestruction($id)
+    /**
+     * @param int $id
+     * @param int $sessionCreationTimestamp
+     * @return bool
+     * @throws RedisException
+     */
+    public function checkForSessionDestruction($id, $sessionCreationTimestamp)
     {
-        if (empty(CakeSession::read('creation_timestamp'))) {
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
             return false;
         }
-        $redis = $this->setupRedis();
-        if ($redis) {
-            $cutoff = $redis->get('misp:session_destroy:' . $id);
-            $allcutoff = $redis->get('misp:session_destroy:all');
-            if (
-                empty($cutoff) || 
-                (
-                    !empty($cutoff) &&
-                    !empty($allcutoff) &&
-                    $allcutoff < $cutoff
-                ) 
-            ) {
-                $cutoff = $allcutoff;
-            }
-            if ($cutoff && CakeSession::read('creation_timestamp') < $cutoff) {
-                return true;
-            }
+
+        $cutoff = $redis->get('misp:session_destroy:' . $id);
+        $allcutoff = $redis->get('misp:session_destroy:all');
+        if (
+            empty($cutoff) ||
+            (
+                !empty($cutoff) &&
+                !empty($allcutoff) &&
+                $allcutoff < $cutoff
+            )
+        ) {
+            $cutoff = $allcutoff;
         }
+        if ($cutoff && $sessionCreationTimestamp < $cutoff) {
+            return true;
+        }
+
         return false;
     }
 
