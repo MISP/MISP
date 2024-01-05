@@ -1224,38 +1224,89 @@ class Attribute extends AppModel
         $this->Correlation->purgeCorrelations($eventId);
     }
 
-    public function reportValidationIssuesAttributes($eventId)
+    /**
+     * @param array $conditions
+     * @return Generator|void
+     */
+    private function fetchAttributesInChunks(array $conditions = [])
+    {
+        while (true) {
+            $attributes = $this->find('all', [
+                'recursive' => -1,
+                'conditions' => $conditions,
+                'limit' => 500,
+                'order' => 'Attribute.id',
+            ]);
+            if (empty($attributes)) {
+                return;
+            }
+            foreach ($attributes as $attribute) {
+                yield $attribute;
+            }
+            $count = count($attributes);
+            $lastAttribute = $attributes[$count - 1];
+            $conditions['Attribute.id >'] = $lastAttribute['Attribute']['id'];
+        }
+    }
+
+    /**
+     * @param int|null $eventId
+     * @return Generator
+     */
+    public function reportValidationIssuesAttributes($eventId = null)
     {
         $conditions = array();
         if ($eventId && is_numeric($eventId)) {
             $conditions = array('event_id' => $eventId);
         }
 
-        $attributeIds = $this->find('column', array(
-            'fields' => array('id'),
-            'conditions' => $conditions
-        ));
-        $chunks = array_chunk($attributeIds, 500);
+        $attributes = $this->fetchAttributesInChunks($conditions);
 
-        $result = array();
-        foreach ($chunks as $chunk) {
-            $attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('id' => $chunk)));
-            foreach ($attributes as $attribute) {
-                $this->set($attribute);
-                if (!$this->validates()) {
-                    $resultErrors = array();
-                    foreach ($this->validationErrors as $field => $error) {
-                        $resultErrors[$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]);
-                    }
-                    $result[] = [
-                        'id' => $attribute['Attribute']['id'],
-                        'error' => $resultErrors,
-                        'details' => 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']',
-                    ];
+        foreach ($attributes as $attribute) {
+            $this->set($attribute);
+            if (!$this->validates()) {
+                $resultErrors = [];
+                foreach ($this->validationErrors as $field => $error) {
+                    $resultErrors[$field] = ['value' => $attribute['Attribute'][$field], 'error' => $error[0]];
                 }
+                yield [
+                    'id' => $attribute['Attribute']['id'],
+                    'error' => $resultErrors,
+                    'details' => 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']',
+                ];
             }
         }
-        return $result;
+    }
+
+    /**
+     * @param bool $dryRun If true, no changes will be made to
+     * @return Generator
+     * @throws Exception
+     */
+    public function normalizeIpAddress($dryRun = false)
+    {
+        $attributes = $this->fetchAttributesInChunks([
+            'Attribute.type' => ['ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'domain|ip'],
+        ]);
+
+        foreach ($attributes as $attribute) {
+            $value = $attribute['Attribute']['value'];
+            $normalizedValue = AttributeValidationTool::modifyBeforeValidation($attribute['Attribute']['type'], $value);
+            if ($value !== $normalizedValue) {
+                if (!$dryRun) {
+                    $attribute['Attribute']['value'] = $normalizedValue;
+                    $this->save($attribute, true, ['value1', 'value2']);
+                }
+
+                yield [
+                    'id' => (int) $attribute['Attribute']['id'],
+                    'event_id' => (int) $attribute['Attribute']['event_id'],
+                    'type' => $attribute['Attribute']['type'],
+                    'value' => $value,
+                    'normalized_value' => $normalizedValue,
+                ];
+            }
+        }
     }
 
     /**
@@ -1610,6 +1661,7 @@ class Attribute extends AppModel
      * @param array $user
      * @param array $options
      * @param int|false $result_count If false, count is not fetched
+     * @param bool $real_count
      * @return array
      * @throws Exception
      */
@@ -3673,7 +3725,7 @@ class Attribute extends AppModel
         );
     }
 
-    private function findAttributeByValue($attribute)
+    private function findAttributeByValue(array $attribute)
     {
         $type = $attribute['type'];
         $conditions = [
