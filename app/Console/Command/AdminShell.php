@@ -85,6 +85,14 @@ class AdminShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('isEncryptionKeyValid', [
+            'help' => __('Check if current encryption key is valid.'),
+            'parser' => [
+                'options' => [
+                    'encryptionKey' => ['help' => __('Current encryption key. If not provided, current key will be used.')],
+                ],
+            ],
+        ]);
         $parser->addSubcommand('dumpCurrentDatabaseSchema', [
             'help' => __('Dump current database schema to JSON file.'),
         ]);
@@ -1043,6 +1051,23 @@ class AdminShell extends AppShell
         }
 
         $this->out(__('New encryption key "%s" saved into config file.', $new));
+    }
+
+    public function isEncryptionKeyValid()
+    {
+        $encryptionKey = $this->params['encryptionKey'] ?? null;
+        if ($encryptionKey === null) {
+            $encryptionKey = Configure::read('Security.encryption_key');
+        }
+        if (!$encryptionKey) {
+            $this->error('No encryption key provided');
+        }
+
+        /** @var SystemSetting $systemSetting */
+        $systemSetting = ClassRegistry::init('SystemSetting');
+        $systemSetting->isEncryptionKeyValid($encryptionKey);
+
+        $this->Server->isEncryptionKeyValid($encryptionKey);
     }
 
     public function redisMemoryUsage()

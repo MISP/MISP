@@ -155,6 +155,32 @@ class SystemSetting extends AppModel
     }
 
     /**
+     * Check if provided encryption key is valid for all encrypted settings
+     * @param string $encryptionKey
+     * @return bool
+     * @throws Exception
+     */
+    public function isEncryptionKeyValid($encryptionKey)
+    {
+        $settings = $this->find('list', [
+            'fields' => ['SystemSetting.setting', 'SystemSetting.value'],
+        ]);
+        foreach ($settings as $setting => $value) {
+            if (!self::isSensitive($setting)) {
+                continue;
+            }
+            if (EncryptedValue::isEncrypted($value)) {
+                try {
+                    BetterSecurity::decrypt(substr($value, 2), $encryptionKey);
+                } catch (Exception $e) {
+                    throw new Exception("Could not decrypt `$setting` setting.", 0, $e);
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * Sensitive setting are passwords or api keys.
      * @param string $setting Setting name
      * @return bool

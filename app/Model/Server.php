@@ -4948,6 +4948,28 @@ class Server extends AppModel
     }
 
     /**
+     * @param string $encryptionKey
+     * @return bool
+     * @throws Exception
+     */
+    public function isEncryptionKeyValid($encryptionKey)
+    {
+        $servers = $this->find('list', [
+            'fields' => ['Server.id', 'Server.authkey'],
+        ]);
+        foreach ($servers as $id => $authkey) {
+            if (EncryptedValue::isEncrypted($authkey)) {
+                try {
+                    BetterSecurity::decrypt(substr($authkey, 2), $encryptionKey);
+                } catch (Exception $e) {
+                    throw new Exception("Could not decrypt auth key for server #$id", 0, $e);
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * Return all Attribute and Object types
      */
     public function getAllTypes(): array
