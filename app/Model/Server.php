@@ -6143,6 +6143,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                 ],
+                'block_publishing_for_same_creator' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Enabling this setting will make MISP block event publishing in the case of the publisher being the same user as the event creator.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
                 'self_update' => [
                     'level' => self::SETTING_CRITICAL,
                     'description' => __('Enable the GUI button for MISP self-update on the Diagnostics page.'),
