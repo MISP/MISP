@@ -3267,14 +3267,13 @@ class AppModel extends Model
      * Returns MISP version from VERSION.json file as array with major, minor and hotfix keys.
      *
      * @return array
-     * @throws JsonException
+     * @throws Exception
      */
     public function checkMISPVersion()
     {
         static $versionArray;
         if ($versionArray === null) {
-            $content = FileAccessTool::readFromFile(ROOT . DS . 'VERSION.json');
-            $versionArray = JsonTool::decode($content);
+            $versionArray = FileAccessTool::readJsonFromFile(ROOT . DS . 'VERSION.json', true);
         }
         return $versionArray;
     }
