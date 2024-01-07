@@ -3,12 +3,36 @@
 namespace App\Model\Entity;
 
 use App\Model\Entity\AppModel;
-use Cake\ORM\Entity;
 use Cake\Core\Configure;
 
 class AuditLog extends AppModel
 {
     private $compressionEnabled = false;
+
+    public const ACTION_ADD = 'add',
+        ACTION_EDIT = 'edit',
+        ACTION_SOFT_DELETE = 'soft_delete',
+        ACTION_DELETE = 'delete',
+        ACTION_UNDELETE = 'undelete',
+        ACTION_TAG = 'tag',
+        ACTION_TAG_LOCAL = 'tag_local',
+        ACTION_REMOVE_TAG = 'remove_tag',
+        ACTION_REMOVE_TAG_LOCAL = 'remove_local_tag',
+        ACTION_GALAXY = 'galaxy',
+        ACTION_GALAXY_LOCAL = 'galaxy_local',
+        ACTION_REMOVE_GALAXY = 'remove_galaxy',
+        ACTION_REMOVE_GALAXY_LOCAL = 'remove_local_galaxy',
+        ACTION_PUBLISH = 'publish',
+        ACTION_PUBLISH_SIGHTINGS = 'publish_sightings',
+        ACTION_LOGIN = 'login',
+        ACTION_PASSWDCHANGE = 'password_change',
+        ACTION_LOGOUT = 'logout',
+        ACTION_LOGIN_FAILED = 'login_failed';
+
+    public const REQUEST_TYPE_DEFAULT = 0,
+        REQUEST_TYPE_API = 1,
+        REQUEST_TYPE_CLI = 2;
+
 
     public function __construct(array $properties = [], array $options = [])
     {
@@ -16,54 +40,52 @@ class AuditLog extends AppModel
         parent::__construct($properties, $options);
     }
 
-    protected function _getTitle(): String
+    protected function _getTitle(): string
     {
-        return $this->generateUserFriendlyTitle($this);
+        return $this->generateUserFriendlyTitle();
     }
 
-    /**
-     * @param string $change
-     * @return array|string
-     * @throws JsonException
-     */
-    private function decodeChange($change)
-    {
-        if (substr($change, 0, 4) === self::BROTLI_HEADER) {
-            if (function_exists('brotli_uncompress')) {
-                $change = brotli_uncompress(substr($change, 4));
-                if ($change === false) {
-                    return 'Compressed';
-                }
-            } else {
-                return 'Compressed';
-            }
-        }
-        return json_decode($change, true);
-    }
+
 
     /**
-     * @param array $auditLog
      * @return string
      */
-    public function generateUserFriendlyTitle($auditLog)
+    public function generateUserFriendlyTitle()
     {
-        if (in_array($auditLog['request_action'], [self::ACTION_TAG, self::ACTION_TAG_LOCAL, self::ACTION_REMOVE_TAG, self::ACTION_REMOVE_TAG_LOCAL], true)) {
-            $attached = ($auditLog['request_action'] === self::ACTION_TAG || $auditLog['request_action'] === self::ACTION_TAG_LOCAL);
-            $local = ($auditLog['request_action'] === self::ACTION_TAG_LOCAL || $auditLog['request_action'] === self::ACTION_REMOVE_TAG_LOCAL) ? __('local') : __('global');
+        if (in_array($this['request_action'], [AuditLog::ACTION_TAG, AuditLog::ACTION_TAG_LOCAL, AuditLog::ACTION_REMOVE_TAG, AuditLog::ACTION_REMOVE_TAG_LOCAL], true)) {
+            $attached = ($this['request_action'] === AuditLog::ACTION_TAG || $this['request_action'] === AuditLog::ACTION_TAG_LOCAL);
+            $local = ($this['request_action'] === AuditLog::ACTION_TAG_LOCAL || $this['request_action'] === AuditLog::ACTION_REMOVE_TAG_LOCAL) ? __('local') : __('global');
             if ($attached) {
-                return __('Attached %s tag "%s" to %s #%s', $local, $auditLog['model_title'], strtolower($auditLog['model']), $auditLog['model_id']);
+                return __('Attached %s tag "%s" to %s #%s', $local, $this['model_title'], strtolower($this['model']), $this['model_id']);
             } else {
-                return __('Detached %s tag "%s" from %s #%s', $local, $auditLog['model_title'], strtolower($auditLog['model']), $auditLog['model_id']);
+                return __('Detached %s tag "%s" from %s #%s', $local, $this['model_title'], strtolower($this['model']), $this['model_id']);
             }
         }
 
-
-        $title = "{$auditLog['model']} #{$auditLog['model_id']}";
-
-        if (isset($auditLog['model_title']) && $auditLog['model_title']) {
-            $title .= ": {$auditLog['model_title']}";
+        if (in_array($this['request_action'], [AuditLog::ACTION_GALAXY, AuditLog::ACTION_GALAXY_LOCAL, AuditLog::ACTION_REMOVE_GALAXY, AuditLog::ACTION_REMOVE_GALAXY_LOCAL], true)) {
+            $attached = ($this['request_action'] === AuditLog::ACTION_GALAXY || $this['request_action'] === AuditLog::ACTION_GALAXY_LOCAL);
+            $local = ($this['request_action'] === AuditLog::ACTION_GALAXY_LOCAL || $this['request_action'] === AuditLog::ACTION_REMOVE_GALAXY_LOCAL) ? __('local') : __('global');
+            if ($attached) {
+                return __('Attached %s galaxy cluster "%s" to %s #%s', $local, $this['model_title'], strtolower($this['model']), $this['model_id']);
+            } else {
+                return __('Detached %s galaxy cluster "%s" from %s #%s', $local, $this['model_title'], strtolower($this['model']), $this['model_id']);
+            }
         }
-        return $title;
+
+        if (in_array($this['model'], ['Attribute', 'Object', 'ShadowAttribute'], true)) {
+            $modelName = $this['model'] === 'ShadowAttribute' ? 'Proposal' : $this['model'];
+            $title = __('%s from Event #%s', $modelName, $this['event_id']);
+        }
+
+        if (isset($this['model_title']) && $this['model_title']) {
+            if (isset($title)) {
+                $title .= ": {$this['model_title']}";
+                return $title;
+            } else {
+                return $this['model_title'];
+            }
+        }
+        return '';
     }
 
     public function rearrangeForAPI(): void

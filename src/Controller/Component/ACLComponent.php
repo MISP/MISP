@@ -10,6 +10,7 @@ use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Http\Exception\NotFoundException;
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Inflector;
+use InvalidArgumentException;
 
 class ACLComponent extends Component
 {
@@ -673,5 +674,29 @@ class ACLComponent extends Component
             }
         }
         return $menu;
+    }
+
+    /**
+     * Returns true if user can modify given event.
+     *
+     * @param array $event
+     * @param array $user
+     * @return bool
+     */
+    public function canModifyEvent(array $user, array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($user['Role']['perm_modify_org'] && $event['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        if ($user['Role']['perm_modify'] && $event['Event']['user_id'] == $user['id']) {
+            return true;
+        }
+        return false;
     }
 }

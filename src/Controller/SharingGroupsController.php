@@ -28,7 +28,10 @@ class SharingGroupsController extends AppController
     public $filterFields = [
         'name', 'uuid', 'releasability', 'description', 'active', 'created', 'modified', 'SharingGroups.local', 'roaming', ['name' => 'Organisations.name', 'multiple' => true],
     ];
-    public $containFields = [
+    public $statisticsFields = ['active', 'roaming'];
+
+    protected $fields =  ['id', 'uuid', 'name', 'description', 'releasability', 'local', 'active', 'roaming'];
+    protected $contain = [
         'SharingGroupOrgs' => [
             'Organisations' => ['fields' => ['name', 'id', 'uuid']]
         ],
@@ -42,28 +45,10 @@ class SharingGroupsController extends AppController
             ]
         ]
     ];
-    public $statisticsFields = ['active', 'roaming'];
-
     public $paginate = [
         'limit' => 60,
-        'maxLimit' => 9999,
         'order' => [
             'SharingGroup.name' => 'ASC'
-        ],
-        'fields' => ['id', 'uuid', 'name', 'description', 'releasability', 'local', 'active', 'roaming'],
-        'contain' => [
-            'SharingGroupOrgs' => [
-                'Organisations' => ['fields' => ['name', 'id', 'uuid']]
-            ],
-            'Organisations' => [
-                'fields' => ['id', 'name', 'uuid'],
-            ],
-            'SharingGroupServers' => [
-                'fields' => ['sharing_group_id', 'all_orgs'],
-                'Servers' => [
-                    'fields' => ['name', 'id']
-                ]
-            ]
         ],
     ];
 
@@ -269,7 +254,7 @@ class SharingGroupsController extends AppController
         $this->render('add');
     }
 
-    public function delete($id=false)
+    public function delete($id = false)
     {
         $this->request->allowMethod(['get', 'post', 'delete']);
         $toggleParams = [
@@ -280,9 +265,10 @@ class SharingGroupsController extends AppController
                 ['path' => 'releasability', 'label' => __('Releasability')],
                 ['path' => 'active', 'label' => __('Active'), 'element' => 'boolean',],
                 ['path' => 'roaming', 'label' => __('Roaming'), 'element' => 'boolean',],
-                ['path' => 'org_count', 'label' => __('Org. count'), 'formatter' => function ($field, $row) {
-                    return count($row['SharingGroupOrg']);
-                }
+                [
+                    'path' => 'org_count', 'label' => __('Org. count'), 'formatter' => function ($field, $row) {
+                        return count($row['SharingGroupOrg']);
+                    }
                 ],
             ],
         ];
@@ -320,10 +306,10 @@ class SharingGroupsController extends AppController
             ]
         ];
 
-        $containFields = $this->containFields;
+        $containFields = $this->contain;
         $validFilterFields = $this->CRUD->getFilterFieldsName($this->filterFields);
         if (!$this->__showOrgs()) {
-            $validFilterFields = array_filter($validFilterFields, fn($filter) => $filter != 'Organisations.name');
+            $validFilterFields = array_filter($validFilterFields, fn ($filter) => $filter != 'Organisations.name');
             unset($containFields['SharingGroupOrgs']);
             unset($containFields['SharingGroupServers']);
         }
@@ -355,6 +341,7 @@ class SharingGroupsController extends AppController
                     'custom' => $customContextFilters,
                 ],
                 'contain' => $containFields,
+                'fields' => $this->fields,
                 'afterFind' => $afterFindHandler,
                 'statisticsFields' => $this->statisticsFields,
                 'wrapResponse' => true,
@@ -402,9 +389,10 @@ class SharingGroupsController extends AppController
                 ['path' => 'releasability', 'label' => __('Releasability')],
                 ['path' => 'active', 'label' => __('Active'), 'element' => 'boolean',],
                 ['path' => 'roaming', 'label' => __('Roaming'), 'element' => 'boolean',],
-                ['path' => 'org_count', 'label' => __('Org. count'), 'formatter' => function ($field, $row) {
-                    return count($row['SharingGroupOrg']);
-                }
+                [
+                    'path' => 'org_count', 'label' => __('Org. count'), 'formatter' => function ($field, $row) {
+                        return count($row['SharingGroupOrg']);
+                    }
                 ],
             ],
         ];
@@ -468,7 +456,7 @@ class SharingGroupsController extends AppController
             unset($contain['SharingGroupServers']);
         }
 
-        $afterFindHandler = function(SharingGroup $sg) {
+        $afterFindHandler = function (SharingGroup $sg) {
             if (isset($sg->SharingGroupServer)) {
                 foreach ($sg->SharingGroupServer as $key => $sgs) {
                     if ($sgs['server_id'] == 0) {
@@ -487,9 +475,10 @@ class SharingGroupsController extends AppController
                         'conditions' => ['Users.id' => $sg->sync_user_id],
                         'recursive' => -1,
                         'fields' => ['Users.id'],
-                        'contain' => ['Organisations' => [
-                            'fields' => ['Organisations.id', 'Organisations.name', 'Organisations.uuid'],
-                        ]
+                        'contain' => [
+                            'Organisations' => [
+                                'fields' => ['Organisations.id', 'Organisations.name', 'Organisations.uuid'],
+                            ]
                         ]
                     ]
                 )->first();
@@ -508,7 +497,7 @@ class SharingGroupsController extends AppController
             return $sg;
         };
 
-        $conditions= [];
+        $conditions = [];
         $params = [
             'contain' => $contain,
             'conditions' => $conditions,

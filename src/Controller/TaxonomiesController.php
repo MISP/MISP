@@ -13,14 +13,16 @@ class TaxonomiesController extends AppController
 {
     use LocatorAwareTrait;
 
+    protected $conditions = [];
+    protected $contain = [
+        'TaxonomyPredicates' => [
+            'fields' => ['TaxonomyPredicates.id', 'TaxonomyPredicates.taxonomy_id', 'TaxonomyPredicates.value'],
+            'TaxonomyEntries' => ['fields' => ['TaxonomyEntries.id', 'TaxonomyEntries.taxonomy_predicate_id', 'TaxonomyEntries.value']]
+        ]
+    ];
+    protected $fields = [];
     public $paginate = [
         'limit' => 60,
-        'contain' => [
-            'TaxonomyPredicates' => [
-                'fields' => ['TaxonomyPredicates.id', 'TaxonomyPredicates.taxonomy_id', 'TaxonomyPredicates.value'],
-                'TaxonomyEntries' => ['fields' => ['TaxonomyEntries.id', 'TaxonomyEntries.taxonomy_predicate_id', 'TaxonomyEntries.value']]
-            ]
-        ],
         'order' => [
             'Taxonomies.id' => 'DESC'
         ],
@@ -31,24 +33,26 @@ class TaxonomiesController extends AppController
         $this->paginate['recursive'] = -1;
 
         if (!empty($this->request->getQueryParams()['value'])) {
-            $this->paginate['conditions']['id'] = $this->__search($this->request->getQueryParams()['value']);
+            $this->conditions['id'] = $this->__search($this->request->getQueryParams()['value']);
         }
 
         if (isset($this->request->getQueryParams()['enabled'])) {
-            $this->paginate['conditions']['enabled'] = $this->request->getQueryParams()['enabled'] ? 1 : 0;
+            $this->conditions['enabled'] = $this->request->getQueryParams()['enabled'] ? 1 : 0;
         }
 
+        $query = $this->Taxonomies->find(
+            'all',
+            [
+                'conditions' => $this->conditions,
+                'contain' => $this->contain,
+                'fields' => $this->fields
+            ]
+        );
+
         if ($this->ParamHandler->isRest()) {
-            $keepFields = ['conditions', 'contain', 'recursive', 'sort'];
-            $searchParams = [];
-            foreach ($keepFields as $field) {
-                if (!empty($this->paginate[$field])) {
-                    $searchParams[$field] = $this->paginate[$field];
-                }
-            }
-            $taxonomies = $this->Taxonomies->find('all', $searchParams);
+            $taxonomies = $query;
         } else {
-            $taxonomies = $this->paginate();
+            $taxonomies = $this->paginate($query);
         }
 
         $taxonomies = $this->__tagCount($taxonomies->toArray());

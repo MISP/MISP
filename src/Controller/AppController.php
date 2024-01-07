@@ -51,6 +51,9 @@ class AppController extends Controller
     public $MetaTemplates = null;
     public $Users = null;
 
+    /** @var AuditLog|null */
+    protected $AuditLogs = null;
+
     /**
      * Initialization hook method.
      *
@@ -110,6 +113,8 @@ class AppController extends Controller
             Configure::write('DebugKit.forceEnable', true);
         }
         $this->loadComponent('CustomPagination');
+
+        $this->AuditLogs = $this->fetchTable('AuditLogs');
         // $this->loadComponent('FloodProtection'); // TODO: enable after flood protection table exists
         /*
          * Enable the following component for recommended CakePHP form protection settings.

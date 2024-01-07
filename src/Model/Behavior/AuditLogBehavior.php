@@ -18,7 +18,7 @@ class AuditLogBehavior extends Behavior
     private $old;
 
     /** @var AuditLog|null */
-    private $AuditLogs;
+    private $AuditLogs = null;
 
     // Hash is faster that in_array
     private $skipFields = [
@@ -43,28 +43,20 @@ class AuditLogBehavior extends Behavior
     {
         $fields = $entity->extract($entity->getVisible(), true);
         $skipFields = $this->skipFields;
-        $fieldsToFetch = array_filter(
-            $fields,
-            function ($key) use ($skipFields) {
-                return strpos($key, '_') !== 0 && !isset($skipFields[$key]);
-            },
-            ARRAY_FILTER_USE_KEY
+        $fieldsToFetch = array_keys(
+            array_filter(
+                $fields,
+                function ($key) use ($skipFields) {
+                    return strpos($key, '_') !== 0 && !isset($skipFields[$key]);
+                },
+                ARRAY_FILTER_USE_KEY
+            )
         );
-        // Do not fetch old version when just few fields will be fetched
-        $fieldToFetch = [];
-        if (!empty($options['fieldList'])) {
-            foreach ($options['fieldList'] as $field) {
-                if (!isset($this->skipFields[$field])) {
-                    $fieldToFetch[] = $field;
-                }
-            }
-            if (empty($fieldToFetch)) {
-                $this->old = null;
-                return true;
-            }
-        }
+        $availableColumns = $this->_table->getSchema()->columns();
+        $fieldsToFetch = array_intersect($fieldsToFetch, $availableColumns);
+
         if ($entity->id) {
-            $this->old = $this->_table->find()->where(['id' => $entity->id])->contain($fieldToFetch)->first();
+            $this->old = $this->_table->find()->where(['id' => $entity->id])->select($fieldsToFetch)->first();
         } else {
             $this->old = null;
         }
