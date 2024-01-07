@@ -303,4 +303,14 @@ class AppTable extends Table
         }
         return $this->Log;
     }
+ 
+    /**
+     * @deprecated checkMISPVersion - use \App\Lib\Tools\MISPTool::getVersion() instead
+     *
+     * @return array
+     */
+    public function checkMISPVersion() 
+    {
+        return \App\Lib\Tools\MISPTool::getVersion();
+    }
 }

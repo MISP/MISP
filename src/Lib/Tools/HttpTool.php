@@ -132,7 +132,8 @@ class HttpTool extends CakeClient
         }
 
         // Add user-agent
-        $this->_defaultConfig['headers']['User-Agent'] = "MISP - Threat Intelligence & Sharing Platform"; // LATER add MISP version 
+        $this->_defaultConfig['headers']['User-Agent'] = "MISP - Threat Intelligence & Sharing Platform";
+        // TODO add MISP version? or only do it for server to server communication? (see configFromServer())
     }
 
     /**
@@ -159,7 +160,29 @@ class HttpTool extends CakeClient
             if (!empty($server['skip_proxy'])) {
                 $this->_defaultConfig['skip_proxy'] = true;
             }
+            if (!empty($server['authkey'])) {
+                $this->_defaultConfig['headers']['Authorization'] = $server['authkey'];
+            }
+            $this->_defaultConfig['headers']['Accept'] = 'application/json';
+            $this->_defaultConfig['headers']['Content-Type'] = 'application/json';
+            // we're talking to another MISP server, it is therefore interesting to share out version and UUID to ensure compatible communication
+            $this->shareMISPInfo();
         }
+    }
+
+        
+    /**
+     * shareMISPInfo - share MISP version and UUID in the headers
+     *
+     * @return void
+     */
+    public function shareMISPInfo()
+    {
+        $misp_version = implode('.', \App\Lib\Tools\MISPTool::getVersion());
+        // FIXME set User-Agent is alread set, but without with MISP version: and co - 'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
+        $this->_defaultConfig['headers']['MISP-version'] = $misp_version;
+        $this->_defaultConfig['headers']['MISP-uuid'] = Configure::read('MISP.uuid');
+
     }
 
 
