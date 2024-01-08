@@ -278,11 +278,6 @@
                         'requirement' => $isAclSync && !$isSiteAdmin
                     ),
                     array(
-                        'text' => __('Import Server Settings'),
-                        'url' => $baseurl . '/servers/import',
-                        'requirement' => $this->Acl->canAccess('servers', 'import'),
-                    ),
-                    array(
                         'text' => __('Remote Servers'),
                         'url' => $baseurl . '/servers/index',
                         'requirement' => $this->Acl->canAccess('servers', 'index'),
@@ -291,11 +286,6 @@
                         'text' => __('Feeds'),
                         'url' => $baseurl . '/feeds/index',
                         'requirement' => $this->Acl->canAccess('feeds', 'index'),
-                    ),
-                    array(
-                        'text' => __('Search Feed Caches'),
-                        'url' => $baseurl . '/feeds/searchCaches',
-                        'requirement' => $this->Acl->canAccess('feeds', 'searchCaches'),
                     ),
                     array(
                         'text' => __('SightingDB'),
@@ -313,7 +303,7 @@
                         'requirement' => $this->Acl->canAccess('cerebrates', 'index'),
                     ),
                     array(
-                        'text' => __('List Taxii Servers'),
+                        'text' => __('TAXII Servers'),
                         'url' => $baseurl . '/TaxiiServers/index',
                         'requirement' => $this->Acl->canAccess('taxiiServers', 'index'),
                     ),
