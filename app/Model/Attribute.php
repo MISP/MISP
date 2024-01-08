@@ -545,6 +545,28 @@ class Attribute extends AppModel
         return $result;
     }
 
+    /**
+     * This method is called after all data are successfully saved into database
+     * @return void
+     * @throws Exception
+     */
+    private function afterDatabaseSave(array $data)
+    {
+        $attribute = $data['Attribute'];
+        if (isset($attribute['type']) && $this->typeIsAttachment($attribute['type'])) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
+        }
+    }
+
+    public function save($data = null, $validate = true, $fieldList = array())
+    {
+        $result = parent::save($data, $validate, $fieldList);
+        if ($result) {
+            $this->afterDatabaseSave($result);
+        }
+        return $result;
+    }
+
     public function beforeDelete($cascade = true)
     {
         // delete attachments from the disk
@@ -881,7 +903,6 @@ class Attribute extends AppModel
         }
         $result = $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data']);
         if ($result) {
-            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
             // Clean thumbnail cache
             if ($this->isImage($attribute) && Configure::read('MISP.thumbnail_in_redis')) {
                 $redis = RedisTool::init();
