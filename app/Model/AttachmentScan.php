@@ -297,14 +297,14 @@ class AttachmentScan extends AppModel
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob(
                 'SYSTEM',
-                Job::WORKER_DEFAULT,
+                Job::WORKER_PRIO,
                 'virus_scan',
                 ($type === self::TYPE_ATTRIBUTE ? 'Attribute: ' : 'Shadow attribute: ') . $attribute['id'],
                 'Scanning...'
             );
 
             $this->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::PRIO_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [
                     'scanAttachment',
