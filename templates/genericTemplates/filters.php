@@ -2,11 +2,14 @@
 
 use Cake\Utility\Inflector;
 
-$tableItems = array_map(function ($fieldName) {
-    return [
-        'fieldname' => $fieldName,
-    ];
-}, $filters);
+$tableItems = array_map(
+    function ($fieldName) {
+        return [
+            'fieldname' => $fieldName,
+        ];
+    },
+    $filters
+);
 $formTypeMap = $this->Form->getConfig('typeMap');
 
 $filteringForm = $this->Bootstrap->table(
@@ -70,13 +73,18 @@ $filteringForm = $this->Bootstrap->table(
                         ];
                     }
                     $fieldData = array_merge($fieldData, $filtersConfig[$fieldName]);
-                    $this->Form->setTemplates([
-                        'formGroup' => '<div class="col-sm-10">{{input}}</div>',
-                    ]);
-                    return $this->element('genericElements/Form/fieldScaffold', [
-                        'fieldData' => $fieldData,
-                        'params' => []
-                    ]);
+                    $this->Form->setTemplates(
+                        [
+                            'formGroup' => '<div class="col-sm-10">{{input}}</div>',
+                        ]
+                    );
+                    return $this->element(
+                        'genericElements/Form/fieldScaffold',
+                        [
+                            'fieldData' => $fieldData,
+                            'params' => []
+                        ]
+                    );
                 }
             ],
         ],
@@ -86,44 +94,59 @@ $filteringForm = $this->Bootstrap->table(
 
 $filteringMetafields = '';
 if ($metaFieldsEnabled) {
-    $helpText = $this->Bootstrap->node('sup', [
-        'class' => ['ms-1 fa fa-info'],
-        'title' => __('Include help'),
-        'data-bs-toggle' => 'tooltip',
-    ]);
+    $helpText = $this->Bootstrap->node(
+        'sup',
+        [
+            'class' => ['ms-1 fa fa-info'],
+            'title' => __('Include help'),
+            'data-bs-toggle' => 'tooltip',
+        ]
+    );
     $filteringMetafields = $this->Bootstrap->node('h5', [], __('Meta Fields') . $helpText);
     $filteringMetafields .= $this->element('genericElements/IndexTable/metafield_filtering', $metaTemplates);
 }
 
 $filteringTags = '';
 if ($taggingEnabled) {
-    $helpText = $this->Bootstrap->node('sup', [
-        'class' => ['ms-1 fa fa-info'],
-        'title' => __('Supports negation matches (with the `!` character) and LIKE matches (with the `%` character).&#10;Example: `!exportable`, `%able`'),
-        'data-bs-toggle' => 'tooltip',
-    ]);
-    $filteringTags = $this->Bootstrap->node('h5', [
-        'class' => 'mt-2'
-    ], __('Tags') . $helpText);
-    $filteringTags .= $this->Tag->tags([], [
-        'allTags' => $allTags,
-        'picker' => true,
-        'editable' => false,
-    ]);
+    $helpText = $this->Bootstrap->node(
+        'sup',
+        [
+            'class' => ['ms-1 fa fa-info'],
+            'title' => __('Supports negation matches (with the `!` character) and LIKE matches (with the `%` character).&#10;Example: `!exportable`, `%able`'),
+            'data-bs-toggle' => 'tooltip',
+        ]
+    );
+    $filteringTags = $this->Bootstrap->node(
+        'h5',
+        [
+            'class' => 'mt-2'
+        ],
+        __('Tags') . $helpText
+    );
+    $filteringTags .= $this->Tag->tags(
+        [],
+        [
+            'allTags' => $allTags,
+            'picker' => true,
+            'editable' => false,
+        ]
+    );
 }
 
 $modalBody = implode('', [$filteringForm, $filteringMetafields, $filteringTags]);
 
-echo $this->Bootstrap->modal([
-    'title' => __('Filtering options for {0}', Inflector::singularize($this->request->getParam('controller'))),
-    'size' => !empty($metaFieldsEnabled) ? 'xl' : 'lg',
-    'type' => 'confirm',
-    'bodyHtml' => $modalBody,
-    'confirmButton' => [
-        'text' => __('Filter'),
-    ],
-    'confirmFunction' => 'filterIndex'
-]);
+echo $this->Bootstrap->modal(
+    [
+        'title' => __('Filtering options for {0}', Inflector::singularize($this->request->getParam('controller'))),
+        'size' => !empty($metaFieldsEnabled) ? 'xl' : 'lg',
+        'type' => 'confirm',
+        'bodyHtml' => $modalBody,
+        'confirmButton' => [
+            'text' => __('Filter'),
+        ],
+        'confirmFunction' => 'filterIndex'
+    ]
+);
 ?>
 
 <script>
@@ -199,7 +222,7 @@ echo $this->Bootstrap->modal([
         $row.find('.fieldOperator').val(operator)
         const $formElement = $row.find('.fieldValue');
         if ($formElement.attr('type') === 'datetime-local') {
-            $formElement.val(moment(value).format('yyyy-MM-DDThh:mm:ss'))
+            $formElement.val(dayjs(value).format('YYYY-MM-DD[T]HH:mm:ss'))
         } else if ($formElement.is('select') && Array.isArray(value)) {
             let newOptions = [];
             value.forEach(aValue => {
@@ -243,7 +266,7 @@ echo $this->Bootstrap->modal([
         rowData['operator'] = $row.find('select.fieldOperator').val()
         const $formElement = $row.find('.fieldValue');
         if ($formElement.attr('type') === 'datetime-local') {
-            rowData['value'] = $formElement.val().length > 0 ? moment($formElement.val()).toISOString() : $formElement.val()
+            rowData['value'] = $formElement.val().length > 0 ? dayjs($formElement.val()).toISOString() : $formElement.val()
         } else if ($formElement.attr('type') === 'radio') {
             rowData['value'] = $formElement.filter(':checked').val()
         } else {

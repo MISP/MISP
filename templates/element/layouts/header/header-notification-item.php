@@ -7,9 +7,9 @@ $variant = empty($notification['variant']) ? 'primary' : $notification['variant'
 ?>
 <a
     class="notification-item dropdown-item px-2 btn"
-    <?php if (empty($notification['_useModal'])): ?>
+    <?php if (empty($notification['_useModal'])) : ?>
         href="<?= Router::url($notification['router']) ?>"
-    <?php else: ?>
+    <?php else : ?>
         onclick="UI.submissionModal('<?= Router::url($notification['router']) ?>', {closeOnSuccess: false})"
     <?php endif; ?>
     title="<?= sprintf('%s:&#010; %s', $this->ValueGetter->get($notification['text']), $this->ValueGetter->get($notification['details'])) ?>"
@@ -36,5 +36,5 @@ $variant = empty($notification['variant']) ? 'primary' : $notification['variant'
     </div>
 </a>
 <script>
-    document.getElementById('<?= $seed ?>').innerHTML = moment(document.getElementById('<?= $seed ?>').innerHTML).fromNow();
+    document.getElementById('<?= $seed ?>').innerHTML = dayjs(document.getElementById('<?= $seed ?>').innerHTML).fromNow();
 </script>

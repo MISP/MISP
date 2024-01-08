@@ -13,7 +13,6 @@
  * @license       https://opensource.org/licenses/mit-license.php MIT License
  * @var \App\View\AppView $this
  */
-use Cake\Core\Configure;
 
 $cakeDescription = 'MISP';
 
@@ -61,7 +60,8 @@ $sidebarOpen = $loggedUser->user_settings_by_name_with_fallback['ui.sidebar.expa
     <?= $this->Html->css('select2.min') ?>
     <?= $this->Html->css('select2-bootstrap5-vars') ?>
     <?= $this->Html->script('apexcharts.min') ?>
-    <?= $this->Html->script('moment-with-locales.min') ?>
+    <?= $this->Html->script('dayjs.min') ?>
+    <?= $this->Html->script('dayjs_plugins/relativeTime.min.js') ?>
     <?= $this->Html->css('apexcharts') ?>
 
     <?= $this->fetch('meta') ?>
@@ -73,6 +73,11 @@ $sidebarOpen = $loggedUser->user_settings_by_name_with_fallback['ui.sidebar.expa
 
     <?= $this->Html->meta('favicon-misp.png', '/img/favicon-misp.png', ['type' => 'icon']); ?>
 </head>
+
+<script>
+    dayjs.extend(window.dayjs_plugin_relativeTime)
+</script>
+
 <body>
     <div class="main-wrapper">
         <header class="navbar top-navbar navbar-dark">
