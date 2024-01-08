@@ -351,11 +351,10 @@ class AttachmentScan extends AppModel
                 return false; // empty file is automatically considered as not infected
             }
 
-
-            /* if ($file->size() > 50 * 1024 * 1024) {
-             $this->log("File '$file->path' is bigger than 50 MB, will be not scanned.", LOG_NOTICE);
-             return false;
-         }*/
+            if ($fileSize > 25 * 1024 * 1024) {
+                $this->log("File '$file->path' is bigger than 25 MB, will be not scanned.", LOG_NOTICE);
+                return false;
+            }
 
             $fileContent = $file->read();
             if ($fileContent === false) {
