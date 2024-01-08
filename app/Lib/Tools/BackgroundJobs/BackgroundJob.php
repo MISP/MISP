@@ -153,6 +153,9 @@ class BackgroundJob implements JsonSerializable
         return ['id', 'command', 'args', 'createdAt', 'updatedAt', 'status', 'output', 'error', 'metadata'];
     }
 
+    /**
+     * @return string Background job ID in UUID format
+     */
     public function id(): string
     {
         return $this->id;

@@ -46,15 +46,19 @@ class StartWorkerShell extends AppShell
         );
 
         $this->maxExecutionTime = (int)$this->params['maxExecutionTime'];
+        $queue = $this->worker->queue();
+        $backgroundJobTool = $this->getBackgroundJobsTool();
 
-        CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - starting to process background jobs...");
+        CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$queue}] - starting to process background jobs...");
 
         while (true) {
             $this->checkMaxExecutionTime();
 
-            $job = $this->getBackgroundJobsTool()->dequeue($this->worker->queue());
+            $job = $backgroundJobTool->dequeue($queue);
             if ($job) {
+                $backgroundJobTool->addToRunning($queue, $job);
                 $this->runJob($job);
+                $backgroundJobTool->removeFromRunning($queue, $job);
             }
         }
     }

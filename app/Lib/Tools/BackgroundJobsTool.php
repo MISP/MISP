@@ -91,7 +91,8 @@ class BackgroundJobsTool
     ];
 
     const JOB_STATUS_PREFIX = 'job_status',
-        DATA_CONTENT_PREFIX = 'data_content';
+        DATA_CONTENT_PREFIX = 'data_content',
+        RUNNING_JOB_PREFIX = 'running';
 
     /** @var array */
     private $settings;
@@ -275,6 +276,37 @@ class BackgroundJobsTool
         }
 
         return null;
+    }
+
+    /**
+     * @param string $queue
+     * @param BackgroundJob $job
+     * @return void
+     */
+    public function addToRunning(string $queue, BackgroundJob $job)
+    {
+        $this->RedisConnection->sAdd(self::RUNNING_JOB_PREFIX . ':' . $queue, $job->id());
+    }
+
+    /**
+     * @param string $queue
+     * @param BackgroundJob $job
+     * @return void
+     */
+    public function removeFromRunning(string $queue, BackgroundJob $job)
+    {
+        $this->RedisConnection->sRem(self::RUNNING_JOB_PREFIX . ':' . $queue, $job->id());
+    }
+
+    /**
+     * Return current running jobs
+     * @param string $queue
+     * @return string[] Background jobs IDs
+     * @throws RedisException
+     */
+    public function runningJobs(string $queue): array
+    {
+        return $this->RedisConnection->sMembers(self::RUNNING_JOB_PREFIX . ':' . $queue);
     }
 
     /**
@@ -498,19 +530,6 @@ class BackgroundJobsTool
     public function restartDeadWorkers(bool $waitForRestart = false)
     {
         $this->getSupervisor()->startProcessGroup(self::MISP_WORKERS_PROCESS_GROUP, $waitForRestart);
-    }
-
-    /**
-     * Purge queue
-     *
-     * @param string $queue
-     * @return void
-     */
-    public function purgeQueue(string $queue)
-    {
-        $this->validateQueue($queue);
-
-        $this->RedisConnection->del($queue);
     }
 
     /**

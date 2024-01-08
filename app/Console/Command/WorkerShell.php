@@ -36,9 +36,12 @@ class WorkerShell extends AppShell
 
     public function showQueues()
     {
-        $queues = $this->getBackgroundJobsTool()->getQueues();
-        foreach ($queues as $queue) {
-            $this->out("{$queue}:\t{$this->getBackgroundJobsTool()->getQueueSize($queue)}");
+        $tool = $this->getBackgroundJobsTool();
+        foreach (BackgroundJobsTool::VALID_QUEUES as $queue) {
+            $this->out("{$queue}:\t{$tool->getQueueSize($queue)}");
+            foreach ($tool->runningJobs($queue) as $jobId) {
+                $this->out(" - $jobId");
+            }
        }
     }
 
