@@ -189,6 +189,7 @@ class AttachmentScan extends AppModel
         /** @var Job $job */
         $job = ClassRegistry::init('Job');
         if ($jobId && !$job->exists($jobId)) {
+            $this->log("Job with ID $jobId not found in database", LOG_NOTICE);
             $jobId = null;
         }
 

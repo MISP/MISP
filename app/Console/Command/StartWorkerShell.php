@@ -64,7 +64,7 @@ class StartWorkerShell extends AppShell
      */
     private function runJob(BackgroundJob $job)
     {
-        CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - launching job with ID: {$job->id()}...");
+        CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - launching job with ID: {$job->id()}");
 
         try {
             $job->setStatus(BackgroundJob::STATUS_RUNNING);
@@ -73,12 +73,14 @@ class StartWorkerShell extends AppShell
             CakeLog::info("[JOB ID: {$job->id()}] - started command `$command`.");
             $this->getBackgroundJobsTool()->update($job);
 
+            $start = microtime(true);
             $job->run();
+            $duration = number_format(microtime(true) - $start, 3, '.', '');
 
             if ($job->status() === BackgroundJob::STATUS_COMPLETED) {
-                CakeLog::info("[JOB ID: {$job->id()}] - completed.");
+                CakeLog::info("[JOB ID: {$job->id()}] - successfully completed in $duration seconds.");
             } else {
-                CakeLog::error("[JOB ID: {$job->id()}] - failed with error code {$job->returnCode()}. STDERR: {$job->error()}. STDOUT: {$job->output()}.");
+                CakeLog::error("[JOB ID: {$job->id()}] - failed with error code {$job->returnCode()} after $duration seconds. STDERR: {$job->error()}. STDOUT: {$job->output()}.");
             }
         } catch (Exception $exception) {
             CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - job ID: {$job->id()} failed with exception: {$exception->getMessage()}");
