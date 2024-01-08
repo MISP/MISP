@@ -202,6 +202,11 @@ class SidemenuNavigation
                     'icon' => $this->iconTable['Roles'],
                     'url' => '/roles/index',
                 ],
+                'Messages' => [
+                    'label' => __('Inbox'),
+                    'icon' => $this->iconTable['Inbox'],
+                    'url' => '/inbox/index',
+                ],
                 'ServerSettings' => [
                     'label' => __('Settings & Maintenance'),
                     'icon' => $this->iconTable['ServerSettings'],
