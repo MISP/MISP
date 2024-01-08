@@ -322,16 +322,18 @@ $(document).ready(() => {
         openSaveBookmarkModal(window.location.pathname)
     })
 
-    $('.sidebar .sidebar-link-container.parent').on('mouseenter', function() {
-        const $subContainer = $(this).find('.submenu-container')
-        $subContainer.css({ display: 'block' })
-        $(this).on('mouseleave', function() {
+    $('.sidebar .sidebar-link-container.parent')
+        .on('mouseenter', function() {
+            const $subContainer = $(this).find('.submenu-container')
+            $subContainer.css({ display: 'block' })
+        })
+        .on('mouseleave', function() {
+            const $sidebarLink = $(this)
+            const $subContainer = $sidebarLink.find('.submenu-container')
             delay(function () {
-                if (!$subContainer[0].matches(':hover')) {
+                if (!($subContainer[0].matches(':hover') || $sidebarLink[0].matches(':hover'))) {
                     $subContainer.css({ display: 'none' })
-                    $(this).trigger('mouseenter')
                 }
             }, 150)
         })
-    })
 })
