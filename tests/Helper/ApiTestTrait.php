@@ -38,7 +38,7 @@ trait ApiTestTrait
     /** @var ServerRequest */
     protected $_psrRequest;
 
-    /* @var boolean */
+    /** @var boolean */
     protected $_skipOpenApiValidations = false;
 
     public function setUp(): void

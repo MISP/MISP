@@ -184,7 +184,7 @@ xWV4oBk=
     {
         $this->markTestSkipped("This is not very well implemented yet.");
         $client = new HttpTool();
-        /* @var $certificates array */
+        /** @var array $certificates */
         $certificates = $client->fetchCertificates('https://www.google.com');
         // $certificates = $client->fetchCertificates(self::HTTPS_SELF_SIGNED_URI);
         // $certificates = $client->fetchCertificates('http://www.google.com');

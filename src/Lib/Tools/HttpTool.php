@@ -317,7 +317,7 @@ class HttpTool extends CakeClient
      */
     public static function parseCertificate(mixed $certificate): array
     {
-        /* @var $parsed array */
+        /** @var array $parsed */
         $parsed = openssl_x509_parse($certificate);
         if (!$parsed) {
             throw new CakeException("Couldn't get parse X.509 certificate: " . openssl_error_string());
