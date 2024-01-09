@@ -230,6 +230,10 @@ class AppController extends Controller
                 $this->Security->csrfCheck = false;
                 $loginByAuthKeyResult = $this->__loginByAuthKey();
                 if ($loginByAuthKeyResult === false || $this->Auth->user() === null) {
+                    if ($this->IndexFilter->isXhr()) {
+                        throw new ForbiddenException('Authentication failed.');
+                    }
+
                     if ($loginByAuthKeyResult === null) {
                         $this->loadModel('Log');
                         $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.");
