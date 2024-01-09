@@ -2,15 +2,14 @@
 
 namespace App\View\Helper\BootstrapElements;
 
-use Cake\Utility\Hash;
-
 use App\View\Helper\BootstrapGeneric;
 use App\View\Helper\BootstrapHelper;
+use Cake\Utility\Hash;
 
 /**
  * Creates a list looking like a table from 1-dimensional data $item.
  * Perfect to display the Key-Values of an object.
- * 
+ *
  * # Options for table
  *  - striped, bordered, borderless, hover, small: Default bootstrap behavior
  *  - variant: Variant to apply on the entire table
@@ -21,10 +20,10 @@ use App\View\Helper\BootstrapHelper;
  *  - id: The ID to use for the table
  *  - caption: Optional table caption
  *  - elementsRootPath: Root path to use when item are relying on cakephp's element. See options for fields
- * 
+ *
  * # Items
  *  - They have the content that's used to generate the table. Typically and array<array> or array<entity>
- * 
+ *
  * # Options for fields
  *  - key: The name of the field to be displayed as a label
  *  - keyHtml: The HTML of the field to be displayed as a label
@@ -39,7 +38,7 @@ use App\View\Helper\BootstrapHelper;
  *  - rowClass: A list of class to be added to the row
  *  - keyClass: A list of class to be added to the key cell
  *  - valueClass: A list of class to be added to the value cell
- * 
+ *
  * # Usage:
  *      $this->Bootstrap->listTable(
  *          [
@@ -101,7 +100,12 @@ class BootstrapListTable extends BootstrapGeneric
         'elementsRootPath' => '/genericElements/SingleViews/Fields/',
     ];
 
-    function __construct(array $options, array $data, BootstrapHelper $btHelper)
+    private $fields;
+    private $item;
+    private $caption;
+    private $btHelper;
+
+    public function __construct(array $options, array $data, BootstrapHelper $btHelper)
     {
         $this->allowedOptionValues = [
             'variant' => array_merge(BootstrapGeneric::$variants, [''])
@@ -129,20 +133,23 @@ class BootstrapListTable extends BootstrapGeneric
 
     private function genTable(): string
     {
-        $html = $this->nodeOpen('table', [
-            'class' => [
-                'table',
-                "table-{$this->options['variant']}",
-                $this->options['striped'] ? 'table-striped' : '',
-                $this->options['bordered'] ? 'table-bordered' : '',
-                $this->options['borderless'] ? 'table-borderless' : '',
-                $this->options['hover'] ? 'table-hover' : '',
-                $this->options['small'] ? 'table-sm' : '',
-                implode(' ', $this->options['tableClass']),
-                !empty($this->options['variant']) ? "table-{$this->options['variant']}" : '',
-            ],
-            'id' => $this->options['id'] ?? ''
-        ]);
+        $html = $this->nodeOpen(
+            'table',
+            [
+                'class' => [
+                    'table',
+                    "table-{$this->options['variant']}",
+                    $this->options['striped'] ? 'table-striped' : '',
+                    $this->options['bordered'] ? 'table-bordered' : '',
+                    $this->options['borderless'] ? 'table-borderless' : '',
+                    $this->options['hover'] ? 'table-hover' : '',
+                    $this->options['small'] ? 'table-sm' : '',
+                    implode(' ', $this->options['tableClass']),
+                    !empty($this->options['variant']) ? "table-{$this->options['variant']}" : '',
+                ],
+                'id' => $this->options['id'] ?? ''
+            ]
+        );
 
         $html .= $this->genCaption();
         $html .= $this->genBody();
@@ -153,9 +160,12 @@ class BootstrapListTable extends BootstrapGeneric
 
     private function genBody(): string
     {
-        $body =  $this->nodeOpen('tbody', [
-            'class' => $this->options['bodyClass'],
-        ]);
+        $body =  $this->nodeOpen(
+            'tbody',
+            [
+                'class' => $this->options['bodyClass'],
+            ]
+        );
         foreach ($this->fields as $i => $field) {
             $body .= $this->genRow($field);
         }
@@ -168,23 +178,31 @@ class BootstrapListTable extends BootstrapGeneric
         $allKeyClass = $this->convertToArrayIfNeeded($this->options['keyClass'] ?? []);
         $keyClass = $this->convertToArrayIfNeeded($field['keyClass'] ?? []);
         $rowValue = $this->genCell($field);
-        $rowKey = $this->node('th', [
-            'class' => array_merge(
-                $allKeyClass,
-                $keyClass,
-                !empty($this->options['fluid']) ? ['col flex-shrink-1'] : ['col-4 col-sm-3'],
-            ),
-            'scope' => 'row'
-        ], $field['keyHtml'] ?? h($field['key']));
-        $row = $this->node('tr', [
-            'class' => array_merge(
-                $this->options['rowClass'],
-                [
-                    'd-flex',
-                    !empty($field['rowVariant']) ? "table-{$field['rowVariant']}" : ''
-                ]
-            ),
-        ], [$rowKey, $rowValue]);
+        $rowKey = $this->node(
+            'th',
+            [
+                'class' => array_merge(
+                    $allKeyClass,
+                    $keyClass,
+                    !empty($this->options['fluid']) ? ['col flex-shrink-1'] : ['col-4 col-sm-3'],
+                ),
+                'scope' => 'row'
+            ],
+            $field['keyHtml'] ?? h($field['key'])
+        );
+        $row = $this->node(
+            'tr',
+            [
+                'class' => array_merge(
+                    $this->options['rowClass'],
+                    [
+                        'd-flex',
+                        !empty($field['rowVariant']) ? "table-{$field['rowVariant']}" : ''
+                    ]
+                ),
+            ],
+            [$rowKey, $rowValue]
+        );
         return $row;
     }
 
@@ -195,10 +213,13 @@ class BootstrapListTable extends BootstrapGeneric
         } else if (isset($field['formatter'])) {
             $cellContent = $field['formatter']($this->getValueFromObject($field), $this->item);
         } else if (isset($field['type'])) {
-            $cellContent = $this->btHelper->getView()->element($this->getElementPath($field['type']), [
-                'data' => $this->item,
-                'field' => $field
-            ]);
+            $cellContent = $this->btHelper->getView()->element(
+                $this->getElementPath($field['type']),
+                [
+                    'data' => $this->item,
+                    'field' => $field
+                ]
+            );
         } else {
             $cellContent = h($this->getValueFromObject($field));
         }
@@ -209,16 +230,20 @@ class BootstrapListTable extends BootstrapGeneric
         }
         $allValueClass = $this->convertToArrayIfNeeded($this->options['valueClass'] ?? []);
         $valueClass = $this->convertToArrayIfNeeded($field['valueClass'] ?? []);
-        return $this->node('td', [
-            'class' => array_merge(
-                $allValueClass,
-                $valueClass,
-                [
-                    (!empty($this->options['fluid']) ? 'col flex-grow-1' : 'col-8 col-sm-9'),
-                    !empty($field['cellVariant']) ? "bg-{$field['cellVariant']}" : ''
-                ]
-            ),
-        ], $cellContent);
+        return $this->node(
+            'td',
+            [
+                'class' => array_merge(
+                    $allValueClass,
+                    $valueClass,
+                    [
+                        (!empty($this->options['fluid']) ? 'col flex-grow-1' : 'col-8 col-sm-9'),
+                        !empty($field['cellVariant']) ? "bg-{$field['cellVariant']}" : ''
+                    ]
+                ),
+            ],
+            $cellContent
+        );
     }
 
     private function getValueFromObject(array $field): string
