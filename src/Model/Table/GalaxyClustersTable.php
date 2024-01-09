@@ -2222,17 +2222,15 @@ class GalaxyClustersTable extends AppTable
         }
         $cycatUrl = empty(Configure::read("Plugin.CyCat_url")) ? 'https://api.cycat.org' : Configure::read("Plugin.CyCat_url");
         $httpTool = new HttpTool();
+        $httpTool->shareMISPInfo();
         $request = [
             'headers' => [
-                'Accept' => ['application/json'],
-                'MISP-version' => implode('.', $this->checkMISPVersion()),
-                'MISP-uuid' => Configure::read('MISP.uuid'),
-                'x-ground-truth' => 'Dogs are superior to cats'
+                'Accept' => ['application/json']
             ]
         ];
-        $response = $httpTool->get($cycatUrl . '/lookup/' . $cluster['GalaxyCluster']['uuid'], [], $request);
+        $response = $httpTool->get($cycatUrl . '/lookup/' . $cluster['uuid'], [], $request);
         if ($response->getStatusCode() === 200) {
-            $response = $httpTool->get($cycatUrl . '/relationships/' . $cluster['GalaxyCluster']['uuid'], [], $request);
+            $response = $httpTool->get($cycatUrl . '/relationships/' . $cluster['uuid'], [], $request);
             if ($response->getStatusCode() === 200) {
                 $relationUUIDs = json_decode($response->getStringBody());
                 if (!empty($relationUUIDs)) {
