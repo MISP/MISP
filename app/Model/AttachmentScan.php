@@ -253,12 +253,12 @@ class AttachmentScan extends AppModel
                 $infected = $this->scanAttachment($type, $attribute[$type], $moduleInfo);
                 if ($infected === true) {
                     $virusFound++;
+                    $scanned++;
+                } else if ($infected === false) {
+                    $scanned++;
                 }
-                $scanned++;
-            } catch (NotFoundException $e) {
-                // skip if file doesn't exists
             } catch (Exception $e) {
-                $this->logException("Could not scan attachment for $type {$attribute['Attribute']['id']}", $e);
+                $this->logException("Could not scan attachment for $type {$attribute['Attribute']['id']}", $e, LOG_WARNING);
                 $fails++;
             }
 
@@ -320,10 +320,12 @@ class AttachmentScan extends AppModel
     }
 
     /**
+     * Return true if attachment is infected, null if attachment was not scanned and false if attachment is OK
+     *
      * @param string $type
      * @param array $attribute
      * @param array $moduleInfo
-     * @return bool|null Return true if attachment is infected.
+     * @return bool|null
      * @throws Exception
      */
     private function scanAttachment($type, array $attribute, array $moduleInfo)
@@ -354,7 +356,7 @@ class AttachmentScan extends AppModel
 
             if ($fileSize > 25 * 1024 * 1024) {
                 $this->log("File '$file->path' is bigger than 25 MB, will be not scanned.", LOG_NOTICE);
-                return false;
+                return null;
             }
 
             $fileContent = $file->read();
