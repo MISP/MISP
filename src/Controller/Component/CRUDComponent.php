@@ -5,6 +5,7 @@ namespace App\Controller\Component;
 use App\Utility\UI\IndexSetting;
 use Cake\Controller\Component;
 use Cake\Database\Expression\QueryExpression;
+use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Http\Exception\NotFoundException;
 use Cake\ORM\Query;
 use Cake\ORM\TableRegistry;
@@ -16,7 +17,7 @@ use Cake\View\ViewBuilder;
 
 class CRUDComponent extends Component
 {
-    public $components = ['RestResponse'];
+    public $components = ['RestResponse', 'APIRearrange'];
 
     public function initialize(array $config): void
     {
@@ -50,10 +51,16 @@ class CRUDComponent extends Component
         }
 
         $optionFilters = [];
-        $optionValidFilters = empty($options['filters']) ? [] : $this->getFilterFieldsName($options['filters']);
+        $optionFilters += array_map(
+            function ($filter) {
+                return is_array($filter) ? $filter['name'] : $filter;
+            },
+            empty($options['filters']) ? [] : $options['filters']
+        );
+        // $optionValidFilters = empty($options['filters']) ? [] : $this->getFilterFieldsName($options['filters']);
         // TODO: fix this @sami
         // $optionValidFilters = empty($options['filters']) ? [] : $options['filters'];
-        $optionFilters += $optionValidFilters;
+        // $optionFilters += $optionValidFilters;
         foreach ($optionFilters as $i => $filter) {
             $optionFilters[] = "{$filter} !=";
             $optionFilters[] = "{$filter} >=";
@@ -86,16 +93,33 @@ class CRUDComponent extends Component
                 $this->Controller->paginate['order'] = $options['order'];
             }
         }
-        if ($this->metaFieldsSupported() && !$this->Controller->ParamHandler->isRest()) {
-            $query = $this->includeRequestedMetaFields($query);
+        if (!empty($this->request->getQuery('sort'))) {
+            $sort = $this->request->getQuery('sort');
+            $direction = $this->request->getQuery('direction');
+            if ($this->_validOrderFields($sort) && ($direction === 'asc' || $direction === 'desc')) {
+                $sort = explode('.', $sort);
+                if (count($sort) > 1) {
+                    if ($sort[0] != $this->Table->getAlias()) {
+                        $sort[0] = Inflector::camelize(Inflector::pluralize($sort[0]));
+                    }
+                }
+                $sort = implode('.', $sort);
+                $query->order($sort . ' ' . $direction);
+            }
         }
+        $isRestOrCSV = $this->Controller->ParamHandler->isRest() || $this->request->is('csv');
+        if ($this->metaFieldsSupported()) {
+            $query = $this->includeRequestedMetaFields($query, $isRestOrCSV);
+        }
+
         if (!$this->Controller->ParamHandler->isRest()) {
             $this->setRequestedEntryAmount();
+        } else if (empty($this->request->getQuery('limit'))) {
+            $this->Controller->paginate['limit'] = PHP_INT_MAX; // Make sure to download the entire filtered table
         }
         $data = $this->Controller->paginate($query, $this->Controller->paginate ?? []);
         $totalCount = $this->Controller->getRequest()->getAttribute('paging')[$this->TableAlias]['count'];
-        if ($this->Controller->ParamHandler->isRest()) {
-            $data = $this->Controller->paginate($query, $this->Controller->paginate ?? []);
+        if ($isRestOrCSV) {
             if (isset($options['hidden'])) {
                 $data->each(
                     function ($value, $key) use ($options) {
@@ -138,17 +162,38 @@ class CRUDComponent extends Component
                     }
                 );
             }
-            $this->Controller->restResponsePayload = $this->RestResponse->viewData(
-                $data,
-                'json',
-                false,
-                false,
-                false,
-                [
-                    'X-Total-Count' => $totalCount,
-                ],
-                $wrapResponse
-            );
+            if ($this->request->is('csv')) {
+                require_once(ROOT . '/src/Lib/Tools/CsvConverter.php');
+                $rearranged = $this->APIRearrange->rearrangeForAPI($data, ['smartFlattenMetafields' => true]);
+                $rearranged = $rearranged->map(
+                    function ($e) {
+                        return $e->toArray();
+                    }
+                )->toList();
+                $data = \App\Lib\Tools\CsvConverter::flattenJSON($rearranged, []);
+                $this->Controller->restResponsePayload = $this->RestResponse->viewData(
+                    $data,
+                    'csv',
+                    false,
+                    false,
+                    false,
+                    [
+                        'X-Total-Count' => $totalCount,
+                    ]
+                );
+            } else {
+                $this->Controller->restResponsePayload = $this->RestResponse->viewData(
+                    $data,
+                    'json',
+                    false,
+                    false,
+                    false,
+                    [
+                        'X-Total-Count' => $totalCount,
+                    ],
+                    $wrapResponse
+                );
+            }
         } else {
             $this->Controller->setResponse($this->Controller->getResponse()->withHeader('X-Total-Count', $totalCount));
             if (isset($options['afterFind'])) {
@@ -266,6 +311,13 @@ class CRUDComponent extends Component
         foreach ($filtersConfigRaw as $fieldConfig) {
             if (is_array($fieldConfig)) {
                 $filtersConfig[$fieldConfig['name']] = $fieldConfig;
+                if (!empty($fieldConfig['options'])) {
+                    if (is_string($fieldConfig['options'])) {
+                        $filtersConfig[$fieldConfig['name']]['options'] = $this->Table->{$fieldConfig['options']}($this->Controller->ACL->getUser());
+                    } else {
+                        $filtersConfig[$fieldConfig['name']]['options'] = $fieldConfig['options'];
+                    }
+                }
             } else {
                 $filtersConfig[$fieldConfig] = ['name' => $fieldConfig];
             }
@@ -342,7 +394,7 @@ class CRUDComponent extends Component
      */
     public function getResponsePayload()
     {
-        if ($this->Controller->ParamHandler->isRest()) {
+        if ($this->Controller->ParamHandler->isRest() || $this->request->is('csv')) {
             return $this->Controller->restResponsePayload;
         } else if ($this->Controller->ParamHandler->isAjax() && $this->request->is(['post', 'put'])) {
             return $this->Controller->ajaxResponsePayload;
@@ -370,14 +422,13 @@ class CRUDComponent extends Component
             ->formatResults(
                 function (\Cake\Collection\CollectionInterface $metaTemplates) {
                 // Set meta-template && meta-template-fields indexed by their ID
-                    return $metaTemplates
-                    ->map(
+                    return $metaTemplates->map(
                         function ($metaTemplate) {
                             $metaTemplate->meta_template_fields = Hash::combine($metaTemplate->meta_template_fields, '{n}.id', '{n}');
                             return $metaTemplate;
                         }
                     )
-                    ->indexBy('id');
+                        ->indexBy('id');
                 }
             );
         $metaTemplates = $metaQuery->all();
@@ -467,6 +518,14 @@ class CRUDComponent extends Component
         }
         if (!empty($params['fields'])) {
             $this->Controller->set('fields', $params['fields']);
+        }
+        $EnumerationCollections = TableRegistry::getTableLocator()->get('EnumerationCollections');
+        $modelAlias = $this->Table->getAlias();
+        if (in_array($this->Table->getAlias(), $EnumerationCollections->getValidModelList())) {
+            $enumerations = $EnumerationCollections->getFieldValues($modelAlias);
+            if (!empty($enumerations)) {
+                $this->Controller->set('enumerations', $enumerations);
+            }
         }
         $this->Controller->entity = $data;
         $this->Controller->set('entity', $data);
@@ -840,8 +899,11 @@ class CRUDComponent extends Component
         return $data;
     }
 
-    protected function includeRequestedMetaFields($query)
+    protected function includeRequestedMetaFields($query, $isREST = false)
     {
+        if (!empty($isREST)) {
+            return $query->contain(['MetaFields']);
+        }
         $user = $this->Controller->ACL->getUser();
         $tableSettings = IndexSetting::getTableSetting($user, $this->Table);
         if (empty($tableSettings['visible_meta_column'])) {
@@ -873,16 +935,18 @@ class CRUDComponent extends Component
         $user = $this->Controller->ACL->getUser();
         $tableSettings = IndexSetting::getTableSetting($user, $this->Table);
         if (!empty($tableSettings['number_of_element'])) {
+            if ($tableSettings['number_of_element'] === 'all') {
+                $tableSettings['number_of_element'] = 10000; // Even with all selecect, make sure not to return too much data for the browser
+            }
             $this->Controller->paginate['limit'] = intval($tableSettings['number_of_element']);
         }
     }
 
-    public function view($id, array $params = []): void
+    public function view(int $id, array $params = []): void
     {
         if (empty($id)) {
             throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
         }
-
 
         if ($this->taggingSupported()) {
             $params['contain'][] = 'Tags';
@@ -1392,6 +1456,7 @@ class CRUDComponent extends Component
             }
             $query = $this->setMetaFieldFilters($query, $filteringMetaFields);
         }
+        $activeFilters['_here'] = $this->request->getRequestTarget();
 
         $this->Controller->set('activeFilters', $activeFilters);
         return $query;
@@ -1446,8 +1511,6 @@ class CRUDComponent extends Component
             function (\Cake\ORM\Query $q) use ($fieldName, $filterValue) {
                 if (is_array($filterValue)) {
                     return $this->setInCondition($q, $fieldName, $filterValue);
-                } else {
-                    return $this->setValueCondition($q, $fieldName, $filterValue);
                 }
                 return $this->setValueCondition($q, $fieldName, $filterValue);
             }
@@ -1803,12 +1866,11 @@ class CRUDComponent extends Component
                 $query = $associatedTable->find()->rightJoin(
                     [$this->Table->getAlias() => $this->Table->getTable()],
                     [sprintf('%s.id = %s.%s', $this->Table->getAlias(), $associatedTable->getAlias(), $association->getForeignKey())]
-                )
-                    ->where(
-                        [
-                            ["$field IS NOT" => null]
-                        ]
-                    );
+                )->where(
+                    [
+                        ["$field IS NOT" => null]
+                    ]
+                );
             } else if ($associationType == 'manyToOne') {
                 $fieldToExtract = sprintf('%s.%s', Inflector::singularize(strtolower($model)), $subField);
                 $query = $this->Table->find()->contain($model);
@@ -1916,7 +1978,7 @@ class CRUDComponent extends Component
                         return false;
                     }
                 } else {
-                    $association = $this->Table->associations()->get($model);
+                    $association = $this->Table->associations()->get(Inflector::camelize(Inflector::pluralize($model)));
                     $associatedTable = $association->getTarget();
                     if (empty($associatedTable->getSchema()->typeMap()[$subField])) {
                         return false;
@@ -1929,5 +1991,133 @@ class CRUDComponent extends Component
             }
         }
         return true;
+    }
+
+    public function linkObjects(string $functionName, int $id1, string $model1, string $model2, array $params = []): void
+    {
+        $this->Controller->loadModel($model1);
+        $this->Controller->loadModel($model2);
+        if ($this->request->is(['post', 'put'])) {
+            $input = $this->request->getData();
+            if (empty($input['id'])) {
+                throw new MethodNotAllowedException(__('No ID of target to attach defined.'));
+            }
+            $id2 = $input['id'];
+            $obj1 = $this->Table->get($id1);
+            $obj2 = $this->Table->$model2->get($id2);
+            $data = [
+                [
+                    'id' => $id1,
+                    'model' => $model1
+                ],
+                [
+                    'id' => $id2,
+                    'model' => $model2
+                ]
+            ];
+
+            try {
+                $savedData = $this->Table->$model2->link($obj1, [$obj2]);
+            } catch (\Exception $e) {
+                $savedData = null;
+            }
+
+            if (!empty($savedData)) {
+                $message = __('{0} attached to {1}.', $model1, $model2);
+                if ($this->Controller->ParamHandler->isRest()) {
+                    $this->Controller->restResponsePayload = $this->RestResponse->viewData($message, 'json');
+                } else if ($this->Controller->ParamHandler->isAjax()) {
+                    if (!empty($params['displayOnSuccess'])) {
+                        $displayOnSuccess = $this->renderViewInVariable($params['displayOnSuccess'], ['entity' => $data]);
+                        $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxSuccessResponse($model1, 'index', $obj1, $message, ['displayOnSuccess' => $displayOnSuccess]);
+                    } else {
+                        $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxSuccessResponse($model1, 'index', $obj1, $message);
+                    }
+                } else {
+                    $this->Controller->Flash->success($message);
+                    if (empty($params['redirect'])) {
+                        $this->Controller->redirect(['action' => 'view', $id1]);
+                    } else {
+                        $this->Controller->redirect($params['redirect']);
+                    }
+                }
+            } else {
+                $this->Controller->isFailResponse = true;
+                $message = __(
+                    '{0} could not be attached to {1}.',
+                    $model1,
+                    $model2
+                );
+                if ($this->Controller->ParamHandler->isRest()) {
+                    $this->Controller->restResponsePayload = $this->RestResponse->viewData($message, 'json');
+                } else if ($this->Controller->ParamHandler->isAjax()) {
+                    $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxFailResponse($model1, $functionName, $data, $message, []);
+                } else {
+                    $this->Controller->Flash->error($message);
+                }
+            }
+        }
+    }
+
+    public function unlinkObjects(string $functionName, int $id1, int $id2, string $model1, string $model2, array $params = []): void
+    {
+        $this->Controller->loadModel($model1);
+        $this->Controller->loadModel($model2);
+        $obj1 = $this->Table->get($id1);
+        $obj2 = $this->Table->$model2->get($id2);
+        $data = [
+            [
+                'id' => $id1,
+                'model' => $model1
+            ],
+            [
+                'id' => $id2,
+                'model' => $model2
+            ]
+        ];
+        $this->Controller->set('data', $data);
+        if ($this->request->is(['post', 'put'])) {
+            $input = $this->request->getData();
+            try {
+                $savedData = $this->Table->$model2->unlink($obj1, [$obj2]);
+            } catch (\Exception $e) {
+                $savedData = null;
+            }
+
+            if (!empty($savedData)) {
+                $message = __('{0} detached from {1}.', $model1, $model2);
+                if ($this->Controller->ParamHandler->isRest()) {
+                    $this->Controller->restResponsePayload = $this->RestResponse->viewData($message, 'json');
+                } else if ($this->Controller->ParamHandler->isAjax()) {
+                    if (!empty($params['displayOnSuccess'])) {
+                        $displayOnSuccess = $this->renderViewInVariable($params['displayOnSuccess'], ['entity' => $data]);
+                        $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxSuccessResponse($model1, 'index', $obj1, $message, ['displayOnSuccess' => $displayOnSuccess]);
+                    } else {
+                        $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxSuccessResponse($model1, 'index', $obj1, $message);
+                    }
+                } else {
+                    $this->Controller->Flash->success($message);
+                    if (empty($params['redirect'])) {
+                        $this->Controller->redirect(['action' => 'view', $id1]);
+                    } else {
+                        $this->Controller->redirect($params['redirect']);
+                    }
+                }
+            } else {
+                $this->Controller->isFailResponse = true;
+                $message = __(
+                    '{0} could not be detached from {1}.',
+                    $model1,
+                    $model2
+                );
+                if ($this->Controller->ParamHandler->isRest()) {
+                    $this->Controller->restResponsePayload = $this->RestResponse->viewData($message, 'json');
+                } else if ($this->Controller->ParamHandler->isAjax()) {
+                    $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxFailResponse($model1, $functionName, $data, $message, []);
+                } else {
+                    $this->Controller->Flash->error($message);
+                }
+            }
+        }
     }
 }
