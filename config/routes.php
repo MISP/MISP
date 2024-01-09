@@ -48,38 +48,38 @@ $routes->setRouteClass(DashedRoute::class);
 $routes->scope(
     '/',
     function (RouteBuilder $builder) {
-    $builder->setExtensions(['json']);
+        $builder->setExtensions(['json', 'csv']);
     // Register scoped middleware for in scopes.
-    $builder->registerMiddleware('namedParamsParser', new NamedParamsParserMiddleware());
-    $builder->registerMiddleware(
-        'csrf',
-        new CsrfProtectionMiddleware(
-            [
-                'httponly' => true,
-            ]
-        )
-    );
+        $builder->registerMiddleware('namedParamsParser', new NamedParamsParserMiddleware());
+        $builder->registerMiddleware(
+            'csrf',
+            new CsrfProtectionMiddleware(
+                [
+                    'httponly' => true,
+                ]
+            )
+        );
     /*
      * Apply a middleware to the current route scope.
      * Requires middleware to be registered through `Application::routes()` with `registerMiddleware()`
      * Dirty way of disabling the middleware if the AUTHORIZATION header is set
      */
-     if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
-         $builder->applyMiddleware('csrf');
-    }
-    $builder->applyMiddleware('namedParamsParser');
+        if (empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            $builder->applyMiddleware('csrf');
+        }
+        $builder->applyMiddleware('namedParamsParser');
 
     /*
      * Here, we are connecting '/' (base path) to a controller called 'Pages',
      * its action called 'display', and we pass a param to select the view file
      * to use (in this case, templates/Pages/home.php)...
      */
-    $builder->connect('/', ['controller' => 'Events', 'action' => 'index']);
+        $builder->connect('/', ['controller' => 'Events', 'action' => 'index']);
 
     /*
      * ...and connect the rest of 'Pages' controller's URLs.
      */
-    $builder->connect('/pages/*', ['controller' => 'Pages', 'action' => 'display']);
+        $builder->connect('/pages/*', ['controller' => 'Pages', 'action' => 'display']);
 
     /*
      * Connect catchall routes for all controllers.
@@ -94,14 +94,14 @@ $routes->scope(
      * You can remove these routes once you've connected the
      * routes you want in your application.
      */
-    $builder->fallbacks();
+        $builder->fallbacks();
     }
 );
 
 $routes->prefix(
     'Admin',
     function (RouteBuilder $routes) {
-    $routes->fallbacks(DashedRoute::class);
+        $routes->fallbacks(DashedRoute::class);
     }
 );
 
@@ -109,8 +109,8 @@ $routes->prefix(
 $routes->prefix(
     'Open',
     function (RouteBuilder $routes) {
-    $routes->setExtensions(['json']);
-    $routes->fallbacks(DashedRoute::class);
+        $routes->setExtensions(['json']);
+        $routes->fallbacks(DashedRoute::class);
     }
 );
 

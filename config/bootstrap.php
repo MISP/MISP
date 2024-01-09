@@ -176,16 +176,31 @@ Security::setSalt(Configure::consume('Security.salt'));
 /*
  * Setup detectors for mobile and tablet.
  */
-ServerRequest::addDetector('mobile', function ($request) {
-    $detector = new \Detection\MobileDetect();
+ServerRequest::addDetector(
+    'mobile',
+    function ($request) {
+        $detector = new \Detection\MobileDetect();
 
-    return $detector->isMobile();
-});
-ServerRequest::addDetector('tablet', function ($request) {
-    $detector = new \Detection\MobileDetect();
+        return $detector->isMobile();
+    }
+);
+ServerRequest::addDetector(
+    'tablet',
+    function ($request) {
+        $detector = new \Detection\MobileDetect();
 
-    return $detector->isTablet();
-});
+        return $detector->isTablet();
+    }
+);
+
+ServerRequest::addDetector(
+    'csv',
+    [
+        'accept' => ['text/csv',],
+        'param' => '_ext',
+        'value' => 'csv',
+    ]
+);
 
 /*
  * You can set whether the ORM uses immutable or mutable Time types.
