@@ -72,7 +72,7 @@ class AdminShell extends AppShell
             'help' => __('Set if MISP instance is live and accessible for users.'),
             'parser' => [
                 'arguments' => [
-                    'state' => ['help' => __('Set Live state')],
+                    'state' => ['help' => __('Set Live state (boolean). If not provided, current state will be printed.')],
                 ],
             ],
         ]);
@@ -951,7 +951,7 @@ class AdminShell extends AppShell
             $newStatus = $this->toBoolean($this->args[0]);
             $overallSuccess = false;
             try {
-                $redis = $this->Server->setupRedisWithException();
+                $redis = RedisTool::init();
                 if ($newStatus) {
                     $redis->del('misp:live');
                     $this->out('Set live status to True in Redis.');
@@ -980,7 +980,7 @@ class AdminShell extends AppShell
         } else {
             $this->out('Current status:');
             $this->out('PHP Config file: ' . (Configure::read('MISP.live') ? 'True' : 'False'));
-            $newStatus = $this->Server->setupRedisWithException()->get('misp:live');
+            $newStatus = RedisTool::init()->get('misp:live');
             $this->out('Redis: ' . ($newStatus !== '0' ? 'True' : 'False'));
         }
     }
