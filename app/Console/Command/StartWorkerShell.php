@@ -37,9 +37,14 @@ class StartWorkerShell extends AppShell
 
     public function main()
     {
+        $pid = getmypid();
+        if ($pid === false) {
+            throw new RuntimeException("Could not get current process ID");
+        }
+
         $this->worker = new Worker(
             [
-                'pid' => getmypid(),
+                'pid' => $pid,
                 'queue' => $this->args[0],
                 'user' => ProcessTool::whoami(),
             ]
@@ -56,9 +61,8 @@ class StartWorkerShell extends AppShell
 
             $job = $backgroundJobTool->dequeue($queue);
             if ($job) {
-                $backgroundJobTool->addToRunning($queue, $job);
                 $this->runJob($job);
-                $backgroundJobTool->removeFromRunning($queue, $job);
+                $backgroundJobTool->removeFromRunning($this->worker, $job);
             }
         }
     }
@@ -78,7 +82,9 @@ class StartWorkerShell extends AppShell
             $this->getBackgroundJobsTool()->update($job);
 
             $start = microtime(true);
-            $job->run();
+            $job->run(function (array $status) use ($job) {
+                $this->getBackgroundJobsTool()->markAsRunning($this->worker, $job);
+            });
             $duration = number_format(microtime(true) - $start, 3, '.', '');
 
             if ($job->status() === BackgroundJob::STATUS_COMPLETED) {

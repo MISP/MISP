@@ -279,23 +279,27 @@ class BackgroundJobsTool
     }
 
     /**
-     * @param string $queue
+     * @param Worker $worker
      * @param BackgroundJob $job
      * @return void
+     * @throws RedisException
      */
-    public function addToRunning(string $queue, BackgroundJob $job)
+    public function markAsRunning(Worker $worker, BackgroundJob $job)
     {
-        $this->RedisConnection->sAdd(self::RUNNING_JOB_PREFIX . ':' . $queue, $job->id());
+        $key = self::RUNNING_JOB_PREFIX . ':' . $worker->queue() . ':' . $job->id();
+        $this->RedisConnection->setex($key, 60, $worker->pid());
     }
 
     /**
-     * @param string $queue
+     * @param Worker $worker
      * @param BackgroundJob $job
      * @return void
+     * @throws RedisException
      */
-    public function removeFromRunning(string $queue, BackgroundJob $job)
+    public function removeFromRunning(Worker $worker, BackgroundJob $job)
     {
-        $this->RedisConnection->sRem(self::RUNNING_JOB_PREFIX . ':' . $queue, $job->id());
+        $key = self::RUNNING_JOB_PREFIX . ':' . $worker->queue() . ':' . $job->id();
+        $this->RedisConnection->del($key);
     }
 
     /**
@@ -306,7 +310,15 @@ class BackgroundJobsTool
      */
     public function runningJobs(string $queue): array
     {
-        return $this->RedisConnection->sMembers(self::RUNNING_JOB_PREFIX . ':' . $queue);
+        $pattern = $this->RedisConnection->_prefix(self::RUNNING_JOB_PREFIX . ':' . $queue . ':*');
+        $keys = RedisTool::keysByPattern($this->RedisConnection, $pattern);
+
+        $jobIds = [];
+        foreach ($keys as $key) {
+            $parts = explode(':', $key);
+            $jobIds[] = end($parts);
+        }
+        return $jobIds;
     }
 
     /**
@@ -747,8 +759,7 @@ class BackgroundJobsTool
      *
      * @param integer $pid
      * @return \Supervisor\Process
-     *
-     * @throws NotFoundException
+     * @throws NotFoundException|Exception
      */
     private function getProcessByPid(int $pid): \Supervisor\Process
     {
