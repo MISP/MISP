@@ -33,7 +33,13 @@ def main():
     global unpublish_event_on_remote
     parser = argparse.ArgumentParser(Path(__file__).name)
     parser.add_argument('-c', '--config', default='config.json', help='The JSON config file to use')
+    parser.add_argument('-l', '--log', default='INFO', help='The loglevel to use.', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR',])
     options = parser.parse_args()
+
+    numeric_log_level = getattr(logging, options.log.upper(), None)
+    if not isinstance(numeric_log_level, int):
+        raise ValueError('Invalid log level: %s' % numeric_log_level)
+    logger.setLevel(numeric_log_level)
 
     config = {}
     config_file_path = Path(__file__).parent / options.config
@@ -74,7 +80,7 @@ def main():
             return 1
 
     # Collect events from source
-    logger.debug('Collecting events from source...')
+    logger.debug('Collecting *published* events from source...')
     try:
         events_on_source = collect_events_from_source(source_instance, filters, incremental_sync)
     except Exception as err:
@@ -185,9 +191,10 @@ def update_event_for_push(event: dict) -> dict:
         elif attribute['distribution'] == 2:
             event['Attribute'][i]['distribution'] = 1
 
-        for t, tag in enumerate(attribute['Tag']):
-            if tag['local']:
-                event['Attribute'][i]['Tag'].pop(t)
+        if 'Tag' in attribute:
+            for t, tag in enumerate(attribute['Tag']):
+                if tag['local']:
+                    event['Attribute'][i]['Tag'].pop(t)
 
     # Downgrade distribution for Objects and their Attributes
     for i, object in enumerate(event['Object'][:]):
@@ -201,9 +208,10 @@ def update_event_for_push(event: dict) -> dict:
             elif attribute['distribution'] == 2:
                 event['Object'][i]['Attribute'][j]['distribution'] = 1
 
-            for t, tag in enumerate(attribute['Tag']):
-                if tag['local']:
-                    event['Object'][i]['Attribute'][j]['Tag'].pop(t)
+            if 'Tag' in attribute:
+                for t, tag in enumerate(attribute['Tag']):
+                    if tag['local']:
+                        event['Object'][i]['Attribute'][j]['Tag'].pop(t)
 
     # Downgrade distribution for EventReport
     for i, report in enumerate(event['EventReport'][:]):
@@ -222,7 +230,7 @@ def collect_events_from_source(source_instance: MISPInstance, filters: dict, inc
     }
     last_timestamp = get_last_sync_timestamp()
     if incremental_sync and last_timestamp is not None:
-        logger.debug('Using timestamp from last synchronisation %s (%s)', last_timestamp, datetime.fromtimestamp(last_timestamp))
+        logger.info('Using timestamp from last synchronisation %s (%s)', last_timestamp, datetime.fromtimestamp(last_timestamp))
         sync_filters['timestamp'] = last_timestamp # type: ignore
     sync_filters.update(filters)
     events = source_instance.POST('/events/index', payload=sync_filters)
