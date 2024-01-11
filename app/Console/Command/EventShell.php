@@ -53,10 +53,21 @@ class EventShell extends AppShell
         $parser->addSubcommand('mergeTags', [
             'help' => __('Merge tags'),
             'parser' => [
-                'arguments' => array(
+                'arguments' => [
                     'source' => ['help' => __('Source tag ID or name. Source tag will be deleted.'), 'required' => true],
                     'destination' => ['help' => __('Destination tag ID or name.'), 'required' => true],
-                )
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('reportValidationIssuesAttributes', [
+            'help' => __('Report validation issues on attributes'),
+        ]);
+        $parser->addSubcommand('normalizeIpAddress', [
+            'help' => __('Normalize IP address format in old events'),
+            'parser' => [
+                'options' => [
+                    'dry-run' => ['help' => __('Just show what changes will be made.'), 'boolean' => true],
+                ],
             ],
         ]);
         return $parser;
@@ -636,18 +647,28 @@ class EventShell extends AppShell
         }
     }
 
-    /**
-     * @param int $userId
-     * @return array
-     */
-    private function getUser($userId)
+    public function reportValidationIssuesAttributes()
     {
-        $user = $this->User->getAuthUser($userId, true);
-        if (empty($user)) {
-            $this->error("User with ID $userId does not exist.");
+        foreach ($this->Event->Attribute->reportValidationIssuesAttributes() as $validationIssue) {
+            echo $this->json($validationIssue) . "\n";
         }
-        Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
-        return $user;
+    }
+
+    public function normalizeIpAddress()
+    {
+        $dryRun = $this->param('dry-run');
+
+        $count = 0;
+        foreach ($this->Event->Attribute->normalizeIpAddress($dryRun) as $attribute) {
+            $count++;
+            echo JsonTool::encode($attribute) . "\n";
+        }
+
+        if ($dryRun) {
+            $this->err(__n("%s attribute to fix", "%s attributes to fix", $count, $count));
+        } else {
+            $this->err(__n("%s attribute fixed", "%s attributes fixed", $count, $count));
+        }
     }
 
     public function generateTopCorrelations()
@@ -667,5 +688,19 @@ class EventShell extends AppShell
             $job['Job']['message'] = __('Job done.');
             $this->Job->save($job);
         }
+    }
+
+    /**
+     * @param int $userId
+     * @return array
+     */
+    private function getUser($userId)
+    {
+        $user = $this->User->getAuthUser($userId, true);
+        if (empty($user)) {
+            $this->error("User with ID $userId does not exist.");
+        }
+        Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
+        return $user;
     }
 }

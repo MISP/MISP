@@ -1917,7 +1917,7 @@ class AttributesController extends AppController
     public function reportValidationIssuesAttributes($eventId = false)
     {
         // search for validation problems in the attributes
-        $this->set('result', $this->Attribute->reportValidationIssuesAttributes($eventId));
+        $this->set('result', iterator_to_array($this->Attribute->reportValidationIssuesAttributes($eventId)));
     }
 
     public function generateCorrelation()
