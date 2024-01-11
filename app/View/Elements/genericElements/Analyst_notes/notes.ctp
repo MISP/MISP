@@ -115,20 +115,153 @@ $notes = [
         'uuid' => '24957461-344c-4b7e-81fe-1321f3e9949a',
         'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a'
     ],
+    [
+        'note_type' => 2,
+        'authors' => ['mokaddem',],
+        'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'orgc_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'Organisation' => ['id' => 3, 'uuid' => '5d6d3b30-9db0-44b9-8869-7f56a5e38e14', 'name' => 'Training'],
+        'created' => new DateTime(),
+        'modified' => new DateTime(),
+        'distribution' => 3,
+        'id' => 6,
+        'uuid' => 'ecce0325-c7a3-458f-bd88-e8337a15d391',
+        'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a',
+        'related_object_uuid' => 'f80a0db2-24bd-4148-929e-7c803ade7ca1',
+        'related_object_type' => 'Event',
+        'relationship_type' => 'related-to',
+        'comment' => 'Linked to the same campaign',
+    ],
+    [
+        'note_type' => 2,
+        'authors' => ['mokaddem',],
+        'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'orgc_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'Organisation' => ['id' => 3, 'uuid' => '5d6d3b30-9db0-44b9-8869-7f56a5e38e14', 'name' => 'Training'],
+        'created' => new DateTime(),
+        'modified' => new DateTime(),
+        'distribution' => 3,
+        'id' => 7,
+        'uuid' => '7bf1f87c-fdfc-4748-a365-32b5ff39d73e',
+        'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a',
+        'related_object_uuid' => '3d9ed33f-b340-4764-bb97-c30b7d970ceb',
+        'related_object_type' => 'Attribute',
+        'relationship_type' => 'included-in',
+        'comment' => 'Manual correlation based on the context',
+    ],
+    [
+        'note_type' => 2,
+        'authors' => ['mokaddem',],
+        'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'orgc_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'Organisation' => ['id' => 2, 'uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0', 'name' => 'CIRCL'],
+        'created' => new DateTime(),
+        'modified' => new DateTime(),
+        'distribution' => 3,
+        'id' => 8,
+        'uuid' => '72b4127f-1ce9-4ced-86a7-34580f56d834',
+        'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a',
+        'related_object_uuid' => '5d6d3b30-9db0-44b9-8869-7f56a5e38e14',
+        'related_object_type' => 'Organisation',
+        'relationship_type' => 'spammer',
+        'comment' => 'This organisation created spam proposals',
+    ],
+    [
+        'note_type' => 2,
+        'authors' => ['mokaddem',],
+        'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'orgc_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+        'Organisation' => ['id' => 2, 'uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0', 'name' => 'CIRCL'],
+        'created' => new DateTime(),
+        'modified' => new DateTime(),
+        'distribution' => 3,
+        'id' => 9,
+        'uuid' => '75cb83a2-4638-47bc-9d36-35fce51b85d9',
+        'object_uuid' => 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a',
+        'related_object_uuid' => '8950f9d6-4ff6-46d7-b3ed-07c3a3e4b1ba',
+        'related_object_type' => 'Attribute',
+        'relationship_type' => 'contained-withtin',
+        'comment' => '',
+    ],
+];
+
+$related_objects = [
+    'Event' => [
+        'f80a0db2-24bd-4148-929e-7c803ade7ca1' => [
+            'uuid' => 'f80a0db2-24bd-4148-929e-7c803ade7ca1',
+            'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+            'orgc_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+            'Organisation' => ['id' => 2, 'uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0', 'name' => 'CIRCL'],
+            'created' => new DateTime(),
+            'modified' => new DateTime(),
+            'distribution' => 2,
+            'info' => 'Spearphishing incident'
+        ],
+    ],
+    'Attribute' => [
+        '3d9ed33f-b340-4764-bb97-c30b7d970ceb' => [
+            'uuid' => '3d9ed33f-b340-4764-bb97-c30b7d970ceb',
+            'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+            'orgc_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+            'Organisation' => ['id' => 3, 'uuid' => '5d6d3b30-9db0-44b9-8869-7f56a5e38e14', 'name' => 'Training'],
+            'event_id' => 12,
+            'created' => new DateTime(),
+            'modified' => new DateTime(),
+            'distribution' => 3,
+            'value' => '8.8.8.8',
+            'type' => 'ip-src',
+            'category' => 'Payload Delivery',
+        ],
+        '8950f9d6-4ff6-46d7-b3ed-07c3a3e4b1ba' => [
+            'uuid' => '3d9ed33f-b340-4764-bb97-c30b7d970ceb',
+            'org_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+            'orgc_uuid' => '1646fb8f-6f23-4b51-ae80-c84d1ff8fbe0',
+            'Organisation' => ['id' => 3, 'uuid' => '5d6d3b30-9db0-44b9-8869-7f56a5e38e14', 'name' => 'Training'],
+            'event_id' => 12,
+            'created' => new DateTime(),
+            'modified' => new DateTime(),
+            'distribution' => 3,
+            'value' => 'https://circl.lu',
+            'object_relation' => 'url',
+            'object_name' => 'url',
+            'type' => 'url',
+            'category' => 'Network Activity',
+        ],
+    ],
+    'Organisation' => [
+        '5d6d3b30-9db0-44b9-8869-7f56a5e38e14' => [
+            'uuid' => '5d6d3b30-9db0-44b9-8869-7f56a5e38e14',
+            'created' => new DateTime(),
+            'modified' => new DateTime(),
+            'name' => ' Training',
+        ],
+    ],
 ];
 
 if(!function_exists("countNotes")) {
     function countNotes($notes) {
-        $noteCount = count($notes);
+        $notesTotalCount = count($notes);
+        $notesCount = 0;
+        $relationsCount = 0;
         foreach ($notes as $note) {
+            if ($note['note_type'] == 2) { // relationship
+                $relationsCount += 1;
+            } else {
+                $notesCount += 1;
+            }
             if (!empty($note['notes'])) {
-                $noteCount += countNotes($note['notes']);
+                $nestedCounts = countNotes($note['notes']);
+                $notesTotalCount += $nestedCounts['total'];
+                $notesCount += $nestedCounts['notes'];
+                $relationsCount += $nestedCounts['relations'];
             }
         }
-        return $noteCount;
+        return ['total' => $notesTotalCount, 'notes' => $notesCount, 'relations' => $relationsCount];
     }
 }
-$noteCount = countNotes($notes);
+$counts = countNotes($notes);
+$notesCount = $counts['notes'];
+$relationshipsCount = $counts['relations'];
 ?>
 
 <?php if (empty($notes)): ?>
@@ -136,17 +269,33 @@ $noteCount = countNotes($notes);
 <?php else: ?>
     <span class="label label-info useCursorPointer" onclick="openNotes(this)" >
         <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" title="<?= __('Notes and opinions for this UUID') ?>"></i>
-        <?= $noteCount; ?>
+        <?= $notesCount; ?>
+        <i class="<?= $this->FontAwesome->getClass('project-diagram') ?> useCursorPointer" title="<?= __('Relationships for this UUID') ?>"></i>
+        <?= $relationshipsCount; ?>
     </span>
 <?php endif; ?>
 
 <script>
     var notes = <?= json_encode($notes) ?>;
+    var relationship_related_object = <?= json_encode($related_objects) ?>;
     var shortDist = <?= json_encode($shortDist) ?>;
     var renderedNotes = null
 
     var nodeContainerTemplate = doT.template('\
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">{{=it.content}}</div> \
+        <div> \
+            <ul class="nav nav-tabs" style="margin-bottom: 10px;"> \
+                <li class="active"><a href="#notes-<?= $seed ?>" data-toggle="tab"><?= __('Notes & Opinions') ?></a></li> \
+                <li><a href="#relationships-<?= $seed ?>" data-toggle="tab"><?= __('Relationships') ?></a></li> \
+            </ul> \
+            <div class="tab-content" style="padding: 0.25rem;"> \
+                <div id="notes-<?= $seed ?>" class="tab-pane active"> \
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">{{=it.content_notes}}</div>\
+                </div> \
+                <div id="relationships-<?= $seed ?>" class="tab-pane"> \
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">{{=it.content_relationships}}</div>\
+                </div> \
+            </div> \
+        </div> \
     ')
     var baseNoteTemplate = doT.template('\
         <div id="note-{{=it.id}}" \
@@ -164,8 +313,7 @@ $noteCount = countNotes($notes);
                         </span> \
                         <span style="display: inline-block; font-weight: lighter; color: #999">{{=it.modified_relative}} • {{=it.modified}}</span> \
                         </i><span style="margin-left: 0.5rem; flex-grow: 1; text-align: right; color: {{=it.distribution_color}}">{{=it.distribution_text}}</span> \
-                        <i style="color: #777; margin: 0 0.5rem;">•</i> \
-                        <span style="margin-left: auto; display: flex; gap: 0.2rem;"> \
+                        <span class="action-button-container" style="margin-left: auto; display: flex; gap: 0.2rem;"> \
                             {{? it._permissions.can_add }} \
                                 <span role="button" onclick="addOpinion(this, \'{{=it.uuid}}\')" title="<?= __('Add an opinion to this note') ?>"><i class="<?= $this->FontAwesome->getClass('gavel') ?> useCursorPointer"></i></span> \
                             {{?}} \
@@ -186,7 +334,7 @@ $noteCount = countNotes($notes);
         </div> \
     ')
     var analystTemplate = doT.template('\
-        <div style="max-width: 40vw; margin-top: 0.5rem;"> \
+        <div style="max-width: 40vw; margin-top: 0.5rem; font-size:"> \
             {{=it.analyst_note}} \
         </div> \
     ')
@@ -206,8 +354,25 @@ $noteCount = countNotes($notes);
                 <span style="font-size: 0.7em; font-weight: lighter; color: #999">/100</span> \
             </span> \
         </div> \
-        <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
-            {{=it.comment}} \
+        {{? it.comment }} \
+            <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
+                {{=it.comment}} \
+            </div> \
+        {{?}} \
+    ')
+    var relationshipDefaultEntryTemplate = doT.template('\
+        <div style="max-width: 40vw; margin: 0.5rem 0 0.5rem 0.25rem;"> \
+            <div style="display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap;"> \
+                <i class="<?= $this->FontAwesome->getClass('minus') ?>" style="font-size: 1.5em; color: #555"></i> \
+                <span style="text-wrap: nowrap; padding: 0 0.25rem; border: 2px solid #555; border-radius: 0.25rem;">{{=it.relationship_type}}</span> \
+                <i class="<?= $this->FontAwesome->getClass('long-arrow-alt-right') ?>" style="font-size: 1.5em; color: #555"></i> \
+                <div style="margin-left: 0.5rem;">{{=it.content}}</div> \
+            </div> \
+            {{? it.comment }} \
+                <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
+                    {{=it.comment}} \
+                </div> \
+            {{?}} \
         </div> \
     ')
     var replyNoteTemplate = doT.template('\
@@ -221,7 +386,10 @@ $noteCount = countNotes($notes);
         </div> \
     ')
     var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
-        <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= 'Add a note' ?> \
+        <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a note') ?> \
+    </button>'
+    var addRelationshipButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewRelationship(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+        <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a relationship') ?> \
     </button>'
 
     function toggleNotes(clicked) {
@@ -231,9 +399,14 @@ $noteCount = countNotes($notes);
 
     function openNotes(clicked) {
         openPopover(clicked, renderedNotes, undefined, undefined, function() {
-            $('.popover').css('top', '75px')
+            adjustPopoverPosition()
             $(clicked).removeClass('have-a-popover') // avoid closing the popover if a confirm popover (like the delete one) is called
         })
+    }
+
+    function adjustPopoverPosition() {
+        var $popover = $('.popover');
+        $popover.css('top', Math.max($popover.position().top, 50) + 'px')
     }
 
     function renderNotes(notes) {
@@ -274,19 +447,99 @@ $noteCount = countNotes($notes);
             note.opinion_color = note.opinion == 50 ? '#333' : ( note.opinion > 50 ? '#468847' : '#b94a48');
             note.opinion_text = (note.opinion  >= 81) ? '<?= __("Strongly Agree") ?>' : ((note.opinion  >= 61) ? '<?= __("Agree") ?>' : ((note.opinion  >= 41) ? '<?= __("Neutral") ?>' : ((note.opinion  >= 21) ? '<?= __("Disagree") ?>' : '<?= __("Strongly Disagree") ?>')))
             note.content = opinionTemplate(note)
-        } else {
-            note.content = 'INVALID NOTE TYPE'
+        } else if (note.note_type == 2){
+            note.content = renderRelationshipEntryFromType(note)
         }
         var noteHtml = baseNoteTemplate(note)
         return noteHtml
     }
 
     function renderAllNotesWithForm() {
-        renderedNotes = nodeContainerTemplate({content: renderNotes(notes) + addNoteButton})
+        renderedNotes = nodeContainerTemplate({
+            content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2})) + addNoteButton,
+            content_relationships: renderNotes(notes.filter(function(note) { return note.note_type == 2})) + addRelationshipButton,
+        })
+    }
+
+    function getURLFromRelationship(note) {
+        if (note.related_object_type == 'Event') {
+            return baseurl + '/events/view/' + note.related_object_uuid
+        } else if (note.related_object_type == 'Attribute') {
+            return baseurl + '/events/view/' + note.attribute.event_id + '/focus:' + note.related_object_uuid
+        } else if (note.related_object_type == 'Object') {
+            return baseurl + '/events/view/' + note.object.event_id + '/focus:' + note.related_object_uuid
+        }
+        return '#'
+    }
+
+    function renderRelationshipEntryFromType(note) {
+        var contentHtml = ''
+        var template = doT.template('\
+            <span style="border: 1px solid #ddd !important; border-radius: 3px; padding: 0.25rem;"> \
+                <span class="ellipsis-overflow" style="max-width: 12em;">{{=it.related_object_type}}</span> \
+                :: \
+                <span class="ellipsis-overflow" style="max-width: 12em;">{{=it.related_object_uuid}}</span> \
+            </span> \
+        ')
+        if (note.related_object_type == 'Event' && relationship_related_object.Event[note.related_object_uuid]) {
+            note.event = relationship_related_object.Event[note.related_object_uuid]
+            template = doT.template('\
+                <span class="misp-element-wrapper attribute" title="<?= __('Event') ?>"> \
+                    <span class="bold"> \
+                        <span class="attr-type"><span><i class="<?= $this->FontAwesome->getClass('envelope') ?>"></i></span></span> \
+                        <span class=""><span class="attr-value"> \
+                            <span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.event.info}}</a></span> \
+                        </span></span> \
+                    </span> \
+                </span> \
+            ')
+        } else if (note.related_object_type == 'Attribute' && relationship_related_object.Attribute[note.related_object_uuid]) {
+            note.attribute = relationship_related_object.Attribute[note.related_object_uuid]
+            if (note.attribute.object_relation !== undefined && note.attribute.object_relation !== null) {
+                template = doT.template('\
+                <span class="misp-element-wrapper object"> \
+                    <span class="bold"> \
+                        <span class="obj-type"> \
+                            <span class="object-name" title="<?= __('Object') ?>">{{=it.attribute.object_name}}</span> \
+                            ↦ <span class="object-attribute-type" title="<?= __('Object Relation') ?>">{{=it.attribute.object_relation}}</span> \
+                        </span> \
+                    <span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.attribute.value}}</a></span></span> \
+                </span> \
+            ')
+            } else if (relationship_related_object.Attribute[note.related_object_uuid]) {
+                template = doT.template('\
+                    <span class="misp-element-wrapper attribute"> \
+                        <span class="bold"> \
+                            <span class="attr-type"><span title="<?= __('Attribute') ?>">{{=it.attribute.type}}</span></span> \
+                            <span class="blue"><span class="attr-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.attribute.value}}</a></span></span></span> \
+                        </span> \
+                    </span> \
+                ')
+            }
+        } else if (note.related_object_type == 'Object') {
+            note.object = relationship_related_object.Object[note.related_object_uuid]
+            template = doT.template('\
+                <i class="<?= $this->FontAwesome->getClass('cubes') ?>" title="<?= __('Object') ?>"></i> \
+                <span class="misp-element-wrapper object"> \
+                    <span class="bold"> \
+                        <span class="obj-type"><span>{{=it.object.type}}</span></span> \
+                        <span class="blue"><span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.object.value}}</a></span></span></span> \
+                    </span> \
+                </span> \
+            ')
+        }
+        note.url = getURLFromRelationship(note)
+        contentHtml = template(note)
+        return relationshipDefaultEntryTemplate({content: contentHtml, relationship_type: note.relationship_type, comment: note.comment})
     }
 
     function createNewNote(clicked, object_type, object_uuid) {
         note_type = 0;
+        openGenericModal(baseurl + '<?= $URL_ADD ?>' + object_type + '/' + object_uuid + '/' + note_type)
+    }
+
+    function createNewRelationship(clicked, object_type, object_uuid) {
+        note_type = 2;
         openGenericModal(baseurl + '<?= $URL_ADD ?>' + object_type + '/' + object_uuid + '/' + note_type)
     }
 
@@ -324,6 +577,14 @@ $noteCount = countNotes($notes);
 </script>
 
 <style>
+
+    .action-button-container > span {
+        visibility: hidden;
+    }
+    .analyst-note:hover .action-button-container > span {
+        visibility: visible;
+    }
+
     .reply-to-note-collapse-button.collapsed {
         margin-bottom: -0.25rem !important;
     }
@@ -424,4 +685,63 @@ if(!function_exists("genStyleForOpinionNote")) {
 genStyleForOpinionNotes($notes)
 ?>
 
+</style>
+
+<style>
+    span.misp-element-wrapper {
+        margin: 3px 3px;
+        border: 1px solid #ddd !important;
+        border-radius: 3px;
+        white-space: nowrap;
+        display: inline-block;
+        padding: 0;
+    }
+    .misp-element-wrapper.attribute .attr-type {
+        background-color: #f5f5f5 !important;
+        border-right: 1px solid #ddd !important;
+        display: inline-block;
+    }
+    .misp-element-wrapper.attribute .attr-type > span {
+        margin: 2px 3px;
+    }
+    .misp-element-wrapper.attribute .attr-value {
+        display: inline-table;
+        margin: 0px 3px;
+    }
+    .misp-element-wrapper.attribute .attr-value > span {
+        max-width: 300px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        display: table-cell;
+    }
+    span.misp-element-wrapper.object {
+        border: 1px solid #3465a4 !important;
+    }
+    .misp-element-wrapper.object .obj-type {
+        display: inline-block;
+        background-color: #3465a4 !important;
+        color: #ffffff !important;
+    }
+    .misp-element-wrapper.object .obj-type .object-attribute-type {
+        margin-left: 0;
+        background-color: #f5f5f5;
+        color: black;
+        padding: 1px 3px;
+        border-radius: 7px;
+    }
+    .misp-element-wrapper.object .obj-type > span {
+        margin: 2px 3px;
+    }
+    .misp-element-wrapper.object .obj-value {
+        display: inline-table;
+        margin: 0px 3px;
+    }
+    .misp-element-wrapper.object .obj-value > span {
+        max-width: 300px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        display: table-cell;
+    }
 </style>
