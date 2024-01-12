@@ -472,7 +472,21 @@ class Server extends AppModel
         return false;
     }
 
-    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false, $headers = false, $body = false)
+    /**
+     * @param array $event
+     * @param int|string $eventId
+     * @param array $successes
+     * @param array $fails
+     * @param Event $eventModel
+     * @param array $server
+     * @param array $user
+     * @param int $jobId
+     * @param bool $force
+     * @param HttpSocketResponseExtended $response
+     * @return false|void
+     * @throws Exception
+     */
+    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false, $response)
     {
         // check if the event already exist (using the uuid)
         $existingEvent = $eventModel->find('first', [
@@ -485,7 +499,7 @@ class Server extends AppModel
         if (!$existingEvent) {
             // add data for newly imported events
             if (isset($event['Event']['protected']) && $event['Event']['protected']) {
-                if (!$eventModel->CryptographicKey->validateProtectedEvent($body, $user, $headers['x-pgp-signature'], $event)) {
+                if (!$eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event)) {
                     $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     return false;
                 }
@@ -505,7 +519,7 @@ class Server extends AppModel
                 $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
                 if ($existingEvent['Event']['protected']) {
-                    if (!$eventModel->CryptographicKey->validateProtectedEvent($body, $user, $headers['x-pgp-signature'], $existingEvent)) {
+                    if (!$eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $existingEvent)) {
                         $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     }
                 }
@@ -549,10 +563,8 @@ class Server extends AppModel
             $params['excludeLocalTags'] = 1;
         }
         try {
-            $event = $serverSync->fetchEvent($eventId, $params);
-            $headers = $event->headers;
-            $body = $event->body;
-            $event = $event->json();
+            $response = $serverSync->fetchEvent($eventId, $params);
+            $event = $response->json();
         } catch (Exception $e) {
             $this->logException("Failed downloading the event $eventId from remote server {$serverSync->serverId()}", $e);
             $fails[$eventId] = __('failed downloading the event');
@@ -568,7 +580,7 @@ class Server extends AppModel
             }
             return false;
         }
-        $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $headers, $body);
+        $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $response);
         return true;
     }
 
@@ -4793,11 +4805,11 @@ class Server extends AppModel
 
             $results = [
                 __('User') => $user['User']['email'],
-                __('Role name') => isset($user['Role']['name']) ? $user['Role']['name'] : __('Unknown, outdated instance'),
+                __('Role name') => $user['Role']['name'] ?? __('Unknown, outdated instance'),
                 __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
             ];
-            if (isset($response->headers['X-Auth-Key-Expiration'])) {
-                $date = new DateTime($response->headers['X-Auth-Key-Expiration']);
+            if ($response->getHeader('X-Auth-Key-Expiration')) {
+                $date = new DateTime($response->getHeader('X-Auth-Key-Expiration'));
                 $results[__('Auth key expiration')] = $date->format('Y-m-d H:i:s');
             }
             return $results;

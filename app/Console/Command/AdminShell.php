@@ -72,7 +72,7 @@ class AdminShell extends AppShell
             'help' => __('Set if MISP instance is live and accessible for users.'),
             'parser' => [
                 'arguments' => [
-                    'state' => ['help' => __('Set Live state')],
+                    'state' => ['help' => __('Set Live state (boolean). If not provided, current state will be printed.')],
                 ],
             ],
         ]);
@@ -108,6 +108,17 @@ class AdminShell extends AppShell
         ]);
         $parser->addSubcommand('configLint', [
             'help' => __('Check if settings has correct value.'),
+        ]);
+        $parser->addSubcommand('scanAttachment', [
+            'help' => __('Scan attachments with AV.'),
+            'parser' => [
+                'arguments' => [
+                    'type' => ['help' => __('all, Attribute or ShadowAttribute'), 'required' => true],
+                    'attributeId' => ['help' => __('ID to scan.')],
+                    'jobId' => ['help' => __('Job ID')],
+
+                ],
+            ],
         ]);
         return $parser;
     }
@@ -839,8 +850,8 @@ class AdminShell extends AppShell
     public function scanAttachment()
     {
         $input = $this->args[0];
-        $attributeId = isset($this->args[1]) ? $this->args[1] : null;
-        $jobId = isset($this->args[2]) ? $this->args[2] : null;
+        $attributeId = $this->args[1] ?? null;
+        $jobId = $this->args[2] ?? null;
 
         $this->loadModel('AttachmentScan');
         $result = $this->AttachmentScan->scan($input, $attributeId, $jobId);
@@ -951,7 +962,7 @@ class AdminShell extends AppShell
             $newStatus = $this->toBoolean($this->args[0]);
             $overallSuccess = false;
             try {
-                $redis = $this->Server->setupRedisWithException();
+                $redis = RedisTool::init();
                 if ($newStatus) {
                     $redis->del('misp:live');
                     $this->out('Set live status to True in Redis.');
@@ -980,7 +991,7 @@ class AdminShell extends AppShell
         } else {
             $this->out('Current status:');
             $this->out('PHP Config file: ' . (Configure::read('MISP.live') ? 'True' : 'False'));
-            $newStatus = $this->Server->setupRedisWithException()->get('misp:live');
+            $newStatus = RedisTool::init()->get('misp:live');
             $this->out('Redis: ' . ($newStatus !== '0' ? 'True' : 'False'));
         }
     }

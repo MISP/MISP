@@ -8,7 +8,9 @@ class IndexFilterComponent extends Component
 {
     /** @var Controller */
     public $Controller;
-    public $isRest = null;
+
+    /** @var bool|null  */
+    private $isRest = null;
 
     // Used for isApiFunction(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
     // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -93,6 +95,11 @@ class IndexFilterComponent extends Component
         }
     }
 
+    public function isXhr()
+    {
+        return $this->Controller->request->header('X-Requested-With') === 'XMLHttpRequest';
+    }
+
     public function isJson()
     {
         return $this->Controller->request->header('Accept') === 'application/json' || $this->Controller->RequestHandler->prefers() === 'json';
@@ -101,11 +108,6 @@ class IndexFilterComponent extends Component
     public function isCsv()
     {
         return $this->Controller->request->header('Accept') === 'text/csv' || $this->Controller->RequestHandler->prefers() === 'csv';
-    }
-
-    public function isXml()
-    {
-
     }
 
     /**
