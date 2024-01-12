@@ -146,7 +146,7 @@
                         'group' => 'object_attribute',
                         'timestamp' => $obj_attr['timestamp'],
                         'attribute_type' => $obj_attr['type'],
-                        'date_sighting' => $sightingsAttributeMap[$attr['id']] ?? [],
+                        'date_sighting' => $sightingsAttributeMap[$obj_attr['id']] ?? [],
                         'is_image' => $this->__eventModel->Attribute->isImage($obj_attr),
                     );
                     $toPush_obj['Attribute'][] = $toPush_attr;
