@@ -1,8 +1,9 @@
 <?php
-/*
+/**
  * Enable/disable misp
  *
  * arg0 = [0|1]
+ * @deprecated Use AdminShell::live instead
  */
 class LiveShell extends AppShell {
 

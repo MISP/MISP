@@ -57,23 +57,36 @@ class RedisTool
     /**
      * @param Redis $redis
      * @param string|array $pattern
-     * @return int|Redis Number of deleted keys or instance of Redis if used in MULTI mode
+     * @return Generator<string>
      * @throws RedisException
      */
-    public static function deleteKeysByPattern(Redis $redis, $pattern)
+    public static function keysByPattern(Redis $redis, $pattern)
     {
         if (is_string($pattern)) {
             $pattern = [$pattern];
         }
 
-        $allKeys = [];
         foreach ($pattern as $p) {
             $iterator = null;
             while (false !== ($keys = $redis->scan($iterator, $p, 1000))) {
                 foreach ($keys as $key) {
-                    $allKeys[] = $key;
+                    yield $key;
                 }
             }
+        }
+    }
+
+    /**
+     * @param Redis $redis
+     * @param string|array $pattern
+     * @return int|Redis Number of deleted keys or instance of Redis if used in MULTI mode
+     * @throws RedisException
+     */
+    public static function deleteKeysByPattern(Redis $redis, $pattern)
+    {
+        $allKeys = [];
+        foreach (self::keysByPattern($redis, $pattern) as $key) {
+            $allKeys[] = $key;
         }
 
         if (empty($allKeys)) {

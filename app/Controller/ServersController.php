@@ -1861,7 +1861,7 @@ class ServersController extends AppController
         }
 
         if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $this->Server->getBackgroundJobsTool()->purgeQueue($worker);
+            $this->Server->getBackgroundJobsTool()->clearQueue($worker);
         } else {
             // CakeResque
             $worker_array = array('cache', 'default', 'email', 'prio');
