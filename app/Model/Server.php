@@ -566,7 +566,7 @@ class Server extends AppModel
             $response = $serverSync->fetchEvent($eventId, $params);
             $event = $response->json();
         } catch (Exception $e) {
-            $this->logException("Failed downloading the event $eventId from remote server {$serverSync->serverId()}", $e);
+            $this->logException("Failed to download the event $eventId from remote server {$serverSync->serverId()} '{$serverSync->serverName()}'", $e);
             $fails[$eventId] = __('failed downloading the event');
             return false;
         }

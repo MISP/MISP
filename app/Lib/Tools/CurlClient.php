@@ -244,11 +244,12 @@ class CurlClient extends HttpSocketExtended
         $output = curl_exec($this->ch);
 
         if ($output === false) {
+            $errorCode = curl_errno($this->ch);
             $errorMessage = curl_error($this->ch);
             if (!empty($errorMessage)) {
                 $errorMessage = ": $errorMessage";
             }
-            throw new SocketException('curl error ' . curl_strerror(curl_errno($this->ch)) . $errorMessage);
+            throw new SocketException("curl error $errorCode '" . curl_strerror($errorCode) . "'" . $errorMessage);
         }
 
         $code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
