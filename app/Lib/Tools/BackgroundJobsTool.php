@@ -281,13 +281,17 @@ class BackgroundJobsTool
     /**
      * @param Worker $worker
      * @param BackgroundJob $job
+     * @param int|null $pid
      * @return void
      * @throws RedisException
      */
-    public function markAsRunning(Worker $worker, BackgroundJob $job)
+    public function markAsRunning(Worker $worker, BackgroundJob $job, $pid = null)
     {
         $key = self::RUNNING_JOB_PREFIX . ':' . $worker->queue() . ':' . $job->id();
-        $this->RedisConnection->setex($key, 60, $worker->pid());
+        $this->RedisConnection->setex($key, 60, [
+            'worker_pid' => $worker->pid(),
+            'process_pid' => $pid,
+        ]);
     }
 
     /**
@@ -304,19 +308,20 @@ class BackgroundJobsTool
 
     /**
      * Return current running jobs
-     * @param string $queue
-     * @return string[] Background jobs IDs
+     * @return array
      * @throws RedisException
      */
-    public function runningJobs(string $queue): array
+    public function runningJobs(): array
     {
-        $pattern = $this->RedisConnection->_prefix(self::RUNNING_JOB_PREFIX . ':' . $queue . ':*');
+        $pattern = $this->RedisConnection->_prefix(self::RUNNING_JOB_PREFIX . ':*');
         $keys = RedisTool::keysByPattern($this->RedisConnection, $pattern);
 
         $jobIds = [];
         foreach ($keys as $key) {
             $parts = explode(':', $key);
-            $jobIds[] = end($parts);
+            $queue = $parts[2];
+            $jobId = $parts[3];
+            $jobIds[$queue][$jobId] = $this->RedisConnection->get(self::RUNNING_JOB_PREFIX . ":$queue:$jobId");
         }
         return $jobIds;
     }

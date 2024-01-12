@@ -113,6 +113,14 @@ class BackgroundJob implements JsonSerializable
         $this->output = '';
         $this->error = '';
 
+        if ($runningCallback) {
+            $status = proc_get_status($process);
+            if ($status === false) {
+                throw new RuntimeException("Could not get process status");
+            }
+            $runningCallback($status);
+        }
+
         while (true) {
             $read = [$pipes[1], $pipes[2]];
             $write = null;
