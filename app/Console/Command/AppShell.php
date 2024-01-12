@@ -85,6 +85,15 @@ abstract class AppShell extends Shell
     }
 
     /**
+     * @param string $newCommand
+     * @return void
+     */
+    protected function deprecated($newCommand)
+    {
+        $this->err("<warning>This method is deprecated. Next time please use `$newCommand`.</warning>");
+    }
+
+    /**
      * @return BackgroundJobsTool
      * @throws Exception
      */

@@ -670,6 +670,8 @@ class AdminShell extends AppShell
      */
     public function change_authkey()
     {
+        $this->deprecated('cake user change_authkey [user_id]');
+
         if (empty($this->args[0])) {
             echo 'MISP apikey command line tool' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Admin change_authkey [user_email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Admin change_authkey [user_email] [authkey]' . PHP_EOL;
             die();
@@ -809,6 +811,8 @@ class AdminShell extends AppShell
      */
     public function UserIP()
     {
+        $this->deprecated('cake user user_ips [user_id]');
+
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get IPs for user ID'] . PHP_EOL);
         }
@@ -836,6 +840,8 @@ class AdminShell extends AppShell
      */
     public function IPUser()
     {
+        $this->deprecated('cake user ip_user [ip]');
+
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get user ID for user IP'] . PHP_EOL);
         }
