@@ -25,13 +25,15 @@ class FeedsFixture extends TestFixture
                 'id' => self::FEED_1_ID,
                 'name' => self::FEED_1_NAME,
                 'provider' => 'test-provider',
-                'url' => 'http://localhost/test-feed-1'
+                'url' => 'http://localhost/test-feed-1',
+                'enabled' => true,
             ],
             [
                 'id' => self::FEED_2_ID,
                 'name' => self::FEED_2_NAME,
                 'provider' => 'test-provider',
-                'url' => 'http://localhost/test-feed-2'
+                'url' => 'http://localhost/test-feed-2',
+                'enabled' => false,
             ]
         ];
         parent::init();
