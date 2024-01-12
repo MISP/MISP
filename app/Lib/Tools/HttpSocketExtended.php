@@ -18,10 +18,15 @@ class HttpSocketHttpException extends Exception
     {
         $this->response = $response;
         $this->url = $url;
+
         $message = "Remote server returns HTTP error code $response->code";
         if ($url) {
             $message .= " for URL $url";
         }
+        if ($response->body) {
+            $message .= ': ' . substr($response->body, 0, 100);
+        }
+
         parent::__construct($message, (int)$response->code);
     }
 
