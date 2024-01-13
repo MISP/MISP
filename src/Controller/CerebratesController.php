@@ -245,44 +245,41 @@ class CerebratesController extends AppController
 
     public function downloadOrg($cerebrate_id, $org_id)
     {
-        throw new CakeException('Not implemented');
+        if ($this->request->is('post')) {
+            /** @var \App\Model\Entity\Cerebrate $cerebrate */
+            $cerebrate = $this->Cerebrates->findById($cerebrate_id)->first();
 
-        // if ($this->request->is('post')) {
-        //     $cerebrate = $this->Cerebrate->find('first', [
-        //         'recursive' => -1,
-        //         'conditions' => ['Cerebrate.id' => $cerebrate_id]
-        //     ]);
-        //     if (empty($cerebrate)) {
-        //         throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
-        //     }
-        //     $result = $this->Cerebrate->queryInstance([
-        //         'cerebrate' => $cerebrate,
-        //         'path' => '/organisations/view/' . $org_id,
-        //         'type' => 'GET'
-        //     ]);
-        //     $saveResult = $this->Cerebrate->captureOrg($result);
-        //     if ($this->_isRest()) {
-        //         if (is_array($saveResult)) {
-        //             return $this->RestResponse->viewData($saveResult, $this->response->type());
-        //         } else {
-        //             return $this->RestResponse->saveFailResponse('Cerebrates', 'download_org', $cerebrate_id . '/' . $org_id, $saveResult);
-        //         }
-        //     } else {
-        //         if (is_array($saveResult)) {
-        //             $this->Flash->success(__('Organisation downloaded.'));
-        //         } else {
-        //             $this->Flash->error($saveResult);
-        //         }
-        //         $this->redirect($this->referer());
-        //     }
-        // } else {
-        //     $this->set('id', $data[$modelName]['id']);
-        //     $this->set('title', __('Download organisation information'));
-        //     $this->set('question', __('Are you sure you want to download and add / update the remote organisation?'));
-        //     $this->set('actionName', __('Download'));
-        //     $this->layout = false;
-        //     $this->render('/genericTemplates/confirm');
-        // }
+            if (empty($cerebrate)) {
+                throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
+            }
+            $result = $cerebrate->queryInstance([
+                'path' => '/organisations/view/' . $org_id,
+                'type' => 'GET'
+            ]);
+            $saveResult = $cerebrate->captureOrg($result);
+            if ($this->ParamHandler->isRest()) {
+                if (is_array($saveResult)) {
+                    return $this->RestResponse->viewData($saveResult, $this->response->getType());
+                } else {
+                    return $this->RestResponse->saveFailResponse('Cerebrates', 'download_org', $cerebrate_id . '/' . $org_id, $saveResult);
+                }
+            } else {
+                if (is_array($saveResult)) {
+                    $this->Flash->success(__('Organisation downloaded.'));
+                } else {
+                    $this->Flash->error($saveResult);
+                }
+                $this->redirect($this->referer());
+            }
+        } else {
+            // FIXME chri - this does not seem to work, onClick nothing happens
+            $this->set('id', $data[$modelName]['id']);
+            $this->set('title', __('Download organisation information'));
+            $this->set('question', __('Are you sure you want to download and add / update the remote organisation?'));
+            $this->set('actionName', __('Download'));
+            $this->layout = false;
+            $this->render('/genericTemplates/confirm');
+        }
     }
 
     public function previewSharingGroups($id)

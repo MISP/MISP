@@ -275,9 +275,11 @@ class Cerebrate extends AppModel
         /** @var \App\Model\Table\OrganisationsTable $organisationTable */
         $organisationTable = TableRegistry::getTableLocator()->get('Organisations');
         $existingOrgs = $organisationTable->find('all', [
-            'recursive' => -1
-        ])->where(function (QueryExpression $exp, Query $q) use ($uuids) {
-            return $exp->in('uuid', array_keys($uuids));
+            'recursive' => -1,
+        ])
+        ->where(['uuid'])
+        ->where(function (QueryExpression $exp, Query $q) use ($uuids) {
+            return $exp->in('uuid', array_values($uuids));
         });
         $rearranged = [];
         foreach ($existingOrgs as $existingOrg) {
