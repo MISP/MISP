@@ -17,7 +17,7 @@
         } else {
             $icon = 'sync';
             $colour = 'organge';
-            $text = __('Object exists locally, but the following fields contain different information on the remote: %s', implode(', ', $differences));
+            $text = __('Object exists locally, but the following fields contain different information on the remote: {0}', implode(', ', $differences));
         }
     }
     echo sprintf(

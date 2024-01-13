@@ -274,9 +274,7 @@ class Cerebrate extends AppModel
         $uuids = Hash::extract($orgs, '{n}.uuid');
         /** @var \App\Model\Table\OrganisationsTable $organisationTable */
         $organisationTable = TableRegistry::getTableLocator()->get('Organisations');
-        $existingOrgs = $organisationTable->find('all', [
-            'recursive' => -1,
-        ])
+        $existingOrgs = $organisationTable->find('all')
         ->where(['uuid'])
         ->where(function (QueryExpression $exp, Query $q) use ($uuids) {
             return $exp->in('uuid', array_values($uuids));
@@ -324,24 +322,22 @@ class Cerebrate extends AppModel
 
     private function __compareMembers($existingMembers, $remoteMembers)
     {
-        throw new CakeException('Not implemented');
-
-        // $memberFound = [];
-        // $memberNotFound = [];
-        // foreach ($remoteMembers as $remoteMember) {
-        //     $found = false;
-        //     foreach ($existingMembers as $existingMember) {
-        //         if ($existingMember['uuid'] == $remoteMember['uuid']) {
-        //             $found = true;
-        //             $memberFound[] = $remoteMember['uuid'];
-        //             break;
-        //         }
-        //     }
-        //     if (!$found) {
-        //         $memberNotFound[] = $remoteMember['uuid'];
-        //     }
-        // }
-        // return empty($memberNotFound);
+        $memberFound = [];
+        $memberNotFound = [];
+        foreach ($remoteMembers as $remoteMember) {
+            $found = false;
+            foreach ($existingMembers as $existingMember) {
+                if ($existingMember['uuid'] == $remoteMember['uuid']) {
+                    $found = true;
+                    $memberFound[] = $remoteMember['uuid'];
+                    break;
+                }
+            }
+            if (!$found) {
+                $memberNotFound[] = $remoteMember['uuid'];
+            }
+        }
+        return empty($memberNotFound);
     }
 
     /*
@@ -351,146 +347,132 @@ class Cerebrate extends AppModel
      */
     public function checkRemoteSharingGroups($sgs)
     {
-        throw new CakeException('Not implemented');
-
-        // $this->SharingGroup = ClassRegistry::init('SharingGroup');
-        // $uuids = Hash::extract($sgs, '{n}.uuid');
-        // $existingSgs = $this->SharingGroup->find('all', [
-        //     'recursive' => -1,
-        //     'contain' => [
-        //         'SharingGroupOrg' => ['Organisation'],
-        //         'Organisation',
-        //     ],
-        //     'conditions' => [
-        //         'SharingGroup.uuid' => $uuids
-        //     ],
-        // ]);
-        // $rearranged = [];
-        // foreach ($existingSgs as $existingSg) {
-        //     $existingSg['SharingGroup']['SharingGroupOrg'] = $existingSg['SharingGroupOrg'];
-        //     $existingSg['SharingGroup']['Organisation'] = $existingSg['Organisation'];
-        //     $rearranged[$existingSg['SharingGroup']['uuid']] = $existingSg['SharingGroup'];
-        // }
-        // unset($existingSgs);
-        // $fieldsToCheck = ['name', 'releasability', 'description'];
-        // foreach ($sgs as $k => $sg) {
-        //     $sgs[$k]['exists_locally'] = false;
-        //     if (isset($rearranged[$sg['uuid']])) {
-        //         $sgs[$k]['exists_locally'] = true;
-        //         $sgs[$k]['differences'] = $this->compareSgs($rearranged[$sg['uuid']], $sgs[$k]);
-        //     }
-        // }
-        // return $sgs;
+        /** @var \App\Model\Table\SharingGroupsTable $sharingGroupTable */
+        $sharingGroupTable = TableRegistry::getTableLocator()->get('SharingGroups');
+        $uuids = Hash::extract($sgs, '{n}.uuid');
+        $existingSgs = $sharingGroupTable->find('all')
+        ->contain(['SharingGroupOrgs'=> 'Organisations', 'Organisations'])
+        ->where(['SharingGroups.uuid'])
+        ->where(function (QueryExpression $exp, Query $q) use ($uuids) {
+            return $exp->in('SharingGroups.uuid', array_values($uuids));
+        });
+        $rearranged = [];
+        foreach ($existingSgs as $existingSg) {
+            $existingSg = $existingSg->toArray();
+            $rearranged[$existingSg['uuid']] = $existingSg;
+        }
+        unset($existingSgs);
+        $fieldsToCheck = ['name', 'releasability', 'description'];
+        foreach ($sgs as $k => $sg) {
+            $sgs[$k]['exists_locally'] = false;
+            if (isset($rearranged[$sg['uuid']])) {
+                $sgs[$k]['exists_locally'] = true;
+                $sgs[$k]['differences'] = $this->compareSgs($rearranged[$sg['uuid']], $sgs[$k]);
+            }
+        }
+        return $sgs;
     }
 
     private function compareSgs($existingSg, $remoteSg)
     {
-        throw new CakeException('Not implemented');
+        $differences = [];
+        $fieldsToCheck = ['name', 'releasability', 'description'];
 
-        // $differences = [];
-        // $fieldsToCheck = ['name', 'releasability', 'description'];
-
-        // foreach ($fieldsToCheck as $fieldToCheck) {
-        //     if (
-        //         !(empty($remoteSg[$fieldToCheck]) && empty($existingSg[$fieldToCheck])) &&
-        //         $remoteSg[$fieldToCheck] !== $existingSg[$fieldToCheck]
-        //     ) {
-        //         if ($fieldToCheck === 'name') {
-        //             if ($this->__compareNames($existingSg[$fieldToCheck], $remoteSg[$fieldToCheck])) {
-        //                 continue;
-        //             }
-        //         }
-        //         $differences[] = $fieldToCheck;
-        //     }
-        // }
-        // if (!$this->__compareMembers(Hash::extract($existingSg['SharingGroupOrg'], '{n}.Organisation'), $remoteSg['sharing_group_orgs'])) {
-        //     $differences[] = 'members';
-        // }
-        // return $differences;
+        foreach ($fieldsToCheck as $fieldToCheck) {
+            if (
+                !(empty($remoteSg[$fieldToCheck]) && empty($existingSg[$fieldToCheck])) &&
+                $remoteSg[$fieldToCheck] !== $existingSg[$fieldToCheck]
+            ) {
+                if ($fieldToCheck === 'name') {
+                    if ($this->__compareNames($existingSg[$fieldToCheck], $remoteSg[$fieldToCheck])) {
+                        continue;
+                    }
+                }
+                $differences[] = $fieldToCheck;
+            }
+        }
+        if (!$this->__compareMembers(Hash::extract($existingSg['SharingGroupOrg'], '{n}.Organisation'), $remoteSg['sharing_group_orgs'])) {
+            $differences[] = 'members';
+        }
+        return $differences;
     }
 
     private function convertSg($sg_data)
     {
-        throw new CakeException('Not implemented');
-
-        // $mapping = [
-        //     'name' => [
-        //         'field' => 'name',
-        //         'required' => 1
-        //     ],
-        //     'uuid' => [
-        //         'field' => 'uuid',
-        //         'required' => 1
-        //     ],
-        //     'releasability' => [
-        //         'field' => 'releasability'
-        //     ],
-        //     'description' => [
-        //         'field' => 'description'
-        //     ],
-        // ];
-        // $sg = [];
-        // foreach ($mapping as $cerebrate_field => $field_data) {
-        //     if (empty($sg_data[$cerebrate_field])) {
-        //         if (!empty($field_data['required'])) {
-        //             return false;
-        //         } else {
-        //             continue;
-        //         }
-        //     }
-        //     $sg[$field_data['field']] = $sg_data[$cerebrate_field];
-        // }
-        // $sg['SharingGroupOrg'] = [];
-        // if (!empty($sg_data['sharing_group_orgs'])) {
-        //     $sg['SharingGroupOrg'] = $sg_data['sharing_group_orgs'];
-        //     foreach ($sg['SharingGroupOrg'] as $k => $org) {
-        //         if (isset($org['_joinData'])) {
-        //             unset($sg['SharingGroupOrg'][$k]['_joinData']);
-        //         }
-        //         if (!isset($org['extend'])) {
-        //             $sg['SharingGroupOrg'][$k]['extend'] = false;
-        //         }
-        //     }
-        // }
-        // return $sg;
+        $mapping = [
+            'name' => [
+                'field' => 'name',
+                'required' => 1
+            ],
+            'uuid' => [
+                'field' => 'uuid',
+                'required' => 1
+            ],
+            'releasability' => [
+                'field' => 'releasability'
+            ],
+            'description' => [
+                'field' => 'description'
+            ],
+        ];
+        $sg = [];
+        foreach ($mapping as $cerebrate_field => $field_data) {
+            if (empty($sg_data[$cerebrate_field])) {
+                if (!empty($field_data['required'])) {
+                    return false;
+                } else {
+                    continue;
+                }
+            }
+            $sg[$field_data['field']] = $sg_data[$cerebrate_field];
+        }
+        $sg['SharingGroupOrg'] = [];
+        if (!empty($sg_data['sharing_group_orgs'])) {
+            $sg['SharingGroupOrg'] = $sg_data['sharing_group_orgs'];
+            foreach ($sg['SharingGroupOrg'] as $k => $org) {
+                if (isset($org['_joinData'])) {
+                    unset($sg['SharingGroupOrg'][$k]['_joinData']);
+                }
+                if (!isset($org['extend'])) {
+                    $sg['SharingGroupOrg'][$k]['extend'] = false;
+                }
+                foreach ($org as $ok => $ov) {
+                    if ($ov === null) unset($sg['SharingGroupOrg'][$k][$ok]);
+                }
+            }
+        }
+        return $sg;
     }
 
+        
+    /**
+     * captureSg
+     *
+     * @param  array $sg_data
+     * @param  App\Model\Entity\User $user
+     * @param  bool $edit
+     * @param  bool $noChange
+     * @return mixed
+     */
     public function captureSg($sg_data, $user, &$edit=false, &$noChange=false) 
     {
-        throw new CakeException('Not implemented');
-
-        // $this->SharingGroup = ClassRegistry::init('SharingGroup');
-        // $sg = $this->convertSg($sg_data);
-        // if ($sg) {
-        //     $existingSg = $this->SharingGroup->find('first', [
-        //         'recursive' => -1,
-        //         'contain' => [
-        //             'SharingGroupOrg' => ['Organisation'],
-        //             'Organisation',
-        //         ],
-        //         'conditions' => [
-        //             'SharingGroup.uuid' => $sg_data['uuid']
-        //         ],
-        //     ]);
-        //     if (!empty($existingSg)) {
-        //         $edit = true;
-        //     }
-        //     $captureResult = $this->SharingGroup->captureSG($sg, $user, false);
-        //     if (!empty($captureResult)) {
-        //         $savedSg = $this->SharingGroup->find('first', [
-        //             'recursive' => -1,
-        //             'contain' => [
-        //                 'SharingGroupOrg' => ['Organisation'],
-        //                 'Organisation',
-        //             ],
-        //             'conditions' => [
-        //                 'SharingGroup.id' => $captureResult
-        //             ],
-        //         ]);
-        //         return $savedSg;
-        //     }
-        //     return __('The organisation could not be saved.');
-        // }
-        // return __('The retrieved data isn\'t a valid sharing group.');
+        /** @var \App\Model\Table\SharingGroupsTable $sharingGroupTable */
+        $sharingGroupTable = TableRegistry::getTableLocator()->get('SharingGroups');
+        $sg = $this->convertSg($sg_data);
+        if ($sg) {
+            $existingSg = $sharingGroupTable->findByUuid($sg_data['uuid'])->first();
+            if (!empty($existingSg)) {
+                $edit = true;
+            }
+            $captureResult = $sharingGroupTable->captureSG($sg, $user->toArray(), false);
+            if (!empty($captureResult)) {
+                $savedSg = $sharingGroupTable->findById($captureResult)
+                ->contain(['SharingGroupOrgs'=> 'Organisations', 'Organisations'])
+                ->first();
+                return $savedSg;
+            }
+            return __('The organisation could not be saved.');
+        }
+        return __('The retrieved data isn\'t a valid sharing group.');
     }
 }

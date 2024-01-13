@@ -248,7 +248,6 @@ class CerebratesController extends AppController
         if ($this->request->is('post')) {
             /** @var \App\Model\Entity\Cerebrate $cerebrate */
             $cerebrate = $this->Cerebrates->findById($cerebrate_id)->first();
-
             if (empty($cerebrate)) {
                 throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
             }
@@ -284,76 +283,70 @@ class CerebratesController extends AppController
 
     public function previewSharingGroups($id)
     {
-        throw new CakeException('Not implemented');
         // $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateSGs']);
-        // $cerebrate = $this->Cerebrate->find('first', [
-        //     'recursive' => -1,
-        //     'conditions' => ['Cerebrate.id' => $id]
-        // ]);
-        // if (empty($cerebrate)) {
-        //     throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
-        // }
-        // $result = $this->Cerebrate->queryInstance([
-        //     'cerebrate' => $cerebrate,
-        //     'path' => '/sharingGroups/index',
-        //     'params' => $this->IndexFilter->harvestParameters([
-        //         'name',
-        //         'uuid',
-        //         'quickFilter'
-        //     ]),
-        //     'type' => 'GET'
-        // ]);
-        // $result = $this->Cerebrate->checkRemoteSharingGroups($result);
-        // if ($this->_isRest()) {
-        //     return $this->RestResponse->viewData($result, $this->response->type());
-        // } else {
-        //     App::uses('CustomPaginationTool', 'Tools');
-        //     $customPagination = new CustomPaginationTool();
-        //     $customPagination->truncateAndPaginate($result, $this->params, false, true);
-        //     $this->set('data', $result);
-        //     $this->set('cerebrate', $cerebrate);
-        // }
+        /** @var \App\Model\Entity\Cerebrate $cerebrate */
+        $cerebrate = $this->Cerebrates->findById($id)->first();
+        if (empty($cerebrate)) {
+            throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
+        }
+        $sgs = $cerebrate->queryInstance([
+            'path' => '/sharingGroups/index',
+            'params' => $this->harvestParameters([
+                'name',
+                'uuid',
+                'quickFilter'
+            ]),
+            'type' => 'GET'
+        ]);
+        if (!empty($sgs))
+            $result = $cerebrate->checkRemoteSharingGroups($sgs);
+        else $result = [];
+        if ($this->ParamHandler->isRest()) {
+            return $this->RestResponse->viewData($result, $this->response->getType());
+        } else {
+            $customPagination = new CustomPaginationTool();
+            $passedParams = $this->request->getQueryParams();
+            $customPagination->truncateAndPaginate($result, $passedParams, 'SharingGroups', true);
+            $this->set('passedParams', $passedParams);
+            $this->set('data', $result);
+            $this->set('cerebrate', $cerebrate);
+        }
     }
 
     public function downloadSg($cerebrate_id, $sg_id)
     {
-        throw new CakeException('Not implemented');
-
-        // if ($this->request->is('post')) {
-        //     $cerebrate = $this->Cerebrate->find('first', [
-        //         'recursive' => -1,
-        //         'conditions' => ['Cerebrate.id' => $cerebrate_id]
-        //     ]);
-        //     if (empty($cerebrate)) {
-        //         throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
-        //     }
-        //     $result = $this->Cerebrate->queryInstance([
-        //         'cerebrate' => $cerebrate,
-        //         'path' => '/sharingGroups/view/' . $sg_id,
-        //         'type' => 'GET'
-        //     ]);
-        //     $saveResult = $this->Cerebrate->captureSg($result, $this->Auth->user());
-        //     if ($this->_isRest()) {
-        //         if (is_array($saveResult)) {
-        //             return $this->RestResponse->viewData($saveResult, $this->response->type());
-        //         } else {
-        //             return $this->RestResponse->saveFailResponse('Cerebrates', 'download_sg', $cerebrate_id . '/' . $sg_id, $saveResult);
-        //         }
-        //     } else {
-        //         if (is_array($saveResult)) {
-        //             $this->Flash->success(__('Sharing Group downloaded.'));
-        //         } else {
-        //             $this->Flash->error($saveResult);
-        //         }
-        //         $this->redirect($this->referer());
-        //     }
-        // } else {
-        //     $this->set('id', $cerebrate_id);
-        //     $this->set('title', __('Download sharing group information'));
-        //     $this->set('question', __('Are you sure you want to download and add / update the remote sharing group?'));
-        //     $this->set('actionName', __('Download'));
-        //     $this->layout = false;
-        //     $this->render('/genericTemplates/confirm');
-        // }
+        if ($this->request->is('post')) {
+            /** @var \App\Model\Entity\Cerebrate $cerebrate */
+            $cerebrate = $this->Cerebrates->findById($cerebrate_id)->first();
+            if (empty($cerebrate)) {
+                throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
+            }
+            $result = $cerebrate->queryInstance([
+                'path' => '/sharingGroups/view/' . $sg_id,
+                'type' => 'GET'
+            ]);
+            $saveResult = $cerebrate->captureSg($result, $this->ACL->getUser());
+            if ($this->ParamHandler->isRest()) {
+                if (is_array($saveResult)) {
+                    return $this->RestResponse->viewData($saveResult, $this->response->getType());
+                } else {
+                    return $this->RestResponse->saveFailResponse('Cerebrates', 'download_sg', $cerebrate_id . '/' . $sg_id, $saveResult);
+                }
+            } else {
+                if (is_array($saveResult)) {
+                    $this->Flash->success(__('Sharing Group downloaded.'));
+                } else {
+                    $this->Flash->error($saveResult);
+                }
+                $this->redirect($this->referer());
+            }
+        } else {
+            $this->set('id', $cerebrate_id);
+            $this->set('title', __('Download sharing group information'));
+            $this->set('question', __('Are you sure you want to download and add / update the remote sharing group?'));
+            $this->set('actionName', __('Download'));
+            $this->layout = false;
+            $this->render('/genericTemplates/confirm');
+        }
     }
 }

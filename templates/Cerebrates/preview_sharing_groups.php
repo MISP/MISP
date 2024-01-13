@@ -6,9 +6,10 @@
             'data_path' => 'id'
         ],
         [
-            'name' => __('Known locally'),
+            'name' => __('Status'),
             'sort' => 'exists_locally',
             'element' => 'remote_status',
+            'data_path' => ''
         ],
         [
             'name' => __('UUID'),
@@ -21,15 +22,22 @@
             'data_path' => 'name'
         ],
         [
-            'name' => __('Sector'),
-            'sort' => 'sector',
-            'data_path' => 'sector'
+            'name' => __('Releasability'),
+            'sort' => 'releasability',
+            'data_path' => 'releasability'
         ],
         [
-            'name' => __('Nationality'),
-            'sort' => 'nationality',
-            'data_path' => 'nationality'
-        ]
+            'name' => __('Description'),
+            'sort' => 'description',
+            'data_path' => 'description'
+        ],
+        [
+            'name' => __('# Member'),
+            'element' => 'custom',
+            'function' => function($row) {
+                return count($row['sharing_group_orgs']);
+            }
+        ],
     ];
 
     echo $this->element('genericElements/IndexTable/index_table', [
@@ -50,21 +58,21 @@
             ],
             'fields' => $fields,
             'title' => empty($ajax) ? __(
-                    'Organisations list via Cerebrate {0} ({1})',
+                    'Sharing group list via Cerebrate {0} ({1})',
                     h($cerebrate['id']),
                     h($cerebrate['name'])
                 ) : false,
-            'description' => empty($ajax) ? __('Preview of the organisations known to the remote Cerebrate instance.') : false,
+            'description' => empty($ajax) ? __('Preview of the sharing group known to the remote Cerebrate instance.') : false,
             'actions' => [
                 [
                     'onclick' => sprintf(
-                        'openGenericModal(\'{0}/cerebrates/download_org/{1}/[onclick_params_data_path]\');',
+                        'openGenericModal(\'{0}/cerebrates/download_sg/{1}/[onclick_params_data_path]\');',
                         $baseurl,
                         h($cerebrate['id'])
                     ),
                     'onclick_params_data_path' => 'id',
                     'icon' => 'download',
-                    'title' => __('Fetch organisation object')
+                    'title' => __('Fetch sharing group object')
                 ]
             ],
             'paginatorOptions' => array_merge(
@@ -73,7 +81,7 @@
             ),
             'persistUrlParams' => [0, 'quickFilter']
         ],
-        'containerId' => 'preview_orgs_container'
+        'containerId' => 'preview_sgs_container'
     ]);
 ?>
 <script type="text/javascript">
