@@ -109,6 +109,9 @@ class AdminShell extends AppShell
         $parser->addSubcommand('configLint', [
             'help' => __('Check if settings has correct value.'),
         ]);
+        $parser->addSubcommand('createZmqConfig', [
+            'help' => __('Create config file for ZeroMQ server.'),
+        ]);
         $parser->addSubcommand('scanAttachment', [
             'help' => __('Scan attachments with AV.'),
             'parser' => [
@@ -1250,5 +1253,11 @@ class AdminShell extends AppShell
             $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
             $this->Job->saveField('message', __('Database truncated: ' . $table));
         }
+    }
+
+    public function createZmqConfig()
+    {
+        $this->Server->getPubSubTool()->createConfigFile();
+        $this->err("Config file created in " . PubSubTool::SCRIPTS_TMP);
     }
 }
