@@ -4264,38 +4264,38 @@ class Server extends AppModel
             'app/files/scripts/misp-opendata',
             'app/files/scripts/python-maec',
             'app/files/scripts/python-stix',
-
         );
         return in_array($submodule, $accepted_submodules_names, true);
     }
 
     /**
-     * @param string $submodule_name
-     * @param string $superproject_submodule_commit_id
+     * @param string $submoduleName
+     * @param string $superprojectSubmoduleCommitId
      * @return array
+     * @throws Exception
      */
-    private function getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id)
+    private function getSubmoduleGitStatus($submoduleName, $superprojectSubmoduleCommitId)
     {
-        $path = APP . '../' . $submodule_name;
-        $submodule_name = (strpos($submodule_name, '/') >= 0 ? explode('/', $submodule_name) : $submodule_name);
-        $submodule_name = end($submodule_name);
+        $path = APP . '../' . $submoduleName;
+        $submoduleName = (strpos($submoduleName, '/') >= 0 ? explode('/', $submoduleName) : $submoduleName);
+        $submoduleName = end($submoduleName);
 
         $submoduleCurrentCommitId = GitTool::submoduleCurrentCommit($path);
 
         $currentTimestamp = GitTool::commitTimestamp($submoduleCurrentCommitId, $path);
-        if ($submoduleCurrentCommitId !== $superproject_submodule_commit_id) {
-            $remoteTimestamp = GitTool::commitTimestamp($superproject_submodule_commit_id, $path);
+        if ($submoduleCurrentCommitId !== $superprojectSubmoduleCommitId) {
+            $remoteTimestamp = GitTool::commitTimestamp($superprojectSubmoduleCommitId, $path);
         } else {
             $remoteTimestamp = $currentTimestamp;
         }
 
         $status = array(
-            'moduleName' => $submodule_name,
+            'moduleName' => $submoduleName,
             'current' => $submoduleCurrentCommitId,
             'currentTimestamp' => $currentTimestamp,
-            'remote' => $superproject_submodule_commit_id,
+            'remote' => $superprojectSubmoduleCommitId,
             'remoteTimestamp' => $remoteTimestamp,
-            'upToDate' => '',
+            'upToDate' => 'error',
             'isReadable' => is_readable($path) && is_readable($path . '/.git'),
         );
 
@@ -4307,15 +4307,11 @@ class Server extends AppModel
             } else {
                 $status['upToDate'] = 'younger';
             }
-        } else {
-            $status['upToDate'] = 'error';
         }
 
         if ($status['isReadable'] && !empty($status['remoteTimestamp']) && !empty($status['currentTimestamp'])) {
-            $date1 = new DateTime();
-            $date1->setTimestamp($status['remoteTimestamp']);
-            $date2 = new DateTime();
-            $date2->setTimestamp($status['currentTimestamp']);
+            $date1 = new DateTime("@{$status['remoteTimestamp']}");
+            $date2 = new DateTime("@{$status['currentTimestamp']}");
             $status['timeDiff'] = $date1->diff($date2);
         } else {
             $status['upToDate'] = 'error';

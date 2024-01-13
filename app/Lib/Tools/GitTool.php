@@ -97,12 +97,14 @@ class GitTool
     /**
      * @param string $submodule Path to Git repo
      * @return string|null
+     * @throws Exception
      */
     public static function submoduleCurrentCommit($submodule)
     {
         try {
             $commit = ProcessTool::execute(['git', 'rev-parse', 'HEAD'], $submodule);
         } catch (ProcessException $e) {
+            CakeLog::notice("Could not get Git commit for $submodule: {$e->getMessage()}");
             return null;
         }
         return rtrim($commit);
@@ -112,12 +114,14 @@ class GitTool
      * @param string $commit
      * @param string|null $submodule Path to Git repo
      * @return int|null
+     * @throws Exception
      */
     public static function commitTimestamp($commit, $submodule = null)
     {
         try {
             $timestamp = ProcessTool::execute(['git', 'show', '-s', '--pretty=format:%ct', $commit], $submodule);
         } catch (ProcessException $e) {
+            CakeLog::notice("Could not get Git commit timestamp for $submodule: {$e->getMessage()}");
             return null;
         }
         return (int)rtrim($timestamp);
