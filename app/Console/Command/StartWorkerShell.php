@@ -83,7 +83,7 @@ class StartWorkerShell extends AppShell
 
             $start = microtime(true);
             $job->run(function (array $status) use ($job) {
-                $this->getBackgroundJobsTool()->markAsRunning($this->worker, $job);
+                $this->getBackgroundJobsTool()->markAsRunning($this->worker, $job, $status['pid']);
             });
             $duration = number_format(microtime(true) - $start, 3, '.', '');
 

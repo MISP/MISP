@@ -85,6 +85,14 @@ class AdminShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('isEncryptionKeyValid', [
+            'help' => __('Check if current encryption key is valid.'),
+            'parser' => [
+                'options' => [
+                    'encryptionKey' => ['help' => __('Current encryption key. If not provided, current key will be used.')],
+                ],
+            ],
+        ]);
         $parser->addSubcommand('dumpCurrentDatabaseSchema', [
             'help' => __('Dump current database schema to JSON file.'),
         ]);
@@ -662,6 +670,8 @@ class AdminShell extends AppShell
      */
     public function change_authkey()
     {
+        $this->deprecated('cake user change_authkey [user_id]');
+
         if (empty($this->args[0])) {
             echo 'MISP apikey command line tool' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Admin change_authkey [user_email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Admin change_authkey [user_email] [authkey]' . PHP_EOL;
             die();
@@ -801,6 +811,8 @@ class AdminShell extends AppShell
      */
     public function UserIP()
     {
+        $this->deprecated('cake user user_ips [user_id]');
+
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get IPs for user ID'] . PHP_EOL);
         }
@@ -828,6 +840,8 @@ class AdminShell extends AppShell
      */
     public function IPUser()
     {
+        $this->deprecated('cake user ip_user [ip]');
+
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get user ID for user IP'] . PHP_EOL);
         }
@@ -1043,6 +1057,23 @@ class AdminShell extends AppShell
         }
 
         $this->out(__('New encryption key "%s" saved into config file.', $new));
+    }
+
+    public function isEncryptionKeyValid()
+    {
+        $encryptionKey = $this->params['encryptionKey'] ?? null;
+        if ($encryptionKey === null) {
+            $encryptionKey = Configure::read('Security.encryption_key');
+        }
+        if (!$encryptionKey) {
+            $this->error('No encryption key provided');
+        }
+
+        /** @var SystemSetting $systemSetting */
+        $systemSetting = ClassRegistry::init('SystemSetting');
+        $systemSetting->isEncryptionKeyValid($encryptionKey);
+
+        $this->Server->isEncryptionKeyValid($encryptionKey);
     }
 
     public function redisMemoryUsage()

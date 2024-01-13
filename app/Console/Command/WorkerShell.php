@@ -34,13 +34,20 @@ class WorkerShell extends AppShell
         return $parser;
     }
 
+    /**
+     * @throws RedisException
+     * @throws JsonException
+     */
     public function showQueues()
     {
         $tool = $this->getBackgroundJobsTool();
+        $runningJobs = $tool->runningJobs();
+
         foreach (BackgroundJobsTool::VALID_QUEUES as $queue) {
             $this->out("{$queue}:\t{$tool->getQueueSize($queue)}");
-            foreach ($tool->runningJobs($queue) as $jobId) {
-                $this->out(" - $jobId");
+            $queueJobs = $runningJobs[$queue] ?? [];
+            foreach ($queueJobs as $jobId => $data) {
+                $this->out(" - $jobId (" . JsonTool::encode($data) .")");
             }
        }
     }

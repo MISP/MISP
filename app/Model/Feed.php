@@ -2062,6 +2062,7 @@ class Feed extends AppModel
         $contentType = $response->getHeader('content-type');
         if ($contentType === 'application/zip') {
             $zipFilePath = FileAccessTool::writeToTempFile($response->body);
+            unset($response->body); // cleanup variable to reduce memory usage
 
             try {
                 $response->body = $this->unzipFirstFile($zipFilePath);
@@ -2198,7 +2199,7 @@ class Feed extends AppModel
                 ZipArchive::ER_READ => 'read error',
                 ZipArchive::ER_SEEK => 'seek error',
             ];
-            $message = isset($errorCodes[$result]) ? $errorCodes[$result] : 'error ' . $result;
+            $message = $errorCodes[$result] ?? 'error ' . $result;
             throw new Exception("Remote server returns ZIP file, that cannot be open ($message)");
         }
 

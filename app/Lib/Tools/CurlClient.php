@@ -187,7 +187,7 @@ class CurlClient extends HttpSocketExtended
             // Share handle between requests to allow keep connection alive between requests
             $this->ch = curl_init();
             if (!$this->ch) {
-                throw new \RuntimeException("Could not initialize cURL");
+                throw new \RuntimeException("Could not initialize curl");
             }
         } else {
             // Reset options, so we can do another request
@@ -237,18 +237,19 @@ class CurlClient extends HttpSocketExtended
         };
 
         if (!curl_setopt_array($this->ch, $options)) {
-            throw new \RuntimeException('cURL error: Could not set options');
+            throw new \RuntimeException('curl error: Could not set options');
         }
 
         // Download the given URL, and return output
         $output = curl_exec($this->ch);
 
         if ($output === false) {
+            $errorCode = curl_errno($this->ch);
             $errorMessage = curl_error($this->ch);
             if (!empty($errorMessage)) {
                 $errorMessage = ": $errorMessage";
             }
-            throw new SocketException('cURL error ' . curl_strerror(curl_errno($this->ch)) . $errorMessage);
+            throw new SocketException("curl error $errorCode '" . curl_strerror($errorCode) . "'" . $errorMessage);
         }
 
         $code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
