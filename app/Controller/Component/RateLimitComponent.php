@@ -12,58 +12,60 @@ class RateLimitComponent extends Component
         )
     );
 
-    public $components = array('RestResponse');
-
     /**
      * @param array $user
      * @param string $controller
      * @param string $action
-     * @param array $info
-     * @param string $responseType
-     * @return bool
+     * @return array|null
      * @throws RedisException
      */
-    public function check(array $user, $controller, $action, &$info = array(), $responseType)
+    public function check(array $user, $controller, $action)
     {
-        if (!empty($user['Role']['enforce_rate_limit']) && isset(self::LIMITED_FUNCTIONS[$controller][$action])) {
-            if ($user['Role']['rate_limit_count'] == 0) {
-                throw new MethodNotAllowedException(__('API searches are not allowed for this user role.'));
-            }
-            try {
-                $redis = RedisTool::init();
-            } catch (Exception $e) {
-                return true; // redis is not available, allow access
-            }
-            $uuid = Configure::read('MISP.uuid') ?: 'no-uuid';
-            $keyName = 'misp:' . $uuid . ':rate_limit:' . $user['id'];
-            $count = $redis->get($keyName);
-            if ($count !== false && $count >= $user['Role']['rate_limit_count']) {
-                $info = array(
-                    'limit' => $user['Role']['rate_limit_count'],
-                    'reset' => $redis->ttl($keyName),
-                    'remaining' => $user['Role']['rate_limit_count'] - $count,
-                );
-                return $this->RestResponse->throwException(
-                    429,
-                    __('Rate limit exceeded.'),
-                    '/' . $controller . '/' . $action,
-                    $responseType
-                );
-            } else {
-                if ($count === false) {
-                    $redis->setEx($keyName, 900, 1);
-                } else {
-                    $redis->setEx($keyName, $redis->ttl($keyName), intval($count) + 1);
-                }
-            }
-            $count += 1;
-            $info = array(
-                'limit' => $user['Role']['rate_limit_count'],
-                'reset' => $redis->ttl($keyName),
-                'remaining' => $user['Role']['rate_limit_count'] - $count
-            );
-
+        if (!isset(self::LIMITED_FUNCTIONS[$controller][$action])) {
+            return null; // no limit enforced for this controller action
         }
-        return true;
+
+        if (empty($user['Role']['enforce_rate_limit'])) {
+            return null; // no limit enforced for this role
+        }
+
+        $rateLimit = (int)$user['Role']['rate_limit_count'];
+        if ($rateLimit === 0) {
+            throw new MethodNotAllowedException(__('API searches are not allowed for this user role.'));
+        }
+
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
+            return null; // redis is not available, allow access
+        }
+
+        $uuid = Configure::read('MISP.uuid') ?: 'no-uuid';
+        $keyName = 'misp:' . $uuid . ':rate_limit:' . $user['id'];
+        $count = $redis->get($keyName);
+
+        if ($count !== false && $count >= $rateLimit) {
+            return [
+                'exceeded' => true,
+                'limit' => $rateLimit,
+                'reset' => $redis->ttl($keyName),
+                'remaining' => $rateLimit - $count,
+            ];
+        }
+
+        $newCount = $redis->incr($keyName);
+        if ($newCount === 1) {
+            $redis->expire($keyName, 900);
+            $reset = 900;
+        } else {
+            $reset = $redis->ttl($keyName);
+        }
+
+        return [
+            'exceeded' => false,
+            'limit' => $rateLimit,
+            'reset' => $reset,
+            'remaining' => $rateLimit - $newCount,
+        ];
     }
 }
