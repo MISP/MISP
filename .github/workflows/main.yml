@@ -6,9 +6,9 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ 2.4, develop, misp-stix, taxii ]
+    branches: [ '2.4', develop, misp-stix, taxii ]
   pull_request:
-    branches: [ 2.4, develop, misp-stix ]
+    branches: [ '2.4', develop, misp-stix ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -62,12 +62,6 @@ jobs:
           php_version: ${{ matrix.php }}
         run: |
           sudo apt-get -y update
-          # Repo is missing for unknown reason
-          LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
-          if [[ $php_version == "7.2" ]]; then
-            # hotfix due to: https://bugs.php.net/bug.php?id=81640 TODO: remove after libpcre2-8-0:10.36 gets to stable channel
-            sudo apt-get --fix-broken install
-          fi
           sudo apt-get -y install curl python3 python3-pip python3-virtualenv apache2 libapache2-mod-php$php_version
 
       # Runs a set of commands using the runners shell

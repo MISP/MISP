@@ -754,6 +754,13 @@ class TestComprehensive(unittest.TestCase):
         self.assertEqual(len(result["generated"]), 1, result)
         self.assertIn("as-is", result)
 
+        # RPZ
+        result = self._search({'returnFormat': "rpz", 'eventid': event.id, "published": [0, 1]})
+        self.assertTrue("32.5.4.2.1" in result, result)
+
+        result = self._search_attribute({'returnFormat': "rpz", 'eventid': event.id, "published": [0, 1]})
+        self.assertTrue("32.5.4.2.1" in result, result)
+
         check_response(self.admin_misp_connector.delete_event(event))
 
     def test_event_report_empty_name(self):
