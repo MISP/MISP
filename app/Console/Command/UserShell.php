@@ -22,6 +22,9 @@ class UserShell extends AppShell
                 ],
             ]
         ]);
+        $parser->addSubcommand('init', [
+            'help' => __('Create default role, organisation and user when not exists.'),
+        ]);
         $parser->addSubcommand('authkey', [
             'help' => __('Get information about given authkey.'),
             'parser' => [
@@ -121,7 +124,7 @@ class UserShell extends AppShell
 
     public function list()
     {
-        $userId = isset($this->args[0]) ? $this->args[0] : null;
+        $userId = $this->args[0] ?? null;
         if ($userId) {
             $conditions = ['OR' => [
                 'User.id' => $userId,
@@ -160,6 +163,21 @@ class UserShell extends AppShell
             foreach ($users as $user) {
                 $this->out($user);
             }
+        }
+    }
+
+    public function init()
+    {
+        if (!Configure::read('Security.salt')) {
+            $this->loadModel('Server');
+            $this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
+        }
+
+        $authKey = $this->User->init();
+        if ($authKey === null) {
+            $this->err('Script aborted: MISP instance already initialised.');
+        } else {
+            $this->out($authKey);
         }
     }
 

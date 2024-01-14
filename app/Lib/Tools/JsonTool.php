@@ -75,7 +75,7 @@ class JsonTool
      */
     public static function escapeNonUnicode($string)
     {
-        if (json_encode($string, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS) !== false) {
+        if (mb_check_encoding($string, 'UTF-8')) {
             return $string; // string is valid unicode
         }
 

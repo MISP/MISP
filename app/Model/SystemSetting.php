@@ -46,7 +46,7 @@ class SystemSetting extends AppModel
     {
         /** @var self $systemSetting */
         $systemSetting = ClassRegistry::init('SystemSetting');
-        if (!$systemSetting->databaseExists()) {
+        if (!$systemSetting->tableExists()) {
             return;
         }
         $settings = $systemSetting->getSettings();
@@ -58,7 +58,7 @@ class SystemSetting extends AppModel
         }
     }
 
-    public function databaseExists()
+    private function tableExists()
     {
         $tables = ConnectionManager::getDataSource($this->useDbConfig)->listSources();
         return in_array('system_settings', $tables, true);

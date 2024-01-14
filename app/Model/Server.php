@@ -2371,23 +2371,21 @@ class Server extends AppModel
         return $setting;
     }
 
-    public function serverSettingsEditValue(array $user, array $setting, $value, $forceSave = false)
+    /**
+     * @param array|string $user
+     * @param array $setting
+     * @param mixed $value
+     * @param bool $forceSave
+     * @return mixed|string|true|null
+     * @throws Exception
+     */
+    public function serverSettingsEditValue($user, array $setting, $value, $forceSave = false)
     {
         if (isset($setting['beforeHook'])) {
-            $beforeResult = call_user_func_array(array($this, $setting['beforeHook']), array($setting['name'], $value));
+            $beforeResult = $this->{$setting['beforeHook']}($setting['name'], $value);
             if ($beforeResult !== true) {
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->saveOrFailSilently(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'serverSettingsEdit',
-                    'user_id' => $user['id'],
-                    'title' => 'Server setting issue',
-                    'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $value  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
-                ));
+                $change = 'There was an issue witch changing ' . $setting['name'] . ' to ' . $value  . '. The error message returned is: ' . $beforeResult . 'No changes were made.';
+                $this->loadLog()->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting issue', $change);
                 return $beforeResult;
             }
         }
@@ -2396,7 +2394,7 @@ class Server extends AppModel
             if ($setting['type'] === 'boolean') {
                 $value = (bool)$value;
             } else if ($setting['type'] === 'numeric') {
-                $value = (int)($value);
+                $value = (int)$value;
             }
             if (isset($setting['test'])) {
                 if ($setting['test'] instanceof Closure) {
@@ -2437,7 +2435,7 @@ class Server extends AppModel
                 if ($setting['afterHook'] instanceof Closure) {
                     $afterResult = $setting['afterHook']($setting['name'], $value, $oldValue);
                 } else {
-                    $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value, $oldValue));
+                    $afterResult = $this->{$setting['afterHook']}($setting['name'], $value, $oldValue);
                 }
                 if ($afterResult !== true) {
                     $change = 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult;
