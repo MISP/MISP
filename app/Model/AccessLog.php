@@ -202,7 +202,7 @@ class AccessLog extends AppModel
 
         if ($includeSqlQueries && !empty($sqlLog['log'])) {
             foreach ($sqlLog['log'] as &$log) {
-                $log['query'] = $this->escapeNonUnicode($log['query']);
+                $log['query'] = JsonTool::escapeNonUnicode($log['query']);
                 unset($log['affected']); // affected is the same as numRows
                 unset($log['params']); // no need to save for your use case
             }
@@ -309,37 +309,5 @@ class AccessLog extends AppModel
             return self::BROTLI_HEADER . brotli_compress($data, 4, BROTLI_TEXT);
         }
         return $data;
-    }
-
-    /**
-     * @param $string
-     * @return string
-     */
-    private function escapeNonUnicode($string)
-    {
-        if (json_encode($string, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS) !== false) {
-            return $string; // string is valid unicode
-        }
-
-        if (function_exists('mb_str_split')) {
-            $result = mb_str_split($string);
-        } else {
-            $result = [];
-            $length = mb_strlen($string);
-            for ($i = 0; $i < $length; $i++) {
-                $result[] = mb_substr($string, $i, 1);
-            }
-        }
-
-        $string = '';
-        foreach ($result as $char) {
-            if (strlen($char) === 1 && !preg_match('/[[:print:]]/', $char)) {
-                $string .= '\x' . bin2hex($char);
-            } else {
-                $string .= $char;
-            }
-        }
-
-        return $string;
     }
 }
