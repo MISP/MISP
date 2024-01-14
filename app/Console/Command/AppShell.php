@@ -90,7 +90,7 @@ abstract class AppShell extends Shell
      */
     protected function deprecated($newCommand)
     {
-        $this->err("<warning>This method is deprecated. Next time please use `$newCommand`.</warning>");
+        $this->err("<warning>Warning: This method is deprecated. Next time please use `$newCommand`.</warning>");
     }
 
     /**
