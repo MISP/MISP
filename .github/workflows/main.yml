@@ -158,7 +158,7 @@ jobs:
 
       - name: Configure MISP
         run: |
-              sudo -u $USER app/Console/cake userInit -q | sudo tee ./key.txt
+              sudo -u $USER app/Console/cake User init | sudo tee ./key.txt
               echo "AUTH=`cat key.txt`" >> $GITHUB_ENV
               sudo -u $USER app/Console/cake Admin setSetting "Session.autoRegenerate" 0
               sudo -u $USER app/Console/cake Admin setSetting "Session.timeout" 600

@@ -3858,8 +3858,7 @@ class AppModel extends Model
     protected function isMysql()
     {
         $dataSource = ConnectionManager::getDataSource('default');
-        $dataSourceName = $dataSource->config['datasource'];
-        return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSourceName === 'Database/MysqlExtended' || $dataSource instanceof Mysql;
+        return $dataSource instanceof Mysql;
     }
 
     /**
