@@ -3,12 +3,12 @@ $keyUsageCsv = null;
 if (isset($keyUsage)) {
     $todayString = date('Y-m-d');
     $today = strtotime($todayString);
-    $startDate = key($keyUsage); // oldest date for sparkline
+    $startDate = array_key_first($keyUsage); // oldest date for sparkline
     $startDate = strtotime($startDate) - (3600 * 24 * 3);
     $keyUsageCsv = 'Date,Close\n';
     for ($date = $startDate; $date <= $today; $date += (3600 * 24)) {
         $dateAsString = date('Y-m-d', $date);
-        $keyUsageCsv .= $dateAsString . ',' . (isset($keyUsage[$dateAsString]) ? $keyUsage[$dateAsString] : 0) . '\n';
+        $keyUsageCsv .= $dateAsString . ',' . ($keyUsage[$dateAsString] ?? '0') . '\n';
     }
 } else {
     $lastUsed = null;

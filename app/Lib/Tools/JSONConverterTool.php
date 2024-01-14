@@ -153,7 +153,7 @@ class JSONConverterTool
             return;
         }
         yield '{"Event":{';
-        $firstKey = key($event['Event']);
+        $firstKey = array_key_first($event['Event']);
         foreach ($event['Event'] as $key => $value) {
             if ($key === 'Attribute' || $key === 'Object') { // Encode every object or attribute separately
                 yield ($firstKey === $key ? '' : ',') . json_encode($key) . ":[";

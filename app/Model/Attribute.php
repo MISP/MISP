@@ -434,7 +434,7 @@ class Attribute extends AppModel
     public function afterSave($created, $options = array())
     {
         // Passing event in `parentEvent` field will speed up correlation
-        $passedEvent = isset($options['parentEvent']) ? $options['parentEvent'] : false;
+        $passedEvent = $options['parentEvent'] ?? false;
 
         $attribute = $this->data['Attribute'];
 
@@ -808,7 +808,7 @@ class Attribute extends AppModel
     // check whether the variable is null or datetime
     public function datetimeOrNull($fields)
     {
-        $seen = array_values($fields)[0];
+        $seen = current($fields);
         if ($seen === null) {
             return true;
         }
