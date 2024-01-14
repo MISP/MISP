@@ -71,12 +71,6 @@ class AccessLog extends AppModel
     {
         $accessLog = &$this->data['AccessLog'];
 
-        $this->externalLog($accessLog);
-
-        if (Configure::read('MISP.log_paranoid_skip_db')) {
-            return;
-        }
-
         // Truncate
         foreach (['request_id', 'user_agent', 'url'] as $field) {
             if (isset($accessLog[$field]) && strlen($accessLog[$field]) > 255) {
@@ -214,6 +208,12 @@ class AccessLog extends AppModel
         $data['query_count'] = $queryCount;
         $data['duration'] = (int)((microtime(true) - $requestTime->format('U.u')) * 1000); // in milliseconds
 
+        $this->externalLog($data);
+
+        if (Configure::read('MISP.log_paranoid_skip_db')) {
+            return true; // do not save access log to database
+        }
+
         try {
             return $this->save($data, ['atomic' => false]);
         } catch (Exception $e) {
@@ -226,7 +226,7 @@ class AccessLog extends AppModel
      * @param array $data
      * @return void
      */
-    public function externalLog(array $data)
+    private function externalLog(array $data)
     {
         if ($this->pubToZmq('audit')) {
             $this->getPubSubTool()->publish($data, 'audit', 'log');
