@@ -830,29 +830,34 @@ class AppController extends Controller
 
     private function __rateLimitCheck(array $user)
     {
-        $info = array();
         $rateLimitCheck = $this->RateLimit->check(
             $user,
             $this->request->params['controller'],
-            $this->request->action,
-            $info,
-            $this->response->type()
+            $this->request->params['action'],
         );
-        if (!empty($info)) {
-            $this->RestResponse->setHeader('X-Rate-Limit-Limit', $info['limit']);
-            $this->RestResponse->setHeader('X-Rate-Limit-Remaining', $info['remaining']);
-            $this->RestResponse->setHeader('X-Rate-Limit-Reset', $info['reset']);
+
+        if ($rateLimitCheck) {
+            $headers = [
+                'X-Rate-Limit-Limit' => $rateLimitCheck['limit'],
+                'X-Rate-Limit-Remaining' => $rateLimitCheck['remaining'],
+                'X-Rate-Limit-Reset' => $rateLimitCheck['reset'],
+            ];
+
+            if ($rateLimitCheck['exceeded']) {
+                $response = $this->RestResponse->throwException(
+                    429,
+                    __('Rate limit exceeded.'),
+                    '/' . $this->request->params['controller'] . '/' . $this->request->params['action'],
+                    false,
+                    false,
+                    $headers
+                );
+                $response->send();
+                $this->_stop();
+            } else {
+                $this->RestResponse->headers = array_merge($this->RestResponse->headers, $headers);
+            }
         }
-        if ($rateLimitCheck !== true) {
-            $this->response->header('X-Rate-Limit-Limit', $info['limit']);
-            $this->response->header('X-Rate-Limit-Remaining', $info['remaining']);
-            $this->response->header('X-Rate-Limit-Reset', $info['reset']);
-            $this->response->body($rateLimitCheck);
-            $this->response->statusCode(429);
-            $this->response->send();
-            $this->_stop();
-        }
-        return true;
     }
 
     public function afterFilter()
