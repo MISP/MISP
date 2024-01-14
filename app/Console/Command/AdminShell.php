@@ -46,11 +46,11 @@ class AdminShell extends AppShell
             'help' => __('Update the JSON definition of taxonomies.'),
         ));
         $parser->addSubcommand('setSetting', [
-            'help' => __('Set setting in PHP config file.'),
+            'help' => __('Set setting in MISP config'),
             'parser' => [
                 'arguments' => [
                     'name' => ['help' => __('Setting name'), 'required' => true],
-                    'value' => ['help' => __('Setting value'), 'required' => true],
+                    'value' => ['help' => __('Setting value')],
                 ],
                 'options' => [
                     'force' => [
@@ -507,32 +507,47 @@ class AdminShell extends AppShell
                 }
             }
         }
-        echo json_encode($result, JSON_PRETTY_PRINT) . PHP_EOL;
+        $this->out($this->json($result));
   }
 
     public function setSetting()
     {
-        list($setting_name, $value) = $this->args;
-        if ($value === 'false') {
-            $value = 0;
-        } elseif ($value === 'true') {
-            $value = 1;
-        }
-        if ($this->params['null']) {
+        list($settingName) = $this->args;
+
+        if ($this->params['null'] && isset($this->args[1])) {
+            $this->error(__('Trying to set setting to null value, but value was provided.'));
+        } else if ($this->params['null']) {
             $value = null;
+        } elseif (isset($this->args[1])) {
+            $value = $this->args[1];
+        } else {
+            $this->error(__('No setting value provided.'));
         }
-        $cli_user = array('id' => 0, 'email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'));
-        if (empty($setting_name) || ($value === null && !$this->params['null'])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set setting'] . PHP_EOL);
-        }
-        $setting = $this->Server->getSettingData($setting_name);
+
+        $setting = $this->Server->getSettingData($settingName);
         if (empty($setting)) {
-            $message =  'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
+            $message = 'Invalid setting "' . $settingName . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
             $this->error(__('Setting change rejected.'), $message);
         }
-        $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value, $this->params['force']);
+
+        // Convert value to boolean or to int
+        if ($value !== null) {
+            if ($setting['type'] === 'boolean') {
+                $value = $this->toBoolean($value);
+            } else if ($setting['type'] === 'numeric') {
+                if (is_numeric($value)) {
+                    $value = (int)$value;
+                } elseif ($value === 'true' || $value === 'false') {
+                    $value = $value === 'true' ? 1 : 0; // special case for `debug` setting
+                } else {
+                    $this->error(__('Setting "%s" change rejected.', $settingName), __('Provided value %s is not a number.', $value));
+                }
+            }
+        }
+
+        $result = $this->Server->serverSettingsEditValue('SYSTEM', $setting, $value, $this->params['force']);
         if ($result === true) {
-            $this->out(__('Setting "%s" changed to %s', $setting_name, is_string($value) ? '"' . $value . '"' : (string)$value));
+            $this->out(__('Setting "%s" changed to %s', $settingName, is_string($value) ? '"' . $value . '"' : json_encode($value)));
         } else {
             $message = __("The setting change was rejected. MISP considers the requested setting value as invalid and would lead to the following error:\n\n\"%s\"\n\nIf you still want to force this change, please supply the --force argument.\n", $result);
             $this->error(__('Setting change rejected.'), $message);
