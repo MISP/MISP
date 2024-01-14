@@ -192,7 +192,7 @@ jobs:
         run: sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates 1'
 
       - name: Turn MISP live
-        run: sudo -E su $USER -c 'app/Console/cake Live 1'
+        run: sudo -E su $USER -c 'app/Console/cake Admin live 1'
 
       - name: Check if Redis is ready
         run: sudo -E su $USER -c 'app/Console/cake Admin redisReady'

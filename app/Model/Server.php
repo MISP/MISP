@@ -2376,18 +2376,8 @@ class Server extends AppModel
         if (isset($setting['beforeHook'])) {
             $beforeResult = call_user_func_array(array($this, $setting['beforeHook']), array($setting['name'], $value));
             if ($beforeResult !== true) {
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->saveOrFailSilently(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'serverSettingsEdit',
-                    'user_id' => $user['id'],
-                    'title' => 'Server setting issue',
-                    'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $value  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
-                ));
+                $change = 'There was an issue witch changing ' . $setting['name'] . ' to ' . $value  . '. The error message returned is: ' . $beforeResult . 'No changes were made.';
+                $this->loadLog()->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting issue', $change);
                 return $beforeResult;
             }
         }
@@ -2396,7 +2386,7 @@ class Server extends AppModel
             if ($setting['type'] === 'boolean') {
                 $value = (bool)$value;
             } else if ($setting['type'] === 'numeric') {
-                $value = (int)($value);
+                $value = (int)$value;
             }
             if (isset($setting['test'])) {
                 if ($setting['test'] instanceof Closure) {
