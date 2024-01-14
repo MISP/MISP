@@ -9,10 +9,7 @@ class JsonTool
      */
     public static function encode($value, $prettyPrint = false)
     {
-        $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
-        if (defined('JSON_THROW_ON_ERROR')) {
-            $flags |= JSON_THROW_ON_ERROR; // Throw exception on error if supported
-        }
+        $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR;
         if ($prettyPrint) {
             $flags |= JSON_PRETTY_PRINT;
         }
@@ -34,16 +31,8 @@ class JsonTool
             } catch (SimdJsonException $e) {
                 throw new JsonException($e->getMessage(), $e->getCode(), $e);
             }
-        } elseif (defined('JSON_THROW_ON_ERROR')) {
-            // JSON_THROW_ON_ERROR is supported since PHP 7.3
-            return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
-        } else {
-            $decoded = json_decode($value, true);
-            if ($decoded === null) {
-                throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
-            }
-            return $decoded;
         }
+        return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -77,5 +66,19 @@ class JsonTool
         } catch (Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * JSON supports just unicode strings. This helper method converts non unicode chars to Unicode Replacement Character U+FFFD (UTF-8)
+     * @param string $string
+     * @return string
+     */
+    public static function escapeNonUnicode($string)
+    {
+        if (json_encode($string, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS) !== false) {
+            return $string; // string is valid unicode
+        }
+
+        return htmlspecialchars_decode(htmlspecialchars($string, ENT_SUBSTITUTE, 'UTF-8'));
     }
 }
