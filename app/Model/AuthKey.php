@@ -207,7 +207,7 @@ class AuthKey extends AppModel
      */
     private function updateUniqueIp(array $authkey)
     {
-        if (Configure::read("MISP.disable_seen_ips_authkeys")) {
+        if (PHP_SAPI === 'cli' || Configure::read("MISP.disable_seen_ips_authkeys")) {
             return;
         }
 

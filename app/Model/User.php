@@ -740,7 +740,7 @@ class User extends AppModel
             ],
         ]);
         if (empty($user)) {
-            return $user;
+            return null;
         }
         return $this->rearrangeToAuthForm($user);
     }
@@ -937,6 +937,11 @@ class User extends AppModel
      */
     public function describeAuthFields()
     {
+        static $fields; // generate array just once
+        if ($fields) {
+            return $fields;
+        }
+
         $fields = $this->schema();
         // Do not include keys, because they are big and usually not necessary
         unset($fields['gpgkey']);

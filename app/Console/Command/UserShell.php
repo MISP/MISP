@@ -35,6 +35,11 @@ class UserShell extends AppShell
         ]);
         $parser->addSubcommand('authkey_valid', [
             'help' => __('Check if given authkey by STDIN is valid.'),
+            'parser' => [
+                'options' => [
+                    'disableStdLog' => ['help' => __('Do not show logs in STDOUT or STDERR.'), 'boolean' => true],
+                ],
+            ],
         ]);
         $parser->addSubcommand('block', [
             'help' => __('Immediately block user.'),
@@ -230,28 +235,37 @@ class UserShell extends AppShell
      */
     public function authkey_valid()
     {
+        if ($this->params['disableStdLog']) {
+            $this->_useLogger(false);
+        }
+
         $cache = [];
         $randomKey = random_bytes(16);
-        do {
+        $advancedAuthKeysEnabled = (bool)Configure::read('Security.advanced_authkeys');
+
+        while (true) {
             $authkey = fgets(STDIN); // read line from STDIN
             $authkey = trim($authkey);
             if (strlen($authkey) !== 40) {
-                fwrite(STDOUT, "0\n");  // authkey is not in valid format
+                echo "0\n";  // authkey is not in valid format
                 $this->log("Authkey in incorrect format provided.", LOG_WARNING);
                 continue;
             }
-            $time = time();
+
             // Generate hash from authkey to not store raw authkey in memory
             $keyHash = sha1($authkey . $randomKey, true);
+
+            // If authkey is in cache and is fresh, use info from cache
+            $time = time();
             if (isset($cache[$keyHash]) && $cache[$keyHash][1] > $time) {
-                fwrite(STDOUT, $cache[$keyHash][0] ? "1\n" : "0\n");
+                echo $cache[$keyHash][0] ? "1\n" : "0\n";
                 continue;
             }
 
             $user = false;
             for ($i = 0; $i < 5; $i++) {
                 try {
-                    if (Configure::read('Security.advanced_authkeys')) {
+                    if ($advancedAuthKeysEnabled) {
                         $user = $this->User->AuthKey->getAuthUserByAuthKey($authkey);
                     } else {
                         $user = $this->User->getAuthUserByAuthkey($authkey);
@@ -269,18 +283,34 @@ class UserShell extends AppShell
                 }
             }
 
-            $user = (bool)$user;
             if (!$user) {
-                $start = substr($authkey, 0, 4);
-                $end = substr($authkey, -4);
-                $authKeyToStore = $start . str_repeat('*', 32) . $end;
-                $this->log("Not valid authkey $authKeyToStore provided.", LOG_WARNING);
+                $valid = null;
+            } else if ($user['disabled']) {
+                $valid = false;
+            } else {
+                $valid = true;
             }
 
-            // Cache results for 5 seconds
-            $cache[$keyHash] = [$user, $time + 5];
-            fwrite(STDOUT, $user ? "1\n" : "0\n");
-        } while (true);
+            echo $valid ? "1\n" : "0\n";
+
+            if ($valid) {
+                // Cache results for 60 seconds if key is valid
+                $cache[$keyHash] = [true, $time + 60];
+            } else {
+                // Cache results for 5 seconds if key is invalid
+                $cache[$keyHash] = [false, $time + 5];
+
+                $start = substr($authkey, 0, 4);
+                $end = substr($authkey, -4);
+                $authKeyForLog = $start . str_repeat('*', 32) . $end;
+
+                if ($valid === false) {
+                    $this->log("Authkey $authKeyForLog belongs to user {$user['id']} that is disabled.", LOG_WARNING);
+                } else {
+                    $this->log("Authkey $authKeyForLog is invalid or expired.", LOG_WARNING);
+                }
+            }
+        }
     }
 
     public function block()
