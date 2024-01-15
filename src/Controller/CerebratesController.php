@@ -54,8 +54,6 @@ class CerebratesController extends AppController
         }
 
         $this->set('id', $id);
-        
-        
     }
 
     /**
@@ -132,11 +130,8 @@ class CerebratesController extends AppController
     public function pullOrgs($id)
     {
         // FIXME chri - $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateOrgs']);
-        $result = $this->Cerebrates->find('all', [
-            'conditions' => ['id' => $id]
-        ]);
         /** @var \App\Model\Entity\Cerebrate $cerebrate */
-        $cerebrate = $result->first();
+        $cerebrate = $this->Cerebrates->findById($id)->first();
         if (empty($cerebrate)) {
             throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
         }
@@ -152,7 +147,7 @@ class CerebratesController extends AppController
                 'type' => 'GET'
             ]);
             $result = $cerebrate->saveRemoteOrgs($orgs);
-            $message = __('Added %s new organisations, updated %s existing organisations, %s failures.', $result['add'], $result['edit'], $result['fails']);
+            $message = __('Added {0} new organisations, updated {1} existing organisations, {2} failures.', $result['add'], $result['edit'], $result['fails']);
             if ($this->ParamHandler->isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Cerebrates', 'pull_orgs', $id, false, $message);
             } else {
@@ -172,44 +167,41 @@ class CerebratesController extends AppController
 
     public function pullSgs($id)
     {
-        throw new CakeException('Not implemented');
-
+        // FIXME chri - test this - throw new CakeException('Not implemented');
         // $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateSgs']);
-        // $cerebrate = $this->Cerebrate->find('first', [
-        //     'recursive' => -1,
-        //     'conditions' => ['Cerebrate.id' => $id]
-        // ]);
-        // if (empty($cerebrate)) {
-        //     throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
-        // }
+        /** @var \App\Model\Entity\Cerebrate $cerebrate */
+        $cerebrate = $this->Cerebrates->findById($id)->first();
+        if (empty($cerebrate)) {
+            throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
+        }
 
-        // if ($this->request->is('post')) {
-        //     $result = $this->Cerebrate->queryInstance([
-        //         'cerebrate' => $cerebrate,
-        //         'path' => '/sharingGroups/index',
-        //         'params' => $this->IndexFilter->harvestParameters([
-        //             'name',
-        //             'uuid',
-        //             'quickFilter'
-        //         ]),
-        //         'type' => 'GET'
-        //     ]);
-        //     $result = $this->Cerebrate->saveRemoteSgs($result, $this->Auth->user());
-        //     $message = __('Added %s new sharing groups, updated %s existing sharing groups, %s failures.', $result['add'], $result['edit'], $result['fails']);
-        //     if ($this->_isRest()) {
-        //         return $this->RestResponse->saveSuccessResponse('Cerebrates', 'pull_sgs', $cerebrate_id, false, $message);
-        //     } else {
-        //         $this->Flash->success($message);
-        //         $this->redirect($this->referer());
-        //     }
-        // } else {
-        //     $this->set('id', $cerebrate['Cerebrate']['id']);
-        //     $this->set('title', __('Sync sharing group information'));
-        //     $this->set('question', __('Are you sure you want to download and add / update the remote sharing group from the Cerebrate node?'));
-        //     $this->set('actionName', __('Pull all'));
-        //     $this->layout = false;
-        //     $this->render('/genericTemplates/confirm');
-        // }
+        if ($this->request->is('post')) {
+            $sgs = $cerebrate->queryInstance([
+                'path' => '/sharingGroups/index',
+                'params' => $this->harvestParameters([
+                    'name',
+                    'uuid',
+                    'quickFilter'
+                ]),
+                'type' => 'GET'
+            ]);
+            $result = $cerebrate->saveRemoteSgs($sgs, $this->ACL->getUser());
+            $message = __('Added {0} new sharing groups, updated {1} existing sharing groups, {2} failures.', $result['add'], $result['edit'], $result['fails']);
+            if ($this->ParamHandler->isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Cerebrates', 'pull_sgs', $id, false, $message);
+            } else {
+                $this->Flash->success($message);
+                $this->redirect($this->referer());
+            }
+        } else {
+            // FIXME chri - this does not seem to work, onClick nothing happens
+            $this->set('id', $id);
+            $this->set('title', __('Sync sharing group information'));
+            $this->set('question', __('Are you sure you want to download and add / update the remote sharing group from the Cerebrate node?'));
+            $this->set('actionName', __('Pull all'));
+            $this->layout = false;
+            $this->render('/genericTemplates/confirm');
+        }
     }
 
     public function previewOrgs($id = null)
@@ -341,6 +333,7 @@ class CerebratesController extends AppController
                 $this->redirect($this->referer());
             }
         } else {
+            // FIXME chri - this does not seem to work, onClick nothing happens
             $this->set('id', $cerebrate_id);
             $this->set('title', __('Download sharing group information'));
             $this->set('question', __('Are you sure you want to download and add / update the remote sharing group?'));

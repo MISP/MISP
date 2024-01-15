@@ -160,33 +160,38 @@ class Cerebrate extends AppModel
         }
         return $outcome;
     }
-
+    
+    /**
+     * saveRemoteSgs
+     *
+     * @param  mixed $sgs
+     * @param  mixed $user
+     * @return array ['add'=> 0, 'edit' => 0, 'fails' => 0]
+     */
     public function saveRemoteSgs($sgs, $user)
     {
-        throw new CakeException('Not implemented');
-
-        // $outcome = [
-        //     'add' => 0,
-        //     'edit' => 0,
-        //     'fails' => 0
-        // ];
-        // foreach ($sgs as $sg) {
-        //     $isEdit = false;
-        //     $noChange = false;
-        //     $result = $this->captureSg($sg, $user, $isEdit, $noChange);
-        //     if (!is_array($result)) {
-        //         $outcome['fails'] += 1;
-        //     } else {
-        //         if ($isEdit) {
-        //             if (!$noChange) {
-        //                 $outcome['edit'] += 1;
-        //             }
-        //         } else {
-        //             $outcome['add'] += 1;
-        //         }
-        //     }
-        // }
-        // return $outcome;
+        $outcome = [
+            'add' => 0,
+            'edit' => 0,
+            'fails' => 0
+        ];
+        foreach ($sgs as $sg) {
+            $isEdit = false;
+            $noChange = false;
+            $result = $this->captureSg($sg, $user, $isEdit, $noChange);
+            if (!is_array($result)) {
+                $outcome['fails'] += 1;
+            } else {
+                if ($isEdit) {
+                    if (!$noChange) {
+                        $outcome['edit'] += 1;
+                    }
+                } else {
+                    $outcome['add'] += 1;
+                }
+            }
+        }
+        return $outcome;
     }
     
     /**
@@ -469,7 +474,7 @@ class Cerebrate extends AppModel
                 $savedSg = $sharingGroupTable->findById($captureResult)
                 ->contain(['SharingGroupOrgs'=> 'Organisations', 'Organisations'])
                 ->first();
-                return $savedSg;
+                return $savedSg->toArray();
             }
             return __('The organisation could not be saved.');
         }
