@@ -167,7 +167,6 @@ class CerebratesController extends AppController
 
     public function pullSgs($id)
     {
-        // FIXME chri - test this - throw new CakeException('Not implemented');
         // $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateSgs']);
         /** @var \App\Model\Entity\Cerebrate $cerebrate */
         $cerebrate = $this->Cerebrates->findById($id)->first();
@@ -264,7 +263,7 @@ class CerebratesController extends AppController
             }
         } else {
             // FIXME chri - this does not seem to work, onClick nothing happens
-            $this->set('id', $data[$modelName]['id']);
+            // $this->set('id', $data[$modelName]['id']);
             $this->set('title', __('Download organisation information'));
             $this->set('question', __('Are you sure you want to download and add / update the remote organisation?'));
             $this->set('actionName', __('Download'));
