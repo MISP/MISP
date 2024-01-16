@@ -993,6 +993,10 @@ class TestComprehensive(unittest.TestCase):
             'uuid': [event.uuid],
         })
         self.assertEqual(len(search_result), 1, search_result)
+        sighting = search_result[0]["Sighting"]
+        self.assertIn("attribute_uuid", sighting)
+        self.assertIn("event_uuid", sighting)
+        self.assertEqual(sighting["event_uuid"], event.uuid, search_result)
 
     def _search_event(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
