@@ -57,7 +57,7 @@ class EcsLog implements CakeLogInterface
             'log' => [
                 'level' => $type,
             ],
-            'message' => $message,
+            'message' => JsonTool::escapeNonUnicode($message),
         ];
 
         static::writeMessage($message);

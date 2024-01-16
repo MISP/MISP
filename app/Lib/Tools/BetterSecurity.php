@@ -7,8 +7,8 @@ class BetterSecurity
 
     /**
      * @param string $plain
-     * @param string $key
-     * @return string
+     * @param string $key Encryption key
+     * @return string Cipher text with IV and tag
      * @throws Exception
      */
     public static function encrypt($plain, $key)
@@ -33,17 +33,17 @@ class BetterSecurity
     }
 
     /**
-     * @param string $cipher
-     * @param string $key
+     * @param string $cipherText Cipher text with IV and tag
+     * @param string $key Decryption key
      * @return string
      * @throws Exception
      */
-    public static function decrypt($cipher, $key)
+    public static function decrypt($cipherText, $key)
     {
         if (strlen($key) < 32) {
             throw new Exception('Invalid key, key must be at least 256 bits (32 bytes) long.');
         }
-        if (empty($cipher)) {
+        if (empty($cipherText)) {
             throw new Exception('The data to decrypt cannot be empty.');
         }
 
@@ -52,12 +52,18 @@ class BetterSecurity
 
         $ivSize = openssl_cipher_iv_length(self::METHOD);
 
-        // Split out hmac for comparison
-        $iv = substr($cipher, 0, $ivSize);
-        $tag = substr($cipher, $ivSize, self::TAG_SIZE);
-        $cipher = substr($cipher, $ivSize + self::TAG_SIZE);
+        if (strlen($cipherText) < $ivSize + self::TAG_SIZE) {
+            $length = strlen($cipherText);
+            $minLength = $ivSize + self::TAG_SIZE;
+            throw new Exception("Provided cipher text is too short, $length bytes provided, expected at least $minLength bytes.");
+        }
 
-        $decrypted = openssl_decrypt($cipher, self::METHOD, $key, true, $iv, $tag);
+        // Split out hmac for comparison
+        $iv = substr($cipherText, 0, $ivSize);
+        $tag = substr($cipherText, $ivSize, self::TAG_SIZE);
+        $cipherText = substr($cipherText, $ivSize + self::TAG_SIZE);
+
+        $decrypted = openssl_decrypt($cipherText, self::METHOD, $key, OPENSSL_RAW_DATA, $iv, $tag);
         if ($decrypted === false) {
             throw new Exception('Could not decrypt. Maybe invalid encryption key?');
         }

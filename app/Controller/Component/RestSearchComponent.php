@@ -184,6 +184,7 @@ class RestSearchComponent extends Component
             'context',
             'returnFormat',
             'id',
+            'uuid',
             'type',
             'from',
             'to',
@@ -191,7 +192,8 @@ class RestSearchComponent extends Component
             'org_id',
             'source',
             'includeAttribute',
-            'includeEvent'
+            'includeEvent',
+            'includeUuid',
         ],
         'GalaxyCluster' => [
             'page',

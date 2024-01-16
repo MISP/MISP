@@ -248,7 +248,7 @@ class UserShell extends AppShell
             $authkey = trim($authkey);
             if (strlen($authkey) !== 40) {
                 echo "0\n";  // authkey is not in valid format
-                $this->log("Authkey in incorrect format provided.", LOG_WARNING);
+                $this->log("Authkey in incorrect format provided, expected 40 chars long string, $authkey provided.", LOG_WARNING);
                 continue;
             }
 

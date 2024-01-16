@@ -740,22 +740,22 @@ class TestComprehensive(unittest.TestCase):
         event.add_attribute("ip-src", "1.2.4.5", to_ids=True)
         event = check_response(self.admin_misp_connector.add_event(event))
 
-        result = self._search({'returnFormat': "openioc", 'eventid': event.id, "published": [0, 1]})
+        result = self._search_event({'returnFormat': "openioc", 'eventid': event.id, "published": [0, 1]})
         ET.fromstring(result)  # check if result is valid XML
         self.assertTrue("1.2.4.5" in result, result)
 
-        result = self._search({'returnFormat': "yara", 'eventid': event.id, "published": [0, 1]})
+        result = self._search_event({'returnFormat': "yara", 'eventid': event.id, "published": [0, 1]})
         self.assertTrue("1.2.4.5" in result, result)
         self.assertTrue("GENERATED" in result, result)
         self.assertTrue("AS-IS" in result, result)
 
-        result = self._search({'returnFormat': "yara-json", 'eventid': event.id, "published": [0, 1]})
+        result = self._search_event({'returnFormat': "yara-json", 'eventid': event.id, "published": [0, 1]})
         self.assertIn("generated", result)
         self.assertEqual(len(result["generated"]), 1, result)
         self.assertIn("as-is", result)
 
         # RPZ
-        result = self._search({'returnFormat': "rpz", 'eventid': event.id, "published": [0, 1]})
+        result = self._search_event({'returnFormat': "rpz", 'eventid': event.id, "published": [0, 1]})
         self.assertTrue("32.5.4.2.1" in result, result)
 
         result = self._search_attribute({'returnFormat': "rpz", 'eventid': event.id, "published": [0, 1]})
@@ -928,11 +928,11 @@ class TestComprehensive(unittest.TestCase):
 
         self.admin_misp_connector.publish(event, alert=False)
         time.sleep(6)
-        snort = self._search({'returnFormat': 'snort', 'eventid': event.id})
+        snort = self._search_event({'returnFormat': 'snort', 'eventid': event.id})
         self.assertIsInstance(snort, str)
         self.assertIn('8.8.8.8', snort)
 
-        suricata = self._search({'returnFormat': 'suricata', 'eventid': event.id})
+        suricata = self._search_event({'returnFormat': 'suricata', 'eventid': event.id})
         self.assertIsInstance(suricata, str)
         self.assertIn('8.8.8.8', suricata)
 
@@ -969,7 +969,36 @@ class TestComprehensive(unittest.TestCase):
 
         self.admin_misp_connector.delete_event(event)
 
-    def _search(self, query: dict):
+    def test_restsearch_sightings(self):
+        # Create test event
+        event = create_simple_event()
+        event = self.admin_misp_connector.add_event(event)
+        check_response(event)
+
+        # Add sighting
+        sighting = MISPSighting()
+        sighting.value = 'test'
+        sighting.source = 'Testcases'
+        sighting.type = '1'
+
+        response = self.admin_misp_connector.add_sighting(sighting, event.attributes[0])
+        check_response(response)
+        self.assertEqual(response.source, 'Testcases')
+
+        # Try to find sighting by event UUID, this is the same type of request when doing sync
+        search_result = self._search_sighting('event', {
+            'returnFormat': 'json',
+            'last': 0,
+            'includeUuid': True,
+            'uuid': [event.uuid],
+        })
+        self.assertEqual(len(search_result), 1, search_result)
+        sighting = search_result[0]["Sighting"]
+        self.assertIn("attribute_uuid", sighting)
+        self.assertIn("event_uuid", sighting)
+        self.assertEqual(sighting["event_uuid"], event.uuid, search_result)
+
+    def _search_event(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
         check_response(response)
@@ -977,6 +1006,12 @@ class TestComprehensive(unittest.TestCase):
 
     def _search_attribute(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'attributes/restSearch', data=query)
+        response = self.admin_misp_connector._check_response(response)
+        check_response(response)
+        return response
+
+    def _search_sighting(self, context: str, query: dict):
+        response = self.admin_misp_connector._prepare_request('POST', f'sightings/restSearch/{context}', data=query)
         response = self.admin_misp_connector._check_response(response)
         check_response(response)
         return response
