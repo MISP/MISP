@@ -89,7 +89,7 @@ class AdminShell extends AppShell
             'help' => __('Check if current encryption key is valid.'),
             'parser' => [
                 'options' => [
-                    'encryptionKey' => ['help' => __('Current encryption key. If not provided, current key will be used.')],
+                    'encryptionKey' => ['help' => __('Encryption key to test. If not provided, current key will be used.')],
                 ],
             ],
         ]);
@@ -1086,9 +1086,13 @@ class AdminShell extends AppShell
 
         /** @var SystemSetting $systemSetting */
         $systemSetting = ClassRegistry::init('SystemSetting');
-        $systemSetting->isEncryptionKeyValid($encryptionKey);
 
-        $this->Server->isEncryptionKeyValid($encryptionKey);
+        try {
+            $systemSetting->isEncryptionKeyValid($encryptionKey);
+            $this->Server->isEncryptionKeyValid($encryptionKey);
+        } catch (Exception $e) {
+            $this->error($e->getMessage(), __('Probably provided encryption key is invalid'));
+        }
     }
 
     public function redisMemoryUsage()
