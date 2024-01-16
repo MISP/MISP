@@ -31,7 +31,7 @@ class TaxonomiesTable extends AppTable
             ]
         );
 
-        $this->taxonomiesPath = Configure::read('MISP.custom_taxonomies_path', APP . '..' . DS . 'Libraries' . DS .  'misp-taxonomies' . DS);
+        $this->taxonomiesPath = Configure::read('MISP.custom_taxonomies_path', APP . '..' . DS . 'libraries' . DS .  'misp-taxonomies' . DS);
     }
 
     public function validationDefault(Validator $validator): Validator
