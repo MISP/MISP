@@ -184,6 +184,7 @@ class RestSearchComponent extends Component
             'context',
             'returnFormat',
             'id',
+            'uuid',
             'type',
             'from',
             'to',
