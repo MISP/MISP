@@ -115,8 +115,8 @@ class FeedsTable extends AppTable
                                     'Invalid input source. The only valid options are %s. %s',
                                     implode(', ', $validOptions),
                                     (!$localAllowed && $value['input_source'] === 'local') ?
-                                    __('Security.disable_local_feed_access is currently enabled, local feeds are thereby not allowed.') :
-                                    ''
+                                        __('Security.disable_local_feed_access is currently enabled, local feeds are thereby not allowed.') :
+                                        ''
                                 );
                             }
                         }
@@ -736,7 +736,10 @@ class FeedsTable extends AppTable
     {
         $total = count($actions['add']) + count($actions['edit']);
         $currentItem = 0;
-        $results = [];
+        $results = [
+            'add' => ['success' => [], 'fail' => []],
+            'edit' => ['success' => [], 'fail' => []]
+        ];
         $filterRules = $this->__prepareFilterRules($feed);
 
         foreach ($actions['add'] as $uuid) {
@@ -2223,12 +2226,12 @@ class FeedsTable extends AppTable
     public function cleanupFeedEvents($user_id, $id)
     {
         $feed = $this->find(
-            'first',
+            'all',
             [
                 'conditions' => ['Feed.id' => $id],
                 'recursive' => -1
             ]
-        );
+        )->first();
         if (empty($feed)) {
             return __('Invalid feed id.');
         }
@@ -2267,9 +2270,8 @@ class FeedsTable extends AppTable
         );
         $feed['fixed_event'] = 1;
         $feed['event_id'] = 0;
-        $feedEntity = $this->newEntity($feed);
 
-        $this->save($feedEntity);
+        $this->save($feed);
         return $count;
     }
 

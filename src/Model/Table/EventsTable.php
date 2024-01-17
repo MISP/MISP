@@ -104,6 +104,20 @@ class EventsTable extends AppTable
     public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = [])
     {
         // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
+        $data['Event']['user_id'] = $user['id'];
+        if ($fromPull) {
+            $data['Event']['org_id'] = $org_id;
+        } else {
+            $data['Event']['org_id'] = $user['Organisation']['id'];
+        }
+        if (!isset($data['Event']['orgc_id']) && !isset($data['Event']['orgc'])) {
+            $data['Event']['orgc_id'] = $data['Event']['org_id'];
+        } else {
+            $orgc_id = $data['Event']['orgc_id'] ?? null;
+        }
+        $event = $this->newEntity($data['Event']);
+        $this->saveOrFail($event);
+
         return true;
     }
 
