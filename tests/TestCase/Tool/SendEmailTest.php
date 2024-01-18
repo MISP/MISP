@@ -94,7 +94,7 @@ class SendEmailTest extends TestCase
         }
         $rawEmailBody = $parts[0] . "\r\n";
 
-        $this->markTestIncomplete('TODO: verify signature properly, the email body line breaks are modified by CakePHP (Message::getBodyString()) and breaks the signature verification');
+        // TODO: verify signature properly, the email body line breaks are modified by CakePHP (Message::getBodyString()) and breaks the signature verification
 
         $verified = $gpg->verify($rawEmailBody, $signature);
         $this->assertIsString($signature);
