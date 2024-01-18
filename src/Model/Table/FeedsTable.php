@@ -41,9 +41,9 @@ class FeedsTable extends AppTable
         $this->belongsTo(
             'Tags',
             [
-                'foreignKey' => 'sharing_group_id',
-                'className' => 'SharingGroups',
-                'propertyName' => 'Organisation'
+                'foreignKey' => 'tag_id',
+                'className' => 'Tags',
+                'propertyName' => 'Tag'
             ]
         );
         $this->belongsTo(
@@ -1787,29 +1787,31 @@ class FeedsTable extends AppTable
         $existingFeeds = $this->find('all', []);
         foreach ($feeds as $feed) {
             if ($default) {
-                $feed['default'] = 1;
+                $feed['Feed']['default'] = 1;
             } else {
-                $feed['default'] = 0;
+                $feed['Feed']['default'] = 0;
             }
-            if (isset($feed['id'])) {
-                unset($feed['id']);
+            if (isset($feed['Feed']['id'])) {
+                unset($feed['Feed']['id']);
             }
             $found = false;
             foreach ($existingFeeds as $existingFeed) {
-                if ($existingFeed['url'] == $feed['url']) {
+                if ($existingFeed['url'] == $feed['Feed']['url']) {
                     $found = true;
                 }
             }
             if (!$found) {
-                $feed['tag_id'] = 0;
+                $feed['Feed']['tag_id'] = 0;
                 if (isset($feed['Tag'])) {
-                    $tag_id = $this->Tag->captureTag($feed['Tag'], $user);
+                    $tag_id = $this->Tags->captureTag($feed['Tag'], $user);
                     if ($tag_id) {
-                        $feed['tag_id'] = $tag_id;
+                        $feed['Feed']['tag_id'] = $tag_id;
                     }
                 }
-                $this->create();
-                if (!$this->save($feed, true, ['name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings', 'tag_id', 'default', 'lookup_visible', 'headers'])) {
+
+                $feedEntity = $this->newEntity($feed['Feed']);
+
+                if (!$this->save($feedEntity)) {
                     $results['fails']++;
                 } else {
                     $results['successes']++;
@@ -1822,7 +1824,7 @@ class FeedsTable extends AppTable
     public function load_default_feeds()
     {
         $user = ['Role' => ['perm_tag_editor' => 1, 'perm_site_admin' => 1]];
-        $json = file_get_contents(APP . 'files/feed-metadata/defaults.json');
+        $json = file_get_contents(APP . '../libraries/feed-metadata/defaults.json');
         $this->importFeeds($json, $user, true);
         return true;
     }
