@@ -1857,23 +1857,23 @@ class FeedsTable extends AppTable
             return 'Could not reach Redis.';
         }
         $ServersTable = $this->fetchTable('Servers');
-        $feed_conditions = ['Feed.caching_enabled' => 1];
-        $server_conditions = ['Server.caching_enabled' => 1];
+        $feed_conditions = ['Feeds.caching_enabled' => 1];
+        $server_conditions = ['Servers.caching_enabled' => 1];
         if ($source_scope === 'feed') {
-            $feed_conditions['NOT'] = ['Feed.id' => $id];
+            $feed_conditions['NOT'] = ['Feeds.id' => $id];
         } else {
-            $server_conditions['NOT'] = ['Server.id' => $id];
+            $server_conditions['NOT'] = ['Servers.id' => $id];
         }
         if ($dataset !== 'all') {
             if (empty($dataset)) {
-                $feed_conditions['OR'] = ['Feed.id' => -1];
+                $feed_conditions['OR'] = ['Feeds.id' => -1];
             } else {
-                $feed_conditions['OR'] = ['Feed.id' => $dataset];
+                $feed_conditions['OR'] = ['Feeds.id' => $dataset];
             }
             if (empty($dataset['Server'])) {
-                $server_conditions['OR'] = ['Server.id' => -1];
+                $server_conditions['OR'] = ['Servers.id' => -1];
             } else {
-                $server_conditions['OR'] = ['Server.id' => $dataset['Server']];
+                $server_conditions['OR'] = ['Servers.id' => $dataset['Server']];
             }
         }
         $other_feeds = $this->find(
@@ -1881,7 +1881,7 @@ class FeedsTable extends AppTable
             [
                 'recursive' => -1,
                 'conditions' => $feed_conditions,
-                'fields' => ['Feed.id', 'Feed.id']
+                'fields' => ['Feeds.id', 'Feeds.id']
             ]
         );
         $other_servers = $ServersTable->find(
@@ -1889,7 +1889,7 @@ class FeedsTable extends AppTable
             [
                 'recursive' => -1,
                 'conditions' => $server_conditions,
-                'fields' => ['Server.id', 'Server.id']
+                'fields' => ['Servers.id', 'Servers.id']
             ]
         );
         $feed_element_count = $redis->scard('misp:feed_cache:' . $id);

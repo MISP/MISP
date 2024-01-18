@@ -140,14 +140,14 @@ class FeedsController extends AppController
         $this->CRUD->view(
             $feedId,
             [
-                'contain' => ['Tag'],
-                'afterFind' => function (array $feed) {
+                'contain' => ['Tags'],
+                'afterFind' => function (Feed $feed) {
                     if (!$this->isSiteAdmin()) {
-                        unset($feed['Feed']['headers']);
+                        unset($feed['headers']);
                     }
 
-                    $feed['Feed']['cached_elements'] = $this->Feeds->getCachedElements($feed['Feed']['id']);
-                    $feed['Feed']['coverage_by_other_feeds'] = $this->Feeds->getFeedCoverage($feed['Feed']['id'], 'feed', 'all') . '%';
+                    $feed['cached_elements'] = $this->Feeds->getCachedElements($feed['id']);
+                    $feed['coverage_by_other_feeds'] = $this->Feeds->getFeedCoverage($feed['id'], 'feed', 'all') . '%';
 
                     if ($this->ParamHandler->isRest()) {
                         if (empty($feed['Tag']['id'])) {

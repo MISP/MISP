@@ -7,8 +7,8 @@ namespace App\Test\TestCase\Api\Feeds;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\FeedsFixture;
 use App\Test\Helper\ApiTestTrait;
-use Cake\TestSuite\TestCase;
 use Cake\Http\TestSuite\HttpClientTrait;
+use Cake\TestSuite\TestCase;
 
 class FetchFromFeedApiTest extends TestCase
 {
@@ -38,33 +38,35 @@ class FetchFromFeedApiTest extends TestCase
             'Connection: close',
         ];
 
-        $manifestBody = json_encode([
-            "56bf399d-c46c-4fdb-a9cf-d9bb02de0b81" => [
-                "Orgc" => [
-                    "name" => "CIRCL",
-                    "uuid" => "55f6ea5e-2c60-40e5-964f-47a8950d210f"
-                ],
-                "Tag" => [
-                    [
-                        "colour" => "#004646",
-                        "local" => "0",
-                        "name" => "type:OSINT",
-                        "relationship_type" => ""
+        $manifestBody = json_encode(
+            [
+                "56bf399d-c46c-4fdb-a9cf-d9bb02de0b81" => [
+                    "Orgc" => [
+                        "name" => "CIRCL",
+                        "uuid" => "55f6ea5e-2c60-40e5-964f-47a8950d210f"
                     ],
-                    [
-                        "colour" => "#ffffff",
-                        "local" => "0",
-                        "name" => "tlp:white",
-                        "relationship_type" => ""
-                    ]
-                ],
-                "info" => "OSINT - Hunting for Malware with Machine Learning",
-                "date" => "2015-12-18",
-                "analysis" => 2,
-                "threat_level_id" => 3,
-                "timestamp" => 1455373240
+                    "Tag" => [
+                        [
+                            "colour" => "#004646",
+                            "local" => "0",
+                            "name" => "type:OSINT",
+                            "relationship_type" => ""
+                        ],
+                        [
+                            "colour" => "#ffffff",
+                            "local" => "0",
+                            "name" => "tlp:white",
+                            "relationship_type" => ""
+                        ]
+                    ],
+                    "info" => "OSINT - Hunting for Malware with Machine Learning",
+                    "date" => "2015-12-18",
+                    "analysis" => 2,
+                    "threat_level_id" => 3,
+                    "timestamp" => 1455373240
+                ]
             ]
-        ]);
+        );
 
         // mock the manifest.json request
         $this->mockClientGet(
@@ -73,50 +75,52 @@ class FetchFromFeedApiTest extends TestCase
         );
 
 
-        $eventBody = json_encode([
-            "Event" => [
-                "analysis" => "2",
-                "date" => "2015-12-18",
-                "extends_uuid" => "",
-                "info" => "OSINT - Hunting for Malware with Machine Learning",
-                "publish_timestamp" => "1455373314",
-                "published" => true,
-                "threat_level_id" => "3",
-                "timestamp" => "1455373240",
-                "uuid" => "56bf399d-c46c-4fdb-a9cf-d9bb02de0b81",
-                "Orgc" => [
-                    "name" => "CIRCL",
-                    "uuid" => "55f6ea5e-2c60-40e5-964f-47a8950d210f"
-                ],
-                "Tag" => [
-                    [
-                        "colour" => "#004646",
-                        "local" => "0",
-                        "name" => "type:OSINT",
-                        "relationship_type" => ""
+        $eventBody = json_encode(
+            [
+                "Event" => [
+                    "analysis" => "2",
+                    "date" => "2015-12-18",
+                    "extends_uuid" => "",
+                    "info" => "OSINT - Hunting for Malware with Machine Learning",
+                    "publish_timestamp" => "1455373314",
+                    "published" => true,
+                    "threat_level_id" => "3",
+                    "timestamp" => "1455373240",
+                    "uuid" => "56bf399d-c46c-4fdb-a9cf-d9bb02de0b81",
+                    "Orgc" => [
+                        "name" => "CIRCL",
+                        "uuid" => "55f6ea5e-2c60-40e5-964f-47a8950d210f"
                     ],
-                    [
-                        "colour" => "#ffffff",
-                        "local" => "0",
-                        "name" => "tlp:white",
-                        "relationship_type" => ""
-                    ]
-                ],
-                "Attribute" => [
-                    [
-                        "category" => "External analysis",
-                        "comment" => "",
-                        "deleted" => false,
-                        "disable_correlation" => false,
-                        "timestamp" => "1455372745",
-                        "to_ids" => false,
-                        "type" => "link",
-                        "uuid" => "56bf39c9-c078-4368-9555-6cf802de0b81",
-                        "value" => "http://blog.cylance.com/hunting-for-malware-with-machine-learning"
+                    "Tag" => [
+                        [
+                            "colour" => "#004646",
+                            "local" => "0",
+                            "name" => "type:OSINT",
+                            "relationship_type" => ""
+                        ],
+                        [
+                            "colour" => "#ffffff",
+                            "local" => "0",
+                            "name" => "tlp:white",
+                            "relationship_type" => ""
+                        ]
+                    ],
+                    "Attribute" => [
+                        [
+                            "category" => "External analysis",
+                            "comment" => "",
+                            "deleted" => false,
+                            "disable_correlation" => false,
+                            "timestamp" => "1455372745",
+                            "to_ids" => false,
+                            "type" => "link",
+                            "uuid" => "56bf39c9-c078-4368-9555-6cf802de0b81",
+                            "value" => "http://blog.cylance.com/hunting-for-malware-with-machine-learning"
+                        ]
                     ]
                 ]
             ]
-        ]);
+        );
 
         // mock the event [uuid].json request
         $this->mockClientGet(
@@ -136,7 +140,6 @@ class FetchFromFeedApiTest extends TestCase
         // check that the event was added
         $this->assertDbRecordExists('Events', ['uuid' => '56bf399d-c46c-4fdb-a9cf-d9bb02de0b81']);
 
-        $this->markTestIncomplete('TODO: check that the attributes and other entities were added');
         // TODO: check that the attributes were added
         // TODO: check that the objects were added
         // TODO: check that the event reports were added
