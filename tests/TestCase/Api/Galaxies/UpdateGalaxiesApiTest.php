@@ -34,6 +34,7 @@ class UpdateGalaxiesApiTest extends TestCase
 
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
 
+        Configure::write('BackgroundJobs.enabled', false);
         Configure::write('MISP.custom_galaxies_path', '/var/www/html/tests/Libraries/misp-galaxy/galaxies/*.json');
         Configure::write('MISP.custom_galaxy_clusters_path', '/var/www/html/tests/Libraries/misp-galaxy/clusters/*.json');
 
