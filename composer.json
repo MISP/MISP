@@ -34,8 +34,7 @@
         "phpstan/phpstan": "^1.10",
         "phpunit/phpunit": "^9.5",
         "psy/psysh": "@stable",
-        "sirbrillig/phpcs-variable-analysis": "^2.11",
-        "wiremock-php/wiremock-php": "^2.33"
+        "sirbrillig/phpcs-variable-analysis": "^2.11"
     },
     "suggest": {
         "markstory/asset_compress": "An asset compression plugin which provides file concatenation and a flexible filter system for preprocessing and minification.",
@@ -69,9 +68,7 @@
         "cs-fix": "phpcbf --colors --standard=vendor/cakephp/cakephp-codesniffer/CakePHP src/ tests/",
         "stan": "phpstan analyse src/",
         "test": [
-            "nohup sh ./tests/Helper/wiremock/start.sh >/dev/null 2>&1 &",
-            "phpunit",
-            "sh ./tests/Helper/wiremock/stop.sh"
+            "phpunit"
         ],
         "migrate": [
             "./bin/cake migrations migrate",
