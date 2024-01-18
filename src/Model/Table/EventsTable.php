@@ -3,7 +3,11 @@
 namespace App\Model\Table;
 
 use App\Model\Table\AppTable;
+use ArrayObject;
 use Cake\Core\Configure;
+use Cake\Datasource\EntityInterface;
+use Cake\Event\EventInterface;
+use Cake\Utility\Text;
 
 class EventsTable extends AppTable
 {
@@ -21,7 +25,23 @@ class EventsTable extends AppTable
                 'foreignKey' => 'sharing_group_id'
             ]
         );
+        $this->hasMany(
+            'Attributes',
+            [
+                'dependent' => true,
+                'propertyName' => 'Attribute'
+            ]
+        );
         $this->setDisplayField('title');
+    }
+
+    public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options)
+    {
+        if ($entity->uuid === null) {
+            $entity->uuid = Text::uuid();
+        }
+
+        return true;
     }
 
     public function createEventConditions($user)
@@ -112,9 +132,8 @@ class EventsTable extends AppTable
         }
         if (!isset($data['Event']['orgc_id']) && !isset($data['Event']['orgc'])) {
             $data['Event']['orgc_id'] = $data['Event']['org_id'];
-        } else {
-            $orgc_id = $data['Event']['orgc_id'] ?? null;
         }
+
         $event = $this->newEntity($data['Event']);
         $this->saveOrFail($event);
 

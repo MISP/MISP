@@ -13,6 +13,7 @@ use App\Lib\Tools\SyncTool;
 use App\Lib\Tools\TmpFileTool;
 use App\Model\Entity\Attribute;
 use App\Model\Entity\Feed;
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use Cake\Core\Configure;
 use Cake\Http\Client as HttpClient;
@@ -386,8 +387,10 @@ class FeedsTable extends AppTable
             }
         }
 
+        $content = $response->getBody()->getContents();
+
         try {
-            FileAccessTool::writeCompressedFile($feedCache, $response->getBody());
+            FileAccessTool::writeCompressedFile($feedCache, $content);
             if ($response->getHeader('etag')) {
                 FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('etag')[0]);
             }
@@ -396,7 +399,7 @@ class FeedsTable extends AppTable
             $this->logException("Could not save file `$feedCache` to cache.", $e, LOG_NOTICE);
         }
 
-        return $response->getBody();
+        return $content;
     }
 
     /**
@@ -1209,7 +1212,7 @@ class FeedsTable extends AppTable
 
     /**
      * @param int $feedId
-     * @param array $user
+     * @param User $user
      * @param int|false $jobId
      * @return array|bool
      * @throws Exception
@@ -1225,10 +1228,6 @@ class FeedsTable extends AppTable
         )->first();
         if (empty($feed)) {
             throw new Exception("Feed with ID $feedId not found.");
-        }
-
-        if (!empty($feed['settings'])) {
-            $feed['settings'] = json_decode($feed['settings'], true);
         }
 
         $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
@@ -1300,31 +1299,34 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param array $data
-     * @param array $user
+     * @param User $user
      * @param int|bool $jobId
      * @return bool
      * @throws Exception
      */
-    public function saveFreetextFeedData(array $feed, array $data, array $user, $jobId = false)
+    public function saveFreetextFeedData(Feed $feed, array $data, User $user, $jobId = false)
     {
         $EventsTable = $this->fetchTable('Events');
 
         if ($feed['fixed_event'] && $feed['event_id']) {
-            $event = $this->Event->find('first', ['conditions' => ['Event.id' => $feed['event_id']], 'recursive' => -1]);
+            $event = $EventsTable->find('all', ['conditions' => ['Event.id' => $feed['event_id']], 'recursive' => -1])->first();
             if (empty($event)) {
                 throw new Exception("The target event is no longer valid. Make sure that the target event {$feed['event_id']} exists.");
             }
         } else {
-            $this->Event->create();
             $orgc_id = $user['org_id'];
             if (!empty($feed['orgc_id'])) {
                 $orgc_id = $feed['orgc_id'];
             }
             $disableCorrelation = false;
             if (!empty($feed['settings'])) {
-                $disableCorrelation = (bool) $feed['settings']['disable_correlation'] ?? false;
+                if (!empty($feed['settings']['disable_correlation'])) {
+                    $disableCorrelation = (bool) $feed['settings']['disable_correlation'];
+                } else {
+                    $disableCorrelation = false;
+                }
             }
             $event = [
                 'info' => $feed['name'] . ' feed',
@@ -1338,30 +1340,29 @@ class FeedsTable extends AppTable
                 'user_id' => $user['id'],
                 'disable_correlation' => $disableCorrelation,
             ];
-            $result = $this->Event->save($event);
+            $eventEntity = $EventsTable->newEntity($event);
+            $result = $EventsTable->save($eventEntity);
             if (!$result) {
                 throw new Exception('Something went wrong while creating a new event.');
             }
-            $event = $this->Event->find('first', ['conditions' => ['Event.id' => $this->Event->id], 'recursive' => -1]);
-            if (empty($event)) {
-                throw new Exception("The newly created event is no longer valid. Make sure that the target event {$this->Event->id} exists.");
+            if (empty($eventEntity)) {
+                throw new Exception("The newly created event is no longer valid. Make sure that the target event {$eventEntity->id} exists.");
             }
             if ($feed['fixed_event']) {
-                $feed['event_id'] = $event['Event']['id'];
+                $feed['event_id'] = $eventEntity['id'];
                 if (!empty($feed['settings'])) {
                     $feed['settings'] = json_encode($feed['settings']);
                 }
-                $feedEntity = $this->newEntity($feed);
-                $this->save($feedEntity);
+                $this->save($feed);
             }
         }
         if ($feed['fixed_event']) {
-            $existsAttributesValueToId = $this->Event->Attribute->find(
+            $existsAttributesValueToId = $EventsTable->Attributes->find(
                 'list',
                 [
                     'conditions' => [
                         'Attribute.deleted' => 0,
-                        'Attribute.event_id' => $event['Event']['id']
+                        'Attribute.event_id' => $eventEntity['id']
                     ],
                     'recursive' => -1,
                     'fields' => ['value', 'id']
@@ -1386,7 +1387,7 @@ class FeedsTable extends AppTable
                 }
             }
             if ($feed['delta_merge'] && !empty($existsAttributesValueToId)) {
-                $attributesToDelete = $this->Event->Attribute->find(
+                $attributesToDelete = $EventsTable->Attributes->find(
                     'all',
                     [
                         'conditions' => [
@@ -1399,9 +1400,9 @@ class FeedsTable extends AppTable
                     $attributesToDelete[$k]['Attribute']['deleted'] = 1;
                     unset($attributesToDelete[$k]['Attribute']['timestamp']);
                 }
-                $this->Event->Attribute->saveMany($attributesToDelete); // We need to trigger callback methods
+                $EventsTable->Attributes->saveMany($attributesToDelete); // We need to trigger callback methods
                 if (!empty($attributesToDelete)) {
-                    $this->Event->unpublishEvent($feed['event_id']);
+                    $EventsTable->unpublishEvent($feed['event_id']);
                 }
             }
         }
@@ -1415,7 +1416,7 @@ class FeedsTable extends AppTable
                 unset($data[$key]);
                 continue;
             }
-            $data[$key]['event_id'] = $event['Event']['id'];
+            $data[$key]['event_id'] = $eventEntity['id'];
             $data[$key]['distribution'] = 5;
             $data[$key]['sharing_group_id'] = 0;
             $data[$key]['to_ids'] = $feed['override_ids'] ? 0 : $value['to_ids'];
@@ -1423,19 +1424,19 @@ class FeedsTable extends AppTable
         }
         $chunks = array_chunk($data, 100);
         foreach ($chunks as $k => $chunk) {
-            $this->Event->Attribute->saveMany($chunk, ['validate' => true, 'parentEvent' => $event]);
+            $EventsTable->Attributes->saveMany($EventsTable->Attributes->newEntities($chunk), ['validate' => true, 'parentEvent' => $event]);
             $this->jobProgress($jobId, null, 50 + round(($k * 100 + 1) / count($data) * 50));
         }
         if (!empty($data) || !empty($attributesToDelete)) {
-            unset($event['Event']['timestamp']);
-            unset($event['Event']['attribute_count']);
-            $this->Event->save($event);
+            unset($eventEntity['timestamp']);
+            unset($eventEntity['attribute_count']);
+            $EventsTable->save($eventEntity);
         }
         if ($feed['publish']) {
-            $this->Event->publishRouter($event['Event']['id'], null, $user);
+            $EventsTable->publishRouter($eventEntity['id'], null, $user);
         }
         if ($feed['tag_id']) {
-            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $feed['tag_id']]);
+            $EventsTable->EventTag->attachTagToEvent($eventEntity['id'], ['id' => $feed['tag_id']]);
         }
         return true;
     }

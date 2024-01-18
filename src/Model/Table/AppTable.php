@@ -2,9 +2,11 @@
 
 namespace App\Model\Table;
 
+use App\Lib\Tools\BackgroundJobsTool;
 use App\Lib\Tools\FileAccessTool;
 use App\Lib\Tools\GitTool;
 use Cake\Collection\CollectionInterface;
+use Cake\Core\Configure;
 use Cake\Database\Expression\QueryExpression;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\I18n\FrozenTime;
@@ -22,6 +24,9 @@ class AppTable extends Table
 
     /** @var LogsTable */
     public $Log = null;
+
+    /** @var BackgroundJobsTool */
+    private static $loadedBackgroundJobsTool;
 
     public function initialize(array $config): void
     {
@@ -339,5 +344,18 @@ class AppTable extends Table
             }
         }
         return $commit;
+    }
+
+    /**
+     * @return BackgroundJobsTool
+     */
+    public function getBackgroundJobsTool(): BackgroundJobsTool
+    {
+        if (!self::$loadedBackgroundJobsTool) {
+            self::$loadedBackgroundJobsTool = new BackgroundJobsTool(Configure::read('BackgroundJobs'));
+            ;
+        }
+
+        return self::$loadedBackgroundJobsTool;
     }
 }

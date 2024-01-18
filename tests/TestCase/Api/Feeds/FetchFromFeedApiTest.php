@@ -7,6 +7,7 @@ namespace App\Test\TestCase\Api\Feeds;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\FeedsFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\Core\Configure;
 use Cake\Http\TestSuite\HttpClientTrait;
 use Cake\TestSuite\TestCase;
 
@@ -24,11 +25,14 @@ class FetchFromFeedApiTest extends TestCase
         'app.AuthKeys',
         'app.Feeds',
         'app.Events',
+        'app.Attributes',
     ];
 
     public function testFetchFromMispFeedById(): void
     {
         $this->skipOpenApiValidations();
+
+        Configure::write('BackgroundJobs.enabled', false);
 
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
         $url = sprintf('%s/%d', self::ENDPOINT, FeedsFixture::FEED_1_ID);
@@ -139,13 +143,55 @@ class FetchFromFeedApiTest extends TestCase
 
         // check that the event was added
         $this->assertDbRecordExists('Events', ['uuid' => '56bf399d-c46c-4fdb-a9cf-d9bb02de0b81']);
+        $this->assertDbRecordExists('Attributes', ['uuid' => '56bf39c9-c078-4368-9555-6cf802de0b81']);
 
-        // TODO: check that the attributes were added
         // TODO: check that the objects were added
         // TODO: check that the event reports were added
         // TODO: check that the sightings were added
         // TODO: check that the tags were added
         // TODO: check that the galaxies were added
         // TODO: check that the cryptographic key were added
+    }
+
+    public function testFetchFromFreetextFeedById(): void
+    {
+        $this->skipOpenApiValidations();
+
+        Configure::write('BackgroundJobs.enabled', false);
+
+        $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
+        $url = sprintf('%s/%d', self::ENDPOINT, FeedsFixture::FEED_3_ID);
+
+        $headers = [
+            'Content-Type: text/plain',
+            'Connection: close',
+        ];
+
+        $feedContent = implode(
+            " ",
+            [
+                '8.8.8.8',
+                '8.8.4.4',
+            ]
+        );
+
+        $this->mockClientGet(
+            FeedsFixture::FEED_3_URL,
+            $this->newClientResponse(200, $headers, $feedContent)
+        );
+
+        $this->post($url);
+        $this->assertResponseOk();
+
+        $response = $this->getJsonResponseAsArray();
+        $this->assertEquals(
+            'Fetching the feed has successfully completed.',
+            $response['result']
+        );
+
+        // check that the event was added
+        $this->assertDbRecordExists('Events', ['info' => FeedsFixture::FEED_3_NAME . ' feed']);
+        $this->assertDbRecordExists('Attributes', ['value1' => '8.8.8.8']);
+        $this->assertDbRecordExists('Attributes', ['value1' => '8.8.4.4']);
     }
 }

@@ -511,7 +511,7 @@ class FeedsController extends AppController
                 $this->redirect(['action' => 'index']);
             }
         }
-        if (Configure::read('MISP.BackgroundJobs')) {
+        if (Configure::read('BackgroundJobs.enabled')) {
 
             /** @var JobsTable $JobsTable */
             $JobsTable = $this->fetchTable('Jobs');
@@ -528,7 +528,7 @@ class FeedsController extends AppController
                 BackgroundJobsTool::CMD_SERVER,
                 [
                     'fetchFeed',
-                    $this->Auth->user('id'),
+                    $this->ACL->getUser()->id,
                     $feedId,
                     $jobId
                 ],
@@ -581,7 +581,7 @@ class FeedsController extends AppController
             if (!$this->Feeds->data['Feed']['enabled']) {
                 continue;
             }
-            if (Configure::read('MISP.BackgroundJobs')) {
+            if (Configure::read('BackgroundJobs.enabled')) {
 
                 /** @var Job $job */
                 $JobsTable = $this->fetchTable('Jobs');
@@ -958,7 +958,7 @@ class FeedsController extends AppController
 
     public function cacheFeeds($scope = 'freetext')
     {
-        if (Configure::read('MISP.BackgroundJobs')) {
+        if (Configure::read('BackgroundJobs.enabled')) {
 
             /** @var JobsTable $JobsTable */
             $JobsTable = $this->fetchTable('Jobs');
