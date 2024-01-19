@@ -152,6 +152,8 @@ class RestSearchComponent extends Component
             'category',
             'org',
             'tags',
+            'first_seen',
+            'last_seen',
             'from',
             'to',
             'last',
