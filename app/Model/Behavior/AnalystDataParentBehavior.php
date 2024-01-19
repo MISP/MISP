@@ -11,7 +11,7 @@ class AnalystDataParentBehavior extends ModelBehavior
 
 
 
-    public function attachAnalystData(array $object, array $types = ['Note', 'Opinion', 'Relationship'])
+    public function attachAnalystData(Model $model, array $object, array $types = ['Note', 'Opinion', 'Relationship'])
     {
         // No uuid, nothing to attach
         if (empty($object['uuid'])) {
@@ -36,7 +36,7 @@ class AnalystDataParentBehavior extends ModelBehavior
         }
         return $data;
     }
-
+/*
     public function afterFind(Model $model, $results, $primary = false)
     {
         if (!empty($model->includeAnalystData)) {
@@ -48,4 +48,5 @@ class AnalystDataParentBehavior extends ModelBehavior
         }
         return $results;
     }
+    */
 }

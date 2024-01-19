@@ -21,7 +21,7 @@ class JSONConverterTool
 
     public static function convertObject($object, $isSiteAdmin = false, $raw = false)
     {
-        $toRearrange = array('SharingGroup', 'Attribute', 'ShadowAttribute', 'Event', 'CryptographicKey');
+        $toRearrange = array('SharingGroup', 'Attribute', 'ShadowAttribute', 'Event', 'CryptographicKey', 'Note', 'Opinion', 'Relationship');
         foreach ($toRearrange as $element) {
             if (isset($object[$element])) {
                 $object['Object'][$element] = $object[$element];
@@ -40,7 +40,7 @@ class JSONConverterTool
 
     public static function convert($event, $isSiteAdmin=false, $raw = false)
     {
-        $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object', 'EventReport', 'CryptographicKey');
+        $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object', 'EventReport', 'CryptographicKey', 'Note', 'Opinion', 'Relationship');
         foreach ($toRearrange as $object) {
             if (isset($event[$object])) {
                 $event['Event'][$object] = $event[$object];

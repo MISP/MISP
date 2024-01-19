@@ -4117,8 +4117,17 @@ class AppModel extends Model
         if (!empty($query['order']) && $this->validOrderClause($query['order']) === false) {
             throw new InvalidArgumentException('Invalid order clause');
         }
-
-        return parent::find($type, $query);
+        $results = parent::find($type, $query);
+        if (!empty($query['includeAnalystData']) && $this->Behaviors->enabled('AnalystDataParent')) {
+            if ($type === 'first') {
+                $results[$this->alias] = array_merge($results[$this->alias], $this->attachAnalystData($results[$this->alias]));
+            } else if ($type === 'all') {
+                foreach ($results as $k => $result) {
+                    $results[$k][$this->alias] = array_merge($results[$k][$this->alias], $this->attachAnalystData($results[$k][$this->alias]));
+                }
+            }
+        }
+        return $results;
     }
 
     private function validOrderClause($order)

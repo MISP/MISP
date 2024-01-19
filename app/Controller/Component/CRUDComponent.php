@@ -25,7 +25,6 @@ class CRUDComponent extends Component
             }
             $options['filters'][] = 'quickFilter';
         }
-        $this->Controller->includeAnalystData->{$this->Controller->modelClass}->includeAnalystData = true;
         $params = $this->Controller->IndexFilter->harvestParameters(empty($options['filters']) ? [] : $options['filters']);
         $query = [];
         $query = $this->setFilters($params, $query);
@@ -40,6 +39,7 @@ class CRUDComponent extends Component
             if (!empty($this->Controller->paginate['fields'])) {
                 $query['fields'] = $this->Controller->paginate['fields'];
             }
+            $query['includeAnalystData'] = true;
             $data = $this->Controller->{$this->Controller->modelClass}->find('all', $query);
             if (isset($options['afterFind'])) {
                 if (is_callable($options['afterFind'])) {
@@ -50,6 +50,7 @@ class CRUDComponent extends Component
             }
             $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
         } else {
+            $query['includeAnalystData'] = true;
             $this->Controller->paginate = $query;
             $data = $this->Controller->paginate();
             if (isset($options['afterFind'])) {

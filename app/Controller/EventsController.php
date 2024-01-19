@@ -756,6 +756,7 @@ class EventsController extends AppController
             $this->paginate['conditions']['AND'][] = ['Event.id' => -1]; // do not fetch any event
         }
         $this->Event->includeAnalystData = true;
+        $this->paginate['includeAnalystData'] = true;
         $events = $this->paginate();
 
         if (count($events) === 1 && isset($this->passedArgs['searchall'])) {
@@ -811,6 +812,7 @@ class EventsController extends AppController
             $rules = [
                 'contain' => ['EventTag'],
                 'fields' => array_keys($fieldNames),
+                'includeAnalystData' => isset($passedArgs['includeAnalystData']) ? $passedArgs['includeAnalystData'] : true,
             ];
         }
         if (isset($passedArgs['sort']) && isset($fieldNames[$passedArgs['sort']])) {
@@ -1695,7 +1697,7 @@ class EventsController extends AppController
         }
 
         $namedParams = $this->request->params['named'];
-        $this->Event->includeAnalystData = true;
+        $conditions['includeAnalystData'] = true;
         if ($this->_isRest()) {
             $conditions['includeAttachments'] = isset($namedParams['includeAttachments']) ? $namedParams['includeAttachments'] : true;
         } else {

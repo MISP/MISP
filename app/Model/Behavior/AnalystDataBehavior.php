@@ -15,7 +15,7 @@ class AnalystDataBehavior extends ModelBehavior
     }
 
     // Return the analystData of the current type for a given UUID (this only checks the ACL of the analystData, NOT of the parent.)
-    public function fetchForUuid(Model $Model, $uuid, $user)
+    public function fetchForUuid(Model $Model, $uuid, $user = null)
     {
         $conditions = [
             'object_uuid' => $uuid

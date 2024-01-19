@@ -2039,6 +2039,9 @@ class Event extends AppModel
         if (!empty($options['page'])) {
             $params['page'] = $options['page'];
         }
+        if (!empty($options['includeAnalystData'])) {
+            $params['includeAnalystData'] = $options['includeAnalystData'];
+        }
         if (!empty($options['order'])) {
             $params['order'] = $this->findOrder(
                 $options['order'],
@@ -2199,6 +2202,12 @@ class Event extends AppModel
                 if (!empty($options['includeGranularCorrelations'])) {
                     $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
                 }
+                if (!empty($options['includeAnalystData'])) {
+                    foreach ($event['Attribute'] as $k => $attribute) {
+                        $analyst_data = $this->Attribute->attachAnalystData($attribute);
+                        $event['Attribute'][$k] = array_merge($event['Attribute'][$k], $analyst_data);
+                    }
+                }
 
                 // move all object attributes to a temporary container
                 $tempObjectAttributeContainer = array();
@@ -2248,6 +2257,10 @@ class Event extends AppModel
                 foreach ($event['Object'] as &$objectValue) {
                     if (isset($tempObjectAttributeContainer[$objectValue['id']])) {
                         $objectValue['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
+                    }
+                    if (!empty($options['includeAnalystData'])) {
+                        $analyst_data = $this->Object->attachAnalystData($objectValue);
+                        $objectValue = array_merge($objectValue, $analyst_data);
                     }
                 }
                 unset($tempObjectAttributeContainer);
