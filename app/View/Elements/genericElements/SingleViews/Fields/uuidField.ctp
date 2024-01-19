@@ -5,7 +5,7 @@
         h($uuid)
     );
 
-    $notes = !empty($notes) ? $notes : [];
+    $analyst_data = !empty($analyst_data) ? $analyst_data : [];
     $object_uuid = !empty($object_uuid) ? $object_uuid : null;
     $object_type = !empty($object_type) ? $object_type : null;
-    echo $this->element('genericElements/Analyst_notes/notes', ['notes' => $notes, 'object_uuid' => $object_uuid, 'object_type' => $object_type]);
+    echo $this->element('genericElements/Analyst_notes/notes', ['notes' => $analyst_data, 'object_uuid' => $object_uuid, 'object_type' => $object_type]);
