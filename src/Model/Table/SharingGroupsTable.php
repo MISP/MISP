@@ -954,8 +954,8 @@ class SharingGroupsTable extends AppTable
                         );
                         $this->SharingGroupOrgs->save($sharingGroupOrgEntity);
                     } else {
-                        if ($temp['SharingGroupOrg']['extend'] != $sg['SharingGroupOrg'][$k]['extend']) {
-                            $temp['SharingGroupOrg']['extend'] = $sg['SharingGroupOrg'][$k]['extend'];
+                        if ($temp['extend'] != $sg['SharingGroupOrg'][$k]['extend']) {
+                            $temp['extend'] = $sg['SharingGroupOrg'][$k]['extend'];
                             $this->SharingGroupOrgs->save($temp['SharingGroupOrg']);
                         }
                     }

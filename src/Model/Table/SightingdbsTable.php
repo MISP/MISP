@@ -237,8 +237,7 @@ class SightingdbsTable extends AppTable
             ];
             $valueLookup[$hashedValue] = $k;
         }
-        $httpTool = new \App\Lib\Tools\HttpTool();
-        $http = $httpTool->createRequest($params);
+        $http = new \App\Lib\Tools\HttpTool($params);
         try {
             $response = $http->post(
                 sprintf(
@@ -314,8 +313,7 @@ class SightingdbsTable extends AppTable
             'ssl_verify_peer' => false,
             'ssl_verify_peer_name' => false
         ];
-        $httpTool = new \App\Lib\Tools\HttpTool();
-        $http = $httpTool->createRequest($params);
+        $http = new \App\Lib\Tools\HttpTool($params);
         $start = microtime(true);
         try {
             $response = $http->get(

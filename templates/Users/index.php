@@ -145,6 +145,7 @@ echo $this->element('genericElements/IndexTable/index_table', [
                 'sort' => 'certif_public',
                 'class' => 'short',
                 'data_path' => 'certif_public',
+                'colors' => true,
                 'requirement' => Configure::read('SMIME.enabled')
             ],
             [
