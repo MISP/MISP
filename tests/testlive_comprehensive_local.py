@@ -998,6 +998,8 @@ class TestComprehensive(unittest.TestCase):
         self.assertIn("event_uuid", sighting)
         self.assertEqual(sighting["event_uuid"], event.uuid, search_result)
 
+        self.admin_misp_connector.delete_event(event)
+
     def _search_event(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
