@@ -194,4 +194,46 @@ class FetchFromFeedApiTest extends TestCase
         $this->assertDbRecordExists('Attributes', ['value1' => '8.8.8.8']);
         $this->assertDbRecordExists('Attributes', ['value1' => '8.8.4.4']);
     }
+
+    public function testFetchFromCsvFeedById(): void
+    {
+        $this->skipOpenApiValidations();
+
+        Configure::write('BackgroundJobs.enabled', false);
+
+        $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
+        $url = sprintf('%s/%d', self::ENDPOINT, FeedsFixture::FEED_4_ID);
+
+        $headers = [
+            'Content-Type: text/plain',
+            'Connection: close',
+        ];
+
+        $feedContent = implode(
+            PHP_EOL,
+            [
+                '1.1.1.1',
+                '1.0.0.1',
+            ]
+        );
+
+        $this->mockClientGet(
+            FeedsFixture::FEED_3_URL,
+            $this->newClientResponse(200, $headers, $feedContent)
+        );
+
+        $this->post($url);
+        $this->assertResponseOk();
+
+        $response = $this->getJsonResponseAsArray();
+        $this->assertEquals(
+            'Fetching the feed has successfully completed.',
+            $response['result']
+        );
+
+        // check that the event was added
+        $this->assertDbRecordExists('Events', ['info' => FeedsFixture::FEED_4_NAME . ' feed']);
+        $this->assertDbRecordExists('Attributes', ['value1' => '1.1.1.1']);
+        $this->assertDbRecordExists('Attributes', ['value1' => '1.0.0.1']);
+    }
 }

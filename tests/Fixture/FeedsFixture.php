@@ -22,6 +22,10 @@ class FeedsFixture extends TestFixture
     public const FEED_3_NAME = 'test-feed-3';
     public const FEED_3_URL = 'http://feed3.local/freetext/test-feed-3';
 
+    public const FEED_4_ID = 4000;
+    public const FEED_4_NAME = 'test-feed-4';
+    public const FEED_4_URL = 'http://feed4.local/csv/test-feed-4';
+
     public function init(): void
     {
         $this->records = [
@@ -53,6 +57,16 @@ class FeedsFixture extends TestFixture
                 "source_format" => 'freetext',
                 "input_source" => "network",
                 "settings" => "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+                'enabled' => true,
+            ],
+            [
+                'id' => self::FEED_4_ID,
+                'name' => self::FEED_4_NAME,
+                'provider' => 'test-provider',
+                'url' => self::FEED_3_URL,
+                "source_format" => 'csv',
+                "input_source" => "network",
+                "settings" => "{\"csv\":{\"value\":\"1\"}}",
                 'enabled' => true,
             ]
         ];
