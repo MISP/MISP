@@ -43,7 +43,14 @@ class DownloadOrgCerebrateApiTest extends TestCase
         $this->post($url);
         $this->assertResponseOk();
         $this->assertResponseContains('"name": "'.CerebratesFixture::CEREBRATE_ORG_LIST[0]['name'].'"');
+        $this->assertDbRecordExists('Organisations', ['name' => CerebratesFixture::CEREBRATE_ORG_LIST[0]['name']]);
     }
+
+    // TODO add a test to add new data to an existing organisation
+    // public function testDownloadOrgUpdateExisting(): void
+    // {
+        
+    // }
 
     public function testDownloadOrgNotAllowedAsRegularUser(): void
     {

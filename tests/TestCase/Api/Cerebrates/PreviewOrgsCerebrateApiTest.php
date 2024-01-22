@@ -43,7 +43,7 @@ class PreviewOrgsCerebrateApiTest extends TestCase
         $url = sprintf('%s/%d', self::ENDPOINT, CerebratesFixture::SERVER_A_ID);
         $this->get($url);
         $this->assertResponseOk();
-        $this->assertResponseContains('"name": "ORGNAME"');
+        $this->assertResponseContains('"name": "'.CerebratesFixture::CEREBRATE_ORG_LIST[0]['name'].'"');
     }
 
     public function testPreviewOrgsNotAllowedAsRegularUser(): void
