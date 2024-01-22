@@ -31,15 +31,13 @@ require_once dirname(__DIR__) . '/../Model/Attribute.php';   // FIXME workaround
  */
 abstract class AppShell extends Shell
 {
-    public $tasks = array('ConfigLoad');
-
     /** @var BackgroundJobsTool */
     private $BackgroundJobsTool;
 
     public function initialize()
     {
-        $this->ConfigLoad = $this->Tasks->load('ConfigLoad');
-        $this->ConfigLoad->execute();
+        $configLoad = $this->Tasks->load('ConfigLoad');
+        $configLoad->execute();
 
         parent::initialize();
     }
