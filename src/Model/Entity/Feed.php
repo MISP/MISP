@@ -23,17 +23,17 @@ class Feed extends AppModel
         'publish_timestamp',
     ];
 
-    public const CACHE_DIR = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS;
+    public const CACHE_DIR = APP . '..' . DS . 'tmp' . DS . 'cache' . DS . 'feeds' . DS;
 
-    public const FEED_TYPES = array(
-        'misp' => array(
+    public const FEED_TYPES = [
+        'misp' => [
             'name' => 'MISP Feed'
-        ),
-        'freetext' => array(
+        ],
+        'freetext' => [
             'name' => 'Freetext Parsed Feed'
-        ),
-        'csv' => array(
+        ],
+        'csv' => [
             'name' => 'Simple CSV Parsed Feed'
-        )
-    );
+        ]
+    ];
 }

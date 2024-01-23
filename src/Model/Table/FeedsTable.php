@@ -2,31 +2,31 @@
 
 namespace App\Model\Table;
 
-use App\Lib\Tools\RedisTool;
-use App\Lib\Tools\RandomTool;
-use App\Lib\Tools\JsonTool;
-use App\Lib\Tools\ComplexTypeTool;
 use App\Lib\Tools\AttributeValidationTool;
+use App\Lib\Tools\ComplexTypeTool;
+use App\Lib\Tools\FileAccessTool;
+use App\Lib\Tools\JsonTool;
+use App\Lib\Tools\LogExtendedTrait;
+use App\Lib\Tools\RandomTool;
+use App\Lib\Tools\RedisTool;
 use App\Lib\Tools\SyncTool;
 use App\Lib\Tools\TmpFileTool;
 use App\Model\Entity\Attribute;
-use App\Model\Entity\Job;
 use App\Model\Entity\Feed;
 use App\Model\Table\AppTable;
-use ArrayObject;
-use Cake\Event\EventInterface;
-use Cake\Http\Exception\MethodNotAllowedException;
-use Exception;
-use Cake\Validation\Validator;
 use Cake\Core\Configure;
-use App\Lib\Tools\FileAccessTool;
 use Cake\Http\Client as HttpClient;
 use Cake\Http\Exception\HttpException;
-use InvalidArgumentException;
 use Cake\Validation\Validation;
+use Cake\Validation\Validator;
+use Exception;
+use InvalidArgumentException;
+use ZipArchive;
 
 class FeedsTable extends AppTable
 {
+    use LogExtendedTrait;
+
     public function initialize(array $config): void
     {
         parent::initialize($config);
@@ -73,71 +73,83 @@ class FeedsTable extends AppTable
         $validator
             ->requirePresence('url', 'name')
             ->notEmptyString('provider')
-            ->add('url', 'custom', [
-                'rule' => function ($value, $context) {
-                    if ($this->isFeedLocal($context['data'])) {
-                        $path = mb_ereg_replace("/\:\/\//", '', $value);
-                        if ($value['Feed']['source_format'] == 'misp') {
-                            if (!is_dir($path)) {
-                                return 'For MISP type local feeds, please specify the containing directory.';
+            ->add(
+                'url',
+                'custom',
+                [
+                    'rule' => function ($value, $context) {
+                        if ($this->isFeedLocal($context['data'])) {
+                            $path = mb_ereg_replace("/\:\/\//", '', $value);
+                            if ($value['source_format'] == 'misp') {
+                                if (!is_dir($path)) {
+                                    return 'For MISP type local feeds, please specify the containing directory.';
+                                }
+                            } else {
+                                if (!file_exists($path)) {
+                                    return 'Invalid path or file not found. Make sure that the path points to an existing file that is readable and watch out for typos.';
+                                }
                             }
                         } else {
-                            if (!file_exists($path)) {
-                                return 'Invalid path or file not found. Make sure that the path points to an existing file that is readable and watch out for typos.';
+                            if (!filter_var($context['data']['url'], FILTER_VALIDATE_URL)) {
+                                return false;
                             }
                         }
-                    } else {
-                        if (!filter_var($context['data']['url'], FILTER_VALIDATE_URL)) {
-                            return false;
-                        }
-                    }
-                    return true;
-                },
-                'message' => 'Invalid URL/File Path.'
-            ])
-            ->add('input_source', 'custom', [
-                'rule' => function ($value, $context) {
-                    if (!empty($value['Feed']['input_source'])) {
-                        $localAllowed = empty(Configure::read('Security.disable_local_feed_access'));
-                        $validOptions = array('network');
-                        if ($localAllowed) {
-                            $validOptions[] = 'local';
-                        }
-                        if (!in_array($value['Feed']['input_source'], $validOptions)) {
-                            return __(
-                                'Invalid input source. The only valid options are %s. %s',
-                                implode(', ', $validOptions),
-                                (!$localAllowed && $value['Feed']['input_source'] === 'local') ?
+                        return true;
+                    },
+                    'message' => 'Invalid URL/File Path.'
+                ]
+            )
+            ->add(
+                'input_source',
+                'custom',
+                [
+                    'rule' => function ($value, $context) {
+                        if (!empty($value['input_source'])) {
+                            $localAllowed = empty(Configure::read('Security.disable_local_feed_access'));
+                            $validOptions = ['network'];
+                            if ($localAllowed) {
+                                $validOptions[] = 'local';
+                            }
+                            if (!in_array($value['input_source'], $validOptions)) {
+                                return __(
+                                    'Invalid input source. The only valid options are %s. %s',
+                                    implode(', ', $validOptions),
+                                    (!$localAllowed && $value['input_source'] === 'local') ?
                                     __('Security.disable_local_feed_access is currently enabled, local feeds are thereby not allowed.') :
                                     ''
-                            );
+                                );
+                            }
                         }
-                    }
-                    return true;
-                },
-                'message' => 'Invalid input source'
-            ])
-            ->add('event_id', 'valid', [
-                'rule' => 'numeric',
-                'message' => 'Please enter a numeric event ID or leave this field blank.'
-            ]);
+                        return true;
+                    },
+                    'message' => 'Invalid input source'
+                ]
+            )
+            ->add(
+                'event_id',
+                'valid',
+                [
+                    'rule' => 'numeric',
+                    'message' => 'Please enter a numeric event ID or leave this field blank.'
+                ]
+            );
 
         return $validator;
     }
 
     public function validateInputSource($fields)
     {
-        if (!empty($this->data['Feed']['input_source'])) {
+        if (!empty($this->data['input_source'])) {
             $localAllowed = empty(Configure::read('Security.disable_local_feed_access'));
-            $validOptions = array('network');
+            $validOptions = ['network'];
             if ($localAllowed) {
                 $validOptions[] = 'local';
             }
-            if (!in_array($this->data['Feed']['input_source'], $validOptions)) {
+            if (!in_array($this->data['input_source'], $validOptions)) {
                 return __(
                     'Invalid input source. The only valid options are %s. %s',
                     implode(', ', $validOptions),
-                    (!$localAllowed && $this->data['Feed']['input_source'] === 'local') ?
+                    (!$localAllowed && $this->data['input_source'] === 'local') ?
                         __('Security.disable_local_feed_access is currently enabled, local feeds are thereby not allowed.') :
                         ''
                 );
@@ -149,8 +161,8 @@ class FeedsTable extends AppTable
     public function urlOrExistingFilepath($value, $context)
     {
         if ($this->isFeedLocal($value)) {
-            $path = mb_ereg_replace("/\:\/\//", '', $value['Feed']['url']);
-            if ($value['Feed']['source_format'] == 'misp') {
+            $path = mb_ereg_replace("/\:\/\//", '', $value['url']);
+            if ($value['source_format'] == 'misp') {
                 if (!is_dir($path)) {
                     return 'For MISP type local feeds, please specify the containing directory.';
                 }
@@ -160,7 +172,7 @@ class FeedsTable extends AppTable
                 }
             }
         } else {
-            if (!filter_var($value['Feed']['url'], FILTER_VALIDATE_URL)) {
+            if (!filter_var($value['url'], FILTER_VALIDATE_URL)) {
                 return false;
             }
         }
@@ -169,7 +181,7 @@ class FeedsTable extends AppTable
 
     public function getFeedTypesOptions()
     {
-        $result = array();
+        $result = [];
         foreach (Feed::FEED_TYPES as $key => $value) {
             $result[$key] = $value['name'];
         }
@@ -189,14 +201,17 @@ class FeedsTable extends AppTable
     {
         $manifest = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
         $EventsTable = $this->fetchTable('Events');
-        $events = $EventsTable->find('all', array(
-            'conditions' => array(
-                'Event.uuid' => array_keys($manifest),
-            ),
-            'recursive' => -1,
-            'fields' => array('Event.uuid', 'Event.timestamp')
-        ));
-        $result = array('add' => array(), 'edit' => array());
+        $events = $EventsTable->find(
+            'all',
+            [
+                'conditions' => [
+                    'uuid IN' => array_keys($manifest),
+                ],
+                'recursive' => -1,
+                'fields' => ['uuid', 'timestamp']
+            ]
+        );
+        $result = ['add' => [], 'edit' => []];
         foreach ($events as $event) {
             $eventUuid = $event['Event']['uuid'];
             if ($event['Event']['timestamp'] < $manifest[$eventUuid]['timestamp']) {
@@ -219,7 +234,7 @@ class FeedsTable extends AppTable
      */
     public function getCache(array $feed, HttpClient $HttpSocket = null)
     {
-        $uri = $feed['Feed']['url'] . '/hashes.csv';
+        $uri = $feed['url'] . '/hashes.csv';
         $data = $this->feedGetUri($feed, $uri, $HttpSocket);
 
         if (empty($data)) {
@@ -242,7 +257,7 @@ class FeedsTable extends AppTable
      */
     private function downloadManifest($feed, HttpClient $HttpSocket = null)
     {
-        $manifestUrl = $feed['Feed']['url'] . '/manifest.json';
+        $manifestUrl = $feed['url'] . '/manifest.json';
         $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket);
 
         try {
@@ -280,15 +295,15 @@ class FeedsTable extends AppTable
      */
     private function getRemoteManifest(array $feed, HttpClient $HttpSocket)
     {
-        $feedCache = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['Feed']['id'] . '_manifest.cache.gz';
-        $feedCacheEtag = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['Feed']['id'] . '_manifest.etag';
+        $feedCache = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['id'] . '_manifest.cache.gz';
+        $feedCacheEtag = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['id'] . '_manifest.etag';
 
         $etag = null;
         if (file_exists($feedCache) && file_exists($feedCacheEtag)) {
             $etag = file_get_contents($feedCacheEtag);
         }
 
-        $manifestUrl = $feed['Feed']['url'] . '/manifest.json';
+        $manifestUrl = $feed['url'] . '/manifest.json';
 
         try {
             $response = $this->feedGetUriRemote($feed, $manifestUrl, $HttpSocket, $etag);
@@ -306,8 +321,8 @@ class FeedsTable extends AppTable
 
         if ($response->getHeader('etag')) {
             try {
-                FileAccessTool::writeCompressedFile($feedCache, $response->body);
-                FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('etag'));
+                FileAccessTool::writeCompressedFile($feedCache, $response->getBody());
+                FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('etag')[0]);
             } catch (Exception $e) {
                 FileAccessTool::deleteFileIfExists($feedCacheEtag);
                 $this->logException("Could not save file `$feedCache` to cache.", $e, LOG_NOTICE);
@@ -316,7 +331,7 @@ class FeedsTable extends AppTable
             FileAccessTool::deleteFileIfExists($feedCacheEtag);
         }
 
-        return $response->json();
+        return $response->getJson();
     }
 
     /**
@@ -341,8 +356,8 @@ class FeedsTable extends AppTable
      */
     private function getFreetextFeedRemote(array $feed, HttpClient $HttpSocket)
     {
-        $feedCache = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['Feed']['id'] . '.cache.gz';
-        $feedCacheEtag = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['Feed']['id'] . '.etag';
+        $feedCache = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['id'] . '.cache.gz';
+        $feedCacheEtag = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['id'] . '.etag';
 
         $etag = null;
         if (file_exists($feedCache)) {
@@ -358,13 +373,13 @@ class FeedsTable extends AppTable
         }
 
         try {
-            $response = $this->feedGetUriRemote($feed, $feed['Feed']['url'], $HttpSocket, $etag);
+            $response = $this->feedGetUriRemote($feed, $feed['url'], $HttpSocket, $etag);
         } catch (HttpException $e) {
             if ($e->getCode() === 304) { // not modified
                 try {
                     return FileAccessTool::readCompressedFile($feedCache);
                 } catch (Exception $e) {
-                    return $this->feedGetUriRemote($feed, $feed['Feed']['url'], $HttpSocket); // cache file is not readable, fetch without etag
+                    return $this->feedGetUriRemote($feed, $feed['url'], $HttpSocket); // cache file is not readable, fetch without etag
                 }
             } else {
                 throw $e;
@@ -372,16 +387,16 @@ class FeedsTable extends AppTable
         }
 
         try {
-            FileAccessTool::writeCompressedFile($feedCache, $response->body);
+            FileAccessTool::writeCompressedFile($feedCache, $response->getBody());
             if ($response->getHeader('etag')) {
-                FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('etag'));
+                FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('etag')[0]);
             }
         } catch (Exception $e) {
             FileAccessTool::deleteFileIfExists($feedCacheEtag);
             $this->logException("Could not save file `$feedCache` to cache.", $e, LOG_NOTICE);
         }
 
-        return $response->body;
+        return $response->getBody();
     }
 
     /**
@@ -394,7 +409,7 @@ class FeedsTable extends AppTable
     public function getFreetextFeed($feed, HttpClient $HttpSocket = null, $type = 'freetext')
     {
         if ($this->isFeedLocal($feed)) {
-            $feedUrl = $feed['Feed']['url'];
+            $feedUrl = $feed['url'];
             $data = $this->feedGetUri($feed, $feedUrl, $HttpSocket);
         } else {
             $data = $this->getFreetextFeedRemote($feed, $HttpSocket);
@@ -404,15 +419,15 @@ class FeedsTable extends AppTable
         $WarninglistsTable = $this->fetchTable('Warninglists');
         $complexTypeTool->setTLDs($WarninglistsTable->fetchTLDLists());
         $complexTypeTool->setSecurityVendorDomains($WarninglistsTable->fetchSecurityVendorDomains());
-        $settings = array();
-        if (!empty($feed['Feed']['settings']) && !is_array($feed['Feed']['settings'])) {
-            $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+        $settings = [];
+        if (!empty($feed['settings']) && !is_array($feed['settings'])) {
+            $feed['settings'] = json_decode($feed['settings'], true);
         }
-        if (isset($feed['Feed']['settings'][$type])) {
-            $settings = $feed['Feed']['settings'][$type];
+        if (isset($feed['settings'][$type])) {
+            $settings = $feed['settings'][$type];
         }
-        if (isset($feed['Feed']['settings']['common'])) {
-            $settings = array_merge($settings, $feed['Feed']['settings']['common']);
+        if (isset($feed['settings']['common'])) {
+            $settings = array_merge($settings, $feed['settings']['common']);
         }
         $resultArray = $complexTypeTool->checkComplexRouter($data, $type, $settings);
         $AttributesTable = $this->fetchTable('Attributes');
@@ -427,30 +442,33 @@ class FeedsTable extends AppTable
 
     public function getFreetextFeedCorrelations($data, $feedId)
     {
-        $values = array();
+        $values = [];
         foreach ($data as $key => $value) {
             $values[] = $value['value'];
         }
         $AttributesTable = $this->fetchTable('Attributes');
         $redis = RedisTool::init();
         if ($redis !== false) {
-            $feeds = $this->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('Feed.id !=' => $feedId),
-                'fields' => array('id', 'name', 'url', 'provider', 'source_format')
-            ));
+            $feeds = $this->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => ['Feed.id !=' => $feedId],
+                    'fields' => ['id', 'name', 'url', 'provider', 'source_format']
+                ]
+            );
             foreach ($feeds as $k => $v) {
-                if (!$redis->exists('misp:feed_cache:' . $v['Feed']['id'])) {
+                if (!$redis->exists('misp:feed_cache:' . $v['id'])) {
                     unset($feeds[$k]);
                 }
             }
         } else {
-            return array();
+            return [];
         }
         // Adding a 3rd parameter to a list find seems to allow grouping several results into a key. If we ran a normal list with value => event_id we'd only get exactly one entry for each value
         // The cost of this method is orders of magnitude lower than getting all id - event_id - value triplets and then doing a double loop comparison
-        $correlations = $AttributesTable->find('list', array('conditions' => array('Attribute.value1' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value1')));
-        $correlations2 = $AttributesTable->find('list', array('conditions' => array('Attribute.value2' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value2')));
+        $correlations = $AttributesTable->find('list', ['conditions' => ['Attribute.value1' => $values, 'Attribute.deleted' => 0], 'fields' => ['Attribute.event_id', 'Attribute.event_id', 'Attribute.value1']]);
+        $correlations2 = $AttributesTable->find('list', ['conditions' => ['Attribute.value2' => $values, 'Attribute.deleted' => 0], 'fields' => ['Attribute.event_id', 'Attribute.event_id', 'Attribute.value2']]);
         $correlations = array_merge_recursive($correlations, $correlations2);
         foreach ($data as $key => $value) {
             if (isset($correlations[$value['value']])) {
@@ -458,8 +476,8 @@ class FeedsTable extends AppTable
             }
             if ($redis) {
                 foreach ($feeds as $k => $v) {
-                    if ($redis->sismember('misp:feed_cache:' . $v['Feed']['id'], md5($value['value']))) {
-                        $data[$key]['feed_correlations'][] = array($v);
+                    if ($redis->sismember('misp:feed_cache:' . $v['id'], md5($value['value']))) {
+                        $data[$key]['feed_correlations'][] = [$v];
                     }
                 }
             }
@@ -574,9 +592,12 @@ class FeedsTable extends AppTable
         if ($scope == 'Server' && !$user['Role']['perm_site_admin'] && $user['org_id'] != Configure::read('MISP.host_org_id')) {
             // Filter fields that shouldn't be visible to everyone
             $allowedFieldsForAllUsers = array_flip(['id', 'name',]);
-            $sources = array_map(function ($source) use ($scope, $allowedFieldsForAllUsers) {
-                return [$scope => array_intersect_key($source[$scope], $allowedFieldsForAllUsers)];
-            }, $sources);
+            $sources = array_map(
+                function ($source) use ($scope, $allowedFieldsForAllUsers) {
+                    return [$scope => array_intersect_key($source[$scope], $allowedFieldsForAllUsers)];
+                },
+                $sources
+            );
         }
         foreach ($sources as $source) {
             $sourceId = $source[$scope]['id'];
@@ -663,21 +684,21 @@ class FeedsTable extends AppTable
     private function getCachedFeedsOrServers(array $user, $scope)
     {
         if ($scope === 'Feed') {
-            $params = array(
+            $params = [
                 'recursive' => -1,
-                'fields' => array('id', 'name', 'url', 'provider', 'source_format')
-            );
+                'fields' => ['id', 'name', 'url', 'provider', 'source_format']
+            ];
             if (!$user['Role']['perm_site_admin']) {
-                $params['conditions'] = array('Feed.lookup_visible' => 1);
+                $params['conditions'] = ['Feed.lookup_visible' => 1];
             }
             $sources = $this->find('all', $params);
         } else {
-            $params = array(
+            $params = [
                 'recursive' => -1,
-                'fields' => array('id', 'name', 'url')
-            );
+                'fields' => ['id', 'name', 'url']
+            ];
             if (!$user['Role']['perm_site_admin']) {
-                $params['conditions'] = array('Server.caching_enabled' => 1);
+                $params['conditions'] = ['Server.caching_enabled' => 1];
             }
             $ServersTable = $this->fetchTable('Servers');
             $sources = $ServersTable->find('all', $params);
@@ -715,21 +736,21 @@ class FeedsTable extends AppTable
     {
         $total = count($actions['add']) + count($actions['edit']);
         $currentItem = 0;
-        $results = array();
+        $results = [];
         $filterRules = $this->__prepareFilterRules($feed);
 
         foreach ($actions['add'] as $uuid) {
             try {
                 $result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
                 if ($result === true) {
-                    $results['add']['success'] = $uuid;
+                    $results['add']['success'][] = $uuid;
                 } else if ($result !== 'blocked') {
-                    $results['add']['fail'] = ['uuid' => $uuid, 'reason' => $result];
-                    $this->log("Could not add event '$uuid' from feed {$feed['Feed']['id']}: $result", LOG_WARNING);
+                    $results['add']['fail'][] = ['uuid' => $uuid, 'reason' => $result];
+                    $this->log("Could not add event '$uuid' from feed {$feed['id']}: $result", LOG_WARNING);
                 }
             } catch (Exception $e) {
-                $this->logException("Could not add event '$uuid' from feed {$feed['Feed']['id']}.", $e);
-                $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
+                $this->logException("Could not add event '$uuid' from feed {$feed['id']}.", $e);
+                $results['add']['fail'][] = ['uuid' => $uuid, 'reason' => $e->getMessage()];
             }
 
             $this->__cleanupFile($feed, '/' . $uuid . '.json');
@@ -741,14 +762,14 @@ class FeedsTable extends AppTable
             try {
                 $result = $this->__updateEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
                 if ($result === true) {
-                    $results['add']['success'] = $uuid;
+                    $results['edit']['success'][] = $uuid;
                 } else if ($result !== 'blocked') {
-                    $results['add']['fail'] = ['uuid' => $uuid, 'reason' => $result];
-                    $this->log("Could not edit event '$uuid' from feed {$feed['Feed']['id']}: " . json_encode($result), LOG_WARNING);
+                    $results['edit']['fail'][] = ['uuid' => $uuid, 'reason' => $result];
+                    $this->log("Could not edit event '$uuid' from feed {$feed['id']}: " . json_encode($result), LOG_WARNING);
                 }
             } catch (Exception $e) {
-                $this->logException("Could not edit event '$uuid' from feed {$feed['Feed']['id']}.", $e);
-                $results['edit']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
+                $this->logException("Could not edit event '$uuid' from feed {$feed['id']}.", $e);
+                $results['edit']['fail'][] = ['uuid' => $uuid, 'reason' => $e->getMessage()];
             }
 
             $this->__cleanupFile($feed, '/' . $uuid . '.json');
@@ -766,15 +787,15 @@ class FeedsTable extends AppTable
         $version = $this->checkMISPVersion();
         $version = implode('.', $version);
 
-        $result = array(
-            'header' => array(
-                'Accept' => array('application/json', 'text/plain', 'text/*'),
+        $result = [
+            'header' => [
+                'Accept' => ['application/json', 'text/plain', 'text/*'],
                 'MISP-version' => $version,
                 'MISP-uuid' => Configure::read('MISP.uuid'),
-            )
-        );
+            ]
+        ];
 
-        $commit = $this->checkMIPSCommit();
+        $commit = $this->checkMISPCommit();
         if ($commit) {
             $result['header']['commit'] = $commit;
         }
@@ -784,7 +805,7 @@ class FeedsTable extends AppTable
                 if (!empty($line)) {
                     $kv = explode(':', $line);
                     if (!empty($kv[0]) && !empty($kv[1])) {
-                        if (!in_array($kv[0], array('commit', 'MISP-version', 'MISP-uuid'))) {
+                        if (!in_array($kv[0], ['commit', 'MISP-version', 'MISP-uuid'])) {
                             $result['header'][trim($kv[0])] = trim($kv[1]);
                         }
                     }
@@ -796,15 +817,15 @@ class FeedsTable extends AppTable
 
     private function __checkIfEventBlockedByFilter($event, $filterRules)
     {
-        $fields = array('tags' => 'Tag', 'orgs' => 'Orgc');
-        $prefixes = array('OR', 'NOT');
+        $fields = ['tags' => 'Tag', 'orgs' => 'Orgc'];
+        $prefixes = ['OR', 'NOT'];
         foreach ($fields as $field => $fieldModel) {
             foreach ($prefixes as $prefix) {
                 if (!empty($filterRules[$field][$prefix])) {
                     $found = false;
                     if (isset($event['Event'][$fieldModel]) && !empty($event['Event'][$fieldModel])) {
                         if (!isset($event['Event'][$fieldModel][0])) {
-                            $event['Event'][$fieldModel] = array(0 => $event['Event'][$fieldModel]);
+                            $event['Event'][$fieldModel] = [0 => $event['Event'][$fieldModel]];
                         }
                         foreach ($event['Event'][$fieldModel] as $object) {
                             foreach ($filterRules[$field][$prefix] as $temp) {
@@ -835,7 +856,7 @@ class FeedsTable extends AppTable
     {
         $filterRules = $this->__prepareFilterRules($feed);
         if (!$filterRules) {
-            $filterRules = array();
+            $filterRules = [];
         }
         foreach ($events as $k => $event) {
             if (isset($event['orgc']) && !isset($event['Orgc'])) { // fix key case
@@ -947,7 +968,7 @@ class FeedsTable extends AppTable
     public function downloadEventFromFeed(array $feed, $uuid)
     {
         $filerRules = $this->__prepareFilterRules($feed);
-        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpClient();
+        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         return $this->__prepareEvent($event, $feed, $filerRules);
     }
@@ -960,12 +981,15 @@ class FeedsTable extends AppTable
     private function __saveEvent(array $event, array $user)
     {
         $EventsTable = $this->fetchTable('Events');
-        $existingEvent = $EventsTable->find('first', array(
-            'conditions' => array('Event.uuid' => $event['Event']['uuid']),
-            'recursive' => -1,
-            'fields' => array('Event.uuid', 'Event.id', 'Event.timestamp')
-        ));
-        $result = array();
+        $existingEvent = $EventsTable->find(
+            'first',
+            [
+                'conditions' => ['Event.uuid' => $event['Event']['uuid']],
+                'recursive' => -1,
+                'fields' => ['Event.uuid', 'Event.id', 'Event.timestamp']
+            ]
+        );
+        $result = [];
         if (!empty($existingEvent)) {
             $result['action'] = 'edit';
             if ($existingEvent['Event']['timestamp'] < $event['Event']['timestamp']) {
@@ -1001,25 +1025,28 @@ class FeedsTable extends AppTable
             $event['Event']['Orgc'] = $event['Event']['orgc'];
             unset($event['Event']['orgc']);
         }
-        if (5 == $feed['Feed']['distribution'] && isset($event['Event']['distribution'])) {
+        if (5 == $feed['distribution'] && isset($event['Event']['distribution'])) {
             // We inherit the distribution from the feed and should not rewrite the distributions.
             // MISP magically parses the Sharing Group info and creates the SG if it didn't exist.
         } else {
             // rewrite the distributions to the one configured by the Feed settings
             // overwrite Event distribution
-            if (5 == $feed['Feed']['distribution']) {
+            if (5 == $feed['distribution']) {
                 // We said to inherit the distribution from the feed, but the feed does not contain distribution
                 // rewrite the event to My org only distribution, and set all attributes to inherit the event distribution
                 $event['Event']['distribution'] = 0;
                 $event['Event']['sharing_group_id'] = 0;
             } else {
-                $event['Event']['distribution'] = $feed['Feed']['distribution'];
-                $event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
-                if ($feed['Feed']['sharing_group_id']) {
-                    $sg = $this->SharingGroup->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('SharingGroup.id' => $feed['Feed']['sharing_group_id'])
-                    ));
+                $event['Event']['distribution'] = $feed['distribution'];
+                $event['Event']['sharing_group_id'] = $feed['sharing_group_id'];
+                if ($feed['sharing_group_id']) {
+                    $sg = $this->SharingGroup->find(
+                        'first',
+                        [
+                            'recursive' => -1,
+                            'conditions' => ['SharingGroup.id' => $feed['sharing_group_id']]
+                        ]
+                    );
                     if (!empty($sg)) {
                         $event['Event']['SharingGroup'] = $sg['SharingGroup'];
                     } else {
@@ -1046,22 +1073,25 @@ class FeedsTable extends AppTable
                 }
             }
         }
-        if ($feed['Feed']['tag_id']) {
+        if ($feed['tag_id']) {
             if (empty($feed['Tag']['name'])) {
-                $feed_tag = $this->Tag->find('first', [
-                    'conditions' => [
-                        'Tag.id' => $feed['Feed']['tag_id']
-                    ],
-                    'recursive' => -1,
-                    'fields' => ['Tag.name', 'Tag.colour', 'Tag.id']
-                ]);
+                $feed_tag = $this->Tag->find(
+                    'first',
+                    [
+                        'conditions' => [
+                            'Tag.id' => $feed['tag_id']
+                        ],
+                        'recursive' => -1,
+                        'fields' => ['Tag.name', 'Tag.colour', 'Tag.id']
+                    ]
+                );
                 $feed['Tag'] = $feed_tag['Tag'];
             }
             if (!isset($event['Event']['Tag'])) {
-                $event['Event']['Tag'] = array();
+                $event['Event']['Tag'] = [];
             }
 
-            $feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable')));
+            $feedTag = $this->Tag->find('first', ['conditions' => ['Tag.id' => $feed['tag_id']], 'recursive' => -1, 'fields' => ['Tag.name', 'Tag.colour', 'Tag.exportable']]);
             if (!empty($feedTag)) {
                 $found = false;
                 foreach ($event['Event']['Tag'] as $tag) {
@@ -1078,9 +1108,9 @@ class FeedsTable extends AppTable
         if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) {
             return 'blocked';
         }
-        if (!empty($feed['Feed']['settings'])) {
-            if (!empty($feed['Feed']['settings']['disable_correlation'])) {
-                $event['Event']['disable_correlation'] = (bool) $feed['Feed']['settings']['disable_correlation'];
+        if (!empty($feed['settings'])) {
+            if (!empty($feed['settings']['disable_correlation'])) {
+                $event['Event']['disable_correlation'] = (bool) $feed['settings']['disable_correlation'];
             }
         }
         return $event;
@@ -1094,8 +1124,8 @@ class FeedsTable extends AppTable
     private function __prepareFilterRules($feed)
     {
         $filterRules = false;
-        if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
-            $filterRules = json_decode($feed['Feed']['rules'], true);
+        if (isset($feed['rules']) && !empty($feed['rules'])) {
+            $filterRules = json_decode($feed['rules'], true);
             if ($filterRules === null) {
                 throw new Exception('Could not parse feed filter rules JSON: ' . json_last_error_msg(), json_last_error());
             }
@@ -1124,7 +1154,8 @@ class FeedsTable extends AppTable
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
         if (is_array($event)) {
-            return $this->Event->_add($event, true, $user);
+            $EventsTable = $this->fetchTable('Events');
+            return $EventsTable->_add($event, true, $user);
         } else {
             return $event;
         }
@@ -1143,18 +1174,19 @@ class FeedsTable extends AppTable
     {
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
-        return $this->Event->_edit($event, $user, $uuid, $jobId = null);
+        $EventsTable = $this->fetchTable('Events');
+        return $EventsTable->_edit($event, $user, $uuid, $jobId = null);
     }
 
     public function addDefaultFeeds($newFeeds)
     {
         foreach ($newFeeds as $newFeed) {
-            $existingFeed = $this->find('list', array('conditions' => array('Feed.url' => $newFeed['url'])));
+            $existingFeed = $this->find('list', ['conditions' => ['Feed.url' => $newFeed['url']]]);
             $success = true;
             if (empty($existingFeed)) {
                 $this->create();
                 $feed = $this->newEntity(
-                    array(
+                    [
                         'name' => $newFeed['name'],
                         'provider' => $newFeed['provider'],
                         'url' => $newFeed['url'],
@@ -1164,7 +1196,7 @@ class FeedsTable extends AppTable
                         'sharing_group_id' => 0,
                         'tag_id' => 0,
                         'default' => true,
-                    )
+                    ]
                 );
                 $result = $this->save($feed) && $success;
             }
@@ -1181,23 +1213,26 @@ class FeedsTable extends AppTable
      */
     public function downloadFromFeedInitiator($feedId, $user, $jobId = false)
     {
-        $feed = $this->find('all', array(
-            'conditions' => ['Feed.id' => $feedId],
-            'recursive' => -1,
-        ))->first();
+        $feed = $this->find(
+            'all',
+            [
+                'conditions' => ['Feeds.id' => $feedId],
+                'recursive' => -1,
+            ]
+        )->first();
         if (empty($feed)) {
             throw new Exception("Feed with ID $feedId not found.");
         }
 
-        if (!empty($feed['Feed']['settings'])) {
-            $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+        if (!empty($feed['settings'])) {
+            $feed['settings'] = json_decode($feed['settings'], true);
         }
 
-        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpClient();
-        if ($feed['Feed']['source_format'] === 'misp') {
+        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
+        if ($feed['source_format'] === 'misp') {
             $this->jobProgress($jobId, 'Fetching event manifest.');
             try {
-                $actions = $this->getNewEventUuids($feed, $HttpSocket);
+                $actions = $this->getNewEventUuids($feed->toArray(), $HttpSocket);
             } catch (Exception $e) {
                 $this->logException("Could not get new event uuids for feed $feedId.", $e);
                 $this->jobProgress($jobId, 'Could not fetch event manifest. See error log for more details.');
@@ -1210,12 +1245,12 @@ class FeedsTable extends AppTable
 
             $total = count($actions['add']) + count($actions['edit']);
             $this->jobProgress($jobId, __("Fetching %s events.", $total));
-            $result = $this->downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId);
+            $result = $this->downloadFromFeed($actions, $feed->toArray(), $HttpSocket, $user->toArray(), $jobId);
             $this->__cleanupFile($feed, '/manifest.json');
         } else {
             $this->jobProgress($jobId, 'Fetching data.');
             try {
-                $temp = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format']);
+                $temp = $this->getFreetextFeed($feed->toArray(), $HttpSocket, $feed['source_format']);
             } catch (Exception $e) {
                 $this->logException("Could not get freetext feed $feedId", $e);
                 $this->jobProgress($jobId, 'Could not fetch freetext feed. See error log for more details.');
@@ -1226,14 +1261,14 @@ class FeedsTable extends AppTable
                 return true;
             }
 
-            $data = array();
+            $data = [];
             foreach ($temp as $value) {
-                $data[] = array(
+                $data[] = [
                     'category' => $value['category'],
                     'type' => $value['default_type'],
                     'value' => $value['value'],
                     'to_ids' => $value['to_ids']
-                );
+                ];
             }
             unset($temp);
 
@@ -1254,8 +1289,8 @@ class FeedsTable extends AppTable
     private function __cleanupFile($feed, $file)
     {
         if ($this->isFeedLocal($feed)) {
-            if (isset($feed['Feed']['delete_local_file']) && $feed['Feed']['delete_local_file']) {
-                FileAccessTool::deleteFileIfExists($feed['Feed']['url'] . $file);
+            if (isset($feed['delete_local_file']) && $feed['delete_local_file']) {
+                FileAccessTool::deleteFileIfExists($feed['url'] . $file);
             }
         }
         return true;
@@ -1273,59 +1308,62 @@ class FeedsTable extends AppTable
     {
         $EventsTable = $this->fetchTable('Events');
 
-        if ($feed['Feed']['fixed_event'] && $feed['Feed']['event_id']) {
-            $event = $this->Event->find('first', array('conditions' => array('Event.id' => $feed['Feed']['event_id']), 'recursive' => -1));
+        if ($feed['fixed_event'] && $feed['event_id']) {
+            $event = $this->Event->find('first', ['conditions' => ['Event.id' => $feed['event_id']], 'recursive' => -1]);
             if (empty($event)) {
-                throw new Exception("The target event is no longer valid. Make sure that the target event {$feed['Feed']['event_id']} exists.");
+                throw new Exception("The target event is no longer valid. Make sure that the target event {$feed['event_id']} exists.");
             }
         } else {
             $this->Event->create();
             $orgc_id = $user['org_id'];
-            if (!empty($feed['Feed']['orgc_id'])) {
-                $orgc_id = $feed['Feed']['orgc_id'];
+            if (!empty($feed['orgc_id'])) {
+                $orgc_id = $feed['orgc_id'];
             }
             $disableCorrelation = false;
-            if (!empty($feed['Feed']['settings'])) {
-                $disableCorrelation = (bool) $feed['Feed']['settings']['disable_correlation'] ?? false;
+            if (!empty($feed['settings'])) {
+                $disableCorrelation = (bool) $feed['settings']['disable_correlation'] ?? false;
             }
-            $event = array(
-                'info' => $feed['Feed']['name'] . ' feed',
+            $event = [
+                'info' => $feed['name'] . ' feed',
                 'analysis' => 2,
                 'threat_level_id' => 4,
                 'orgc_id' => $orgc_id,
                 'org_id' => $user['org_id'],
                 'date' => date('Y-m-d'),
-                'distribution' => $feed['Feed']['distribution'],
-                'sharing_group_id' => $feed['Feed']['sharing_group_id'],
+                'distribution' => $feed['distribution'],
+                'sharing_group_id' => $feed['sharing_group_id'],
                 'user_id' => $user['id'],
                 'disable_correlation' => $disableCorrelation,
-            );
+            ];
             $result = $this->Event->save($event);
             if (!$result) {
                 throw new Exception('Something went wrong while creating a new event.');
             }
-            $event = $this->Event->find('first', array('conditions' => array('Event.id' => $this->Event->id), 'recursive' => -1));
+            $event = $this->Event->find('first', ['conditions' => ['Event.id' => $this->Event->id], 'recursive' => -1]);
             if (empty($event)) {
                 throw new Exception("The newly created event is no longer valid. Make sure that the target event {$this->Event->id} exists.");
             }
-            if ($feed['Feed']['fixed_event']) {
-                $feed['Feed']['event_id'] = $event['Event']['id'];
-                if (!empty($feed['Feed']['settings'])) {
-                    $feed['Feed']['settings'] = json_encode($feed['Feed']['settings']);
+            if ($feed['fixed_event']) {
+                $feed['event_id'] = $event['Event']['id'];
+                if (!empty($feed['settings'])) {
+                    $feed['settings'] = json_encode($feed['settings']);
                 }
-                $feedEntity = $this->newEntity($feed['Feed']);
+                $feedEntity = $this->newEntity($feed);
                 $this->save($feedEntity);
             }
         }
-        if ($feed['Feed']['fixed_event']) {
-            $existsAttributesValueToId = $this->Event->Attribute->find('list', array(
-                'conditions' => array(
-                    'Attribute.deleted' => 0,
-                    'Attribute.event_id' => $event['Event']['id']
-                ),
-                'recursive' => -1,
-                'fields' => array('value', 'id')
-            ));
+        if ($feed['fixed_event']) {
+            $existsAttributesValueToId = $this->Event->Attribute->find(
+                'list',
+                [
+                    'conditions' => [
+                        'Attribute.deleted' => 0,
+                        'Attribute.event_id' => $event['Event']['id']
+                    ],
+                    'recursive' => -1,
+                    'fields' => ['value', 'id']
+                ]
+            );
 
             // Create event diff. After this cycle, `$data` will contains just attributes that do not exists in current
             // event and in `$existsAttributesValueToId` will contains just attributes that do not exists in current feed.
@@ -1344,20 +1382,23 @@ class FeedsTable extends AppTable
                     unset($existsAttributesValueToId[$modifiedValue]);
                 }
             }
-            if ($feed['Feed']['delta_merge'] && !empty($existsAttributesValueToId)) {
-                $attributesToDelete = $this->Event->Attribute->find('all', array(
-                    'conditions' => array(
-                        'Attribute.id' => array_values($existsAttributesValueToId)
-                    ),
-                    'recursive' => -1
-                ));
+            if ($feed['delta_merge'] && !empty($existsAttributesValueToId)) {
+                $attributesToDelete = $this->Event->Attribute->find(
+                    'all',
+                    [
+                        'conditions' => [
+                            'Attribute.id' => array_values($existsAttributesValueToId)
+                        ],
+                        'recursive' => -1
+                    ]
+                );
                 foreach ($attributesToDelete as $k => $attribute) {
                     $attributesToDelete[$k]['Attribute']['deleted'] = 1;
                     unset($attributesToDelete[$k]['Attribute']['timestamp']);
                 }
                 $this->Event->Attribute->saveMany($attributesToDelete); // We need to trigger callback methods
                 if (!empty($attributesToDelete)) {
-                    $this->Event->unpublishEvent($feed['Feed']['event_id']);
+                    $this->Event->unpublishEvent($feed['event_id']);
                 }
             }
         }
@@ -1365,7 +1406,7 @@ class FeedsTable extends AppTable
             return true;
         }
 
-        $uniqueValues = array();
+        $uniqueValues = [];
         foreach ($data as $key => $value) {
             if (isset($uniqueValues[$value['value']])) {
                 unset($data[$key]);
@@ -1374,7 +1415,7 @@ class FeedsTable extends AppTable
             $data[$key]['event_id'] = $event['Event']['id'];
             $data[$key]['distribution'] = 5;
             $data[$key]['sharing_group_id'] = 0;
-            $data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $value['to_ids'];
+            $data[$key]['to_ids'] = $feed['override_ids'] ? 0 : $value['to_ids'];
             $uniqueValues[$value['value']] = true;
         }
         $chunks = array_chunk($data, 100);
@@ -1387,11 +1428,11 @@ class FeedsTable extends AppTable
             unset($event['Event']['attribute_count']);
             $this->Event->save($event);
         }
-        if ($feed['Feed']['publish']) {
+        if ($feed['publish']) {
             $this->Event->publishRouter($event['Event']['id'], null, $user);
         }
-        if ($feed['Feed']['tag_id']) {
-            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $feed['Feed']['tag_id']]);
+        if ($feed['tag_id']) {
+            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $feed['tag_id']]);
         }
         return true;
     }
@@ -1405,17 +1446,17 @@ class FeedsTable extends AppTable
      */
     public function cacheFeedInitiator($user, $jobId = false, $scope = 'freetext')
     {
-        $params = array(
-            'conditions' => array('caching_enabled' => 1),
+        $params = [
+            'conditions' => ['caching_enabled' => 1],
             'recursive' => -1,
-            'fields' => array('source_format', 'input_source', 'url', 'id', 'settings', 'headers')
-        );
+            'fields' => ['source_format', 'input_source', 'url', 'id', 'settings', 'headers']
+        ];
         $redis = RedisTool::init();
         if ($scope !== 'all') {
             if (is_numeric($scope)) {
                 $params['conditions']['id'] = $scope;
             } elseif ($scope == 'freetext' || $scope == 'csv') {
-                $params['conditions']['source_format'] = array('csv', 'freetext');
+                $params['conditions']['source_format'] = ['csv', 'freetext'];
             } elseif ($scope == 'misp') {
                 $redis->del($redis->keys('misp:feed_cache:event_uuid_lookup:*'));
                 $params['conditions']['source_format'] = 'misp';
@@ -1428,13 +1469,13 @@ class FeedsTable extends AppTable
         }
         $feeds = $this->find('all', $params)->toArray();
 
-        $results = array('successes' => 0, 'fails' => 0);
+        $results = ['successes' => 0, 'fails' => 0];
         foreach ($feeds as $k => $feed) {
             if ($this->__cacheFeed($feed, $redis, $jobId)) {
-                $message = 'Feed ' . $feed['Feed']['id'] . ' cached.';
+                $message = 'Feed ' . $feed['id'] . ' cached.';
                 $results['successes']++;
             } else {
-                $message = 'Failed to cache feed ' . $feed['Feed']['id'] . '. See logs for more details.';
+                $message = 'Failed to cache feed ' . $feed['id'] . '. See logs for more details.';
                 $results['fails']++;
             }
 
@@ -1471,8 +1512,8 @@ class FeedsTable extends AppTable
      */
     private function __cacheFeed($feed, $redis, $jobId = false)
     {
-        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpClient();
-        if ($feed['Feed']['source_format'] === 'misp') {
+        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
+        if ($feed['source_format'] === 'misp') {
             $result = true;
             if (!$this->__cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId)) {
                 $result = $this->__cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId);
@@ -1482,7 +1523,7 @@ class FeedsTable extends AppTable
         }
 
         if ($result) {
-            $redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
+            $redis->set('misp:feed_cache_timestamp:' . $feed['id'], time());
         }
         return $result;
     }
@@ -1496,12 +1537,12 @@ class FeedsTable extends AppTable
      */
     private function __cacheFreetextFeed(array $feed, $redis, HttpClient $HttpSocket = null, $jobId = false)
     {
-        $feedId = $feed['Feed']['id'];
+        $feedId = $feed['id'];
 
         $this->jobProgress($jobId, __("Feed %s: Fetching.", $feedId));
 
         try {
-            $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format']);
+            $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['source_format']);
         } catch (Exception $e) {
             $this->logException("Could not get freetext feed $feedId", $e);
             $this->jobProgress($jobId, __('Could not fetch freetext feed %s. See error log for more details.', $feedId));
@@ -1538,7 +1579,7 @@ class FeedsTable extends AppTable
      */
     private function __cacheMISPFeedTraditional($feed, $redis, HttpClient $HttpSocket = null, $jobId = false)
     {
-        $feedId = $feed['Feed']['id'];
+        $feedId = $feed['id'];
         try {
             $manifest = $this->getManifest($feed, $HttpSocket);
         } catch (Exception $e) {
@@ -1599,7 +1640,7 @@ class FeedsTable extends AppTable
      */
     private function __cacheMISPFeedCache($feed, $redis, HttpClient $HttpSocket = null, $jobId = false)
     {
-        $feedId = $feed['Feed']['id'];
+        $feedId = $feed['id'];
 
         try {
             $cache = $this->getCache($feed, $HttpSocket);
@@ -1625,33 +1666,39 @@ class FeedsTable extends AppTable
     {
         $redis = RedisTool::init();
         if ($redis === false) {
-            return array();
+            return [];
         }
-        $fields = array('id', 'input_source', 'source_format', 'url', 'provider', 'name', 'default');
-        $feeds = $this->find('all', array(
-            'recursive' => -1,
-            'fields' => $fields,
-            'conditions' => array('Feed.caching_enabled' => 1)
-        ))->toArray();
+        $fields = ['id', 'input_source', 'source_format', 'url', 'provider', 'name', 'default'];
+        $feeds = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'fields' => $fields,
+                'conditions' => ['Feed.caching_enabled' => 1]
+            ]
+        )->toArray();
         // we'll use this later for the intersect
         $fields[] = 'values';
         $fields = array_flip($fields);
         // Get all of the feed cache cardinalities for all feeds - if a feed is not cached remove it from the list
         foreach ($feeds as $k => $feed) {
-            if (!$redis->exists('misp:feed_cache:' . $feed['Feed']['id'])) {
+            if (!$redis->exists('misp:feed_cache:' . $feed['id'])) {
                 unset($feeds[$k]);
                 continue;
             }
-            $feeds[$k]['Feed']['values'] = $redis->sCard('misp:feed_cache:' . $feed['Feed']['id']);
+            $feeds[$k]['values'] = $redis->sCard('misp:feed_cache:' . $feed['id']);
         }
         $feeds = array_values($feeds);
         $ServersTable = $this->fetchTable('Servers');
-        $servers = $ServersTable->find('all', array(
-            'recursive' => -1,
-            'fields' => array('id', 'url', 'name'),
-            'contain' => array('RemoteOrg' => array('fields' => array('RemoteOrg.id', 'RemoteOrg.name'))),
-            'conditions' => array('Server.caching_enabled' => 1)
-        ));
+        $servers = $ServersTable->find(
+            'all',
+            [
+                'recursive' => -1,
+                'fields' => ['id', 'url', 'name'],
+                'contain' => ['RemoteOrg' => ['fields' => ['RemoteOrg.id', 'RemoteOrg.name']]],
+                'conditions' => ['Server.caching_enabled' => 1]
+            ]
+        );
         foreach ($servers as $k => $server) {
             if (!$redis->exists('misp:server_cache:' . $server['Server']['id'])) {
                 unset($servers[$k]);
@@ -1669,41 +1716,53 @@ class FeedsTable extends AppTable
                 if ($k == $k2) {
                     continue;
                 }
-                $intersect = $redis->sInter('misp:feed_cache:' . $feed['Feed']['id'], 'misp:feed_cache:' . $feed2['Feed']['id']);
-                $feeds[$k]['Feed']['ComparedFeed'][] = array_merge(array_intersect_key($feed2['Feed'], $fields), array(
-                    'overlap_count' => count($intersect),
-                    'overlap_percentage' => round(100 * count($intersect) / $feeds[$k]['Feed']['values']),
-                ));
+                $intersect = $redis->sInter('misp:feed_cache:' . $feed['id'], 'misp:feed_cache:' . $feed2['id']);
+                $feeds[$k]['ComparedFeed'][] = array_merge(
+                    array_intersect_key($feed2, $fields),
+                    [
+                        'overlap_count' => count($intersect),
+                        'overlap_percentage' => round(100 * count($intersect) / $feeds[$k]['values']),
+                    ]
+                );
             }
             foreach ($servers as $k2 => $server) {
-                $intersect = $redis->sInter('misp:feed_cache:' . $feed['Feed']['id'], 'misp:server_cache:' . $server['Server']['id']);
-                $feeds[$k]['Feed']['ComparedFeed'][] = array_merge(array_intersect_key($server['Server'], $fields), array(
-                    'overlap_count' => count($intersect),
-                    'overlap_percentage' => round(100 * count($intersect) / $feeds[$k]['Feed']['values']),
-                ));
+                $intersect = $redis->sInter('misp:feed_cache:' . $feed['id'], 'misp:server_cache:' . $server['Server']['id']);
+                $feeds[$k]['ComparedFeed'][] = array_merge(
+                    array_intersect_key($server['Server'], $fields),
+                    [
+                        'overlap_count' => count($intersect),
+                        'overlap_percentage' => round(100 * count($intersect) / $feeds[$k]['values']),
+                    ]
+                );
             }
         }
         foreach ($servers as $k => $server) {
             foreach ($feeds as $k2 => $feed2) {
-                $intersect = $redis->sInter('misp:server_cache:' . $server['Server']['id'], 'misp:feed_cache:' . $feed2['Feed']['id']);
-                $servers[$k]['Server']['ComparedFeed'][] = array_merge(array_intersect_key($feed2['Feed'], $fields), array(
-                    'overlap_count' => count($intersect),
-                    'overlap_percentage' => round(100 * count($intersect) / $servers[$k]['Server']['values']),
-                ));
+                $intersect = $redis->sInter('misp:server_cache:' . $server['Server']['id'], 'misp:feed_cache:' . $feed2['id']);
+                $servers[$k]['Server']['ComparedFeed'][] = array_merge(
+                    array_intersect_key($feed2, $fields),
+                    [
+                        'overlap_count' => count($intersect),
+                        'overlap_percentage' => round(100 * count($intersect) / $servers[$k]['Server']['values']),
+                    ]
+                );
             }
             foreach ($servers as $k2 => $server2) {
                 if ($k == $k2) {
                     continue;
                 }
                 $intersect = $redis->sInter('misp:server_cache:' . $server['Server']['id'], 'misp:server_cache:' . $server2['Server']['id']);
-                $servers[$k]['Server']['ComparedFeed'][] = array_merge(array_intersect_key($server2['Server'], $fields), array(
-                    'overlap_count' => count($intersect),
-                    'overlap_percentage' => round(100 * count($intersect) / $servers[$k]['Server']['values']),
-                ));
+                $servers[$k]['Server']['ComparedFeed'][] = array_merge(
+                    array_intersect_key($server2['Server'], $fields),
+                    [
+                        'overlap_count' => count($intersect),
+                        'overlap_percentage' => round(100 * count($intersect) / $servers[$k]['Server']['values']),
+                    ]
+                );
             }
         }
         foreach ($servers as $k => $server) {
-            $server['Feed'] = $server['Server'];
+            $server = $server['Server'];
             unset($server['Server']);
             $feeds[] = $server;
         }
@@ -1716,38 +1775,38 @@ class FeedsTable extends AppTable
             $feeds = json_decode($feeds, true);
         }
         if ($feeds && !isset($feeds[0])) {
-            $feeds = array($feeds);
+            $feeds = [$feeds];
         }
-        $results = array('successes' => 0, 'fails' => 0);
+        $results = ['successes' => 0, 'fails' => 0];
         if (empty($feeds)) {
             return $results;
         }
-        $existingFeeds = $this->find('all', array());
+        $existingFeeds = $this->find('all', []);
         foreach ($feeds as $feed) {
             if ($default) {
-                $feed['Feed']['default'] = 1;
+                $feed['default'] = 1;
             } else {
-                $feed['Feed']['default'] = 0;
+                $feed['default'] = 0;
             }
-            if (isset($feed['Feed']['id'])) {
-                unset($feed['Feed']['id']);
+            if (isset($feed['id'])) {
+                unset($feed['id']);
             }
             $found = false;
             foreach ($existingFeeds as $existingFeed) {
-                if ($existingFeed['Feed']['url'] == $feed['Feed']['url']) {
+                if ($existingFeed['url'] == $feed['url']) {
                     $found = true;
                 }
             }
             if (!$found) {
-                $feed['Feed']['tag_id'] = 0;
+                $feed['tag_id'] = 0;
                 if (isset($feed['Tag'])) {
                     $tag_id = $this->Tag->captureTag($feed['Tag'], $user);
                     if ($tag_id) {
-                        $feed['Feed']['tag_id'] = $tag_id;
+                        $feed['tag_id'] = $tag_id;
                     }
                 }
                 $this->create();
-                if (!$this->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings', 'tag_id', 'default', 'lookup_visible', 'headers'))) {
+                if (!$this->save($feed, true, ['name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings', 'tag_id', 'default', 'lookup_visible', 'headers'])) {
                     $results['fails']++;
                 } else {
                     $results['successes']++;
@@ -1759,7 +1818,7 @@ class FeedsTable extends AppTable
 
     public function load_default_feeds()
     {
-        $user = array('Role' => array('perm_tag_editor' => 1, 'perm_site_admin' => 1));
+        $user = ['Role' => ['perm_tag_editor' => 1, 'perm_site_admin' => 1]];
         $json = file_get_contents(APP . 'files/feed-metadata/defaults.json');
         $this->importFeeds($json, $user, true);
         return true;
@@ -1767,17 +1826,20 @@ class FeedsTable extends AppTable
 
     public function setEnableFeedCachingDefaults()
     {
-        $feeds = $this->find('all', array(
-            'conditions' => array(
-                'Feed.enabled' => 1
-            ),
-            'recursive' => -1
-        ));
+        $feeds = $this->find(
+            'all',
+            [
+                'conditions' => [
+                    'Feed.enabled' => 1
+                ],
+                'recursive' => -1
+            ]
+        );
         if (empty($feeds)) {
             return true;
         }
         foreach ($feeds as $feed) {
-            $feed['Feed']['caching_enabled'] = 1;
+            $feed['caching_enabled'] = 1;
             $this->save($feed);
         }
         return true;
@@ -1790,38 +1852,44 @@ class FeedsTable extends AppTable
             return 'Could not reach Redis.';
         }
         $ServersTable = $this->fetchTable('Servers');
-        $feed_conditions = array('Feed.caching_enabled' => 1);
-        $server_conditions = array('Server.caching_enabled' => 1);
+        $feed_conditions = ['Feed.caching_enabled' => 1];
+        $server_conditions = ['Server.caching_enabled' => 1];
         if ($source_scope === 'feed') {
-            $feed_conditions['NOT'] = array('Feed.id' => $id);
+            $feed_conditions['NOT'] = ['Feed.id' => $id];
         } else {
-            $server_conditions['NOT'] = array('Server.id' => $id);
+            $server_conditions['NOT'] = ['Server.id' => $id];
         }
         if ($dataset !== 'all') {
-            if (empty($dataset['Feed'])) {
-                $feed_conditions['OR'] = array('Feed.id' => -1);
+            if (empty($dataset)) {
+                $feed_conditions['OR'] = ['Feed.id' => -1];
             } else {
-                $feed_conditions['OR'] = array('Feed.id' => $dataset['Feed']);
+                $feed_conditions['OR'] = ['Feed.id' => $dataset];
             }
             if (empty($dataset['Server'])) {
-                $server_conditions['OR'] = array('Server.id' => -1);
+                $server_conditions['OR'] = ['Server.id' => -1];
             } else {
-                $server_conditions['OR'] = array('Server.id' => $dataset['Server']);
+                $server_conditions['OR'] = ['Server.id' => $dataset['Server']];
             }
         }
-        $other_feeds = $this->find('list', array(
-            'recursive' => -1,
-            'conditions' => $feed_conditions,
-            'fields' => array('Feed.id', 'Feed.id')
-        ));
-        $other_servers = $ServersTable->find('list', array(
-            'recursive' => -1,
-            'conditions' => $server_conditions,
-            'fields' => array('Server.id', 'Server.id')
-        ));
+        $other_feeds = $this->find(
+            'list',
+            [
+                'recursive' => -1,
+                'conditions' => $feed_conditions,
+                'fields' => ['Feed.id', 'Feed.id']
+            ]
+        );
+        $other_servers = $ServersTable->find(
+            'list',
+            [
+                'recursive' => -1,
+                'conditions' => $server_conditions,
+                'fields' => ['Server.id', 'Server.id']
+            ]
+        );
         $feed_element_count = $redis->scard('misp:feed_cache:' . $id);
         $temp_store = (new RandomTool())->random_str(false, 12);
-        $params = array('misp:feed_temp:' . $temp_store);
+        $params = ['misp:feed_temp:' . $temp_store];
         foreach ($other_feeds as $other_feed) {
             $params[] = 'misp:feed_cache:' . $other_feed;
         }
@@ -1829,8 +1897,8 @@ class FeedsTable extends AppTable
             $params[] = 'misp:server_cache:' . $other_server;
         }
         if (count($params) != 1 && $feed_element_count > 0) {
-            call_user_func_array(array($redis, 'sunionstore'), $params);
-            call_user_func_array(array($redis, 'sinterstore'), array('misp:feed_temp:' . $temp_store . '_intersect', 'misp:feed_cache:' . $id, 'misp:feed_temp:' . $temp_store));
+            call_user_func_array([$redis, 'sunionstore'], $params);
+            call_user_func_array([$redis, 'sinterstore'], ['misp:feed_temp:' . $temp_store . '_intersect', 'misp:feed_cache:' . $id, 'misp:feed_temp:' . $temp_store]);
             $cardinality_intersect = $redis->scard('misp:feed_temp:' . $temp_store . '_intersect');
             $coverage = round(100 * $cardinality_intersect / $feed_element_count, 2);
             $redis->del('misp:feed_temp:' . $temp_store);
@@ -1853,23 +1921,29 @@ class FeedsTable extends AppTable
         if ($intersectingOnly) {
             $redis = RedisTool::init();
         }
-        $result['Feed'] = $this->find('all', array(
-            'conditions' => array(
-                'Feed.id !=' => $feedId,
-                'caching_enabled' => 1
-            ),
-            'recursive' => -1,
-            'fields' => array('Feed.id', 'Feed.name', 'Feed.url')
-        ));
+        $result = $this->find(
+            'all',
+            [
+                'conditions' => [
+                    'Feed.id !=' => $feedId,
+                    'caching_enabled' => 1
+                ],
+                'recursive' => -1,
+                'fields' => ['Feed.id', 'Feed.name', 'Feed.url']
+            ]
+        );
         $ServersTable = $this->fetchTable('Servers');
-        $result['Server'] = $ServersTable->find('all', array(
-            'conditions' => array(
-                'caching_enabled' => 1
-            ),
-            'recursive' => -1,
-            'fields' => array('Server.id', 'Server.name', 'Server.url')
-        ));
-        $scopes = array('Feed', 'Server');
+        $result['Server'] = $ServersTable->find(
+            'all',
+            [
+                'conditions' => [
+                    'caching_enabled' => 1
+                ],
+                'recursive' => -1,
+                'fields' => ['Server.id', 'Server.name', 'Server.url']
+            ]
+        );
+        $scopes = ['Feed', 'Server'];
         foreach ($scopes as $scope) {
             foreach ($result[$scope] as $k => $v) {
                 $result[$scope][$k] = $v[$scope];
@@ -1894,7 +1968,7 @@ class FeedsTable extends AppTable
 
     public function searchCaches($value)
     {
-        $hits = array();
+        $hits = [];
         $ServersTable = $this->fetchTable('Servers');
         $redis = RedisTool::init();
         $is_array = true;
@@ -1912,46 +1986,49 @@ class FeedsTable extends AppTable
                 $v = strtolower(trim($v));
             }
             if ($v === false || $redis->sismember('misp:feed_cache:combined', md5($v))) {
-                $feeds = $this->find('all', array(
-                    'conditions' => array(
-                        'caching_enabled' => 1
-                    ),
-                    'recursive' => -1,
-                    'fields' => array('Feed.id', 'Feed.name', 'Feed.url', 'Feed.source_format')
-                ));
+                $feeds = $this->find(
+                    'all',
+                    [
+                        'conditions' => [
+                            'caching_enabled' => 1
+                        ],
+                        'recursive' => -1,
+                        'fields' => ['Feed.id', 'Feed.name', 'Feed.url', 'Feed.source_format']
+                    ]
+                );
                 foreach ($feeds as $feed) {
-                    if (($v === false) || $redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], md5($v))) {
-                        if ($feed['Feed']['source_format'] === 'misp') {
+                    if (($v === false) || $redis->sismember('misp:feed_cache:' . $feed['id'], md5($v))) {
+                        if ($feed['source_format'] === 'misp') {
                             $uuid = $redis->smembers('misp:feed_cache:event_uuid_lookup:' . md5($v));
                             foreach ($uuid as $k => $url) {
                                 $uuid[$k] = explode('/', $url)[1];
                             }
-                            $feed['Feed']['uuid'] = $uuid;
-                            if (!empty($feed['Feed']['uuid'])) {
-                                foreach ($feed['Feed']['uuid'] as $uuid) {
-                                    $feed['Feed']['direct_urls'][] = array(
+                            $feed['uuid'] = $uuid;
+                            if (!empty($feed['uuid'])) {
+                                foreach ($feed['uuid'] as $uuid) {
+                                    $feed['direct_urls'][] = [
                                         'url' => sprintf(
                                             '%s/feeds/previewEvent/%s/%s',
                                             Configure::read('MISP.baseurl'),
-                                            h($feed['Feed']['id']),
+                                            h($feed['id']),
                                             h($uuid)
                                         ),
                                         'name' => __('Event %s', $uuid)
-                                    );
+                                    ];
                                 }
                             }
-                            $feed['Feed']['type'] = 'MISP Feed';
+                            $feed['type'] = 'MISP Feed';
                         } else {
-                            $feed['Feed']['type'] = 'Feed';
+                            $feed['type'] = 'Feed';
                             if (!empty($v)) {
-                                $feed['Feed']['direct_urls'][] = array(
+                                $feed['direct_urls'][] = [
                                     'url' => sprintf(
                                         '%s/feeds/previewIndex/%s',
                                         Configure::read('MISP.baseurl'),
-                                        h($feed['Feed']['id'])
+                                        h($feed['id'])
                                     ),
-                                    'name' => __('Feed %s', $feed['Feed']['id'])
-                                );
+                                    'name' => __('Feed %s', $feed['id'])
+                                ];
                             }
                         }
                         if ($is_array) {
@@ -1963,20 +2040,23 @@ class FeedsTable extends AppTable
                 }
             }
             if ($v === false || $redis->sismember('misp:server_cache:combined', md5($v))) {
-                $servers = $ServersTable->find('all', array(
-                    'conditions' => array(
-                        'caching_enabled' => 1
-                    ),
-                    'recursive' => -1,
-                    'fields' => array('Server.id', 'Server.name', 'Server.url')
-                ));
+                $servers = $ServersTable->find(
+                    'all',
+                    [
+                        'conditions' => [
+                            'caching_enabled' => 1
+                        ],
+                        'recursive' => -1,
+                        'fields' => ['Server.id', 'Server.name', 'Server.url']
+                    ]
+                );
                 foreach ($servers as $server) {
                     if ($v === false || $redis->sismember('misp:server_cache:' . $server['Server']['id'], md5($v))) {
                         $uuid = $redis->smembers('misp:server_cache:event_uuid_lookup:' . md5($v));
                         if (!empty($uuid)) {
                             foreach ($uuid as $k => $url) {
                                 $uuid[$k] = explode('/', $url)[1];
-                                $server['Server']['direct_urls'][] = array(
+                                $server['Server']['direct_urls'][] = [
                                     'url' => sprintf(
                                         '%s/servers/previewEvent/%s/%s',
                                         Configure::read('MISP.baseurl'),
@@ -1984,15 +2064,15 @@ class FeedsTable extends AppTable
                                         h($uuid[$k])
                                     ),
                                     'name' => __('Event %s', h($uuid[$k]))
-                                );
+                                ];
                             }
                         }
                         $server['Server']['uuid'] = $uuid;
                         $server['Server']['type'] = 'MISP Server';
                         if ($is_array) {
-                            $hits[$v][] = array('Feed' => $server['Server']);
+                            $hits[$v][] = ['Feed' => $server['Server']];
                         } else {
-                            $hits[] = array('Feed' => $server['Server']);
+                            $hits[] = ['Feed' => $server['Server']];
                         }
                     }
                 }
@@ -2016,7 +2096,7 @@ class FeedsTable extends AppTable
             throw new InvalidArgumentException("Given event UUID '$eventUuid' is invalid.");
         }
 
-        $path = $feed['Feed']['url'] . '/' . $eventUuid . '.json';
+        $path = $feed['url'] . '/' . $eventUuid . '.json';
         $data = $this->feedGetUri($feed, $path, $HttpSocket);
 
         try {
@@ -2044,7 +2124,7 @@ class FeedsTable extends AppTable
             }
         }
 
-        return $this->feedGetUriRemote($feed, $uri, $HttpSocket)->body;
+        return $this->feedGetUriRemote($feed, $uri, $HttpSocket)->getBody();
     }
 
     /**
@@ -2057,7 +2137,7 @@ class FeedsTable extends AppTable
      */
     private function feedGetUriRemote(array $feed, $uri, HttpClient $HttpSocket, $etag = null)
     {
-        $request = $this->__createFeedRequest($feed['Feed']['headers']);
+        $request = $this->__createFeedRequest($feed['headers']);
         if ($etag) {
             $request['header']['If-None-Match'] = $etag;
         }
@@ -2068,7 +2148,7 @@ class FeedsTable extends AppTable
             throw new Exception("Fetching the '$uri' failed with exception: {$e->getMessage()}", 0, $e);
         }
 
-        if ($response->code != 200) { // intentionally !=
+        if ($response->getStatusCode() != 200) { // intentionally !=
             throw new HttpException($response, $uri);
         }
 
@@ -2102,9 +2182,9 @@ class FeedsTable extends AppTable
     private function getFollowRedirect(HttpClient $HttpSocket, $url, $request, $iterations = 5)
     {
         for ($i = 0; $i < $iterations; $i++) {
-            $response = $HttpSocket->get($url, array(), $request);
+            $response = $HttpSocket->get($url, [], $request);
             if ($response->isRedirect()) {
-                $HttpSocket = $this->__setupHttpClient(); // Replace $HttpSocket with fresh instance
+                $HttpSocket = $this->__setupHttpSocket(); // Replace $HttpSocket with fresh instance
                 $url = trim($response->getHeader('Location')[0], '=');
             } else {
                 return $response;
@@ -2120,7 +2200,7 @@ class FeedsTable extends AppTable
      */
     private function isFeedLocal($feed)
     {
-        return isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local';
+        return isset($feed['input_source']) && $feed['input_source'] === 'local';
     }
 
     /**
@@ -2142,14 +2222,17 @@ class FeedsTable extends AppTable
      */
     public function cleanupFeedEvents($user_id, $id)
     {
-        $feed = $this->find('first', array(
-            'conditions' => array('Feed.id' => $id),
-            'recursive' => -1
-        ));
+        $feed = $this->find(
+            'first',
+            [
+                'conditions' => ['Feed.id' => $id],
+                'recursive' => -1
+            ]
+        );
         if (empty($feed)) {
             return __('Invalid feed id.');
         }
-        if (!in_array($feed['Feed']['source_format'], array('csv', 'freetext'))) {
+        if (!in_array($feed['source_format'], ['csv', 'freetext'])) {
             return __('Feed has to be either a CSV or a freetext feed for the purging to work.');
         }
         $UsersTable = $this->fetchTable('Users');
@@ -2157,29 +2240,34 @@ class FeedsTable extends AppTable
         if (empty($user)) {
             return __('Invalid user id.');
         }
-        $conditions = array('Event.info' => $feed['Feed']['name'] . ' feed');
+        $conditions = ['Event.info' => $feed['name'] . ' feed'];
         $EventsTable = $this->fetchTable('Events');
-        $events = $EventsTable->find('list', array(
-            'conditions' => $conditions,
-            'fields' => array('Event.id', 'Event.id')
-        ))->toArray();
+        $events = $EventsTable->find(
+            'list',
+            [
+                'conditions' => $conditions,
+                'fields' => ['Event.id', 'Event.id']
+            ]
+        )->toArray();
         $count = count($events);
         foreach ($events as $event_id) {
             $EventsTable->delete($event_id);
         }
         $LogsTable = $this->fetchTable('Logs');
-        $LogsTable->saveOrFailSilently(array(
-            'org' => 'SYSTEM',
-            'model' => 'Feed',
-            'model_id' => $id,
-            'email' => $user['email'],
-            'action' => 'purge_events',
-            'title' => __('Events related to feed %s purged.', $id),
-            'change' => null,
-        ));
-        $feed['Feed']['fixed_event'] = 1;
-        $feed['Feed']['event_id'] = 0;
-        $feedEntity = $this->newEntity($feed['Feed']);
+        $LogsTable->saveOrFailSilently(
+            [
+                'org' => 'SYSTEM',
+                'model' => 'Feed',
+                'model_id' => $id,
+                'email' => $user['email'],
+                'action' => 'purge_events',
+                'title' => __('Events related to feed %s purged.', $id),
+                'change' => null,
+            ]
+        );
+        $feed['fixed_event'] = 1;
+        $feed['event_id'] = 0;
+        $feedEntity = $this->newEntity($feed);
 
         $this->save($feedEntity);
         return $count;

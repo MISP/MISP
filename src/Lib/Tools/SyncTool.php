@@ -2,9 +2,8 @@
 
 namespace App\Lib\Tools;
 
-use App\Lib\Tools\HttpTool;
-use Cake\I18n\FrozenTime;
-use Exception;
+use Cake\Core\Configure;
+use Cake\Http\Client as HttpSocket;
 
 /**
  * @deprecated SyncTool - use HttpTool instead
@@ -17,11 +16,29 @@ class SyncTool
      */
     public function setupHttpSocket($server = null, $timeout = false)
     {
-        $config = [];
-        if (!empty($timeout)) {
-            $config['timeout'] = $timeout;
+        $params = [];
+        if (!empty($server)) {
+            if ($server['cert_file']) {
+                $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server['id'] . '.pem';
+            }
+            if ($server['client_cert_file']) {
+                $params['ssl_local_cert'] = APP . "files" . DS . "certs" . DS . $server['id'] . '_client.pem';
+            }
+            if ($server['self_signed']) {
+                $params['ssl_allow_self_signed'] = true;
+                $params['ssl_verify_peer_name'] = false;
+                if (!isset($server['cert_file'])) {
+                    $params['ssl_verify_peer'] = false;
+                }
+            }
+            if (!empty($server['skip_proxy'])) {
+                $params['skip_proxy'] = 1;
+            }
+            if (!empty($timeout)) {
+                $params['timeout'] = $timeout;
+            }
         }
-        $httpTool = new HttpTool($config);
+        $httpTool = new HttpTool($params);
         $httpTool->configFromServer($server);
         return $httpTool;
     }
@@ -36,9 +53,14 @@ class SyncTool
      * @return HttpSocket
      * @throws Exception
      */
-    public function createHttpSocket($params = array())
+    public function createHttpSocket($params = [])
     {
-        return new HttpTool($params);
+        $HttpSocket = new HttpSocket($params);
+        $proxy = Configure::read('Proxy');
+        if (empty($params['skip_proxy']) && isset($proxy['host']) && !empty($proxy['host'])) {
+            $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
+        }
+        return $HttpSocket;
     }
 
     /**
