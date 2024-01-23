@@ -5,11 +5,11 @@ namespace App\Model\Table;
 use App\Lib\Tools\AttributeValidationTool;
 use App\Lib\Tools\ComplexTypeTool;
 use App\Lib\Tools\FileAccessTool;
+use App\Lib\Tools\HttpTool;
 use App\Lib\Tools\JsonTool;
 use App\Lib\Tools\LogExtendedTrait;
 use App\Lib\Tools\RandomTool;
 use App\Lib\Tools\RedisTool;
-use App\Lib\Tools\SyncTool;
 use App\Lib\Tools\TmpFileTool;
 use App\Model\Entity\Attribute;
 use App\Model\Entity\Feed;
@@ -974,7 +974,7 @@ class FeedsTable extends AppTable
     public function downloadEventFromFeed(array $feed, $uuid)
     {
         $filerRules = $this->__prepareFilterRules($feed);
-        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
+        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket($feed);
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         return $this->__prepareEvent($event, $feed, $filerRules);
     }
@@ -1140,10 +1140,12 @@ class FeedsTable extends AppTable
         return $filterRules;
     }
 
-    private function __setupHttpSocket()
+    private function __setupHttpSocket(Feed $feed)
     {
-        $syncTool = new SyncTool();
-        return $syncTool->setupHttpSocketFeed();
+        $HttpTool = new HttpTool();
+        $HttpTool->configFromFeed($feed->toArray());
+
+        return $HttpTool;
     }
 
     /**
@@ -1230,7 +1232,7 @@ class FeedsTable extends AppTable
             throw new Exception("Feed with ID $feedId not found.");
         }
 
-        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
+        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket($feed);
         if ($feed['source_format'] === 'misp') {
             $this->jobProgress($jobId, 'Fetching event manifest.');
             try {
@@ -1516,7 +1518,7 @@ class FeedsTable extends AppTable
      */
     private function __cacheFeed($feed, $redis, $jobId = false)
     {
-        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
+        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket($feed);
         if ($feed['source_format'] === 'misp') {
             $result = true;
             if (!$this->__cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId)) {
@@ -2149,7 +2151,7 @@ class FeedsTable extends AppTable
         }
 
         try {
-            $response = $this->getFollowRedirect($HttpSocket, $uri, $request);
+            $response = $this->getFollowRedirect($HttpSocket, $uri, $request, $feed);
         } catch (Exception $e) {
             throw new Exception("Fetching the '$uri' failed with exception: {$e->getMessage()}", 0, $e);
         }
@@ -2181,16 +2183,17 @@ class FeedsTable extends AppTable
      * @param HttpClient $HttpSocket
      * @param string $url
      * @param array $request
+     * @param array $feed
      * @param int $iterations
      * @return false|HttpClientResponse
      * @throws Exception
      */
-    private function getFollowRedirect(HttpClient $HttpSocket, $url, $request, $iterations = 5)
+    private function getFollowRedirect(HttpClient $HttpSocket, $url, $request, $feed = null, $iterations = 5)
     {
         for ($i = 0; $i < $iterations; $i++) {
             $response = $HttpSocket->get($url, [], $request);
             if ($response->isRedirect()) {
-                $HttpSocket = $this->__setupHttpSocket(); // Replace $HttpSocket with fresh instance
+                $HttpSocket = $this->__setupHttpSocket($feed); // Replace $HttpSocket with fresh instance
                 $url = trim($response->getHeader('Location')[0], '=');
             } else {
                 return $response;
