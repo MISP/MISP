@@ -14,7 +14,6 @@ use Cake\I18n\FrozenTime;
 
 class HttpTool extends CakeClient
 {
-    
     /**
      * Create a new MISP specific HTTP Client
      * {@inheritdoc}   In addition brings some MISP specifics to the game.
@@ -27,21 +26,22 @@ class HttpTool extends CakeClient
      *   - MISP.ca_path - certificate store
      *   - Proxy.host, port, user, pass, method
      *   - Security.min_tls_version
-     *   
+     *
      * @param  mixed $server Server array with custom settings for a specific server, cerebrate, ...
      */
     public function __construct(array $config = [], array $server = [])
     {
         $this->buildDefaultConfigFromSettings();
-        if (!empty($server)) $this->configFromServer($server);
+        if (!empty($server)) {
+            $this->configFromServer($server);
+        }
         parent::__construct($config);
     }
 
-        
+
     /**
      * buildDefaultConfigFromSettings
      *
-     * @return array
      */
     public function buildDefaultConfigFromSettings()
     {
@@ -60,7 +60,7 @@ class HttpTool extends CakeClient
         type - Send a request body in a custom content type. Requires $data to either be a string, or the _content option to be set when doing GET requests.
         redirect - Number of redirects to follow. Defaults to false.
         curl - An array of additional curl options (if the curl adapter is used), for example, [CURLOPT_SSLKEY => 'key.pem'].
-        
+
         ## MISP global settings
         MISP.ca_path - certificate store
         Proxy.host, port, user, pass, method
@@ -71,20 +71,20 @@ class HttpTool extends CakeClient
         - cert_file - translates to 'ssl_cafile'
         - client_cert_file - translates to 'ssl_local_cert' - SSL client side authentication - see CURLOPT_SSLKEY
         - self_signed - translates to 'ssl_allow_self_signed', 'ssl_verify_peer_name', 'ssl_verify_peer'
-        - skip_proxy - 
+        - skip_proxy -
         */
-        
+
 
         // proxy settings
         $proxy = Configure::read('Proxy');
-        // proxy array as CakeClient likes it 
+        // proxy array as CakeClient likes it
         // ['username' => 'mark',
         //  'password' => 'testing',
-        //  'proxy' => '127.0.0.1:8080'] 
+        //  'proxy' => '127.0.0.1:8080']
 
         if (isset($proxy['host'])) {
             $this->_defaultConfig['proxy'] = ['proxy' => $proxy['host'] . ":" . (empty($proxy['port']) ? 3128 : $proxy['port'])];
-            
+
             if (isset($proxy['user']) && isset($proxy['password']) && !isset($proxy['method'])) {
                 $proxy['method'] = 'basic';
             }
@@ -114,10 +114,13 @@ class HttpTool extends CakeClient
             switch ($minTlsVersion) {
                 case 'tlsv1_0':
                     $version |= STREAM_CRYPTO_METHOD_TLSv1_0_CLIENT;
+                    // no break
                 case 'tlsv1_1':
                     $version |= STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT;
+                    // no break
                 case 'tlsv1_2':
                     $version |= STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+                    // no break
                 case 'tlsv1_3':
                     if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
                         $version |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
@@ -138,7 +141,7 @@ class HttpTool extends CakeClient
 
     /**
      * Set HttpTool configuration from Server data, such as Certificate Authority and other
-     * 
+     *
      * @param array $server Server array
      */
     public function configFromServer(array $server)
@@ -148,7 +151,9 @@ class HttpTool extends CakeClient
                 $this->_defaultConfig['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server['id'] . '.pem';
             }
             if ($server['client_cert_file']) {
-                if (!isset($this->_defaultConfig['curl'])) $this->_defaultConfig['curl'] = [];
+                if (!isset($this->_defaultConfig['curl'])) {
+                    $this->_defaultConfig['curl'] = [];
+                }
                 $this->_defaultConfig['curl'][CURLOPT_SSLKEY] = APP . "files" . DS . "certs" . DS . $server['id'] . '_client.pem';
             }
             if ($server['self_signed']) {
@@ -170,7 +175,16 @@ class HttpTool extends CakeClient
         }
     }
 
-        
+    /**
+     * Set HttpTool configuration from Feed data
+     *
+     * @param array|null $feed Feed array
+     */
+    public function configFromFeed(array $feed = null)
+    {
+        $this->_defaultConfig['compress'] = 'true';
+    }
+
     /**
      * shareMISPInfo - share MISP version and UUID in the headers
      *
@@ -182,7 +196,6 @@ class HttpTool extends CakeClient
         // FIXME set User-Agent is alread set, but without with MISP version: and co - 'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
         $this->_defaultConfig['headers']['MISP-version'] = $misp_version;
         $this->_defaultConfig['headers']['MISP-uuid'] = Configure::read('MISP.uuid');
-
     }
 
 
@@ -198,9 +211,13 @@ class HttpTool extends CakeClient
     protected function _doRequest(string $method, string $url, $data, $options): Response
     {
         if (isset($options['self_signed']) && $options['self_signed'] === true) {
-            $options = array_merge($options, [
-                'ssl_verify_peer' => false,
-                'ssl_verify_host' => false]);
+            $options = array_merge(
+                $options,
+                [
+                    'ssl_verify_peer' => false,
+                    'ssl_verify_host' => false
+                ]
+            );
         }
         if (isset($options['skip_proxy']) && $options['skip_proxy'] === true) {
             unset($options['proxy']);
@@ -219,13 +236,13 @@ class HttpTool extends CakeClient
         return new HttpTool($config);
     }
 
-        
+
     /**
      * fetchCertificate - download the SSL certificate from the remote server
      *
      * @return array the list of certificates including pem
      */
-    public function fetchCertificates(string $url, array $options = []) : array
+    public function fetchCertificates(string $url, array $options = []): array
     {
         $options = $this->_mergeOptions($options);
         $options['ssl_verify_peer'] = false;

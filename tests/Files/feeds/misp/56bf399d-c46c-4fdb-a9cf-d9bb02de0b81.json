@@ -1,0 +1,44 @@
+{
+    "Event": {
+        "analysis": "2",
+        "date": "2015-12-18",
+        "extends_uuid": "",
+        "info": "OSINT - Hunting for Malware with Machine Learning",
+        "publish_timestamp": "1455373314",
+        "published": true,
+        "threat_level_id": "3",
+        "timestamp": "1455373240",
+        "uuid": "56bf399d-c46c-4fdb-a9cf-d9bb02de0b81",
+        "Orgc": {
+            "name": "CIRCL",
+            "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Tag": [
+            {
+                "colour": "#004646",
+                "local": "0",
+                "name": "type:OSINT",
+                "relationship_type": ""
+            },
+            {
+                "colour": "#ffffff",
+                "local": "0",
+                "name": "tlp:white",
+                "relationship_type": ""
+            }
+        ],
+        "Attribute": [
+            {
+                "category": "External analysis",
+                "comment": "",
+                "deleted": false,
+                "disable_correlation": false,
+                "timestamp": "1455372745",
+                "to_ids": false,
+                "type": "link",
+                "uuid": "56bf39c9-c078-4368-9555-6cf802de0b81",
+                "value": "http://blog.cylance.com/hunting-for-malware-with-machine-learning"
+            }
+        ]
+    }
+}

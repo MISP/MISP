@@ -124,7 +124,7 @@ class JobsTable extends AppTable
         }
 
         $jobData = [
-            $this->primaryKey => $jobId,
+            'id' => $jobId,
         ];
         if ($message !== null) {
             $jobData['message'] = $message;
@@ -163,14 +163,18 @@ class JobsTable extends AppTable
             $message = $success ? __('Job done.') : __('Job failed.');
         }
 
-        $jobData = $this->newEntity(
-            [
-                $this->primaryKey => $jobId,
-                'status' => $success ? Job::STATUS_COMPLETED : Job::STATUS_FAILED,
-                'message' => $message,
-                'progress' => 100,
-            ]
-        );
+        $jobData = $this->get($jobId);
+
+        if (!$jobData) {
+            $jobData = $this->newEntity(
+                [
+                    'id' => $jobId,
+                    'status' => $success ? Job::STATUS_COMPLETED : Job::STATUS_FAILED,
+                    'message' => $message,
+                    'progress' => 100,
+                ]
+            );
+        }
 
         try {
             if ($this->save($jobData)) {

@@ -32,7 +32,7 @@ class UpdateTaxonomiesApiTest extends TestCase
 
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
 
-        Configure::write('MISP.custom_taxonomies_path', '/var/www/html/tests/libraries/misp-taxonomies/');
+        Configure::write('MISP.custom_taxonomies_path', '/var/www/html/tests/Libraries/misp-taxonomies/');
 
         $this->assertDbRecordNotExists('Taxonomies', ['namespace' => 'test-library-taxonomy-1']);
 

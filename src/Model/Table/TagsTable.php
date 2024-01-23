@@ -108,18 +108,18 @@ class TagsTable extends AppTable
             !$user['Role']['perm_site_admin'] &&
             (
                 (
-                    $existingTag['Tag']['org_id'] != 0 &&
-                    $existingTag['Tag']['org_id'] != $user['org_id']
+                    $existingTag['org_id'] != 0 &&
+                    $existingTag['org_id'] != $user['org_id']
                 ) ||
                 (
-                    $existingTag['Tag']['user_id'] != 0 &&
-                    $existingTag['Tag']['user_id'] != $user['id']
+                    $existingTag['user_id'] != 0 &&
+                    $existingTag['user_id'] != $user['id']
                 )
             )
         ) {
             return false;
         }
-        return $existingTag['Tag']['id'];
+        return $existingTag['id'];
     }
 
     /**

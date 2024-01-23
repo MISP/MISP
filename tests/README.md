@@ -38,17 +38,8 @@ return [
 ```
 $ composer install
 $ composer test
-> sh ./tests/Helper/wiremock/start.sh
-WireMock 1 started on port 8080
 > phpunit
 [ * ] Running DB migrations, it may take some time ...
-
-The WireMock server is started .....
-port:                         8080
-enable-browser-proxying:      false
-disable-banner:               true
-no-request-journal:           false
-verbose:                      false
 
 PHPUnit 8.5.22 by Sebastian Bergmann and contributors.
 
@@ -78,26 +69,6 @@ By default the database is re-generated before running the test suite, to skip t
 </php>
 ```
 ## Extras
-### WireMock
-Some integration tests perform calls to external APIs, we use WireMock to mock the response of these API calls.
-
-To download and run WireMock run the following script in a separate terminal:
-    ```
-    sh ./tests/Helper/wiremock/start.sh
-    ```
-
-You can also run WireMock with docker, check the official docs: http://wiremock.org/docs/docker/
-
-> NOTE: When running the tests with `composer test` WireMock is automatically started and stoped after the tests finish.
-
-The default `hostname` and `port` for WireMock are set in `phpunit.xml` as environment variables:
-```xml
-<php>
-    ...
-    <env name="WIREMOCK_HOST" value="localhost" />
-    <env name="WIREMOCK_PORT" value="8080" />
-</php>
-```
 ### Coverage
 HTML:
 ```
