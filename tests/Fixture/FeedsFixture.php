@@ -26,6 +26,18 @@ class FeedsFixture extends TestFixture
     public const FEED_4_NAME = 'test-feed-4';
     public const FEED_4_URL = 'http://feed4.local/csv/test-feed-4';
 
+    public const FEED_5_ID = 5000;
+    public const FEED_5_NAME = 'test-feed-5';
+    public const FEED_5_URL = 'tests/Files/feeds/misp';
+
+    public const FEED_6_ID = 6000;
+    public const FEED_6_NAME = 'test-feed-6';
+    public const FEED_6_URL = 'tests/Files/feeds/csv/feed.csv';
+
+    public const FEED_7_ID = 7000;
+    public const FEED_7_NAME = 'test-feed-6';
+    public const FEED_7_URL = 'tests/Files/feeds/freetext/feed.txt';
+
     public function init(): void
     {
         $this->records = [
@@ -63,12 +75,42 @@ class FeedsFixture extends TestFixture
                 'id' => self::FEED_4_ID,
                 'name' => self::FEED_4_NAME,
                 'provider' => 'test-provider',
-                'url' => self::FEED_3_URL,
+                'url' => self::FEED_4_URL,
                 "source_format" => 'csv',
                 "input_source" => "network",
                 "settings" => "{\"csv\":{\"value\":\"1\"}}",
                 'enabled' => true,
-            ]
+            ],
+            [
+                'id' => self::FEED_5_ID,
+                'name' => self::FEED_5_NAME,
+                'provider' => 'test-provider',
+                'url' => self::FEED_5_URL,
+                "source_format" => 'misp',
+                "input_source" => "local",
+                "settings" => "[]",
+                'enabled' => true,
+            ],
+            [
+                'id' => self::FEED_6_ID,
+                'name' => self::FEED_6_NAME,
+                'provider' => 'test-provider',
+                'url' => self::FEED_6_URL,
+                "source_format" => 'csv',
+                "input_source" => "local",
+                "settings" => "{\"csv\":{\"value\":\"1\"}}",
+                'enabled' => true,
+            ],
+            [
+                'id' => self::FEED_7_ID,
+                'name' => self::FEED_7_NAME,
+                'provider' => 'test-provider',
+                'url' => self::FEED_7_URL,
+                "source_format" => 'freetext',
+                "input_source" => "local",
+                "settings" => "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+                'enabled' => true,
+            ],
         ];
         parent::init();
     }

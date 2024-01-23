@@ -167,13 +167,7 @@ class FetchFromFeedApiTest extends TestCase
             'Connection: close',
         ];
 
-        $feedContent = implode(
-            " ",
-            [
-                '8.8.8.8',
-                '8.8.4.4',
-            ]
-        );
+        $feedContent = '8.8.8.8 8.8.4.4';
 
         $this->mockClientGet(
             FeedsFixture::FEED_3_URL,
@@ -218,7 +212,7 @@ class FetchFromFeedApiTest extends TestCase
         );
 
         $this->mockClientGet(
-            FeedsFixture::FEED_3_URL,
+            FeedsFixture::FEED_4_URL,
             $this->newClientResponse(200, $headers, $feedContent)
         );
 
@@ -235,5 +229,83 @@ class FetchFromFeedApiTest extends TestCase
         $this->assertDbRecordExists('Events', ['info' => FeedsFixture::FEED_4_NAME . ' feed']);
         $this->assertDbRecordExists('Attributes', ['value1' => '1.1.1.1']);
         $this->assertDbRecordExists('Attributes', ['value1' => '1.0.0.1']);
+    }
+
+    public function testFetchFromLocalMISPFeedById(): void
+    {
+        $this->skipOpenApiValidations();
+
+        Configure::write('BackgroundJobs.enabled', false);
+
+        $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
+        $url = sprintf('%s/%d', self::ENDPOINT, FeedsFixture::FEED_5_ID);
+
+        $this->post($url);
+        $this->assertResponseOk();
+
+        $response = $this->getJsonResponseAsArray();
+        $this->assertEquals(
+            'Fetching the feed has successfully completed. Downloaded 1 new event(s). Updated 0 event(s).',
+            $response['result']
+        );
+
+        // check that the event was added
+        $this->assertDbRecordExists('Events', ['uuid' => '56bf399d-c46c-4fdb-a9cf-d9bb02de0b81']);
+        $this->assertDbRecordExists('Attributes', ['uuid' => '56bf39c9-c078-4368-9555-6cf802de0b81']);
+
+        // TODO: check that the objects were added
+        // TODO: check that the event reports were added
+        // TODO: check that the sightings were added
+        // TODO: check that the tags were added
+        // TODO: check that the galaxies were added
+        // TODO: check that the cryptographic key were added
+    }
+
+    public function testFetchFromLocalCsvFeedById(): void
+    {
+        $this->skipOpenApiValidations();
+
+        Configure::write('BackgroundJobs.enabled', false);
+
+        $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
+        $url = sprintf('%s/%d', self::ENDPOINT, FeedsFixture::FEED_6_ID);
+
+        $this->post($url);
+        $this->assertResponseOk();
+
+        $response = $this->getJsonResponseAsArray();
+        $this->assertEquals(
+            'Fetching the feed has successfully completed.',
+            $response['result']
+        );
+
+        // check that the event was added
+        $this->assertDbRecordExists('Events', ['info' => FeedsFixture::FEED_6_NAME . ' feed']);
+        $this->assertDbRecordExists('Attributes', ['value1' => '1.1.1.1']);
+        $this->assertDbRecordExists('Attributes', ['value1' => '1.0.0.1']);
+    }
+
+    public function testFetchFromLocaFreetextFeedById(): void
+    {
+        $this->skipOpenApiValidations();
+
+        Configure::write('BackgroundJobs.enabled', false);
+
+        $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
+        $url = sprintf('%s/%d', self::ENDPOINT, FeedsFixture::FEED_7_ID);
+
+        $this->post($url);
+        $this->assertResponseOk();
+
+        $response = $this->getJsonResponseAsArray();
+        $this->assertEquals(
+            'Fetching the feed has successfully completed.',
+            $response['result']
+        );
+
+        // check that the event was added
+        $this->assertDbRecordExists('Events', ['info' => FeedsFixture::FEED_7_NAME . ' feed']);
+        $this->assertDbRecordExists('Attributes', ['value1' => '8.8.8.8']);
+        $this->assertDbRecordExists('Attributes', ['value1' => '8.8.4.4']);
     }
 }
