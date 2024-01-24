@@ -10,13 +10,18 @@
             'data_path' => $modelSelection . '.uuid'
         ],
         [
+            'name' => __('Parent Object Type'),
+            'sort' => $modelSelection . '.object_type',
+            'data_path' => $modelSelection . '.object_type'
+        ],
+        [
             'name' => __('Target Object'),
             'sort' => $modelSelection . '.object_type',
             'data_path' => $modelSelection . '.object_uuid'
         ],
         [
             'name' => __('Creator org'),
-            'data_path' => $modelSelection . '.orgc_id'
+            'data_path' => $modelSelection . '.orgc_uuid'
         ],
         [
             'name' => __('Created'),
@@ -51,6 +56,10 @@
             ]
         );
     } else if ($modelSelection === 'Opinion') {
+        $fields = array_merge($fields,
+            [
+            ]
+        );
     
     } else if ($modelSelection === 'Relationship') {
     
@@ -63,6 +72,27 @@
                 'top_bar' => [
                     'pull' => 'right',
                     'children' => [
+                        [
+                            'type' => 'simple',
+                            'children' => [
+                                [
+                                    'active' => $modelSelection === 'Note',
+                                    'url' => sprintf('%s/analyst_data/index/Note', $baseurl),
+                                    'text' => __('Note'),
+                                ],
+                                [
+                                    'active' => $modelSelection === 'Opinion',
+                                    'class' => 'defaultContext',
+                                    'url' => sprintf('%s/analyst_data/index/Opinion', $baseurl),
+                                    'text' => __('Opinion'),
+                                ],
+                                [
+                                    'active' => $modelSelection === 'Relationship',
+                                    'url' => sprintf('%s/analyst_data/index/Relationship', $baseurl),
+                                    'text' => __('Relationship'),
+                                ],
+                            ]
+                        ],
                         [
                             'type' => 'search',
                             'button' => __('Filter'),
@@ -91,7 +121,7 @@
                     ],
                     [
                         'onclick' => sprintf(
-                            'openGenericModal(\'%s/analystData/edit/' . $modelSelection . '/[onclick_params_data_path]\');',
+                            'openGenericModal(\'%s/analystData/delete/' . $modelSelection . '/[onclick_params_data_path]\');',
                             $baseurl
                         ),
                         'onclick_params_data_path' => $modelSelection . '.id',

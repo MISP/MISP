@@ -1231,6 +1231,8 @@ class EventsController extends AppController
             }
         }
 
+        $this->Event->Attribute->includeAnalystData = true;
+
         if (isset($filters['focus'])) {
             $this->set('focus', $filters['focus']);
         }

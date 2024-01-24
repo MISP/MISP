@@ -11,7 +11,7 @@ class AnalystDataParentBehavior extends ModelBehavior
 
 
 
-    public function attachAnalystData(array $object, array $types = ['Note', 'Opinion', 'Relationship'])
+    public function attachAnalystData(Model $Model, array $object, array $types = ['Note', 'Opinion', 'Relationship'])
     {
         // No uuid, nothing to attach
         if (empty($object['uuid'])) {
@@ -42,7 +42,7 @@ class AnalystDataParentBehavior extends ModelBehavior
         if (!empty($model->includeAnalystData)) {
             foreach ($results as $k => $item) {
                 if (isset($item[$model->alias])) {
-                    $results[$k] = array_merge($results[$k], $this->attachAnalystData($item[$model->alias]));
+                    $results[$k] = array_merge($results[$k], $this->attachAnalystData($model, $item[$model->alias]));
                 }
             }
         }

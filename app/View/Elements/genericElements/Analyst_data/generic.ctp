@@ -1,13 +1,11 @@
 <?php
 $seed = mt_rand();
 
-$URL_ADD = '/analyst-notes/add/';
-$URL_EDIT = '/analyst-notes/edit/';
-$URL_DELETE = '/analyst-notes/delete/';
+$URL_ADD = '/analystData/add/';
+$URL_EDIT = '/analystData/edit/';
+$URL_DELETE = '/analystData/delete/';
 
-$object_uuid = 'bf74e1a4-99c2-4fcb-8a5d-a71118effd1a'; // e.g. $event['Event']['uuid']
-$object_type = 'event';
-$notes = [
+$notes2 = [
     [
         'analyst_note' => 'This is a note',
         'note_type' => 0,
@@ -185,6 +183,10 @@ $notes = [
     ],
 ];
 
+$notes = $analyst_data['notes'] ?? [];
+$opinions = $analyst_data['opinions'] ?? [];
+$relationships = $analyst_data['relationships'] ?? [];
+
 $related_objects = [
     'Event' => [
         'f80a0db2-24bd-4148-929e-7c803ade7ca1' => [
@@ -238,6 +240,8 @@ $related_objects = [
     ],
 ];
 
+$notes = array_merge($notes, $opinions);
+
 if(!function_exists("countNotes")) {
     function countNotes($notes) {
         $notesTotalCount = count($notes);
@@ -249,8 +253,14 @@ if(!function_exists("countNotes")) {
             } else {
                 $notesCount += 1;
             }
-            if (!empty($note['notes'])) {
-                $nestedCounts = countNotes($note['notes']);
+            if (!empty($note['Note'])) {
+                $nestedCounts = countNotes($note['Note']);
+                $notesTotalCount += $nestedCounts['total'];
+                $notesCount += $nestedCounts['notes'];
+                $relationsCount += $nestedCounts['relations'];
+            }
+            if (!empty($note['Opinion'])) {
+                $nestedCounts = countNotes($note['Opinion']);
                 $notesTotalCount += $nestedCounts['total'];
                 $notesCount += $nestedCounts['notes'];
                 $relationsCount += $nestedCounts['relations'];
@@ -265,9 +275,9 @@ $relationshipsCount = $counts['relations'];
 ?>
 
 <?php if (empty($notes)): ?>
-    <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" onclick="openNotes(this)" title="<?= __('Notes and opinions for this UUID') ?>"></i>
+    <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer node-opener-<?= $seed ?>" title="<?= __('Notes and opinions for this UUID') ?>"></i>
 <?php else: ?>
-    <span class="label label-info useCursorPointer" onclick="openNotes(this)" >
+    <span class="label label-info useCursorPointer node-opener-<?= $seed ?>">
         <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" title="<?= __('Notes and opinions for this UUID') ?>"></i>
         <?= $notesCount; ?>
         <i class="<?= $this->FontAwesome->getClass('project-diagram') ?> useCursorPointer" title="<?= __('Relationships for this UUID') ?>"></i>
@@ -276,137 +286,206 @@ $relationshipsCount = $counts['relations'];
 <?php endif; ?>
 
 <script>
-    var notes = <?= json_encode($notes) ?>;
-    var relationship_related_object = <?= json_encode($related_objects) ?>;
-    var shortDist = <?= json_encode($shortDist) ?>;
-    var renderedNotes = null
 
-    var nodeContainerTemplate = doT.template('\
-        <div> \
-            <ul class="nav nav-tabs" style="margin-bottom: 10px;"> \
-                <li class="active"><a href="#notes-<?= $seed ?>" data-toggle="tab"><?= __('Notes & Opinions') ?></a></li> \
-                <li><a href="#relationships-<?= $seed ?>" data-toggle="tab"><?= __('Relationships') ?></a></li> \
-            </ul> \
-            <div class="tab-content" style="padding: 0.25rem;"> \
-                <div id="notes-<?= $seed ?>" class="tab-pane active"> \
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">{{=it.content_notes}}</div>\
-                </div> \
-                <div id="relationships-<?= $seed ?>" class="tab-pane"> \
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">{{=it.content_relationships}}</div>\
-                </div> \
+
+function renderNote(note) {
+    note.modified_relative = note.modified ? moment(note.modified).fromNow() : note.modified
+    note.created_relative = note.created ? moment(note.created).fromNow() : note.created
+    note.modified = note.modified ? (new Date(note.modified)).toLocaleString() : note.modified
+    note.created = note.created ? (new Date(note.created)).toLocaleString() : note.created
+    note.distribution_text = note.distribution != 4 ? shortDist[note.distribution] : note.SharingGroup.name
+    note.distribution_color = note.distribution == 0 ? '#ff0000' : (note.distribution == 4 ? '#0000ff' : '#000')
+    note.authors = Array.isArray(note.authors) ? note.authors.join(', ') : note.authors;
+    note._permissions = {
+        can_edit: true,
+        can_delete: true,
+        can_add: true,
+    }
+    if (note.note_type == 0) { // analyst note
+        note.content = analystTemplate(note)
+    } else if (note.note_type == 1) { // opinion
+        note.opinion_color = note.opinion == 50 ? '#333' : ( note.opinion > 50 ? '#468847' : '#b94a48');
+        note.opinion_text = (note.opinion  >= 81) ? '<?= __("Strongly Agree") ?>' : ((note.opinion  >= 61) ? '<?= __("Agree") ?>' : ((note.opinion  >= 41) ? '<?= __("Neutral") ?>' : ((note.opinion  >= 21) ? '<?= __("Disagree") ?>' : '<?= __("Strongly Disagree") ?>')))
+        note.content = opinionTemplate(note)
+    } else if (note.note_type == 2){
+        note.content = renderRelationshipEntryFromType(note)
+    }
+    var noteHtml = baseNoteTemplate(note)
+    return noteHtml
+}
+
+var noteFilteringTemplate = '\
+    <div class="btn-group notes-filtering-container" style="margin-bottom: 0.5rem"> \
+        <btn class="btn btn-small btn-primary" href="#" onclick="filterNotes(this, \'all\')"><?= __('All notes') ?></btn> \
+        <btn class="btn btn-small btn-inverse" href="#" onclick="filterNotes(this, \'org\')"><?= __('Organisation notes') ?></btn> \
+        <btn class="btn btn-small btn-inverse" href="#" onclick="filterNotes(this, \'notorg\')"><?= __('Non-Org notes') ?></btn> \
+    </div> \
+'
+
+var nodeContainerTemplate = doT.template('\
+    <div> \
+        <ul class="nav nav-tabs" style="margin-bottom: 10px;"> \
+            <li class="active"><a href="#notes-<?= $seed ?>" data-toggle="tab"><?= __('Notes & Opinions') ?></a></li> \
+            <li><a href="#relationships-<?= $seed ?>" data-toggle="tab"><?= __('Relationships') ?></a></li> \
+        </ul> \
+        <div class="tab-content" style="padding: 0.25rem; max-width: 992px; min-width: 400px;"> \
+            <div id="notes-<?= $seed ?>" class="tab-pane active"> \
+                ' + noteFilteringTemplate + ' \
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;" class="all-notes">{{=it.content_notes}}</div>\
+            </div> \
+            <div id="relationships-<?= $seed ?>" class="tab-pane"> \
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">{{=it.content_relationships}}</div>\
             </div> \
         </div> \
-    ')
-    var baseNoteTemplate = doT.template('\
-        <div id="note-{{=it.id}}" \
-            class="analyst-note" \
-            style="display: flex; flex-direction: row; align-items: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 1px 5px -2px rgb(0 0 0 / 0.5); border-radius: 0.25rem; padding: 0.25rem; margin-bottom: 0.0rem; background-color: #fff" \
-        > \
-            <div style="flex-grow: 1;"> \
-                <div style="display: flex; flex-direction: column;"> \
-                    <div style="display: flex; min-width: 250px; gap: 0.5rem;"> \
-                        <img src="<?= $baseurl ?>/img/orgs/{{=it.Organisation.id}}.png" width="20" height="20" class="orgImg" onerror="this.remove()" alt="Organisation logo"></object> \
-                        <span style="margin-left: 0rem; margin-right: 0.5rem;"> \
-                            <span>{{=it.Organisation.name}}</span> \
-                            <i class="<?= $this->FontAwesome->getClass('angle-right') ?>" style="color: #999; margin: 0 0.25rem;"></i> \
-                            <b>{{=it.authors}}</b> \
-                        </span> \
-                        <span style="display: inline-block; font-weight: lighter; color: #999">{{=it.modified_relative}} • {{=it.modified}}</span> \
-                        </i><span style="margin-left: 0.5rem; flex-grow: 1; text-align: right; color: {{=it.distribution_color}}">{{=it.distribution_text}}</span> \
-                        <span class="action-button-container" style="margin-left: auto; display: flex; gap: 0.2rem;"> \
-                            {{? it._permissions.can_add }} \
-                                <span role="button" onclick="addOpinion(this, \'{{=it.uuid}}\')" title="<?= __('Add an opinion to this note') ?>"><i class="<?= $this->FontAwesome->getClass('gavel') ?> useCursorPointer"></i></span> \
-                            {{?}} \
-                            {{? it._permissions.can_add }} \
-                            <span role="button" onclick="addNote(this, \'{{=it.uuid}}\')" title="<?= __('Add a note to this note') ?>"><i class="<?= $this->FontAwesome->getClass('comment-alt') ?> useCursorPointer"></i></span> \
-                            {{?}} \
-                            {{? it._permissions.can_edit }} \
-                            <span role="button" onclick="editNote(this, {{=it.id}})" title="<?= __('Edit this note') ?>"><i class="<?= $this->FontAwesome->getClass('edit') ?> useCursorPointer"></i></span> \
-                            {{?}} \
-                            {{? it._permissions.can_delete }} \
-                            <span role="button" onclick="deleteNote(this, {{=it.id}})" title="<?= __('Delete this note') ?>" href="<?= $baseurl . $URL_DELETE ?>{{=it.id}}"><i class="<?= $this->FontAwesome->getClass('trash') ?> useCursorPointer"></i></span> \
-                            {{?}} \
-                        </span> \
-                    </div> \
-                    <div style="">{{=it.content}}</div> \
+    </div> \
+')
+var baseNoteTemplate = doT.template('\
+    <div id="{{=it.note_type_name}}-{{=it.id}}" \
+        class="analyst-note" \
+        style="display: flex; flex-direction: row; align-items: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 1px 5px -2px rgb(0 0 0 / 0.5); border-radius: 0.25rem; padding: 0.25rem; margin-bottom: 0.0rem; background-color: #fff; transition: ease-out opacity 0.5s;" \
+        data-org-uuid="{{=it.orgc_uuid}}" \
+    > \
+        <div style="flex-grow: 1;"> \
+            <div style="display: flex; flex-direction: column;"> \
+                <div style="display: flex; min-width: 250px; gap: 0.5rem;"> \
+                    <img src="<?= $baseurl ?>/img/orgs/{{=it.Organisation.id}}.png" width="20" height="20" class="orgImg" style="width: 20px; height: 20px;" onerror="this.remove()" alt="Organisation logo"></object> \
+                    <span style="margin-left: 0rem; margin-right: 0.5rem;"> \
+                        <span>{{=it.Organisation.name}}</span> \
+                        <i class="<?= $this->FontAwesome->getClass('angle-right') ?>" style="color: #999; margin: 0 0.25rem;"></i> \
+                        <b>{{=it.authors}}</b> \
+                    </span> \
+                    <span style="display: inline-block; font-weight: lighter; color: #999">{{=it.modified_relative}} • {{=it.modified}}</span> \
+                    </i><span style="margin-left: 0.5rem; flex-grow: 1; text-align: right; color: {{=it.distribution_color}}">{{=it.distribution_text}}</span> \
+                    <span class="action-button-container" style="margin-left: auto; display: flex; gap: 0.2rem;"> \
+                        {{? it._permissions.can_add }} \
+                            <span role="button" onclick="addOpinion(this, \'{{=it.uuid}}\')" title="<?= __('Add an opinion to this note') ?>"><i class="<?= $this->FontAwesome->getClass('gavel') ?> useCursorPointer"></i></span> \
+                        {{?}} \
+                        {{? it._permissions.can_add }} \
+                        <span role="button" onclick="addNote(this, \'{{=it.uuid}}\')" title="<?= __('Add a note to this note') ?>"><i class="<?= $this->FontAwesome->getClass('comment-alt') ?> useCursorPointer"></i></span> \
+                        {{?}} \
+                        {{? it._permissions.can_edit }} \
+                        <span role="button" onclick="editNote(this, {{=it.id}}, \'{{=it.note_type_name}}\')" title="<?= __('Edit this note') ?>"><i class="<?= $this->FontAwesome->getClass('edit') ?> useCursorPointer"></i></span> \
+                        {{?}} \
+                        {{? it._permissions.can_delete }} \
+                        <span role="button" onclick="deleteNote(this, {{=it.id}})" title="<?= __('Delete this note') ?>" href="<?= $baseurl . $URL_DELETE ?>{{=it.note_type_name}}/{{=it.id}}"><i class="<?= $this->FontAwesome->getClass('trash') ?> useCursorPointer"></i></span> \
+                        {{?}} \
+                    </span> \
                 </div> \
+                <div style="">{{=it.content}}</div> \
             </div> \
         </div> \
-    ')
-    var analystTemplate = doT.template('\
-        <div style="max-width: 40vw; margin-top: 0.5rem; font-size:"> \
-            {{=it.analyst_note}} \
+    </div> \
+')
+var analystTemplate = doT.template('\
+    <div style="max-width: 40vw; margin-top: 0.5rem; font-size:"> \
+        {{=it.note}} \
+    </div> \
+')
+var opinionGradient = '\
+    <div class="opinion-gradient-container" style="width: 10rem; height: 6px;">\
+        <span class="opinion-gradient-dot"></span> \
+        <div class="opinion-gradient opinion-gradient-negative"></div> \
+        <div class="opinion-gradient opinion-gradient-positive"></div> \
+    </div> \
+'
+var opinionTemplate = doT.template('\
+    <div style="margin: 0.75rem 0 0.25rem 0; display: flex; flex-direction: row;" title="<?= __('Opinion:') ?> {{=it.opinion}} /100"> \
+        ' + opinionGradient + ' \
+        <span style="line-height: 1em; margin-left: 0.25rem; margin-top: -3px;"> \
+            <b style="margin-left: 0.5rem; color: {{=it.opinion_color}}">{{=it.opinion_text}}</b> \
+            <b style="margin-left: 0.25rem; color: {{=it.opinion_color}}">{{=it.opinion}}</b> \
+            <span style="font-size: 0.7em; font-weight: lighter; color: #999">/100</span> \
+        </span> \
+    </div> \
+    {{? it.comment }} \
+        <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
+            {{=it.comment}} \
         </div> \
-    ')
-    var opinionGradient = '\
-        <div class="opinion-gradient-container" style="width: 10rem; height: 6px;">\
-            <span class="opinion-gradient-dot"></span> \
-            <div class="opinion-gradient opinion-gradient-negative"></div> \
-            <div class="opinion-gradient opinion-gradient-positive"></div> \
-        </div> \
-    '
-    var opinionTemplate = doT.template('\
-        <div style="margin: 0.75rem 0 0.25rem 0; display: flex; flex-direction: row;" title="<?= __('Opinion:') ?> {{=it.opinion}} /100"> \
-            ' + opinionGradient + ' \
-            <span style="line-height: 1em; margin-left: 0.25rem; margin-top: -3px;"> \
-                <b style="margin-left: 0.5rem; color: {{=it.opinion_color}}">{{=it.opinion_text}}</b> \
-                <b style="margin-left: 0.25rem; color: {{=it.opinion_color}}">{{=it.opinion}}</b> \
-                <span style="font-size: 0.7em; font-weight: lighter; color: #999">/100</span> \
-            </span> \
+    {{?}} \
+')
+var relationshipDefaultEntryTemplate = doT.template('\
+    <div style="max-width: 40vw; margin: 0.5rem 0 0.5rem 0.25rem;"> \
+        <div style="display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap;"> \
+            <i class="<?= $this->FontAwesome->getClass('minus') ?>" style="font-size: 1.5em; color: #555"></i> \
+            <span style="text-wrap: nowrap; padding: 0 0.25rem; border: 2px solid #555; border-radius: 0.25rem;">{{=it.relationship_type}}</span> \
+            <i class="<?= $this->FontAwesome->getClass('long-arrow-alt-right') ?>" style="font-size: 1.5em; color: #555"></i> \
+            <div style="margin-left: 0.5rem;">{{=it.content}}</div> \
         </div> \
         {{? it.comment }} \
             <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
                 {{=it.comment}} \
             </div> \
         {{?}} \
-    ')
-    var relationshipDefaultEntryTemplate = doT.template('\
-        <div style="max-width: 40vw; margin: 0.5rem 0 0.5rem 0.25rem;"> \
-            <div style="display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap;"> \
-                <i class="<?= $this->FontAwesome->getClass('minus') ?>" style="font-size: 1.5em; color: #555"></i> \
-                <span style="text-wrap: nowrap; padding: 0 0.25rem; border: 2px solid #555; border-radius: 0.25rem;">{{=it.relationship_type}}</span> \
-                <i class="<?= $this->FontAwesome->getClass('long-arrow-alt-right') ?>" style="font-size: 1.5em; color: #555"></i> \
-                <div style="margin-left: 0.5rem;">{{=it.content}}</div> \
-            </div> \
-            {{? it.comment }} \
-                <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
-                    {{=it.comment}} \
-                </div> \
-            {{?}} \
-        </div> \
-    ')
-    var replyNoteTemplate = doT.template('\
-        <span class="reply-to-note-collapse-button" onclick="$(this).toggleClass(\'collapsed\').next().toggle()" title="<?= __('Toggle annotation for this note') ?>" \
-            style="width: 12px; height: 12px; border-radius: 50%; border: 1px solid #0035dc20; background: #ccccccdd; box-sizing: border-box; line-height: 12px; padding: 0 1px; cursor: pointer; margin: calc(-0.5rem - 6px) 0 calc(-0.5rem - 6px) -1px; z-index: 2;" \
-        > \
-            <i class="<?= $this->FontAwesome->getClass('angle-up') ?>" style="line-height: 8px;"></i> \
-        </span> \
-        <div class="reply-to-note" style="position: relative; display: flex; flex-direction: column; gap: 0.5rem; margin-left: 3px; border-left: 4px solid #ccccccaa; background: #0035dc10; padding: 0.5rem; border-radius: 5px; border-top-left-radius: 0;"> \
-            {{=it.notes_html}} \
-        </div> \
-    ')
-    var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
-        <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a note') ?> \
-    </button>'
-    var addRelationshipButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewRelationship(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
-        <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a relationship') ?> \
-    </button>'
+    </div> \
+')
+var replyNoteTemplate = doT.template('\
+    <span class="reply-to-note-collapse-button reply-to-group" onclick="$(this).toggleClass(\'collapsed\').next().toggle()" title="<?= __('Toggle annotation for this note') ?>" \
+        style="width: 12px; height: 12px; border-radius: 50%; border: 1px solid #0035dc20; background: #ccccccdd; box-sizing: border-box; line-height: 12px; padding: 0 1px; cursor: pointer; margin: calc(-0.5rem - 6px) 0 calc(-0.5rem - 6px) -1px; z-index: 2;" \
+    > \
+        <i class="<?= $this->FontAwesome->getClass('angle-up') ?>" style="line-height: 8px;"></i> \
+    </span> \
+    <div class="reply-to-note reply-to-group" style="position: relative; display: flex; flex-direction: column; gap: 0.5rem; margin-left: 3px; border-left: 4px solid #ccccccaa; background: #0035dc10; padding: 0.5rem; border-radius: 5px; border-top-left-radius: 0;"> \
+        {{=it.notes_html}} \
+    </div> \
+')
+var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+    <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a note') ?> \
+</button>'
+var addOpinionButton = '<button class="btn btn-small btn-block btn-primary" style="margin-top: 2px;" type="button" onclick="createNewOpinion(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+    <i class="<?= $this->FontAwesome->getClass('gavel') ?>"></i> <?= __('Add an opinion') ?> \
+</button>'
+var addRelationshipButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewRelationship(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+    <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a relationship') ?> \
+</button>'
 
-    function toggleNotes(clicked) {
-        var $container = $('.note-container-<?= $seed ?>')
-        $container.toggle()
-    }
+function toggleNotes(clicked) {
+    var $container = $('.note-container-<?= $seed ?>')
+    $container.toggle()
+}
+
+function filterNotes(clicked, filter) {
+    $(clicked).closest('.notes-filtering-container').find('.btn').addClass('btn-inverse').removeClass('btn-primary')
+    $(clicked).removeClass('btn-inverse').addClass('btn-primary')
+    var $container = $(clicked).parent().parent().find('.all-notes')
+    $container.find('.analyst-note').show()
+    $container.find('.reply-to-group').show()
+    $container.find('.analyst-note').filter(function() {
+        var $note = $(this)
+        // WEIRD. reply-to-group is not showing up!
+        if (filter == 'all') {
+            return false
+        } else if (filter == 'org') {
+            var shouldHide = $note.data('org-uuid') != '<?= $me['Organisation']['uuid'] ?>'
+            if (shouldHide && $note.next().hasClass('reply-to-group')) { // Also hide reply to button and container
+                $note.next().hide().next().hide()
+            }
+            return shouldHide
+        } else if (filter == 'notorg') {
+            var shouldHide = $note.data('org-uuid') == '<?= $me['Organisation']['uuid'] ?>'
+            if (shouldHide && $note.next().hasClass('reply-to-group')) { // Also hide reply to button and container
+                $note.next().hide().next().hide()
+            }
+            return shouldHide
+        }
+    }).hide()
+}
+
+function adjustPopoverPosition() {
+    var $popover = $('.popover:last');
+    $popover.css('top', Math.max($popover.position().top, 50) + 'px')
+}
+var shortDist = <?= json_encode($shortDist) ?>;
+
+(function() {
+    var notes = <?= json_encode($notes) ?>;
+    var relationship_related_object = <?= json_encode($related_objects) ?>;
+    var renderedNotes<?= $seed ?> = null
 
     function openNotes(clicked) {
-        openPopover(clicked, renderedNotes, undefined, undefined, function() {
+        openPopover(clicked, renderedNotes<?= $seed ?>, undefined, undefined, function() {
             adjustPopoverPosition()
             $(clicked).removeClass('have-a-popover') // avoid closing the popover if a confirm popover (like the delete one) is called
         })
-    }
-
-    function adjustPopoverPosition() {
-        var $popover = $('.popover');
-        $popover.css('top', Math.max($popover.position().top, 50) + 'px')
     }
 
     function renderNotes(notes) {
@@ -418,8 +497,11 @@ $relationshipsCount = $counts['relations'];
             notes.forEach(function(note) {
                 var noteHtml = renderNote(note)
     
-                if (note.notes) { // The notes has more notes attached
-                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.notes)})
+                if (note.Opinion && note.Opinion.length > 0) { // The notes has more notes attached
+                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Opinion)})
+                }
+                if (note.Note && note.Note.length > 0) { // The notes has more notes attached
+                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Note)})
                 }
 
                 renderedNotesArray.push(noteHtml)
@@ -428,35 +510,10 @@ $relationshipsCount = $counts['relations'];
         return renderedNotesArray.join('')
     }
 
-    function renderNote(note) {
-        note.modified_relative = note.modified.date ? moment(note.modified.date).fromNow() : note.modified
-        note.created_relative = note.created.date ? moment(note.created.date).fromNow() : note.created
-        note.modified = note.modified.date ? (new Date(note.modified.date)).toLocaleString() : note.modified
-        note.created = note.created.date ? (new Date(note.created.date)).toLocaleString() : note.created
-        note.distribution_text = note.distribution != 4 ? shortDist[note.distribution] : note.SharingGroup.name
-        note.distribution_color = note.distribution == 0 ? '#ff0000' : (note.distribution == 4 ? '#0000ff' : '#000')
-        note.authors = Array.isArray(note.authors) ? note.authors.join(', ') : note.authors;
-        note._permissions = {
-            can_edit: true,
-            can_delete: true,
-            can_add: true,
-        }
-        if (note.note_type == 0) { // analyst note
-            note.content = analystTemplate(note)
-        } else if (note.note_type == 1) { // opinion
-            note.opinion_color = note.opinion == 50 ? '#333' : ( note.opinion > 50 ? '#468847' : '#b94a48');
-            note.opinion_text = (note.opinion  >= 81) ? '<?= __("Strongly Agree") ?>' : ((note.opinion  >= 61) ? '<?= __("Agree") ?>' : ((note.opinion  >= 41) ? '<?= __("Neutral") ?>' : ((note.opinion  >= 21) ? '<?= __("Disagree") ?>' : '<?= __("Strongly Disagree") ?>')))
-            note.content = opinionTemplate(note)
-        } else if (note.note_type == 2){
-            note.content = renderRelationshipEntryFromType(note)
-        }
-        var noteHtml = baseNoteTemplate(note)
-        return noteHtml
-    }
-
     function renderAllNotesWithForm() {
-        renderedNotes = nodeContainerTemplate({
-            content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2})) + addNoteButton,
+        var buttonContainer = '<div>' + addNoteButton + addOpinionButton + '</div>'
+        renderedNotes<?= $seed ?> = nodeContainerTemplate({
+            content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2})) + buttonContainer,
             content_relationships: renderNotes(notes.filter(function(note) { return note.note_type == 2})) + addRelationshipButton,
         })
     }
@@ -533,30 +590,47 @@ $relationshipsCount = $counts['relations'];
         return relationshipDefaultEntryTemplate({content: contentHtml, relationship_type: note.relationship_type, comment: note.comment})
     }
 
+    function registerListeners() {
+        $('.node-opener-<?= $seed ?>').click(function() {
+            openNotes(this)
+        })
+    }
+
+    $(document).ready(function() {
+        renderAllNotesWithForm()
+        registerListeners()
+    })
+})()
+
     function createNewNote(clicked, object_type, object_uuid) {
-        note_type = 0;
-        openGenericModal(baseurl + '<?= $URL_ADD ?>' + object_type + '/' + object_uuid + '/' + note_type)
+        note_type = 'Note';
+        openGenericModal(baseurl + '<?= $URL_ADD ?>' + note_type + '/' + object_uuid + '/' + object_type)
+    }
+
+    function createNewOpinion(clicked, object_type, object_uuid) {
+        note_type = 'Opinion';
+        openGenericModal(baseurl + '<?= $URL_ADD ?>' + note_type + '/' + object_uuid + '/' + object_type)
     }
 
     function createNewRelationship(clicked, object_type, object_uuid) {
-        note_type = 2;
-        openGenericModal(baseurl + '<?= $URL_ADD ?>' + object_type + '/' + object_uuid + '/' + note_type)
+        note_type = 'Relationship';
+        openGenericModal(baseurl + '<?= $URL_ADD ?>' + note_type + '/' + object_uuid + '/' + object_type)
     }
 
     function addNote(clicked, note_uuid) {
-        object_type = 'note';
-        note_type = 0;
-        openGenericModal(baseurl + '<?= $URL_ADD ?>' + object_type + '/' + note_uuid + '/' + note_type)
+        object_type = 'Note';
+        note_type = 'Note';
+        openGenericModal(baseurl + '<?= $URL_ADD ?>' + note_type + '/' + note_uuid + '/' + object_type)
     }
 
     function addOpinion(clicked, note_uuid) {
-        object_type = 'note';
-        note_type = 1;
-        openGenericModal(baseurl + '<?= $URL_ADD ?>' + object_type + '/' + note_uuid + '/' + note_type)
+        object_type = 'Note';
+        note_type = 'Opinion';
+        openGenericModal(baseurl + '<?= $URL_ADD ?>' + note_type + '/' + note_uuid + '/' + object_type)
     }
 
-    function editNote(clicked, note_id) {
-        openGenericModal(baseurl + '<?= $URL_EDIT ?>' + note_id)
+    function editNote(clicked, note_id, note_type) {
+        openGenericModal(baseurl + '<?= $URL_EDIT ?>' + note_type + '/' + note_id)
     }
     
     function deleteNote(clicked, note_id) {
@@ -566,14 +640,21 @@ $relationshipsCount = $counts['relations'];
         popoverConfirm(clicked, '<?= __('Confirm deletion of this note') ?>', undefined, deletionSuccessCallback)
     }
 
-    function registerListeners() {
+    function replaceNoteInUI(data) {
+        var noteType = Object.keys(data)[0]
+        var noteHTMLID = '#' + data[noteType].note_type_name + '-' + data[noteType].id
+        var $noteToReplace = $(noteHTMLID)
+        if ($noteToReplace.length == 1) {
+            console.log(data);
+            var compiledUpdatedNote = renderNote(data[noteType])
+            $noteToReplace[0].outerHTML = compiledUpdatedNote
+            $(noteHTMLID).css({'opacity': 0})
+            setTimeout(() => {
+                $(noteHTMLID).css({'opacity': 1})
+            }, 750);
+        }
     }
 
-
-    $(document).ready(function() {
-        renderAllNotesWithForm()
-        registerListeners()
-    })
 </script>
 
 <style>
@@ -644,8 +725,11 @@ if(!function_exists("genStyleForOpinionNotes")) {
     function genStyleForOpinionNotes($notes) {
         foreach ($notes as $note) {
             genStyleForOpinionNote($note);
-            if (!empty($note['notes'])) {
-                genStyleForOpinionNotes($note['notes']);
+            if (!empty($note['Note'])) {
+                genStyleForOpinionNotes($note['Note']);
+            }
+            if (!empty($note['Opinion'])) {
+                genStyleForOpinionNotes($note['Opinion']);
             }
         }
     }
@@ -659,20 +743,20 @@ if(!function_exists("genStyleForOpinionNote")) {
         $opinion = min(100, max(0, intval($note['opinion'])));
         ?>
 
-        #note-<?= $note['id'] ?> .opinion-gradient-<?= $opinion >= 50 ? 'negative' : 'positive' ?> {
+        #Opinion-<?= $note['id'] ?> .opinion-gradient-<?= $opinion >= 50 ? 'negative' : 'positive' ?> {
             opacity: 0;
         }
-        #note-<?= $note['id'] ?> .opinion-gradient-dot {
+        #Opinion-<?= $note['id'] ?> .opinion-gradient-dot {
             left: calc(<?= $opinion ?>% - 6px);
             background-color: <?= $opinion == 50 ? '#555' : $opinion_color_scale_100[$opinion] ?>;
         }
         <?php if ($opinion >= 50): ?>
-            #note-<?= $note['id'] ?> .opinion-gradient-positive {
+            #Opinion-<?= $note['id'] ?> .opinion-gradient-positive {
                 -webkit-mask-image: linear-gradient(90deg, black 0 <?= abs(-50 + $opinion)*2 ?>%, transparent <?= abs(-50 + $opinion)*2 ?>% 100%);
                 mask-image: linear-gradient(90deg, black 0 <?= abs(-50 + $opinion)*2 ?>%, transparent <?= abs(-50 + $opinion)*2 ?>% 100%);
             }
         <?php else: ?>
-            #note-<?= $note['id'] ?> .opinion-gradient-negative {
+            #Opinion-<?= $note['id'] ?> .opinion-gradient-negative {
                 -webkit-mask-image: linear-gradient(90deg, transparent 0 <?= 100-(abs(-50 + $opinion)*2) ?>%, black <?= 100-(abs(-50 + $opinion)*2) ?>% 100%);
                 mask-image: linear-gradient(90deg, transparent 0 <?= 100-(abs(-50 + $opinion)*2) ?>%, black <?= 100-(abs(-50 + $opinion)*2) ?>% 100%);
             }

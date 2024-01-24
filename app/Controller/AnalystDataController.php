@@ -23,7 +23,7 @@ class AnalystDataController extends AppController
         'Relationship'
     ];
 
-    public $modelSelection = 'Note';
+    // public $modelSelection = 'Note';
 
     private function _setViewElements()
     {
@@ -65,7 +65,8 @@ class AnalystDataController extends AppController
     {
         $this->__typeSelector($type);
         $this->set('id', $id);
-        $params = [];
+        $params = [
+        ];
         $this->CRUD->edit($id, $params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -119,6 +120,7 @@ class AnalystDataController extends AppController
         foreach ($this->__valid_types as $vt) {
             if ($type === $vt) {
                 $this->modelSelection = $vt;
+                $this->loadModel($vt);
                 $this->AnalystData = $this->{$vt};
                 $this->modelClass = $vt;
                 $this->{$vt}->current_user = $this->Auth->user();

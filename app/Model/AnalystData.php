@@ -23,8 +23,45 @@ class AnalystData extends AppModel
         'SharingGroup'
     ];
 
+    const NOTE = 0,
+        OPINION = 1,
+        RELATIONSHIP = 2;
+
     public $current_user = null;
 
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct($id, $table, $ds);
+        $this->bindModel([
+            'belongsTo' => [
+                'Organisation' => [
+                    'className' => 'Organisation',
+                    'foreignKey' => false,
+                    'conditions' => [
+                        sprintf('%s.orgc_uuid = Organisation.uuid', $this->alias)
+                    ],
+                ]
+            ]
+        ]);
+    }
+
+    public function afterFind($results, $primary = false)
+    {
+        parent::afterFind($results, $primary);
+        foreach ($results as $i => $v) {
+            $results[$i][$this->alias]['note_type'] = $this->current_type_id;
+            $results[$i][$this->alias]['note_type_name'] = $this->current_type;
+            if (!isset($v['Organisation'])) {
+                $this->Organisation = ClassRegistry::init('Organisation');
+                $results[$i][$this->alias]['Organisation'] = $this->Organisation->find('first', ['condition' => ['uuid' => $v[$this->alias]['orgc_uuid']]])['Organisation'];
+            } else {
+                $results[$i][$this->alias]['Organisation'] = $v['Organisation'];
+            }
+            unset($results[$i]['Organisation']);
+            $results[$i][$this->alias] = $this->fetchChildNotesAndOpinions($results[$i][$this->alias]);
+        }
+        return $results;
+    }
 
     public function beforeValidate($options = array())
     {
@@ -39,7 +76,6 @@ class AnalystData extends AppModel
             $this->data[$this->current_type]['org_uuid'] = $this->current_user['Organisation']['uuid'];
             $this->data[$this->current_type]['authors'] = $this->current_user['email'];
         }
-        debug($this->data);
         return true;
     }
 
@@ -56,5 +92,47 @@ class AnalystData extends AppModel
             }
         }
         throw new NotFoundException(__('Invalid UUID'));
+    }
+
+    public function fetchChildNotesAndOpinions(array $analystData): array
+    {
+        $this->Note = ClassRegistry::init('Note');
+        $this->Opinion = ClassRegistry::init('Opinion');
+        $paramsNote = [
+            'recursive' => -1,
+            'contain' => ['Organisation'],
+            'conditions' => [
+                'object_type' => $this->current_type,
+                'object_uuid' => $analystData['uuid'],
+            ]
+        ];
+        $paramsOpinion = [
+            'recursive' => -1,
+            'contain' => ['Organisation'],
+            'conditions' => [
+                'object_type' => $this->current_type,
+                'object_uuid' => $analystData['uuid'],
+            ]
+        ];
+        
+        // recursively fetch and include nested notes and opinions
+        $childNotes = array_map(function ($item) {
+            $expandedNotes = $this->fetchChildNotesAndOpinions($item[$this->Note->current_type]);
+            return $expandedNotes;
+            // return $item[$this->Note->current_type];
+        }, $this->Note->find('all', $paramsNote));
+        $childOpinions = array_map(function ($item) {
+            $expandedNotes = $this->fetchChildNotesAndOpinions($item[$this->Opinion->current_type]);
+            return $expandedNotes;
+            // return $item[$this->Opinion->current_type];
+        }, $this->Opinion->find('all', $paramsOpinion));
+
+        if (!empty($childNotes)) {
+            $analystData[$this->Note->current_type] = $childNotes;
+        }
+        if (!empty($childOpinions)) {
+            $analystData[$this->Opinion->current_type] = $childOpinions;
+        }
+        return $analystData;
     }
 }

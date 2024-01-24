@@ -12,6 +12,7 @@ class Note extends AnalystData
     );
 
     public $current_type = 'Note';
+    public $current_type_id = 0;
 
     public $validate = array(
     );

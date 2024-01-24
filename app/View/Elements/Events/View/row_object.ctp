@@ -32,14 +32,14 @@ $objectId = intval($object['id']);
   <td class="short context hidden"><?= $objectId ?></td>
   <td class="short context hidden uuid">
         <span class="quickSelect"><?php echo h($object['uuid']); ?></span>
-        <?php echo $this->element('genericElements/Analyst_notes/notes', ['uuid' => $object['uuid'], 'notes' => !empty($object['notes']) ? $object['notes'] : [], 'object_type' => 'attribute']); ?>
+        <?php echo $this->element('genericElements/Analyst_notes/notes', ['uuid' => $object['uuid'], 'notes' => !empty($object['notes']) ? $object['notes'] : [], 'object_type' => 'Attribute']); ?>
       </td>
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
   <td class="short timestamp <?= $isNew ? 'bold red' : '' ?>" <?= $isNew ? 'title="' . __('Element or modification to an existing element has not been published yet.') . '"' : '' ?>><?= $this->Time->date($object['timestamp']) . ($isNew ? '*' : '') ?></td>
   <td class="short context">
-        <?php echo $this->element('/genericElements/shortUuidWithNotes', ['uuid' => $object['uuid'], 'notes' => !empty($object['notes']) ? $object['notes'] : [], 'object_type' => 'object']); ?>
+        <?php echo $this->element('/genericElements/shortUuidWithNotes', ['uuid' => $object['uuid'], 'notes' => !empty($object['notes']) ? $object['notes'] : [], 'object_type' => 'Object']); ?>
       </td>
   <?php
     if ($extended):

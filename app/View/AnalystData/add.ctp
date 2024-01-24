@@ -48,6 +48,20 @@ if ($modelSelection === 'Note') {
         ]
     );
 } else if ($modelSelection === 'Opinion') {
+    $fields = array_merge($fields,
+        [
+            [
+                'field' => 'opinion',
+                'class' => '',
+                'type' => 'opinion'
+            ],
+            [
+                'field' => 'comment',
+                'type' => 'textarea',
+                'class' => 'input span6'
+            ]
+        ]
+    );
 
 } else if ($modelSelection === 'Relationship') {
 
@@ -60,7 +74,7 @@ echo $this->element('genericElements/Form/genericForm', [
         'fields' => $fields,
         'submit' => [
             'action' => $this->request->params['action'],
-            'ajaxSubmit' => 'submitGenericFormInPlace();'
+            'ajaxSubmit' => 'submitGenericFormInPlace(analystDataSubmitSuccess, true);'
         ]
     ]
 ]);
@@ -68,3 +82,33 @@ echo $this->element('genericElements/Form/genericForm', [
 if (!$ajax) {
     echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
 }
+?>
+
+<script>
+    function analystDataSubmitSuccess(data) {
+        <?php if ($edit): ?>
+            replaceNoteInUI(data)
+        <?php else: ?>
+            addNoteInUI(data)
+        <?php endif; ?>
+    }
+
+    function replaceNoteInUI(data) {
+        var noteType = Object.keys(data)[0]
+        var noteHTMLID = '#' + data[noteType].note_type_name + '-' + data[noteType].id
+        var $noteToReplace = $(noteHTMLID)
+        if ($noteToReplace.length == 1) {
+            console.log(data);
+            var compiledUpdatedNote = renderNote(data[noteType])
+            $noteToReplace[0].outerHTML = compiledUpdatedNote
+            $(noteHTMLID).css({'opacity': 0})
+            setTimeout(() => {
+                $(noteHTMLID).css({'opacity': 1})
+            }, 750);
+        }
+    }
+
+    function addNoteInUI(data) {
+        location.reload()
+    }
+</script>

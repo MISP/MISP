@@ -5,7 +5,19 @@
         h($uuid)
     );
 
-    $notes = !empty($notes) ? $notes : [];
-    $object_uuid = !empty($object_uuid) ? $object_uuid : null;
-    $object_type = !empty($object_type) ? $object_type : null;
-    echo $this->element('genericElements/Analyst_notes/notes', ['notes' => $notes, 'object_uuid' => $object_uuid, 'object_type' => $object_type]);
+    if (!empty($field['object_type'])) {
+        $field['notes_path'] = !empty($field['notes_path']) ? $field['notes_path'] : 'Note';
+        $field['opinions_path'] = !empty($field['opinions_path']) ? $field['opinions_path'] : 'Opinion';
+        $field['relationships_path'] = !empty($field['relationships_path']) ? $field['relationships_path'] : 'Relationship';
+        $notes = !empty($field['notes']) ? $field['notes'] : Hash::extract($data, $field['notes_path']);
+        $opinions = !empty($field['opinions']) ? $field['opinions'] : Hash::extract($data, $field['opinions_path']);
+        $relationships = !empty($field['relationships']) ? $field['relationships'] : Hash::extract($data, $field['relationships_path']);
+        // echo $this->element('genericElements/Analyst_data/generic', ['notes' => $notes, 'object_uuid' => $uuid, 'object_type' => $field['object_type']]);
+        echo $this->element('genericElements/Analyst_data/generic', [
+            'analyst_data' => ['notes' => $notes, 'opinions' => $opinions, 'relationships' => $relationships],
+            'object_uuid' => $uuid,
+            'object_type' => $field['object_type']
+        ]);
+    } else {
+        debug('Provide object type to access notes for that object');
+    }

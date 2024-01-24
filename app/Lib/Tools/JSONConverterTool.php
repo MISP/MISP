@@ -40,7 +40,7 @@ class JSONConverterTool
 
     public static function convert($event, $isSiteAdmin=false, $raw = false)
     {
-        $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object', 'EventReport', 'CryptographicKey');
+        $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object', 'EventReport', 'CryptographicKey', 'Note', 'Opinion', 'Relationship');
         foreach ($toRearrange as $object) {
             if (isset($event[$object])) {
                 $event['Event'][$object] = $event[$object];
@@ -67,6 +67,16 @@ class JSONConverterTool
                 unset($tag['Tag']['org_id']);
                 $event['Event']['Tag'][$k] = $tag['Tag'];
             }
+        }
+
+        if (isset($event['Event']['Note'])) {
+            $event['Event']['Note'] = self::__cleanAnalystData($event['Event']['Note']);
+        }
+        if (isset($event['Event']['Opinion'])) {
+            $event['Event']['Opinion'] = self::__cleanAnalystData($event['Event']['Opinion']);
+        }
+        if (isset($event['Event']['Relationship'])) {
+            $event['Event']['Relationship'] = self::__cleanAnalystData($event['Event']['Relationship']);
         }
 
         // cleanup the array from things we do not want to expose
@@ -207,6 +217,17 @@ class JSONConverterTool
         }
         $objects = array_values($objects);
         return $objects;
+    }
+
+    private function __cleanAnalystData($data)
+    {
+        foreach ($data as $k => $entry) {
+            if (empty($entry['SharingGroup'])) {
+                unset($data[$k]['SharingGroup']);
+            }
+        }
+        $data = array_values($data);
+        return $data;
     }
 
     public static function arrayPrinter($array, $root = true)

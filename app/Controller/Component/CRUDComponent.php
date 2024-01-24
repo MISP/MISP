@@ -25,7 +25,7 @@ class CRUDComponent extends Component
             }
             $options['filters'][] = 'quickFilter';
         }
-        $this->Controller->includeAnalystData->{$this->Controller->modelClass}->includeAnalystData = true;
+        $this->Controller->{$this->Controller->modelClass}->includeAnalystData = true;
         $params = $this->Controller->IndexFilter->harvestParameters(empty($options['filters']) ? [] : $options['filters']);
         $query = [];
         $query = $this->setFilters($params, $query);

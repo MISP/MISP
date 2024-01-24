@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('AnalystData', 'Model');
 class Relationship extends AnalystData
 {
 
@@ -11,6 +12,7 @@ class Relationship extends AnalystData
     );
 
     public $current_type = 'Relationship';
+    public $current_type_id = 2;
 
     public $validate = array(
     );
