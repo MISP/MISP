@@ -995,6 +995,14 @@ class AppController extends Controller
      */
     protected function _harvestParameters($options, &$exception = null, $data = [])
     {
+        if (!empty($options['paramArray'])) {
+            if (!in_array('page', $options['paramArray'])) {
+                $options['paramArray'][] = 'page';
+            }
+            if (!in_array('limit', $options['paramArray'])) {
+                $options['paramArray'][] = 'limit';
+            }
+        }
         $request = $options['request'] ?? $this->request;
         if ($request->is('post')) {
             if (empty($request->data)) {
