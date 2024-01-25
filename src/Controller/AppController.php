@@ -144,7 +144,7 @@ class AppController extends Controller
             $user = $this->Users->get(
                 $this->request->getAttribute('identity')->getIdentifier(),
                 [
-                'contain' => ['Roles', 'Organisations' /*'UserSettings'*/],
+                    'contain' => ['Roles', 'Organisations' /*'UserSettings'*/],
                 ]
             );
             $this->__accessMonitor($user->toArray());
@@ -443,7 +443,7 @@ class AppController extends Controller
      * @param  mixed $data data
      * @param  mixed $param param
      * @param  mixed $value value
-     * @return void
+     * @return mixed
      */
     private function captureParam($data, $param, $value)
     {
@@ -473,7 +473,7 @@ class AppController extends Controller
     /**
      * setResponseType
      *
-     * @return void
+     * @return static|void
      */
     private function setResponseType()
     {

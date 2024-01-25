@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Cerebrates;
@@ -10,8 +9,7 @@ use App\Test\Helper\ApiTestTrait;
 use Cake\Http\TestSuite\HttpClientTrait;
 use Cake\TestSuite\TestCase;
 
-
-class PullSGsCerebrateApiTest extends TestCase
+class PullSgsCerebrateApiTest extends TestCase
 {
     use ApiTestTrait;
     use HttpClientTrait;
@@ -24,10 +22,9 @@ class PullSGsCerebrateApiTest extends TestCase
         'app.Roles',
         'app.Users',
         'app.AuthKeys',
-        'app.SharingGroups'
+        'app.SharingGroups',
     ];
 
-    
     public function testPullSharingGroups(): void
     {
         $this->skipOpenApiValidations();
@@ -38,7 +35,7 @@ class PullSGsCerebrateApiTest extends TestCase
         ];
         $response = json_encode(CerebratesFixture::CEREBRATE_SG_LIST);
         $this->mockClientGet(
-            CerebratesFixture::SERVER_A_URL.'/sharingGroups/index',
+            CerebratesFixture::SERVER_A_URL . '/sharingGroups/index',
             $this->newClientResponse(200, $headers, $response)
         );
         $url = sprintf('%s/%d', self::ENDPOINT, CerebratesFixture::SERVER_A_ID);

@@ -7,28 +7,28 @@ echo $this->element(
         'fields' => [
             [
                 'key' => __('Id'),
-                'path' => 'id'
+                'path' => 'id',
             ],
             [
                 'key' => __('Name'),
-                'path' => 'name'
+                'path' => 'name',
             ],
             [
                 'key' => __('URL'),
                 'path' => 'url',
                 'url' => '{{0}}',
-                'url_vars' => ['url']
+                'url_vars' => ['url'],
             ],
             [
                 'key' => __('Owner Organisation'),
                 'path' => 'org_id',
                 'pathName' => 'Organisation.name',
                 'type' => 'model',
-                'model' => 'organisations'
+                'model' => 'organisations',
             ],
             [
                 'key' => __('Description'),
-                'path' => 'description'
+                'path' => 'description',
             ],
         ],
         // 'side_panels' => [  // FIXME chri missing side-panel
@@ -63,6 +63,6 @@ echo $this->element(
                 'title' => __('Sharing Groups'),
                 // FIXME chri - 'elementId' => 'preview_sgs_container' FIXME chri
             ],
-        ]
-    ]
+        ],
+    ],
 );

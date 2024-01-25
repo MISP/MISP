@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Cerebrates;
@@ -19,7 +18,7 @@ class AddCerebrateApiTest extends TestCase
         'app.Cerebrates',
         'app.Roles',
         'app.Users',
-        'app.AuthKeys'
+        'app.AuthKeys',
     ];
 
     public function testAddCerebrate(): void
@@ -43,7 +42,7 @@ class AddCerebrateApiTest extends TestCase
                 'client_cert_file' => false,
                 // 'internal' => 1,
                 'skip_proxy' => false,
-                'description' => $faker->sentence()
+                'description' => $faker->sentence(),
             ]
         );
 
@@ -73,7 +72,7 @@ class AddCerebrateApiTest extends TestCase
                 'client_cert_file' => false,
                 // 'internal' => 1,
                 'skip_proxy' => false,
-                'description' => $faker->sentence()
+                'description' => $faker->sentence(),
             ]
         );
         $this->assertResponseCode(405);

@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Cerebrates;
@@ -9,7 +8,6 @@ use App\Test\Fixture\CerebratesFixture;
 use App\Test\Helper\ApiTestTrait;
 use Cake\Http\TestSuite\HttpClientTrait;
 use Cake\TestSuite\TestCase;
-
 
 class PullOrgsCerebrateApiTest extends TestCase
 {
@@ -23,10 +21,9 @@ class PullOrgsCerebrateApiTest extends TestCase
         'app.Cerebrates',
         'app.Roles',
         'app.Users',
-        'app.AuthKeys'
+        'app.AuthKeys',
     ];
 
-    
     public function testPullOrgs(): void
     {
         $this->skipOpenApiValidations();
@@ -37,14 +34,14 @@ class PullOrgsCerebrateApiTest extends TestCase
         ];
         $response = json_encode(CerebratesFixture::CEREBRATE_ORG_LIST);
         $this->mockClientGet(
-            CerebratesFixture::SERVER_A_URL.'/organisations/index',
+            CerebratesFixture::SERVER_A_URL . '/organisations/index',
             $this->newClientResponse(200, $headers, $response)
         );
         $url = sprintf('%s/%d', self::ENDPOINT, CerebratesFixture::SERVER_A_ID);
         $this->post($url);
         $this->assertResponseOk();
         $this->assertResponseContains(' 0 failures');
-        foreach(CerebratesFixture::CEREBRATE_ORG_LIST as $org) {
+        foreach (CerebratesFixture::CEREBRATE_ORG_LIST as $org) {
             $this->assertDbRecordExists('Organisations', ['name' => $org['name'], 'uuid' => $org['uuid']]);
         }
     }

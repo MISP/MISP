@@ -1,19 +1,16 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Model\Entity;
 
 use App\Lib\Tools\HttpTool;
-use App\Model\Entity\AppModel;
-use Cake\Core\Exception\CakeException;
+use Cake\Database\Expression\QueryExpression;
+use Cake\Database\Query;
 use Cake\Http\Client\Exception\NetworkException;
 use Cake\Http\Exception\BadRequestException;
 use Cake\Http\Exception\ForbiddenException;
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Hash;
-use Cake\Database\Expression\QueryExpression;
-use Cake\Database\Query;
-
-
 
 /**
  * Cerebrate Entity
@@ -60,7 +57,6 @@ class Cerebrate extends AppModel
         'description' => true,
     ];
 
-    
     /**
      * queryInstance - Query a remote Cerebrate instance for a specific path
      *
@@ -79,7 +75,8 @@ class Cerebrate extends AppModel
                 $response = $httpTool->get(
                     $url,
                     [],
-                    (isset($options['params']) ? $options['params'] : []));
+                    (isset($options['params']) ? $options['params'] : [])
+                );
             }
             if ($response->isOk()) {
                 return json_decode($response->getBody(), true);
@@ -93,26 +90,32 @@ class Cerebrate extends AppModel
         throw new BadRequestException(__('Something went wrong with the request or the remote side is having issues.'));
     }
 
-    public function convertOrg($org_data) 
+    /**
+     * convertOrg
+     *
+     * @param  mixed $org_data organisation data
+     * @return array
+     */
+    public function convertOrg($org_data)
     {
         $mapping = [
             'name' => [
                 'field' => 'name',
-                'required' => 1
+                'required' => 1,
             ],
             'uuid' => [
                 'field' => 'uuid',
-                'required' => 1
+                'required' => 1,
             ],
             'nationality' => [
-                'field' => 'nationality'
+                'field' => 'nationality',
             ],
             'sector' => [
-                'field' => 'sector'
+                'field' => 'sector',
             ],
             'type' => [
-                'field' => 'type'
-            ]
+                'field' => 'type',
+            ],
         ];
         $org = [];
         foreach ($mapping as $cerebrate_field => $field_data) {
@@ -125,12 +128,12 @@ class Cerebrate extends AppModel
             }
             $org[$field_data['field']] = $org_data[$cerebrate_field];
         }
+
         return $org;
     }
 
-        
     /**
-     * saveRemoteOrgs - 
+     * saveRemoteOrgs -
      *
      * @param  array $orgs An array of organisations with name, uuid, sector, nationality, type
      * @return array {'add': int, 'edit': int, 'fails': int}
@@ -140,7 +143,7 @@ class Cerebrate extends AppModel
         $outcome = [
             'add' => 0,
             'edit' => 0,
-            'fails' => 0
+            'fails' => 0,
         ];
         foreach ($orgs as $org) {
             $isEdit = false;
@@ -158,14 +161,15 @@ class Cerebrate extends AppModel
                 }
             }
         }
+
         return $outcome;
     }
-    
+
     /**
      * saveRemoteSgs
      *
-     * @param  mixed $sgs
-     * @param  mixed $user
+     * @param  mixed $sgs SharingGroups
+     * @param  mixed $user user
      * @return array ['add'=> 0, 'edit' => 0, 'fails' => 0]
      */
     public function saveRemoteSgs($sgs, $user)
@@ -173,7 +177,7 @@ class Cerebrate extends AppModel
         $outcome = [
             'add' => 0,
             'edit' => 0,
-            'fails' => 0
+            'fails' => 0,
         ];
         foreach ($sgs as $sg) {
             $isEdit = false;
@@ -191,18 +195,19 @@ class Cerebrate extends AppModel
                 }
             }
         }
+
         return $outcome;
     }
-    
+
     /**
      * captureOrg - save or update an Org locally that comes from a Remote Cerebrate server
      *
      * @param  array $org_data The Org array from the remote Cerebrate server
      * @param  bool $edit Returns if the org was edited or not
-     * @param  bool $noChange Returns 
+     * @param  bool $noChange Returns
      * @return string|array Error message or Organisation array
      */
-    public function captureOrg($org_data, &$edit=false, &$noChange=false) 
+    public function captureOrg($org_data, &$edit = false, &$noChange = false)
     {
         $org = $this->convertOrg($org_data);
         if ($org) {
@@ -210,7 +215,7 @@ class Cerebrate extends AppModel
             $organisationTable = TableRegistry::getTableLocator()->get('Organisations');
             $existingOrg = $organisationTable->find('all', [
                 'recursive' => -1,
-                'conditions' => ['uuid' => $org['uuid']]
+                'conditions' => ['uuid' => $org['uuid']],
             ])->first();
             if (!empty($existingOrg)) {
                 $fieldsToSave = ['name', 'sector', 'nationality', 'type'];
@@ -246,7 +251,7 @@ class Cerebrate extends AppModel
                 $nameCheck = $organisationTable->find('all', [
                     'recursive' => -1,
                     'conditions' => ['name' => $orgToSave->name],
-                    'fields' => ['id']
+                    'fields' => ['id'],
                 ])->first();
                 if (!empty($nameCheck)) {
                     $orgToSave['name'] = $orgToSave['name'] . '_' . mt_rand(0, 9999);
@@ -256,23 +261,29 @@ class Cerebrate extends AppModel
                 if ($savedOrganisation) {
                     return $organisationTable->find('all', [
                         'recursive' => -1,
-                        'conditions' => ['id' => $savedOrganisation->id]
+                        'conditions' => ['id' => $savedOrganisation->id],
                     ])->first()->toArray();
                 } else {
                     return __('The organisation could not be saved.');
                 }
             } else {
                 $noChange = true;
+
                 return $existingOrg->toArray();
             }
         }
+
         return __('The retrieved data isn\'t a valid organisation.');
     }
 
-    /*
+    /**
+     * checkRemoteOrgs
      *  Checks remote for the current status of each organisation
      *  Adds the exists_locally field with a boolean status
      *  If exists_loally is true, adds a list with the differences (keynames)
+     *
+     * @param  array $orgs orgs
+     * @return array
      */
     public function checkRemoteOrgs($orgs)
     {
@@ -310,9 +321,17 @@ class Cerebrate extends AppModel
                 }
             }
         }
+
         return $orgs;
     }
 
+    /**
+     * __compareNames
+     *
+     * @param  string $name1 orgname
+     * @param  string $name2 orgname
+     * @return bool
+     */
     private function __compareNames($name1, $name2)
     {
         if (preg_match('/\_[0-9]{4}$/i', $name1)) {
@@ -322,9 +341,17 @@ class Cerebrate extends AppModel
                 return false;
             }
         }
+
         return false;
     }
 
+    /**
+     * __compareMembers
+     *
+     * @param  array $existingMembers members
+     * @param  array $remoteMembers members
+     * @return bool
+     */
     private function __compareMembers($existingMembers, $remoteMembers)
     {
         $memberFound = [];
@@ -342,13 +369,18 @@ class Cerebrate extends AppModel
                 $memberNotFound[] = $remoteMember['uuid'];
             }
         }
+
         return empty($memberNotFound);
     }
 
-    /*
-     *  Checks remote for the current status of each sharing groups
-     *  Adds the exists_locally field with a boolean status
-     *  If exists_loally is true, adds a list with the differences (keynames)
+    /**
+     * checkRemoteSharingGroups
+     * Checks remote for the current status of each sharing groups
+     * Adds the exists_locally field with a boolean status
+     * If exists_loally is true, adds a list with the differences (keynames)
+     *
+     * @param  array $sgs SharingGroups
+     * @return array
      */
     public function checkRemoteSharingGroups($sgs)
     {
@@ -356,7 +388,7 @@ class Cerebrate extends AppModel
         $sharingGroupTable = TableRegistry::getTableLocator()->get('SharingGroups');
         $uuids = Hash::extract($sgs, '{n}.uuid');
         $existingSgs = $sharingGroupTable->find('all')
-        ->contain(['SharingGroupOrgs'=> 'Organisations', 'Organisations'])
+        ->contain(['SharingGroupOrgs' => 'Organisations', 'Organisations'])
         ->where(['SharingGroups.uuid'])
         ->where(function (QueryExpression $exp, Query $q) use ($uuids) {
             return $exp->in('SharingGroups.uuid', array_values($uuids));
@@ -375,9 +407,17 @@ class Cerebrate extends AppModel
                 $sgs[$k]['differences'] = $this->compareSgs($rearranged[$sg['uuid']], $sgs[$k]);
             }
         }
+
         return $sgs;
     }
 
+    /**
+     * compareSgs
+     *
+     * @param  array $existingSg existing SharingGroup
+     * @param  array $remoteSg remote Sharing Group
+     * @return array
+     */
     private function compareSgs($existingSg, $remoteSg)
     {
         $differences = [];
@@ -399,25 +439,32 @@ class Cerebrate extends AppModel
         if (!$this->__compareMembers(Hash::extract($existingSg['SharingGroupOrg'], '{n}.Organisation'), $remoteSg['sharing_group_orgs'])) {
             $differences[] = 'members';
         }
+
         return $differences;
     }
 
+    /**
+     * convertSg
+     *
+     * @param  array $sg_data Sharing Group data
+     * @return array
+     */
     private function convertSg($sg_data)
     {
         $mapping = [
             'name' => [
                 'field' => 'name',
-                'required' => 1
+                'required' => 1,
             ],
             'uuid' => [
                 'field' => 'uuid',
-                'required' => 1
+                'required' => 1,
             ],
             'releasability' => [
-                'field' => 'releasability'
+                'field' => 'releasability',
             ],
             'description' => [
-                'field' => 'description'
+                'field' => 'description',
             ],
         ];
         $sg = [];
@@ -442,24 +489,26 @@ class Cerebrate extends AppModel
                     $sg['SharingGroupOrg'][$k]['extend'] = false;
                 }
                 foreach ($org as $ok => $ov) {
-                    if ($ov === null) unset($sg['SharingGroupOrg'][$k][$ok]);
+                    if ($ov === null) {
+                        unset($sg['SharingGroupOrg'][$k][$ok]);
+                    }
                 }
             }
         }
+
         return $sg;
     }
 
-        
     /**
      * captureSg
      *
-     * @param  array $sg_data
-     * @param  App\Model\Entity\User $user
-     * @param  bool $edit
-     * @param  bool $noChange
-     * @return mixed
+     * @param  array $sg_data Sharing Group data
+     * @param  \App\Model\Entity\User $user user
+     * @param  bool $edit data was changed or not
+     * @param  bool $noChange noChange
+     * @return string|array
      */
-    public function captureSg($sg_data, $user, &$edit=false, &$noChange=false) 
+    public function captureSg($sg_data, $user, &$edit = false, &$noChange = false)
     {
         /** @var \App\Model\Table\SharingGroupsTable $sharingGroupTable */
         $sharingGroupTable = TableRegistry::getTableLocator()->get('SharingGroups');
@@ -472,12 +521,15 @@ class Cerebrate extends AppModel
             $captureResult = $sharingGroupTable->captureSG($sg, $user->toArray(), false);
             if (!empty($captureResult)) {
                 $savedSg = $sharingGroupTable->findById($captureResult)
-                ->contain(['SharingGroupOrgs'=> 'Organisations', 'Organisations'])
+                ->contain(['SharingGroupOrgs' => 'Organisations', 'Organisations'])
                 ->first();
+
                 return $savedSg->toArray();
             }
+
             return __('The organisation could not be saved.');
         }
+
         return __('The retrieved data isn\'t a valid sharing group.');
     }
 }
