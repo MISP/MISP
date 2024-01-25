@@ -3,7 +3,11 @@
 namespace App\Model\Table;
 
 use App\Model\Table\AppTable;
+use ArrayObject;
 use Cake\Core\Configure;
+use Cake\Datasource\EntityInterface;
+use Cake\Event\EventInterface;
+use Cake\Utility\Text;
 
 class EventsTable extends AppTable
 {
@@ -21,7 +25,23 @@ class EventsTable extends AppTable
                 'foreignKey' => 'sharing_group_id'
             ]
         );
+        $this->hasMany(
+            'Attributes',
+            [
+                'dependent' => true,
+                'propertyName' => 'Attribute'
+            ]
+        );
         $this->setDisplayField('title');
+    }
+
+    public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options)
+    {
+        if ($entity->uuid === null) {
+            $entity->uuid = Text::uuid();
+        }
+
+        return true;
     }
 
     public function createEventConditions($user)
@@ -84,5 +104,45 @@ class EventsTable extends AppTable
             }
             return $sharingGroupData;
         }
+    }
+
+    /**
+     * Low level function to add an Event based on an Event $data array.
+     *
+     * @param array $data
+     * @param bool $fromXml
+     * @param array $user
+     * @param int $org_id
+     * @param int|null $passAlong Server ID or null
+     * @param bool $fromPull
+     * @param int|null $jobId
+     * @param int $created_id
+     * @param array $validationErrors
+     * @return bool|int|string True when new event was created, int when event with the same uuid already exists, string when validation errors
+     * @throws Exception
+     */
+    public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = [])
+    {
+        // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
+        $data['Event']['user_id'] = $user['id'];
+        if ($fromPull) {
+            $data['Event']['org_id'] = $org_id;
+        } else {
+            $data['Event']['org_id'] = $user['Organisation']['id'];
+        }
+        if (!isset($data['Event']['orgc_id']) && !isset($data['Event']['orgc'])) {
+            $data['Event']['orgc_id'] = $data['Event']['org_id'];
+        }
+
+        $event = $this->newEntity($data['Event']);
+        $this->saveOrFail($event);
+
+        return true;
+    }
+
+    public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false, $fast_update = false)
+    {
+        // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
+        return true;
     }
 }

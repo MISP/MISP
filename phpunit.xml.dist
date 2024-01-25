@@ -30,8 +30,6 @@
     <php>
         <ini name="memory_limit" value="-1" />
         <ini name="apc.enable_cli" value="1" />
-        <env name="WIREMOCK_HOST" value="localhost" />
-        <env name="WIREMOCK_PORT" value="8080" />
         <env name="OPENAPI_SPEC" value="webroot/docs/openapi.yaml" />
         <env name="SKIP_DB_MIGRATIONS" value="0" />
     </php>

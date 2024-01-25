@@ -533,7 +533,7 @@ class GalaxyClustersController extends AppController
 
         if ($this->request->is('post') || $this->request->is('put')) {
             $success = $this->GalaxyClusters->publishRouter($this->ACL->getUser()->toArray(), $cluster, $passAlong = null);
-            if (Configure::read('MISP.BackgroundJobs.enabled')) {
+            if (Configure::read('BackgroundJobs.enabled')) {
                 $message = __('Publish job queued. Job ID: %s', $success);
                 $this->Flash->success($message);
                 if ($this->ParamHandler->isRest()) {

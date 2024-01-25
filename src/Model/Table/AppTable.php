@@ -2,7 +2,11 @@
 
 namespace App\Model\Table;
 
+use App\Lib\Tools\BackgroundJobsTool;
+use App\Lib\Tools\FileAccessTool;
+use App\Lib\Tools\GitTool;
 use Cake\Collection\CollectionInterface;
+use Cake\Core\Configure;
 use Cake\Database\Expression\QueryExpression;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\I18n\FrozenTime;
@@ -11,6 +15,7 @@ use Cake\ORM\Query;
 use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Hash;
+use Exception;
 use InvalidArgumentException;
 
 class AppTable extends Table
@@ -19,6 +24,9 @@ class AppTable extends Table
 
     /** @var LogsTable */
     public $Log = null;
+
+    /** @var BackgroundJobsTool */
+    private static $loadedBackgroundJobsTool;
 
     public function initialize(array $config): void
     {
@@ -303,14 +311,51 @@ class AppTable extends Table
         }
         return $this->Log;
     }
- 
+
     /**
-     * @deprecated checkMISPVersion - use \App\Lib\Tools\MISPTool::getVersion() instead
+     * Returns MISP version from VERSION.json file as array with major, minor and hotfix keys.
      *
      * @return array
+     * @throws Exception
      */
-    public function checkMISPVersion() 
+    public function checkMISPVersion()
     {
-        return \App\Lib\Tools\MISPTool::getVersion();
+        static $versionArray;
+        if ($versionArray === null) {
+            $versionArray = FileAccessTool::readJsonFromFile(ROOT . DS . 'VERSION.json', true);
+        }
+        return $versionArray;
+    }
+
+    /**
+     * Returns MISP commit hash.
+     *
+     * @return false|string
+     */
+    public function checkMISPCommit()
+    {
+        static $commit;
+        if ($commit === null) {
+            try {
+                $commit = GitTool::currentCommit();
+            } catch (Exception $e) {
+                $this->logException('Could not get current git commit', $e, LOG_NOTICE);
+                $commit = false;
+            }
+        }
+        return $commit;
+    }
+
+    /**
+     * @return BackgroundJobsTool
+     */
+    public function getBackgroundJobsTool(): BackgroundJobsTool
+    {
+        if (!self::$loadedBackgroundJobsTool) {
+            self::$loadedBackgroundJobsTool = new BackgroundJobsTool(Configure::read('BackgroundJobs'));
+            ;
+        }
+
+        return self::$loadedBackgroundJobsTool;
     }
 }

@@ -7,6 +7,7 @@ namespace App\Test\TestCase\Api\GalaxyClusters;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\GalaxyClustersFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\Core\Configure;
 use Cake\TestSuite\TestCase;
 
 class PublishGalaxyClusterApiTest extends TestCase
@@ -31,6 +32,8 @@ class PublishGalaxyClusterApiTest extends TestCase
     public function testPublishGalaxyCluster(): void
     {
         $this->skipOpenApiValidations();
+
+        Configure::write('BackgroundJobs.enabled', false);
 
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
 

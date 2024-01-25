@@ -534,7 +534,7 @@ class GalaxyClustersTable extends AppTable
      */
     public function publishRouter(array $user, $cluster, $passAlong = null)
     {
-        if (Configure::read('MISP.BackgroundJobs.enabled')) {
+        if (Configure::read('BackgroundJobs.enabled')) {
             if (is_numeric($cluster)) {
                 $clusterId = $cluster;
             } elseif (isset($cluster['GalaxyCluster'])) {
