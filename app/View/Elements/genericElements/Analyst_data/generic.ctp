@@ -183,11 +183,7 @@ $notes2 = [
     ],
 ];
 
-$notes = $analyst_data['notes'] ?? [];
-$opinions = $analyst_data['opinions'] ?? [];
-$relationships = $analyst_data['relationships'] ?? [];
-
-$related_objects = [
+$related_objects2 = [
     'Event' => [
         'f80a0db2-24bd-4148-929e-7c803ade7ca1' => [
             'uuid' => 'f80a0db2-24bd-4148-929e-7c803ade7ca1',
@@ -240,38 +236,56 @@ $related_objects = [
     ],
 ];
 
-$notes = array_merge($notes, $opinions);
+$notes = $analyst_data['notes'] ?? [];
+$opinions = $analyst_data['opinions'] ?? [];
+$relationships = $analyst_data['relationships'] ?? [];
+$related_objects = [
+    'Attribute' => [],
+    'Event' => [],
+    'Object' => [],
+    'Organisation' => [],
+    'GalaxyCluster' => [],
+    'Galaxy' => [],
+    'Note' => [],
+    'Opinion' => [],
+    'SharingGroup' => [],
+];
+foreach ($relationships as $relationship) {
+    $related_objects[$relationship['object_type']][$relationship['related_object_uuid']] = $relationship['related_object'][$relationship['object_type']];
+}
+
+$notesOpinions = array_merge($notes, $opinions);
 
 if(!function_exists("countNotes")) {
-    function countNotes($notes) {
-        $notesTotalCount = count($notes);
+    function countNotes($notesOpinions) {
+        $notesTotalCount = count($notesOpinions);
         $notesCount = 0;
         $relationsCount = 0;
-        foreach ($notes as $note) {
-            if ($note['note_type'] == 2) { // relationship
+        foreach ($notesOpinions as $notesOpinion) {
+            if ($notesOpinion['note_type'] == 2) { // relationship
                 $relationsCount += 1;
             } else {
                 $notesCount += 1;
             }
-            if (!empty($note['Note'])) {
-                $nestedCounts = countNotes($note['Note']);
+            if (!empty($notesOpinion['Note'])) {
+                $nestedCounts = countNotes($notesOpinion['Note']);
                 $notesTotalCount += $nestedCounts['total'];
-                $notesCount += $nestedCounts['notes'];
+                $notesCount += $nestedCounts['notesOpinions'];
                 $relationsCount += $nestedCounts['relations'];
             }
-            if (!empty($note['Opinion'])) {
-                $nestedCounts = countNotes($note['Opinion']);
+            if (!empty($notesOpinion['Opinion'])) {
+                $nestedCounts = countNotes($notesOpinion['Opinion']);
                 $notesTotalCount += $nestedCounts['total'];
-                $notesCount += $nestedCounts['notes'];
+                $notesCount += $nestedCounts['notesOpinions'];
                 $relationsCount += $nestedCounts['relations'];
             }
         }
-        return ['total' => $notesTotalCount, 'notes' => $notesCount, 'relations' => $relationsCount];
+        return ['total' => $notesTotalCount, 'notesOpinions' => $notesCount, 'relations' => $relationsCount];
     }
 }
-$counts = countNotes($notes);
-$notesCount = $counts['notes'];
-$relationshipsCount = $counts['relations'];
+$counts = countNotes($notesOpinions);
+$notesOpinionCount = $counts['notesOpinions'];
+$relationshipsCount = count($relationships);
 ?>
 
 <?php if (empty($notes)): ?>
@@ -279,7 +293,7 @@ $relationshipsCount = $counts['relations'];
 <?php else: ?>
     <span class="label label-info useCursorPointer node-opener-<?= $seed ?>">
         <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" title="<?= __('Notes and opinions for this UUID') ?>"></i>
-        <?= $notesCount; ?>
+        <?= $notesOpinionCount; ?>
         <i class="<?= $this->FontAwesome->getClass('project-diagram') ?> useCursorPointer" title="<?= __('Relationships for this UUID') ?>"></i>
         <?= $relationshipsCount; ?>
     </span>
@@ -288,7 +302,7 @@ $relationshipsCount = $counts['relations'];
 <script>
 
 
-function renderNote(note) {
+function renderNote(note, relationship_related_object) {
     note.modified_relative = note.modified ? moment(note.modified).fromNow() : note.modified
     note.created_relative = note.created ? moment(note.created).fromNow() : note.created
     note.modified = note.modified ? (new Date(note.modified)).toLocaleString() : note.modified
@@ -307,11 +321,84 @@ function renderNote(note) {
         note.opinion_color = note.opinion == 50 ? '#333' : ( note.opinion > 50 ? '#468847' : '#b94a48');
         note.opinion_text = (note.opinion  >= 81) ? '<?= __("Strongly Agree") ?>' : ((note.opinion  >= 61) ? '<?= __("Agree") ?>' : ((note.opinion  >= 41) ? '<?= __("Neutral") ?>' : ((note.opinion  >= 21) ? '<?= __("Disagree") ?>' : '<?= __("Strongly Disagree") ?>')))
         note.content = opinionTemplate(note)
-    } else if (note.note_type == 2){
-        note.content = renderRelationshipEntryFromType(note)
+    } else if (note.note_type == 2) {
+        note.content = renderRelationshipEntryFromType(note, relationship_related_object)
     }
     var noteHtml = baseNoteTemplate(note)
     return noteHtml
+}
+
+
+function getURLFromRelationship(note) {
+    if (note.related_object_type == 'Event') {
+        return baseurl + '/events/view/' + note.related_object_uuid
+    } else if (note.related_object_type == 'Attribute') {
+        return baseurl + '/events/view/' + note.attribute.event_id + '/focus:' + note.related_object_uuid
+    } else if (note.related_object_type == 'Object') {
+        return baseurl + '/events/view/' + note.object.event_id + '/focus:' + note.related_object_uuid
+    }
+    return '#'
+}
+
+function renderRelationshipEntryFromType(note, relationship_related_object) {
+    var contentHtml = ''
+    var template = doT.template('\
+        <span style="border: 1px solid #ddd !important; border-radius: 3px; padding: 0.25rem;"> \
+            <span class="ellipsis-overflow" style="max-width: 12em;">{{=it.related_object_type}}</span> \
+            :: \
+            <span class="ellipsis-overflow" style="max-width: 12em;">{{=it.related_object_uuid}}</span> \
+        </span> \
+    ')
+    if (note.related_object_type == 'Event' && relationship_related_object.Event[note.related_object_uuid]) {
+        note.event = relationship_related_object.Event[note.related_object_uuid]
+        template = doT.template('\
+            <span class="misp-element-wrapper attribute" title="<?= __('Event') ?>"> \
+                <span class="bold"> \
+                    <span class="attr-type"><span><i class="<?= $this->FontAwesome->getClass('envelope') ?>"></i></span></span> \
+                    <span class=""><span class="attr-value"> \
+                        <span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.event.info}}</a></span> \
+                    </span></span> \
+                </span> \
+            </span> \
+        ')
+    } else if (note.related_object_type == 'Attribute' && relationship_related_object.Attribute[note.related_object_uuid]) {
+        note.attribute = relationship_related_object.Attribute[note.related_object_uuid]
+        if (note.attribute.object_relation !== undefined && note.attribute.object_relation !== null) {
+            template = doT.template('\
+            <span class="misp-element-wrapper object"> \
+                <span class="bold"> \
+                    <span class="obj-type"> \
+                        <span class="object-name" title="<?= __('Object') ?>">{{=it.attribute.object_name}}</span> \
+                        ↦ <span class="object-attribute-type" title="<?= __('Object Relation') ?>">{{=it.attribute.object_relation}}</span> \
+                    </span> \
+                <span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.attribute.value}}</a></span></span> \
+            </span> \
+        ')
+        } else if (relationship_related_object.Attribute[note.related_object_uuid]) {
+            template = doT.template('\
+                <span class="misp-element-wrapper attribute"> \
+                    <span class="bold"> \
+                        <span class="attr-type"><span title="<?= __('Attribute') ?>">{{=it.attribute.type}}</span></span> \
+                        <span class="blue"><span class="attr-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.attribute.value}}</a></span></span></span> \
+                    </span> \
+                </span> \
+            ')
+        }
+    } else if (note.related_object_type == 'Object') {
+        note.object = relationship_related_object.Object[note.related_object_uuid]
+        template = doT.template('\
+            <i class="<?= $this->FontAwesome->getClass('cubes') ?>" title="<?= __('Object') ?>"></i> \
+            <span class="misp-element-wrapper object"> \
+                <span class="bold"> \
+                    <span class="obj-type"><span>{{=it.object.type}}</span></span> \
+                    <span class="blue"><span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.object.value}}</a></span></span></span> \
+                </span> \
+            </span> \
+        ')
+    }
+    note.url = getURLFromRelationship(note)
+    contentHtml = template(note)
+    return relationshipDefaultEntryTemplate({content: contentHtml, relationship_type: note.relationship_type, comment: note.comment})
 }
 
 var noteFilteringTemplate = '\
@@ -428,15 +515,15 @@ var replyNoteTemplate = doT.template('\
         {{=it.notes_html}} \
     </div> \
 ')
-var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
-    <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a note') ?> \
-</button>'
-var addOpinionButton = '<button class="btn btn-small btn-block btn-primary" style="margin-top: 2px;" type="button" onclick="createNewOpinion(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
-    <i class="<?= $this->FontAwesome->getClass('gavel') ?>"></i> <?= __('Add an opinion') ?> \
-</button>'
-var addRelationshipButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewRelationship(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
-    <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a relationship') ?> \
-</button>'
+// var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+//     <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a note') ?> \
+// </button>'
+// var addOpinionButton = '<button class="btn btn-small btn-block btn-primary" style="margin-top: 2px;" type="button" onclick="createNewOpinion(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+//     <i class="<?= $this->FontAwesome->getClass('gavel') ?>"></i> <?= __('Add an opinion') ?> \
+// </button>'
+// var addRelationshipButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewRelationship(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+//     <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a relationship') ?> \
+// </button>'
 
 function toggleNotes(clicked) {
     var $container = $('.note-container-<?= $seed ?>')
@@ -478,6 +565,7 @@ var shortDist = <?= json_encode($shortDist) ?>;
 
 (function() {
     var notes = <?= json_encode($notes) ?>;
+    var relationships = <?= json_encode($relationships) ?>;
     var relationship_related_object = <?= json_encode($related_objects) ?>;
     var renderedNotes<?= $seed ?> = null
 
@@ -488,20 +576,20 @@ var shortDist = <?= json_encode($shortDist) ?>;
         })
     }
 
-    function renderNotes(notes) {
+    function renderNotes(notes, relationship_related_object) {
         var renderedNotesArray = []
         if (notes.length == 0)  {
             var emptyHtml = '<span style="text-align: center; color: #777;"><?= __('No notes for this UUID.') ?></span>'
             renderedNotesArray.push(emptyHtml)
         } else {
             notes.forEach(function(note) {
-                var noteHtml = renderNote(note)
+                var noteHtml = renderNote(note, relationship_related_object)
     
                 if (note.Opinion && note.Opinion.length > 0) { // The notes has more notes attached
-                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Opinion)})
+                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Opinion, relationship_related_object)})
                 }
                 if (note.Note && note.Note.length > 0) { // The notes has more notes attached
-                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Note)})
+                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Note, relationship_related_object)})
                 }
 
                 renderedNotesArray.push(noteHtml)
@@ -510,84 +598,12 @@ var shortDist = <?= json_encode($shortDist) ?>;
         return renderedNotesArray.join('')
     }
 
-    function renderAllNotesWithForm() {
+    function renderAllNotesWithForm(relationship_related_object) {
         var buttonContainer = '<div>' + addNoteButton + addOpinionButton + '</div>'
         renderedNotes<?= $seed ?> = nodeContainerTemplate({
-            content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2})) + buttonContainer,
-            content_relationships: renderNotes(notes.filter(function(note) { return note.note_type == 2})) + addRelationshipButton,
+            content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2}), relationship_related_object) + buttonContainer,
+            content_relationships: renderNotes(relationships, relationship_related_object) + addRelationshipButton,
         })
-    }
-
-    function getURLFromRelationship(note) {
-        if (note.related_object_type == 'Event') {
-            return baseurl + '/events/view/' + note.related_object_uuid
-        } else if (note.related_object_type == 'Attribute') {
-            return baseurl + '/events/view/' + note.attribute.event_id + '/focus:' + note.related_object_uuid
-        } else if (note.related_object_type == 'Object') {
-            return baseurl + '/events/view/' + note.object.event_id + '/focus:' + note.related_object_uuid
-        }
-        return '#'
-    }
-
-    function renderRelationshipEntryFromType(note) {
-        var contentHtml = ''
-        var template = doT.template('\
-            <span style="border: 1px solid #ddd !important; border-radius: 3px; padding: 0.25rem;"> \
-                <span class="ellipsis-overflow" style="max-width: 12em;">{{=it.related_object_type}}</span> \
-                :: \
-                <span class="ellipsis-overflow" style="max-width: 12em;">{{=it.related_object_uuid}}</span> \
-            </span> \
-        ')
-        if (note.related_object_type == 'Event' && relationship_related_object.Event[note.related_object_uuid]) {
-            note.event = relationship_related_object.Event[note.related_object_uuid]
-            template = doT.template('\
-                <span class="misp-element-wrapper attribute" title="<?= __('Event') ?>"> \
-                    <span class="bold"> \
-                        <span class="attr-type"><span><i class="<?= $this->FontAwesome->getClass('envelope') ?>"></i></span></span> \
-                        <span class=""><span class="attr-value"> \
-                            <span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.event.info}}</a></span> \
-                        </span></span> \
-                    </span> \
-                </span> \
-            ')
-        } else if (note.related_object_type == 'Attribute' && relationship_related_object.Attribute[note.related_object_uuid]) {
-            note.attribute = relationship_related_object.Attribute[note.related_object_uuid]
-            if (note.attribute.object_relation !== undefined && note.attribute.object_relation !== null) {
-                template = doT.template('\
-                <span class="misp-element-wrapper object"> \
-                    <span class="bold"> \
-                        <span class="obj-type"> \
-                            <span class="object-name" title="<?= __('Object') ?>">{{=it.attribute.object_name}}</span> \
-                            ↦ <span class="object-attribute-type" title="<?= __('Object Relation') ?>">{{=it.attribute.object_relation}}</span> \
-                        </span> \
-                    <span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.attribute.value}}</a></span></span> \
-                </span> \
-            ')
-            } else if (relationship_related_object.Attribute[note.related_object_uuid]) {
-                template = doT.template('\
-                    <span class="misp-element-wrapper attribute"> \
-                        <span class="bold"> \
-                            <span class="attr-type"><span title="<?= __('Attribute') ?>">{{=it.attribute.type}}</span></span> \
-                            <span class="blue"><span class="attr-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.attribute.value}}</a></span></span></span> \
-                        </span> \
-                    </span> \
-                ')
-            }
-        } else if (note.related_object_type == 'Object') {
-            note.object = relationship_related_object.Object[note.related_object_uuid]
-            template = doT.template('\
-                <i class="<?= $this->FontAwesome->getClass('cubes') ?>" title="<?= __('Object') ?>"></i> \
-                <span class="misp-element-wrapper object"> \
-                    <span class="bold"> \
-                        <span class="obj-type"><span>{{=it.object.type}}</span></span> \
-                        <span class="blue"><span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.object.value}}</a></span></span></span> \
-                    </span> \
-                </span> \
-            ')
-        }
-        note.url = getURLFromRelationship(note)
-        contentHtml = template(note)
-        return relationshipDefaultEntryTemplate({content: contentHtml, relationship_type: note.relationship_type, comment: note.comment})
     }
 
     function registerListeners() {
@@ -596,8 +612,18 @@ var shortDist = <?= json_encode($shortDist) ?>;
         })
     }
 
+    var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+        <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a note') ?> \
+    </button>'
+    var addOpinionButton = '<button class="btn btn-small btn-block btn-primary" style="margin-top: 2px;" type="button" onclick="createNewOpinion(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+        <i class="<?= $this->FontAwesome->getClass('gavel') ?>"></i> <?= __('Add an opinion') ?> \
+    </button>'
+    var addRelationshipButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewRelationship(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+        <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a relationship') ?> \
+    </button>'
+
     $(document).ready(function() {
-        renderAllNotesWithForm()
+        renderAllNotesWithForm(relationship_related_object)
         registerListeners()
     })
 })()
@@ -645,7 +671,6 @@ var shortDist = <?= json_encode($shortDist) ?>;
         var noteHTMLID = '#' + data[noteType].note_type_name + '-' + data[noteType].id
         var $noteToReplace = $(noteHTMLID)
         if ($noteToReplace.length == 1) {
-            console.log(data);
             var compiledUpdatedNote = renderNote(data[noteType])
             $noteToReplace[0].outerHTML = compiledUpdatedNote
             $(noteHTMLID).css({'opacity': 0})

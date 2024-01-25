@@ -62,9 +62,27 @@ if ($modelSelection === 'Note') {
             ]
         ]
     );
-
 } else if ($modelSelection === 'Relationship') {
-
+    $fields = array_merge($fields,
+        [
+            [
+                'field' => 'relationship_type',
+                'class' => 'span4',
+            ],
+            [
+                'field' => 'related_object_type',
+                'class' => 'span2',
+                'options' => $dropdownData['valid_targets'],
+                'type' => 'dropdown',
+                'stayInLine' => 1
+            ],
+            [
+                'field' => 'related_object_uuid',
+                'class' => 'span4',
+            ],
+            sprintf('<div><label>%s:</label><div id="related-object-container">%s</div></div>', __('Related Object'), __('- No UUID provided -'))
+        ]
+    );
 }
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
@@ -98,8 +116,13 @@ if (!$ajax) {
         var noteHTMLID = '#' + data[noteType].note_type_name + '-' + data[noteType].id
         var $noteToReplace = $(noteHTMLID)
         if ($noteToReplace.length == 1) {
-            console.log(data);
-            var compiledUpdatedNote = renderNote(data[noteType])
+            var relatedObjects = {}
+            if (noteType == 'Relationship') {
+                var relationship = data[noteType]
+                relatedObjects[relationship['object_type']] = {}
+                relatedObjects[relationship['object_type']][relationship['related_object_uuid']] = relationship['related_object'][relationship['object_type']]
+            }
+            var compiledUpdatedNote = renderNote(data[noteType], relatedObjects)
             $noteToReplace[0].outerHTML = compiledUpdatedNote
             $(noteHTMLID).css({'opacity': 0})
             setTimeout(() => {
@@ -111,4 +134,52 @@ if (!$ajax) {
     function addNoteInUI(data) {
         location.reload()
     }
+
+    function displayRelatedObject(data) {
+        if (Object.keys(data).length == 0) {
+            $('#related-object-container').html('<span class="text-muted"><?= __('Could not fetch remote object') ?></span>')
+        } else {
+            var parsed = syntaxHighlightJson(data)
+            $('#related-object-container').html(parsed)
+        }
+    }
+
+    function fetchAndDisplayRelatedObject(type, uuid) {
+        var url = baseurl + '/analystData/getRelatedElement/' + type + '/' + uuid
+        $.ajax({
+            type: "get",
+            url: url,
+            headers: { Accept: "application/json" },
+            success: function (data) {
+                console.log(data);
+                displayRelatedObject(data)
+            },
+            error: function (data, textStatus, errorThrown) {
+                showMessage('fail', textStatus + ": " + errorThrown);
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        $('#RelationshipRelatedObjectType').change(function(e) {
+            if ($('#RelationshipRelatedObjectUuid').val().length == 36) {
+                fetchAndDisplayRelatedObject($('#RelationshipRelatedObjectType').val(),$('#RelationshipRelatedObjectUuid').val())
+            }
+        })
+        $('#RelationshipRelatedObjectUuid').on('input', function(e) {
+            if ($('#RelationshipRelatedObjectUuid').val().length == 36) {
+                fetchAndDisplayRelatedObject($('#RelationshipRelatedObjectType').val(),$('#RelationshipRelatedObjectUuid').val())
+            }
+        })
+    })
 </script>
+
+<style>
+    #related-object-container {
+        box-shadow: 0 0 5px 0px #22222266;
+        padding: 0.5rem;
+        max-height: 400px;
+        overflow: auto;
+        margin-bottom: 1rem;
+    }
+</style>

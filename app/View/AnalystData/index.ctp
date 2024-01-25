@@ -62,7 +62,20 @@
         );
     
     } else if ($modelSelection === 'Relationship') {
-    
+        $fields = array_merge($fields,
+            [
+                [
+                    'name' => __('Related Object Type'),
+                    'sort' => $modelSelection . '.related_object_type',
+                    'data_path' => $modelSelection . '.related_object_type'
+                ],
+                [
+                    'name' => __('Related Object UUID'),
+                    'sort' => $modelSelection . '.related_object_uuid',
+                    'data_path' => $modelSelection . '.related_object_uuid'
+                ],
+            ]
+        );
     }
 
     echo $this->element('genericElements/IndexTable/scaffold', [

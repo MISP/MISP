@@ -9,7 +9,7 @@
         $opinions = !empty($opinions) ? $opinions : [];
         $relationships = !empty($relationships) ? $relationships : [];
         echo $this->element('genericElements/Analyst_data/generic', [
-            'analyst_data' => ['notes' => $notes, 'opinions' => $opinions, 'relationships' => $relationships],
+            'analyst_data' => ['notes' => $notes, 'opinions' => $opinions, 'relationships' => $relationships,],
             'object_uuid' => $uuid,
             'object_type' => $object_type
         ]);

@@ -116,6 +116,13 @@ class AnalystDataController extends AppController
         $this->_setViewElements();
     }
 
+    public function getRelatedElement($type, $uuid)
+    {
+        $this->__typeSelector('Relationship');
+        $data = $this->AnalystData->getRelatedElement($this->Auth->user(), $type, $uuid);
+        return $this->RestResponse->viewData($data, 'json');
+    }
+
     private function __typeSelector($type) {
         foreach ($this->__valid_types as $vt) {
             if ($type === $vt) {

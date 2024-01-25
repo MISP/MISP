@@ -2070,6 +2070,7 @@ class AppModel extends Model
                     `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
+                    `relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
                     `related_object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
                     `related_object_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
                     PRIMARY KEY (`id`),
@@ -2080,6 +2081,7 @@ class AppModel extends Model
                     KEY `orgc_uuid` (`orgc_uuid`),
                     KEY `distribution` (`distribution`),
                     KEY `sharing_group_id` (`sharing_group_id`),
+                    KEY `relationship_type` (`relationship_type`),
                     KEY `related_object_uuid` (`related_object_uuid`),
                     KEY `related_object_type` (`related_object_type`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";

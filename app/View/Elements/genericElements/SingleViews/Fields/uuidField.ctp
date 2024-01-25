@@ -12,7 +12,6 @@
         $notes = !empty($field['notes']) ? $field['notes'] : Hash::extract($data, $field['notes_path']);
         $opinions = !empty($field['opinions']) ? $field['opinions'] : Hash::extract($data, $field['opinions_path']);
         $relationships = !empty($field['relationships']) ? $field['relationships'] : Hash::extract($data, $field['relationships_path']);
-        // echo $this->element('genericElements/Analyst_data/generic', ['notes' => $notes, 'object_uuid' => $uuid, 'object_type' => $field['object_type']]);
         echo $this->element('genericElements/Analyst_data/generic', [
             'analyst_data' => ['notes' => $notes, 'opinions' => $opinions, 'relationships' => $relationships],
             'object_uuid' => $uuid,
