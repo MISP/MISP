@@ -58,6 +58,10 @@
     } else if ($modelSelection === 'Opinion') {
         $fields = array_merge($fields,
             [
+                [
+                    'name' => __('Comment'),
+                    'data_path' => $modelSelection . '.comment'
+                ],
             ]
         );
     
@@ -73,6 +77,11 @@
                     'name' => __('Related Object UUID'),
                     'sort' => $modelSelection . '.related_object_uuid',
                     'data_path' => $modelSelection . '.related_object_uuid'
+                ],
+                [
+                    'name' => __('Relationship_type'),
+                    'sort' => $modelSelection . '.relationship_type',
+                    'data_path' => $modelSelection . '.relationship_type'
                 ],
             ]
         );
