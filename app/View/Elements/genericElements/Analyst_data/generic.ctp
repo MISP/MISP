@@ -251,7 +251,7 @@ $related_objects = [
     'SharingGroup' => [],
 ];
 foreach ($relationships as $relationship) {
-    $related_objects[$relationship['object_type']][$relationship['related_object_uuid']] = $relationship['related_object'][$relationship['object_type']];
+    $related_objects[$relationship['related_object_type']][$relationship['related_object_uuid']] = $relationship['related_object'][$relationship['related_object_type']];
 }
 
 $notesOpinions = array_merge($notes, $opinions);
@@ -432,7 +432,7 @@ var baseNoteTemplate = doT.template('\
         style="display: flex; flex-direction: row; align-items: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 1px 5px -2px rgb(0 0 0 / 0.5); border-radius: 0.25rem; padding: 0.25rem; margin-bottom: 0.0rem; background-color: #fff; transition: ease-out opacity 0.5s;" \
         data-org-uuid="{{=it.orgc_uuid}}" \
     > \
-        <div style="flex-grow: 1;"> \
+        <div style="flex-grow: 1;"> {{=it.note_type_name}}-{{=it.id}}\
             <div style="display: flex; flex-direction: column;"> \
                 <div style="display: flex; min-width: 250px; gap: 0.5rem;"> \
                     <img src="<?= $baseurl ?>/img/orgs/{{=it.Organisation.id}}.png" width="20" height="20" class="orgImg" style="width: 20px; height: 20px;" onerror="this.remove()" alt="Organisation logo"></object> \
@@ -515,15 +515,6 @@ var replyNoteTemplate = doT.template('\
         {{=it.notes_html}} \
     </div> \
 ')
-// var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
-//     <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a note') ?> \
-// </button>'
-// var addOpinionButton = '<button class="btn btn-small btn-block btn-primary" style="margin-top: 2px;" type="button" onclick="createNewOpinion(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
-//     <i class="<?= $this->FontAwesome->getClass('gavel') ?>"></i> <?= __('Add an opinion') ?> \
-// </button>'
-// var addRelationshipButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewRelationship(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
-//     <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a relationship') ?> \
-// </button>'
 
 function toggleNotes(clicked) {
     var $container = $('.note-container-<?= $seed ?>')
@@ -564,7 +555,7 @@ function adjustPopoverPosition() {
 var shortDist = <?= json_encode($shortDist) ?>;
 
 (function() {
-    var notes = <?= json_encode($notes) ?>;
+    var notes = <?= json_encode($notesOpinions) ?>;
     var relationships = <?= json_encode($relationships) ?>;
     var relationship_related_object = <?= json_encode($related_objects) ?>;
     var renderedNotes<?= $seed ?> = null
@@ -599,7 +590,7 @@ var shortDist = <?= json_encode($shortDist) ?>;
     }
 
     function renderAllNotesWithForm(relationship_related_object) {
-        var buttonContainer = '<div>' + addNoteButton + addOpinionButton + '</div>'
+        var buttonContainer = '<div style="margin-top: 0.5rem">' + addNoteButton + addOpinionButton + '</div>'
         renderedNotes<?= $seed ?> = nodeContainerTemplate({
             content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2}), relationship_related_object) + buttonContainer,
             content_relationships: renderNotes(relationships, relationship_related_object) + addRelationshipButton,
@@ -791,7 +782,7 @@ if(!function_exists("genStyleForOpinionNote")) {
     }
 }
 
-genStyleForOpinionNotes($notes)
+genStyleForOpinionNotes($notesOpinions)
 ?>
 
 </style>
