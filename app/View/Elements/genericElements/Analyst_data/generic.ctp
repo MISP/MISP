@@ -409,23 +409,6 @@ var noteFilteringTemplate = '\
     </div> \
 '
 
-var nodeContainerTemplate = doT.template('\
-    <div> \
-        <ul class="nav nav-tabs" style="margin-bottom: 10px;"> \
-            <li class="active"><a href="#notes-<?= $seed ?>" data-toggle="tab"><?= __('Notes & Opinions') ?></a></li> \
-            <li><a href="#relationships-<?= $seed ?>" data-toggle="tab"><?= __('Relationships') ?></a></li> \
-        </ul> \
-        <div class="tab-content" style="padding: 0.25rem; max-width: 992px; min-width: 400px;"> \
-            <div id="notes-<?= $seed ?>" class="tab-pane active"> \
-                ' + noteFilteringTemplate + ' \
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;" class="all-notes">{{=it.content_notes}}</div>\
-            </div> \
-            <div id="relationships-<?= $seed ?>" class="tab-pane"> \
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">{{=it.content_relationships}}</div>\
-            </div> \
-        </div> \
-    </div> \
-')
 var baseNoteTemplate = doT.template('\
     <div id="{{=it.note_type_name}}-{{=it.id}}" \
         class="analyst-note" \
@@ -559,6 +542,24 @@ var shortDist = <?= json_encode($shortDist) ?>;
     var relationships = <?= json_encode($relationships) ?>;
     var relationship_related_object = <?= json_encode($related_objects) ?>;
     var renderedNotes<?= $seed ?> = null
+
+    var nodeContainerTemplate = doT.template('\
+        <div> \
+            <ul class="nav nav-tabs" style="margin-bottom: 10px;"> \
+                <li class="active"><a href="#notes-<?= $seed ?>" data-toggle="tab"><?= __('Notes & Opinions') ?></a></li> \
+                <li><a href="#relationships-<?= $seed ?>" data-toggle="tab"><?= __('Relationships') ?></a></li> \
+            </ul> \
+            <div class="tab-content" style="padding: 0.25rem; max-width: 992px; min-width: 400px;"> \
+                <div id="notes-<?= $seed ?>" class="tab-pane active"> \
+                    ' + noteFilteringTemplate + ' \
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;" class="all-notes">{{=it.content_notes}}</div>\
+                </div> \
+                <div id="relationships-<?= $seed ?>" class="tab-pane"> \
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">{{=it.content_relationships}}</div>\
+                </div> \
+            </div> \
+        </div> \
+    ')
 
     function openNotes(clicked) {
         openPopover(clicked, renderedNotes<?= $seed ?>, undefined, undefined, function() {
