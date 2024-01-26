@@ -114,17 +114,15 @@ class AnalystData extends AppModel
                 'object_uuid' => $analystData['uuid'],
             ]
         ];
-        
+
         // recursively fetch and include nested notes and opinions
         $childNotes = array_map(function ($item) {
             $expandedNotes = $this->fetchChildNotesAndOpinions($item[$this->Note->current_type]);
             return $expandedNotes;
-            // return $item[$this->Note->current_type];
         }, $this->Note->find('all', $paramsNote));
         $childOpinions = array_map(function ($item) {
             $expandedNotes = $this->fetchChildNotesAndOpinions($item[$this->Opinion->current_type]);
             return $expandedNotes;
-            // return $item[$this->Opinion->current_type];
         }, $this->Opinion->find('all', $paramsOpinion));
 
         if (!empty($childNotes)) {

@@ -257,6 +257,7 @@ foreach ($relationships as $relationship) {
 }
 
 $notesOpinions = array_merge($notes, $opinions);
+$notesOpinionsRelationships = array_merge($notesOpinions, $relationships);
 
 if(!function_exists("countNotes")) {
     function countNotes($notesOpinions) {
@@ -290,7 +291,7 @@ $notesOpinionCount = $counts['notesOpinions'];
 $relationshipsCount = count($relationships);
 ?>
 
-<?php if (empty($notes)): ?>
+<?php if (empty($notesOpinions) && empty($relationshipsCount)): ?>
     <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer node-opener-<?= $seed ?>" title="<?= __('Notes and opinions for this UUID') ?>"></i>
 <?php else: ?>
     <span class="label label-info useCursorPointer node-opener-<?= $seed ?>">
@@ -429,7 +430,7 @@ var baseNoteTemplate = doT.template('\
         style="display: flex; flex-direction: row; align-items: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 1px 5px -2px rgb(0 0 0 / 0.5); border-radius: 0.25rem; padding: 0.25rem; margin-bottom: 0.0rem; background-color: #fff; transition: ease-out opacity 0.5s;" \
         data-org-uuid="{{=it.orgc_uuid}}" \
     > \
-        <div style="flex-grow: 1;"> \
+        <div style="flex-grow: 1;"> {{=it.note_type_name}}-{{=it.id}}\
             <div style="display: flex; flex-direction: column;"> \
                 <div style="display: flex; min-width: 250px; gap: 0.5rem;"> \
                     <img src="<?= $baseurl ?>/img/orgs/{{=it.Organisation.id}}.png" width="20" height="20" class="orgImg" style="width: 20px; height: 20px;" onerror="this.remove()" alt="Organisation logo"></object> \
@@ -442,10 +443,10 @@ var baseNoteTemplate = doT.template('\
                     </i><span style="margin-left: 0.5rem; flex-grow: 1; text-align: right; color: {{=it.distribution_color}}">{{=it.distribution_text}}</span> \
                     <span class="action-button-container" style="margin-left: auto; display: flex; gap: 0.2rem;"> \
                         {{? it._permissions.can_add }} \
-                            <span role="button" onclick="addOpinion(this, \'{{=it.uuid}}\')" title="<?= __('Add an opinion to this note') ?>"><i class="<?= $this->FontAwesome->getClass('gavel') ?> useCursorPointer"></i></span> \
+                            <span role="button" onclick="addOpinion(this, \'{{=it.uuid}}\', \'{{=it.note_type_name}}\')" title="<?= __('Add an opinion to this note') ?>"><i class="<?= $this->FontAwesome->getClass('gavel') ?> useCursorPointer"></i></span> \
                         {{?}} \
                         {{? it._permissions.can_add }} \
-                        <span role="button" onclick="addNote(this, \'{{=it.uuid}}\')" title="<?= __('Add a note to this note') ?>"><i class="<?= $this->FontAwesome->getClass('comment-alt') ?> useCursorPointer"></i></span> \
+                        <span role="button" onclick="addNote(this, \'{{=it.uuid}}\', \'{{=it.note_type_name}}\')" title="<?= __('Add a note to this note') ?>"><i class="<?= $this->FontAwesome->getClass('comment-alt') ?> useCursorPointer"></i></span> \
                         {{?}} \
                         {{? it._permissions.can_edit }} \
                         <span role="button" onclick="editNote(this, {{=it.id}}, \'{{=it.note_type_name}}\')" title="<?= __('Edit this note') ?>"><i class="<?= $this->FontAwesome->getClass('edit') ?> useCursorPointer"></i></span> \
@@ -649,14 +650,12 @@ var shortDist = <?= json_encode($shortDist) ?>;
         openGenericModal(baseurl + '<?= $URL_ADD ?>' + note_type + '/' + object_uuid + '/' + object_type)
     }
 
-    function addNote(clicked, note_uuid) {
-        object_type = 'Note';
+    function addNote(clicked, note_uuid, object_type) {
         note_type = 'Note';
         openGenericModal(baseurl + '<?= $URL_ADD ?>' + note_type + '/' + note_uuid + '/' + object_type)
     }
 
-    function addOpinion(clicked, note_uuid) {
-        object_type = 'Note';
+    function addOpinion(clicked, note_uuid, object_type) {
         note_type = 'Opinion';
         openGenericModal(baseurl + '<?= $URL_ADD ?>' + note_type + '/' + note_uuid + '/' + object_type)
     }
@@ -797,7 +796,7 @@ if(!function_exists("genStyleForOpinionNote")) {
     }
 }
 
-genStyleForOpinionNotes($notesOpinions)
+genStyleForOpinionNotes($notesOpinionsRelationships)
 ?>
 
 </style>
