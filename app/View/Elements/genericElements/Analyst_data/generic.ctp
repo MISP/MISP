@@ -432,7 +432,7 @@ var baseNoteTemplate = doT.template('\
         style="display: flex; flex-direction: row; align-items: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 1px 5px -2px rgb(0 0 0 / 0.5); border-radius: 0.25rem; padding: 0.25rem; margin-bottom: 0.0rem; background-color: #fff; transition: ease-out opacity 0.5s;" \
         data-org-uuid="{{=it.orgc_uuid}}" \
     > \
-        <div style="flex-grow: 1;"> {{=it.note_type_name}}-{{=it.id}}\
+        <div style="flex-grow: 1;"> \
             <div style="display: flex; flex-direction: column;"> \
                 <div style="display: flex; min-width: 250px; gap: 0.5rem;"> \
                     <img src="<?= $baseurl ?>/img/orgs/{{=it.Organisation.id}}.png" width="20" height="20" class="orgImg" style="width: 20px; height: 20px;" onerror="this.remove()" alt="Organisation logo"></object> \
