@@ -137,7 +137,7 @@ if (!$ajax) {
 
     function displayRelatedObject(data) {
         if (Object.keys(data).length == 0) {
-            $('#related-object-container').html('<span class="text-muted"><?= __('Could not fetch remote object') ?></span>')
+            $('#related-object-container').html('<span class="text-muted"><?= __('Could not fetch remote object or fetching not supported yet.') ?></span>')
         } else {
             var parsed = syntaxHighlightJson(data)
             $('#related-object-container').html(parsed)
@@ -151,7 +151,6 @@ if (!$ajax) {
             url: url,
             headers: { Accept: "application/json" },
             success: function (data) {
-                console.log(data);
                 displayRelatedObject(data)
             },
             error: function (data, textStatus, errorThrown) {

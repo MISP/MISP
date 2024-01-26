@@ -251,7 +251,9 @@ $related_objects = [
     'SharingGroup' => [],
 ];
 foreach ($relationships as $relationship) {
-    $related_objects[$relationship['related_object_type']][$relationship['related_object_uuid']] = $relationship['related_object'][$relationship['related_object_type']];
+    if (!empty($relationship['related_object'][$relationship['related_object_type']])) {
+        $related_objects[$relationship['related_object_type']][$relationship['related_object_uuid']] = $relationship['related_object'][$relationship['related_object_type']];
+    }
 }
 
 $notesOpinions = array_merge($notes, $opinions);
@@ -349,49 +351,61 @@ function renderRelationshipEntryFromType(note, relationship_related_object) {
             <span class="ellipsis-overflow" style="max-width: 12em;">{{=it.related_object_uuid}}</span> \
         </span> \
     ')
-    if (note.related_object_type == 'Event' && relationship_related_object.Event[note.related_object_uuid]) {
-        note.event = relationship_related_object.Event[note.related_object_uuid]
-        template = doT.template('\
+    var templateEvent = doT.template('\
             <span class="misp-element-wrapper attribute" title="<?= __('Event') ?>"> \
                 <span class="bold"> \
                     <span class="attr-type"><span><i class="<?= $this->FontAwesome->getClass('envelope') ?>"></i></span></span> \
                     <span class=""><span class="attr-value"> \
-                        <span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.event.info}}</a></span> \
+                        <span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.urlEvent}}" target="_blank">{{=it.content}}</a></span> \
                     </span></span> \
                 </span> \
             </span> \
         ')
+    if (note.related_object_type == 'Event' && relationship_related_object.Event[note.related_object_uuid]) {
+        note.event = relationship_related_object.Event[note.related_object_uuid]
+        template = doT.template(templateEvent({content: '{{=it.event.info}}', urlEvent: '{{=it.url}}'}))
     } else if (note.related_object_type == 'Attribute' && relationship_related_object.Attribute[note.related_object_uuid]) {
+        var event = templateEvent({content: '{{=it.attribute.Event.info}}', urlEvent: baseurl + '/events/view/{{=it.attribute.event_id}}'})
         note.attribute = relationship_related_object.Attribute[note.related_object_uuid]
         if (note.attribute.object_relation !== undefined && note.attribute.object_relation !== null) {
             template = doT.template('\
+            ' + event + ' \
+            <b>↦</b> \
             <span class="misp-element-wrapper object"> \
                 <span class="bold"> \
                     <span class="obj-type"> \
-                        <span class="object-name" title="<?= __('Object') ?>">{{=it.attribute.object_name}}</span> \
+                        <span class="object-name" title="<?= __('Object') ?>">{{=it.attribute.Object.name}}</span> \
                         ↦ <span class="object-attribute-type" title="<?= __('Object Relation') ?>">{{=it.attribute.object_relation}}</span> \
                     </span> \
-                <span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.attribute.value}}</a></span></span> \
+                <span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}" target="_blank">{{=it.attribute.value}}</a></span></span> \
             </span> \
         ')
         } else if (relationship_related_object.Attribute[note.related_object_uuid]) {
+            var event = templateEvent({content: '{{=it.attribute.Event.info}}', urlEvent: baseurl + '/events/view/{{=it.attribute.event_id}}'})
             template = doT.template('\
+                ' + event + ' \
+                <b>↦</b> \
                 <span class="misp-element-wrapper attribute"> \
                     <span class="bold"> \
                         <span class="attr-type"><span title="<?= __('Attribute') ?>">{{=it.attribute.type}}</span></span> \
-                        <span class="blue"><span class="attr-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.attribute.value}}</a></span></span></span> \
+                        <span class="blue"><span class="attr-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}" target="_blank">{{=it.attribute.value}}</a></span></span></span> \
                     </span> \
                 </span> \
             ')
         }
     } else if (note.related_object_type == 'Object') {
+        var event = templateEvent({content: '{{=it.object.Event.info}}', urlEvent: baseurl + '/events/view/{{=it.object.event_id}}'})
         note.object = relationship_related_object.Object[note.related_object_uuid]
         template = doT.template('\
-            <i class="<?= $this->FontAwesome->getClass('cubes') ?>" title="<?= __('Object') ?>"></i> \
+            ' + event + ' \
+            <b>↦</b> \
             <span class="misp-element-wrapper object"> \
                 <span class="bold"> \
-                    <span class="obj-type"><span>{{=it.object.type}}</span></span> \
-                    <span class="blue"><span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}">{{=it.object.value}}</a></span></span></span> \
+                    <span class="obj-type"> \
+                        <i class="<?= $this->FontAwesome->getClass('cubes') ?>" title="<?= __('Object') ?>" style="margin: 0 0 0 0.25rem;"></i> \
+                        <span>{{=it.object.name}}</span> \
+                    </span> \
+                    <span class="blue"><span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}" target="_blank">{{=it.object.id}}</a></span></span></span> \
                 </span> \
             </span> \
         ')

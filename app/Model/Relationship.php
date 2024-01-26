@@ -64,24 +64,23 @@ class Relationship extends AnalystData
                 'conditions' => [
                     ['Attribute.uuid' => $uuid],
                 ],
-                'contain' => ['Event' => 'Orgc',]
+                'contain' => ['Event' => 'Orgc', 'Object',]
             ];
             $data = $this->Attribute->fetchAttributeSimple($user, $params);
             $data = $this->rearrangeData($data, 'Attribute');
-            $data['Attribute']['Organisation'] = $data['Attribute']['Event']['Orgc'];
-            $data['Attribute']['orgc_uuid'] = $data['Attribute']['Event']['Orgc']['uuid'];
-            unset($data['Attribute']['Event']['Orgc']);
         } else if ($type == 'Object') {
             $this->Object = ClassRegistry::init('MispObject');
             $params = [
                 'conditions' => [
                     ['Object.uuid' => $uuid],
-                ]
+                ],
+                'contain' => ['Event' => 'Orgc',]
             ];
             $data = $this->Object->fetchObjectSimple($user, $params);
             if (!empty($data)) {
                 $data = $data[0];
             }
+            $data = $this->rearrangeData($data, 'Object');
         } else if ($type == 'Note') {
             $this->Note = ClassRegistry::init('Note');
             $params = [
@@ -118,6 +117,9 @@ class Relationship extends AnalystData
                 }
             }
         }
+        $data[$objectType]['Organisation'] = $data[$objectType]['Event']['Orgc'];
+        $data[$objectType]['orgc_uuid'] = $data[$objectType]['Event']['Orgc']['uuid'];
+        unset($data[$objectType]['Event']['Orgc']);
         return $data;
     }
 }

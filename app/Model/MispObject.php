@@ -569,11 +569,18 @@ class MispObject extends AppModel
         if (isset($options['fields'])) {
             $params['fields'] = $options['fields'];
         }
+        $contain = [];
+        if (isset($options['contain'])) {
+            $contain = $options['contain'];
+        }
+        if (empty($contain['Event'])) {
+            $contain = ['Event' => ['distribution', 'id', 'user_id', 'orgc_id', 'org_id']];
+        }
         $results = $this->find('all', array(
             'conditions' => $params['conditions'],
             'recursive' => -1,
             'fields' => $params['fields'],
-            'contain' => array('Event' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id')),
+            'contain' => $contain,
             'sort' => false
         ));
         return $results;
