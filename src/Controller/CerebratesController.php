@@ -37,11 +37,11 @@ class CerebratesController extends AppController
     /**
      * View method
      *
-     * @param string|null $id Cerebrate id.
+     * @param int|null $id Cerebrate id.
      * @return \Cake\Http\Response|null|void Renders view
      * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
      */
-    public function view($id = null)
+    public function view(int|null $id = null)
     {
         $this->CRUD->view(
             $id,
@@ -86,11 +86,11 @@ class CerebratesController extends AppController
     /**
      * Edit method
      *
-     * @param string|null $id Cerebrate id.
+     * @param int|null $id Cerebrate id.
      * @return \Cake\Http\Response|null|void Redirects on successful edit, renders view otherwise.
      * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
      */
-    public function edit($id = null)
+    public function edit(int|null $id = null)
     {
         $params = [];
         $this->CRUD->edit($id, $params);
@@ -117,11 +117,11 @@ class CerebratesController extends AppController
     /**
      * Delete method
      *
-     * @param string|null $id Cerebrate id.
+     * @param int|null $id Cerebrate id.
      * @return \Cake\Http\Response|null|void Redirects to index.
      * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
      */
-    public function delete($id = null)
+    public function delete(int|null $id = null)
     {
         $this->CRUD->delete($id);
         $responsePayload = $this->CRUD->getResponsePayload();
@@ -133,10 +133,10 @@ class CerebratesController extends AppController
     /**
      * pullOrgs
      *
-     * @param  mixed $id of the org
+     * @param  int $id of the org
      * @return void
      */
-    public function pullOrgs($id)
+    public function pullOrgs(int $id)
     {
         // FIXME chri - $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateOrgs']);
         /** @var \App\Model\Entity\Cerebrate $cerebrate */
@@ -181,10 +181,10 @@ class CerebratesController extends AppController
     /**
      * pullSgs
      *
-     * @param  mixed $id id of the Sharing Group
+     * @param  int $id id of the Sharing Group
      * @return void
      */
-    public function pullSgs($id)
+    public function pullSgs(int $id)
     {
         // $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateSgs']);
         /** @var \App\Model\Entity\Cerebrate $cerebrate */
@@ -229,10 +229,10 @@ class CerebratesController extends AppController
     /**
      * previewOrgs
      *
-     * @param  mixed $id id of the org
+     * @param  int $id id of the org
      * @return void
      */
-    public function previewOrgs($id = null)
+    public function previewOrgs(int $id = null)
     {
         // FIXME chri - $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateOrgs']);
         /** @var \App\Model\Entity\Cerebrate $cerebrate */
@@ -270,11 +270,11 @@ class CerebratesController extends AppController
     /**
      * downloadOrg
      *
-     * @param  mixed $cerebrate_id id of the cerebrate instance
-     * @param  mixed $org_id id of the org
+     * @param  int $cerebrate_id id of the cerebrate instance
+     * @param  int $org_id id of the org
      * @return void
      */
-    public function downloadOrg($cerebrate_id, $org_id)
+    public function downloadOrg(int $cerebrate_id, int $org_id)
     {
         if ($this->request->is('post')) {
             /** @var \App\Model\Entity\Cerebrate $cerebrate */
@@ -317,10 +317,10 @@ class CerebratesController extends AppController
     /**
      * previewSharingGroups
      *
-     * @param  mixed $id id of the Sharing Group
+     * @param  int $id id of the Sharing Group
      * @return void
      */
-    public function previewSharingGroups($id)
+    public function previewSharingGroups(int $id)
     {
         // $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateSGs']);
         /** @var \App\Model\Entity\Cerebrate $cerebrate */
@@ -361,11 +361,11 @@ class CerebratesController extends AppController
     /**
      * downloadSg
      *
-     * @param  mixed $cerebrate_id id of the cerebrate instance
-     * @param  mixed $sg_id id of the Sharing Group
+     * @param  int $cerebrate_id id of the cerebrate instance
+     * @param  int $sg_id id of the Sharing Group
      * @return void
      */
-    public function downloadSg($cerebrate_id, $sg_id)
+    public function downloadSg(int $cerebrate_id, int $sg_id)
     {
         if ($this->request->is('post')) {
             /** @var \App\Model\Entity\Cerebrate $cerebrate */
