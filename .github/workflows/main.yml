@@ -69,10 +69,11 @@ jobs:
         run: |
           sudo chown $USER:www-data $HOME/.composer
           pushd app
-          sudo -H -u $USER composer config --no-plugins allow-plugins.composer/installers true
-          sudo -H -u $USER composer install --no-progress
+          composer config --no-plugins allow-plugins.composer/installers true
+          composer install --no-progress
           popd
           cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
+          
           # Set perms
           sudo chown -R $USER:www-data `pwd`
           sudo chmod -R 775 `pwd`
@@ -84,17 +85,18 @@ jobs:
           sudo chmod -R g+ws `pwd`/app/files
           sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
           sudo chown -R $USER:www-data `pwd`
+          
           # Resque perms
           sudo chown -R $USER:www-data `pwd`/app/Plugin/CakeResque/tmp
           sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
-          # install MySQL
-          sudo chmod -R 777 `pwd`/INSTALL
+          
+          # Fill database with basic MISP schema
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES';"
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant usage on *.* to misp@'%' identified by 'blah';"
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant all privileges on misp.* to misp@'%';"
           mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp < INSTALL/MYSQL.sql
+          
           # configure apache virtual hosts
-          sudo chmod -R 777 `pwd`/build
           sudo mkdir -p /etc/apache2/sites-available
           sudo cp -f build/github-action-ci-apache /etc/apache2/sites-available/misp.conf
           sudo sed -e "s?%GITHUB_WORKSPACE%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp.conf
@@ -103,22 +105,22 @@ jobs:
           sudo a2ensite misp.conf
           cat /etc/apache2/sites-enabled/misp.conf
           sudo a2enmod rewrite
-          sudo systemctl restart apache2
+          sudo systemctl start --no-block apache2
+          
           # MISP configuration
           sudo cp app/Config/bootstrap.default.php app/Config/bootstrap.php
           sudo cp build/database.php app/Config/database.php
           sudo cp app/Config/core.default.php app/Config/core.php
           sudo cp app/Config/config.default.php app/Config/config.php
           sudo cp build/email.php app/Config/email.php
-          # Ensure the perms
-          sudo chown -R $USER:www-data `pwd`/app/Config
-          sudo chmod -R 777 `pwd`/app/Config
+          
           # GPG setup
           sudo mkdir `pwd`/.gnupg
           # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
           sudo cp -a /dev/urandom /dev/random
           sudo gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir `pwd`/.gnupg --gen-key --batch `pwd`/build/gpg
           sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
+          
           # change perms
           sudo chown -R $USER:www-data `pwd`
           sudo chown -R www-data:www-data `pwd`/.gnupg
@@ -133,7 +135,7 @@ jobs:
           sudo chmod -R 777 `pwd`/app/Config
 
           # fix perms (?)
-          namei -m  /home/runner/work
+          namei -m /home/runner/work
           sudo chmod +x /home/runner/work
           sudo chmod +x /home/runner
           sudo chmod +x /home
