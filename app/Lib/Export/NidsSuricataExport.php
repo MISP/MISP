@@ -3,16 +3,10 @@ App::uses('NidsExport', 'Export');
 
 class NidsSuricataExport extends NidsExport
 {
-    public function export($items, $startSid, $format = "suricata", $continue = false)
-    {
-        // set the specific format
-        $this->format = "suricata";
-        // call the generic function
-        return parent::export($items, $startSid, $format, $continue);
-    }
+    protected $format = "suricata";
 
     // below overwrite functions from NidsExport
-    public function hostnameRule($ruleFormat, $attribute, &$sid)
+    protected function hostnameRule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
@@ -53,7 +47,7 @@ class NidsSuricataExport extends NidsExport
         );
     }
 
-    public function domainRule($ruleFormat, $attribute, &$sid)
+    protected function domainRule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
@@ -94,7 +88,7 @@ class NidsSuricataExport extends NidsExport
         );
     }
 
-    public function urlRule($ruleFormat, $attribute, &$sid)
+    protected function urlRule($ruleFormat, $attribute, &$sid)
     {
         $createRule = true;
         $overruled = $this->checkWhitelist($attribute['value']);
@@ -207,7 +201,7 @@ class NidsSuricataExport extends NidsExport
         }
     }
 
-    public function userAgentRule($ruleFormat, $attribute, &$sid)
+    protected function userAgentRule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
@@ -230,7 +224,7 @@ class NidsSuricataExport extends NidsExport
         );
     }
 
-    public function ja3Rule($ruleFormat, $attribute, &$sid)
+    protected function ja3Rule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
@@ -253,7 +247,7 @@ class NidsSuricataExport extends NidsExport
     }
 
     // For Future use once JA3S Hash Attribute type is created
-    public function ja3sRule($ruleFormat, $attribute, &$sid)
+    protected function ja3sRule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule

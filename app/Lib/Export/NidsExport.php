@@ -6,8 +6,7 @@ abstract class NidsExport
 
     public $classtype = 'trojan-activity';
 
-    public $format = "";   // suricata (default), snort
-    
+    protected $format;   // suricata (default), snort
 
     public $checkWhitelist = true;
 
@@ -17,36 +16,36 @@ abstract class NidsExport
                 'fields' => array('threat_level_id')
             )
         ),
-
     );
+
+    private $whitelist;
 
     public function handler($data, $options = array())
     {
-        $continue = empty($format);
         $this->checkWhitelist = false;
         if ($options['scope'] === 'Attribute') {
             $this->export(
                 array($data),
                 $options['user']['nids_sid'],
                 $options['returnFormat'],
-                $continue
+                true
             );
         } else if ($options['scope'] === 'Event') {
             if (!empty($data['EventTag'])) {
                 $data['Event']['EventTag'] = $data['EventTag'];
             }
             if (!empty($data['Attribute'])) {
-                $this->__convertFromEventFormat($data['Attribute'], $data, $options, $continue);
+                $this->convertFromEventFormat($data['Attribute'], $data, $options);
             }
             if (!empty($data['Object'])) {
-                $this->__convertFromEventFormatObject($data['Object'], $data, $options, $continue);
+                $this->convertFromEventFormatObject($data['Object'], $data, $options);
             }
         }
         return '';
     }
 
-    private function __convertFromEventFormat($attributes, $event, $options = array(), $continue = false) {
-
+    private function convertFromEventFormat($attributes, $event, $options = array())
+    {
         $rearranged = array();
         foreach ($attributes as $attribute) {
             $attributeTag = array();
@@ -64,13 +63,12 @@ abstract class NidsExport
             $rearranged,
             $options['user']['nids_sid'],
             $options['returnFormat'],
-            $continue
+            true
         );
         return true;
-
     }
 
-    private function __convertFromEventFormatObject($objects, $event, $options = array(), $continue = false)
+    private function convertFromEventFormatObject($objects, $event, $options = array())
     {
         $rearranged = array();
         foreach ($objects as $object) {
@@ -93,7 +91,7 @@ abstract class NidsExport
                     'Event' => $event['Event']
                 );
             } else { // In case no custom export exists for the object, the approach falls back to the attribute case
-                $this->__convertFromEventFormat($object['Attribute'], $event, $options, $continue);
+                $this->convertFromEventFormat($object['Attribute'], $event, $options);
             }
         }
 
@@ -101,12 +99,12 @@ abstract class NidsExport
             $rearranged,
             $options['user']['nids_sid'],
             $options['returnFormat'],
-            $continue
+            true
         );
         return true;
     }
 
-    public function header($options = array())
+    public function header()
     {
         $this->explain();
         return '';
@@ -135,9 +133,6 @@ abstract class NidsExport
         $this->rules[] = '# $HTTP_PORTS   - The ports used to contain HTTP traffic (not required with suricata export)';
         $this->rules[] = '# ';
     }
-
-    private $whitelist = null;
-
 
     public function export($items, $startSid, $format="suricata", $continue = false)
     {
@@ -195,7 +190,7 @@ abstract class NidsExport
                         break;
                     case 'email':
                         $this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
-			$sid++;
+			            $sid++;
                         $this->emailDstRule($ruleFormat, $item['Attribute'], $sid);
                         break;
                     case 'email-src':
@@ -258,9 +253,8 @@ abstract class NidsExport
         return $this->rules;
     }
 
-    public function networkConnectionRule($ruleFormat, $object, &$sid)
+    protected function networkConnectionRule($ruleFormat, $object, &$sid)
     {
-    
         $attributes = NidsExport::getObjectAttributes($object);
         
         if(!array_key_exists('layer4-protocol', $attributes)){
@@ -279,7 +273,7 @@ abstract class NidsExport
             $attributes['dst-port'] = 'any';    // If dst-port is unknown, we roll-back to 'any'
         }
 
-    $this->rules[] = sprintf(
+        $this->rules[] = sprintf(
             $ruleFormat,
             false,
             $attributes['layer4-protocol'],                     // proto
@@ -296,8 +290,8 @@ abstract class NidsExport
             );
         
     }
-    
-    public function ddosRule($ruleFormat, $object, &$sid)
+
+    protected function ddosRule($ruleFormat, $object, &$sid)
     {
     
         $attributes = NidsExport::getObjectAttributes($object);
@@ -318,7 +312,7 @@ abstract class NidsExport
             $attributes['dst-port'] = 'any';    // If dst-port is unknown, we roll-back to 'any'
         }
 
-    $this->rules[] = sprintf(
+        $this->rules[] = sprintf(
             $ruleFormat,
             false,
             $attributes['protocol'],                            // proto
@@ -335,10 +329,9 @@ abstract class NidsExport
             );
         
     }
-    
-    public static function getObjectAttributes($object)
+
+    protected static function getObjectAttributes($object)
     {
-        
         $attributes = array();
         
         foreach ($object['Attribute'] as $attribute) {
@@ -348,7 +341,7 @@ abstract class NidsExport
         return $attributes;
     }
 
-    public function domainIpRule($ruleFormat, $attribute, &$sid)
+    protected function domainIpRule($ruleFormat, $attribute, &$sid)
     {
         $values = explode('|', $attribute['value']);
         $attributeCopy = $attribute;
@@ -361,7 +354,7 @@ abstract class NidsExport
         $this->ipSrcRule($ruleFormat, $attributeCopy, $sid);
     }
 
-    public function ipDstRule($ruleFormat, $attribute, &$sid)
+    protected function ipDstRule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $ipport = NidsExport::getIpPort($attribute);
@@ -382,7 +375,7 @@ abstract class NidsExport
                 );
     }
 
-    public function ipSrcRule($ruleFormat, $attribute, &$sid)
+    protected function ipSrcRule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $ipport = NidsExport::getIpPort($attribute);
@@ -403,7 +396,7 @@ abstract class NidsExport
                 );
     }
 
-    public function emailSrcRule($ruleFormat, $attribute, &$sid)
+    protected function emailSrcRule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
@@ -425,7 +418,7 @@ abstract class NidsExport
                 );
     }
 
-    public function emailDstRule($ruleFormat, $attribute, &$sid)
+    protected function emailDstRule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
@@ -447,7 +440,7 @@ abstract class NidsExport
                 );
     }
 
-    public function emailSubjectRule($ruleFormat, $attribute, &$sid)
+    protected function emailSubjectRule($ruleFormat, $attribute, &$sid)
     {
         // LATER nids - email-subject rule might not match because of line-wrapping
         $overruled = $this->checkWhitelist($attribute['value']);
@@ -470,7 +463,7 @@ abstract class NidsExport
                 );
     }
 
-    public function emailAttachmentRule($ruleFormat, $attribute, &$sid)
+    protected function emailAttachmentRule($ruleFormat, $attribute, &$sid)
     {
         // LATER nids - email-attachment rule might not match because of line-wrapping
         $overruled = $this->checkWhitelist($attribute['value']);
@@ -493,7 +486,7 @@ abstract class NidsExport
                 );
     }
 
-    public function hostnameRule($ruleFormat, $attribute, &$sid)
+    protected function hostnameRule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
@@ -549,7 +542,7 @@ abstract class NidsExport
         );
     }
 
-    public function domainRule($ruleFormat, $attribute, &$sid)
+    protected function domainRule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
@@ -605,7 +598,7 @@ abstract class NidsExport
         );
     }
 
-    public function urlRule($ruleFormat, $attribute, &$sid)
+    protected function urlRule($ruleFormat, $attribute, &$sid)
     {
         // TODO in hindsight, an url should not be excluded given a host or domain name.
         //$hostpart = parse_url($attribute['value'], PHP_URL_HOST);
@@ -630,7 +623,7 @@ abstract class NidsExport
                 );
     }
 
-    public function userAgentRule($ruleFormat, $attribute, &$sid)
+    protected function userAgentRule($ruleFormat, $attribute, &$sid)
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
@@ -652,17 +645,17 @@ abstract class NidsExport
         );
     }
 
-    public function ja3Rule($ruleFormat, $attribute, &$sid)
+    protected function ja3Rule($ruleFormat, $attribute, &$sid)
     {
         //Empty because Snort doesn't support JA3 Rules
     }
 
-    public function ja3sRule($ruleFormat, $attribute, &$sid)
+    protected function ja3sRule($ruleFormat, $attribute, &$sid)
     {
         //Empty because Snort doesn't support JA3S Rules
     }
 
-    public function snortRule($ruleFormat, $attribute, &$sid, $ruleFormatMsg, $ruleFormatReference)
+    protected function snortRule($ruleFormat, $attribute, &$sid, $ruleFormatMsg, $ruleFormatReference)
     {
         // LATER nids - test using lots of snort rules, some rules don't contain all the necessary to be a valid rule.
 
@@ -678,46 +671,46 @@ abstract class NidsExport
         //   tag       - '/tag\s*:\s*.+?;/'
         $replaceCount = array();
         $tmpRule = preg_replace('/sid\s*:\s*[0-9]+\s*;/', 'sid:' . $sid . ';', $tmpRule, -1, $replaceCount['sid']);
-        if (null == $tmpRule) {
+        if (null === $tmpRule) {
             return false;
         }   // don't output the rule on error with the regex
         $tmpRule = preg_replace('/rev\s*:\s*[0-9]+\s*;/', 'rev:1;', $tmpRule, -1, $replaceCount['rev']);
-        if (null == $tmpRule) {
+        if (null === $tmpRule) {
             return false;
         }   // don't output the rule on error with the regex
         $tmpRule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:' . $this->classtype . ';', $tmpRule, -1, $replaceCount['classtype']);
-        if (null == $tmpRule) {
+        if (null === $tmpRule) {
             return false;
         }   // don't output the rule on error with the regex
         $tmpRule = preg_replace('/msg\s*:\s*"(.*?)"\s*;/', sprintf($ruleFormatMsg, 'snort-rule | $1') . ';', $tmpRule, -1, $replaceCount['msg']);
-        if (null == $tmpRule) {
+        if (null === $tmpRule) {
             return false;
         }   // don't output the rule on error with the regex
         $tmpRule = preg_replace('/reference\s*:\s*.+?;/', $ruleFormatReference . ';', $tmpRule, -1, $replaceCount['reference']);
-        if (null == $tmpRule) {
+        if (null === $tmpRule) {
             return false;
         }   // don't output the rule on error with the regex
         $tmpRule = preg_replace('/reference\s*:\s*.+?;/', $ruleFormatReference . ';', $tmpRule, -1, $replaceCount['reference']);
-        if (null == $tmpRule) {
+        if (null === $tmpRule) {
             return false;
         }   // don't output the rule on error with the regex
         // FIXME nids -  implement priority overwriting
 
         // some values were not replaced, so we need to add them ourselves, and insert them in the rule
         $extraForRule = "";
-        if (0 == $replaceCount['sid']) {
+        if (0 === $replaceCount['sid']) {
             $extraForRule .= 'sid:' . $sid . ';';
         }
-        if (0 == $replaceCount['rev']) {
+        if (0 === $replaceCount['rev']) {
             $extraForRule .= 'rev:1;';
         }
-        if (0 == $replaceCount['classtype']) {
+        if (0 === $replaceCount['classtype']) {
             $extraForRule .= 'classtype:' . $this->classtype . ';';
         }
-        if (0 == $replaceCount['msg']) {
+        if (0 === $replaceCount['msg']) {
             $extraForRule .= $tmpMessage . ';';
         }
-        if (0 == $replaceCount['reference']) {
+        if (0 === $replaceCount['reference']) {
             $extraForRule .= $ruleFormatReference . ';';
         }
         $tmpRule = preg_replace('/;\s*\)/', '; ' . $extraForRule . ')', $tmpRule);
@@ -734,7 +727,7 @@ abstract class NidsExport
      * @param string $type the type of dns name - domain (default) or hostname
      * @return string raw snort compatible format of the dns name
      */
-    public static function dnsNameToRawFormat($name, $type='domain')
+    protected static function dnsNameToRawFormat($name, $type='domain')
     {
         $rawName = "";
         if ('hostname' == $type) {
@@ -747,7 +740,7 @@ abstract class NidsExport
             // count the length of the part, and add |length| before
             $length = strlen($explodedName);
             if ($length > 255) {
-                log('WARNING: DNS name is too long for RFC: '.$name);
+                CakeLog::notice('WARNING: DNS name is too long for RFC: '.$name);
             }
             $hexLength = dechex($length);
             if (1 == strlen($hexLength)) {
@@ -768,7 +761,7 @@ abstract class NidsExport
      * @param string $name dns name to be converted
      * @return string raw snort compatible format of the dns name
      */
-    public static function dnsNameToMSDNSLogFormat($name)
+    protected static function dnsNameToMSDNSLogFormat($name)
     {
         $rawName = "";
         // in MS DNS log format we can't use (0) to distinguish between hostname and domain (including subdomains)
@@ -779,7 +772,7 @@ abstract class NidsExport
             // count the length of the part, and add |length| before
             $length = strlen($explodedName);
             if ($length > 255) {
-                log('WARNING: DNS name is too long for RFC: '.$name);
+                CakeLog::notice('WARNING: DNS name is too long for RFC: '.$name);
             }
             $hexLength = dechex($length);
             $rawName .= '(' . $hexLength . ')' . $explodedName;
@@ -793,18 +786,18 @@ abstract class NidsExport
     /**
      * Replaces characters that are not allowed in a signature.
      *   example: " is converted to |22|
-     * @param unknown_type $value
+     * @param string $value
      */
     public static function replaceIllegalChars($value)
     {
         $replace_pairs = array(
-                '|' => '|7c|', // Needs to stay on top !
-                '"' => '|22|',
-                ';' => '|3b|',
-                ':' => '|3a|',
-                '\\' => '|5c|',
-                '0x' => '|30 78|'
-                );
+            '|' => '|7c|', // Needs to stay on top !
+            '"' => '|22|',
+            ';' => '|3b|',
+            ':' => '|3a|',
+            '\\' => '|5c|',
+            '0x' => '|30 78|'
+        );
         return strtr($value, $replace_pairs);
     }
 
