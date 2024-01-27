@@ -75,11 +75,11 @@ class Cerebrate extends AppModel
                 $response = $httpTool->get(
                     $url,
                     [],
-                    (isset($options['params']) ? $options['params'] : [])
+                    ($options['params'] ?? [])
                 );
             }
             if ($response->isOk()) {
-                return json_decode($response->getBody(), true);
+                return json_decode($response->getBody()->__toString(), true);
             }
         } catch (NetworkException $e) {
             throw new BadRequestException(__('Something went wrong. Error returned: {0}', $e->getMessage()));
@@ -213,10 +213,13 @@ class Cerebrate extends AppModel
         if ($org) {
             /** @var \App\Model\Table\OrganisationsTable $organisationTable */
             $organisationTable = TableRegistry::getTableLocator()->get('Organisations');
-            $existingOrg = $organisationTable->find('all', [
-                'recursive' => -1,
-                'conditions' => ['uuid' => $org['uuid']],
-            ])->first();
+            $existingOrg = $organisationTable->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => ['uuid' => $org['uuid']],
+                ]
+            )->first();
             if (!empty($existingOrg)) {
                 $fieldsToSave = ['name', 'sector', 'nationality', 'type'];
                 unset($org['uuid']);
@@ -248,21 +251,27 @@ class Cerebrate extends AppModel
             }
             if ($dirty) {
                 // verify if the name exists, if so generate a new name
-                $nameCheck = $organisationTable->find('all', [
-                    'recursive' => -1,
-                    'conditions' => ['name' => $orgToSave->name],
-                    'fields' => ['id'],
-                ])->first();
+                $nameCheck = $organisationTable->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['name' => $orgToSave->name],
+                        'fields' => ['id'],
+                    ]
+                )->first();
                 if (!empty($nameCheck)) {
                     $orgToSave['name'] = $orgToSave['name'] . '_' . mt_rand(0, 9999);
                 }
                 // save the organisation
                 $savedOrganisation = $organisationTable->save($orgToSave);
                 if ($savedOrganisation) {
-                    return $organisationTable->find('all', [
-                        'recursive' => -1,
-                        'conditions' => ['id' => $savedOrganisation->id],
-                    ])->first()->toArray();
+                    return $organisationTable->find(
+                        'all',
+                        [
+                            'recursive' => -1,
+                            'conditions' => ['id' => $savedOrganisation->id],
+                        ]
+                    )->first()->toArray();
                 } else {
                     return __('The organisation could not be saved.');
                 }
@@ -292,9 +301,11 @@ class Cerebrate extends AppModel
         $organisationTable = TableRegistry::getTableLocator()->get('Organisations');
         $existingOrgs = $organisationTable->find('all')
         ->where(['uuid'])
-        ->where(function (QueryExpression $exp, Query $q) use ($uuids) {
-            return $exp->in('uuid', array_values($uuids));
-        });
+        ->where(
+            function (QueryExpression $exp, Query $q) use ($uuids) {
+                return $exp->in('uuid', array_values($uuids));
+            }
+        );
         $rearranged = [];
         foreach ($existingOrgs as $existingOrg) {
             $rearranged[$existingOrg->uuid] = $existingOrg->toArray();
@@ -390,9 +401,11 @@ class Cerebrate extends AppModel
         $existingSgs = $sharingGroupTable->find('all')
         ->contain(['SharingGroupOrgs' => 'Organisations', 'Organisations'])
         ->where(['SharingGroups.uuid'])
-        ->where(function (QueryExpression $exp, Query $q) use ($uuids) {
-            return $exp->in('SharingGroups.uuid', array_values($uuids));
-        });
+        ->where(
+            function (QueryExpression $exp, Query $q) use ($uuids) {
+                return $exp->in('SharingGroups.uuid', array_values($uuids));
+            }
+        );
         $rearranged = [];
         foreach ($existingSgs as $existingSg) {
             $existingSg = $existingSg->toArray();
