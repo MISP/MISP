@@ -925,8 +925,9 @@ class TestComprehensive(unittest.TestCase):
         event = create_simple_event()
         event.add_attribute('ip-src', '8.8.8.8', to_ids=True)
         event.add_attribute('snort', 'alert tcp 192.168.1.0/24 any -> 131.171.127.1 25 (content: "hacking"; msg: "malicious packet"; sid:2000001;)', to_ids=True)
-        event = self.user_misp_connector.add_event(event)
-        check_response(event)
+        # Snort rule without msg, test for #9515
+        event.add_attribute('snort', 'alert tcp 192.168.1.0/24 any -> 131.171.127.1 25 (content: "hacking"; sid:2000001;)', to_ids=True)
+        event = check_response(self.user_misp_connector.add_event(event))
 
         publish_immediately(self.admin_misp_connector, event)
 
