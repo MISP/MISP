@@ -2444,9 +2444,8 @@ class Server extends AppModel
                 }
             }
             return true;
-        } else {
-            return __('Something went wrong. MISP tried to save a malformed config file. Setting change reverted.');
         }
+        return __('Something went wrong. MISP tried to save a malformed config file or you dont have permission to write to config file. Setting change reverted.');
     }
 
     /**
