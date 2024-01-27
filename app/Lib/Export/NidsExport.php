@@ -8,8 +8,6 @@ abstract class NidsExport
 
     protected $format;   // suricata (default), snort
 
-    public $checkWhitelist = true;
-
     public $additional_params = array(
         'contain' => array(
             'Event' => array(
@@ -18,17 +16,12 @@ abstract class NidsExport
         ),
     );
 
-    private $whitelist;
-
     public function handler($data, $options = array())
     {
-        $this->checkWhitelist = false;
         if ($options['scope'] === 'Attribute') {
             $this->export(
                 array($data),
-                $options['user']['nids_sid'],
-                $options['returnFormat'],
-                true
+                $options['user']['nids_sid']
             );
         } else if ($options['scope'] === 'Event') {
             if (!empty($data['EventTag'])) {
@@ -61,9 +54,7 @@ abstract class NidsExport
         }
         $this->export(
             $rearranged,
-            $options['user']['nids_sid'],
-            $options['returnFormat'],
-            true
+            $options['user']['nids_sid']
         );
         return true;
     }
@@ -97,9 +88,7 @@ abstract class NidsExport
 
         $this->export(
             $rearranged,
-            $options['user']['nids_sid'],
-            $options['returnFormat'],
-            true
+            $options['user']['nids_sid']
         );
         return true;
     }
@@ -120,7 +109,7 @@ abstract class NidsExport
         return '';
     }
 
-    public function explain()
+    protected function explain()
     {
         $this->rules[] = '# MISP export of IDS rules - optimized for '.$this->format;
         $this->rules[] = '#';
@@ -134,18 +123,8 @@ abstract class NidsExport
         $this->rules[] = '# ';
     }
 
-    public function export($items, $startSid, $format="suricata", $continue = false)
+    protected function export($items, $startSid)
     {
-        $this->format = $format;
-        if ($this->checkWhitelist && !isset($this->Whitelist)) {
-            $this->Whitelist = ClassRegistry::init('Whitelist');
-            $this->whitelist = $this->Whitelist->getBlockedValues();
-        }
-
-        // output a short explanation
-        if (!$continue) {
-            $this->explain();
-        }
         // generate the rules
         foreach ($items as $item) {
             // retrieve all tags for this item to add them to the msg
@@ -175,7 +154,6 @@ abstract class NidsExport
             $sid++;
 
             if (!empty($item['Attribute']['type'])) { // item is an 'Attribute'
-            
                 switch ($item['Attribute']['type']) {
                     // LATER nids - test all the snort attributes
                     // LATER nids - add the tag keyword in the rules to capture network traffic
@@ -223,17 +201,17 @@ abstract class NidsExport
                     case 'ja3-fingerprint-md5':
                         $this->ja3Rule($ruleFormat, $item['Attribute'], $sid);
                         break;
-                    case 'ja3s-fingerprint-md5': // Atribute type doesn't exists yet (2020-12-10) but ready when created.
+                    case 'ja3s-fingerprint-md5': // Attribute type doesn't exists yet (2020-12-10) but ready when created.
                         $this->ja3sRule($ruleFormat, $item['Attribute'], $sid);
                         break;
                     case 'snort':
-                        $this->snortRule($ruleFormat, $item['Attribute'], $sid, $ruleFormatMsg, $ruleFormatReference);
+                        $this->snortRule($item['Attribute'], $sid, $ruleFormatMsg, $ruleFormatReference);
                         // no break
                     default:
                         break;
                 }
 
-            } else if(!empty($item['Attribute']['name'])) { // Item is an 'Object'
+            } else if (!empty($item['Attribute']['name'])) { // Item is an 'Object'
 
                 switch ($item['Attribute']['name']) {
                     case 'network-connection':
@@ -247,29 +225,26 @@ abstract class NidsExport
                 }
 
             }
-
         }
-		
-        return $this->rules;
     }
 
     protected function networkConnectionRule($ruleFormat, $object, &$sid)
     {
         $attributes = NidsExport::getObjectAttributes($object);
         
-        if(!array_key_exists('layer4-protocol', $attributes)){
+        if (!array_key_exists('layer4-protocol', $attributes)) {
             $attributes['layer4-protocol'] = 'ip';  // If layer-4 protocol is unknown, we roll-back to layer-3 ('ip')
         }
-        if(!array_key_exists('ip-src', $attributes)){
+        if (!array_key_exists('ip-src', $attributes)) {
             $attributes['ip-src'] = '$HOME_NET';    // If ip-src is unknown, we roll-back to $HOME_NET
         }
-        if(!array_key_exists('ip-dst', $attributes)){
+        if (!array_key_exists('ip-dst', $attributes)) {
             $attributes['ip-dst'] = '$HOME_NET';    // If ip-dst is unknown, we roll-back to $HOME_NET
         }
-        if(!array_key_exists('src-port', $attributes)){
+        if (!array_key_exists('src-port', $attributes)) {
             $attributes['src-port'] = 'any';    // If src-port is unknown, we roll-back to 'any'
         }
-        if(!array_key_exists('dst-port', $attributes)){
+        if (!array_key_exists('dst-port', $attributes)) {
             $attributes['dst-port'] = 'any';    // If dst-port is unknown, we roll-back to 'any'
         }
 
@@ -288,12 +263,10 @@ abstract class NidsExport
             $sid,                                               // sid
             1                                                   // rev
             );
-        
     }
 
     protected function ddosRule($ruleFormat, $object, &$sid)
     {
-    
         $attributes = NidsExport::getObjectAttributes($object);
         
         if(!array_key_exists('protocol', $attributes)){
@@ -327,7 +300,6 @@ abstract class NidsExport
             $sid,                                               // sid
             1                                                   // rev
             );
-        
     }
 
     protected static function getObjectAttributes($object)
@@ -655,7 +627,7 @@ abstract class NidsExport
         //Empty because Snort doesn't support JA3S Rules
     }
 
-    protected function snortRule($ruleFormat, $attribute, &$sid, $ruleFormatMsg, $ruleFormatReference)
+    protected function snortRule($attribute, &$sid, $ruleFormatMsg, $ruleFormatReference)
     {
         // LATER nids - test using lots of snort rules, some rules don't contain all the necessary to be a valid rule.
 
@@ -708,7 +680,7 @@ abstract class NidsExport
             $extraForRule .= 'classtype:' . $this->classtype . ';';
         }
         if (0 === $replaceCount['msg']) {
-            $extraForRule .= $tmpMessage . ';';
+            $extraForRule .= $ruleFormatMsg . ';';
         }
         if (0 === $replaceCount['reference']) {
             $extraForRule .= $ruleFormatReference . ';';
@@ -788,7 +760,7 @@ abstract class NidsExport
      *   example: " is converted to |22|
      * @param string $value
      */
-    public static function replaceIllegalChars($value)
+    protected static function replaceIllegalChars($value)
     {
         $replace_pairs = array(
             '|' => '|7c|', // Needs to stay on top !
@@ -801,19 +773,17 @@ abstract class NidsExport
         return strtr($value, $replace_pairs);
     }
 
-    public function checkWhitelist($value)
+    /**
+     * @deprecated
+     * @param $value
+     * @return false
+     */
+    protected function checkWhitelist($value)
     {
-        if ($this->checkWhitelist && is_array($this->whitelist)) {
-            foreach ($this->whitelist as $wlitem) {
-                if (preg_match($wlitem, $value)) {
-                    return true;
-                }
-            }
-        }
         return false;
     }
 
-    public static function getProtocolPort($protocol, $customPort)
+    protected static function getProtocolPort($protocol, $customPort)
     {
         if ($customPort == null) {
             switch ($protocol) {
@@ -833,7 +803,7 @@ abstract class NidsExport
         }
     }
 
-    public static function getCustomIP($customIP)
+    protected static function getCustomIP($customIP)
     {
         if (filter_var($customIP, FILTER_VALIDATE_IP)) {
             return $customIP;
@@ -846,7 +816,7 @@ abstract class NidsExport
      * @param array $attribute
      * @return array|string[]
      */
-    public static function getIpPort($attribute)
+    protected static function getIpPort($attribute)
     {
         if (strpos($attribute['type'], 'port') !== false) {
             return explode('|', $attribute['value']);
