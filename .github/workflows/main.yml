@@ -212,7 +212,7 @@ jobs:
         run: |
           sudo systemctl status apache2 --no-pager -l
           sudo apache2ctl -S
-          curl http://${HOST}
+          curl -sS http://${HOST}
 
       - name: Check if dependencies working as expected
         run: |
