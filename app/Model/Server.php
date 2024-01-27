@@ -4280,7 +4280,7 @@ class Server extends AppModel
         $submoduleName = (strpos($submoduleName, '/') >= 0 ? explode('/', $submoduleName) : $submoduleName);
         $submoduleName = end($submoduleName);
 
-        $submoduleCurrentCommitId = GitTool::submoduleCurrentCommit($path);
+        $submoduleCurrentCommitId = GitTool::currentCommit($path);
 
         $currentTimestamp = GitTool::commitTimestamp($submoduleCurrentCommitId, $path);
         if ($submoduleCurrentCommitId !== $superprojectSubmoduleCommitId) {
