@@ -3289,7 +3289,7 @@ class AppModel extends Model
         if ($commit === null) {
             App::uses('GitTool', 'Tools');
             try {
-                $commit = GitTool::currentCommit();
+                $commit = GitTool::currentCommit(ROOT);
             } catch (Exception $e) {
                 $this->logException('Could not get current git commit', $e, LOG_NOTICE);
                 $commit = false;

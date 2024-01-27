@@ -2444,9 +2444,8 @@ class Server extends AppModel
                 }
             }
             return true;
-        } else {
-            return __('Something went wrong. MISP tried to save a malformed config file. Setting change reverted.');
         }
+        return __('Something went wrong. MISP tried to save a malformed config file or you dont have permission to write to config file. Setting change reverted.');
     }
 
     /**
@@ -4165,12 +4164,13 @@ class Server extends AppModel
     private function checkRemoteVersion($HttpSocket)
     {
         try {
-            $json_decoded_tags = GitTool::getLatestTags($HttpSocket);
+            $tags = GitTool::getLatestTags($HttpSocket);
         } catch (Exception $e) {
+            $this->logException('Could not retrieve latest tags from GitHub', $e, LOG_NOTICE);
             return false;
         }
         // find the latest version tag in the v[major].[minor].[hotfix] format
-        foreach ($json_decoded_tags as $tag) {
+        foreach ($tags as $tag) {
             if (preg_match('/^v[0-9]+\.[0-9]+\.[0-9]+$/', $tag['name'])) {
                 return $this->checkVersion($tag['name']);
             }
@@ -4192,7 +4192,7 @@ class Server extends AppModel
             try {
                 $latestCommit = GitTool::getLatestCommit($HttpSocket);
             } catch (Exception $e) {
-                $latestCommit = false;
+                $this->logException('Could not retrieve version from GitHub', $e, LOG_NOTICE);
             }
         }
 
@@ -4212,6 +4212,7 @@ class Server extends AppModel
         try {
             return GitTool::currentBranch();
         } catch (Exception $e) {
+            $this->logException('Could not retrieve current Git branch', $e, LOG_NOTICE);
             return false;
         }
     }
@@ -4278,7 +4279,7 @@ class Server extends AppModel
         $submoduleName = (strpos($submoduleName, '/') >= 0 ? explode('/', $submoduleName) : $submoduleName);
         $submoduleName = end($submoduleName);
 
-        $submoduleCurrentCommitId = GitTool::submoduleCurrentCommit($path);
+        $submoduleCurrentCommitId = GitTool::currentCommit($path);
 
         $currentTimestamp = GitTool::commitTimestamp($submoduleCurrentCommitId, $path);
         if ($submoduleCurrentCommitId !== $superprojectSubmoduleCommitId) {
