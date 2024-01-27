@@ -105,12 +105,11 @@ jobs:
           sudo a2enmod rewrite
           sudo systemctl restart apache2
           # MISP configuration
-          sudo chmod -R 777 `pwd`/travis
           sudo cp app/Config/bootstrap.default.php app/Config/bootstrap.php
-          sudo cp travis/database.php app/Config/database.php
+          sudo cp build/database.php app/Config/database.php
           sudo cp app/Config/core.default.php app/Config/core.php
           sudo cp app/Config/config.default.php app/Config/config.php
-          sudo cp travis/email.php app/Config/email.php
+          sudo cp build/email.php app/Config/email.php
           # Ensure the perms
           sudo chown -R $USER:www-data `pwd`/app/Config
           sudo chmod -R 777 `pwd`/app/Config
@@ -118,7 +117,7 @@ jobs:
           sudo mkdir `pwd`/.gnupg
           # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
           sudo cp -a /dev/urandom /dev/random
-          sudo gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
+          sudo gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir `pwd`/.gnupg --gen-key --batch `pwd`/build/gpg
           sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
           # change perms
           sudo chown -R $USER:www-data `pwd`
