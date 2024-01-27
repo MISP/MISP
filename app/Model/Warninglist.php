@@ -390,8 +390,7 @@ class Warninglist extends AppModel
         $warninglistId = (int)$this->id;
         $result = true;
 
-        $keys = array_keys($list['list']);
-        if ($keys === array_keys($keys)) {
+        if (JsonTool::arrayIsList($list['list'])) {
             foreach (array_chunk($list['list'], 1000) as $chunk) {
                 $valuesToInsert = [];
                 foreach ($chunk as $value) {

@@ -60,7 +60,7 @@
 class DATABASE_CONFIG {
 
 	public $default = array(
-		'datasource' => 'Database/Mysql',
+		'datasource' => 'Database/MysqlExtended',
 		'persistent' => false,
 		'host' => '127.0.0.1',
 		'login' => 'misp',

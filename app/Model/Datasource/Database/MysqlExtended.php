@@ -7,6 +7,14 @@ App::uses('Mysql', 'Model/Datasource/Database');
  */
 class MysqlExtended extends Mysql
 {
+    const PDO_MAP = [
+        'integer' => PDO::PARAM_INT,
+        'float' => PDO::PARAM_STR,
+        'boolean' => PDO::PARAM_BOOL,
+        'string' => PDO::PARAM_STR,
+        'text' => PDO::PARAM_STR
+    ];
+
     /**
      * Output MD5 as binary, that is faster and uses less memory
      * @param string $value
@@ -157,15 +165,9 @@ class MysqlExtended extends Mysql
     public function insertMulti($table, $fields, $values)
     {
         $table = $this->fullTableName($table);
-        $holder = implode(',', array_fill(0, count($fields), '?'));
+        $holder = substr(str_repeat('?,', count($fields)), 0, -1);
         $fields = implode(',', array_map([$this, 'name'], $fields));
-        $pdoMap = [
-            'integer' => PDO::PARAM_INT,
-            'float' => PDO::PARAM_STR,
-            'boolean' => PDO::PARAM_BOOL,
-            'string' => PDO::PARAM_STR,
-            'text' => PDO::PARAM_STR
-        ];
+
         $columnMap = [];
         foreach ($values[key($values)] as $key => $val) {
             if (is_int($val)) {
@@ -174,21 +176,21 @@ class MysqlExtended extends Mysql
                 $columnMap[$key] = PDO::PARAM_BOOL;
             } else {
                 $type = $this->introspectType($val);
-                $columnMap[$key] = $pdoMap[$type];
+                $columnMap[$key] = self::PDO_MAP[$type];
             }
         }
 
         $sql = "INSERT INTO $table ($fields) VALUES ";
-        $sql .= implode(',', array_fill(0, count($values), "($holder)"));
+        $sql .= substr(str_repeat("($holder),", count($values)), 0, -1);
         $statement = $this->_connection->prepare($sql);
         $valuesList = array();
-        $i = 1;
+        $i = 0;
         foreach ($values as $value) {
             foreach ($value as $col => $val) {
                 if ($this->fullDebug) {
                     $valuesList[] = $val;
                 }
-                $statement->bindValue($i++, $val, $columnMap[$col]);
+                $statement->bindValue(++$i, $val, $columnMap[$col]);
             }
         }
         $result = $statement->execute();
