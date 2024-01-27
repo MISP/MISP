@@ -69,6 +69,27 @@ class JsonTool
     }
 
     /**
+     * @see https://www.php.net/manual/en/function.array-is-list.php
+     * @param array $array
+     * @return bool
+     */
+    public static function arrayIsList(array $array)
+    {
+        if (function_exists('array_is_list')) {
+            return array_is_list($array);
+        }
+
+        $i = -1;
+        foreach ($array as $k => $v) {
+            ++$i;
+            if ($k !== $i) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * JSON supports just unicode strings. This helper method converts non unicode chars to Unicode Replacement Character U+FFFD (UTF-8)
      * @param string $string
      * @return string
