@@ -84,11 +84,7 @@ class RedisTool
      */
     public static function deleteKeysByPattern(Redis $redis, $pattern)
     {
-        $allKeys = [];
-        foreach (self::keysByPattern($redis, $pattern) as $key) {
-            $allKeys[] = $key;
-        }
-
+        $allKeys = iterator_to_array(self::keysByPattern($redis, $pattern));
         if (empty($allKeys)) {
             return 0;
         }
