@@ -43,15 +43,29 @@ class UserLoginProfile extends AppModel
 
     private $knownUserProfiles = [];
 
-    private function _buildBrowscapCache()
+    private function browscapGetBrowser()
     {
-        $this->log("Browscap - building new cache from browscap.ini file.", LOG_INFO);
-        $fileCache = new \Doctrine\Common\Cache\FilesystemCache(UserLoginProfile::BROWSER_CACHE_DIR);
-        $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
-
         $logger = new \Monolog\Logger('name');
-        $bc = new \BrowscapPHP\BrowscapUpdater($cache, $logger);
-        $bc->convertFile(UserLoginProfile::BROWSER_INI_FILE);
+
+        if (function_exists('apcu_fetch')) {
+            App::uses('ApcuCacheTool', 'Tools');
+            $cache = new ApcuCacheTool('misp:browscap');
+        } else {
+            $fileCache = new \Doctrine\Common\Cache\FilesystemCache(UserLoginProfile::BROWSER_CACHE_DIR);
+            $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
+        }
+
+        try {
+            $bc = new \BrowscapPHP\Browscap($cache, $logger);
+            return $bc->getBrowser();
+        } catch (\BrowscapPHP\Exception $e) {
+            $this->log("Browscap - building new cache from browscap.ini file.", LOG_INFO);
+            $bcUpdater = new \BrowscapPHP\BrowscapUpdater($cache, $logger);
+            $bcUpdater->convertFile(UserLoginProfile::BROWSER_INI_FILE);
+        }
+
+        $bc = new \BrowscapPHP\Browscap($cache, $logger);
+        return $bc->getBrowser();
     }
 
     public function beforeSave($options = [])
@@ -76,16 +90,7 @@ class UserLoginProfile extends AppModel
         if (!$this->userProfile) {
             // below uses https://github.com/browscap/browscap-php 
             if (class_exists('\BrowscapPHP\Browscap')) {
-                try {
-                    $fileCache = new \Doctrine\Common\Cache\FilesystemCache(UserLoginProfile::BROWSER_CACHE_DIR);
-                    $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
-                    $logger = new \Monolog\Logger('name');
-                    $bc = new \BrowscapPHP\Browscap($cache, $logger);
-                    $browser = $bc->getBrowser();
-                } catch (\BrowscapPHP\Exception $e) {
-                    $this->_buildBrowscapCache();
-                    return $this->_getUserProfile();
-                }
+                $browser = $this->browscapGetBrowser();
             } else {
                 // a primitive OS & browser extraction capability
                 $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
