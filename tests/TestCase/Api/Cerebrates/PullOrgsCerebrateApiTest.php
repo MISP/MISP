@@ -9,12 +9,12 @@ use App\Test\Helper\ApiTestTrait;
 use Cake\Http\TestSuite\HttpClientTrait;
 use Cake\TestSuite\TestCase;
 
-class PreviewOrgsCerebrateApiTest extends TestCase
+class PullOrgsCerebrateApiTest extends TestCase
 {
     use ApiTestTrait;
     use HttpClientTrait;
 
-    protected const ENDPOINT = '/cerebrates/preview_orgs';
+    protected const ENDPOINT = '/cerebrates/pull_orgs';
 
     protected $fixtures = [
         'app.Organisations',
@@ -24,7 +24,7 @@ class PreviewOrgsCerebrateApiTest extends TestCase
         'app.AuthKeys',
     ];
 
-    public function testPreviewOrgs(): void
+    public function testPullOrgs(): void
     {
         $this->skipOpenApiValidations();
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
@@ -38,12 +38,17 @@ class PreviewOrgsCerebrateApiTest extends TestCase
             $this->newClientResponse(200, $headers, $response)
         );
         $url = sprintf('%s/%d', self::ENDPOINT, CerebratesFixture::SERVER_A_ID);
-        $this->get($url);
+        $this->post($url);
         $this->assertResponseOk();
-        $this->assertResponseContains('"name": "' . CerebratesFixture::CEREBRATE_ORG_LIST[0]['name'] . '"');
+        $this->assertResponseContains(' 0 failures');
+        foreach (CerebratesFixture::CEREBRATE_ORG_LIST as $org) {
+            $this->assertDbRecordExists('Organisations', ['name' => $org['name'], 'uuid' => $org['uuid']]);
+        }
     }
 
-    public function testPreviewOrgsNotAllowedAsRegularUser(): void
+    // TODO add more test cases where existing orgs are being pulled
+
+    public function testPullOrgsNotAllowedAsRegularUser(): void
     {
         $this->skipOpenApiValidations();
         $this->setAuthToken(AuthKeysFixture::REGULAR_USER_API_KEY);

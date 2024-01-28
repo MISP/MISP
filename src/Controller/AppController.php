@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 /**
@@ -51,7 +50,9 @@ class AppController extends Controller
     public $MetaTemplates = null;
     public $Users = null;
 
-    /** @var AuditLog|null */
+    /**
+     * @var \Model\Entity\AuditLog|null
+     */
     protected $AuditLogs = null;
 
     /**
@@ -73,7 +74,7 @@ class AppController extends Controller
         $this->loadComponent(
             'ParamHandler',
             [
-                'request' => $this->request
+                'request' => $this->request,
             ]
         );
         $this->loadModel('MetaFields');
@@ -85,7 +86,7 @@ class AppController extends Controller
                 'request' => $this->request,
                 'table' => $table,
                 'MetaFields' => $this->MetaFields,
-                'MetaTemplates' => $this->MetaTemplates
+                'MetaTemplates' => $this->MetaTemplates,
             ]
         );
         $this->loadComponent('Authentication.Authentication');
@@ -93,7 +94,7 @@ class AppController extends Controller
             'ACL',
             [
                 'request' => $this->request,
-                'Authentication' => $this->Authentication
+                'Authentication' => $this->Authentication,
             ]
         );
         $this->loadComponent(
@@ -123,6 +124,12 @@ class AppController extends Controller
         //$this->loadComponent('FormProtection');
     }
 
+    /**
+     * beforeFilter
+     *
+     * @param  \Cake\Event\EventInterface $event the event
+     * @return void
+     */
     public function beforeFilter(EventInterface $event)
     {
         $this->loadModel('Users');
@@ -137,13 +144,14 @@ class AppController extends Controller
             $user = $this->Users->get(
                 $this->request->getAttribute('identity')->getIdentifier(),
                 [
-                    'contain' => ['Roles', 'Organisations' /*'UserSettings'*/]
+                    'contain' => ['Roles', 'Organisations' /*'UserSettings'*/],
                 ]
             );
             $this->__accessMonitor($user->toArray());
             if (!empty($user['disabled'])) {
                 $this->Authentication->logout();
                 $this->Flash->error(__('The user account is disabled.'));
+
                 return $this->redirect(\Cake\Routing\Router::url('/users/login'));
             }
             unset($user['password']);
@@ -157,7 +165,7 @@ class AppController extends Controller
                 $this->set('loggedUser', $this->ACL->getUser());
                 $this->set('roleAccess', $this->ACL->getRoleAccess(false, false));
             }
-        } else if ($this->ParamHandler->isRest()) {
+        } elseif ($this->ParamHandler->isRest()) {
             throw new MethodNotAllowedException(__('Invalid user credentials.'));
         }
 
@@ -199,6 +207,12 @@ class AppController extends Controller
         }
     }
 
+    /**
+     * beforeRender
+     *
+     * @param  \Cake\Event\EventInterface $event the event
+     * @return void
+     */
     public function beforeRender(EventInterface $event)
     {
         if (!empty($this->request->getAttribute('identity'))) {
@@ -210,6 +224,11 @@ class AppController extends Controller
         }
     }
 
+    /**
+     * authApiUser
+     *
+     * @return void
+     */
     private function authApiUser(): void
     {
         if (!empty($_SERVER['HTTP_AUTHORIZATION']) && strlen($_SERVER['HTTP_AUTHORIZATION'])) {
@@ -225,7 +244,7 @@ class AppController extends Controller
                         'model' => 'Users',
                         'model_id' => $user['id'],
                         'model_title' => $user['username'],
-                        'changed' => []
+                        'changed' => [],
                     ]
                 );
                 if (!empty($user)) {
@@ -239,31 +258,50 @@ class AppController extends Controller
                         'model' => 'Users',
                         'model_id' => $user['id'],
                         'model_title' => $user['name'],
-                        'changed' => []
+                        'changed' => [],
                     ]
                 );
             }
         }
     }
 
+    /**
+     * generateUUID
+     *
+     * @return void
+     */
     public function generateUUID()
     {
         $uuid = Text::uuid();
+
         return $this->RestResponse->viewData(['uuid' => $uuid], 'json');
     }
 
+    /**
+     * queryACL
+     *
+     * @return void
+     */
     public function queryACL()
     {
         return $this->RestResponse->viewData($this->ACL->findMissingFunctionNames());
     }
 
+    /**
+     * getRoleAccess
+     *
+     * @return void
+     */
     public function getRoleAccess()
     {
         return $this->RestResponse->viewData($this->ACL->getRoleAccess(false, false));
     }
 
     /**
-     * Convert an array to the same array but with the values also as index instead of an interface_exists
+     * arrayToValuesIndexArray - Convert an array to the same array but with the values also as index instead of an interface_exists
+     *
+     * @param  array $oldArray the original array
+     * @return array
      */
     protected function arrayToValuesIndexArray(array $oldArray): array
     {
@@ -271,10 +309,16 @@ class AppController extends Controller
         foreach ($oldArray as $value) {
             $newArray[$value] = $value;
         }
+
         return $newArray;
     }
 
-    // checks if the currently logged user is a site administrator (an admin that can manage any user or event on the instance and create / edit the roles).
+    /**
+     * isSiteAdmin
+     * checks if the currently logged user is a site administrator (an admin that can manage any user or event on the instance and create / edit the roles).
+     *
+     * @return void
+     */
     protected function isSiteAdmin()
     {
         return $this->ACL->getUser()->Role->perm_site_admin;
@@ -282,34 +326,30 @@ class AppController extends Controller
 
     /**
      * Close session without writing changes to them and return current user.
+     *
      * @return array
      */
     protected function closeSession()
     {
         $user = $this->ACL->getUser();
         session_abort();
+
         return $user->toArray();
     }
 
     /**
      * generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
-     * @param array $options
-     * @param CakeResponse $exception
-     * @param array $data
+     *
+     * @param array $options options
+     * @param mixed $exception exception
+     * @param array $data data
      * @return array|false
      */
     protected function harvestParameters($options, &$exception = null, $data = [])
     {
         $request = $options['request'] ?? $this->request;
         if ($request->is('post')) {
-            if (empty($request->data)) {
-                $exception = $this->RestResponse->throwException(
-                    400,
-                    __('Either specify the search terms in the url, or POST a json with the filter parameters.'),
-                    '/' . $request->params['controller'] . '/' . $request->action
-                );
-                return false;
-            } else {
+            if (!empty($request->data)) {
                 if (isset($request->data['request'])) {
                     $temp = $request->data['request'];
                 } else {
@@ -327,6 +367,14 @@ class AppController extends Controller
                         }
                     }
                 }
+            } elseif (empty($request->data) && !$this->ParamHandler->isRest()) {
+                $exception = $this->RestResponse->throwException(
+                    400,
+                    __('Either specify the search terms in the url, or POST a json with the filter parameters.'),
+                    '/' . $request->params['controller'] . '/' . $request->action
+                );
+
+                return false;
             }
         }
         /*
@@ -385,21 +433,32 @@ class AppController extends Controller
                 }
             }
         }
+
         return $data;
     }
 
+    /**
+     * captureParam
+     *
+     * @param  mixed $data data
+     * @param  mixed $param param
+     * @param  mixed $value value
+     * @return mixed
+     */
     private function captureParam($data, $param, $value)
     {
         $table = $this->getTableLocator()->get($this->defaultModel);
         if ($table->checkParam($param)) {
             $data[$param] = $value;
         }
+
         return $data;
     }
 
     /**
      * Decode JSON with proper error handling.
-     * @param string $dataToDecode
+     *
+     * @param string $dataToDecode data to decode
      * @return mixed
      */
     protected function _jsonDecode($dataToDecode)
@@ -411,6 +470,11 @@ class AppController extends Controller
         }
     }
 
+    /**
+     * setResponseType
+     *
+     * @return static|void
+     */
     private function setResponseType()
     {
         foreach ($this->request->getHeader('Accept') as $accept) {
@@ -426,12 +490,13 @@ class AppController extends Controller
     protected function _remoteIp()
     {
         $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
+
         return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : $_SERVER['REMOTE_ADDR'];
     }
 
     /**
-     * @param array $user
-     * @throws Exception
+     * @param array $user affected user
+     * @throws \Exception
      */
     private function __accessMonitor(array $user)
     {
@@ -450,7 +515,7 @@ class AppController extends Controller
 
         if ($shouldBeLogged) {
             $includeRequestBody = !empty(Configure::read('MISP.log_paranoid_include_post_body')) || $userMonitoringEnabled;
-            /** @var AccessLog $accessLog */
+            /** @var \App\Model\Entity\AccessLog $accessLog */
             $accessLogsTable = $this->fetchTable('AccessLogs');
             $accessLogsTable->logRequest($user, $this->_remoteIp(), $this->request, $includeRequestBody);
         }
@@ -460,7 +525,7 @@ class AppController extends Controller
             $shouldBeLogged
         ) {
             $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->getAttribute('here');
-            ;
+
             if (
                 (
                     $this->request->is('post') ||

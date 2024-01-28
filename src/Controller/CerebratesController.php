@@ -1,12 +1,10 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Controller\AppController;
-use Cake\Core\Configure;
-use Cake\Core\Exception\CakeException;
-use Cake\Http\Exception\NotFoundException;
 use App\Lib\Tools\CustomPaginationTool;
+use Cake\Http\Exception\NotFoundException;
 
 /**
  * Cerebrates Controller
@@ -26,7 +24,7 @@ class CerebratesController extends AppController
         $params = [
             'contain' => ['Organisations'],
             'filters' => ['name', 'url', 'uuid'],
-            'quickFilters' => ['name']
+            'quickFilters' => ['name'],
         ];
         $this->CRUD->index($params);
 
@@ -39,13 +37,14 @@ class CerebratesController extends AppController
     /**
      * View method
      *
-     * @param string|null $id Cerebrate id.
+     * @param int|null $id Cerebrate id.
      * @return \Cake\Http\Response|null|void Renders view
      * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
      */
-    public function view($id = null)
+    public function view(int|null $id = null)
     {
-        $this->CRUD->view($id, 
+        $this->CRUD->view(
+            $id,
             ['contain' => ['Organisations']]
         );
         $responsePayload = $this->CRUD->getResponsePayload();
@@ -70,13 +69,16 @@ class CerebratesController extends AppController
             return $responsePayload;
         }
 
-        $orgs = $this->Cerebrates->Organisations->find('list', [
-            'recursive' => -1,
-            'fields' => ['id', 'name'],
-            'order' => ['lower(name)' => 'ASC']
-        ]);
+        $orgs = $this->Cerebrates->Organisations->find(
+            'list',
+            [
+                'recursive' => -1,
+                'fields' => ['id', 'name'],
+                'order' => ['lower(name)' => 'ASC'],
+            ]
+        );
         $dropdownData = [
-            'org_id' => $orgs
+            'org_id' => $orgs,
         ];
         $this->set(compact('dropdownData'));
     }
@@ -84,11 +86,11 @@ class CerebratesController extends AppController
     /**
      * Edit method
      *
-     * @param string|null $id Cerebrate id.
+     * @param int|null $id Cerebrate id.
      * @return \Cake\Http\Response|null|void Redirects on successful edit, renders view otherwise.
      * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
      */
-    public function edit($id = null)
+    public function edit(int|null $id = null)
     {
         $params = [];
         $this->CRUD->edit($id, $params);
@@ -97,13 +99,16 @@ class CerebratesController extends AppController
             return $responsePayload;
         }
 
-        $orgs = $this->Cerebrates->Organisations->find('list', [
-            'recursive' => -1,
-            'fields' => ['id', 'name'],
-            'order' => ['lower(name)' => 'ASC']
-        ]);
+        $orgs = $this->Cerebrates->Organisations->find(
+            'list',
+            [
+                'recursive' => -1,
+                'fields' => ['id', 'name'],
+                'order' => ['lower(name)' => 'ASC'],
+            ]
+        );
         $dropdownData = [
-            'org_id' => $orgs
+            'org_id' => $orgs,
         ];
         $this->set(compact('dropdownData'));
         $this->render('add');
@@ -112,11 +117,11 @@ class CerebratesController extends AppController
     /**
      * Delete method
      *
-     * @param string|null $id Cerebrate id.
+     * @param int|null $id Cerebrate id.
      * @return \Cake\Http\Response|null|void Redirects to index.
      * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
      */
-    public function delete($id = null)
+    public function delete(int|null $id = null)
     {
         $this->CRUD->delete($id);
         $responsePayload = $this->CRUD->getResponsePayload();
@@ -125,9 +130,13 @@ class CerebratesController extends AppController
         }
     }
 
-
-
-    public function pullOrgs($id)
+    /**
+     * pullOrgs
+     *
+     * @param  int $id of the org
+     * @return void
+     */
+    public function pullOrgs(int $id)
     {
         // FIXME chri - $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateOrgs']);
         /** @var \App\Model\Entity\Cerebrate $cerebrate */
@@ -135,17 +144,21 @@ class CerebratesController extends AppController
         if (empty($cerebrate)) {
             throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
         }
-        
+
         if ($this->request->is('post')) {
-            $orgs = $cerebrate->queryInstance([
-                'path' => '/organisations/index',
-                'params' => $this->harvestParameters([
-                    'name',
-                    'uuid',
-                    'quickFilter'
-                ]),
-                'type' => 'GET'
-            ]);
+            $orgs = $cerebrate->queryInstance(
+                [
+                    'path' => '/organisations/index',
+                    'params' => $this->harvestParameters(
+                        [
+                            'name',
+                            'uuid',
+                            'quickFilter',
+                        ]
+                    ),
+                    'type' => 'GET',
+                ]
+            );
             $result = $cerebrate->saveRemoteOrgs($orgs);
             $message = __('Added {0} new organisations, updated {1} existing organisations, {2} failures.', $result['add'], $result['edit'], $result['fails']);
             if ($this->ParamHandler->isRest()) {
@@ -165,7 +178,13 @@ class CerebratesController extends AppController
         }
     }
 
-    public function pullSgs($id)
+    /**
+     * pullSgs
+     *
+     * @param  int $id id of the Sharing Group
+     * @return void
+     */
+    public function pullSgs(int $id)
     {
         // $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateSgs']);
         /** @var \App\Model\Entity\Cerebrate $cerebrate */
@@ -175,15 +194,19 @@ class CerebratesController extends AppController
         }
 
         if ($this->request->is('post')) {
-            $sgs = $cerebrate->queryInstance([
-                'path' => '/sharingGroups/index',
-                'params' => $this->harvestParameters([
-                    'name',
-                    'uuid',
-                    'quickFilter'
-                ]),
-                'type' => 'GET'
-            ]);
+            $sgs = $cerebrate->queryInstance(
+                [
+                    'path' => '/sharingGroups/index',
+                    'params' => $this->harvestParameters(
+                        [
+                            'name',
+                            'uuid',
+                            'quickFilter',
+                        ]
+                    ),
+                    'type' => 'GET',
+                ]
+            );
             $result = $cerebrate->saveRemoteSgs($sgs, $this->ACL->getUser());
             $message = __('Added {0} new sharing groups, updated {1} existing sharing groups, {2} failures.', $result['add'], $result['edit'], $result['fails']);
             if ($this->ParamHandler->isRest()) {
@@ -203,7 +226,13 @@ class CerebratesController extends AppController
         }
     }
 
-    public function previewOrgs($id = null)
+    /**
+     * previewOrgs
+     *
+     * @param  int $id id of the org
+     * @return void
+     */
+    public function previewOrgs(int|null $id = null)
     {
         // FIXME chri - $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateOrgs']);
         /** @var \App\Model\Entity\Cerebrate $cerebrate */
@@ -212,15 +241,19 @@ class CerebratesController extends AppController
             throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
         }
 
-        $orgs = $cerebrate->queryInstance([
-            'path' => '/organisations/index',
-            'params' => $this->harvestParameters([
-                'name',
-                'uuid',
-                'quickFilter'
-            ]),
-            'type' => 'GET'
-        ]);
+        $orgs = $cerebrate->queryInstance(
+            [
+                'path' => '/organisations/index',
+                'params' => $this->harvestParameters(
+                    [
+                        'name',
+                        'uuid',
+                        'quickFilter',
+                    ]
+                ),
+                'type' => 'GET',
+            ]
+        );
         $result = $cerebrate->checkRemoteOrgs($orgs);
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($result, $this->response->getType());
@@ -234,7 +267,14 @@ class CerebratesController extends AppController
         }
     }
 
-    public function downloadOrg($cerebrate_id, $org_id)
+    /**
+     * downloadOrg
+     *
+     * @param  int $cerebrate_id id of the cerebrate instance
+     * @param  int $org_id id of the org
+     * @return void
+     */
+    public function downloadOrg(int $cerebrate_id, int $org_id)
     {
         if ($this->request->is('post')) {
             /** @var \App\Model\Entity\Cerebrate $cerebrate */
@@ -242,10 +282,12 @@ class CerebratesController extends AppController
             if (empty($cerebrate)) {
                 throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
             }
-            $result = $cerebrate->queryInstance([
-                'path' => '/organisations/view/' . $org_id,
-                'type' => 'GET'
-            ]);
+            $result = $cerebrate->queryInstance(
+                [
+                    'path' => '/organisations/view/' . $org_id,
+                    'type' => 'GET',
+                ]
+            );
             $saveResult = $cerebrate->captureOrg($result);
             if ($this->ParamHandler->isRest()) {
                 if (is_array($saveResult)) {
@@ -272,7 +314,13 @@ class CerebratesController extends AppController
         }
     }
 
-    public function previewSharingGroups($id)
+    /**
+     * previewSharingGroups
+     *
+     * @param  int $id id of the Sharing Group
+     * @return void
+     */
+    public function previewSharingGroups(int $id)
     {
         // $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateSGs']);
         /** @var \App\Model\Entity\Cerebrate $cerebrate */
@@ -280,18 +328,24 @@ class CerebratesController extends AppController
         if (empty($cerebrate)) {
             throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
         }
-        $sgs = $cerebrate->queryInstance([
-            'path' => '/sharingGroups/index',
-            'params' => $this->harvestParameters([
-                'name',
-                'uuid',
-                'quickFilter'
-            ]),
-            'type' => 'GET'
-        ]);
-        if (!empty($sgs))
+        $sgs = $cerebrate->queryInstance(
+            [
+                'path' => '/sharingGroups/index',
+                'params' => $this->harvestParameters(
+                    [
+                        'name',
+                        'uuid',
+                        'quickFilter',
+                    ]
+                ),
+                'type' => 'GET',
+            ]
+        );
+        if (!empty($sgs)) {
             $result = $cerebrate->checkRemoteSharingGroups($sgs);
-        else $result = [];
+        } else {
+            $result = [];
+        }
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($result, $this->response->getType());
         } else {
@@ -304,7 +358,14 @@ class CerebratesController extends AppController
         }
     }
 
-    public function downloadSg($cerebrate_id, $sg_id)
+    /**
+     * downloadSg
+     *
+     * @param  int $cerebrate_id id of the cerebrate instance
+     * @param  int $sg_id id of the Sharing Group
+     * @return void
+     */
+    public function downloadSg(int $cerebrate_id, int $sg_id)
     {
         if ($this->request->is('post')) {
             /** @var \App\Model\Entity\Cerebrate $cerebrate */
@@ -312,10 +373,12 @@ class CerebratesController extends AppController
             if (empty($cerebrate)) {
                 throw new NotFoundException(__('Invalid Cerebrate instance ID provided.'));
             }
-            $result = $cerebrate->queryInstance([
-                'path' => '/sharingGroups/view/' . $sg_id,
-                'type' => 'GET'
-            ]);
+            $result = $cerebrate->queryInstance(
+                [
+                    'path' => '/sharingGroups/view/' . $sg_id,
+                    'type' => 'GET',
+                ]
+            );
             $saveResult = $cerebrate->captureSg($result, $this->ACL->getUser());
             if ($this->ParamHandler->isRest()) {
                 if (is_array($saveResult)) {

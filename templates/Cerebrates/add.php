@@ -4,29 +4,29 @@ $edit = $this->request->getParam('action') === 'edit' ? true : false;
 $fields = [
     [
         'field' => 'name',
-        'class' => 'span6'
+        'class' => 'span6',
     ],
     [
         'field' => 'url',
-        'class' => 'span6'
+        'class' => 'span6',
     ],
     [
         'field' => 'authkey',
         'class' => 'span6',
         'autocomplete' => 'off',
-        'type' => 'text'
+        'type' => 'text',
     ],
     [
         'field' => 'org_id',
         'label' => 'Owner Organisation',
         'options' => $dropdownData['org_id'],
         'class' => 'span6',
-        'type' => 'dropdown'
+        'type' => 'dropdown',
     ],
     [
         'field' => 'description',
         'type' => 'textarea',
-        'class' => 'input span6'
+        'class' => 'input span6',
     ],
     [
         'field' => 'pull_orgs',
@@ -37,17 +37,20 @@ $fields = [
         'field' => 'pull_sharing_groups',
         'label' => __('Pull Sharing Groups'),
         'type' => 'checkbox',
-    ]
+    ],
 ];
-echo $this->element('genericElements/Form/genericForm', [
-    'data' => [
-        'description' => false,
-        'model' => 'Cerebrate',
-        'title' => $edit ? __('Edit Cerebrate connection') : __('Add Cerebrate connection'),
-        'fields' => $fields,
-        'submit' => [
-            'action' => $this->request->getParam('action'),
-            'ajaxSubmit' => 'submitGenericFormInPlace();'
-        ]
+echo $this->element(
+    'genericElements/Form/genericForm',
+    [
+        'data' => [
+            'description' => false,
+            'model' => 'Cerebrate',
+            'title' => $edit ? __('Edit Cerebrate connection') : __('Add Cerebrate connection'),
+            'fields' => $fields,
+            'submit' => [
+                'action' => $this->request->getParam('action'),
+                'ajaxSubmit' => 'submitGenericFormInPlace();',
+            ],
+        ],
     ]
-]);
+);

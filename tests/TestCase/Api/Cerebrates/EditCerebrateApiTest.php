@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Cerebrates;
@@ -20,7 +19,7 @@ class EditCerebrateApiTest extends TestCase
         'app.Cerebrates',
         'app.Roles',
         'app.Users',
-        'app.AuthKeys'
+        'app.AuthKeys',
     ];
 
     public function testEditCerebrate(): void
@@ -32,7 +31,7 @@ class EditCerebrateApiTest extends TestCase
             $url,
             [
                 'id' => CerebratesFixture::SERVER_A_ID,
-                'description' => 'new description'
+                'description' => 'new description',
             ]
         );
 
@@ -41,7 +40,7 @@ class EditCerebrateApiTest extends TestCase
             'Cerebrates',
             [
                 'id' => CerebratesFixture::SERVER_A_ID,
-                'description' => 'new description'
+                'description' => 'new description',
             ]
         );
     }
@@ -55,7 +54,7 @@ class EditCerebrateApiTest extends TestCase
             $url,
             [
                 'id' => CerebratesFixture::SERVER_A_ID,
-                'description' => 'new description'
+                'description' => 'new description',
             ]
         );
         $this->assertResponseCode(405);
@@ -63,7 +62,7 @@ class EditCerebrateApiTest extends TestCase
             'Cerebrates',
             [
                 'id' => CerebratesFixture::SERVER_A_ID,
-                'description' => 'new description'
+                'description' => 'new description',
             ]
         );
     }

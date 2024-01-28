@@ -9,12 +9,12 @@ use App\Test\Helper\ApiTestTrait;
 use Cake\Http\TestSuite\HttpClientTrait;
 use Cake\TestSuite\TestCase;
 
-class PreviewOrgsCerebrateApiTest extends TestCase
+class PullSgsCerebrateApiTest extends TestCase
 {
     use ApiTestTrait;
     use HttpClientTrait;
 
-    protected const ENDPOINT = '/cerebrates/preview_orgs';
+    protected const ENDPOINT = '/cerebrates/pull_sgs';
 
     protected $fixtures = [
         'app.Organisations',
@@ -22,9 +22,10 @@ class PreviewOrgsCerebrateApiTest extends TestCase
         'app.Roles',
         'app.Users',
         'app.AuthKeys',
+        'app.SharingGroups',
     ];
 
-    public function testPreviewOrgs(): void
+    public function testPullSharingGroups(): void
     {
         $this->skipOpenApiValidations();
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
@@ -32,18 +33,23 @@ class PreviewOrgsCerebrateApiTest extends TestCase
             'Content-Type: application/json',
             'Connection: close',
         ];
-        $response = json_encode(CerebratesFixture::CEREBRATE_ORG_LIST);
+        $response = json_encode(CerebratesFixture::CEREBRATE_SG_LIST);
         $this->mockClientGet(
-            CerebratesFixture::SERVER_A_URL . '/organisations/index',
+            CerebratesFixture::SERVER_A_URL . '/sharingGroups/index',
             $this->newClientResponse(200, $headers, $response)
         );
         $url = sprintf('%s/%d', self::ENDPOINT, CerebratesFixture::SERVER_A_ID);
-        $this->get($url);
+        $this->post($url);
         $this->assertResponseOk();
-        $this->assertResponseContains('"name": "' . CerebratesFixture::CEREBRATE_ORG_LIST[0]['name'] . '"');
+        $this->assertResponseContains(' 0 failures');
+        foreach (CerebratesFixture::CEREBRATE_SG_LIST as $sg) {
+            $this->assertDbRecordExists('SharingGroups', ['name' => $sg['name'], 'uuid' => $sg['uuid']]);
+        }
     }
 
-    public function testPreviewOrgsNotAllowedAsRegularUser(): void
+    // TODO add more use-cases where SGs already exist, contain new metadata and contain new orgs
+
+    public function testPullSharingGroupsNotAllowedAsRegularUser(): void
     {
         $this->skipOpenApiValidations();
         $this->setAuthToken(AuthKeysFixture::REGULAR_USER_API_KEY);

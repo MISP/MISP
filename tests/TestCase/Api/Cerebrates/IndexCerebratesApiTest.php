@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Test\TestCase\Api\Cerebrates;
@@ -20,7 +19,7 @@ class IndexCerebratesApiTest extends TestCase
         'app.Cerebrates',
         'app.Roles',
         'app.Users',
-        'app.AuthKeys'
+        'app.AuthKeys',
     ];
 
     public function testIndexCerebrates(): void

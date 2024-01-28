@@ -1,13 +1,8 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Model\Table;
 
-use App\Model\Table\AppTable;
-use ArrayObject;
-use Cake\Datasource\EntityInterface;
-use Cake\Event\Event;
-use Cake\Event\EventInterface;
-use Cake\ORM\Query;
-use Cake\ORM\RulesChecker;
 use Cake\Validation\Validator;
 
 /**
@@ -48,7 +43,7 @@ class CerebratesTable extends AppTable
                 'dependent' => false,
                 'cascadeCallbacks' => false,
                 'foreignKey' => 'org_id',
-                'propertyName' => 'Organisation'
+                'propertyName' => 'Organisation',
             ]
         );
 
