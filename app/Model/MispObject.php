@@ -20,11 +20,12 @@ class MispObject extends AppModel
 
     public $actsAs = array(
         'AuditLog',
-            'Containable',
-            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
-                'userModel' => 'User',
-                'userKey' => 'user_id',
-                'change' => 'full'),
+        'Containable',
+        'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
+            'userModel' => 'User',
+            'userKey' => 'user_id',
+            'change' => 'full'),
+        'AnalystDataParent'
     );
 
     public $belongsTo = array(
