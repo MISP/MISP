@@ -1246,27 +1246,34 @@ class Attribute extends AppModel
     }
 
     /**
+     * This method is useful if you want to iterate all attributes sorted by ID
      * @param array $conditions
-     * @return Generator|void
+     * @param array $fields
+     * @param bool|string $callbacks
+     * @return Generator<array>|void
      */
-    private function fetchAttributesInChunks(array $conditions = [])
+    public function fetchAttributesInChunks(array $conditions = [], array $fields = [], $callbacks = true)
     {
+        $query = [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'limit' => 500,
+            'order' => ['Attribute.id'],
+            'fields' => $fields,
+            'callbacks' => $callbacks,
+        ];
+
         while (true) {
-            $attributes = $this->find('all', [
-                'recursive' => -1,
-                'conditions' => $conditions,
-                'limit' => 500,
-                'order' => 'Attribute.id',
-            ]);
-            if (empty($attributes)) {
-                return;
-            }
+            $attributes = $this->find('all', $query);
             foreach ($attributes as $attribute) {
                 yield $attribute;
             }
             $count = count($attributes);
+            if ($count < 500) {
+                return;
+            }
             $lastAttribute = $attributes[$count - 1];
-            $conditions['Attribute.id >'] = $lastAttribute['Attribute']['id'];
+            $query['conditions']['Attribute.id >'] = $lastAttribute['Attribute']['id'];
         }
     }
 
@@ -3169,8 +3176,7 @@ class Attribute extends AppModel
                 $exportTool->additional_params
             );
         }
-        ClassRegistry::init('ConnectionManager');
-        $db = ConnectionManager::getDataSource('default');
+
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
