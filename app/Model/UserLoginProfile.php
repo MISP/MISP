@@ -36,7 +36,7 @@ class UserLoginProfile extends AppModel
     ];
 
     const BROWSER_CACHE_DIR = APP . DS . 'tmp' . DS . 'browscap';
-    const BROWSER_INI_FILE = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
+    const BROWSER_INI_FILE = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini.gz';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
     const GEOIP_DB_FILE = APP . DS . 'files' . DS . 'geo-open' . DS . 'GeoOpen-Country.mmdb';  // GeoIP file managed by MISP - https://data.public.lu/en/datasets/geo-open-ip-address-geolocation-per-country-in-mmdb-format/
 
     private $userProfile;
@@ -61,11 +61,30 @@ class UserLoginProfile extends AppModel
         } catch (\BrowscapPHP\Exception $e) {
             $this->log("Browscap - building new cache from browscap.ini file.", LOG_INFO);
             $bcUpdater = new \BrowscapPHP\BrowscapUpdater($cache, $logger);
-            $bcUpdater->convertFile(UserLoginProfile::BROWSER_INI_FILE);
+            $bcUpdater->convertString(FileAccessTool::readCompressedFile(UserLoginProfile::BROWSER_INI_FILE));
         }
 
         $bc = new \BrowscapPHP\Browscap($cache, $logger);
         return $bc->getBrowser();
+    }
+
+    /**
+     * @param string $ip
+     * @return string|null
+     */
+    public function countryByIp($ip)
+    {
+        if (class_exists('GeoIp2\Database\Reader')) {
+            $geoDbReader = new GeoIp2\Database\Reader(UserLoginProfile::GEOIP_DB_FILE);
+            try {
+                $record = $geoDbReader->country($ip);
+                return $record->country->isoCode;
+            } catch (InvalidArgumentException $e) {
+                $this->logException("Could not get country code for IP address", $e, LOG_NOTICE);
+                return null;
+            }
+        }
+        return null;
     }
 
     public function beforeSave($options = [])
@@ -105,18 +124,7 @@ class UserLoginProfile extends AppModel
                 $browser->browser = "browser";
             }
             $ip = $this->_remoteIp();
-            if (class_exists('GeoIp2\Database\Reader')) {
-                try {
-                    $geoDbReader = new GeoIp2\Database\Reader(UserLoginProfile::GEOIP_DB_FILE);
-                    $record = $geoDbReader->country($ip);
-                    $country = $record->country->isoCode;
-                } catch (InvalidArgumentException $e) {
-                    $this->logException("Could not get country code for IP address", $e);
-                    $country = 'None';
-                }
-            } else {
-                $country = 'None';
-            }
+            $country = $this->countryByIp($ip) ?? 'None';
             $this->userProfile = [
                 'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
                 'ip' => $ip,

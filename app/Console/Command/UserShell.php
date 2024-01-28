@@ -3,10 +3,11 @@
 /**
  * @property User $User
  * @property Log $Log
+ * @property UserLoginProfile $UserLoginProfile
  */
 class UserShell extends AppShell
 {
-    public $uses = ['User', 'Log'];
+    public $uses = ['User', 'Log', 'UserLoginProfile'];
 
     public function getOptionParser()
     {
@@ -29,7 +30,7 @@ class UserShell extends AppShell
             'help' => __('Get information about given authkey.'),
             'parser' => [
                 'arguments' => [
-                    'authkey' => ['help' => __('Authentication key. If not provide, it will be read from STDIN.')],
+                    'authkey' => ['help' => __('Authentication key. If not provided, it will be read from STDIN.')],
                 ],
             ]
         ]);
@@ -112,6 +113,14 @@ class UserShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('ip_country', [
+            'help' => __('Get country for given IP address'),
+            'parser' => [
+                'arguments' => [
+                    'ip' => ['help' => __('IPv4 or IPv6 address.'), 'required' => true],
+                ]
+            ],
+        ]);
         $parser->addSubcommand('require_password_change_for_old_passwords', [
             'help' => __('Trigger forced password change on next login for users with an old (older than x days) password.'),
             'parser' => [
@@ -188,11 +197,7 @@ class UserShell extends AppShell
 
     public function authkey()
     {
-        if (isset($this->args[0])) {
-            $authkey = $this->args[0];
-        } else {
-            $authkey = fgets(STDIN); // read line from STDIN
-        }
+        $authkey = $this->args[0] ?? fgets(STDIN);
         $authkey = trim($authkey);
         if (strlen($authkey) !== 40) {
             $this->error('Authkey has not valid format.');
@@ -353,7 +358,7 @@ class UserShell extends AppShell
 
         $conditions = ['User.disabled' => false]; // fetch just not disabled users
 
-        $userId = isset($this->args[0]) ? $this->args[0] : null;
+        $userId = $this->args[0] ?? null;
         if ($userId) {
             $conditions['OR'] = [
                 'User.id' => $userId,
@@ -412,7 +417,7 @@ class UserShell extends AppShell
         }
         $user = $this->getUser($userId);
 
-        # validate new authentication key if provided
+        // validate new authentication key if provided
         if (!empty($newkey) && (strlen($newkey) != 40 || !ctype_alnum($newkey))) {
             $this->error('The new auth key needs to be 40 characters long and only alphanumeric.');
         }
@@ -447,7 +452,7 @@ class UserShell extends AppShell
             $this->out('<warning>Storing user IP addresses is disabled.</warning>');
         }
 
-        $ips = $this->User->setupRedisWithException()->smembers('misp:user_ip:' . $user['id']);
+        $ips = RedisTool::init()->smembers('misp:user_ip:' . $user['id']);
 
         if ($this->params['json']) {
             $this->out($this->json($ips));
@@ -470,34 +475,48 @@ class UserShell extends AppShell
             $this->out('<warning>Storing user IP addresses is disabled.</warning>');
         }
 
-        $userId = $this->User->setupRedisWithException()->get('misp:ip_user:' . $ip);
+        $userId = RedisTool::init()->get('misp:ip_user:' . $ip);
         if (empty($userId)) {
             $this->out('No hits.');
             $this->_stop();
         }
 
-        $user = $this->User->find('first', array(
+        $user = $this->User->find('first', [
             'recursive' => -1,
-            'conditions' => array('User.id' => $userId),
+            'conditions' => ['User.id' => $userId],
             'fields' => ['id', 'email'],
-        ));
+        ]);
 
         if (empty($user)) {
             $this->error("User with ID $userId doesn't exists anymore.");
         }
+
+        $ipCountry = $this->UserLoginProfile->countryByIp($ip);
 
         if ($this->params['json']) {
             $this->out($this->json([
                 'ip' => $ip,
                 'id' => $user['User']['id'],
                 'email' => $user['User']['email'],
+                'country' => $ipCountry,
             ]));
         } else {
-            $this->out(sprintf(
-                '%s==============================%sIP: %s%s==============================%sUser #%s: %s%s==============================%s',
-                PHP_EOL, PHP_EOL, $ip, PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL
-            ));
+            $this->hr();
+            $this->out("IP: $ip (country $ipCountry)");
+            $this->hr();
+            $this->out("User #{$user['User']['id']}: {$user['User']['email']}");
+            $this->hr();
         }
+    }
+
+    public function ip_country()
+    {
+        list($ip) = $this->args;
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            $this->error("IP `$ip` is not valid IPv4 or IPv6 address");
+        }
+
+        $this->out($this->UserLoginProfile->countryByIp($ip));
     }
 
     public function require_password_change_for_old_passwords()
