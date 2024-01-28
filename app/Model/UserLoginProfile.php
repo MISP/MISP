@@ -36,7 +36,7 @@ class UserLoginProfile extends AppModel
     ];
 
     const BROWSER_CACHE_DIR = APP . DS . 'tmp' . DS . 'browscap';
-    const BROWSER_INI_FILE = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
+    const BROWSER_INI_FILE = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini.gz';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
     const GEOIP_DB_FILE = APP . DS . 'files' . DS . 'geo-open' . DS . 'GeoOpen-Country.mmdb';  // GeoIP file managed by MISP - https://data.public.lu/en/datasets/geo-open-ip-address-geolocation-per-country-in-mmdb-format/
 
     private $userProfile;
@@ -61,7 +61,7 @@ class UserLoginProfile extends AppModel
         } catch (\BrowscapPHP\Exception $e) {
             $this->log("Browscap - building new cache from browscap.ini file.", LOG_INFO);
             $bcUpdater = new \BrowscapPHP\BrowscapUpdater($cache, $logger);
-            $bcUpdater->convertFile(UserLoginProfile::BROWSER_INI_FILE);
+            $bcUpdater->convertString(FileAccessTool::readCompressedFile(UserLoginProfile::BROWSER_INI_FILE));
         }
 
         $bc = new \BrowscapPHP\Browscap($cache, $logger);
