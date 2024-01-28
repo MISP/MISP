@@ -34,7 +34,8 @@
         "phpstan/phpstan": "^1.10",
         "phpunit/phpunit": "^9.5",
         "psy/psysh": "@stable",
-        "sirbrillig/phpcs-variable-analysis": "^2.11"
+        "sirbrillig/phpcs-variable-analysis": "^2.11",
+        "slevomat/coding-standard": "~8.0"
     },
     "suggest": {
         "markstory/asset_compress": "An asset compression plugin which provides file concatenation and a flexible filter system for preprocessing and minification.",
