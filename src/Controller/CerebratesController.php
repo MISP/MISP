@@ -232,7 +232,7 @@ class CerebratesController extends AppController
      * @param  int $id id of the org
      * @return void
      */
-    public function previewOrgs(int $id = null)
+    public function previewOrgs(int|null $id = null)
     {
         // FIXME chri - $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewCerebrateOrgs']);
         /** @var \App\Model\Entity\Cerebrate $cerebrate */
