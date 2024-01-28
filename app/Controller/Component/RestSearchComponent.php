@@ -208,7 +208,7 @@ class RestSearchComponent extends Component
             'distribution',
             'org',
             'orgc',
-            'tag',
+            'tag_name',
             'custom',
             'sgReferenceOnly',
             'minimal',
