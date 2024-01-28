@@ -95,7 +95,7 @@ class CRUDComponent extends Component
             $savedData = $model->save($data);
             if ($savedData) {
                 if (isset($params['afterSave'])) {
-                    $params['afterSave']($data);
+                    $params['afterSave']($savedData);
                 }
                 $data = $model->find('first', [
                     'recursive' => -1,
@@ -202,7 +202,7 @@ class CRUDComponent extends Component
             if (isset($params['beforeSave'])) {
                 $data = $params['beforeSave']($data);
             }
-            if ($model->save($data)) {
+            if ($data = $model->save($data)) {
                 if (isset($params['afterSave'])) {
                     $params['afterSave']($data);
                 }
