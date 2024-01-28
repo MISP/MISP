@@ -834,33 +834,29 @@ class EventsController extends AppController
         }
 
         if (empty($rules['limit'])) {
-            $events = array();
+            $events = [];
             $i = 1;
             $rules['limit'] = 20000;
             while (true) {
-                $rules['page'] = $i;
+                $rules['page'] = $i++;
                 $temp = $this->Event->find('all', $rules);
                 $resultCount = count($temp);
                 if ($resultCount !== 0) {
-                    // this is faster and memory efficient than array_merge
-                    foreach ($temp as $tempEvent) {
-                        $events[] = $tempEvent;
-                    }
+                    array_push($events, ...$temp);
                 }
                 if ($resultCount < $rules['limit']) {
                     break;
                 }
-                $i++;
             }
             unset($temp);
-            $absolute_total = count($events);
+            $absoluteTotal = count($events);
         } else {
             $counting_rules = $rules;
             unset($counting_rules['limit']);
             unset($counting_rules['page']);
-            $absolute_total = $this->Event->find('count', $counting_rules);
+            $absoluteTotal = $this->Event->find('count', $counting_rules);
 
-            $events = $absolute_total === 0 ? [] : $this->Event->find('all', $rules);
+            $events = $absoluteTotal === 0 ? [] : $this->Event->find('all', $rules);
         }
 
         $isCsvResponse = $this->response->type() === 'text/csv';
@@ -979,7 +975,7 @@ class EventsController extends AppController
             $events = $export->eventIndex($events);
         }
 
-        return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, ['X-Result-Count' => $absolute_total]);
+        return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, ['X-Result-Count' => $absoluteTotal]);
     }
 
     private function __indexColumns()

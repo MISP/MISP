@@ -264,7 +264,7 @@ class Galaxy extends AppModel
                 $fields = array('galaxy_cluster_id', 'key', 'value');
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
-            $allRelations = array_merge($allRelations, $relations);
+            array_push($allRelations, ...$relations);
         }
         // Save relation as last part when all clusters are created
         if (!empty($allRelations)) {

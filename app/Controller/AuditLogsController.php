@@ -134,7 +134,8 @@ class AuditLogsController extends AppController
         ]);
 
         $this->paginate['conditions'] = $this->__searchConditions($params);
-        $acl = $this->__applyAuditACL($this->Auth->user());
+        $user = $this->Auth->user();
+        $acl = $this->__applyAuditACL($user);
         if ($acl) {
             $this->paginate['conditions']['AND'][] = $acl;
         }
@@ -144,7 +145,7 @@ class AuditLogsController extends AppController
             return $this->RestResponse->viewData($list, 'json');
         }
 
-        $list = $this->__appendModelLinks($list);
+        $list = $this->__appendModelLinks($user, $list);
         foreach ($list as $k => $item) {
             $list[$k]['AuditLog']['action_human'] =  $this->actions[$item['AuditLog']['action']];
         }
@@ -435,10 +436,11 @@ class AuditLogsController extends AppController
 
     /**
      * Generate link to model view if exists and use has permission to access it.
+     * @param array $user
      * @param array $auditLogs
      * @return array
      */
-    private function __appendModelLinks(array $auditLogs)
+    private function __appendModelLinks(array $user, array $auditLogs)
     {
         $models = [];
         foreach ($auditLogs as $auditLog) {
@@ -449,7 +451,7 @@ class AuditLogsController extends AppController
             }
         }
 
-        $eventIds = isset($models['Event']) ? $models['Event'] : [];
+        $eventIds = $models['Event'] ?? [];
 
         if (isset($models['ObjectReference'])) {
             $this->loadModel('ObjectReference');
@@ -461,11 +463,11 @@ class AuditLogsController extends AppController
 
         if (isset($models['Object']) || isset($objectReferences)) {
             $objectIds = array_unique(array_merge(
-                isset($models['Object']) ? $models['Object'] : [],
+                $models['Object'] ?? [],
                 isset($objectReferences) ? array_values($objectReferences) : []
             ));
             $this->loadModel('MispObject');
-            $conditions = $this->MispObject->buildConditions($this->Auth->user());
+            $conditions = $this->MispObject->buildConditions($user);
             $conditions['Object.id'] = $objectIds;
             $objects = $this->MispObject->find('all', [
                 'conditions' => $conditions,
@@ -473,22 +475,22 @@ class AuditLogsController extends AppController
                 'fields' => ['Object.id', 'Object.event_id', 'Object.uuid', 'Object.deleted'],
             ]);
             $objects = array_column(array_column($objects, 'Object'), null, 'id');
-            $eventIds = array_merge($eventIds, array_column($objects, 'event_id'));
+            array_push($eventIds, ...array_column($objects, 'event_id'));
         }
 
         if (isset($models['Attribute'])) {
             $this->loadModel('Attribute');
-            $attributes = $this->Attribute->fetchAttributesSimple($this->Auth->user(), [
+            $attributes = $this->Attribute->fetchAttributesSimple($user, [
                 'conditions' => ['Attribute.id' => array_unique($models['Attribute'])],
                 'fields' => ['Attribute.id', 'Attribute.event_id', 'Attribute.uuid', 'Attribute.deleted'],
             ]);
             $attributes = array_column(array_column($attributes, 'Attribute'), null, 'id');
-            $eventIds = array_merge($eventIds, array_column($attributes, 'event_id'));
+            array_push($eventIds, ...array_column($attributes, 'event_id'));
         }
 
         if (isset($models['ShadowAttribute'])) {
             $this->loadModel('ShadowAttribute');
-            $conditions = $this->ShadowAttribute->buildConditions($this->Auth->user());
+            $conditions = $this->ShadowAttribute->buildConditions($user);
             $conditions['AND'][] = ['ShadowAttribute.id' => array_unique($models['ShadowAttribute'])];
             $shadowAttributes = $this->ShadowAttribute->find('all', [
                 'conditions' => $conditions,
@@ -496,12 +498,12 @@ class AuditLogsController extends AppController
                 'contain' => ['Event', 'Attribute'],
             ]);
             $shadowAttributes = array_column(array_column($shadowAttributes, 'ShadowAttribute'), null, 'id');
-            $eventIds = array_merge($eventIds, array_column($shadowAttributes, 'event_id'));
+            array_push($eventIds, ...array_column($shadowAttributes, 'event_id'));
         }
 
         if (!empty($eventIds)) {
             $this->loadModel('Event');
-            $conditions = $this->Event->createEventConditions($this->Auth->user());
+            $conditions = $this->Event->createEventConditions($user);
             $conditions['Event.id'] = array_unique($eventIds);
             $events = $this->Event->find('list', [
                 'conditions' => $conditions,
