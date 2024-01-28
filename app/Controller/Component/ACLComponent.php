@@ -89,6 +89,19 @@ class ACLComponent extends Component
                 'pull_sgs' => [],
                 'view' => []
             ],
+            'collections' => [
+                'add' => ['perm_modify'],
+                'delete' => ['perm_modify'],
+                'edit' => ['perm_modify'],
+                'index' => ['*'],
+                'view' => ['*']
+            ],
+            'collectionElements' => [
+                'add' => ['perm_modify'],
+                'addElementToCollection' => ['perm_modify'],
+                'delete' => ['perm_modify'],
+                'index' => ['*']
+            ],
             'correlationExclusions' => [
                 'add' => [],
                 'edit' => [],

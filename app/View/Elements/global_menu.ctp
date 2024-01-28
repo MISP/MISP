@@ -32,6 +32,13 @@
                         'type' => 'separator'
                     ),
                     array(
+                        'text' => __('List Collections'),
+                        'url' => $baseurl . '/collections/index'
+                    ),
+                    [
+                        'type' => 'separator'
+                    ],
+                    array(
                         'text' => __('View Proposals'),
                         'url' => $baseurl . '/shadow_attributes/index/all:0'
                     ),
