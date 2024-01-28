@@ -166,11 +166,7 @@ class RedisTool
             return false;
         }
 
-        if (self::$serializer === null) {
-            self::$serializer = Configure::read('MISP.redis_serializer') ?: false;
-        }
-
-        if (self::$serializer === 'igbinary') {
+        if ($string[0] === "\x00") {
             return igbinary_unserialize($string);
         } else {
             return JsonTool::decode($string);
