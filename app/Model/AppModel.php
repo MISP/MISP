@@ -88,7 +88,7 @@ class AppModel extends Model
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
-        117 => false, 118 => false, 119 => false
+        117 => false, 118 => false, 119 => false, 120 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2084,6 +2084,47 @@ class AppModel extends Model
                     KEY `related_object_type` (`related_object_type`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
+            case 120:
+                $sqlArray[] = "CREATE TABLE `collections` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `org_id` int(10) unsigned NOT NULL,
+                    `orgc_id` int(10) unsigned NOT NULL,
+                    `user_id` int(10) unsigned NOT NULL,
+                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
+                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(10) unsigned,
+                    `name` varchar(191) NOT NULL,
+                    `type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `description` mediumtext,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `name` (`name`),
+                    KEY `type` (`type`),
+                    KEY `org_id` (`org_id`),
+                    KEY `orgc_id` (`orgc_id`),
+                    KEY `user_id` (`user_id`),
+                    KEY `distribution` (`distribution`),
+                    KEY `sharing_group_id` (`sharing_group_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
+                $sqlArray[] = "CREATE TABLE `collection_elements` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `element_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `element_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `collection_id` int(10) unsigned NOT NULL,
+                    `description` text,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `element_uuid` (`element_uuid`),
+                    KEY `element_type` (`element_type`),
+                    KEY `collection_id` (`collection_id`),
+                    UNIQUE KEY `unique_element` (`element_uuid`, `collection_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+    
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
