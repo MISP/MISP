@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Lib\Tools;
 
@@ -8,14 +9,13 @@ use Cake\Http\Client\Exception\NetworkException;
 use Cake\Http\Client\Exception\RequestException;
 use Psr\Http\Message\RequestInterface;
 
-class CurlAdvanced extends Curl 
+class CurlAdvanced extends Curl
 {
-
     /**
      * getCertificateChain - returns the list of certificates offered by the server
      *
-     * @param  mixed $request
-     * @param  mixed $options
+     * @param  \Psr\Http\Message\RequestInterface $request the request interface
+     * @param  array $options options of curl
      * @return array
      */
     public function getCertificateChain(RequestInterface $request, array $options): array
@@ -26,11 +26,11 @@ class CurlAdvanced extends Curl
 
         $ch = curl_init();
         $options['curl'] = [
-            CURLOPT_CERTINFO => true,    // ask curl for the certificate information
+            CURLOPT_CERTINFO => true, // ask curl for the certificate information
             // CURLOPT_VERBOSE => true,
-            CURLOPT_NOBODY => true,      // no need for the body
+            CURLOPT_NOBODY => true, // no need for the body
         ];
-     
+
         $options = $this->buildOptions($request, $options);
         curl_setopt_array($ch, $options);
 
