@@ -68,6 +68,25 @@ class UserLoginProfile extends AppModel
         return $bc->getBrowser();
     }
 
+    /**
+     * @param string $ip
+     * @return string|null
+     */
+    public function countryByIp($ip)
+    {
+        if (class_exists('GeoIp2\Database\Reader')) {
+            $geoDbReader = new GeoIp2\Database\Reader(UserLoginProfile::GEOIP_DB_FILE);
+            try {
+                $record = $geoDbReader->country($ip);
+                return $record->country->isoCode;
+            } catch (InvalidArgumentException $e) {
+                $this->logException("Could not get country code for IP address", $e, LOG_NOTICE);
+                return null;
+            }
+        }
+        return null;
+    }
+
     public function beforeSave($options = [])
     {
         $this->data['UserLoginProfile']['hash'] = $this->hash($this->data['UserLoginProfile']);
@@ -105,18 +124,7 @@ class UserLoginProfile extends AppModel
                 $browser->browser = "browser";
             }
             $ip = $this->_remoteIp();
-            if (class_exists('GeoIp2\Database\Reader')) {
-                try {
-                    $geoDbReader = new GeoIp2\Database\Reader(UserLoginProfile::GEOIP_DB_FILE);
-                    $record = $geoDbReader->country($ip);
-                    $country = $record->country->isoCode;
-                } catch (InvalidArgumentException $e) {
-                    $this->logException("Could not get country code for IP address", $e);
-                    $country = 'None';
-                }
-            } else {
-                $country = 'None';
-            }
+            $country = $this->countryByIp($ip) ?? 'None';
             $this->userProfile = [
                 'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
                 'ip' => $ip,
