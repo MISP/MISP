@@ -69,6 +69,16 @@ class JSONConverterTool
             }
         }
 
+        if (isset($event['Event']['Note'])) {
+            $event['Event']['Note'] = self::__cleanAnalystData($event['Event']['Note']);
+        }
+        if (isset($event['Event']['Opinion'])) {
+            $event['Event']['Opinion'] = self::__cleanAnalystData($event['Event']['Opinion']);
+        }
+        if (isset($event['Event']['Relationship'])) {
+            $event['Event']['Relationship'] = self::__cleanAnalystData($event['Event']['Relationship']);
+        }
+
         // cleanup the array from things we do not want to expose
         $tempSightings = array();
         if (!empty($event['Sighting'])) {
@@ -207,6 +217,17 @@ class JSONConverterTool
         }
         $objects = array_values($objects);
         return $objects;
+    }
+
+    private function __cleanAnalystData($data)
+    {
+        foreach ($data as $k => $entry) {
+            if (empty($entry['SharingGroup'])) {
+                unset($data[$k]['SharingGroup']);
+            }
+        }
+        $data = array_values($data);
+        return $data;
     }
 
     public static function arrayPrinter($array, $root = true)

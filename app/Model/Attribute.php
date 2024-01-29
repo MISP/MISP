@@ -37,7 +37,7 @@ class Attribute extends AppModel
         'Containable',
         'Regexp' => array('fields' => array('value')),
         'LightPaginator',
-        'AnalystDataParent'
+        'AnalystDataParent',
     );
 
     public $displayField = 'value';

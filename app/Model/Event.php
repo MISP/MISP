@@ -2232,6 +2232,10 @@ class Event extends AppModel
                             unset($attribute['EventTag']);
                         }
                     }
+                    $allAnalystData = $this->Attribute->attachAnalystData($attribute); // afterFind from AnalystDataParentBehavior is not called. Probably because we're in an association
+                    foreach ($allAnalystData as $type => $analystData) {
+                        $attribute[$type] = $analystData;
+                    }
                     // If a shadowattribute can be linked to an attribute, link it to it
                     // This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
                     $attribute['ShadowAttribute'] = $shadowAttributeByOldId[$attribute['id']] ?? [];

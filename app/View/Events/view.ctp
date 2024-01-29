@@ -18,6 +18,9 @@
                     'path' => 'Event.uuid',
                     'class' => '',
                     'type' => 'uuid',
+                    'object_type' => 'Event',
+                    'notes_path' => 'Note',
+                    'opinions_path' => 'Opinion',
                     'action_buttons' => [
                         [
                             'url' => $baseurl . '/events/add/extends:' . h($event['Event']['uuid']),

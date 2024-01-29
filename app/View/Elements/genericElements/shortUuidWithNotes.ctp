@@ -2,7 +2,15 @@
 
     $uuidHalfWidth = 3;
     $shortUUID = sprintf('%s...%s', substr($uuid, 0, $uuidHalfWidth), substr($uuid, 36-$uuidHalfWidth, $uuidHalfWidth));
-    $notes = !empty($notes) ? $notes : [];
-    $object_type = !empty($object_type) ? $object_type : null;
     echo sprintf('<span title="%s">%s</span>', $uuid, $shortUUID);
-    echo $this->element('genericElements/Analyst_notes/notes', ['notes' => $notes, 'object_uuid' => $uuid, 'object_type' => $object_type]);
+
+    if (!empty($object_type)) {
+        $notes = !empty($notes) ? $notes : [];
+        $opinions = !empty($opinions) ? $opinions : [];
+        $relationships = !empty($relationships) ? $relationships : [];
+        echo $this->element('genericElements/Analyst_data/generic', [
+            'analyst_data' => ['notes' => $notes, 'opinions' => $opinions, 'relationships' => $relationships,],
+            'object_uuid' => $uuid,
+            'object_type' => $object_type
+        ]);
+    }

@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('AnalystData', 'Model');
 class Opinion extends AnalystData
 {
 
@@ -11,6 +12,7 @@ class Opinion extends AnalystData
     );
 
     public $current_type = 'Opinion';
+    public $current_type_id = 1;
 
     public $validate = array(
     );
