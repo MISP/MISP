@@ -659,21 +659,18 @@ class User extends AppModel
     public function getUserById($id)
     {
         if (empty($id)) {
-            throw new NotFoundException('Invalid user ID.');
+            throw new InvalidArgumentException('Invalid user ID.');
         }
-        return $this->find(
-            'first',
-            array(
-                'conditions' => array('User.id' => $id),
-                'recursive' => -1,
-                'contain' => array(
-                    'Organisation',
-                    'Role',
-                    'Server',
-                    'UserSetting',
-                )
-            )
-        );
+        return $this->find('first', [
+            'conditions' => ['User.id' => $id],
+            'recursive' => -1,
+            'contain' => [
+                'Organisation',
+                'Role',
+                'Server',
+                'UserSetting',
+            ]
+        ]);
     }
 
     /**
@@ -859,6 +856,10 @@ class User extends AppModel
     {
         if (Configure::read('MISP.disable_emailing')) {
             return true;
+        }
+
+        if (!isset($user['User'])) {
+            throw new InvalidArgumentException("Invalid user model provided.");
         }
 
         if ($user['User']['disabled'] || !$this->checkIfUserIsValid($user['User'])) {
