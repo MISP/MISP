@@ -260,13 +260,13 @@ class UserLoginProfile extends AppModel
     public function emailNewLogin(array $user)
     {
         if (!Configure::read('MISP.disable_emailing')) {
-            $date_time = date('c');
-
+            $user = $this->User->getUserById($user['id']); // fetch in database format
+            $datetime = date('c'); // ISO 8601 date
             $body = new SendEmailTemplate('userloginprofile_newlogin');
             $body->set('userLoginProfile', $this->User->UserLoginProfile->_getUserProfile());
             $body->set('baseurl', Configure::read('MISP.baseurl'));
             $body->set('misp_org', Configure::read('MISP.org'));
-            $body->set('date_time', $date_time);
+            $body->set('date_time', $datetime);
             // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
             $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] New sign in.");
         }
