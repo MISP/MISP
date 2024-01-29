@@ -128,7 +128,7 @@
                 'title' => empty($ajax) ? __('%s index', Inflector::pluralize($modelSelection)) : false,
                 'actions' => [
                     [
-                        'url' => $baseurl . '/analystData/view/' . $modelSelection . '/',
+                        'url' => $baseurl . '/analystData/view/' . $modelSelection,
                         'url_params_data_paths' => [$modelSelection . '.id'],
                         'icon' => 'eye'
                     ],

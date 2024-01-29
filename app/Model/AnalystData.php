@@ -27,6 +27,13 @@ class AnalystData extends AppModel
         OPINION = 1,
         RELATIONSHIP = 2;
 
+    /** @var object|null */
+    protected $Note;
+    /** @var object|null */
+    protected $Opinion;
+    /** @var object|null */
+    protected $ObjectRelationship;
+
     public $current_user = null;
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -51,14 +58,18 @@ class AnalystData extends AppModel
         foreach ($results as $i => $v) {
             $results[$i][$this->alias]['note_type'] = $this->current_type_id;
             $results[$i][$this->alias]['note_type_name'] = $this->current_type;
-            if (!isset($v['Organisation'])) {
-                $this->Organisation = ClassRegistry::init('Organisation');
-                $results[$i][$this->alias]['Organisation'] = $this->Organisation->find('first', ['condition' => ['uuid' => $v[$this->alias]['orgc_uuid']]])['Organisation'];
-            } else {
-                $results[$i][$this->alias]['Organisation'] = $v['Organisation'];
+            if (!empty($v[$this->alias]['orgc_uuid'])) {
+                if (!isset($v['Organisation'])) {
+                    $this->Organisation = ClassRegistry::init('Organisation');
+                    $results[$i][$this->alias]['Organisation'] = $this->Organisation->find('first', ['condition' => ['uuid' => $v[$this->alias]['orgc_uuid']]])['Organisation'];
+                } else {
+                    $results[$i][$this->alias]['Organisation'] = $v['Organisation'];
+                }
+                unset($results[$i]['Organisation']);
             }
-            unset($results[$i]['Organisation']);
-            $results[$i][$this->alias] = $this->fetchChildNotesAndOpinions($results[$i][$this->alias]);
+            if (!empty($results[$i][$this->alias]['uuid'])) {
+                $results[$i][$this->alias] = $this->fetchChildNotesAndOpinions($results[$i][$this->alias]);
+            }
         }
         return $results;
     }

@@ -36,7 +36,7 @@ class AnalystDataParentBehavior extends ModelBehavior
         }
         return $data;
     }
-/*
+
     public function afterFind(Model $model, $results, $primary = false)
     {
         if (!empty($model->includeAnalystData)) {
@@ -48,5 +48,5 @@ class AnalystDataParentBehavior extends ModelBehavior
         }
         return $results;
     }
-    */
+
 }
