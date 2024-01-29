@@ -45,7 +45,9 @@ class Relationship extends AnalystData
             }
         }
         foreach ($results as $i => $v) {
-            $results[$i][$this->alias]['related_object'] = $this->getRelatedElement($this->__currentUser, $v[$this->alias]['related_object_type'], $v[$this->alias]['related_object_uuid']);
+            if (!empty($v[$this->alias]['related_object_type']) && !empty($v[$this->alias]['related_object_uuid'])) {
+                $results[$i][$this->alias]['related_object'] = $this->getRelatedElement($this->__currentUser, $v[$this->alias]['related_object_type'], $v[$this->alias]['related_object_uuid']);
+            }
         }
         return $results;
     }

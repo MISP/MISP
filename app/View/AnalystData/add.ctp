@@ -71,10 +71,13 @@ if ($modelSelection === 'Note') {
             ],
             [
                 'field' => 'related_object_type',
-                'class' => 'span2',
+                'class' => 'span4',
                 'options' => $dropdownData['valid_targets'],
-                'type' => 'dropdown',
-                'stayInLine' => 1
+                'type' => 'text',
+                'picker' => array(
+                    'text' => __('Pick type'),
+                    'function' => 'pickerTypes',
+                )
             ],
             [
                 'field' => 'related_object_uuid',
@@ -160,6 +163,11 @@ if (!$ajax) {
     }
 
     $(document).ready(function() {
+        $('#NoteDistribution').change(function() {
+            checkSharingGroup('Note');
+        });
+        checkSharingGroup('Note');
+
         $('#RelationshipRelatedObjectType').change(function(e) {
             if ($('#RelationshipRelatedObjectUuid').val().length == 36) {
                 fetchAndDisplayRelatedObject($('#RelationshipRelatedObjectType').val(),$('#RelationshipRelatedObjectUuid').val())
@@ -172,12 +180,23 @@ if (!$ajax) {
         })
     })
 
-    $(function() {
-        $('#NoteDistribution').change(function() {
-            checkSharingGroup('Note');
+    function pickerTypes() {
+        var existingRelationTypes = <?= json_encode(array_values($existingRelations)) ?> ;
+        var $select = $('<select id="pickerTypeSelect"/>');
+        existingRelationTypes.forEach(function(type) {
+            $select.append($('<option/>').val(type).text(type))
+        })
+        var html = '<div>' + $select[0].outerHTML + '</div>';
+        var that = this
+        openPopover(this, html, false, 'right', function($popover) {
+            $popover.find('select').chosen({
+                width: '300px',
+            }).on('change', function(evt, param) {
+                $('#RelationshipRelatedObjectType').val($('#pickerTypeSelect').val());
+                $(that).popover('hide')
+            });
         });
-        checkSharingGroup('Note');
-    });
+    }
 </script>
 
 <style>

@@ -133,4 +133,20 @@ class AnalystData extends AppModel
         }
         return $analystData;
     }
+
+    public function getExistingRelationships()
+    {
+        $existingRelationships = $this->find('column', [
+            'recursive' => -1,
+            'fields' => ['relationship_type'],
+            'unique' => true,
+        ]);
+        $this->ObjectRelationship = ClassRegistry::init('ObjectRelationship');
+        $objectRelationships = $this->ObjectRelationship->find('column', [
+            'recursive' => -1,
+            'fields' => ['name'],
+            'unique' => true,
+        ]);
+        return array_unique(array_merge($existingRelationships, $objectRelationships));
+    }
 }

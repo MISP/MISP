@@ -57,6 +57,9 @@ class AnalystDataController extends AppController
             return $this->restResponsePayload;
         }
         $this->_setViewElements();
+        if ($type == 'Relationship') {
+            $this->set('existingRelations', $this->AnalystData->getExistingRelationships());
+        }
         $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'add'));
         $this->render('add');
     }
@@ -72,6 +75,9 @@ class AnalystDataController extends AppController
             return $this->restResponsePayload;
         }
         $this->_setViewElements();
+        if ($type == 'Relationship') {
+            $this->set('existingRelations', $this->AnalystData->getExistingRelationships());
+        }
         $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'edit'));
         $this->render('add');
     }
