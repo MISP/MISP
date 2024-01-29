@@ -171,6 +171,13 @@ if (!$ajax) {
             }
         })
     })
+
+    $(function() {
+        $('#NoteDistribution').change(function() {
+            checkSharingGroup('Note');
+        });
+        checkSharingGroup('Note');
+    });
 </script>
 
 <style>
