@@ -23,6 +23,17 @@
         'key' => __('Last update'),
         'html' => $this->Time->time($report['EventReport']['timestamp']),
     );
+    $table_data[] = array(
+        'key' => __('Analyst Data'),
+        'element' => 'genericElements/shortUuidWithNotes',
+        'element_params' => [
+            'uuid' => $report['EventReport']['uuid'],
+            'object_type' => 'EventReport',
+            'notes' => $report['Note'] ?? [],
+            'opinions' => $report['Opinion'] ?? [],
+            'relationships' => $report['Relationship'] ?? [],
+        ],
+    );
     if ($report['EventReport']['deleted']) {
         $table_data[] = array(
             'key' => __('Deleted'),

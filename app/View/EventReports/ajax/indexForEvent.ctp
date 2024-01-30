@@ -74,6 +74,17 @@
                         'data_path' => 'EventReport.id',
                     ),
                     array(
+                        'name' => __('Context'),
+                        'sort' => 'uuid',
+                        'class' => 'short',
+                        'data_path' => 'EventReport.uuid',
+                        'notes_data_path' => 'Note',
+                        'opinions_data_path' => 'Opinion',
+                        'relationships_data_path' => 'Relationship',
+                        'element' => 'shortUUIDWithNotes',
+                        'object_type' => 'EventReport',
+                    ),
+                    array(
                         'name' => __('Name'),
                         'class' => 'useCursorPointer',
                         'data_path' => 'EventReport.name',

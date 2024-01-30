@@ -17,6 +17,7 @@ class EventReport extends AppModel
             'change' => 'full'
         ),
         'Regexp' => array('fields' => array('value')),
+        'AnalystDataParent',
     );
 
     public $validate = array(
