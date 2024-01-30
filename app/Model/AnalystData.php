@@ -135,16 +135,18 @@ class AnalystData extends AppModel
 
     private function rearrangeSharingGroup(array $analystData, array $user): array
     {
-        if ($analystData[$this->alias]['distribution'] == 4) {
-            if (!isset($analystData['SharingGroup'])) {
-                $this->SharingGroup = ClassRegistry::init('SharingGroup');
-                $sg = $this->SharingGroup->fetchSG($analystData[$this->alias]['sharing_group_id'], $user, true);
-                $analystData[$this->alias]['SharingGroup'] = $sg['SharingGroup'];
+        if (isset($analystData[$this->alias]['distribution'])) {
+            if ($analystData[$this->alias]['distribution'] == 4) {
+                if (!isset($analystData['SharingGroup'])) {
+                    $this->SharingGroup = ClassRegistry::init('SharingGroup');
+                    $sg = $this->SharingGroup->fetchSG($analystData[$this->alias]['sharing_group_id'], $user, true);
+                    $analystData[$this->alias]['SharingGroup'] = $sg['SharingGroup'];
+                } else {
+                    $analystData[$this->alias]['SharingGroup'] = $analystData['SharingGroup'];
+                }
             } else {
-                $analystData[$this->alias]['SharingGroup'] = $analystData['SharingGroup'];
+                unset($analystData['SharingGroup']);
             }
-        } else {
-            unset($analystData['SharingGroup']);
         }
         return $analystData;
     }

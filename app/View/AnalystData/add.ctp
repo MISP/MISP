@@ -83,7 +83,7 @@ if ($modelSelection === 'Note') {
                 'field' => 'related_object_uuid',
                 'class' => 'span4',
             ],
-            sprintf('<div><label>%s:</label><div id="related-object-container">%s</div></div>', __('Related Object'), __('- No UUID provided -'))
+            sprintf('<div style="max-width: 960px;"><label>%s:</label><div id="related-object-container">%s</div></div>', __('Related Object'), __('- No UUID provided -'))
         ]
     );
 }
