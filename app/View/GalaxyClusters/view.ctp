@@ -94,6 +94,9 @@ if (!empty($extendedByHtml)) {
             </h2>
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>
+        <div class="span4">
+            <div id="analyst_data_thread" class="panel-container"></div>
+        </div>
     </div>
     <div class="row-fuild">
         <div id="matrix_container"></div>
@@ -143,4 +146,21 @@ md.disable(['image'])
 var $md = $('.md');
 $md.html(md.render($md.text()));
 </script>
-<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view_cluster'));
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view_cluster')); ?>
+
+<?php
+
+$object_uuid = $cluster['GalaxyCluster']['uuid'];
+$options = [
+    'container_id' => 'analyst_data_thread',
+    'object_type' => 'GalaxyCluster',
+    'object_uuid' => $object_uuid,
+    'shortDist' => $shortDist,
+    'notes' => $cluster['GalaxyCluster']['Note'] ?? [],
+    'opinions' => $cluster['GalaxyCluster']['Opinion'] ?? [],
+    'relationships' => $cluster['GalaxyCluster']['Relationship'] ?? [],
+];
+
+echo $this->element('genericElements/Analyst_data/thread', $options);
+
+?>
