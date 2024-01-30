@@ -95,7 +95,7 @@ class AnalystDataController extends AppController
     public function view($type = 'Note', $id)
     {
         $this->__typeSelector($type);
-        $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'edit'));
+        $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'view'));
         $this->CRUD->view($id);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -104,6 +104,7 @@ class AnalystDataController extends AppController
         $this->loadModel('Event');
         $this->_setViewElements();
         $this->set('distributionLevels', $this->Event->distributionLevels);
+        $this->set('shortDist', $this->Event->shortDist);
         $this->render('view');
     }
 

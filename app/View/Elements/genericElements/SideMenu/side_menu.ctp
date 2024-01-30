@@ -1801,6 +1801,29 @@ $divider = '<li class="divider"></li>';
                     }
                 }
                 break;
+
+                case 'analyst_data':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => '/analystData/index',
+                        'text' => __('List Analyst Data')
+                    ));
+                    if ($menuItem === 'view' || $menuItem === 'edit') {
+                        echo $divider;
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => sprintf('/analystData/view/%s/%s', h($modelSelection), h($id)),
+                            'text' => __('View Analyst Data')
+                        ));
+                        if ($isSiteAdmin) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => sprintf('/analystData/edit/%s/%s', h($modelSelection), h($id)),
+                                'text' => __('Edit Analyst Data')
+                            ));
+                        }
+                    }
+                    break;
             }
         ?>
     </ul>
