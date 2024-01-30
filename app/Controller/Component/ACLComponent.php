@@ -19,6 +19,14 @@ class ACLComponent extends Component
                 'queryACL' => array(),
                 'restSearch' => array('*'),
             ),
+            'analystData' => [
+                'add' => ['perm_add'],
+                'delete' => ['perm_add'],
+                'edit' => ['perm_add'],
+                'getRelatedElement' => ['*'],
+                'index' => ['*'],
+                'view' => ['*'],
+            ],
             'api' => [
                 'rest' => ['perm_auth'],
                 'viewDeprecatedFunctionUse' => [],

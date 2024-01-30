@@ -1808,6 +1808,24 @@ $divider = '<li class="divider"></li>';
                         'url' => '/analystData/index',
                         'text' => __('List Analyst Data')
                     ));
+                    if ($this->Acl->canAccess('analyst_notes', 'add')) {
+                        echo $divider;
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add_note',
+                            'url' => sprintf('/analystData/add/Note'),
+                            'text' => __('Add Analyst Note')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add_opinion',
+                            'url' => sprintf('/analystData/add/Opinion'),
+                            'text' => __('Add Analyst Opinion')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add_relationship',
+                            'url' => sprintf('/analystData/add/Relationship'),
+                            'text' => __('Add Analyst Relationship')
+                        ));
+                    }
                     if ($menuItem === 'view' || $menuItem === 'edit') {
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(

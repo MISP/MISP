@@ -60,7 +60,7 @@ class AnalystDataController extends AppController
         if ($type == 'Relationship') {
             $this->set('existingRelations', $this->AnalystData->getExistingRelationships());
         }
-        $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'add'));
+        $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'add_' . strtolower($type)));
         $this->render('add');
     }
 
