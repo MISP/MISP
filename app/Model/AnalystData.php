@@ -33,8 +33,21 @@ class AnalystData extends AppModel
     protected $Opinion;
     /** @var object|null */
     protected $ObjectRelationship;
+    /** @var object|null */
+    protected $User;
+    /** @var object|null */
+    public $Organisation;
+    /** @var object|null */
+    public $SharingGroup;
 
     public $current_user = null;
+
+    public $belongsTo = [
+        'SharingGroup' => [
+            'className' => 'SharingGroup',
+            'foreignKey' => 'sharing_group_id'
+        ]
+    ];
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -47,7 +60,14 @@ class AnalystData extends AppModel
                     'conditions' => [
                         sprintf('%s.orgc_uuid = Organisation.uuid', $this->alias)
                     ],
-                ]
+                ],
+                'SharingGroup' => [
+                    'className' => 'SharingGroup',
+                    'foreignKey' => false,
+                    'conditions' => [
+                        sprintf('%s.sharing_group_id = SharingGroup.id', $this->alias)
+                    ],
+                ],
             ]
         ]);
     }
@@ -55,18 +75,16 @@ class AnalystData extends AppModel
     public function afterFind($results, $primary = false)
     {
         parent::afterFind($results, $primary);
+
+        $this->setUser();
+
         foreach ($results as $i => $v) {
             $results[$i][$this->alias]['note_type'] = $this->current_type_id;
             $results[$i][$this->alias]['note_type_name'] = $this->current_type;
-            if (!empty($v[$this->alias]['orgc_uuid'])) {
-                if (!isset($v['Organisation'])) {
-                    $this->Organisation = ClassRegistry::init('Organisation');
-                    $results[$i][$this->alias]['Organisation'] = $this->Organisation->find('first', ['condition' => ['uuid' => $v[$this->alias]['orgc_uuid']]])['Organisation'];
-                } else {
-                    $results[$i][$this->alias]['Organisation'] = $v['Organisation'];
-                }
-                unset($results[$i]['Organisation']);
-            }
+
+            $results[$i] = $this->rearrangeOrganisation($results[$i], $this->current_user);
+            $results[$i] = $this->rearrangeSharingGroup($results[$i], $this->current_user);
+
             if (!empty($results[$i][$this->alias]['uuid'])) {
                 $results[$i][$this->alias] = $this->fetchChildNotesAndOpinions($results[$i][$this->alias]);
             }
@@ -88,6 +106,47 @@ class AnalystData extends AppModel
             $this->data[$this->current_type]['authors'] = $this->current_user['email'];
         }
         return true;
+    }
+
+    protected function setUser()
+    {
+        if (empty($this->current_user)) {
+            $user_id = Configure::read('CurrentUserId');
+            $this->User = ClassRegistry::init('User');
+            if ($user_id) {
+                $this->current_user = $this->User->getAuthUser($user_id);
+            }
+        }
+    }
+
+    private function rearrangeOrganisation(array $analystData): array
+    {
+        if (!empty($analystData[$this->alias]['orgc_uuid'])) {
+            if (!isset($analystData['Organisation'])) {
+                $this->Organisation = ClassRegistry::init('Organisation');
+                $analystData[$this->alias]['Organisation'] = $this->Organisation->find('first', ['condition' => ['uuid' => $analystData[$this->alias]['orgc_uuid']]])['Organisation'];
+            } else {
+                $analystData[$this->alias]['Organisation'] = $analystData['Organisation'];
+            }
+            unset($analystData['Organisation']);
+        }
+        return $analystData;
+    }
+
+    private function rearrangeSharingGroup(array $analystData, array $user): array
+    {
+        if ($analystData[$this->alias]['distribution'] == 4) {
+            if (!isset($analystData['SharingGroup'])) {
+                $this->SharingGroup = ClassRegistry::init('SharingGroup');
+                $sg = $this->SharingGroup->fetchSG($analystData[$this->alias]['sharing_group_id'], $user, true);
+                $analystData[$this->alias]['SharingGroup'] = $sg['SharingGroup'];
+            } else {
+                $analystData[$this->alias]['SharingGroup'] = $analystData['SharingGroup'];
+            }
+        } else {
+            unset($analystData['SharingGroup']);
+        }
+        return $analystData;
     }
 
     public function deduceType(string $uuid)

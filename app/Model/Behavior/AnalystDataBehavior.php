@@ -22,12 +22,13 @@ class AnalystDataBehavior extends ModelBehavior
         ];
         $type = $this->__current_type;
         if (empty($user['Role']['perm_site_admin'])) {
-            $this->SharingGroup = ClassRegistry::init('SharingGroup');
-            $validSharingGroups = $this->SharingGroup->authorizedIds($user, true);
+            // $this->SharingGroup = ClassRegistry::init('SharingGroup');
+            // $validSharingGroups = $this->SharingGroup->authorizedIds($user, true);
+            $validSharingGroups = $Model->SharingGroup->authorizedIds($user, true);
             $conditions['AND'][] = [
                 'OR' => [
-                    $type . '.orgc_id' => $user['org_id'],
-                    $type . '.org_id' => $user['org_id'],
+                    $type . '.orgc_uuid' => $user['Organisation']['uuid'],
+                    $type . '.org_uuid' => $user['Organisation']['uuid'],
                     $type . '.distribution IN' => [1, 2, 3],
                     'AND' => [
                         $type . '.distribution' => 4,
@@ -39,7 +40,7 @@ class AnalystDataBehavior extends ModelBehavior
         return $Model->find('all', [
             'recursive' => -1,
             'conditions' => $conditions,
-            'contain' => ['Organisation'],
+            'contain' => ['Organisation', 'SharingGroup'],
         ]);
     }
 
