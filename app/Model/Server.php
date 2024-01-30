@@ -51,7 +51,7 @@ class Server extends AppModel
         ),
         'User' => array(
             'className' => 'User',
-            'foreignKey' => 'user_id',
+            'foreignKey' => 'server_id',
         ),
     );
 
