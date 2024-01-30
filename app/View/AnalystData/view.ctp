@@ -5,8 +5,14 @@ $fields = [
         'path' => $modelSelection . '.id'
     ],
     [
-        'key' => __('UUID'),
-        'path' => $modelSelection . '.uuid'
+        'key' => 'UUID',
+        'path' => $modelSelection . '.uuid',
+        'class' => '',
+        'type' => 'uuid',
+        'object_type' => $modelSelection,
+        'notes_path' => $modelSelection . '.Note',
+        'opinions_path' => $modelSelection . '.Opinion',
+        'relationships_path' => $modelSelection . '.Relationship',
     ],
     [
         'key' => __('Note Type'),
@@ -54,7 +60,7 @@ $fields = [
         'path' => $modelSelection . '.distribution',
         'event_id_path' => $modelSelection . '.id',
         'disable_distribution_graph' => true,
-        'sg_path' => $modelSelection . '.sharing_group_id',
+        'sg_path' => $modelSelection . '.SharingGroup',
         'type' => 'distribution'
     ],
 ];
@@ -78,7 +84,6 @@ if ($modelSelection === 'Note') {
         'path' => $modelSelection . '.opinion',
         'type' => 'opinion_scale',
     ];
-
 } else if ($modelSelection === 'Relationship') {
     $fields[] = [
         'key' => __('Related Object'),
@@ -122,20 +127,15 @@ $options = [
     'object_type' => $modelSelection,
     'object_uuid' => $object_uuid,
     'shortDist' => $shortDist,
+    'notes' => $data[$modelSelection]['Note'] ?? [],
+    'opinions' => $data[$modelSelection]['Opinion'] ?? [],
+    'relationships' => $data[$modelSelection]['Relationship'] ?? [],
 ];
-
-if ($modelSelection == 'Note') {
-    $options['notes'] = [$data[$modelSelection]];
-} else if ($modelSelection == 'Opinion') {
-    $options['opinions'] = [$data[$modelSelection]];
-} else if ($modelSelection == 'Relationship') {
-    $options['relationships'] = [$data[$modelSelection]];
-}
 
 echo $this->element('genericElements/Analyst_data/thread', $options);
 ?>
 
-<?php if ($modelSelection == 'Relationship'): ?>
+<?php if ($modelSelection == 'Relationship') : ?>
     <script>
         $(document).ready(function() {
             $('#analyst_data_thread').find('li > a[href^="#relationship"]').tab('show')

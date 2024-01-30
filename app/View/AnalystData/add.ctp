@@ -66,10 +66,6 @@ if ($modelSelection === 'Note') {
     $fields = array_merge($fields,
         [
             [
-                'field' => 'relationship_type',
-                'class' => 'span4',
-            ],
-            [
                 'field' => 'related_object_type',
                 'class' => 'span4',
                 'options' => $dropdownData['valid_targets'],
@@ -163,10 +159,10 @@ if (!$ajax) {
     }
 
     $(document).ready(function() {
-        $('#NoteDistribution').change(function() {
-            checkSharingGroup('Note');
+        $('#<?= h($modelSelection) ?>Distribution').change(function() {
+            checkSharingGroup('<?= h($modelSelection) ?>');
         });
-        checkSharingGroup('Note');
+        checkSharingGroup('<?= h($modelSelection) ?>');
 
         $('#RelationshipRelatedObjectType').change(function(e) {
             if ($('#RelationshipRelatedObjectUuid').val().length == 36) {

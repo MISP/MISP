@@ -1101,6 +1101,27 @@ class ACLComponent extends Component
     }
 
     /**
+     * Checks if user can modify given analyst data
+     *
+     * @param array $user
+     * @param array $analystData
+     * @return bool
+     */
+    public function canEditAnalystData(array $user, array $analystData, $modelType): bool
+    {
+        if (!isset($analystData[$modelType])) {
+            throw new InvalidArgumentException('Passed object does not contain a(n) ' . $modelType);
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($analystData[$modelType]['orgc_uuid'] == $user['Organisation']['uuid']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Checks if user can publish given galaxy cluster
      *
      * @param array $user

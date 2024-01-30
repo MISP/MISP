@@ -50,11 +50,7 @@ function renderNote(note, relationship_related_object) {
     note.distribution_text = note.distribution != 4 ? shortDist[note.distribution] : note.SharingGroup.name
     note.distribution_color = note.distribution == 0 ? '#ff0000' : (note.distribution == 4 ? '#0088cc' : '#000')
     note.authors = Array.isArray(note.authors) ? note.authors.join(', ') : note.authors;
-    note._permissions = {
-        can_edit: true,
-        can_delete: true,
-        can_add: true,
-    }
+
     if (note.note_type == 0) { // analyst note
         note.content = analystTemplate(note)
     } else if (note.note_type == 1) { // opinion
@@ -185,16 +181,16 @@ var baseNoteTemplate = doT.template('\
                         {{?}} \
                     </span> \
                     <span class="action-button-container" style="margin-left: auto; display: flex; gap: 0.2rem;"> \
-                        {{? it._permissions.can_add }} \
+                        {{? 1 == <?= $me['Role']['perm_modify'] ? 1 : 0 ?> }} \
                             <span role="button" onclick="addOpinion(this, \'{{=it.uuid}}\', \'{{=it.note_type_name}}\')" title="<?= __('Add an opinion to this note') ?>"><i class="<?= $this->FontAwesome->getClass('gavel') ?> useCursorPointer"></i></span> \
                         {{?}} \
-                        {{? it._permissions.can_add }} \
+                        {{? 1 == <?= $me['Role']['perm_modify'] ? 1 : 0 ?> }} \
                         <span role="button" onclick="addNote(this, \'{{=it.uuid}}\', \'{{=it.note_type_name}}\')" title="<?= __('Add a note to this note') ?>"><i class="<?= $this->FontAwesome->getClass('comment-alt') ?> useCursorPointer"></i></span> \
                         {{?}} \
-                        {{? it._permissions.can_edit }} \
+                        {{? it._canEdit }} \
                         <span role="button" onclick="editNote(this, {{=it.id}}, \'{{=it.note_type_name}}\')" title="<?= __('Edit this note') ?>"><i class="<?= $this->FontAwesome->getClass('edit') ?> useCursorPointer"></i></span> \
                         {{?}} \
-                        {{? it._permissions.can_delete }} \
+                        {{? it._canEdit }} \
                         <span role="button" onclick="deleteNote(this, {{=it.id}})" title="<?= __('Delete this note') ?>" href="<?= $baseurl . $URL_DELETE ?>{{=it.note_type_name}}/{{=it.id}}"><i class="<?= $this->FontAwesome->getClass('trash') ?> useCursorPointer"></i></span> \
                         {{?}} \
                     </span> \

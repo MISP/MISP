@@ -4,7 +4,7 @@
         '<span class="quickSelect">%s</span>',
         h($uuid)
     );
-
+    
     if (!empty($field['object_type'])) {
         $field['notes_path'] = !empty($field['notes_path']) ? $field['notes_path'] : 'Note';
         $field['opinions_path'] = !empty($field['opinions_path']) ? $field['opinions_path'] : 'Opinion';
@@ -17,6 +17,4 @@
             'object_uuid' => $uuid,
             'object_type' => $field['object_type']
         ]);
-    } else {
-        debug('Provide object type to access notes for that object');
     }

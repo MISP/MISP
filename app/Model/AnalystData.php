@@ -13,6 +13,7 @@ class AnalystData extends AppModel
     public $valid_targets = [
         'Attribute',
         'Event',
+        'EventReport',
         'GalaxyCluster',
         'Galaxy',
         'Object',
@@ -85,6 +86,8 @@ class AnalystData extends AppModel
             $results[$i] = $this->rearrangeOrganisation($results[$i], $this->current_user);
             $results[$i] = $this->rearrangeSharingGroup($results[$i], $this->current_user);
 
+            $results[$i][$this->alias]['_canEdit'] = $this->canEditAnalystData($this->current_user, $v, $this->alias);
+
             if (!empty($results[$i][$this->alias]['uuid'])) {
                 $results[$i][$this->alias] = $this->fetchChildNotesAndOpinions($results[$i][$this->alias]);
             }
@@ -108,6 +111,52 @@ class AnalystData extends AppModel
         return true;
     }
 
+    /**
+     * Checks if user can modify given analyst data
+     *
+     * @param array $user
+     * @param array $analystData
+     * @return bool
+     */
+    public function canEditAnalystData(array $user, array $analystData, $modelType): bool
+    {
+        if (!isset($analystData[$modelType])) {
+            throw new InvalidArgumentException('Passed object does not contain a(n) ' . $modelType);
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($analystData[$modelType]['orgc_uuid'] == $user['Organisation']['uuid']) {
+            return true;
+        }
+        return false;
+    }
+
+    public function buildConditions(array $user): array
+    {
+        $conditions = [];
+        if (!$user['Role']['perm_site_admin']) {
+            $sgids = $this->SharingGroup->authorizedIds($user);
+            $alias = $this->alias;
+            $conditions['AND']['OR'] = [
+                "{$alias}.org_uuid" => $user['Organisation']['uuid'],
+                [
+                    'AND' => [
+                        "{$alias}.distribution >" => 0,
+                        "{$alias}.distribution <" => 4
+                    ],
+                ],
+                [
+                    'AND' => [
+                        "{$alias}.sharing_group_id" => $sgids,
+                        "{$alias}.distribution" => 4
+                    ]
+                ]
+            ];
+        }
+        return $conditions;
+    }
+
     protected function setUser()
     {
         if (empty($this->current_user)) {
@@ -124,7 +173,7 @@ class AnalystData extends AppModel
         if (!empty($analystData[$this->alias]['orgc_uuid'])) {
             if (!isset($analystData['Organisation'])) {
                 $this->Organisation = ClassRegistry::init('Organisation');
-                $analystData[$this->alias]['Organisation'] = $this->Organisation->find('first', ['condition' => ['uuid' => $analystData[$this->alias]['orgc_uuid']]])['Organisation'];
+                $analystData[$this->alias]['Organisation'] = $this->Organisation->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['orgc_uuid']]])['Organisation'];
             } else {
                 $analystData[$this->alias]['Organisation'] = $analystData['Organisation'];
             }

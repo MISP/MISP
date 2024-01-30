@@ -6,6 +6,11 @@
             'data_path' => $modelSelection . '.id'
         ],
         [
+            'name' => __('Org'),
+            'element' => 'org',
+            'data_path' => $modelSelection . '.Organisation'
+        ],
+        [
             'name' => __('UUID'),
             'data_path' => $modelSelection . '.uuid'
         ],
@@ -35,8 +40,11 @@
         ],
         [
             'name' => __('Distribution'),
+            'element' => 'distribution_levels',
             'sort' => $modelSelection . '.distribution',
-            'data_path' => $modelSelection . '.distribution'
+            'class' => 'short',
+            'data_path' => $modelSelection . '.distribution',
+            'sg_path' => $modelSelection . '.SharingGroup',
         ]
     ];
 
@@ -150,7 +158,10 @@
                         ),
                         'onclick_params_data_path' => $modelSelection . '.id',
                         'title' => __('Edit %s', $modelSelection),
-                        'icon' => 'edit'
+                        'icon' => 'edit',
+                        'complex_requirement' => function($item) use ($modelSelection) {
+                            return !empty($item[$modelSelection]['_canEdit']);
+                        }
                     ],
                     [
                         'onclick' => sprintf(
@@ -158,7 +169,10 @@
                             $baseurl
                         ),
                         'onclick_params_data_path' => $modelSelection . '.id',
-                        'icon' => 'trash'
+                        'icon' => 'trash',
+                        'complex_requirement' => function($item) use ($modelSelection) {
+                            return !empty($item[$modelSelection]['_canEdit']);
+                        }
                     ]
                 ]
             ]

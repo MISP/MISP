@@ -35,6 +35,7 @@ class AnalystDataController extends AppController
         $dropdownData['valid_targets'] = array_combine($this->AnalystData->valid_targets, $this->AnalystData->valid_targets);
         $this->set(compact('dropdownData'));
         $this->set('modelSelection', $this->modelSelection);
+        $this->set('distributionLevels', $this->Event->distributionLevels);
     }
     
     public function add($type = 'Note', $object_uuid = null, $object_type = null)
@@ -48,7 +49,6 @@ class AnalystDataController extends AppController
         }
         
         if (empty($this->request->data[$this->modelSelection]['object_type']) && !empty($this->request->data[$this->modelSelection]['object_uuid'])) {
-            // Target uuid set, but no type provided, time to figure it out...
             $this->request->data[$this->modelSelection]['object_type'] = $this->AnalystData->deduceType($object_uuid);
         }
         $params = [];
@@ -68,7 +68,15 @@ class AnalystDataController extends AppController
     {
         $this->__typeSelector($type);
         $this->set('id', $id);
+        $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $params = [
+            'conditions' => $conditions,
+            'afterFind' => function(array $analystData) {
+                $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
+                if (!$canEdit) {
+                    throw new MethodNotAllowedException(__('You are not authorised to do that.'));
+                }
+            }
         ];
         $this->CRUD->edit($id, $params);
         if ($this->IndexFilter->isRest()) {
@@ -85,7 +93,15 @@ class AnalystDataController extends AppController
     public function delete($type = 'Note', $id)
     {
         $this->__typeSelector($type);
-        $this->CRUD->delete($id);
+        $params = [
+            'afterFind' => function(array $analystData) {
+                $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
+                if (!$canEdit) {
+                    throw new MethodNotAllowedException(__('You are not authorised to do that.'));
+                }
+            }
+        ];
+        $this->CRUD->delete($id, $params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
@@ -95,8 +111,18 @@ class AnalystDataController extends AppController
     public function view($type = 'Note', $id)
     {
         $this->__typeSelector($type);
-        $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'view'));
-        $this->CRUD->view($id);
+
+        $conditions = $this->AnalystData->buildConditions($this->Auth->user());
+        $this->CRUD->view($id, [
+            'conditions' => $conditions,
+            'afterFind' => function(array $analystData) {
+                $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
+                if (!$this->IndexFilter->isRest()) {
+                    $analystData[$this->modelSelection]['_canEdit'] = $canEdit;
+                }
+                return $analystData;
+            }
+        ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
@@ -105,22 +131,35 @@ class AnalystDataController extends AppController
         $this->_setViewElements();
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('shortDist', $this->Event->shortDist);
+        $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'view'));
         $this->render('view');
     }
 
     public function index($type = 'Note')
     {
         $this->__typeSelector($type);
-        $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'index'));
+
+        $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $params = [
             'filters' => ['uuid', 'target_object', 'uuid'],
-            'quickFilters' => ['name']
+            'quickFilters' => ['name'],
+            'conditions' => $conditions,
+            'afterFind' => function(array $data) {
+                foreach ($data as $i => $analystData) {
+                    $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
+                    if (!$this->IndexFilter->isRest()) {
+                        $data[$i][$this->modelSelection]['_canEdit'] = $canEdit;
+                    }
+                }
+                return $data;
+            }
         ];
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
         $this->_setViewElements();
+        $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'index'));
     }
 
     public function getRelatedElement($type, $uuid)

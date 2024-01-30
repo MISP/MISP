@@ -1808,7 +1808,7 @@ $divider = '<li class="divider"></li>';
                         'url' => '/analystData/index',
                         'text' => __('List Analyst Data')
                     ));
-                    if ($this->Acl->canAccess('analyst_notes', 'add')) {
+                    if ($this->Acl->canAccess('analyst_data', 'add')) {
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add_note',

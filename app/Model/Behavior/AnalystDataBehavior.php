@@ -20,7 +20,7 @@ class AnalystDataBehavior extends ModelBehavior
         $conditions = [
             'object_uuid' => $uuid
         ];
-        $type = $this->__current_type;
+        $type = $Model->current_type;
         if (empty($user['Role']['perm_site_admin'])) {
             // $this->SharingGroup = ClassRegistry::init('SharingGroup');
             // $validSharingGroups = $this->SharingGroup->authorizedIds($user, true);
