@@ -2548,10 +2548,10 @@ class Server extends AppModel
                 'name' => __('Organisation logos'),
                 'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
                 'expected' => array(),
-                'valid_format' => __('48x48 pixel .png files'),
+                'valid_format' => __('48x48 pixel .png files or .svg file'),
                 'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
-                'regex' => '.*\.(png|PNG)$',
-                'regex_error' => __('Filename must be in the following format: *.png'),
+                'regex' => '.*\.(png|svg)$',
+                'regex_error' => __('Filename must be in the following format: *.png or *.svg'),
                 'files' => array(),
             ),
             'img' => array(
@@ -2587,6 +2587,7 @@ class Server extends AppModel
                     'read' => $f->isReadable(),
                     'write' => $f->isWritable(),
                     'execute' => $f->isExecutable(),
+                    'link' => $f->isLink(),
                 ];
             }
         }
