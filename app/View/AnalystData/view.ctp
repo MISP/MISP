@@ -73,6 +73,11 @@ if ($modelSelection === 'Note') {
         'key' => __('Comment'),
         'path' => $modelSelection . '.comment'
     ];
+    $fields[] = [
+        'key' => __('Opinion'),
+        'path' => $modelSelection . '.opinion',
+        'type' => 'opinion_scale',
+    ];
 
 } else if ($modelSelection === 'Relationship') {
     $fields[] = [

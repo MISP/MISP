@@ -62,6 +62,11 @@
                     'name' => __('Comment'),
                     'data_path' => $modelSelection . '.comment'
                 ],
+                [
+                    'name' => __('Opinion'),
+                    'data_path' => $modelSelection . '.opinion',
+                    'element' => 'opinion_scale',
+                ],
             ]
         );
     
@@ -130,7 +135,8 @@
                     [
                         'url' => $baseurl . '/analystData/view/' . $modelSelection,
                         'url_params_data_paths' => [$modelSelection . '.id'],
-                        'icon' => 'eye'
+                        'icon' => 'eye',
+                        'dbclickAction' => true,
                     ],
                     [
                         'onclick' => sprintf(
