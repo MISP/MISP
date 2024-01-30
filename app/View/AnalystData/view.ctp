@@ -16,15 +16,15 @@ echo $this->element(
             [
                 'key' => __('Target Object'),
                 'type' => 'custom',
-                'function' => function (array $row) use ($baseurl) {
-                    $path = Inflector::pluralize(strtolower($row['Note']['object_type']));
+                'function' => function (array $row) use ($baseurl, $modelSelection) {
+                    $path = Inflector::pluralize(strtolower($row[$modelSelection]['object_type']));
                     return sprintf(
                         '<span class="bold">%s</span>: <a href="%s/%s/view/%s">%s</a>',
-                        h($row['Note']['object_type']),
+                        h($row[$modelSelection]['object_type']),
                         h($baseurl),
                         h($path),
-                        h($row['Note']['object_uuid']),
-                        h($row['Note']['object_uuid'])
+                        h($row[$modelSelection]['object_uuid']),
+                        h($row[$modelSelection]['object_uuid'])
                     );
 
                 }
