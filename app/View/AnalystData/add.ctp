@@ -180,6 +180,7 @@ if (!$ajax) {
         })
     })
 
+<?php if ($modelSelection === 'Relationship'): ?>
     function pickerTypes() {
         var existingRelationTypes = <?= json_encode(array_values($existingRelations)) ?> ;
         var $select = $('<select id="pickerTypeSelect"/>');
@@ -197,6 +198,7 @@ if (!$ajax) {
             });
         });
     }
+<?php endif; ?>
 </script>
 
 <style>

@@ -67,6 +67,30 @@ echo $this->element(
                 'key' => __('Note'),
                 'path' => $modelSelection . '.note'
             ]
-        ]
+        ],
+        'side_panels' => [
+            [
+                'type' => 'html',
+                'html' => '<div id="analyst_data_thread" class="panel-container"></div>',
+            ]
+        ],
     ]
 );
+
+$object_uuid = Hash::get($data, $modelSelection . '.uuid');
+$options = [
+    'container_id' => 'analyst_data_thread',
+    'object_type' => $modelSelection,
+    'object_uuid' => $object_uuid,
+    'shortDist' => $shortDist,
+];
+
+if ($modelSelection == 'Note') {
+    $options['notes'] = [$data[$modelSelection]];
+} else if ($modelSelection == 'Opinion') {
+    $options['opinions'] = [$data[$modelSelection]];
+} else if ($modelSelection == 'Relationship') {
+    $options['relationships'] = [$data[$modelSelection]];
+}
+
+echo $this->element('genericElements/Analyst_data/thread', $options);
