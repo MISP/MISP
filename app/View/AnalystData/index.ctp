@@ -74,14 +74,19 @@
         $fields = array_merge($fields,
             [
                 [
-                    'name' => __('Related Object Type'),
-                    'sort' => $modelSelection . '.related_object_type',
-                    'data_path' => $modelSelection . '.related_object_type'
-                ],
-                [
-                    'name' => __('Related Object UUID'),
-                    'sort' => $modelSelection . '.related_object_uuid',
-                    'data_path' => $modelSelection . '.related_object_uuid'
+                    'name' => __('Related Object'),
+                    'element' => 'custom',
+                    'function' => function (array $row) use ($baseurl, $modelSelection) {
+                        $path = Inflector::pluralize(strtolower($row[$modelSelection]['related_object_type']));
+                        return sprintf(
+                            '<span class="bold">%s</span>: <a href="%s/%s/view/%s">%s</a>',
+                            h($row[$modelSelection]['related_object_type']),
+                            h($baseurl),
+                            h($path),
+                            h($row[$modelSelection]['related_object_uuid']),
+                            h($row[$modelSelection]['related_object_uuid'])
+                        );
+                    }
                 ],
                 [
                     'name' => __('Relationship_type'),
