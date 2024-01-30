@@ -50,7 +50,20 @@ if (!$cluster['GalaxyCluster']['default']) {
 }
 $table_data[] = array('key' => __('Default'), 'boolean' => $cluster['GalaxyCluster']['default'], 'class' => 'black');
 $table_data[] = array('key' => __('Version'), 'value' => $cluster['GalaxyCluster']['version']);
-$table_data[] = array('key' => __('UUID'), 'value' => $cluster['GalaxyCluster']['uuid'], 'value_class' => 'quickSelect');
+$table_data[] = [
+    'key' => __('UUID'),
+    'element' => 'genericElements/SingleViews/Fields/uuidField',
+    'element_params' => [
+        'data' => $cluster,
+        'field' => [
+            'path' => 'GalaxyCluster.uuid',
+            'object_type' => 'GalaxyCluster',
+            'notes_path' => 'GalaxyCluster.Note',
+            'opinions_path' => 'GalaxyCluster.Opinion',
+            'relationships_path' => 'GalaxyCluster.Relationship',
+        ]
+    ],
+];
 $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['GalaxyCluster']['collection_uuid'], 'value_class' => 'quickSelect');
 $table_data[] = array(
     'key' => __('Source'),
