@@ -1073,7 +1073,7 @@ class ServersController extends AppController
         );
         $dumpResults = array();
         $tempArray = array();
-        foreach ($finalSettings as $k => $result) {
+        foreach ($finalSettings as $result) {
             if ($result['level'] == 3) {
                 $issues['deprecated']++;
             }
@@ -1105,18 +1105,19 @@ class ServersController extends AppController
         $diagnostic_errors = 0;
         App::uses('File', 'Utility');
         App::uses('Folder', 'Utility');
+
         if ($tab === 'correlations') {
             $this->loadModel('Correlation');
             $correlation_metrics = $this->Correlation->collectMetrics();
             $this->set('correlation_metrics', $correlation_metrics);
-        }
-        if ($tab === 'files') {
+        } else if ($tab === 'files') {
             if (!empty(Configure::read('Security.disable_instance_file_uploads'))) {
                 throw new MethodNotAllowedException(__('This functionality is disabled.'));
             }
             $files = $this->Server->grabFiles();
             $this->set('files', $files);
         }
+
         // Only run this check on the diagnostics tab
         if ($tab === 'diagnostics' || $tab === 'download' || $this->_isRest()) {
             $php_ini = php_ini_loaded_file();
