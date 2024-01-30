@@ -1,7 +1,17 @@
 <?php
     $table_data = array();
     $table_data[] = array('key' => __('ID'), 'value' => $report['EventReport']['id']);
-    $table_data[] = array('key' => __('UUID'), 'value' => $report['EventReport']['uuid'], 'value_class' => 'quickSelect');
+    $table_data[] = [
+        'key' => __('UUID'),
+        'element' => 'genericElements/SingleViews/Fields/uuidField',
+        'element_params' => [
+            'data' => $report,
+            'field' => [
+                'path' => 'EventReport.uuid',
+                'object_type' => 'EventReport',
+            ]
+        ],
+    ];
     $table_data[] = array(
         'key' => __('Event'),
         'html' => sprintf(
@@ -22,17 +32,6 @@
     $table_data[] = array(
         'key' => __('Last update'),
         'html' => $this->Time->time($report['EventReport']['timestamp']),
-    );
-    $table_data[] = array(
-        'key' => __('Analyst Data'),
-        'element' => 'genericElements/shortUuidWithNotes',
-        'element_params' => [
-            'uuid' => $report['EventReport']['uuid'],
-            'object_type' => 'EventReport',
-            'notes' => $report['Note'] ?? [],
-            'opinions' => $report['Opinion'] ?? [],
-            'relationships' => $report['Relationship'] ?? [],
-        ],
     );
     if ($report['EventReport']['deleted']) {
         $table_data[] = array(
