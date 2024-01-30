@@ -74,7 +74,6 @@ $(document).ready(function() {
 </script>
 
 <?php
-if (!empty($notesOpinions) || !empty($relationshipsCount)) {
     echo $this->element('genericElements/Analyst_data/thread', [
         'seed' => $seed,
         'notes' => $notes,
@@ -84,5 +83,4 @@ if (!empty($notesOpinions) || !empty($relationshipsCount)) {
         'object_uuid' => $object_uuid,
         'shortDist' => $shortDist,
     ]);
-}
 ?>
