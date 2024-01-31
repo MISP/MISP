@@ -2085,6 +2085,9 @@ class AppModel extends Model
                     KEY `related_object_uuid` (`related_object_uuid`),
                     KEY `related_object_type` (`related_object_type`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_analyst_data` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "UPDATE `roles` SET `perm_analyst_data`=1 WHERE `perm_add` = 1;";
                 break;
             case 120:
                 $sqlArray[] = "CREATE TABLE `collections` (

@@ -20,9 +20,9 @@ class ACLComponent extends Component
                 'restSearch' => array('*'),
             ),
             'analystData' => [
-                'add' => ['perm_add'],
-                'delete' => ['perm_add'],
-                'edit' => ['perm_add'],
+                'add' => ['AND' => ['perm_add', 'perm_analyst_data']],
+                'delete' => ['AND' => ['perm_add', 'perm_analyst_data']],
+                'edit' => ['AND' => ['perm_add', 'perm_analyst_data']],
                 'getRelatedElement' => ['*'],
                 'index' => ['*'],
                 'view' => ['*'],

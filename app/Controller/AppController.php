@@ -306,6 +306,7 @@ class AppController extends Controller
             $this->set('isAclTagger', $role['perm_tagger']);
             $this->set('isAclGalaxyEditor', !empty($role['perm_galaxy_editor']));
             $this->set('isAclSighting', $role['perm_sighting'] ?? false);
+            $this->set('isAclAnalystDataCreator', $role['perm_analyst_data'] ?? false);
             $this->set('aclComponent', $this->ACL);
             $this->userRole = $role;
 
