@@ -270,4 +270,22 @@ class AnalystData extends AppModel
         ]);
         return array_unique(array_merge($existingRelationships, $objectRelationships));
     }
+
+    /**
+     * Push sightings to remote server.
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @return array
+     * @throws Exception
+     */
+    public function pushAnalystData(array $user, array $serverSync): array
+    {
+        $server = $serverSync->server();
+
+        if (!$server['Server']['push_analyst_data']) {
+            return [];
+        }
+
+        return [];
+    }
 }

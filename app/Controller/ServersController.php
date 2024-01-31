@@ -1888,6 +1888,7 @@ class ServersController extends AppController
             'perm_sync' => (bool) $user['Role']['perm_sync'],
             'perm_sighting' => (bool) $user['Role']['perm_sighting'],
             'perm_galaxy_editor' => (bool) $user['Role']['perm_galaxy_editor'],
+            'perm_analyst_data' => (bool) $user['Role']['perm_analyst_data'],
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
         ];

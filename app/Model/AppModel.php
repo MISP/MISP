@@ -2088,6 +2088,9 @@ class AppModel extends Model
 
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_analyst_data` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "UPDATE `roles` SET `perm_analyst_data`=1 WHERE `perm_add` = 1;";
+
+                $sqlArray[] = "ALTER TABLE `servers` ADD `push_analyst_data` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_galaxy_clusters`;";
+                $sqlArray[] = "ALTER TABLE `servers` ADD `pull_analyst_data` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_analyst_data`;";
                 break;
             case 120:
                 $sqlArray[] = "CREATE TABLE `collections` (

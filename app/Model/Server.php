@@ -1227,6 +1227,20 @@ class Server extends AppModel
         } else {
             $successes = array_merge($successes, $sightingSuccesses);
         }
+
+        if ($push['canPush'] || $push['canEditAnalystData']) {
+            $this->AnalystData = ClassRegistry::init('AnalystData');
+            $analystDataSuccesses = $this->AnalystData->pushAnalystData($user, $serverSync);
+        } else {
+            $analystDataSuccesses = array();
+        }
+
+        if (!isset($successes)) {
+            $successes = $analystDataSuccesses;
+        } else {
+            $successes = array_merge($successes, $analystDataSuccesses);
+        }
+
         if (!isset($fails)) {
             $fails = array();
         }
@@ -2742,6 +2756,7 @@ class Server extends AppModel
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
         $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
+        $canEditAnalystData = isset($remoteVersion['perm_analyst_data']) ? $remoteVersion['perm_analyst_data'] : false;
         $remoteVersionString = $remoteVersion['version'];
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
@@ -2791,6 +2806,7 @@ class Server extends AppModel
             'response' => $response,
             'canPush' => $canPush,
             'canSight' => $canSight,
+            'canEditAnalystData' => $canEditAnalystData,
             'canEditGalaxyCluster' => $canEditGalaxyCluster,
             'version' => $remoteVersion,
             'protectedMode' => $protectedMode,
