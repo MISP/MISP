@@ -287,6 +287,9 @@ class Organisation extends AppModel
     public function orgMerge($id, $request, $user)
     {
         $currentOrg = $this->find('first', array('recursive' => -1, 'conditions' => array('Organisation.id' => $id)));
+        if (isset($currentOrg['Organisation']['restricted_to_domain'])) {
+            $currentOrg['Organisation']['restricted_to_domain'] = json_encode($currentOrg['Organisation']['restricted_to_domain']);
+        }
         $currentOrgUserCount = $this->User->find('count', array(
             'conditions' => array('User.org_id' => $id)
         ));
