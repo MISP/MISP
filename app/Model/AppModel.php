@@ -86,7 +86,7 @@ class AppModel extends Model
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
-        117 => false, 118 => false
+        117 => false, 118 => false, 119 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2005,6 +2005,9 @@ class AppModel extends Model
                 break;
             case 118:
                 $sqlArray[] = "ALTER TABLE `event_reports` MODIFY `content` mediumtext;";
+                break;
+            case 119:
+                $sqlArray[] = "ALTER TABLE `access_logs` MODIFY `action` varchar(191) NOT NULL";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -4018,6 +4021,12 @@ class AppModel extends Model
      */
     public function _remoteIp()
     {
+        static $remoteIp;
+
+        if ($remoteIp) {
+            return $remoteIp;
+        }
+
         $clientIpHeader = Configure::read('MISP.log_client_ip_header');
         if ($clientIpHeader && isset($_SERVER[$clientIpHeader])) {
             $headerValue = $_SERVER[$clientIpHeader];
@@ -4025,9 +4034,12 @@ class AppModel extends Model
             if (($commaPos = strpos($headerValue, ',')) !== false) {
                 $headerValue = substr($headerValue, 0, $commaPos);
             }
-            return trim($headerValue);
+            $remoteIp = trim($headerValue);
+        } else {
+            $remoteIp = $_SERVER['REMOTE_ADDR'] ?? null;
         }
-        return $_SERVER['REMOTE_ADDR'] ?? null;
+
+        return $remoteIp;
     }
 
     public function find($type = 'first', $query = array())
@@ -4060,7 +4072,7 @@ class AppModel extends Model
         return false;
     }
 
-    public function checkParam($param)
+    private function checkParam($param)
     {
         return preg_match('/^[\w\_\-\. ]+$/', $param);
     }
