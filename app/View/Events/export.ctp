@@ -3,6 +3,10 @@
     <p><?php echo __('Export functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.
         Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artifacts. Support for more attribute types is planned.');?>
     <br/>
+    <?php if (Configure::read('MISP.disable_cached_exports', true)): ?>
+        <div class="alert alert-error"><p><?= __('This feature is disabled') ?></p></div>
+        <?php return ?>
+    <?php endif; ?>
     <p><?php echo __('Simply click on any of the following buttons to download the appropriate data.');?></p>
     <?php $i = 0;?>
     <script type="text/javascript">

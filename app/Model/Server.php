@@ -5173,9 +5173,9 @@ class Server extends AppModel
                     'type' => 'string',
                 ),
                 'disable_cached_exports' => array(
-                    'level' => 1,
-                    'description' => __('Cached exports can take up a considerable amount of space and can be disabled instance wide using this setting. Disabling the cached exports is not recommended as it\'s a valuable feature, however, if your server is having free space issues it might make sense to take this step.'),
-                    'value' => false,
+                    'level' => 2,
+                    'description' => __('Cached exports can take up a considerable amount of space and can be disabled instance wide using this setting. Even tough the feature is deprecated and will be removed in the future, you can still decide to enable it.'),
+                    'value' => true,
                     'null' => true,
                     'test' => 'testDisableCache',
                     'type' => 'boolean',
