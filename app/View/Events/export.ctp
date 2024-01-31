@@ -114,7 +114,7 @@
                         '<td><span class="btn-group">%s%s</span></td>',
                         ($k === 'text') ? '' : $this->Html->link(__('Download'), array('action' => 'downloadExport', $k), array('class' => 'btn btn-inverse btn-small')),
                         sprintf(
-                            '<button class="btn btn-inverse btn-small" id=button%s onClick="generate(\'%s\', \'%s\', \'%s\', \'%s\', \'%s\')" %s>%s</button>',
+                            '<button class="btn btn-inverse btn-small" id=button%s onClick="generate(\'%s\', \'%s\', \'%s\', \'%s\', \'%s\')" %s>%s</button><div class="hidden">%s</div>',
                             $i,
                             h($i),
                             h($k),
@@ -122,7 +122,8 @@
                             h($type['progress']),
                             h($type['lastModified']),
                             (!$type['recommendation']) ? 'disabled' : '',
-                            __('Generate')
+                            __('Generate'),
+                            $this->Form->postLink(__('Download'), array('controller' => 'jobs', 'action' => 'cache', h($k)), array('class' => 'btn btn-inverse btn-small')),
                         )
                     );
                 } else {
@@ -174,8 +175,12 @@
 ?>
 <script type="text/javascript">
     function generate(i, type, id, progress, modified) {
+        var $clicked = $('#button'+i)
+        var $form = $clicked.next().find('form')
         $.ajax({
-            url: "<?php echo $baseurl; ?>/jobs/cache/" + type,
+            url: $form.attr('action'),
+            type:'post',
+            data: $form.serialize()
             })
             .done(function(data) {
                 jobsArray[i] = data;

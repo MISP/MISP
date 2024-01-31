@@ -154,6 +154,9 @@ class JobsController extends AppController
         if (Configure::read('MISP.disable_cached_exports')) {
             throw new MethodNotAllowedException('This feature is currently disabled');
         }
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This endpoint only accept POST.');
+        }
         if ($this->_isSiteAdmin()) {
             $target = 'All events.';
         } else {
