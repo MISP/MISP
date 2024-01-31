@@ -264,7 +264,7 @@ class Galaxy extends AppModel
                 $fields = array('galaxy_cluster_id', 'key', 'value');
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
-            $allRelations = array_merge($allRelations, $relations);
+            array_push($allRelations, ...$relations);
         }
         // Save relation as last part when all clusters are created
         if (!empty($allRelations)) {
@@ -287,24 +287,42 @@ class Galaxy extends AppModel
         if (empty($galaxy['uuid'])) {
             return false;
         }
-        $existingGalaxy = $this->find('first', array(
+
+        $existingGalaxy = $this->find('first', [
             'recursive' => -1,
-            'conditions' => array('Galaxy.uuid' => $galaxy['uuid'])
-        ));
-        if (empty($existingGalaxy)) {
-            if ($user['Role']['perm_site_admin'] || $user['Role']['perm_galaxy_editor']) {
-                $this->create();
-                unset($galaxy['id']);
-                $this->save($galaxy);
-                $existingGalaxy = $this->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('Galaxy.id' => $this->id)
-                ));
-            } else {
-                return false;
+            'conditions' => ['Galaxy.uuid' => $galaxy['uuid']],
+        ]);
+
+        unset($galaxy['id']);
+        if (!empty($existingGalaxy)) {
+            // check if provided galaxy has the same fields as galaxy that are saved in database
+            $fieldsToSave = [];
+            foreach (array_keys(array_intersect_key($existingGalaxy, $galaxy)) as $key) {
+                if ($existingGalaxy['Galaxy'][$key] != $galaxy[$key]) {
+                    $fieldsToSave[$key] = $galaxy[$key];
+                }
             }
+        } else {
+            $fieldsToSave = $galaxy;
         }
-        return $existingGalaxy;
+
+        if (empty($fieldsToSave) && !empty($existingGalaxy)) {
+            return $existingGalaxy; // galaxy already exists and galaxy fields are the same
+        }
+
+        if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_galaxy_editor']) {
+            return false; // user has no permission to modify galaxy
+        }
+
+        if (empty($existingGalaxy)) {
+            $this->create();
+        }
+
+        $this->save($fieldsToSave);
+        return $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Galaxy.id' => $this->id],
+        ]);
     }
 
     /**

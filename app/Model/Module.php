@@ -50,6 +50,8 @@ class Module extends AppModel
         )
     );
 
+    private $httpSocket = [];
+
     public function validateIPField($value)
     {
         if (!filter_var($value, FILTER_VALIDATE_IP) === false) {
@@ -309,16 +311,9 @@ class Module extends AppModel
         if (!$serverUrl) {
             throw new Exception("Module type $moduleFamily is not enabled.");
         }
-        App::uses('HttpSocketExtended', 'Tools');
-        $httpSocketSetting = ['timeout' => $timeout];
-        $sslSettings = array('ssl_verify_peer', 'ssl_verify_host', 'ssl_allow_self_signed', 'ssl_verify_peer', 'ssl_cafile');
-        foreach ($sslSettings as $sslSetting) {
-            $value = Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting);
-            if ($value && $value !== '') {
-                $httpSocketSetting[$sslSetting] = $value;
-            }
-        }
-        $httpSocket = new HttpSocketExtended($httpSocketSetting);
+
+        $httpSocket = $this->initHttpSocket($moduleFamily, $timeout);
+
         $request = [];
         if ($moduleFamily === 'Cortex') {
             if (!empty(Configure::read('Plugin.' . $moduleFamily . '_authkey'))) {
@@ -421,5 +416,38 @@ class Module extends AppModel
         }
 
         return false;
+    }
+
+    /**
+     * @param string $moduleFamily
+     * @param int $timeout
+     * @return HttpSocketExtended|CurlClient
+     */
+    private function initHttpSocket($moduleFamily, $timeout)
+    {
+        $unique = "$moduleFamily:$timeout";
+
+        if (isset($this->httpSocket[$unique])) {
+            return $this->httpSocket[$unique];
+        }
+
+        $httpSocketSetting = ['timeout' => $timeout];
+        $sslSettings = ['ssl_verify_peer', 'ssl_verify_host', 'ssl_allow_self_signed', 'ssl_cafile'];
+        foreach ($sslSettings as $sslSetting) {
+            $value = Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting);
+            if ($value && $value !== '') {
+                $httpSocketSetting[$sslSetting] = $value;
+            }
+        }
+
+        if (function_exists('curl_init')) {
+            App::uses('CurlClient', 'Tools');
+            $httpSocket = new CurlClient($httpSocketSetting);
+        } else {
+            App::uses('HttpSocketExtended', 'Tools');
+            $httpSocket = new HttpSocketExtended($httpSocketSetting);
+        }
+
+        return $this->httpSocket[$unique] = $httpSocket;
     }
 }

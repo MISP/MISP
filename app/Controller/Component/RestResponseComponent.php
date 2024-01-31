@@ -517,7 +517,7 @@ class RestResponseComponent extends Component
         if ($id) {
             $response['id'] = $id;
         }
-        return $this->__sendResponse($response, 403, $format);
+        return $this->prepareResponse($response, 403, $format);
     }
 
     /**
@@ -562,7 +562,7 @@ class RestResponseComponent extends Component
         if ($id) {
             $response['id'] = $id;
         }
-        return $this->__sendResponse($response, 200, $format);
+        return $this->prepareResponse($response, 200, $format);
     }
 
     /**
@@ -587,7 +587,7 @@ class RestResponseComponent extends Component
      * @return CakeResponse
      * @throws Exception
      */
-    private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
+    private function prepareResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
     {
         App::uses('TmpFileTool', 'Tools');
         $format = !empty($format) ? strtolower($format) : 'json';
@@ -633,7 +633,7 @@ class RestResponseComponent extends Component
                 }
                 
                 // If response is big array, encode items separately to save memory
-                if (is_array($response) && count($response) > 10000) {
+                if (is_array($response) && count($response) > 10000 && JsonTool::arrayIsList($response)) {
                     $output = new TmpFileTool();
                     $output->write('[');
 
@@ -775,7 +775,7 @@ class RestResponseComponent extends Component
         if (!empty($errors)) {
             $data['errors'] = $errors;
         }
-        return $this->__sendResponse($data, 200, $format, $raw, $download, $headers);
+        return $this->prepareResponse($data, 200, $format, $raw, $download, $headers);
     }
 
     /**
@@ -807,7 +807,7 @@ class RestResponseComponent extends Component
             'message' => $message,
             'url' => $url
         );
-        return $this->__sendResponse($message, $code, $format, $raw, false, $headers);
+        return $this->prepareResponse($message, $code, $format, $raw, false, $headers);
     }
 
     public function setHeader($header, $value)
@@ -834,7 +834,7 @@ class RestResponseComponent extends Component
             }
         }
         $response['url'] = $this->__generateURL($actionArray, $controller, $params);
-        return $this->__sendResponse($response, 200, $format);
+        return $this->prepareResponse($response, 200, $format);
     }
 
     private function __setup()

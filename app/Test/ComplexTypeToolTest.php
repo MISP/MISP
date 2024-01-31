@@ -527,7 +527,28 @@ EOT;
     public function testCheckFreeTextNonBreakableSpace(): void
     {
         $complexTypeTool = new ComplexTypeTool();
+
         $results = $complexTypeTool->checkFreeText("127.0.0.1\xc2\xa0127.0.0.2");
+        $this->assertCount(2, $results);
+        $this->assertEquals('127.0.0.1', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+
+        $results = $complexTypeTool->checkFreeText("127.0.0.1\xc2\xa0\xc2\xa0127.0.0.2");
+        $this->assertCount(2, $results);
+        $this->assertEquals('127.0.0.1', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextControlCharToSpace(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+
+        $results = $complexTypeTool->checkFreeText("127.0.0.1\x1d127.0.0.2");
+        $this->assertCount(2, $results);
+        $this->assertEquals('127.0.0.1', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+
+        $results = $complexTypeTool->checkFreeText("127.0.0.1\x1d\x1d127.0.0.2");
         $this->assertCount(2, $results);
         $this->assertEquals('127.0.0.1', $results[0]['value']);
         $this->assertEquals('ip-dst', $results[0]['default_type']);

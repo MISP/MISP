@@ -2374,9 +2374,9 @@ class AppModel extends Model
     }
 
     // alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
-    public function valueNotEmpty($value)
+    public function valueNotEmpty(array $value)
     {
-        $field = array_keys($value)[0];
+        $field = array_key_first($value);
         $value = trim($value[$field]);
         if (!empty($value)) {
             return true;
@@ -2384,27 +2384,27 @@ class AppModel extends Model
         return ucfirst($field) . ' cannot be empty.';
     }
 
-    public function valueIsJson($value)
+    public function valueIsJson(array $value)
     {
-        $value = array_values($value)[0];
+        $value = current($value);
         if (!JsonTool::isValid($value)) {
             return __('Invalid JSON.');
         }
         return true;
     }
 
-    public function valueIsID($value)
+    public function valueIsID(array $value)
     {
-        $field = array_keys($value)[0];
+        $field = array_key_first($value);
         if (!is_numeric($value[$field]) || $value[$field] < 0) {
             return 'Invalid ' . ucfirst($field) . ' ID';
         }
         return true;
     }
 
-    public function stringNotEmpty($value)
+    public function stringNotEmpty(array $value)
     {
-        $field = array_keys($value)[0];
+        $field = array_key_first($value);
         $value = trim($value[$field]);
         if (!isset($value) || ($value == false && $value !== "0")) {
             return ucfirst($field) . ' cannot be empty.';
@@ -3267,14 +3267,13 @@ class AppModel extends Model
      * Returns MISP version from VERSION.json file as array with major, minor and hotfix keys.
      *
      * @return array
-     * @throws JsonException
+     * @throws Exception
      */
     public function checkMISPVersion()
     {
         static $versionArray;
         if ($versionArray === null) {
-            $content = FileAccessTool::readFromFile(ROOT . DS . 'VERSION.json');
-            $versionArray = JsonTool::decode($content);
+            $versionArray = FileAccessTool::readJsonFromFile(ROOT . DS . 'VERSION.json', true);
         }
         return $versionArray;
     }
@@ -3290,7 +3289,7 @@ class AppModel extends Model
         if ($commit === null) {
             App::uses('GitTool', 'Tools');
             try {
-                $commit = GitTool::currentCommit();
+                $commit = GitTool::currentCommit(ROOT);
             } catch (Exception $e) {
                 $this->logException('Could not get current git commit', $e, LOG_NOTICE);
                 $commit = false;
@@ -3714,7 +3713,7 @@ class AppModel extends Model
             if (!$isRule) {
                 $args = func_get_args();
                 $fields = $args[1];
-                $or = isset($args[2]) ? $args[2] : true;
+                $or = $args[2] ?? true;
             }
         }
         if (!is_array($fields)) {
@@ -3859,8 +3858,7 @@ class AppModel extends Model
     protected function isMysql()
     {
         $dataSource = ConnectionManager::getDataSource('default');
-        $dataSourceName = $dataSource->config['datasource'];
-        return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSourceName === 'Database/MysqlExtended' || $dataSource instanceof Mysql;
+        return $dataSource instanceof Mysql;
     }
 
     /**
@@ -3996,21 +3994,21 @@ class AppModel extends Model
         ");
     }
 
-    public function findOrder($order, $order_model, $valid_order_fields)
+    public function findOrder($order, $orderModel, $validOrderFields)
     {
         if (!is_array($order)) {
-            $order_rules = explode(' ', strtolower($order));
-            $order_field = explode('.', $order_rules[0]);
-            $order_field = end($order_field);
-            if (in_array($order_field, $valid_order_fields)) {
+            $orderRules = explode(' ', strtolower($order));
+            $orderField = explode('.', $orderRules[0]);
+            $orderField = end($orderField);
+            if (in_array($orderField, $validOrderFields, true)) {
                 $direction = 'asc';
-                if (!empty($order_rules[1]) && trim($order_rules[1]) === 'desc') {
+                if (!empty($orderRules[1]) && trim($orderRules[1]) === 'desc') {
                     $direction = 'desc';
                 }
             } else {
                 return null;
             }
-            return $order_model . '.' . $order_field . ' ' . $direction;
+            return $orderModel . '.' . $orderField . ' ' . $direction;
         }
         return null;
     }

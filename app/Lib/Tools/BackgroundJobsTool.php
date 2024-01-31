@@ -91,7 +91,8 @@ class BackgroundJobsTool
     ];
 
     const JOB_STATUS_PREFIX = 'job_status',
-        DATA_CONTENT_PREFIX = 'data_content';
+        DATA_CONTENT_PREFIX = 'data_content',
+        RUNNING_JOB_PREFIX = 'running';
 
     /** @var array */
     private $settings;
@@ -275,6 +276,54 @@ class BackgroundJobsTool
         }
 
         return null;
+    }
+
+    /**
+     * @param Worker $worker
+     * @param BackgroundJob $job
+     * @param int|null $pid
+     * @return void
+     * @throws RedisException
+     */
+    public function markAsRunning(Worker $worker, BackgroundJob $job, $pid = null)
+    {
+        $key = self::RUNNING_JOB_PREFIX . ':' . $worker->queue() . ':' . $job->id();
+        $this->RedisConnection->setex($key, 60, [
+            'worker_pid' => $worker->pid(),
+            'process_pid' => $pid,
+        ]);
+    }
+
+    /**
+     * @param Worker $worker
+     * @param BackgroundJob $job
+     * @return void
+     * @throws RedisException
+     */
+    public function removeFromRunning(Worker $worker, BackgroundJob $job)
+    {
+        $key = self::RUNNING_JOB_PREFIX . ':' . $worker->queue() . ':' . $job->id();
+        $this->RedisConnection->del($key);
+    }
+
+    /**
+     * Return current running jobs
+     * @return array
+     * @throws RedisException
+     */
+    public function runningJobs(): array
+    {
+        $pattern = $this->RedisConnection->_prefix(self::RUNNING_JOB_PREFIX . ':*');
+        $keys = RedisTool::keysByPattern($this->RedisConnection, $pattern);
+
+        $jobIds = [];
+        foreach ($keys as $key) {
+            $parts = explode(':', $key);
+            $queue = $parts[2];
+            $jobId = $parts[3];
+            $jobIds[$queue][$jobId] = $this->RedisConnection->get(self::RUNNING_JOB_PREFIX . ":$queue:$jobId");
+        }
+        return $jobIds;
     }
 
     /**
@@ -501,19 +550,6 @@ class BackgroundJobsTool
     }
 
     /**
-     * Purge queue
-     *
-     * @param string $queue
-     * @return void
-     */
-    public function purgeQueue(string $queue)
-    {
-        $this->validateQueue($queue);
-
-        $this->RedisConnection->del($queue);
-    }
-
-    /**
      * Return Background Jobs status
      *
      * @return integer
@@ -728,8 +764,7 @@ class BackgroundJobsTool
      *
      * @param integer $pid
      * @return \Supervisor\Process
-     *
-     * @throws NotFoundException
+     * @throws NotFoundException|Exception
      */
     private function getProcessByPid(int $pid): \Supervisor\Process
     {

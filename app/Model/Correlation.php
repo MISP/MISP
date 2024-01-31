@@ -153,7 +153,7 @@ class Correlation extends AppModel
         if (!empty($eventIds)) {
             $eventCount = count($eventIds);
             foreach ($eventIds as $j => $currentEventId) {
-                $attributeCount += $this->__iteratedCorrelation(
+                $attributeCount += $this->iteratedCorrelation(
                     $jobId,
                     $full,
                     $attributeId,
@@ -179,7 +179,7 @@ class Correlation extends AppModel
      * @return int
      * @throws Exception
      */
-    private function __iteratedCorrelation(
+    private function iteratedCorrelation(
         $jobId = false,
         $full = false,
         $attributeId = null,
@@ -215,30 +215,14 @@ class Correlation extends AppModel
         if ($attributeId) {
             $attributeConditions['Attribute.id'] = $attributeId;
         }
-        $query = [
-            'recursive' => -1,
-            'conditions' => $attributeConditions,
-            // fetch just necessary fields to save memory
-            'fields' => $this->getFieldRules(),
-            'order' => 'Attribute.id',
-            'limit' => 5000,
-            'callbacks' => false, // memory leak fix
-        ];
+
+        $attributes = $this->Attribute->fetchAttributesInChunks($attributeConditions, $this->getFieldRules(), false);
+
         $attributeCount = 0;
-        do {
-            $attributes = $this->Attribute->find('all', $query);
-            foreach ($attributes as $attribute) {
-                $this->afterSaveCorrelation($attribute['Attribute'], $full, $event);
-            }
-            $fetchedAttributes = count($attributes);
-            unset($attributes);
-            $attributeCount += $fetchedAttributes;
-            if ($fetchedAttributes === 5000) { // maximum number of attributes fetched, continue in next loop
-                $query['conditions']['Attribute.id >'] = $attribute['Attribute']['id'];
-            } else {
-                break;
-            }
-        } while (true);
+        foreach ($attributes as $attribute) {
+            $this->afterSaveCorrelation($attribute['Attribute'], $full, $event);
+            ++$attributeCount;
+        }
 
         // Generating correlations can take long time, so clear caches after each event to refresh them
         $this->cidrListCache = null;

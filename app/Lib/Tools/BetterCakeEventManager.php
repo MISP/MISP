@@ -52,10 +52,10 @@ class BetterCakeEventManager extends CakeEventManager
         $result = [];
         foreach ($priorities as $priority) {
             if (isset($globalListeners[$priority])) {
-                $result = array_merge($result, $globalListeners[$priority]);
+                array_push($result, ...$globalListeners[$priority]);
             }
             if (isset($localListeners[$priority])) {
-                $result = array_merge($result, $localListeners[$priority]);
+                array_push($result, ...$localListeners[$priority]);
             }
         }
         return $result;

@@ -3,10 +3,11 @@
 /**
  * @property User $User
  * @property Log $Log
+ * @property UserLoginProfile $UserLoginProfile
  */
 class UserShell extends AppShell
 {
-    public $uses = ['User', 'Log'];
+    public $uses = ['User', 'Log', 'UserLoginProfile'];
 
     public function getOptionParser()
     {
@@ -22,16 +23,24 @@ class UserShell extends AppShell
                 ],
             ]
         ]);
+        $parser->addSubcommand('init', [
+            'help' => __('Create default role, organisation and user when not exists.'),
+        ]);
         $parser->addSubcommand('authkey', [
             'help' => __('Get information about given authkey.'),
             'parser' => [
                 'arguments' => [
-                    'authkey' => ['help' => __('Authentication key. If not provide, it will be read from STDIN.')],
+                    'authkey' => ['help' => __('Authentication key. If not provided, it will be read from STDIN.')],
                 ],
             ]
         ]);
         $parser->addSubcommand('authkey_valid', [
             'help' => __('Check if given authkey by STDIN is valid.'),
+            'parser' => [
+                'options' => [
+                    'disableStdLog' => ['help' => __('Do not show logs in STDOUT or STDERR.'), 'boolean' => true],
+                ],
+            ],
         ]);
         $parser->addSubcommand('block', [
             'help' => __('Immediately block user.'),
@@ -104,6 +113,14 @@ class UserShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('ip_country', [
+            'help' => __('Get country for given IP address'),
+            'parser' => [
+                'arguments' => [
+                    'ip' => ['help' => __('IPv4 or IPv6 address.'), 'required' => true],
+                ]
+            ],
+        ]);
         $parser->addSubcommand('require_password_change_for_old_passwords', [
             'help' => __('Trigger forced password change on next login for users with an old (older than x days) password.'),
             'parser' => [
@@ -121,7 +138,7 @@ class UserShell extends AppShell
 
     public function list()
     {
-        $userId = isset($this->args[0]) ? $this->args[0] : null;
+        $userId = $this->args[0] ?? null;
         if ($userId) {
             $conditions = ['OR' => [
                 'User.id' => $userId,
@@ -163,13 +180,24 @@ class UserShell extends AppShell
         }
     }
 
+    public function init()
+    {
+        if (!Configure::read('Security.salt')) {
+            $this->loadModel('Server');
+            $this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
+        }
+
+        $authKey = $this->User->init();
+        if ($authKey === null) {
+            $this->err('Script aborted: MISP instance already initialised.');
+        } else {
+            $this->out($authKey);
+        }
+    }
+
     public function authkey()
     {
-        if (isset($this->args[0])) {
-            $authkey = $this->args[0];
-        } else {
-            $authkey = fgets(STDIN); // read line from STDIN
-        }
+        $authkey = $this->args[0] ?? fgets(STDIN);
         $authkey = trim($authkey);
         if (strlen($authkey) !== 40) {
             $this->error('Authkey has not valid format.');
@@ -212,28 +240,37 @@ class UserShell extends AppShell
      */
     public function authkey_valid()
     {
+        if ($this->params['disableStdLog']) {
+            $this->_useLogger(false);
+        }
+
         $cache = [];
         $randomKey = random_bytes(16);
-        do {
+        $advancedAuthKeysEnabled = (bool)Configure::read('Security.advanced_authkeys');
+
+        while (true) {
             $authkey = fgets(STDIN); // read line from STDIN
             $authkey = trim($authkey);
             if (strlen($authkey) !== 40) {
-                fwrite(STDOUT, "0\n");  // authkey is not in valid format
-                $this->log("Authkey in incorrect format provided.", LOG_WARNING);
+                echo "0\n";  // authkey is not in valid format
+                $this->log("Authkey in incorrect format provided, expected 40 chars long string, $authkey provided.", LOG_WARNING);
                 continue;
             }
-            $time = time();
+
             // Generate hash from authkey to not store raw authkey in memory
             $keyHash = sha1($authkey . $randomKey, true);
+
+            // If authkey is in cache and is fresh, use info from cache
+            $time = time();
             if (isset($cache[$keyHash]) && $cache[$keyHash][1] > $time) {
-                fwrite(STDOUT, $cache[$keyHash][0] ? "1\n" : "0\n");
+                echo $cache[$keyHash][0] ? "1\n" : "0\n";
                 continue;
             }
 
             $user = false;
             for ($i = 0; $i < 5; $i++) {
                 try {
-                    if (Configure::read('Security.advanced_authkeys')) {
+                    if ($advancedAuthKeysEnabled) {
                         $user = $this->User->AuthKey->getAuthUserByAuthKey($authkey);
                     } else {
                         $user = $this->User->getAuthUserByAuthkey($authkey);
@@ -251,18 +288,34 @@ class UserShell extends AppShell
                 }
             }
 
-            $user = (bool)$user;
             if (!$user) {
-                $start = substr($authkey, 0, 4);
-                $end = substr($authkey, -4);
-                $authKeyToStore = $start . str_repeat('*', 32) . $end;
-                $this->log("Not valid authkey $authKeyToStore provided.", LOG_WARNING);
+                $valid = null;
+            } else if ($user['disabled']) {
+                $valid = false;
+            } else {
+                $valid = true;
             }
 
-            // Cache results for 5 seconds
-            $cache[$keyHash] = [$user, $time + 5];
-            fwrite(STDOUT, $user ? "1\n" : "0\n");
-        } while (true);
+            echo $valid ? "1\n" : "0\n";
+
+            if ($valid) {
+                // Cache results for 60 seconds if key is valid
+                $cache[$keyHash] = [true, $time + 60];
+            } else {
+                // Cache results for 5 seconds if key is invalid
+                $cache[$keyHash] = [false, $time + 5];
+
+                $start = substr($authkey, 0, 4);
+                $end = substr($authkey, -4);
+                $authKeyForLog = $start . str_repeat('*', 32) . $end;
+
+                if ($valid === false) {
+                    $this->log("Authkey $authKeyForLog belongs to user {$user['id']} that is disabled.", LOG_WARNING);
+                } else {
+                    $this->log("Authkey $authKeyForLog is invalid or expired.", LOG_WARNING);
+                }
+            }
+        }
     }
 
     public function block()
@@ -305,7 +358,7 @@ class UserShell extends AppShell
 
         $conditions = ['User.disabled' => false]; // fetch just not disabled users
 
-        $userId = isset($this->args[0]) ? $this->args[0] : null;
+        $userId = $this->args[0] ?? null;
         if ($userId) {
             $conditions['OR'] = [
                 'User.id' => $userId,
@@ -364,7 +417,7 @@ class UserShell extends AppShell
         }
         $user = $this->getUser($userId);
 
-        # validate new authentication key if provided
+        // validate new authentication key if provided
         if (!empty($newkey) && (strlen($newkey) != 40 || !ctype_alnum($newkey))) {
             $this->error('The new auth key needs to be 40 characters long and only alphanumeric.');
         }
@@ -399,7 +452,7 @@ class UserShell extends AppShell
             $this->out('<warning>Storing user IP addresses is disabled.</warning>');
         }
 
-        $ips = $this->User->setupRedisWithException()->smembers('misp:user_ip:' . $user['id']);
+        $ips = RedisTool::init()->smembers('misp:user_ip:' . $user['id']);
 
         if ($this->params['json']) {
             $this->out($this->json($ips));
@@ -422,34 +475,48 @@ class UserShell extends AppShell
             $this->out('<warning>Storing user IP addresses is disabled.</warning>');
         }
 
-        $userId = $this->User->setupRedisWithException()->get('misp:ip_user:' . $ip);
+        $userId = RedisTool::init()->get('misp:ip_user:' . $ip);
         if (empty($userId)) {
             $this->out('No hits.');
             $this->_stop();
         }
 
-        $user = $this->User->find('first', array(
+        $user = $this->User->find('first', [
             'recursive' => -1,
-            'conditions' => array('User.id' => $userId),
+            'conditions' => ['User.id' => $userId],
             'fields' => ['id', 'email'],
-        ));
+        ]);
 
         if (empty($user)) {
             $this->error("User with ID $userId doesn't exists anymore.");
         }
+
+        $ipCountry = $this->UserLoginProfile->countryByIp($ip);
 
         if ($this->params['json']) {
             $this->out($this->json([
                 'ip' => $ip,
                 'id' => $user['User']['id'],
                 'email' => $user['User']['email'],
+                'country' => $ipCountry,
             ]));
         } else {
-            $this->out(sprintf(
-                '%s==============================%sIP: %s%s==============================%sUser #%s: %s%s==============================%s',
-                PHP_EOL, PHP_EOL, $ip, PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL
-            ));
+            $this->hr();
+            $this->out("IP: $ip (country $ipCountry)");
+            $this->hr();
+            $this->out("User #{$user['User']['id']}: {$user['User']['email']}");
+            $this->hr();
         }
+    }
+
+    public function ip_country()
+    {
+        list($ip) = $this->args;
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            $this->error("IP `$ip` is not valid IPv4 or IPv6 address");
+        }
+
+        $this->out($this->UserLoginProfile->countryByIp($ip));
     }
 
     public function require_password_change_for_old_passwords()

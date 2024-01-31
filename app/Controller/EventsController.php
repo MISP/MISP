@@ -834,33 +834,29 @@ class EventsController extends AppController
         }
 
         if (empty($rules['limit'])) {
-            $events = array();
+            $events = [];
             $i = 1;
             $rules['limit'] = 20000;
             while (true) {
-                $rules['page'] = $i;
+                $rules['page'] = $i++;
                 $temp = $this->Event->find('all', $rules);
                 $resultCount = count($temp);
                 if ($resultCount !== 0) {
-                    // this is faster and memory efficient than array_merge
-                    foreach ($temp as $tempEvent) {
-                        $events[] = $tempEvent;
-                    }
+                    array_push($events, ...$temp);
                 }
                 if ($resultCount < $rules['limit']) {
                     break;
                 }
-                $i++;
             }
             unset($temp);
-            $absolute_total = count($events);
+            $absoluteTotal = count($events);
         } else {
             $counting_rules = $rules;
             unset($counting_rules['limit']);
             unset($counting_rules['page']);
-            $absolute_total = $this->Event->find('count', $counting_rules);
+            $absoluteTotal = $this->Event->find('count', $counting_rules);
 
-            $events = $absolute_total === 0 ? [] : $this->Event->find('all', $rules);
+            $events = $absoluteTotal === 0 ? [] : $this->Event->find('all', $rules);
         }
 
         $isCsvResponse = $this->response->type() === 'text/csv';
@@ -979,7 +975,7 @@ class EventsController extends AppController
             $events = $export->eventIndex($events);
         }
 
-        return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, ['X-Result-Count' => $absolute_total]);
+        return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, ['X-Result-Count' => $absoluteTotal]);
     }
 
     private function __indexColumns()
@@ -2383,7 +2379,7 @@ class EventsController extends AppController
                     $results = $this->Event->addMISPExportFile($this->Auth->user(), $data, $isXml, $takeOwnership, $publish);
                 } catch (Exception $e) {
                     $this->log("Exception during processing MISP file import: {$e->getMessage()}");
-                    $this->Flash->error(__('Could not process MISP export file. %s.', $e->getMessage()));
+                    $this->Flash->error(__('Could not process MISP export file. %s', $e->getMessage()));
                     $this->redirect(['controller' => 'events', 'action' => 'add_misp_export']);
                 }
             }
@@ -3203,7 +3199,7 @@ class EventsController extends AppController
         $event = $this->Event->find('first', [
             'conditions' => Validation::uuid($id) ? ['Event.uuid' => $id] : ['Event.id' => $id],
             'recursive' => -1,
-            'fields' => ['id', 'info', 'publish_timestamp', 'orgc_id'],
+            'fields' => ['id', 'info', 'publish_timestamp', 'orgc_id', 'user_id'],
         ]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
@@ -3221,6 +3217,16 @@ class EventsController extends AppController
                     $this->redirect(['action' => 'view', $event['Event']['id']]);
                 }
             }
+        }
+        if (
+            Configure::read('MISP.block_publishing_for_same_creator', false) &&
+            $this->Auth->user()['id'] == $event['Event']['user_id']
+        ) {
+            $message = __('Could not publish the event, the publishing user cannot be the same as the event creator as per this instance\'s configuration.');
+            if (!$this->_isRest()) {
+                $this->Flash->error($message);
+            }
+            throw new MethodNotAllowedException($message);
         }
 
         return $event;

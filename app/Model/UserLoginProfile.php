@@ -36,22 +36,55 @@ class UserLoginProfile extends AppModel
     ];
 
     const BROWSER_CACHE_DIR = APP . DS . 'tmp' . DS . 'browscap';
-    const BROWSER_INI_FILE = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
+    const BROWSER_INI_FILE = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini.gz';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
     const GEOIP_DB_FILE = APP . DS . 'files' . DS . 'geo-open' . DS . 'GeoOpen-Country.mmdb';  // GeoIP file managed by MISP - https://data.public.lu/en/datasets/geo-open-ip-address-geolocation-per-country-in-mmdb-format/
 
     private $userProfile;
 
     private $knownUserProfiles = [];
 
-    private function _buildBrowscapCache()
+    private function browscapGetBrowser()
     {
-        $this->log("Browscap - building new cache from browscap.ini file.", LOG_INFO);
-        $fileCache = new \Doctrine\Common\Cache\FilesystemCache(UserLoginProfile::BROWSER_CACHE_DIR);
-        $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
-
         $logger = new \Monolog\Logger('name');
-        $bc = new \BrowscapPHP\BrowscapUpdater($cache, $logger);
-        $bc->convertFile(UserLoginProfile::BROWSER_INI_FILE);
+
+        if (function_exists('apcu_fetch')) {
+            App::uses('ApcuCacheTool', 'Tools');
+            $cache = new ApcuCacheTool('misp:browscap');
+        } else {
+            $fileCache = new \Doctrine\Common\Cache\FilesystemCache(UserLoginProfile::BROWSER_CACHE_DIR);
+            $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
+        }
+
+        try {
+            $bc = new \BrowscapPHP\Browscap($cache, $logger);
+            return $bc->getBrowser();
+        } catch (\BrowscapPHP\Exception $e) {
+            $this->log("Browscap - building new cache from browscap.ini file.", LOG_INFO);
+            $bcUpdater = new \BrowscapPHP\BrowscapUpdater($cache, $logger);
+            $bcUpdater->convertString(FileAccessTool::readCompressedFile(UserLoginProfile::BROWSER_INI_FILE));
+        }
+
+        $bc = new \BrowscapPHP\Browscap($cache, $logger);
+        return $bc->getBrowser();
+    }
+
+    /**
+     * @param string $ip
+     * @return string|null
+     */
+    public function countryByIp($ip)
+    {
+        if (class_exists('GeoIp2\Database\Reader')) {
+            $geoDbReader = new GeoIp2\Database\Reader(UserLoginProfile::GEOIP_DB_FILE);
+            try {
+                $record = $geoDbReader->country($ip);
+                return $record->country->isoCode;
+            } catch (InvalidArgumentException $e) {
+                $this->logException("Could not get country code for IP address", $e, LOG_NOTICE);
+                return null;
+            }
+        }
+        return null;
     }
 
     public function beforeSave($options = [])
@@ -76,16 +109,7 @@ class UserLoginProfile extends AppModel
         if (!$this->userProfile) {
             // below uses https://github.com/browscap/browscap-php 
             if (class_exists('\BrowscapPHP\Browscap')) {
-                try {
-                    $fileCache = new \Doctrine\Common\Cache\FilesystemCache(UserLoginProfile::BROWSER_CACHE_DIR);
-                    $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
-                    $logger = new \Monolog\Logger('name');
-                    $bc = new \BrowscapPHP\Browscap($cache, $logger);
-                    $browser = $bc->getBrowser();
-                } catch (\BrowscapPHP\Exception $e) {
-                    $this->_buildBrowscapCache();
-                    return $this->_getUserProfile();
-                }
+                $browser = $this->browscapGetBrowser();
             } else {
                 // a primitive OS & browser extraction capability
                 $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
@@ -100,18 +124,7 @@ class UserLoginProfile extends AppModel
                 $browser->browser = "browser";
             }
             $ip = $this->_remoteIp();
-            if (class_exists('GeoIp2\Database\Reader')) {
-                try {
-                    $geoDbReader = new GeoIp2\Database\Reader(UserLoginProfile::GEOIP_DB_FILE);
-                    $record = $geoDbReader->country($ip);
-                    $country = $record->country->isoCode;
-                } catch (InvalidArgumentException $e) {
-                    $this->logException("Could not get country code for IP address", $e);
-                    $country = 'None';
-                }
-            } else {
-                $country = 'None';
-            }
+            $country = $this->countryByIp($ip) ?? 'None';
             $this->userProfile = [
                 'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
                 'ip' => $ip,
@@ -247,13 +260,13 @@ class UserLoginProfile extends AppModel
     public function emailNewLogin(array $user)
     {
         if (!Configure::read('MISP.disable_emailing')) {
-            $date_time = date('c');
-
+            $user = $this->User->getUserById($user['id']); // fetch in database format
+            $datetime = date('c'); // ISO 8601 date
             $body = new SendEmailTemplate('userloginprofile_newlogin');
             $body->set('userLoginProfile', $this->User->UserLoginProfile->_getUserProfile());
             $body->set('baseurl', Configure::read('MISP.baseurl'));
             $body->set('misp_org', Configure::read('MISP.org'));
-            $body->set('date_time', $date_time);
+            $body->set('date_time', $datetime);
             // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
             $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] New sign in.");
         }
