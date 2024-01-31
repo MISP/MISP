@@ -2078,12 +2078,10 @@ class User extends AppModel
             return false;
         }
 
-        $cutoff = $redis->get('misp:session_destroy:' . $id);
-        $allcutoff = $redis->get('misp:session_destroy:all');
+        list($cutoff, $allcutoff) = $redis->mGet(['misp:session_destroy:' . $id, 'misp:session_destroy:all']);
         if (
             empty($cutoff) ||
             (
-                !empty($cutoff) &&
                 !empty($allcutoff) &&
                 $allcutoff < $cutoff
             )
