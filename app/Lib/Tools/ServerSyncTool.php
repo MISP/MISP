@@ -224,7 +224,34 @@ class ServerSyncTool
      */
     public function analystDataSearch(array $rules)
     {
+        if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
+            return [];
+        }
+
         return $this->post('/analyst_data/filterAnalystDataForPush', $rules);
+    }
+
+    /**
+     * @throws HttpSocketJsonException
+     * @throws HttpSocketHttpException
+     */
+    public function fetchAnalystData(array $uuids)
+    {
+        if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
+            return [];
+        }
+
+        $params = [
+            'uuids' => $uuids,
+        ];
+
+        $url = '/analyst_data/index';
+        $url .= $this->createParams($params);
+        $url .= '.json';
+        return $this->get($url);
+
+        // $response = $this->post('/analyst_data/restSearch' , $params);
+        // return $response->json();
     }
 
         /**

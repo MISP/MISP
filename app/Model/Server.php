@@ -671,21 +671,24 @@ class Server extends AppModel
                 $job->saveProgress($jobId, 'Pulling sightings.', 75);
             }
             $pulledSightings = $eventModel->Sighting->pullSightings($user, $serverSync);
+            $this->AnalystData = ClassRegistry::init('AnalystData');
+            $pulledAnalystData = $this->AnalystData->pull($user, $serverSync);
         }
         if ($jobId) {
             $job->saveStatus($jobId, true, 'Pull completed.');
         }
 
         $change = sprintf(
-            '%s events, %s proposals, %s sightings and %s galaxy clusters pulled or updated. %s events failed or didn\'t need an update.',
+            '%s events, %s proposals, %s sightings, %s galaxy clusters and %s pulled or updated. %s events failed or didn\'t need an update.',
             count($successes),
             $pulledProposals,
             $pulledSightings,
             $pulledClusters,
+            $pulledAnalystData,
             count($fails)
         );
         $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
-        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters];
+        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters, $pulledAnalystData];
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -753,7 +756,7 @@ class Server extends AppModel
      * @return array The list of analyst data
      * @throws JsonException|HttpSocketHttpException|HttpSocketJsonException
      */
-    private function fetchAnalystDataIdsFromServer(ServerSyncTool $serverSync, array $conditions = [])
+    public function fetchAnalystDataIdsFromServer(ServerSyncTool $serverSync, array $conditions = [])
     {
         $filterRules = $conditions;
         $dataArray = $serverSync->analystDataSearch($filterRules)->json();

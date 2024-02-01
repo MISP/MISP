@@ -634,4 +634,65 @@ class AnalystData extends AppModel
         }
         return $analystData;
     }
+
+    public function pull(array $user, ServerSyncTool $serverSync)
+    {
+        $this->Server = ClassRegistry::init('Server');
+        $this->AnalystData = ClassRegistry::init('AnalystData');
+        try {
+            $remoteData = $this->Server->fetchAnalystDataIdsFromServer($serverSync);
+        } catch (Exception $e) {
+            $this->logException("Could not fetch analyst data IDs from server {$serverSync->server()['Server']['name']}", $e);
+            return 0;
+        }
+
+        // Downloads new analyst data and the ones newer than local.
+        $localAnalystData = $this->getAllAnalystData('list', [
+            'Event.uuid' => array_column($remoteData, 'uuid')
+        ]);
+
+        $remoteDataUuids = [];
+        foreach ($remoteData as $type => $remoteAnalystData) {
+            foreach ($remoteAnalystData as $i => $remoteEntry) {
+                if (
+                    isset($localAnalystData[$remoteEntry['uuid']]) &&
+                    strtotime($localAnalystData[$type][$remoteEntry['uuid']]) < strtotime($remoteEntry['modified'])
+                ) {
+                    $remoteDataUuids[$remoteEntry['uuid']] = $remoteEntry['modified'];
+                }
+            }
+        }
+        unset($remoteData, $localAnalystData);
+
+        if (empty($remoteDataUuids)) {
+            return 0;
+        }
+
+        if ($serverSync->isSupported(ServerSyncTool::PERM_ANALYST_DATA)) {
+            return $this->pullAnalystData($user, $remoteDataUuids, $serverSync);
+        }
+    }
+
+    public function pullAnalystData(array $user, array $analystDataUuids, ServerSyncTool $serverSync)
+    {
+        $uuids = array_keys($analystDataUuids);
+        $saved = 0;
+        foreach (array_chunk($uuids, 100) as $uuidChunk) {
+            try {
+                $chunkedAnalystData = $serverSync->fetchAnalystData($uuidChunk);
+            } catch (Exception $e) {
+                $this->logException("Failed downloading the chunked analyst data from {$serverSync->server()['Server']['name']}.", $e);
+                continue;
+            }
+
+            foreach ($chunkedAnalystData as $analystData) {
+                $savedAmount = $this->captureAnalystData($user, $analystData, true, $serverSync->server()['Server']['org_id'], $serverSync->server());
+                if ($savedAmount) {
+                    $saved += $savedAmount;
+                }
+            }
+        }
+
+        return $saved;
+    }
 }
