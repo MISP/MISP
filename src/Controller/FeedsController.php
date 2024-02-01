@@ -14,13 +14,10 @@ use Cake\Core\Configure;
 use Cake\Event\EventInterface;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Http\Exception\NotFoundException;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use Exception;
 
 class FeedsController extends AppController
 {
-    use LocatorAwareTrait;
-
     public $paginate = [
         'limit' => 60,
         'order' => [
