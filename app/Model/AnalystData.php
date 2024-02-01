@@ -470,8 +470,8 @@ class AnalystData extends AppModel
 
         try {
             $conditions = [];
-            foreach ($keyedAnalystData as $model => $entry) {
-                $conditions[$model] = array_keys($entry);
+            foreach ($keyedAnalystData as $type => $entry) {
+                $conditions[$type] = array_keys($entry);
             }
             $analystDataToPush = $this->Server->getElligibleDataIdsFromServerForPush($serverSync, $analystData, $conditions);
         } catch (Exception $e) {
@@ -479,11 +479,11 @@ class AnalystData extends AppModel
             return [];
         }
         $successes = [];
-        foreach ($analystDataToPush as $model => $entries) {
+        foreach ($analystDataToPush as $type => $entries) {
             foreach ($entries as $entry) {
-                $result = $this->AnalystData->uploadEntryToServer($model, $entry, $server, $serverSync, $user);
+                $result = $this->AnalystData->uploadEntryToServer($type, $entry, $server, $serverSync, $user);
                 if ($result === 'Success') {
-                    $successes[] = __('AnalystData %s', $entry['GalaxyCluster']['uuid']);
+                    $successes[] = __('AnalystData %s', $entry[$type]['uuid']);
                 }
             }
         }
