@@ -2021,6 +2021,7 @@ class AppModel extends Model
                     `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
+                    `locked` tinyint(1) NOT NULL DEFAULT 0;
                     `note` mediumtext,
                     `language` varchar(16) DEFAULT 'en',
                     PRIMARY KEY (`id`),
@@ -2045,6 +2046,7 @@ class AppModel extends Model
                     `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
+                    `locked` tinyint(1) NOT NULL DEFAULT 0;
                     `opinion` int(10) unsigned,
                     `comment` text,
                     PRIMARY KEY (`id`),
@@ -2070,6 +2072,7 @@ class AppModel extends Model
                     `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
+                    `locked` tinyint(1) NOT NULL DEFAULT 0;
                     `relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
                     `related_object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
                     `related_object_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -2085,6 +2088,18 @@ class AppModel extends Model
                     KEY `related_object_uuid` (`related_object_uuid`),
                     KEY `related_object_type` (`related_object_type`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `analyst_data_blocklists` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `analyst_data_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                    `created` datetime NOT NULL,
+                    `analyst_data_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+                    `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `analyst_data_orgc` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `analyst_data_uuid` (`analyst_data_uuid`),
+                    KEY `analyst_data_orgc` (`analyst_data_orgc`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_analyst_data` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "UPDATE `roles` SET `perm_analyst_data`=1 WHERE `perm_add` = 1;";

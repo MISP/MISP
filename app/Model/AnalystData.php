@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('ServerSyncTool', 'Tools');
 
 class AnalystData extends AppModel
 {
@@ -28,16 +29,26 @@ class AnalystData extends AppModel
         OPINION = 1,
         RELATIONSHIP = 2;
 
+    const ANALYST_DATA_TYPES = [
+        'Note',
+        'Opinion',
+        'Relationship',
+    ];
+
     /** @var object|null */
     protected $Note;
     /** @var object|null */
     protected $Opinion;
     /** @var object|null */
+    protected $Relationship;
+    /** @var object|null */
     protected $ObjectRelationship;
     /** @var object|null */
     protected $User;
     /** @var object|null */
-    public $Organisation;
+    public $Org;
+    /** @var object|null */
+    public $Orgc;
     /** @var object|null */
     public $SharingGroup;
 
@@ -47,7 +58,7 @@ class AnalystData extends AppModel
         'SharingGroup' => [
             'className' => 'SharingGroup',
             'foreignKey' => 'sharing_group_id'
-        ]
+        ],
     ];
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -55,11 +66,18 @@ class AnalystData extends AppModel
         parent::__construct($id, $table, $ds);
         $this->bindModel([
             'belongsTo' => [
-                'Organisation' => [
+                'Org' => [
                     'className' => 'Organisation',
                     'foreignKey' => false,
                     'conditions' => [
-                        sprintf('%s.orgc_uuid = Organisation.uuid', $this->alias)
+                        sprintf('%s.org_uuid = Org.uuid', $this->alias)
+                    ],
+                ],
+                'Orgc' => [
+                    'className' => 'Organisation',
+                    'foreignKey' => false,
+                    'conditions' => [
+                        sprintf('%s.orgc_uuid = Orgc.uuid', $this->alias)
                     ],
                 ],
                 'SharingGroup' => [
@@ -71,6 +89,8 @@ class AnalystData extends AppModel
                 ],
             ]
         ]);
+        $this->Org = ClassRegistry::init('Organisation');
+        $this->Orgc = ClassRegistry::init('Organisation');
     }
 
     public function afterFind($results, $primary = false)
@@ -88,8 +108,8 @@ class AnalystData extends AppModel
 
             $results[$i][$this->alias]['_canEdit'] = $this->canEditAnalystData($this->current_user, $v, $this->alias);
 
-            if (!empty($results[$i][$this->alias]['uuid'])) {
-                $results[$i][$this->alias] = $this->fetchChildNotesAndOpinions($results[$i][$this->alias]);
+            if (!empty($this->fetchRecursive) && !empty($results[$i][$this->alias]['uuid'])) {
+                $results[$i][$this->alias] = $this->fetchChildNotesAndOpinions($this->current_user, $results[$i][$this->alias]);
             }
         }
         return $results;
@@ -126,7 +146,7 @@ class AnalystData extends AppModel
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
-        if ($analystData[$modelType]['orgc_uuid'] == $user['Organisation']['uuid']) {
+        if (isset($analystData[$modelType]['orgc_uuid']) && $analystData[$modelType]['orgc_uuid'] == $user['Organisation']['uuid']) {
             return true;
         }
         return false;
@@ -171,13 +191,20 @@ class AnalystData extends AppModel
     private function rearrangeOrganisation(array $analystData): array
     {
         if (!empty($analystData[$this->alias]['orgc_uuid'])) {
-            if (!isset($analystData['Organisation'])) {
-                $this->Organisation = ClassRegistry::init('Organisation');
-                $analystData[$this->alias]['Organisation'] = $this->Organisation->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['orgc_uuid']]])['Organisation'];
+            if (!isset($analystData['Orgc'])) {
+                $analystData[$this->alias]['Orgc'] = $this->Orgc->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['orgc_uuid']]])['Organisation'];
             } else {
-                $analystData[$this->alias]['Organisation'] = $analystData['Organisation'];
+                $analystData[$this->alias]['Orgc'] = $analystData['Orgc'];
             }
-            unset($analystData['Organisation']);
+            unset($analystData['Orgc']);
+        }
+        if (!empty($analystData[$this->alias]['org_uuid'])) {
+            if (!isset($analystData['Org'])) {
+                $analystData[$this->alias]['Org'] = $this->Org->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['org_uuid']]])['Organisation'];
+            } else {
+                $analystData[$this->alias]['Org'] = $analystData['Org'];
+            }
+            unset($analystData['Org']);
         }
         return $analystData;
     }
@@ -215,34 +242,50 @@ class AnalystData extends AppModel
         throw new NotFoundException(__('Invalid UUID'));
     }
 
-    public function fetchChildNotesAndOpinions(array $analystData): array
+    public function deduceAnalystDataType(array $analystData)
+    {
+        foreach (self::ANALYST_DATA_TYPES as $type) {
+            if (isset($analystData[$type])) {
+                return $type;
+            }
+        }
+        throw new NotFoundException(__('Invalid or could not deduce analyst data type'));
+    }
+
+    public function fetchChildNotesAndOpinions(array $user, array $analystData): array
     {
         $this->Note = ClassRegistry::init('Note');
         $this->Opinion = ClassRegistry::init('Opinion');
         $paramsNote = [
             'recursive' => -1,
-            'contain' => ['Organisation'],
+            'contain' => ['Org', 'Orgc'],
             'conditions' => [
+                'AND' => [
+                    $this->buildConditions($user)
+                ],
                 'object_type' => $this->current_type,
                 'object_uuid' => $analystData['uuid'],
             ]
         ];
         $paramsOpinion = [
             'recursive' => -1,
-            'contain' => ['Organisation'],
+            'contain' => ['Org', 'Orgc'],
             'conditions' => [
+                'AND' => [
+                    $this->buildConditions($user)
+                ],
                 'object_type' => $this->current_type,
                 'object_uuid' => $analystData['uuid'],
             ]
         ];
 
         // recursively fetch and include nested notes and opinions
-        $childNotes = array_map(function ($item) {
-            $expandedNotes = $this->fetchChildNotesAndOpinions($item[$this->Note->current_type]);
+        $childNotes = array_map(function ($item) use ($user) {
+            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item[$this->Note->current_type]);
             return $expandedNotes;
         }, $this->Note->find('all', $paramsNote));
-        $childOpinions = array_map(function ($item) {
-            $expandedNotes = $this->fetchChildNotesAndOpinions($item[$this->Opinion->current_type]);
+        $childOpinions = array_map(function ($item) use ($user) {
+            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item[$this->Opinion->current_type]);
             return $expandedNotes;
         }, $this->Opinion->find('all', $paramsOpinion));
 
@@ -272,20 +315,323 @@ class AnalystData extends AppModel
     }
 
     /**
-     * Push sightings to remote server.
+     * Gets a cluster then save it.
+     *
+     * @param array $user
+     * @param array $analystData Analyst data to be saved
+     * @param bool  $fromPull If the current capture is performed from a PULL sync
+     * @param int   $orgId The organisation id that should own the analyst data
+     * @param array $server The server for which to capture is ongoing
+     * @return array Result of the capture including successes, fails and errors
+     */
+    public function captureAnalystData(array $user, array $analystData, $fromPull=false, $orgUUId=false, $server=false): array
+    {
+        $results = ['success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => []];
+        $type = $this->deduceAnalystDataType($analystData);
+        $analystModel = ClassRegistry::init($type);
+
+        if ($fromPull && !empty($orgUUId)) {
+            $analystData[$type]['org_uuid'] = $orgUUId;
+        } else {
+            $analystData[$type]['org_uuid'] = $user['Organisation']['uuid'];
+        }
+
+        $this->AnalystDataBlocklist = ClassRegistry::init('AnalystDataBlocklist');
+        if ($this->AnalystDataBlocklist->checkIfBlocked($analystData[$type]['uuid'])) {
+            $results['errors'][] = __('Blocked by blocklist');
+            $results['ignored']++;
+            return $results;
+        }
+
+        if (!isset($analystData[$type]['orgc_uuid']) && !isset($cluster['Orgc'])) {
+            $analystData[$type]['orgc_uuid'] = $analystData[$type]['org_uuid'];
+        } else {
+            if (!isset($analystData[$type]['Orgc'])) {
+                if (isset($analystData[$type]['orgc_uuid']) && $analystData[$type]['orgc_uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                    $analystData[$type]['orgc_uuid'] = $analystData[$type]['org_uuid']; // Only sync user can create analyst data on behalf of other users
+                }
+            } else {
+                if ($analystData[$type]['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                    $analystData[$type]['orgc_uuid'] = $analystData[$type]['org_uuid']; // Only sync user can create analyst data on behalf of other users
+                }
+            }
+            if (isset($analystData[$type]['orgc_uuid']) && $analystData[$type]['orgc_uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                $analystData[$type]['orgc_uuid'] = $analystData[$type]['org_uuid']; // Only sync user can create analyst data on behalf of other users
+            }
+        }
+
+        if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
+            $analystModel->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
+            if (!isset($analystData[$type]['Orgc']['uuid'])) {
+                $orgc = $analystModel->Orgc->find('first', ['conditions' => ['Orgc.uuid' => $analystData[$type]['orgc_uuid']], 'fields' => ['Orgc.uuid'], 'recursive' => -1]);
+            } else {
+                $orgc = ['Orgc' => ['uuid' => $analystData[$type]['Orgc']['uuid']]];
+            }
+            if ($analystData[$type]['orgc_uuid'] != 0 && $analystModel->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgc['Orgc']['uuid']))) {
+                $results['errors'][] = __('Organisation blocklisted (%s)', $orgc['Orgc']['uuid']);
+                $results['ignored']++;
+                return $results;
+            }
+        }
+
+        $analystData = $analystModel->captureOrganisationAndSG($analystData, $type, $user);
+        $existingAnalystData = $analystModel->find('first', [
+            'conditions' => ["{$type}.uuid" => $analystData[$type]['uuid'],],
+        ]);
+        if (!isset($analystData[$type]['distribution'])) {
+            $analystData[$type]['distribution'] = Configure::read('MISP.default_event_distribution'); // use default event distribution
+        }
+        if ($analystData[$type]['distribution'] != 4) {
+            $analystData[$type]['sharing_group_id'] = null;
+        }
+        if (empty($existingAnalystData)) {
+            unset($analystData[$type]['id']);
+            $analystModel->create();
+            $saveSuccess = $analystModel->save($analystData);
+        } else {
+            if (!$existingAnalystData[$type]['locked'] && empty($server['Server']['internal'])) {
+                $results['errors'][] = __('Blocked an edit to an analyst data that was created locally. This can happen if a synchronised analyst data that was created on this instance was modified by an administrator on the remote side.');
+                $results['failed']++;
+                return $results;
+            }
+            if ($analystData[$type]['modified'] > $existingAnalystData[$type]['modified']) {
+                $analystData[$type]['id'] = $existingAnalystData[$type]['id'];
+                $saveSuccess = $analystModel->save($analystData);
+            } else {
+                $results['errors'][] = __('Remote version is not newer than local one for analyst data (%s)', $analystData[$type]['uuid']);
+                $results['ignored']++;
+                return $results;
+            }
+        }
+        if ($saveSuccess) {
+            $results['imported']++;
+            $analystModel->find('first', [
+                'conditions' => ['uuid' =>  $analystData[$type]['uuid']],
+                'recursive' => -1
+            ]);
+        } else {
+            $results['failed']++;
+            foreach ($analystModel->validationErrors as $validationError) {
+                $results['errors'][] = $validationError[0];
+            }
+        }
+        $results['success'] = $results['imported'] > 0;
+        return $results;
+    }
+
+    public function captureOrganisationAndSG($element, $model, $user)
+    {
+        $this->Event = ClassRegistry::init('Event');
+        if (isset($element[$model]['distribution']) && $element[$model]['distribution'] == 4) {
+            $element[$model] = $this->Event->captureSGForElement($element[$model], $user);
+        }
+        // first we want to see how the creator organisation is encoded
+        // The options here are either by passing an organisation object along or simply passing a string along
+        if (isset($element[$model]['Orgc'])) {
+            $element[$model]['orgc_uuid'] = $this->Orgc->captureOrg($element[$model]['Orgc'], $user, false, true);
+            unset($element[$model]['Orgc']);
+        } else {
+            // Can't capture the Orgc, default to the current user
+            $element[$model]['orgc_uuid'] = $user['Organisation']['uuid'];
+        }
+        return $element;
+    }
+
+    /**
+     * Push Analyst Data to remote server.
      * @param array $user
      * @param ServerSyncTool $serverSync
      * @return array
      * @throws Exception
      */
-    public function pushAnalystData(array $user, array $serverSync): array
+    public function pushAnalystData(array $user, ServerSyncTool $serverSync): array
     {
         $server = $serverSync->server();
 
         if (!$server['Server']['push_analyst_data']) {
             return [];
         }
+        $this->Server = ClassRegistry::init('Server');
+        $this->AnalystData = ClassRegistry::init('AnalystData');
 
-        return [];
+        $this->log("Starting Analyst Data sync with server #{$server['Server']['id']}", LOG_INFO);
+
+        $analystData = $this->getElligibleDataToPush($user);
+        $keyedAnalystData = [];
+        foreach ($analystData as $type => $entries) {
+            foreach ($entries as $entry) {
+                $entry = $entry[$type];
+                $keyedAnalystData[$type][$entry['uuid']] =  $entry['modified'];
+            }
+        }
+        if (empty($analystData)) {
+            return [];
+        }
+
+        try {
+            $conditions = [];
+            foreach ($keyedAnalystData as $model => $entry) {
+                $conditions[$model] = array_keys($entry);
+            }
+            $analystDataToPush = $this->Server->getElligibleDataIdsFromServerForPush($serverSync, $analystData, $conditions);
+        } catch (Exception $e) {
+            $this->logException("Could not get eligible Analyst Data IDs from server #{$server['Server']['id']} for push.", $e);
+            return [];
+        }
+        $successes = [];
+        foreach ($analystDataToPush as $model => $entries) {
+            foreach ($entries as $entry) {
+                $result = $this->AnalystData->uploadEntryToServer($model, $entry, $server, $serverSync, $user);
+                if ($result === 'Success') {
+                    $successes[] = __('AnalystData %s', $entry['GalaxyCluster']['uuid']);
+                }
+            }
+        }
+        return $successes;
+    }
+
+    /**
+     * Collect elligible data to be pushed on a server
+     *
+     * @param array $user
+     * @return array
+     */
+    public function getElligibleDataToPush(array $user): array
+    {
+        $options = [
+            'recursive' => -1,
+            'conditions' => [
+                $this->buildConditions($user),
+            ],
+        ];
+        return $this->getAllAnalystData('all', $options);
+    }
+
+    public function filterAnalystDataForPush($allIncomingAnalystData): array
+    {
+        $validModels = [
+            'Note' => ClassRegistry::init('Note'),
+            'Opinion' => ClassRegistry::init('Opinion'),
+            'Relationship' => ClassRegistry::init('Relationship'),
+        ];
+
+
+        $allData = ['Note' => [], 'Opinion' => [], 'Relationship' => []];
+        foreach ($allIncomingAnalystData as $model => $entries) {
+            $incomingAnalystData = $entries;
+            $incomingUuids = array_keys($entries);
+            $options = [
+                'conditions' => ["{$model}.uuid" => $incomingUuids],
+                'recursive' => -1,
+                'fields' => ['uuid', 'modified', 'locked']
+            ];
+            $analystData = $validModels[$model]->find('all', $options);
+            foreach ($analystData as $entry) {
+                if (strtotime($entry[$model]['modified']) >= strtotime($incomingAnalystData[$entry[$model]['uuid']])) {
+                    unset($incomingAnalystData[$entry[$model]['uuid']]);
+                    continue;
+                }
+                if ($entry[$model]['locked'] == 0) {
+                    unset($incomingAnalystData[$entry[$model]['uuid']]);
+                }
+            }
+            $allData[$model] = $incomingAnalystData;
+        }
+        return $allData;
+    }
+
+    /**
+     * getAllAnalystData Collect all analyst data regardless if they are notes, opinions or relationships
+     *
+     * @param array $user
+     * @return array
+     */
+    public function getAllAnalystData($findType='all', array $findOptions=[]): array
+    {
+        $allData = [];
+        $this->Note = ClassRegistry::init('Note');
+        $this->Opinion = ClassRegistry::init('Opinion');
+        $this->Relationship = ClassRegistry::init('Relationship');
+        $validModels = [$this->Note, $this->Opinion, $this->Relationship];
+        foreach ($validModels as $model) {
+            $result = $model->find($findType, $findOptions);
+            $allData[$model->alias] = $result;
+        }
+        return $allData;
+    }
+
+    public function uploadEntryToServer($type, array $analystData, array $server, ServerSyncTool $serverSync, array $user)
+    {
+        $analystDataID = $analystData[$type]['id'];
+        $analystData = $this->prepareForPushToServer($type, $analystData, $server);
+        if (is_numeric($analystData)) {
+            return $analystData;
+        }
+
+        try {
+            if (!$serverSync->isSupported(ServerSyncTool::PERM_SYNC) || !$serverSync->isSupported(ServerSyncTool::PERM_ANALYST_DATA)) {
+                return __('The remote user does not have the permission to manipulate analyst data, the upload of the analyst data has been blocked.');
+            }
+            $serverSync->pushAnalystData($type, $analystData)->json();
+        } catch (Exception $e) {
+            $title = __('Uploading AnalystData (%s::%s) to Server (%s)', $type, $analystDataID, $server['Server']['id']);
+            $this->loadLog()->createLogEntry($user, 'push', 'AnalystData', $analystDataID, $title, $e->getMessage());
+
+            $this->logException("Could not push analyst data to remote server {$serverSync->serverId()}", $e);
+            return $e->getMessage();
+        }
+
+        return 'Success';
+    }
+
+    private function prepareForPushToServer($type, array $analystData, array $server)
+    {
+        if ($analystData[$type]['distribution'] == 4) {
+            if (!empty($analystData[$type]['SharingGroup']['SharingGroupServer'])) {
+                $found = false;
+                foreach ($analystData[$type]['SharingGroup']['SharingGroupServer'] as $sgs) {
+                    if ($sgs['server_id'] == $server['Server']['id']) {
+                        $found = true;
+                    }
+                }
+                if (!$found) {
+                    return 403;
+                }
+            } elseif (empty($analystData[$type]['SharingGroup']['roaming'])) {
+                return 403;
+            }
+        }
+        $this->Event = ClassRegistry::init('Event');
+        if ($this->Event->checkDistributionForPush($analystData, $server, $type)) {
+            return $this->updateAnalystDataForSync($type, $analystData, $server);
+        }
+        return 403;
+    }
+
+    private function updateAnalystDataForSync($type, array $analystData, array $server): array
+    {
+        $this->Event = ClassRegistry::init('Event');
+        // cleanup the array from things we do not want to expose
+        foreach (['id'] as $field) {
+            unset($analystData[$type][$field]);
+        }
+        // Add the local server to the list of instances in the SG
+        if (isset($analystData[$type]['SharingGroup']) && isset($analystData[$type]['SharingGroup']['SharingGroupServer'])) {
+            foreach ($analystData[$type]['SharingGroup']['SharingGroupServer'] as &$s) {
+                if ($s['server_id'] == 0) {
+                    $s['Server'] = array(
+                        'id' => 0,
+                        'url' => $this->Event->__getAnnounceBaseurl(),
+                        'name' => $this->Event->__getAnnounceBaseurl()
+                    );
+                }
+            }
+        }
+
+        // Downgrade the event from connected communities to community only
+        if (!$server['Server']['internal'] && $analystData[$type]['distribution'] == 2) {
+            $analystData[$type]['distribution'] = 1;
+        }
+        return $analystData;
     }
 }

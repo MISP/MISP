@@ -746,6 +746,24 @@ class Server extends AppModel
     }
 
     /**
+     * fetchAnalystDataIdsFromServer Fetch remote analyst datas' UUIDs and versions
+     *
+     * @param ServerSyncTool $serverSync
+     * @param array $conditions
+     * @return array The list of analyst data
+     * @throws JsonException|HttpSocketHttpException|HttpSocketJsonException
+     */
+    private function fetchAnalystDataIdsFromServer(ServerSyncTool $serverSync, array $conditions = [])
+    {
+        $filterRules = $conditions;
+        $dataArray = $serverSync->analystDataSearch($filterRules)->json();
+        if (isset($dataArray['response'])) {
+            $dataArray = $dataArray['response'];
+        }
+        return $dataArray;
+    }
+
+    /**
      * Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
      *
      * @param ServerSyncTool $serverSync
@@ -829,6 +847,42 @@ class Server extends AppModel
             }
         }
         return $localClusters;
+    }
+
+    /**
+     * Get an array of analyst data that the remote is willing to get and returns analyst data that should be pushed.
+     * @param ServerSyncTool $serverSync
+     * @param array $localAnalystData
+     * @param array $conditions
+     * @return array
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     */
+    public function getElligibleDataIdsFromServerForPush(ServerSyncTool $serverSync, array $localAnalystData=[], array $conditions=[]): array
+    {
+        $this->log("Fetching eligible analyst data from server #{$serverSync->serverId()} for push: " . JsonTool::encode($conditions), LOG_INFO);
+        $localAnalystDataMinimal = [];
+        foreach ($localAnalystData as $type => $entries) {
+            foreach ($entries as $entry) {
+                $entry = $entry[$type];
+                $localAnalystDataMinimal[$type][$entry['uuid']] =  $entry['modified'];
+            }
+        }
+        $remoteDataArray = $this->fetchAnalystDataIdsFromServer($serverSync, $localAnalystDataMinimal);
+        foreach ($localAnalystData as $type => $entries) {
+            foreach ($entries as $i => $entry) {
+                $entry = $entry[$type];
+                if (!isset($remoteDataArray[$type][$entry['uuid']])) {
+                    unset($localAnalystData[$type][$i]);
+                    // $remoteVersion = $remoteDataArray[$type][$entry['uuid']];
+                    // if (strtotime($entry['modified']) <= strtotime($remoteVersion)) {
+                    //     unset($localAnalystData[$type][$entry['uuid']]);
+                    // }
+                }
+            }
+        }
+        return $localAnalystData;
     }
 
     /**

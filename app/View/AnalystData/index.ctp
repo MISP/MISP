@@ -6,9 +6,9 @@
             'data_path' => $modelSelection . '.id'
         ],
         [
-            'name' => __('Org'),
+            'name' => __('OrgC'),
             'element' => 'org',
-            'data_path' => $modelSelection . '.Organisation'
+            'data_path' => $modelSelection . '.Orgc'
         ],
         [
             'name' => __('UUID'),

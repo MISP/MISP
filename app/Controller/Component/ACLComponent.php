@@ -27,6 +27,13 @@ class ACLComponent extends Component
                 'index' => ['*'],
                 'view' => ['*'],
             ],
+            'analystDataBlocklists' => array(
+                'add' => array(),
+                'delete' => array(),
+                'edit' => array(),
+                'index' => array(),
+                'massDelete' => array(),
+            ),
             'api' => [
                 'rest' => ['perm_auth'],
                 'viewDeprecatedFunctionUse' => [],

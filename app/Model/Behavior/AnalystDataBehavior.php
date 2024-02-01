@@ -40,7 +40,7 @@ class AnalystDataBehavior extends ModelBehavior
         return $Model->find('all', [
             'recursive' => -1,
             'conditions' => $conditions,
-            'contain' => ['Organisation', 'SharingGroup'],
+            'contain' => ['Org', 'Orgc', 'SharingGroup'],
         ]);
     }
 

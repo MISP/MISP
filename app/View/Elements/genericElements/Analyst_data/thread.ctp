@@ -166,9 +166,9 @@ var baseNoteTemplate = doT.template('\
         <div style="flex-grow: 1;"> \
             <div style="display: flex; flex-direction: column;"> \
                 <div style="display: flex; min-width: 250px; gap: 0.5rem;"> \
-                    <img src="<?= $baseurl ?>/img/orgs/{{=it.Organisation.id}}.png" width="20" height="20" class="orgImg" style="width: 20px; height: 20px;" onerror="this.remove()" alt="Organisation logo"></object> \
+                    <img src="<?= $baseurl ?>/img/orgs/{{=it.Orgc.id}}.png" width="20" height="20" class="orgImg" style="width: 20px; height: 20px;" onerror="this.remove()" alt="Organisation logo"></object> \
                     <span style="margin-left: 0rem; margin-right: 0.5rem;"> \
-                        <span>{{=it.Organisation.name}}</span> \
+                        <span>{{=it.Orgc.name}}</span> \
                         <i class="<?= $this->FontAwesome->getClass('angle-right') ?>" style="color: #999; margin: 0 0.25rem;"></i> \
                         <b>{{=it.authors}}</b> \
                     </span> \

@@ -90,7 +90,7 @@ class AnalystDataController extends AppController
         $this->render('add');
     }
 
-    public function delete($type = 'Note', $id)
+    public function delete($type = 'Note', $id, $hard=false)
     {
         $this->__typeSelector($type);
         $params = [
@@ -99,6 +99,36 @@ class AnalystDataController extends AppController
                 if (!$canEdit) {
                     throw new MethodNotAllowedException(__('You are not authorised to do that.'));
                 }
+            },
+            'afterDelete' => function($deletedAnalystData) use ($hard) {
+                if (empty($hard)) {
+                    return;
+                }
+                $type = $this->AnalystData->deduceAnalystDataType($deletedAnalystData);
+                $info = '- Unsupported analyst type -';
+                if ($type === 'Note') {
+                    $info = $deletedAnalystData[$type]['note'];
+                } else if ($type === 'Opinion') {
+                    $info = sprintf('%s/100 :: %s', $deletedAnalystData[$type]['opinion'], $deletedAnalystData[$type]['comment']);
+                } else if ($type === 'Relationship') {
+                    $info = sprintf('-- %s --> %s :: %s', $deletedAnalystData[$type]['relationship_type'] ?? '[undefined]', $deletedAnalystData[$type]['related_object_type'], $deletedAnalystData[$type]['related_object_uuid']);
+                }
+                $this->AnalystDataBlocklist = ClassRegistry::init('AnalystDataBlocklist');
+                $this->AnalystDataBlocklist->create();
+                if (!empty($deletedAnalystData[$type]['orgc_uuid'])) {
+                    if (!empty($deletedAnalystData[$type]['Orgc'])) {
+                        $orgc = $deletedAnalystData[$type];
+                    } else {
+                        $orgc = $this->Orgc->find('first', array(
+                            'conditions' => ['Orgc.uuid' => $deletedAnalystData[$type]['orgc_uuid']],
+                            'recursive' => -1,
+                            'fields' => ['Orgc.name'],
+                        ));
+                    }
+                } else {
+                    $orgc = ['Orgc' => ['name' => 'MISP']];
+                }
+                $this->AnalystDataBlocklist->save(['analyst_data_uuid' => $deletedAnalystData[$type]['uuid'], 'analyst_data_info' => $info, 'analyst_data_orgc' => $orgc['Orgc']['name']]);
             }
         ];
         $this->CRUD->delete($id, $params);
@@ -112,9 +142,11 @@ class AnalystDataController extends AppController
     {
         $this->__typeSelector($type);
 
+        $this->AnalystData->fetchRecursive = true;
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $this->CRUD->view($id, [
             'conditions' => $conditions,
+            'contain' => ['Org', 'Orgc'],
             'afterFind' => function(array $analystData) {
                 $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
                 if (!$this->IndexFilter->isRest()) {
@@ -167,6 +199,43 @@ class AnalystDataController extends AppController
         $this->__typeSelector('Relationship');
         $data = $this->AnalystData->getRelatedElement($this->Auth->user(), $type, $uuid);
         return $this->RestResponse->viewData($data, 'json');
+    }
+
+    public function filterAnalystDataForPush()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This function is only accessible via POST requests.'));
+        }
+
+        $this->loadModel('AnalystData');
+
+        $allIncomingAnalystData = $this->request->data;
+        $allData = $this->AnalystData->filterAnalystDataForPush($allIncomingAnalystData);
+
+        return $this->RestResponse->viewData($allData, $this->response->type());
+    }
+
+    public function pushAnalystData()
+    {
+        if (!$this->Auth->user()['Role']['perm_sync'] || !$this->Auth->user()['Role']['perm_analyst_data']) {
+            throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
+        }
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only accessible via a REST request.'));
+        }
+        if ($this->request->is('post')) {
+            $this->loadModel('AnalystData');
+            $analystData = $this->request->data;
+            $saveResult = $this->AnalystData->captureAnalystData($this->Auth->user(), $analystData);
+            $messageInfo = __('%s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
+            if ($saveResult['success']) {
+                $message = __('Analyst Data imported. ') . $messageInfo;
+                return $this->RestResponse->saveSuccessResponse('AnalystData', 'pushAnalystData', false, $this->response->type(), $message);
+            } else {
+                $message = __('Could not import analyst data. ') . $messageInfo;
+                return $this->RestResponse->saveFailResponse('AnalystData', 'pushAnalystData', false, $message);
+            }
+        }
     }
 
     private function __typeSelector($type) {

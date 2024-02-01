@@ -35,16 +35,9 @@ $fields = [
     ],
     [
         'key' => __('Creator org'),
-        'path' => $modelSelection . '.orgc_uuid',
+        'path' => $modelSelection . '.Orgc',
         'pathName' => $modelSelection . '.orgc_uuid',
-        'type' => 'model',
-        'model' => 'organisations'
-    ],
-    [
-        'key' => __('Owner org'),
-        'path' => $modelSelection . '.org_uuid',
-        'pathName' => $modelSelection . '.org_uuid',
-        'type' => 'model',
+        'type' => 'org',
         'model' => 'organisations'
     ],
     [

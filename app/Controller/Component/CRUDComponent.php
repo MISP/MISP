@@ -301,6 +301,9 @@ class CRUDComponent extends Component
                 $result = $this->Controller->{$modelName}->delete($id);
             }
             if ($result) {
+                if (isset($params['afterDelete']) && is_callable($params['afterDelete'])) {
+                    $params['afterDelete']($data);
+                }
                 $message = __('%s deleted.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveSuccessResponse($modelName, 'delete', $id, 'json', $message);
