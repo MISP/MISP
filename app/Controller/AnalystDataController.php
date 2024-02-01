@@ -91,7 +91,7 @@ class AnalystDataController extends AppController
         $this->render('add');
     }
 
-    public function delete($type = 'Note', $id, $hard=false)
+    public function delete($type = 'Note', $id, $hard=true)
     {
         $this->__typeSelector($type);
         $params = [
