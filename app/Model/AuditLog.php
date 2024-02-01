@@ -10,6 +10,7 @@ class AuditLog extends AppModel
 {
     const BROTLI_HEADER = "\xce\xb2\xcf\x81";
     const COMPRESS_MIN_LENGTH = 256;
+    const CHANGE_MAX_SIZE = 64 * 1024; // MySQL type blob
 
     const ACTION_ADD = 'add',
         ACTION_EDIT = 'edit',
@@ -235,6 +236,10 @@ class AuditLog extends AppModel
 
         if (isset($auditLog['change'])) {
             $auditLog['change'] = $this->encodeChange($auditLog['change']);
+            if (strlen($auditLog['change']) > self::CHANGE_MAX_SIZE) {
+                // Change is too big to save in database, skipping
+                $auditLog['change'] = null;
+            }
         }
     }
 

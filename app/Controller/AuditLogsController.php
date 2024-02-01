@@ -91,21 +91,6 @@ class AuditLogsController extends AppController
         ];
     }
 
-    private function __applyAuditACL(array $user)
-    {
-        $acl = [];
-        if (empty($user['Role']['perm_site_admin'])) {
-            if (!empty($user['Role']['perm_admin'])) {
-                // ORG admins can see their own org info
-                $acl = ['AuditLog.org_id' => $user['org_id']];
-            } else {
-                // users can see their own info
-                $acl = ['AuditLog.user_id' => $user['id']];
-            }
-        }
-        return $acl;
-    }
-
     public function admin_index()
     {
         $this->paginate['fields'][] = 'ip';
@@ -135,7 +120,7 @@ class AuditLogsController extends AppController
 
         $this->paginate['conditions'] = $this->__searchConditions($params);
         $user = $this->Auth->user();
-        $acl = $this->__applyAuditACL($user);
+        $acl = $this->__applyAuditAcl($user);
         if ($acl) {
             $this->paginate['conditions']['AND'][] = $acl;
         }
@@ -223,7 +208,7 @@ class AuditLogsController extends AppController
 
     public function fullChange($id)
     {
-        $acl = $this->__applyAuditACL($this->Auth->user());
+        $acl = $this->__applyAuditAcl($this->Auth->user());
         $log = $this->AuditLog->find('first', [
             'conditions' => [
                 'AND' => [
@@ -235,7 +220,7 @@ class AuditLogsController extends AppController
             'fields' => ['change', 'action'],
         ]);
         if (empty($log)) {
-            throw new Exception('Log not found.');
+            throw new NotFoundException('Log not found.');
         }
         $this->set('log', $log);
     }
@@ -251,6 +236,21 @@ class AuditLogsController extends AppController
 
         $data = $this->AuditLog->returnDates($org);
         return $this->RestResponse->viewData($data, $this->response->type());
+    }
+
+    private function __applyAuditAcl(array $user)
+    {
+        $acl = [];
+        if (empty($user['Role']['perm_site_admin'])) {
+            if (!empty($user['Role']['perm_admin'])) {
+                // ORG admins can see their own org info
+                $acl = ['AuditLog.org_id' => $user['org_id']];
+            } else {
+                // users can see their own info
+                $acl = ['AuditLog.user_id' => $user['id']];
+            }
+        }
+        return $acl;
     }
 
     /**
