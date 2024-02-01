@@ -76,6 +76,7 @@ class AnalystDataController extends AppController
                 if (!$canEdit) {
                     throw new MethodNotAllowedException(__('You are not authorised to do that.'));
                 }
+                return $analystData;
             }
         ];
         $this->CRUD->edit($id, $params);
@@ -99,6 +100,7 @@ class AnalystDataController extends AppController
                 if (!$canEdit) {
                     throw new MethodNotAllowedException(__('You are not authorised to do that.'));
                 }
+                return $analystData;
             },
             'afterDelete' => function($deletedAnalystData) use ($hard) {
                 if (empty($hard)) {
