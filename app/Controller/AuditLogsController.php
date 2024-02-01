@@ -222,8 +222,14 @@ class AuditLogsController extends AppController
 
     public function fullChange($id)
     {
+        $acl = $this->__applyAuditACL($this->Auth->user());
         $log = $this->AuditLog->find('first', [
-            'conditions' => ['id' => $id],
+            'conditions' => [
+                'AND' => [
+                    $acl,
+                    'id' => $id
+                ]
+            ],
             'recursive' => -1,
             'fields' => ['change', 'action'],
         ]);
