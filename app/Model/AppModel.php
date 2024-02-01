@@ -2021,7 +2021,7 @@ class AppModel extends Model
                     `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
-                    `locked` tinyint(1) NOT NULL DEFAULT 0;
+                    `locked` tinyint(1) NOT NULL DEFAULT 0,
                     `note` mediumtext,
                     `language` varchar(16) DEFAULT 'en',
                     PRIMARY KEY (`id`),
@@ -2046,7 +2046,7 @@ class AppModel extends Model
                     `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
-                    `locked` tinyint(1) NOT NULL DEFAULT 0;
+                    `locked` tinyint(1) NOT NULL DEFAULT 0,
                     `opinion` int(10) unsigned,
                     `comment` text,
                     PRIMARY KEY (`id`),
@@ -2072,7 +2072,7 @@ class AppModel extends Model
                     `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
-                    `locked` tinyint(1) NOT NULL DEFAULT 0;
+                    `locked` tinyint(1) NOT NULL DEFAULT 0,
                     `relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
                     `related_object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
                     `related_object_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
