@@ -2,10 +2,16 @@
 
 namespace App\Model\Table;
 
+use App\Http\Exception\HttpSocketHttpException;
+use App\Http\Exception\HttpSocketJsonException;
 use App\Lib\Tools\BackgroundJobsTool;
+use App\Lib\Tools\HttpTool;
 use App\Lib\Tools\ProcessTool;
+use App\Lib\Tools\RedisTool;
+use App\Lib\Tools\ServerSyncTool;
 use App\Model\Table\AppTable;
 use Cake\Core\Configure;
+use Cake\Validation\Validator;
 use Exception;
 
 class ServersTable extends AppTable
@@ -15,6 +21,123 @@ class ServersTable extends AppTable
         parent::initialize($config);
         $this->addBehavior('AuditLog');
         $this->addBehavior('EncryptedFields', ['fields' => ['authkey']]);
+        $this->addBehavior(
+            'JsonFields',
+            [
+                'fields' => [
+                    'push_rules' => [
+                        'default' => ["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []]]
+                    ],
+                    'pull_rules' => [
+                        'default' => ["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []], "type_attributes" => ["NOT" => []], "type_objects" => ["NOT" => []], "url_params" => ""]
+                    ]
+                ],
+            ]
+        );
+
+        $this->belongsTo(
+            'Organisations',
+            [
+                'className' => 'Organisations',
+                'foreignKey' => 'org_id',
+                'propertyName' => 'Organisation',
+            ]
+        );
+        $this->belongsTo(
+            'RemoteOrg',
+            [
+                'className' => 'Organisations',
+                'foreignKey' => 'remote_org_id',
+                'propertyName' => 'RemoteOrg',
+            ]
+        );
+        $this->hasMany(
+            'SharingGroupServers',
+            [
+                'foreignKey' => 'server_id',
+                'dependent' => true,
+            ]
+        );
+        $this->hasMany(
+            'Users',
+            [
+                'className' => 'Users',
+                'foreignKey' => 'server_id',
+                'dependent' => true,
+            ]
+        );
+    }
+
+    public function validationDefault(Validator $validator): Validator
+    {
+        $validator
+            ->notEmptyString('name')
+            ->requirePresence(['name'], 'create')
+            ->add(
+                'url',
+                [
+                    'validateURL' => [
+                        'rule' => function ($value) {
+                            return $this->testURL($value);
+                        }
+                    ]
+                ]
+            )
+            ->add(
+                'authkey',
+                [
+                    'validateAuthkey' => [
+                        'rule' => function ($value) {
+                            return $this->validateAuthkey($value);
+                        }
+                    ]
+                ]
+            )
+            ->add(
+                'org_id',
+                [
+                    'validateOrgId' => [
+                        'rule' => function ($value) {
+                            return $this->valueIsID($value);
+                        },
+                        'allowEmpty' => false,
+                        'required' => true,
+                    ]
+                ]
+            )
+            ->boolean('push')
+            ->allowEmptyString('push')
+            ->boolean('pull')
+            ->allowEmptyString('pull')
+            ->boolean('push_sightings')
+            ->allowEmptyString('push_sightings')
+            ->integer('lastpushedid')
+            ->allowEmptyString('lastpushedid')
+            ->integer('lastpulledid')
+            ->allowEmptyString('lastpulledid');
+
+        return $validator;
+    }
+
+    public function testURL($value)
+    {
+        // only run this check via the GUI, via the CLI it won't work
+        if (!empty($value) && !preg_match('/^http(s)?:\/\//i', $value)) {
+            return 'Invalid baseurl, please make sure that the protocol is set.';
+        }
+        if ($this->testForEmpty($value) !== true) {
+            return $this->testForEmpty($value);
+        }
+        return true;
+    }
+
+    public function testForEmpty($value)
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return 'Value not set.';
+        }
+        return true;
     }
 
     public function captureServer($server, $user)
@@ -47,10 +170,11 @@ class ServersTable extends AppTable
         }
         $conditions = ['Servers.id' => $id];
         if (!is_numeric($id)) {
-            $conditions = ['OR' => [
-                'LOWER(Servers.name)' => strtolower($id),
-                'LOWER(Servers.url)' => strtolower($id)
-            ]
+            $conditions = [
+                'OR' => [
+                    'LOWER(Servers.name)' => strtolower($id),
+                    'LOWER(Servers.url)' => strtolower($id)
+                ]
             ];
         }
         $server = $this->find(
@@ -144,5 +268,108 @@ class ServersTable extends AppTable
         }
 
         return $worker_array;
+    }
+
+    /**
+     * @param array $servers
+     * @return array
+     */
+    public function attachServerCacheTimestamps(array $servers)
+    {
+        $redis = RedisTool::init();
+        if ($redis === false) {
+            return $servers;
+        }
+        $redis->pipeline();
+        foreach ($servers as $server) {
+            $redis->get('misp:server_cache_timestamp:' . $server['id']);
+        }
+        $results = $redis->exec();
+        foreach ($servers as $k => $v) {
+            $servers[$k]['cache_timestamp'] = $results[$k];
+        }
+        return $servers;
+    }
+
+    /**
+     * @param array $server
+     * @param bool $withPostTest
+     * @return array
+     * @throws JsonException
+     */
+    public function runConnectionTest(array $server, $withPostTest = true)
+    {
+        try {
+            $clientCertificate = HttpTool::getServerClientCertificateInfo($server);
+            if ($clientCertificate) {
+                $clientCertificate['valid_from'] = $clientCertificate['valid_from'] ? $clientCertificate['valid_from']->format('c') : __('Not defined');
+                $clientCertificate['valid_to'] = $clientCertificate['valid_to'] ? $clientCertificate['valid_to']->format('c') : __('Not defined');
+                $clientCertificate['public_key_size'] = $clientCertificate['public_key_size'] ?: __('Unknown');
+                $clientCertificate['public_key_type'] = $clientCertificate['public_key_type'] ?: __('Unknown');
+            }
+        } catch (Exception $e) {
+            $clientCertificate = ['error' => $e->getMessage()];
+        }
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
+        try {
+            $info = $serverSync->info();
+            $response = [
+                'status' => 1,
+                'info' => $info,
+                'client_certificate' => $clientCertificate,
+            ];
+
+            $connectionMeta = $serverSync->connectionMetaData();
+            if (isset($connectionMeta['crypto']['protocol'])) {
+                $response['tls_version'] = $connectionMeta['crypto']['protocol'];
+            }
+            if (isset($connectionMeta['crypto']['cipher_name'])) {
+                $response['tls_cipher'] = $connectionMeta['crypto']['cipher_name'];
+            }
+
+            if ($withPostTest) {
+                $response['post'] = $serverSync->isSupported(ServerSyncTool::FEATURE_POST_TEST) ? $this->runPOSTtest($serverSync) : null;
+            }
+
+            return $response;
+        } catch (HttpSocketHttpException $e) {
+            $response = $e->getResponse();
+            if ($e->getCode() === 403) {
+                return ['status' => 4, 'client_certificate' => $clientCertificate];
+            } else if ($e->getCode() === 405) {
+                try {
+                    $responseText = $e->getResponse()->getJson()['message'];
+                    if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') {
+                        return ['status' => 5, 'client_certificate' => $clientCertificate];
+                    } elseif ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') {
+                        return ['status' => 6, 'client_certificate' => $clientCertificate];
+                    }
+                } catch (Exception $e) {
+                    // pass
+                }
+            }
+        } catch (HttpSocketJsonException $e) {
+            $response = $e->getResponse();
+        } catch (Exception $e) {
+            $logTitle = 'Error: Connection test failed. Reason: ' .  $e->getMessage();
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['id'], $logTitle);
+            return ['status' => 2, 'client_certificate' => $clientCertificate];
+        }
+
+        $logTitle = 'Error: Connection test failed. Returned data is in the change field.';
+        $this->loadLog()->createLogEntry(
+            'SYSTEM',
+            'error',
+            'Server',
+            $server['id'],
+            $logTitle,
+            [
+                'response' => ['', $response->getStringBody()],
+                'response-code' => ['', $response->getStatusCode()],
+            ]
+        );
+        return ['status' => 3, 'client_certificate' => $clientCertificate];
     }
 }

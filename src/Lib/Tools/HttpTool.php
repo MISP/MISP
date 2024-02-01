@@ -14,6 +14,8 @@ use Cake\I18n\FrozenTime;
 
 class HttpTool extends CakeClient
 {
+    public const ALLOWED_CERT_FILE_EXTENSIONS = ['pem', 'crt'];
+
     /**
      * Create a new MISP specific HTTP Client
      * {@inheritdoc}   In addition brings some MISP specifics to the game.
@@ -391,5 +393,17 @@ class HttpTool extends CakeClient
         }
 
         return $output;
+    }
+
+    /**
+     * @return array|null
+     */
+    public function getMetaData()
+    {
+        // TODO: [3.x-MIGRATION]
+        // if ($this->connection) {
+        //     return stream_get_meta_data($this->connection);
+        // }
+        return null;
     }
 }
