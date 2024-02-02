@@ -11,7 +11,7 @@ def check_response(response):
 url = "http://" + os.environ["HOST"]
 key = os.environ["AUTH"]
 
-pymisp = PyMISP(url, key)
+pymisp = PyMISP(url, key, False)
 pymisp.global_pythonify = True
 
 # Create new remote server, that is the same just for test
@@ -47,7 +47,7 @@ assert remote_user["User"] == "admin@admin.test"
 event = MISPEvent()
 event.load_file(os.path.dirname(os.path.realpath(__file__)) + "/event.json")
 event.info = "OSINT - F-Secure W32/Regin, Stage #1 - from testlive_sync.py"
-pymisp.delete_event_blocklist(event)
+# pymisp.delete_event_blocklist(event)
 event = pymisp.add_event(event, metadata=True)
 check_response(event)
 
