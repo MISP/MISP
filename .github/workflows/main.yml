@@ -73,7 +73,7 @@ jobs:
           composer install --no-progress
           popd
           cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
-          
+
           # Set perms
           sudo chown -R $USER:www-data `pwd`
           sudo chmod -R 775 `pwd`
@@ -85,17 +85,17 @@ jobs:
           sudo chmod -R g+ws `pwd`/app/files
           sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
           sudo chown -R $USER:www-data `pwd`
-          
+
           # Resque perms
           sudo chown -R $USER:www-data `pwd`/app/Plugin/CakeResque/tmp
           sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
-          
+
           # Fill database with basic MISP schema
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES';"
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant usage on *.* to misp@'%' identified by 'blah';"
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant all privileges on misp.* to misp@'%';"
           mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp < INSTALL/MYSQL.sql
-          
+
           # configure apache virtual hosts
           sudo mkdir -p /etc/apache2/sites-available
           sudo cp -f build/github-action-ci-apache /etc/apache2/sites-available/misp.conf
@@ -106,21 +106,21 @@ jobs:
           cat /etc/apache2/sites-enabled/misp.conf
           sudo a2enmod rewrite
           sudo systemctl start --no-block apache2
-          
+
           # MISP configuration
           sudo cp app/Config/bootstrap.default.php app/Config/bootstrap.php
           sudo cp build/database.php app/Config/database.php
           sudo cp app/Config/core.default.php app/Config/core.php
           sudo cp app/Config/config.default.php app/Config/config.php
           sudo cp build/email.php app/Config/email.php
-          
+
           # GPG setup
           sudo mkdir `pwd`/.gnupg
           # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
           sudo cp -a /dev/urandom /dev/random
           sudo gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir `pwd`/.gnupg --gen-key --batch `pwd`/build/gpg
           sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
-          
+
           # change perms
           sudo chown -R $USER:www-data `pwd`
           sudo chown -R www-data:www-data `pwd`/.gnupg
@@ -246,18 +246,18 @@ jobs:
           pushd tests
           ./curl_tests_GH.sh $AUTH $HOST
           popd
-  
+
           sudo chmod -R g+ws `pwd`/app/tmp/logs
-  
+
           . ./venv/bin/activate
           pushd PyMISP
           cp tests/keys.py .
           python -m pytest -v --durations=0 tests/test_mispevent.py
           python -m pytest -v --durations=0 tests/testlive_comprehensive.py
           popd
-          python tests/testlive_security.py -v
-          python tests/testlive_sync.py
           python tests/testlive_comprehensive_local.py -v
+          python tests/testlive_sync.py -v
+          python tests/testlive_security.py -v
           cp PyMISP/tests/keys.py PyMISP/examples/events/
           pushd PyMISP/examples/events/
           python ./create_massive_dummy_events.py -l 5 -a 30
