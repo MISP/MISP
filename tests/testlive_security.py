@@ -116,9 +116,9 @@ def send(api: PyMISP, request_type: str, url: str, data=None, check_errors: bool
     if data is None:
         data = {}
     response = api._prepare_request(request_type, url, data=data)
-    response = api._check_json_response(response)
+    r = response.json()
     if check_errors:
-        check_response(response)
+        check_response(r)
     return response
 
 
