@@ -119,7 +119,7 @@ def send(api: PyMISP, request_type: str, url: str, data=None, check_errors: bool
     r = response.json()
     if check_errors:
         check_response(r)
-    return response
+    return r
 
 
 def random() -> str:
