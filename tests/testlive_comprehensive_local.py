@@ -48,7 +48,7 @@ def check_response(response):
 
 def request(pymisp: PyMISP, request_type: str, url: str, data: dict = {}) -> dict:
     response = pymisp._prepare_request(request_type, url, data)
-    return pymisp._check_json_response(response)
+    return pymisp._check_response(response)
 
 
 def publish_immediately(pymisp: PyMISP, event: Union[MISPEvent, int, str, uuid.UUID], with_email: bool = False):
@@ -461,7 +461,7 @@ class TestComprehensive(unittest.TestCase):
         self.assertEqual(len(event_with_local_tags.tags), 2)
         self.assertEqual(len(event_with_local_tags.attributes[0].tags), 2)
 
-        event_without_local_tags = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', f'events/view/{event.id}/excludeLocalTags:1'))
+        event_without_local_tags = self.admin_misp_connector._check_response(self.admin_misp_connector._prepare_request('GET', f'events/view/{event.id}/excludeLocalTags:1'))
         check_response(event_without_local_tags)
 
         self.assertEqual(event_without_local_tags["Event"]["Tag"][0]["local"], 0, event_without_local_tags)
@@ -599,7 +599,7 @@ class TestComprehensive(unittest.TestCase):
                     check_response(self.admin_misp_connector.delete_event(event))
 
     def test_remove_orphaned_correlations(self):
-        result = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', 'servers/removeOrphanedCorrelations'))
+        result = self.admin_misp_connector._check_response(self.admin_misp_connector._prepare_request('GET', 'servers/removeOrphanedCorrelations'))
         check_response(result)
         self.assertIn("message", result)
 
@@ -615,7 +615,7 @@ class TestComprehensive(unittest.TestCase):
         second = check_response(self.admin_misp_connector.add_event(second))
 
         check_response(self.admin_misp_connector.set_server_setting('MISP.background_jobs', 0, force=True))
-        result = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('POST', 'attributes/generateCorrelation'))
+        result = self.admin_misp_connector._check_response(self.admin_misp_connector._prepare_request('POST', 'attributes/generateCorrelation'))
         check_response(result)
         self.assertIn("message", result)
         check_response(self.admin_misp_connector.set_server_setting('MISP.background_jobs', 1, force=True))
@@ -707,7 +707,7 @@ class TestComprehensive(unittest.TestCase):
 
         check_response(self.admin_misp_connector.set_server_setting('MISP.log_new_audit', 0, force=True))
 
-        audit_logs = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', 'admin/audit_logs/index'))
+        audit_logs = self.admin_misp_connector._check_response(self.admin_misp_connector._prepare_request('GET', 'admin/audit_logs/index'))
         check_response(audit_logs)
         self.assertGreater(len(audit_logs), 0)
 
@@ -797,7 +797,7 @@ class TestComprehensive(unittest.TestCase):
         self.assertEqual(403, response["errors"][0])
 
         response = self.admin_misp_connector._prepare_request('GET', 'servers/serverSettingsEdit/Security.salt')
-        response = self.admin_misp_connector._check_json_response(response)
+        response = self.admin_misp_connector._check_response(response)
         self.assertEqual(403, response["errors"][0])
 
     def test_custom_warninglist(self):
