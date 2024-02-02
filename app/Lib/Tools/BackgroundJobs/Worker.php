@@ -65,7 +65,7 @@ class Worker implements JsonSerializable
         ];
     }
 
-    public function pid(): ?int
+    public function pid(): int
     {
         return $this->pid;
     }

@@ -1073,7 +1073,7 @@ class ServersController extends AppController
         );
         $dumpResults = array();
         $tempArray = array();
-        foreach ($finalSettings as $k => $result) {
+        foreach ($finalSettings as $result) {
             if ($result['level'] == 3) {
                 $issues['deprecated']++;
             }
@@ -1105,18 +1105,19 @@ class ServersController extends AppController
         $diagnostic_errors = 0;
         App::uses('File', 'Utility');
         App::uses('Folder', 'Utility');
+
         if ($tab === 'correlations') {
             $this->loadModel('Correlation');
             $correlation_metrics = $this->Correlation->collectMetrics();
             $this->set('correlation_metrics', $correlation_metrics);
-        }
-        if ($tab === 'files') {
+        } else if ($tab === 'files') {
             if (!empty(Configure::read('Security.disable_instance_file_uploads'))) {
                 throw new MethodNotAllowedException(__('This functionality is disabled.'));
             }
             $files = $this->Server->grabFiles();
             $this->set('files', $files);
         }
+
         // Only run this check on the diagnostics tab
         if ($tab === 'diagnostics' || $tab === 'download' || $this->_isRest()) {
             $php_ini = php_ini_loaded_file();
@@ -1279,12 +1280,10 @@ class ServersController extends AppController
         $this->set('workerIssueCount', $workerIssueCount);
         $priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
         $this->set('priorityErrorColours', $priorityErrorColours);
-        $this->set('phpversion', phpversion());
+        $this->set('phpversion', PHP_VERSION);
         $this->set('phpmin', $this->phpmin);
         $this->set('phprec', $this->phprec);
         $this->set('phptoonew', $this->phptoonew);
-        $this->set('pythonmin', $this->pythonmin);
-        $this->set('pythonrec', $this->pythonrec);
         $this->set('title_for_layout', __('Diagnostics'));
     }
 
@@ -1863,7 +1862,7 @@ class ServersController extends AppController
         }
 
         if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $this->Server->getBackgroundJobsTool()->purgeQueue($worker);
+            $this->Server->getBackgroundJobsTool()->clearQueue($worker);
         } else {
             // CakeResque
             $worker_array = array('cache', 'default', 'email', 'prio');
@@ -2183,7 +2182,7 @@ class ServersController extends AppController
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'addFromJson', false, $this->Server->validationErrors, $this->response->type());
                 } else {
-                    $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Server->validationErrors, true)));
+                    $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Server->validationErrors)));
                     $this->redirect(array('action' => 'index'));
                 }
             }

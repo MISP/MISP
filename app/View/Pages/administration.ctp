@@ -1,11 +1,3 @@
-<?php
-if (!$isSiteAdmin) exit();
-?>
-<div class="actions">
-    <ol class="nav nav-list">
-
-    </ol>
-</div>
 <div class="index">
     <h2><?php echo __('Administrative actions');?></h2>
     <ul>

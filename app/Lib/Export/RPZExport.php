@@ -2,107 +2,104 @@
 
 class RPZExport
 {
-    private $__policies = array(
-            'Local-Data' => array(
-                    'explanation' => 'returns the defined alternate location.',
-                    'action' => '$walled_garden',
-                    'setting_id' => 3,
-            ),
-            'NXDOMAIN' => array(
-                    'explanation' => 'return NXDOMAIN (name does not exist) irrespective of actual result received.',
-                    'action' => '.',
-                    'setting_id' => 1,
-            ),
-            'NODATA' => array(
-                    'explanation' => 'returns NODATA (name exists but no answers returned) irrespective of actual result received.',
-                    'action' => '*.',
-                    'setting_id' => 2,
-            ),
-            'DROP' => array(
-                    'explanation' => 'timeout.',
-                    'action' => 'rpz-drop.',
-                    'setting_id' => 0,
-            ),
-            'PASSTHRU' => array(
-                    'explanation' => 'lets queries through, but allows for logging the hits (useful for testing).',
-                    'action' => 'rpz-passthru.',
-                    'setting_id' => 4,
-            ),
-            'TCP-only' => array(
-                    'explanation' => 'force the client to use TCP.',
-                    'action' => 'rpz-tcp-only.',
-                    'setting_id' => 5,
-            ),
+    const POLICIES = array(
+        'Local-Data' => array(
+            'explanation' => 'returns the defined alternate location.',
+            'action' => '$walled_garden',
+            'setting_id' => 3,
+        ),
+        'NXDOMAIN' => array(
+            'explanation' => 'return NXDOMAIN (name does not exist) irrespective of actual result received.',
+            'action' => '.',
+            'setting_id' => 1,
+        ),
+        'NODATA' => array(
+            'explanation' => 'returns NODATA (name exists but no answers returned) irrespective of actual result received.',
+            'action' => '*.',
+            'setting_id' => 2,
+        ),
+        'DROP' => array(
+            'explanation' => 'timeout.',
+            'action' => 'rpz-drop.',
+            'setting_id' => 0,
+        ),
+        'PASSTHRU' => array(
+            'explanation' => 'lets queries through, but allows for logging the hits (useful for testing).',
+            'action' => 'rpz-passthru.',
+            'setting_id' => 4,
+        ),
+        'TCP-only' => array(
+            'explanation' => 'force the client to use TCP.',
+            'action' => 'rpz-tcp-only.',
+            'setting_id' => 5,
+        ),
     );
 
-	private $__items = array();
+	private $items = array();
 
 	public $additional_params = array(
 		'flatten' => 1
 	);
 
-	private $__rpzSettings = array();
-
-	private $__valid_policies = array('NXDOMAIN', 'NODATA', 'DROP', 'Local-Data', 'PASSTHRU', 'TCP-only');
+	private $rpzSettings = array();
 
 	private $__server = null;
 
-	public $validTypes = array(
+	const VALID_TYPES = array(
 		'ip-src' => array(
-				'value' => 'ip'
+            'value' => 'ip'
 		),
 		'ip-dst' => array(
-				'value' => 'ip'
+            'value' => 'ip'
 		),
 		'domain' => array(
-				'value' => 'domain'
+            'value' => 'domain'
 		),
 		'domain|ip' => array(
-				'value1' => 'domain',
-				'value2' => 'ip'
+            'value1' => 'domain',
+            'value2' => 'ip'
 		),
 		'hostname' => array(
-				'value' => 'hostname'
+            'value' => 'hostname'
 		)
 	);
 
 	public function handler($data, $options = array())
 	{
 		if ($options['scope'] === 'Attribute') {
-			return $this->__attributeHandler($data, $options);
+			$this->attributeHandler($data);
 		} else {
-			return $this->__eventHandler($data, $options);
+			$this->eventHandler($data);
 		}
+        return '';
 	}
 
-	private function __eventHandler($event, $options = array()) {
+	private function eventHandler($event)
+    {
 		foreach ($event['Attribute'] as $attribute) {
-			if (isset($this->validTypes[$attribute['type']])) {
-				if ($attribute['type'] == 'domain|ip') {
+			if (isset(self::VALID_TYPES[$attribute['type']])) {
+				if ($attribute['type'] === 'domain|ip') {
 					$temp = explode('|', $attribute['value']);
 					$attribute['value1'] = $temp[0];
 					$attribute['value2'] = $temp[1];
 				}
-				$this->__attributeHandler(array('Attribute' => $attribute, $options));
+				$this->attributeHandler(array('Attribute' => $attribute));
 			}
 		}
-		return '';
 	}
 
-	private function __attributeHandler($attribute, $options = array())
+	private function attributeHandler($attribute)
 	{
 		if (isset($attribute['Attribute'])) {
 			$attribute = $attribute['Attribute'];
 		}
-		if (isset($this->validTypes[$attribute['type']])) {
-			foreach ($this->validTypes[$attribute['type']] as $field => $mapping) {
-				// get rid of the in_array check
-				if (empty($this->__items[$mapping]) || !isset($this->__items[$mapping][$attribute[$field]])) {
-					$this->__items[$mapping][$attribute[$field]] = true;
+		if (isset(self::VALID_TYPES[$attribute['type']])) {
+			foreach (self::VALID_TYPES[$attribute['type']] as $field => $mapping) {
+				if (!isset($this->items[$mapping][$attribute[$field]])) {
+					$this->items[$mapping][$attribute[$field]] = true;
 				}
 			}
 		}
-		return '';
 	}
 
 	public function header($options = array())
@@ -117,16 +114,16 @@ class RPZExport
 				}
 			}
 			if (isset($options['filters'][$v])) {
-				$this->__rpzSettings[$v] = $options['filters'][$v];
+				$this->rpzSettings[$v] = $options['filters'][$v];
 			} else {
 				$tempSetting = Configure::read('Plugin.RPZ_' . $v);
 				if (isset($tempSetting)) {
-					$this->__rpzSettings[$v] = Configure::read('Plugin.RPZ_' . $v);
+					$this->rpzSettings[$v] = $tempSetting;
 				} else {
 					if (empty($this->__server)) {
 						$this->__server = ClassRegistry::init('Server');
 					}
-					$this->__rpzSettings[$v] = $this->__server->serverSettings['Plugin']['RPZ_' . $v]['value'];
+					$this->rpzSettings[$v] = $this->__server->serverSettings['Plugin']['RPZ_' . $v]['value'];
 				}
 			}
 		}
@@ -135,10 +132,7 @@ class RPZExport
 
 	public function footer($options = array())
 	{
-		foreach ($this->__items as $k => $v) {
-			$this->__items[$k] = array_keys($this->__items[$k]);
-		}
-		return $this->export($this->__items, $this->__rpzSettings);
+		return $this->export($this->items, $this->rpzSettings);
 	}
 
 	public function separator()
@@ -146,39 +140,32 @@ class RPZExport
 		return '';
 	}
 
-    public function getPolicyById($id)
+    private function getPolicyById($id)
     {
-        foreach ($this->__policies as $k => $v) {
-            if ($id == $v['setting_id']) {
+        foreach (self::POLICIES as $k => $v) {
+            if ($id === $v['setting_id']) {
                 return $k;
             }
         }
+        return null;
     }
 
-    public function getIdByPolicy($policy)
+    private function getIdByPolicy($policy)
     {
-        return $this->__policies[$policy]['setting_id'];
+        return self::POLICIES[$policy]['setting_id'];
     }
 
-    public function explain($type, $policy)
+    private function explain($type, $policy)
     {
         $explanations = array(
             'ip' => '; The following list of IP addresses will ',
             'domain' => '; The following domain names and all of their sub-domains will ',
             'hostname' => '; The following hostnames will '
         );
-        $policy_explanations = array(
-            'Local-Data' => 'returns the defined alternate location.',
-            'NXDOMAIN' => 'return NXDOMAIN (name does not exist) irrespective of actual result received.',
-            'NODATA' => 'returns NODATA (name exists but no answers returned) irrespective of actual result received.',
-            'DROP' => 'timeout.',
-            'PASSTHRU' => 'lets queries through, but allows for logging the hits (useful for testing).',
-            'TCP-only' => 'force the client to use TCP.',
-        );
-        return $explanations[$type] . $this->__policies[$policy]['explanation'] . PHP_EOL;
+        return $explanations[$type] . self::POLICIES[$policy]['explanation'] . PHP_EOL;
     }
 
-    public function buildHeader($rpzSettings)
+    private function buildHeader(array $rpzSettings)
     {
         $rpzSettings['serial'] = str_replace('$date', date('Ymd'), $rpzSettings['serial']);
         $rpzSettings['serial'] = str_replace('$time', time(), $rpzSettings['serial']);
@@ -196,55 +183,55 @@ class RPZExport
         return $header;
     }
 
-    public function export($items, $rpzSettings)
+    private function export(array $items, array $rpzSettings)
     {
         $result = $this->buildHeader($rpzSettings);
         $policy = $this->getPolicyById($rpzSettings['policy']);
-        $action = $this->__policies[$policy]['action'];
-        if ($policy == 'Local-Data') {
+        $action = self::POLICIES[$policy]['action'];
+        if ($policy === 'Local-Data') {
             $action = str_replace('$walled_garden', $rpzSettings['walled_garden'], $action);
         }
 
         if (isset($items['ip'])) {
             $result .= $this->explain('ip', $policy);
-            foreach ($items['ip'] as $item) {
-                $result .= $this->__convertIP($item, $action);
+            foreach ($items['ip'] as $item => $foo) {
+                $result .= $this->convertIp($item, $action);
             }
             $result .= PHP_EOL;
         }
 
         if (isset($items['domain'])) {
             $result .= $this->explain('domain', $policy);
-            foreach ($items['domain'] as $item) {
-                $result .= $this->__convertdomain($item, $action);
+            foreach ($items['domain'] as $item => $foo) {
+                $result .= $this->convertDomain($item, $action);
             }
             $result .= PHP_EOL;
         }
 
         if (isset($items['hostname'])) {
             $result .= $this->explain('hostname', $policy);
-            foreach ($items['hostname'] as $item) {
-                $result .= $this->__converthostname($item, $action);
+            foreach ($items['hostname'] as $item => $foo) {
+                $result .= $this->convertHostname($item, $action);
             }
             $result .= PHP_EOL;
         }
         return $result;
     }
 
-    private function __convertdomain($input, $action)
+    private function convertDomain($input, $action)
     {
         return $input . ' CNAME ' . $action . PHP_EOL . '*.' . $input . ' CNAME ' . $action . PHP_EOL;
     }
 
-    private function __converthostname($input, $action)
+    private function convertHostname($input, $action)
     {
         return $input . ' CNAME ' . $action . PHP_EOL;
     }
 
-    private function __convertIP($input, $action)
+    private function convertIp($input, $action)
     {
-        $type = filter_var($input, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? 'ipv6' : 'ipv4';
-        if ($type == 'ipv6') {
+        $isIpv6 = filter_var($input, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
+        if ($isIpv6) {
             $prefix = '128';
         } else {
             $prefix = '32';
@@ -252,7 +239,8 @@ class RPZExport
         if (strpos($input, '/')) {
             list($input, $prefix) = explode('/', $input);
         }
-        return $prefix . '.' . $this->{'__' . $type}($input) . '.rpz-ip CNAME ' . $action . PHP_EOL;
+        $converted = $isIpv6 ? $this->__ipv6($input) : $this->__ipv4($input);
+        return $prefix . '.' . $converted . '.rpz-ip CNAME ' . $action . PHP_EOL;
     }
 
     private function __ipv6($input)

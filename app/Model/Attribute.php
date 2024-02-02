@@ -434,7 +434,7 @@ class Attribute extends AppModel
     public function afterSave($created, $options = array())
     {
         // Passing event in `parentEvent` field will speed up correlation
-        $passedEvent = isset($options['parentEvent']) ? $options['parentEvent'] : false;
+        $passedEvent = $options['parentEvent'] ?? false;
 
         $attribute = $this->data['Attribute'];
 
@@ -541,6 +541,28 @@ class Attribute extends AppModel
         }
         if ($created && isset($attribute['event_id']) && empty($attribute['skip_auto_increment'])) {
             $this->__alterAttributeCount($attribute['event_id']);
+        }
+        return $result;
+    }
+
+    /**
+     * This method is called after all data are successfully saved into database
+     * @return void
+     * @throws Exception
+     */
+    private function afterDatabaseSave(array $data)
+    {
+        $attribute = $data['Attribute'];
+        if (isset($attribute['type']) && $this->typeIsAttachment($attribute['type'])) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
+        }
+    }
+
+    public function save($data = null, $validate = true, $fieldList = array())
+    {
+        $result = parent::save($data, $validate, $fieldList);
+        if ($result) {
+            $this->afterDatabaseSave($result);
         }
         return $result;
     }
@@ -786,7 +808,7 @@ class Attribute extends AppModel
     // check whether the variable is null or datetime
     public function datetimeOrNull($fields)
     {
-        $seen = array_values($fields)[0];
+        $seen = current($fields);
         if ($seen === null) {
             return true;
         }
@@ -881,7 +903,6 @@ class Attribute extends AppModel
         }
         $result = $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data']);
         if ($result) {
-            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
             // Clean thumbnail cache
             if ($this->isImage($attribute) && Configure::read('MISP.thumbnail_in_redis')) {
                 $redis = RedisTool::init();
@@ -1224,38 +1245,96 @@ class Attribute extends AppModel
         $this->Correlation->purgeCorrelations($eventId);
     }
 
-    public function reportValidationIssuesAttributes($eventId)
+    /**
+     * This method is useful if you want to iterate all attributes sorted by ID
+     * @param array $conditions
+     * @param array $fields
+     * @param bool|string $callbacks
+     * @return Generator<array>|void
+     */
+    public function fetchAttributesInChunks(array $conditions = [], array $fields = [], $callbacks = true)
+    {
+        $query = [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'limit' => 500,
+            'order' => ['Attribute.id'],
+            'fields' => $fields,
+            'callbacks' => $callbacks,
+        ];
+
+        while (true) {
+            $attributes = $this->find('all', $query);
+            foreach ($attributes as $attribute) {
+                yield $attribute;
+            }
+            $count = count($attributes);
+            if ($count < 500) {
+                return;
+            }
+            $lastAttribute = $attributes[$count - 1];
+            $query['conditions']['Attribute.id >'] = $lastAttribute['Attribute']['id'];
+        }
+    }
+
+    /**
+     * @param int|null $eventId
+     * @return Generator
+     */
+    public function reportValidationIssuesAttributes($eventId = null)
     {
         $conditions = array();
         if ($eventId && is_numeric($eventId)) {
             $conditions = array('event_id' => $eventId);
         }
 
-        $attributeIds = $this->find('column', array(
-            'fields' => array('id'),
-            'conditions' => $conditions
-        ));
-        $chunks = array_chunk($attributeIds, 500);
+        $attributes = $this->fetchAttributesInChunks($conditions);
 
-        $result = array();
-        foreach ($chunks as $chunk) {
-            $attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('id' => $chunk)));
-            foreach ($attributes as $attribute) {
-                $this->set($attribute);
-                if (!$this->validates()) {
-                    $resultErrors = array();
-                    foreach ($this->validationErrors as $field => $error) {
-                        $resultErrors[$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]);
-                    }
-                    $result[] = [
-                        'id' => $attribute['Attribute']['id'],
-                        'error' => $resultErrors,
-                        'details' => 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']',
-                    ];
+        foreach ($attributes as $attribute) {
+            $this->set($attribute);
+            if (!$this->validates()) {
+                $resultErrors = [];
+                foreach ($this->validationErrors as $field => $error) {
+                    $resultErrors[$field] = ['value' => $attribute['Attribute'][$field], 'error' => $error[0]];
                 }
+                yield [
+                    'id' => $attribute['Attribute']['id'],
+                    'error' => $resultErrors,
+                    'details' => 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']',
+                ];
             }
         }
-        return $result;
+    }
+
+    /**
+     * @param bool $dryRun If true, no changes will be made to
+     * @return Generator
+     * @throws Exception
+     */
+    public function normalizeIpAddress($dryRun = false)
+    {
+        $attributes = $this->fetchAttributesInChunks([
+            'Attribute.type' => ['ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'domain|ip'],
+        ]);
+
+        foreach ($attributes as $attribute) {
+            $value = $attribute['Attribute']['value'];
+            $normalizedValue = AttributeValidationTool::modifyBeforeValidation($attribute['Attribute']['type'], $value);
+            if ($value !== $normalizedValue) {
+                if (!$dryRun) {
+                    $attribute['Attribute']['value'] = $normalizedValue;
+                    $this->save($attribute, true, ['value1', 'value2']);
+                }
+
+                yield [
+                    'id' => (int) $attribute['Attribute']['id'],
+                    'event_id' => (int) $attribute['Attribute']['event_id'],
+                    'type' => $attribute['Attribute']['type'],
+                    'value' => $value,
+                    'normalized_value' => $normalizedValue,
+                ];
+            }
+        }
     }
 
     /**
@@ -1610,6 +1689,7 @@ class Attribute extends AppModel
      * @param array $user
      * @param array $options
      * @param int|false $result_count If false, count is not fetched
+     * @param bool $real_count
      * @return array
      * @throws Exception
      */
@@ -3096,8 +3176,7 @@ class Attribute extends AppModel
                 $exportTool->additional_params
             );
         }
-        ClassRegistry::init('ConnectionManager');
-        $db = ConnectionManager::getDataSource('default');
+
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
@@ -3673,7 +3752,7 @@ class Attribute extends AppModel
         );
     }
 
-    private function findAttributeByValue($attribute)
+    private function findAttributeByValue(array $attribute)
     {
         $type = $attribute['type'];
         $conditions = [

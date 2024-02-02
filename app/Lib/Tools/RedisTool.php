@@ -57,25 +57,34 @@ class RedisTool
     /**
      * @param Redis $redis
      * @param string|array $pattern
-     * @return int|Redis Number of deleted keys or instance of Redis if used in MULTI mode
+     * @return Generator<string>
      * @throws RedisException
      */
-    public static function deleteKeysByPattern(Redis $redis, $pattern)
+    public static function keysByPattern(Redis $redis, $pattern)
     {
         if (is_string($pattern)) {
             $pattern = [$pattern];
         }
 
-        $allKeys = [];
         foreach ($pattern as $p) {
             $iterator = null;
             while (false !== ($keys = $redis->scan($iterator, $p, 1000))) {
                 foreach ($keys as $key) {
-                    $allKeys[] = $key;
+                    yield $key;
                 }
             }
         }
+    }
 
+    /**
+     * @param Redis $redis
+     * @param string|array $pattern
+     * @return int|Redis Number of deleted keys or instance of Redis if used in MULTI mode
+     * @throws RedisException
+     */
+    public static function deleteKeysByPattern(Redis $redis, $pattern)
+    {
+        $allKeys = iterator_to_array(self::keysByPattern($redis, $pattern));
         if (empty($allKeys)) {
             return 0;
         }
@@ -153,11 +162,7 @@ class RedisTool
             return false;
         }
 
-        if (self::$serializer === null) {
-            self::$serializer = Configure::read('MISP.redis_serializer') ?: false;
-        }
-
-        if (self::$serializer === 'igbinary') {
+        if ($string[0] === "\x00") {
             return igbinary_unserialize($string);
         } else {
             return JsonTool::decode($string);
