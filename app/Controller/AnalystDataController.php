@@ -71,11 +71,15 @@ class AnalystDataController extends AppController
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $params = [
             'conditions' => $conditions,
-            'afterFind' => function(array $analystData) {
+            'afterFind' => function(array $analystData): array {
                 $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
                 if (!$canEdit) {
                     throw new MethodNotAllowedException(__('You are not authorised to do that.'));
                 }
+                return $analystData;
+            },
+            'beforeSave' => function(array $analystData): array {
+                $analystData[$this->modelSelection]['modified'] = date ('Y-m-d H:i:s');
                 return $analystData;
             }
         ];
