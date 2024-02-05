@@ -343,7 +343,9 @@ class CRUDComponent extends Component
                 if ($filter === 'quickFilter') {
                     continue;
                 }
-                if (strlen(trim($filterValue, '%')) === strlen($filterValue)) {
+                if (is_array($filterValue)) {
+                    $query['conditions']['AND'][] = [$filter => $filterValue];
+                } else if (strlen(trim($filterValue, '%')) === strlen($filterValue)) {
                     $query['conditions']['AND'][] = [$filter => $filterValue];
                 } else {
                     $query['conditions']['AND'][] = [$filter . ' LIKE' => $filterValue];
