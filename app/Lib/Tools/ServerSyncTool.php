@@ -250,17 +250,17 @@ class ServerSyncTool
      * @throws HttpSocketJsonException
      * @throws HttpSocketHttpException
      */
-    public function fetchAnalystData(array $uuids)
+    public function fetchAnalystData($type, array $uuids)
     {
         if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
             return [];
         }
 
         $params = [
-            'uuids' => $uuids,
+            'uuid' => $uuids,
         ];
 
-        $url = '/analyst_data/index';
+        $url = '/analyst_data/index/' . $type;
         $url .= $this->createParams($params);
         $url .= '.json';
         return $this->get($url);

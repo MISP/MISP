@@ -150,8 +150,8 @@ class AnalystDataController extends AppController
             'conditions' => $conditions,
             'contain' => ['Org', 'Orgc'],
             'afterFind' => function(array $analystData) {
-                $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
                 if (!$this->IndexFilter->isRest()) {
+                    $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
                     $analystData[$this->modelSelection]['_canEdit'] = $canEdit;
                 }
                 return $analystData;
@@ -175,14 +175,16 @@ class AnalystDataController extends AppController
 
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $params = [
-            'filters' => ['uuid', 'target_object', 'uuid'],
+            'filters' => ['uuid', 'target_object'],
             'quickFilters' => ['name'],
             'conditions' => $conditions,
             'afterFind' => function(array $data) {
                 foreach ($data as $i => $analystData) {
-                    $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
                     if (!$this->IndexFilter->isRest()) {
-                        $data[$i][$this->modelSelection]['_canEdit'] = $canEdit;
+                        $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
+                        if (!$this->IndexFilter->isRest()) {
+                            $data[$i][$this->modelSelection]['_canEdit'] = $canEdit;
+                        }
                     }
                 }
                 return $data;

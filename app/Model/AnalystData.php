@@ -343,7 +343,7 @@ class AnalystData extends AppModel
             return $results;
         }
 
-        if (!isset($analystData[$type]['orgc_uuid']) && !isset($cluster['Orgc'])) {
+        if (!isset($analystData[$type]['orgc_uuid']) && !isset($analystData[$type]['Orgc'])) {
             $analystData[$type]['orgc_uuid'] = $analystData[$type]['org_uuid'];
         } else {
             if (!isset($analystData[$type]['Orgc'])) {
@@ -405,10 +405,6 @@ class AnalystData extends AppModel
         }
         if ($saveSuccess) {
             $results['imported']++;
-            $analystModel->find('first', [
-                'conditions' => ['uuid' =>  $analystData[$type]['uuid']],
-                'recursive' => -1
-            ]);
         } else {
             $results['failed']++;
             foreach ($analystModel->validationErrors as $validationError) {
@@ -657,6 +653,13 @@ class AnalystData extends AppModel
         return $analystData;
     }
 
+    /**
+     * Collect all UUIDs with their modified time on the remote side, then filter the list based on what we have locally.
+     * Afterward, iteratively pull what should be pulled.
+     *
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     */
     public function pull(array $user, ServerSyncTool $serverSync)
     {
         $this->Server = ClassRegistry::init('Server');
@@ -668,30 +671,34 @@ class AnalystData extends AppModel
             return 0;
         }
 
-        // Downloads new analyst data and the ones newer than local.
+        $allRemoteUUIDs = [];
+        foreach (self::ANALYST_DATA_TYPES as $type) {
+            $allRemoteUUIDs = array_merge($allRemoteUUIDs, array_keys($remoteData[$type]));
+        }
+
         $localAnalystData = $this->getAllAnalystData('list', [
-            'Event.uuid' => array_column($remoteData, 'uuid')
+            'conditions' => ['uuid' => $allRemoteUUIDs],
+            'fields' => ['uuid', 'modified'],
         ]);
 
-        $remoteDataUuids = [];
+        $remoteUUIDsToFetch = [];
         foreach ($remoteData as $type => $remoteAnalystData) {
-            foreach ($remoteAnalystData as $i => $remoteEntry) {
-                if (
-                    isset($localAnalystData[$remoteEntry['uuid']]) &&
-                    strtotime($localAnalystData[$type][$remoteEntry['uuid']]) < strtotime($remoteEntry['modified'])
-                ) {
-                    $remoteDataUuids[$remoteEntry['uuid']] = $remoteEntry['modified'];
+            foreach ($remoteAnalystData as $remoteUUID => $remoteModified) {
+                if (!isset($localAnalystData[$type][$remoteUUID])) {
+                    $remoteUUIDsToFetch[$type][$remoteUUID] = $remoteModified;
+                } elseif (strtotime($localAnalystData[$type][$remoteUUID]) < strtotime($remoteModified)) {
+                    $remoteUUIDsToFetch[$type][$remoteUUID] = $remoteModified;
                 }
             }
         }
-        unset($remoteData, $localAnalystData);
+        unset($remoteData, $allRemoteUUIDs, $localAnalystData);
 
-        if (empty($remoteDataUuids)) {
+        if (empty($remoteUUIDsToFetch)) {
             return 0;
         }
 
         if ($serverSync->isSupported(ServerSyncTool::PERM_ANALYST_DATA)) {
-            return $this->pullAnalystData($user, $remoteDataUuids, $serverSync);
+            return $this->pullAnalystData($user, $remoteUUIDsToFetch, $serverSync);
         }
     }
 
@@ -699,18 +706,31 @@ class AnalystData extends AppModel
     {
         $uuids = array_keys($analystDataUuids);
         $saved = 0;
-        foreach (array_chunk($uuids, 100) as $uuidChunk) {
-            try {
-                $chunkedAnalystData = $serverSync->fetchAnalystData($uuidChunk);
-            } catch (Exception $e) {
-                $this->logException("Failed downloading the chunked analyst data from {$serverSync->server()['Server']['name']}.", $e);
+        $serverOrgUUID = $this->Org->find('first', [
+            'recursive' => -1,
+            'conditions' => ['id' => $serverSync->server()['Server']['org_id']],
+            'fields' => ['id', 'uuid']
+        ])['Organisation']['uuid'];
+
+        foreach ($analystDataUuids as $type => $entries) {
+            $uuids = array_keys($entries);
+            if (empty($uuids)) {
                 continue;
             }
 
-            foreach ($chunkedAnalystData as $analystData) {
-                $savedAmount = $this->captureAnalystData($user, $analystData, true, $serverSync->server()['Server']['org_id'], $serverSync->server());
-                if ($savedAmount) {
-                    $saved += $savedAmount;
+            foreach (array_chunk($uuids, 100) as $uuidChunk) {
+                try {
+                    $chunkedAnalystData = $serverSync->fetchAnalystData($type, $uuidChunk)->json();
+                } catch (Exception $e) {
+                    $this->logException("Failed downloading the chunked analyst data from {$serverSync->server()['Server']['name']}.", $e);
+                    continue;
+                }
+    
+                foreach ($chunkedAnalystData as $analystData) {
+                    $savedResult = $this->captureAnalystData($user, $analystData, true, $serverOrgUUID, $serverSync->server());
+                    if ($savedResult['success']) {
+                        $saved += $savedResult['imported'];
+                    }
                 }
             }
         }
