@@ -222,13 +222,28 @@ class ServerSyncTool
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      */
-    public function analystDataSearch(array $rules)
+    public function filterAnalystDataForPush(array $rules)
     {
         if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
             return [];
         }
 
         return $this->post('/analyst_data/filterAnalystDataForPush', $rules);
+    }
+
+    /**
+     * @param array $rules
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function analystDataSearch(array $rules)
+    {
+        if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
+            return [];
+        }
+
+        return $this->post('/analyst_data/indexForPull', $rules);
     }
 
     /**

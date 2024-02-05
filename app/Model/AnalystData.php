@@ -515,7 +515,6 @@ class AnalystData extends AppModel
             'Relationship' => ClassRegistry::init('Relationship'),
         ];
 
-
         $allData = ['Note' => [], 'Opinion' => [], 'Relationship' => []];
         foreach ($allIncomingAnalystData as $model => $entries) {
             $incomingAnalystData = $entries;
@@ -540,6 +539,28 @@ class AnalystData extends AppModel
         return $allData;
     }
 
+    public function indexForPull(array $user): array
+    {
+        $options = [
+            'recursive' => -1,
+            'conditions' => [
+                'AND' => [
+                    $this->buildConditions($user),
+                ]
+            ],
+            'fields' => ['uuid', 'modified', 'locked']
+        ];
+        $tmp = $this->getAllAnalystData('all', $options);
+        $allData = [];
+        foreach ($tmp as $type => $entries) {
+            foreach ($entries as $i => $entry) {
+                $entry = $entry[$type];
+                $allData[$type][$entry['uuid']] = $entry['modified'];
+            }
+        }
+        return $allData;
+    }
+
     /**
      * getAllAnalystData Collect all analyst data regardless if they are notes, opinions or relationships
      *
@@ -549,10 +570,11 @@ class AnalystData extends AppModel
     public function getAllAnalystData($findType='all', array $findOptions=[]): array
     {
         $allData = [];
-        $this->Note = ClassRegistry::init('Note');
-        $this->Opinion = ClassRegistry::init('Opinion');
-        $this->Relationship = ClassRegistry::init('Relationship');
-        $validModels = [$this->Note, $this->Opinion, $this->Relationship];
+        $validModels = [
+            'Note' => ClassRegistry::init('Note'),
+            'Opinion' => ClassRegistry::init('Opinion'),
+            'Relationship' => ClassRegistry::init('Relationship'),
+        ];
         foreach ($validModels as $model) {
             $result = $model->find($findType, $findOptions);
             $allData[$model->alias] = $result;

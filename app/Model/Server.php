@@ -679,7 +679,7 @@ class Server extends AppModel
         }
 
         $change = sprintf(
-            '%s events, %s proposals, %s sightings, %s galaxy clusters and %s pulled or updated. %s events failed or didn\'t need an update.',
+            '%s events, %s proposals, %s sightings, %s galaxy clusters and %s analyst data pulled or updated. %s events failed or didn\'t need an update.',
             count($successes),
             $pulledProposals,
             $pulledSightings,

@@ -217,6 +217,14 @@ class AnalystDataController extends AppController
         return $this->RestResponse->viewData($allData, $this->response->type());
     }
 
+    public function indexForPull()
+    {
+        $this->loadModel('AnalystData');
+        $allData = $this->AnalystData->indexForPull($this->Auth->user());
+
+        return $this->RestResponse->viewData($allData, $this->response->type());
+    }
+
     public function pushAnalystData()
     {
         if (!$this->Auth->user()['Role']['perm_sync'] || !$this->Auth->user()['Role']['perm_analyst_data']) {
