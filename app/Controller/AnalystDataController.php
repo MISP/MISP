@@ -223,10 +223,10 @@ class AnalystDataController extends AppController
         return $this->RestResponse->viewData($allData, $this->response->type());
     }
 
-    public function indexForPull()
+    public function indexMinimal()
     {
         $this->loadModel('AnalystData');
-        $allData = $this->AnalystData->indexForPull($this->Auth->user());
+        $allData = $this->AnalystData->indexMinimal($this->Auth->user());
 
         return $this->RestResponse->viewData($allData, $this->response->type());
     }

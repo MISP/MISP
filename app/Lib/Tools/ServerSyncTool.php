@@ -222,13 +222,13 @@ class ServerSyncTool
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      */
-    public function filterAnalystDataForPush(array $rules)
+    public function filterAnalystDataForPush(array $candidates)
     {
         if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
             return [];
         }
 
-        return $this->post('/analyst_data/filterAnalystDataForPush', $rules);
+        return $this->post('/analyst_data/filterAnalystDataForPush', $candidates);
     }
 
     /**
@@ -237,13 +237,13 @@ class ServerSyncTool
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      */
-    public function analystDataSearch(array $rules)
+    public function fetchIndexMinimal(array $rules)
     {
         if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
             return [];
         }
 
-        return $this->post('/analyst_data/indexForPull', $rules);
+        return $this->post('/analyst_data/indexMinimal', $rules);
     }
 
     /**

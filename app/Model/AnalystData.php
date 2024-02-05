@@ -434,13 +434,15 @@ class AnalystData extends AppModel
     }
 
     /**
-     * Push Analyst Data to remote server.
+     * Push Analyst Data to remote server. Collect elligible data locally and propose the list to the remote.
+     * Remote will then return the list of UUIDs it's willing to get. Then, upload these entries.
+     * 
      * @param array $user
      * @param ServerSyncTool $serverSync
      * @return array
      * @throws Exception
      */
-    public function pushAnalystData(array $user, ServerSyncTool $serverSync): array
+    public function push(array $user, ServerSyncTool $serverSync): array
     {
         $server = $serverSync->server();
 
@@ -452,7 +454,7 @@ class AnalystData extends AppModel
 
         $this->log("Starting Analyst Data sync with server #{$server['Server']['id']}", LOG_INFO);
 
-        $analystData = $this->getElligibleDataToPush($user);
+        $analystData = $this->collectDataForPush($user);
         $keyedAnalystData = [];
         foreach ($analystData as $type => $entries) {
             foreach ($entries as $entry) {
@@ -469,7 +471,7 @@ class AnalystData extends AppModel
             foreach ($keyedAnalystData as $type => $entry) {
                 $conditions[$type] = array_keys($entry);
             }
-            $analystDataToPush = $this->Server->getElligibleDataIdsFromServerForPush($serverSync, $analystData, $conditions);
+            $analystDataToPush = $this->identifyUUIDsForPush($serverSync, $analystData, $conditions);
         } catch (Exception $e) {
             $this->logException("Could not get eligible Analyst Data IDs from server #{$server['Server']['id']} for push.", $e);
             return [];
@@ -477,7 +479,7 @@ class AnalystData extends AppModel
         $successes = [];
         foreach ($analystDataToPush as $type => $entries) {
             foreach ($entries as $entry) {
-                $result = $this->AnalystData->uploadEntryToServer($type, $entry, $server, $serverSync, $user);
+                $result = $this->uploadEntryToServer($type, $entry, $server, $serverSync, $user);
                 if ($result === 'Success') {
                     $successes[] = __('AnalystData %s', $entry[$type]['uuid']);
                 }
@@ -492,7 +494,7 @@ class AnalystData extends AppModel
      * @param array $user
      * @return array
      */
-    public function getElligibleDataToPush(array $user): array
+    public function collectDataForPush(array $user): array
     {
         $options = [
             'recursive' => -1,
@@ -501,6 +503,49 @@ class AnalystData extends AppModel
             ],
         ];
         return $this->getAllAnalystData('all', $options);
+    }
+
+
+    /**
+     * Get an array of analyst data that the remote is willing to get and returns analyst data that should be pushed.
+     * @param ServerSyncTool $serverSync
+     * @param array $localAnalystData
+     * @param array $conditions
+     * @return array
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     */
+    public function identifyUUIDsForPush(ServerSyncTool $serverSync, array $localAnalystData=[], array $conditions=[]): array
+    {
+        $this->log("Fetching eligible analyst data from server #{$serverSync->serverId()} for push: " . JsonTool::encode($conditions), LOG_INFO);
+        $candidates = [];
+        foreach ($localAnalystData as $type => $entries) {
+            foreach ($entries as $entry) {
+                $entry = $entry[$type];
+                $candidates[$type][$entry['uuid']] =  $entry['modified'];
+            }
+        }
+        $remoteDataArray = $this->proposeDataToRemote($serverSync, $candidates);
+        foreach ($localAnalystData as $type => $entries) {
+            foreach ($entries as $i => $entry) {
+                $entry = $entry[$type];
+                if (!isset($remoteDataArray[$type][$entry['uuid']])) {
+                    unset($localAnalystData[$type][$i]);
+                    // $remoteVersion = $remoteDataArray[$type][$entry['uuid']];
+                    // if (strtotime($entry['modified']) <= strtotime($remoteVersion)) {
+                    //     unset($localAnalystData[$type][$entry['uuid']]);
+                    // }
+                }
+            }
+        }
+        return $localAnalystData;
+    }
+
+    public function proposeDataToRemote(ServerSyncTool $serverSync, array $candidates): array
+    {
+        $acceptedDataForPush = $this->Server->filterAnalystDataForPush($serverSync, $candidates);
+        return $acceptedDataForPush;
     }
 
     public function filterAnalystDataForPush($allIncomingAnalystData): array
@@ -535,7 +580,7 @@ class AnalystData extends AppModel
         return $allData;
     }
 
-    public function indexForPull(array $user): array
+    public function indexMinimal(array $user): array
     {
         $options = [
             'recursive' => -1,
@@ -604,7 +649,6 @@ class AnalystData extends AppModel
 
     private function prepareForPushToServer($type, array $analystData, array $server)
     {
-        $analystData[$type]['locked'] = true;
         if ($analystData[$type]['distribution'] == 4) {
             if (!empty($analystData[$type]['SharingGroup']['SharingGroupServer'])) {
                 $found = false;
@@ -647,6 +691,7 @@ class AnalystData extends AppModel
             }
         }
 
+        $analystData[$type]['locked'] = true;
         // Downgrade the event from connected communities to community only
         if (!$server['Server']['internal'] && $analystData[$type]['distribution'] == 2) {
             $analystData[$type]['distribution'] = 1;
@@ -666,7 +711,7 @@ class AnalystData extends AppModel
         $this->Server = ClassRegistry::init('Server');
         $this->AnalystData = ClassRegistry::init('AnalystData');
         try {
-            $remoteData = $this->Server->fetchAnalystDataIdsFromServer($serverSync);
+            $remoteData = $this->Server->fetchIndexMinimal($serverSync, $filterRules ?? []);
         } catch (Exception $e) {
             $this->logException("Could not fetch analyst data IDs from server {$serverSync->server()['Server']['name']}", $e);
             return 0;
@@ -699,11 +744,11 @@ class AnalystData extends AppModel
         }
 
         if ($serverSync->isSupported(ServerSyncTool::PERM_ANALYST_DATA)) {
-            return $this->pullAnalystData($user, $remoteUUIDsToFetch, $serverSync);
+            return $this->pullInChunks($user, $remoteUUIDsToFetch, $serverSync);
         }
     }
 
-    public function pullAnalystData(array $user, array $analystDataUuids, ServerSyncTool $serverSync)
+    public function pullInChunks(array $user, array $analystDataUuids, ServerSyncTool $serverSync)
     {
         $uuids = array_keys($analystDataUuids);
         $saved = 0;
