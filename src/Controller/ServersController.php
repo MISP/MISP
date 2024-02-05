@@ -3,49 +3,49 @@
 namespace App\Controller;
 
 use App\Controller\AppController;
-use Cake\Event\EventInterface;
-use Cake\Http\Exception\MethodNotAllowedException;
-use Cake\Http\Exception\NotFoundException;
-use Cake\Http\Exception\ForbiddenException;
-use Exception;
-use Cake\Core\Configure;
-use App\Lib\Tools\CustomPaginationTool;
-use App\Lib\Tools\BackgroundJobsTool;
 use App\Lib\Tools\AttachmentTool;
-use App\Lib\Tools\JsonTool;
-use App\Lib\Tools\HttpTool;
+use App\Lib\Tools\BackgroundJobsTool;
+use App\Lib\Tools\CustomPaginationTool;
 use App\Lib\Tools\FileAccessTool;
+use App\Lib\Tools\HttpTool;
+use App\Lib\Tools\JsonTool;
 use App\Lib\Tools\RedisTool;
 use App\Lib\Tools\SecurityAudit;
-use Cake\Validation\Validation;
 use App\Model\Entity\Job;
+use Cake\Core\Configure;
+use Cake\Event\EventInterface;
+use Cake\Http\Exception\ForbiddenException;
+use Cake\Http\Exception\MethodNotAllowedException;
+use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Response;
-use SplFileInfo;
 use Cake\Routing\Router;
+use Cake\Validation\Validation;
+use Exception;
 use InvalidArgumentException;
 use RuntimeException;
+use SplFileInfo;
 
 class ServersController extends AppController
 {
-    public $paginate = array(
+    public $paginate = [
         'limit' => 60,
         'recursive' => -1,
-        'contain' => array(
-            'User' => array(
-                'fields' => array('User.id', 'User.org_id', 'User.email'),
-            ),
-            'Organisation' => array(
-                'fields' => array('Organisation.name', 'Organisation.id'),
-            ),
-            'RemoteOrg' => array(
-                'fields' => array('RemoteOrg.name', 'RemoteOrg.id'),
-            ),
-        ),
+        'contain' => [
+            'User' => [
+                'fields' => ['User.id', 'User.org_id', 'User.email'],
+            ],
+            'Organisation' => [
+                'fields' => ['Organisation.name', 'Organisation.id'],
+            ],
+            'RemoteOrg' => [
+                'fields' => ['RemoteOrg.name', 'RemoteOrg.id'],
+            ],
+        ],
         'maxLimit' => 9999,
-        'order' => array(
+        'order' => [
             'Server.priority' => 'ASC'
-        ),
-    );
+        ],
+    ];
 
     public function initialize(): void
     {
@@ -85,22 +85,22 @@ class ServersController extends AppController
         }
 
         if ($this->ParamHandler->isRest()) {
-            $params = array(
+            $params = [
                 'fields' => $fields,
                 'recursive' => -1,
-                'contain' => array(
-                    'Users' => array(
-                        'fields' => array('id', 'org_id', 'email', 'server_id'),
-                    ),
-                    'Organisations' => array(
-                        'fields' => array('id', 'name', 'uuid', 'nationality', 'sector', 'type'),
-                    ),
-                    'RemoteOrg' => array(
-                        'fields' => array('RemoteOrg.id', 'RemoteOrg.name', 'RemoteOrg.uuid', 'RemoteOrg.nationality', 'RemoteOrg.sector', 'RemoteOrg.type'),
-                    ),
-                ),
+                'contain' => [
+                    'Users' => [
+                        'fields' => ['id', 'org_id', 'email', 'server_id'],
+                    ],
+                    'Organisations' => [
+                        'fields' => ['id', 'name', 'uuid', 'nationality', 'sector', 'type'],
+                    ],
+                    'RemoteOrg' => [
+                        'fields' => ['RemoteOrg.id', 'RemoteOrg.name', 'RemoteOrg.uuid', 'RemoteOrg.nationality', 'RemoteOrg.sector', 'RemoteOrg.type'],
+                    ],
+                ],
                 'conditions' => $conditions,
-            );
+            ];
             $servers = $this->Servers->find('all', $params);
             $servers = $this->Servers->attachServerCacheTimestamps($servers->toArray());
             return $this->RestResponse->viewData($servers, $this->response->getType());
@@ -110,14 +110,20 @@ class ServersController extends AppController
             $servers = $this->paginate();
             $servers = $this->Servers->attachServerCacheTimestamps($servers);
             $this->set('servers', $servers);
-            $collection = array();
-            $collection['orgs'] = $this->Servers->Organisation->find('list', array(
-                'fields' => array('id', 'name'),
-            ));
+            $collection = [];
+            $collection['orgs'] = $this->Servers->Organisation->find(
+                'list',
+                [
+                    'fields' => ['id', 'name'],
+                ]
+            );
             $TagsTable = $this->fetchTable('Tags');
-            $collection['tags'] = $TagsTable->find('list', array(
-                'fields' => array('id', 'name'),
-            ));
+            $collection['tags'] = $TagsTable->find(
+                'list',
+                [
+                    'fields' => ['id', 'name'],
+                ]
+            );
             $this->set('collection', $collection);
         }
     }
@@ -125,7 +131,7 @@ class ServersController extends AppController
     public function previewIndex($id)
     {
         $urlparams = '';
-        $passedArgs = array();
+        $passedArgs = [];
 
         $server = $this->Servers->get($id);
         if (empty($server)) {
@@ -159,7 +165,7 @@ class ServersController extends AppController
                 return $this->RestResponse->throwException(500, $e->getMessage());
             } else {
                 $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
-                $this->redirect(array('action' => 'index'));
+                $this->redirect(['action' => 'index']);
             }
         }
 
@@ -174,7 +180,7 @@ class ServersController extends AppController
         if (!empty($total_count)) {
             $params['pageCount'] = ceil($total_count / $params['limit']);
         }
-        $this->params->params['paging'] = array('Servers' => $params);
+        $this->params->params['paging'] = ['Servers' => $params];
         if (count($events) > 60) {
             $customPagination->truncateByPagination($events, $params);
         }
@@ -183,7 +189,7 @@ class ServersController extends AppController
         $this->set('analysisLevels', $EventsTable->analysisLevels);
         $this->set('distributionLevels', $EventsTable->distributionLevels);
 
-        $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
+        $shortDist = [0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group'];
         $this->set('shortDist', $shortDist);
         $this->set('id', $id);
         $this->set('urlparams', $urlparams);
@@ -204,7 +210,7 @@ class ServersController extends AppController
             throw new NotFoundException(__("Event '%s' not found.", $eventId));
         } catch (Exception $e) {
             $this->Flash->error(__('Download failed. %s', $e->getMessage()));
-            $this->redirect(array('action' => 'previewIndex', $serverId));
+            $this->redirect(['action' => 'previewIndex', $serverId]);
         }
 
         if ($this->ParamHandler->isRest()) {
@@ -222,14 +228,14 @@ class ServersController extends AppController
         $EventsTable = $this->fetchTable('Events');
         $params = $EventsTable->rearrangeEventForView($event, $this->passedArgs, $all);
         $this->__removeGalaxyClusterTags($event);
-        $this->params->params['paging'] = array('Server' => $params);
+        $this->params->params['paging'] = ['Server' => $params];
         $this->set('event', $event);
         $this->set('server', $server);
-        $dataForView = array(
-            'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
-            'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels'),
-            'Object' => array()
-        );
+        $dataForView = [
+            'Attribute' => ['attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'],
+            'Event' => ['eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels'],
+            'Object' => []
+        ];
         foreach ($dataForView as $m => $variables) {
             if ($m === 'Event') {
                 $currentModel = $EventsTable;
@@ -300,7 +306,7 @@ class ServersController extends AppController
             $data = $this->request->getData();
             if ($this->ParamHandler->isRest()) {
                 if (!isset($data['Server'])) {
-                    $data = array('Server' => $data);
+                    $data = ['Server' => $data];
                 }
             }
             if (!empty($data['Server']['json'])) {
@@ -317,7 +323,7 @@ class ServersController extends AppController
 
             if (!$fail) {
                 if ($this->ParamHandler->isRest()) {
-                    $defaults = array(
+                    $defaults = [
                         'push' => 0,
                         'pull' => 0,
                         'push_sightings' => 0,
@@ -327,7 +333,7 @@ class ServersController extends AppController
                         'json' => '[]',
                         'self_signed' => 0,
                         'remove_missing_tags' => 0
-                    );
+                    ];
                     foreach ($defaults as $default => $dvalue) {
                         if (!isset($data['Server'][$default])) {
                             $data['Server'][$default] = $dvalue;
@@ -338,42 +344,50 @@ class ServersController extends AppController
                 $data['Server']['org_id'] = $this->ACL->getUser()->org_id;
                 if ($this->ParamHandler->isRest()) {
                     if (empty($data['Server']['remote_org_id'])) {
-                        return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Remote Organisation\'s id/uuid not given (remote_org_id)'), $this->response->getType());
+                        return $this->RestResponse->saveFailResponse('Servers', 'add', false, ['Organisation' => 'Remote Organisation\'s id/uuid not given (remote_org_id)'], $this->response->getType());
                     }
                     if (Validation::uuid($data['Server']['remote_org_id'])) {
-                        $orgCondition = array('uuid' => $data['Server']['remote_org_id']);
+                        $orgCondition = ['uuid' => $data['Server']['remote_org_id']];
                     } else {
-                        $orgCondition = array('id' => $data['Server']['remote_org_id']);
+                        $orgCondition = ['id' => $data['Server']['remote_org_id']];
                     }
-                    $existingOrgs = $this->Servers->Organisations->find('all', array(
-                        'conditions' => $orgCondition,
-                        'recursive' => -1,
-                        'fields' => array('id', 'uuid')
-                    ))->first();
+                    $existingOrgs = $this->Servers->Organisations->find(
+                        'all',
+                        [
+                            'conditions' => $orgCondition,
+                            'recursive' => -1,
+                            'fields' => ['id', 'uuid']
+                        ]
+                    )->first();
                     if (empty($existingOrgs)) {
-                        return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Invalid Remote Organisation'), $this->response->getType());
+                        return $this->RestResponse->saveFailResponse('Servers', 'add', false, ['Organisation' => 'Invalid Remote Organisation'], $this->response->getType());
                     }
                 } else {
                     if ($data['Server']['organisation_type'] < 2) {
                         $data['Server']['remote_org_id'] = $json['id'];
                     } else {
-                        $existingOrgs = $this->Servers->Organisation->find('all', array(
-                            'conditions' => array('uuid' => $json['uuid']),
-                            'recursive' => -1,
-                            'fields' => array('id', 'uuid')
-                        ))->first();
+                        $existingOrgs = $this->Servers->Organisation->find(
+                            'all',
+                            [
+                                'conditions' => ['uuid' => $json['uuid']],
+                                'recursive' => -1,
+                                'fields' => ['id', 'uuid']
+                            ]
+                        )->first();
                         if (!empty($existingOrgs)) {
                             $fail = true;
                             $this->Flash->error(__('That organisation could not be created as the uuid is in use already.'));
                         }
                         if (!$fail) {
                             $this->Servers->Organisation->create();
-                            $orgSave = $this->Servers->Organisation->save(array(
-                                'name' => $json['name'],
-                                'uuid' => $json['uuid'],
-                                'local' => 0,
-                                'created_by' => $this->ACL->getUser()->id
-                            ));
+                            $orgSave = $this->Servers->Organisation->save(
+                                [
+                                    'name' => $json['name'],
+                                    'uuid' => $json['uuid'],
+                                    'local' => 0,
+                                    'created_by' => $this->ACL->getUser()->id
+                                ]
+                            );
 
                             if (!$orgSave) {
                                 $this->Flash->error(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format? Also, make sure the organisation\'s name doesn\'t clash with an existing one.'));
@@ -407,7 +421,7 @@ class ServersController extends AppController
                             return $this->RestResponse->viewData($serverEntity->toArray(), $this->response->getType());
                         } else {
                             $this->Flash->success(__('The server has been saved'));
-                            $this->redirect(array('action' => 'index'));
+                            $this->redirect(['action' => 'index']);
                         }
                     } catch (Exception $e) {
                         if ($this->ParamHandler->isRest()) {
@@ -422,22 +436,25 @@ class ServersController extends AppController
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->describe('Servers', 'add', false, $this->response->getType());
         } else {
-            $organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
+            $organisationOptions = [0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation'];
 
-            $temp = $this->Servers->Organisation->find('all', array(
-                'fields' => array('id', 'name', 'local'),
-                'order' => array('lower(Organisation.name) ASC')
-            ));
+            $temp = $this->Servers->Organisation->find(
+                'all',
+                [
+                    'fields' => ['id', 'name', 'local'],
+                    'order' => ['lower(Organisation.name) ASC']
+                ]
+            );
             $allOrgs = [];
-            $localOrganisations = array();
-            $externalOrganisations = array();
+            $localOrganisations = [];
+            $externalOrganisations = [];
             foreach ($temp as $o) {
                 if ($o['Organisation']['local']) {
                     $localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
                 } else {
                     $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
                 }
-                $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+                $allOrgs[] = ['id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']];
             }
 
             $allTypes = $this->Servers->getAllTypes();
@@ -467,7 +484,7 @@ class ServersController extends AppController
             $data = $this->request->getData();
             if ($this->ParamHandler->isRest()) {
                 if (!isset($data['Server'])) {
-                    $data = array('Server' => $data);
+                    $data = ['Server' => $data];
                 }
             }
             if (empty(Configure::read('MISP.host_org_id'))) {
@@ -496,7 +513,7 @@ class ServersController extends AppController
 
             if (!$fail) {
                 // say what fields are to be updated
-                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name', 'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
+                $fieldList = ['id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name', 'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy'];
                 $server['id'] = $id;
                 if (isset($data['Server']['authkey']) && "" != $data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
@@ -507,15 +524,18 @@ class ServersController extends AppController
                     if ($server['organisation_type'] < 2) {
                         $server['remote_org_id'] = $json['id'];
                     } else {
-                        $existingOrgs = $this->Servers->Organisation->find('all', array(
-                            'conditions' => array('uuid' => $json['uuid']),
-                            'recursive' => -1,
-                            'fields' => array('id', 'uuid')
-                        ))->first();
+                        $existingOrgs = $this->Servers->Organisation->find(
+                            'all',
+                            [
+                                'conditions' => ['uuid' => $json['uuid']],
+                                'recursive' => -1,
+                                'fields' => ['id', 'uuid']
+                            ]
+                        )->first();
                         if (!empty($existingOrgs)) {
                             $fail = true;
                             if ($this->ParamHandler->isRest()) {
-                                return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('Organisation' => 'Remote Organisation\'s uuid already used'), $this->response->getType());
+                                return $this->RestResponse->saveFailResponse('Servers', 'edit', false, ['Organisation' => 'Remote Organisation\'s uuid already used'], $this->response->getType());
                             } else {
                                 $this->Flash->error(__('That organisation could not be created as the uuid is in use already.'));
                             }
@@ -523,12 +543,14 @@ class ServersController extends AppController
 
                         if (!$fail) {
                             $this->Servers->Organisation->create();
-                            $orgSave = $this->Servers->Organisation->save(array(
-                                'name' => $json['name'],
-                                'uuid' => $json['uuid'],
-                                'local' => 0,
-                                'created_by' => $this->ACL->getUser()->id
-                            ));
+                            $orgSave = $this->Servers->Organisation->save(
+                                [
+                                    'name' => $json['name'],
+                                    'uuid' => $json['uuid'],
+                                    'local' => 0,
+                                    'created_by' => $this->ACL->getUser()->id
+                                ]
+                            );
 
                             if (!$orgSave) {
                                 if ($this->ParamHandler->isRest()) {
@@ -572,7 +594,7 @@ class ServersController extends AppController
                         return $this->RestResponse->viewData($server, $this->response->getType());
                     } else {
                         $this->Flash->success(__('The server has been saved'));
-                        $this->redirect(array('action' => 'index'));
+                        $this->redirect(['action' => 'index']);
                     }
                 } else {
                     if ($this->ParamHandler->isRest()) {
@@ -590,22 +612,25 @@ class ServersController extends AppController
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->describe('Servers', 'edit', false, $this->response->getType());
         } else {
-            $organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
+            $organisationOptions = [0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation'];
 
-            $temp = $this->Servers->Organisations->find('all', array(
-                'fields' => array('id', 'name', 'local'),
-                'order' => array('lower(Organisation.name) ASC')
-            ));
+            $temp = $this->Servers->Organisations->find(
+                'all',
+                [
+                    'fields' => ['id', 'name', 'local'],
+                    'order' => ['lower(Organisation.name) ASC']
+                ]
+            );
             $allOrgs = [];
-            $localOrganisations = array();
-            $externalOrganisations = array();
+            $localOrganisations = [];
+            $externalOrganisations = [];
             foreach ($temp as $o) {
                 if ($o['Organisation']['local']) {
                     $localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
                 } else {
                     $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
                 }
-                $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+                $allOrgs[] = ['id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']];
             }
 
             $allTypes = $this->Servers->getAllTypes();
@@ -648,7 +673,7 @@ class ServersController extends AppController
                 return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $message, $this->response->getType());
             } else {
                 $this->Flash->success($message);
-                $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+                $this->redirect(['controller' => 'servers', 'action' => 'index']);
             }
         }
         $message = __('Server was not deleted');
@@ -656,7 +681,7 @@ class ServersController extends AppController
             return $this->RestResponse->saveFailResponse('Servers', 'delete', $id, $message, $this->response->getType());
         } else {
             $this->Flash->error($message);
-            $this->redirect(array('action' => 'index'));
+            $this->redirect(['action' => 'index']);
         }
     }
 
@@ -664,10 +689,13 @@ class ServersController extends AppController
     {
         $AdminSettingsTable = $this->fetchTable('AdminSettings');
 
-        $setting = $AdminSettingsTable->find('all', [
-            'conditions' => ['setting' => 'eventBlockRule'],
-            'recursive' => -1
-        ])->first();
+        $setting = $AdminSettingsTable->find(
+            'all',
+            [
+                'conditions' => ['setting' => 'eventBlockRule'],
+                'recursive' => -1
+            ]
+        )->first();
         if (empty($setting)) {
             $setting = ['setting' => 'eventBlockRule'];
             if ($this->request->is('post')) {
@@ -729,15 +757,15 @@ class ServersController extends AppController
         }
         $error = false;
 
-        if (false == $s['Server']['pull'] && ($technique === 'full' || $technique === 'incremental')) {
+        if (false == $s['pull'] && ($technique === 'full' || $technique === 'incremental')) {
             $error = __('Pull setting not enabled for this server.');
         }
-        if (false == $s['Server']['pull_galaxy_clusters'] && ($technique === 'pull_relevant_clusters')) {
+        if (false == $s['pull_galaxy_clusters'] && ($technique === 'pull_relevant_clusters')) {
             $error = __('Pull setting not enabled for this server.');
         }
         if (empty($error)) {
             if (!Configure::read('BackgroundJobs.enabled')) {
-                $result = $this->Servers->pull($this->ACL->getUser(), $technique, $s);
+                $result = $this->Servers->pull($this->ACL->getUser()->toArray(), $technique, $s->toArray());
                 if (is_array($result)) {
                     $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
                 } else {
@@ -784,7 +812,7 @@ class ServersController extends AppController
         } else {
             if (!empty($error)) {
                 $this->Flash->error($error);
-                $this->redirect(array('action' => 'index'));
+                $this->redirect(['action' => 'index']);
             } else {
                 $this->Flash->success($success);
                 $this->redirect($this->referer());
@@ -823,7 +851,7 @@ class ServersController extends AppController
                     return $this->RestResponse->saveFailResponse('Servers', 'push', false, $error, $this->response->getType());
                 } else {
                     $this->Flash->info($error);
-                    $this->redirect(array('action' => 'index'));
+                    $this->redirect(['action' => 'index']);
                 }
             }
             if ($this->ParamHandler->isRest()) {
@@ -863,7 +891,7 @@ class ServersController extends AppController
                 return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->getType());
             }
             $this->Flash->success($message);
-            $this->redirect(array('action' => 'index'));
+            $this->redirect(['action' => 'index']);
         }
     }
 
@@ -880,35 +908,35 @@ class ServersController extends AppController
         }
         if (!$delete) {
             $ext = '';
-            if (isset($server['Server'][$subm]['name'])) {
-                if ($this->request->getData()['Server'][$subm]['size'] != 0) {
-                    if (!$this->Servers->checkFilename($server['Server'][$subm]['name'])) {
+            if (isset($server[$subm]['name'])) {
+                if ($this->request->getData()[$subm]['size'] != 0) {
+                    if (!$this->Servers->checkFilename($server[$subm]['name'])) {
                         throw new Exception(__('Filename not allowed'));
                     }
 
-                    if (!is_uploaded_file($server['Server'][$subm]['tmp_name'])) {
+                    if (!is_uploaded_file($server[$subm]['tmp_name'])) {
                         throw new Exception(__('File not uploaded correctly'));
                     }
 
-                    $ext = pathinfo($server['Server'][$subm]['name'], PATHINFO_EXTENSION);
+                    $ext = pathinfo($server[$subm]['name'], PATHINFO_EXTENSION);
                     if (!in_array($ext, HttpTool::ALLOWED_CERT_FILE_EXTENSIONS)) {
                         $this->Flash->error(__('Invalid extension.'));
-                        $this->redirect(array('action' => 'index'));
+                        $this->redirect(['action' => 'index']);
                     }
 
-                    if (!$server['Server'][$subm]['size'] > 0) {
+                    if (!$server[$subm]['size'] > 0) {
                         $this->Flash->error(__('Incorrect extension or empty file.'));
-                        $this->redirect(array('action' => 'index'));
+                        $this->redirect(['action' => 'index']);
                     }
 
                     // read certificate file data
-                    $certData = FileAccessTool::readFromFile($server['Server'][$subm]['tmp_name'], $server['Server'][$subm]['size']);
+                    $certData = FileAccessTool::readFromFile($server[$subm]['tmp_name'], $server[$subm]['size']);
                 } else {
                     return true;
                 }
             } else {
                 $ext = 'pem';
-                $certData = base64_decode($server['Server'][$subm]);
+                $certData = base64_decode($server[$subm]);
             }
 
             // check if the file is a valid x509 certificate
@@ -919,20 +947,18 @@ class ServersController extends AppController
                 }
             } catch (Exception $e) {
                 $this->Flash->error(__('Invalid certificate.'));
-                $this->redirect(array('action' => 'index'));
+                $this->redirect(['action' => 'index']);
             }
 
             $destpath = APP . "files" . DS . "certs" . DS;
 
-            $result = FileAccessTool::writeToFile($destpath . $id . $ins . '.' . $ext, $certData);
-            $s = $this->Servers->read(null, $id);
-            $s['Server'][$attr] = $s['Server']['id'] . $ins . '.' . $ext;
-            if ($result) {
-                $this->Servers->save($s);
-            }
+            FileAccessTool::writeToFile($destpath . $id . $ins . '.' . $ext, $certData);
+            $s = $this->Servers->get($id);
+            $s[$attr] = $s['id'] . $ins . '.' . $ext;
+            $this->Servers->save($s);
         } else {
-            $s = $this->Servers->read(null, $id);
-            $s['Server'][$attr] = '';
+            $s = $this->Servers->get($id);
+            $s[$attr] = '';
             $this->Servers->save($s);
         }
         return true;
@@ -961,9 +987,9 @@ class ServersController extends AppController
         }
         $result = $this->Servers->serverSettingReadSingle($settingObject, $setting, $key);
         $this->set('setting', $result);
-        $priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
+        $priorityErrorColours = [0 => 'red', 1 => 'yellow', 2 => 'green'];
         $this->set('priorityErrorColours', $priorityErrorColours);
-        $priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
+        $priorities = [0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated'];
         $this->set('priorities', $priorities);
         $this->set('k', $id);
         $this->layout = false;
@@ -982,57 +1008,57 @@ class ServersController extends AppController
         if (!$this->request->is('get')) {
             throw new MethodNotAllowedException('Just GET method is allowed.');
         }
-        $tabs = array(
-            'MISP' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-            'Encryption' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-            'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-            'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-            'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-            'SimpleBackgroundJobs' => array('count' => 0, 'errors' => 0, 'severity' => 5)
-        );
+        $tabs = [
+            'MISP' => ['count' => 0, 'errors' => 0, 'severity' => 5],
+            'Encryption' => ['count' => 0, 'errors' => 0, 'severity' => 5],
+            'Proxy' => ['count' => 0, 'errors' => 0, 'severity' => 5],
+            'Security' => ['count' => 0, 'errors' => 0, 'severity' => 5],
+            'Plugin' => ['count' => 0, 'errors' => 0, 'severity' => 5],
+            'SimpleBackgroundJobs' => ['count' => 0, 'errors' => 0, 'severity' => 5]
+        ];
 
-        $writeableErrors = array(0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable'));
-        $readableErrors = array(0 => __('OK'), 1 => __('not readable'));
-        $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
-        $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
-        $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
-        $sessionErrors = array(
+        $writeableErrors = [0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable')];
+        $readableErrors = [0 => __('OK'), 1 => __('not readable')];
+        $gpgErrors = [0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed')];
+        $proxyErrors = [0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed')];
+        $zmqErrors = [0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.')];
+        $sessionErrors = [
             0 => __('OK'),
             1 => __('Too many expired sessions in the database, please clear the expired sessions'),
             2 => __('PHP session handler is using the default file storage. This is not recommended, please use the redis or database storage'),
             8 => __('Alternative setting used'),
             9 => __('Test failed')
-        );
-        $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
-        $backgroundJobsErrors = array(
+        ];
+        $moduleErrors = [0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found')];
+        $backgroundJobsErrors = [
             0 => __('OK'),
             1 => __('Not configured (so not tested)'),
             2 => __('Error connecting to Redis.'),
             3 => __('Error connecting to Supervisor.'),
             4 => __('Error connecting to Redis and Supervisor.')
-        );
+        ];
 
         $finalSettings = $this->Servers->serverSettingsRead();
-        $issues = array(
-            'errors' => array(
-                0 => array(
+        $issues = [
+            'errors' => [
+                0 => [
                     'value' => 0,
                     'description' => __('MISP will not operate correctly or will be unsecure until these issues are resolved.')
-                ),
-                1 => array(
+                ],
+                1 => [
                     'value' => 0,
                     'description' => __('Some of the features of MISP cannot be utilised until these issues are resolved.')
-                ),
-                2 => array(
+                ],
+                2 => [
                     'value' => 0,
                     'description' => __('There are some optional tweaks that could be done to improve the looks of your MISP instance.')
-                ),
-            ),
-            'deprecated' => array(),
+                ],
+            ],
+            'deprecated' => [],
             'overallHealth' => 3,
-        );
-        $dumpResults = array();
-        $tempArray = array();
+        ];
+        $dumpResults = [];
+        $tempArray = [];
         foreach ($finalSettings as $k => $result) {
             if ($result['level'] == 3) {
                 $issues['deprecated']++;
@@ -1096,28 +1122,28 @@ class ServersController extends AppController
             $this->set('latestCommit', $gitStatus['latestCommit']);
             $this->set('version', $gitStatus['version']);
 
-            $phpSettings = array(
-                'max_execution_time' => array(
+            $phpSettings = [
+                'max_execution_time' => [
                     'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
                     'recommended' => 300,
                     'unit' => 'seconds',
-                ),
-                'memory_limit' => array(
+                ],
+                'memory_limit' => [
                     'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
                     'recommended' => 2048,
                     'unit' => 'MB'
-                ),
-                'upload_max_filesize' => array(
+                ],
+                'upload_max_filesize' => [
                     'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
                     'recommended' => 50,
                     'unit' => 'MB'
-                ),
-                'post_max_size' => array(
+                ],
+                'post_max_size' => [
                     'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
                     'recommended' => 50,
                     'unit' => 'MB'
-                )
-            );
+                ]
+            ];
 
             foreach ($phpSettings as $setting => $settingArray) {
                 $phpSettings[$setting]['value'] = $this->Servers->getIniSetting($setting);
@@ -1156,7 +1182,7 @@ class ServersController extends AppController
 
             $redisInfo = $this->Servers->redisInfo();
 
-            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+            $moduleTypes = ['Enrichment', 'Import', 'Export', 'Cortex'];
             foreach ($moduleTypes as $type) {
                 $moduleStatus[$type] = $this->Servers->moduleDiagnostics($diagnostic_errors, $type);
             }
@@ -1191,7 +1217,7 @@ class ServersController extends AppController
         $this->set($view);
 
         $workerIssueCount = 4;
-        $worker_array = array();
+        $worker_array = [];
         if (Configure::read('BackgroundJobs.enabled')) {
             $workerIssueCount = 0;
             $worker_array = $this->Servers->workerDiagnostics($workerIssueCount);
@@ -1201,7 +1227,7 @@ class ServersController extends AppController
             foreach ($dumpResults as $key => $dr) {
                 unset($dumpResults[$key]['description']);
             }
-            $dump = array(
+            $dump = [
                 'version' => $gitStatus['version'],
                 'phpSettings' => $phpSettings,
                 'gpgStatus' => $gpgErrors[$gpgStatus['status']],
@@ -1220,7 +1246,7 @@ class ServersController extends AppController
                 'extensions' => $extensions,
                 'workers' => $worker_array,
                 'backgroundJobsStatus' => $backgroundJobsErrors[$backgroundJobsStatus]
-            );
+            ];
             foreach ($dump['finalSettings'] as $k => $v) {
                 if (!empty($v['redacted'])) {
                     $dump['finalSettings'][$k]['value'] = '*****';
@@ -1232,10 +1258,10 @@ class ServersController extends AppController
             return $this->response;
         }
 
-        $priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
+        $priorities = [0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated'];
         $this->set('priorities', $priorities);
         $this->set('workerIssueCount', $workerIssueCount);
-        $priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
+        $priorityErrorColours = [0 => 'red', 1 => 'yellow', 2 => 'green'];
         $this->set('priorityErrorColours', $priorityErrorColours);
         $this->set('phpversion', PHP_VERSION);
         $this->set('phpmin', $this->phpmin);
@@ -1263,7 +1289,7 @@ class ServersController extends AppController
         }
 
         // CakeResque
-        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
+        $validTypes = ['default', 'email', 'scheduler', 'cache', 'prio', 'update'];
         if (!in_array($type, $validTypes)) {
             throw new MethodNotAllowedException('Invalid worker type.');
         }
@@ -1336,14 +1362,17 @@ class ServersController extends AppController
     public function idTranslator($localId = null)
     {
         // We retrieve the list of remote servers that we can query
-        $servers = $this->Servers->find('all', [
-            'conditions' => ['OR' => ['pull' => true, 'push' => true]],
-            'recursive' => -1,
-            'order' => ['Server.priority ASC'],
-        ]);
+        $servers = $this->Servers->find(
+            'all',
+            [
+                'conditions' => ['OR' => ['pull' => true, 'push' => true]],
+                'recursive' => -1,
+                'order' => ['Server.priority ASC'],
+            ]
+        );
 
         // We generate the list of servers for the dropdown
-        $displayServers = array();
+        $displayServers = [];
         foreach ($servers as $s) {
             $displayServers[] = [
                 'name' => $s['Server']['name'],
@@ -1359,13 +1388,13 @@ class ServersController extends AppController
                 $data['Event']['uuid'] = $localId;
             }
             $EventsTable = $this->fetchTable('Events');
-            $remote_events = array();
+            $remote_events = [];
             if (!empty($data['Event']['uuid']) && $data['Event']['local'] === "local") {
                 $local_event = $EventsTable->fetchSimpleEvent($this->ACL->getUser(), $data['Event']['uuid']);
             } else if (!empty($data['Event']['uuid']) && $data['Event']['local'] === "remote" && !empty($data['Server']['id'])) {
                 //We check on the remote server for any event with this id and try to find a match locally
-                $conditions = array('AND' => array('Server.id' => $data['Server']['id'], 'Server.pull' => true));
-                $remote_server = $this->Servers->find('all', array('conditions' => $conditions))->first();
+                $conditions = ['AND' => ['Server.id' => $data['Server']['id'], 'Server.pull' => true]];
+                $remote_server = $this->Servers->find('all', ['conditions' => $conditions])->first();
                 if (!empty($remote_server)) {
                     try {
                         $remote_event = $EventsTable->downloadEventMetadataFromServer($data['Event']['uuid'], $remote_server);
@@ -1382,12 +1411,12 @@ class ServersController extends AppController
                     $local_event = $EventsTable->fetchSimpleEvent($this->ACL->getUser(), $remote_event['uuid']);
                     // we record it to avoid re-querying the same server in the 2nd phase
                     if (!empty($local_event)) {
-                        $remote_events[] = array(
+                        $remote_events[] = [
                             "server_id" => $remote_server['Server']['id'],
                             "server_name" => $remote_server['Server']['name'],
                             "url" => $remote_server['Server']['url'] . "/events/view/" . $remote_event['id'],
                             "remote_id" => $remote_event['id']
-                        );
+                        ];
                     }
                 }
             }
@@ -1413,13 +1442,13 @@ class ServersController extends AppController
                     $exception = $e->getMessage();
                 }
                 $remoteEventId = isset($remoteEvent['id']) ? $remoteEvent['id'] : null;
-                $remote_events[] = array(
+                $remote_events[] = [
                     "server_id" => $server['Server']['id'],
                     "server_name" => $server['Server']['name'],
                     "url" => isset($remoteEventId) ? $server['Server']['url'] . "/events/view/" . $remoteEventId : $server['Server']['url'],
                     "remote_id" => isset($remoteEventId) ? $remoteEventId : false,
                     "exception" => $exception,
-                );
+                ];
             }
 
             $this->set('local_event', $local_event);
@@ -1492,7 +1521,7 @@ class ServersController extends AppController
         } else if ($this->request->is('post')) {
             $data = $this->request->getData();
             if (!isset($data['Server'])) {
-                $data = array('Server' => $data);
+                $data = ['Server' => $data];
             }
             if (!isset($data['Server']['value']) || !is_scalar($data['Server']['value'])) {
                 if ($this->ParamHandler->isRest()) {
@@ -1506,26 +1535,28 @@ class ServersController extends AppController
                 if ($this->ParamHandler->isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'No change.', $this->response->getType());
                 } else {
-                    return new Response(array('body' => json_encode(array('saved' => false, 'errors' => 'No change.')), 'status' => 200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => false, 'errors' => 'No change.']), 'status' => 200, 'type' => 'json']);
                 }
             }
             $this->autoRender = false;
             if (!Configure::read('MISP.system_setting_db') && !is_writeable(APP . 'Config/config.php')) {
                 $LogsTable = $this->fetchTable('Logs');
-                $LogsTable->saveOrFailSilently(array(
-                    'org' => $this->ACL->getUser()['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => $this->ACL->getUser()->email,
-                    'action' => 'serverSettingsEdit',
-                    'user_id' => $this->ACL->getUser()->id,
-                    'title' => 'Server setting issue',
-                    'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
-                ));
+                $LogsTable->saveOrFailSilently(
+                    [
+                        'org' => $this->ACL->getUser()['Organisation']['name'],
+                        'model' => 'Server',
+                        'model_id' => 0,
+                        'email' => $this->ACL->getUser()->email,
+                        'action' => 'serverSettingsEdit',
+                        'user_id' => $this->ACL->getUser()->id,
+                        'title' => 'Server setting issue',
+                        'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
+                    ]
+                );
                 if ($this->ParamHandler->isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'app/Config.config.php is not writeable to the apache user.', $this->response->getType());
                 } else {
-                    return new Response(array('body' => json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')), 'status' => 200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.']), 'status' => 200, 'type' => 'json']);
                 }
             }
             $result = $this->Servers->serverSettingsEditValue($this->ACL->getUser(), $setting, $data['Server']['value'], $forceSave);
@@ -1533,13 +1564,13 @@ class ServersController extends AppController
                 if ($this->ParamHandler->isRest()) {
                     return $this->RestResponse->saveSuccessResponse('Servers', 'serverSettingsEdit', false, $this->response->getType(), 'Field updated');
                 } else {
-                    return new Response(array('body' => json_encode(array('saved' => true, 'success' => 'Field updated.')), 'status' => 200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => true, 'success' => 'Field updated.']), 'status' => 200, 'type' => 'json']);
                 }
             } else {
                 if ($this->ParamHandler->isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $result, $this->response->getType());
                 } else {
-                    return new Response(array('body' => json_encode(array('saved' => false, 'errors' => $result)), 'status' => 200, 'type' => 'json'));
+                    return new Response(['body' => json_encode(['saved' => false, 'errors' => $result]), 'status' => 200, 'type' => 'json']);
                 }
             }
         }
@@ -1554,7 +1585,7 @@ class ServersController extends AppController
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'killAllWorkers', false, $this->response->getType(), __('Killing workers.'));
         }
-        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
+        $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'workers']);
     }
 
     public function restartWorkers()
@@ -1573,7 +1604,7 @@ class ServersController extends AppController
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'restartWorkers', false, $this->response->getType(), __('Restarting workers.'));
         }
-        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
+        $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'workers']);
     }
 
     public function restartDeadWorkers()
@@ -1592,7 +1623,7 @@ class ServersController extends AppController
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'restartDeadWorkers', false, $this->response->getType(), __('Restarting workers.'));
         }
-        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
+        $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'workers']);
     }
 
     public function deleteFile($type, $filename)
@@ -1601,15 +1632,15 @@ class ServersController extends AppController
             $validItems = $this->Servers->getFileRules();
             $existingFile = new SplFileInfo($validItems[$type]['path'] . DS . $filename);
             if (!$existingFile->isFile()) {
-                $this->Flash->error(__('File not found.', true), 'default', array(), 'error');
-                $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+                $this->Flash->error(__('File not found.', true), 'default', [], 'error');
+                $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'files']);
             }
             if (FileAccessTool::deleteFile($existingFile->getPathname())) {
                 $this->Flash->success('File deleted.');
             } else {
-                $this->Flash->error(__('File could not be deleted.', true), 'default', array(), 'error');
+                $this->Flash->error(__('File could not be deleted.', true), 'default', [], 'error');
             }
-            $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+            $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'files']);
         } else {
             throw new MethodNotAllowedException('This action expects a POST request.');
         }
@@ -1630,43 +1661,46 @@ class ServersController extends AppController
         $data = $this->request->getData();
         $filename = basename($data['Server']['file']['name']);
         if (!preg_match("/" . $validItems[$type]['regex'] . "/", $filename)) {
-            $this->Flash->error($validItems[$type]['regex_error'], 'default', array(), 'error');
-            $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+            $this->Flash->error($validItems[$type]['regex_error'], 'default', [], 'error');
+            $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'files']);
         }
         if (empty($data['Server']['file']['tmp_name']) || !is_uploaded_file($data['Server']['file']['tmp_name'])) {
-            $this->Flash->error(__('Upload failed.', true), 'default', array(), 'error');
-            $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+            $this->Flash->error(__('Upload failed.', true), 'default', [], 'error');
+            $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'files']);
         }
 
         // check if the file already exists
         $existingFile = new SplFileInfo($validItems[$type]['path'] . DS . $filename);
         if ($existingFile->isFile()) {
-            $this->Flash->info(__('File already exists. If you would like to replace it, remove the old one first.', true), 'default', array(), 'error');
-            $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+            $this->Flash->info(__('File already exists. If you would like to replace it, remove the old one first.', true), 'default', [], 'error');
+            $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'files']);
         }
 
         $result = move_uploaded_file($data['Server']['file']['tmp_name'], $validItems[$type]['path'] . DS . $filename);
         if ($result) {
             $this->Flash->success('File uploaded.');
         } else {
-            $this->Flash->error(__('Upload failed.', true), 'default', array(), 'error');
+            $this->Flash->error(__('Upload failed.', true), 'default', [], 'error');
         }
-        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
+        $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'files']);
     }
 
     public function fetchServersForSG($idList = '{}')
     {
         $id_exclusion_list = json_decode($idList, true);
-        $temp = $this->Servers->find('all', array(
-            'conditions' => array(
-                'id !=' => $id_exclusion_list,
-            ),
-            'recursive' => -1,
-            'fields' => array('id', 'name', 'url')
-        ));
-        $servers = array();
+        $temp = $this->Servers->find(
+            'all',
+            [
+                'conditions' => [
+                    'id !=' => $id_exclusion_list,
+                ],
+                'recursive' => -1,
+                'fields' => ['id', 'name', 'url']
+            ]
+        );
+        $servers = [];
         foreach ($temp as $server) {
-            $servers[] = array('id' => $server['Server']['id'], 'name' => $server['Server']['name'], 'url' => $server['Server']['url']);
+            $servers[] = ['id' => $server['Server']['id'], 'name' => $server['Server']['name'], 'url' => $server['Server']['url']];
         }
         $this->layout = false;
         $this->autoRender = false;
@@ -1728,7 +1762,7 @@ class ServersController extends AppController
                 $version = explode('.', $result['info']['version']);
                 $mismatch = false;
                 $newer = false;
-                $parts = array('major', 'minor', 'hotfix');
+                $parts = ['major', 'minor', 'hotfix'];
                 foreach ($parts as $k => $v) {
                     if (!$mismatch) {
                         if ($version[$k] > $local_version[$v]) {
@@ -1745,28 +1779,31 @@ class ServersController extends AppController
                 }
                 if (!$perm_sync && !$perm_sighting) {
                     $result['status'] = 7;
-                    return new Response(array('body' => json_encode($result), 'type' => 'json'));
+                    return new Response(['body' => json_encode($result), 'type' => 'json']);
                 }
                 if (!$perm_sync && $perm_sighting) {
                     $result['status'] = 8;
-                    return new Response(array('body' => json_encode($result), 'type' => 'json'));
+                    return new Response(['body' => json_encode($result), 'type' => 'json']);
                 }
-                return $this->RestResponse->viewData([
-                    'status' => 1,
-                    'local_version' => implode('.', $local_version),
-                    'version' => implode('.', $version),
-                    'mismatch' => $mismatch,
-                    'newer' => $newer,
-                    'post' => isset($result['post']) ? $result['post']['status'] : 'too old',
-                    'response_encoding' => isset($result['post']['content-encoding']) ? $result['post']['content-encoding'] : null,
-                    'request_encoding' => isset($result['info']['request_encoding']) ? $result['info']['request_encoding'] : null,
-                    'client_certificate' => $result['client_certificate'],
-                ], 'json');
+                return $this->RestResponse->viewData(
+                    [
+                        'status' => 1,
+                        'local_version' => implode('.', $local_version),
+                        'version' => implode('.', $version),
+                        'mismatch' => $mismatch,
+                        'newer' => $newer,
+                        'post' => isset($result['post']) ? $result['post']['status'] : 'too old',
+                        'response_encoding' => isset($result['post']['content-encoding']) ? $result['post']['content-encoding'] : null,
+                        'request_encoding' => isset($result['info']['request_encoding']) ? $result['info']['request_encoding'] : null,
+                        'client_certificate' => $result['client_certificate'],
+                    ],
+                    'json'
+                );
             } else {
                 $result['status'] = 3;
             }
         }
-        return new Response(array('body' => json_encode($result), 'type' => 'json'));
+        return new Response(['body' => json_encode($result), 'type' => 'json']);
     }
 
     public function startZeroMQServer()
@@ -1774,9 +1811,9 @@ class ServersController extends AppController
         $pubSubTool = $this->Servers->getPubSubTool();
         $result = $pubSubTool->restartServer();
         if ($result === true) {
-            return new Response(array('body' => json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully started.')), 'status' => 200, 'type' => 'json'));
+            return new Response(['body' => json_encode(['saved' => true, 'success' => 'ZeroMQ server successfully started.']), 'status' => 200, 'type' => 'json']);
         } else {
-            return new Response(array('body' => json_encode(array('saved' => false, 'errors' => $result)), 'status' => 200, 'type' => 'json'));
+            return new Response(['body' => json_encode(['saved' => false, 'errors' => $result]), 'status' => 200, 'type' => 'json']);
         }
     }
 
@@ -1785,9 +1822,9 @@ class ServersController extends AppController
         $pubSubTool = $this->Servers->getPubSubTool();
         $result = $pubSubTool->killService();
         if ($result === true) {
-            return new Response(array('body' => json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully killed.')), 'status' => 200, 'type' => 'json'));
+            return new Response(['body' => json_encode(['saved' => true, 'success' => 'ZeroMQ server successfully killed.']), 'status' => 200, 'type' => 'json']);
         } else {
-            return new Response(array('body' => json_encode(array('saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.')), 'status' => 200, 'type' => 'json'));
+            return new Response(['body' => json_encode(['saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.']), 'status' => 200, 'type' => 'json']);
         }
     }
 
@@ -1822,7 +1859,7 @@ class ServersController extends AppController
             $this->Servers->getBackgroundJobsTool()->purgeQueue($worker);
         } else {
             // CakeResque
-            $worker_array = array('cache', 'default', 'email', 'prio');
+            $worker_array = ['cache', 'default', 'email', 'prio'];
             if (!in_array($worker, $worker_array)) {
                 throw new MethodNotAllowedException('Invalid worker');
             }
@@ -1855,7 +1892,7 @@ class ServersController extends AppController
      */
     public function getPyMISPVersion()
     {
-        $this->set('response', array('version' => $this->pyMispVersion));
+        $this->set('response', ['version' => $this->pyMispVersion]);
         $this->set('_serialize', 'response');
     }
 
@@ -1867,17 +1904,17 @@ class ServersController extends AppController
     public function update($branch = false)
     {
         if ($this->request->is('post')) {
-            $filterData = array(
+            $filterData = [
                 'request' => $this->request,
                 'named_params' => $this->params['named'],
                 'paramArray' => ['branch'],
                 'ordered_url_params' => [],
                 'additional_delimiters' => PHP_EOL
-            );
+            ];
             $exception = false;
             $settings = $this->harvestParameters($filterData, $exception);
             $status = $this->Servers->getCurrentGitStatus();
-            $raw = array();
+            $raw = [];
             if (empty($status['branch'])) { // do not try to update if you are not on branch
                 $msg = 'Update failed, you are not on branch';
                 $raw[] = $msg;
@@ -1889,9 +1926,9 @@ class ServersController extends AppController
                 $update = $this->Servers->update($status, $raw, $settings);
             }
             if ($this->ParamHandler->isRest()) {
-                return $this->RestResponse->viewData(array('results' => $raw), $this->response->getType());
+                return $this->RestResponse->viewData(['results' => $raw], $this->response->getType());
             } else {
-                return new Response(array('body' => $update, 'type' => 'txt'));
+                return new Response(['body' => $update, 'type' => 'txt']);
             }
         } else {
             $this->set('isUpdatePossible', $this->Servers->isUpdatePossible());
@@ -1904,7 +1941,7 @@ class ServersController extends AppController
     {
         $AdminSettingsTable = $this->fetchTable('AdminSettings');
         $actions = $this->Servers->actions_description;
-        $default_fields = array(
+        $default_fields = [
             'title' => '',
             'description' => '',
             'liveOff' => false,
@@ -1912,7 +1949,7 @@ class ServersController extends AppController
             'exitOnError' => false,
             'requirements' => '',
             'url' => $this->baseurl . '/'
-        );
+        ];
         foreach ($actions as $id => $action) {
             foreach ($default_fields as $field => $value) {
                 if (!isset($action[$field])) {
@@ -1938,7 +1975,7 @@ class ServersController extends AppController
             $request = $this->request->getData();
             $submodule = $request['Server']['submodule'];
             $res = $this->Servers->updateSubmodule($this->ACL->getUser(), $submodule);
-            return new Response(array('body' => json_encode($res), 'type' => 'json'));
+            return new Response(['body' => json_encode($res), 'type' => 'json']);
         } else {
             throw new MethodNotAllowedException();
         }
@@ -1946,7 +1983,7 @@ class ServersController extends AppController
 
     public function getInstanceUUID()
     {
-        return $this->RestResponse->viewData(array('uuid' => Configure::read('MISP.uuid')), $this->response->getType());
+        return $this->RestResponse->viewData(['uuid' => Configure::read('MISP.uuid')], $this->response->getType());
     }
 
     public function cache($id = 'all')
@@ -1980,7 +2017,7 @@ class ServersController extends AppController
             $result = $this->Servers->cacheServerInitiator($this->ACL->getUser(), $id);
             if (!$result) {
                 $this->Flash->error(__('Caching the servers has failed.'));
-                $this->redirect(array('action' => 'index'));
+                $this->redirect(['action' => 'index']);
             }
             $message = __('Caching the servers has successfully completed.');
         }
@@ -1988,7 +2025,7 @@ class ServersController extends AppController
             return $this->RestResponse->saveSuccessResponse('Server', 'cache', false, $this->response->getType(), $message);
         } else {
             $this->Flash->info($message);
-            $this->redirect(array('action' => 'index'));
+            $this->redirect(['action' => 'index']);
         }
     }
 
@@ -2015,11 +2052,14 @@ class ServersController extends AppController
             throw new MethodNotAllowedException(__('Cannot create sync config - no host org ID configured for the instance.'));
         }
         $OrganisationsTable = $this->fetchTable('Organisations');
-        $host_org = $OrganisationsTable->find('all', array(
-            'conditions' => array('Organisation.id' => $host_org_id),
-            'recursive' => -1,
-            'fields' => array('name', 'uuid')
-        ))->first();
+        $host_org = $OrganisationsTable->find(
+            'all',
+            [
+                'conditions' => ['Organisation.id' => $host_org_id],
+                'recursive' => -1,
+                'fields' => ['name', 'uuid']
+            ]
+        )->first();
         if (empty($host_org)) {
             throw new MethodNotAllowedException(__('Configured host org not found. Please make sure that the setting is current on the instance.'));
         }
@@ -2028,24 +2068,27 @@ class ServersController extends AppController
             $authkey = $AuthKeysTable->createnewkey($this->ACL->getUser()->id, null, __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
         } else {
             $UsersTable = $this->fetchTable('Users');
-            $authkey = $UsersTable->find('column', [
-                'conditions' => ['User.id' => $this->ACL->getUser()->id],
-                'recursive' => -1,
-                'fields' => ['User.authkey']
-            ]);
+            $authkey = $UsersTable->find(
+                'column',
+                [
+                    'conditions' => ['User.id' => $this->ACL->getUser()->id],
+                    'recursive' => -1,
+                    'fields' => ['User.authkey']
+                ]
+            );
             $authkey = $authkey[0];
         }
-        $server = array(
-            'Server' => array(
+        $server = [
+            'Server' => [
                 'url' => $baseurl,
                 'uuid' => Configure::read('MISP.uuid'),
                 'authkey' => h($authkey),
-                'Organisation' => array(
+                'Organisation' => [
                     'name' => $host_org['Organisation']['name'],
                     'uuid' => $host_org['Organisation']['uuid'],
-                )
-            )
-        );
+                ]
+            ]
+        ];
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($server, $this->response->getType());
         } else {
@@ -2065,7 +2108,7 @@ class ServersController extends AppController
             }
             $OrganisationsTable = $this->fetchTable('Organisations');
             $org_id = $OrganisationsTable->captureOrg($server['Organisation'], $this->ACL->getUser());
-            $toSave = array(
+            $toSave = [
                 'push' => 0,
                 'pull' => 0,
                 'caching_enabled' => 0,
@@ -2079,7 +2122,7 @@ class ServersController extends AppController
                 'url' => $server['url'],
                 'uuid' => $server['uuid'],
                 'authkey' => $server['authkey']
-            );
+            ];
             $this->Servers->create();
             $result = $this->Servers->save($toSave);
             if ($result) {
@@ -2088,14 +2131,14 @@ class ServersController extends AppController
                     return $this->RestResponse->viewData($server, $this->response->getType());
                 } else {
                     $this->Flash->success(__('The server has been saved'));
-                    $this->redirect(array('action' => 'index', $this->Servers->id));
+                    $this->redirect(['action' => 'index', $this->Servers->id]);
                 }
             } else {
                 if ($this->ParamHandler->isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'addFromJson', false, $this->Servers->validationErrors, $this->response->getType());
                 } else {
                     $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Servers->validationErrors)));
-                    $this->redirect(array('action' => 'index'));
+                    $this->redirect(['action' => 'index']);
                 }
             }
         }
@@ -2110,7 +2153,7 @@ class ServersController extends AppController
         if ($result !== true) {
             if (!$this->ParamHandler->isRest()) {
                 $this->Flash->error($result);
-                $this->redirect(array('action' => 'index'));
+                $this->redirect(['action' => 'index']);
             } else {
                 $message = __('Could not update API key.');
                 return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $message, $this->response->getType());
@@ -2119,7 +2162,7 @@ class ServersController extends AppController
             $message = __('API key updated.');
             if (!$this->ParamHandler->isRest()) {
                 $this->Flash->success($message);
-                $this->redirect(array('action' => 'index'));
+                $this->redirect(['action' => 'index']);
             } else {
                 return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $message, $this->response->getType());
             }
@@ -2152,7 +2195,7 @@ class ServersController extends AppController
         }
         $this->Servers->changeLockState(false);
         $this->Servers->resetUpdateFailNumber();
-        $this->redirect(array('action' => 'updateProgress'));
+        $this->redirect(['action' => 'updateProgress']);
     }
 
     public function dbSchemaDiagnostic()
@@ -2221,14 +2264,17 @@ class ServersController extends AppController
     private function __getTags()
     {
         $TagsTable = $this->fetchTable('Tags');
-        $list = $TagsTable->find('list', array(
-            'recursive' => -1,
-            'order' => array('LOWER(TRIM(Tag.name))' => 'ASC'),
-            'fields' => array('name'),
-        ));
-        $allTags = array();
+        $list = $TagsTable->find(
+            'list',
+            [
+                'recursive' => -1,
+                'order' => ['LOWER(TRIM(Tag.name))' => 'ASC'],
+                'fields' => ['name'],
+            ]
+        );
+        $allTags = [];
         foreach ($list as $id => $name) {
-            $allTags[] = array('id' => $id, 'name' => trim($name));
+            $allTags[] = ['id' => $id, 'name' => trim($name)];
         }
         return $allTags;
     }
@@ -2241,7 +2287,7 @@ class ServersController extends AppController
             return $this->RestResponse->viewData($message, $this->response->getType());
         } else {
             $this->Flash->success($message);
-            $this->redirect(array('action' => 'serverSettings', 'diagnostics'));
+            $this->redirect(['action' => 'serverSettings', 'diagnostics']);
         }
     }
 
@@ -2273,17 +2319,23 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
         $AttributesTable = $this->fetchTable('Attributes');
-        $duplicates = $AttributesTable->find('all', array(
-            'fields' => array('Attribute.uuid', 'count(*) as occurance'),
-            'recursive' => -1,
-            'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
-        ));
+        $duplicates = $AttributesTable->find(
+            'all',
+            [
+                'fields' => ['Attribute.uuid', 'count(*) as occurance'],
+                'recursive' => -1,
+                'group' => ['Attribute.uuid HAVING COUNT(*) > 1'],
+            ]
+        );
         $counter = 0;
         foreach ($duplicates as $duplicate) {
-            $attributes = $AttributesTable->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('uuid' => $duplicate['Attribute']['uuid'])
-            ));
+            $attributes = $AttributesTable->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => ['uuid' => $duplicate['Attribute']['uuid']]
+                ]
+            );
             foreach ($attributes as $k => $attribute) {
                 if ($k > 0) {
                     $AttributesTable->delete($attribute['Attribute']['id']);
@@ -2293,7 +2345,7 @@ class ServersController extends AppController
         }
         $this->Servers->updateDatabase('makeAttributeUUIDsUnique');
         $this->Flash->success('Done. Deleted ' . $counter . ' duplicate attribute(s).');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        $this->redirect(['controller' => 'pages', 'action' => 'display', 'administration']);
     }
 
     public function removeDuplicateEvents()
@@ -2302,11 +2354,14 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
         $EventsTable = $this->fetchTable('Events');
-        $duplicates = $EventsTable->find('all', array(
-            'fields' => array('Event.uuid', 'count(*) as occurance'),
-            'recursive' => -1,
-            'group' => array('Event.uuid HAVING COUNT(*) > 1'),
-        ));
+        $duplicates = $EventsTable->find(
+            'all',
+            [
+                'fields' => ['Event.uuid', 'count(*) as occurance'],
+                'recursive' => -1,
+                'group' => ['Event.uuid HAVING COUNT(*) > 1'],
+            ]
+        );
         $counter = 0;
 
         // load this so we can remove the blocklist item that will be created, this is the one case when we do not want it.
@@ -2315,10 +2370,13 @@ class ServersController extends AppController
         }
 
         foreach ($duplicates as $duplicate) {
-            $events = $EventsTable->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('uuid' => $duplicate['Event']['uuid'])
-            ));
+            $events = $EventsTable->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => ['uuid' => $duplicate['Event']['uuid']]
+                ]
+            );
             foreach ($events as $k => $event) {
                 if ($k > 0) {
                     $uuid = $event['Event']['uuid'];
@@ -2327,14 +2385,14 @@ class ServersController extends AppController
                     // remove the blocklist entry that we just created with the event deletion, if the feature is enabled
                     // We do not want to block the UUID, since we just deleted a copy
                     if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-                        $EventsTableBlocklist->deleteAll(array('EventBlocklist.event_uuid' => $uuid));
+                        $EventsTableBlocklist->deleteAll(['EventBlocklist.event_uuid' => $uuid]);
                     }
                 }
             }
         }
         $this->Servers->updateDatabase('makeEventUUIDsUnique');
         $this->Flash->success('Done. Removed ' . $counter . ' duplicate events.');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        $this->redirect(['controller' => 'pages', 'action' => 'display', 'administration']);
     }
 
     public function upgrade2324()
@@ -2345,7 +2403,7 @@ class ServersController extends AppController
         if (!Configure::read('BackgroundJobs.enabled')) {
             $this->Servers->upgrade2324($this->ACL->getUser()->id);
             $this->Flash->success('Done. For more details check the audit logs.');
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+            $this->redirect(['controller' => 'pages', 'action' => 'display', 'administration']);
         } else {
 
             /** @var JobsTable $JobsTable */
@@ -2371,7 +2429,7 @@ class ServersController extends AppController
             );
 
             $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+            $this->redirect(['controller' => 'pages', 'action' => 'display', 'administration']);
         }
     }
 
@@ -2382,7 +2440,7 @@ class ServersController extends AppController
         }
         $this->Servers->cleanCacheFiles();
         $this->Flash->success('Caches cleared.');
-        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
+        $this->redirect(['controller' => 'servers', 'action' => 'serverSettings', 'diagnostics']);
     }
 
     public function updateDatabase($command)
@@ -2395,7 +2453,7 @@ class ServersController extends AppController
         }
         $this->Servers->updateDatabase($command);
         $this->Flash->success('Done.');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        $this->redirect(['controller' => 'pages', 'action' => 'display', 'administration']);
     }
 
     public function ipUser($input = false)
@@ -2418,11 +2476,14 @@ class ServersController extends AppController
                 continue;
             }
             $UsersTable = $this->fetchTable('Users');
-            $user = $UsersTable->find('all', [
-                'recursive' => -1,
-                'conditions' => ['User.id' => $user_id],
-                'contain' => ['Organisation.name']
-            ])->first();
+            $user = $UsersTable->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => ['User.id' => $user_id],
+                    'contain' => ['Organisation.name']
+                ]
+            )->first();
             if (empty($user)) {
                 throw new NotFoundException(__('User not found (perhaps it has been removed?).'));
             }

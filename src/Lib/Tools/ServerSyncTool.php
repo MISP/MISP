@@ -31,7 +31,7 @@ class ServerSyncTool
     /** @var array */
     private $request;
 
-    /** @var HttpSocketExtended */
+    /** @var HttpTool */
     private $socket;
 
     /** @var CryptographicKey */
@@ -69,7 +69,7 @@ class ServerSyncTool
      */
     public function eventExists(array $event)
     {
-        $url = $this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'];
+        $url = $this->server['url'] . '/events/view/' . $event['Event']['uuid'];
         $start = microtime(true);
         $exists = $this->socket->head($url, [], $this->request);
         $this->log($start, 'HEAD', $url, $exists);
@@ -256,7 +256,7 @@ class ServerSyncTool
                 'includeUuid' => true,
                 'uuid' => $eventUuids,
             ]
-        )->json()['response'];
+        )->getJson()['response'];
     }
 
     /**
@@ -273,7 +273,7 @@ class ServerSyncTool
         }
 
         $response = $this->post('/sightings/filterSightingUuidsForPush/' . $event['Event']['uuid'], $sightingUuids);
-        return $response->json();
+        return $response->getJson();
     }
 
     /**
@@ -366,7 +366,7 @@ class ServerSyncTool
      */
     public function serverId()
     {
-        return $this->server['Server']['id'];
+        return $this->server['id'];
     }
 
     /**
@@ -503,11 +503,11 @@ class ServerSyncTool
                 $data = gzencode($data, 1);
             }
         }
-        $url = $this->server['Server']['url'] . $url;
+        $url = $this->server['url'] . $url;
         $start = microtime(true);
         $response = $this->socket->post($url, $data, $request);
         $this->log($start, 'POST', $url, $response);
-        if ($etag && $response->isNotModified()) {
+        if ($etag && $response->getStatusCode() === 304) {
             return $response; // if etag was provided and response code is 304, it is valid response
         }
         if (!$response->isOk()) {
@@ -543,7 +543,7 @@ class ServerSyncTool
      */
     private function decodeRule($key)
     {
-        $rules = $this->server['Server'][$key];
+        $rules = $this->server[$key];
         return json_decode($rules, true);
     }
 

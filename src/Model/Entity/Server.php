@@ -3,12 +3,9 @@
 namespace App\Model\Entity;
 
 use App\Lib\Tools\BackgroundJobsTool;
-use App\Lib\Tools\BetterSecurity;
-use App\Lib\Tools\EncryptedValue;
 use App\Lib\Tools\RedisTool;
 use App\Model\Entity\AppModel;
 use Cake\ORM\Locator\LocatorAwareTrait;
-use Exception;
 
 class Server extends AppModel
 {
@@ -17,6 +14,38 @@ class Server extends AppModel
     public const SETTING_CRITICAL = 0,
         SETTING_RECOMMENDED = 1,
         SETTING_OPTIONAL = 2;
+
+    public const SYNC_TEST_ERROR_CODES = [
+        2 => 'Server unreachable',
+        3 => 'Unexpected error',
+        4 => 'Authentication failed',
+        5 => 'Password change required',
+        6 => 'Terms not accepted'
+    ];
+
+    public const ACTIONS_DESCRIPTIONS = [
+        'verifyGnuPGkeys' => [
+            'title' => 'Verify GnuPG keys',
+            'description' => "Run a full validation of all GnuPG keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results.",
+            'url' => '/users/verifyGPG/'
+        ],
+        'databaseCleanupScripts' => [
+            'title' => 'Database Cleanup Scripts',
+            'description' => 'If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.',
+            'url' => '/logs/pruneUpdateLogs/'
+        ],
+        'releaseUpdateLock' => [
+            'title' => 'Release update lock',
+            'description' => 'If your your database is locked and is not updating, unlock it here.',
+            'ignore_disabled' => true,
+            'url' => '/servers/releaseUpdateLock/'
+        ],
+        'normalizeCustomTagsToTaxonomyFormat' => [
+            'title' => 'Normalize custom tags to taxonomy format',
+            'description' => 'Transform all custom tags existing in a taxonomy into the taxonomy version',
+            'url' => '/taxonomies/normalizeCustomTagsToTaxonomyFormat/'
+        ],
+    ];
 
     public function &__get(string $field)
     {
@@ -27,6 +56,7 @@ class Server extends AppModel
         }
         return parent::__get($field);
     }
+
 
     /**
      * Generate just when required
@@ -2977,5 +3007,4 @@ class Server extends AppModel
         }
         return $options;
     }
-
 }
