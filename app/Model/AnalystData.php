@@ -604,6 +604,7 @@ class AnalystData extends AppModel
 
     private function prepareForPushToServer($type, array $analystData, array $server)
     {
+        $analystData[$type]['locked'] = true;
         if ($analystData[$type]['distribution'] == 4) {
             if (!empty($analystData[$type]['SharingGroup']['SharingGroupServer'])) {
                 $found = false;
