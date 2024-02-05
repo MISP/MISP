@@ -375,15 +375,15 @@ class AnalystData extends AppModel
         }
 
         $analystData = $analystModel->captureOrganisationAndSG($analystData, $type, $user);
-        $existingAnalystData = $analystModel->find('first', [
-            'conditions' => ["{$type}.uuid" => $analystData[$type]['uuid'],],
-        ]);
         if (!isset($analystData[$type]['distribution'])) {
             $analystData[$type]['distribution'] = Configure::read('MISP.default_event_distribution'); // use default event distribution
         }
         if ($analystData[$type]['distribution'] != 4) {
             $analystData[$type]['sharing_group_id'] = null;
         }
+        $existingAnalystData = $analystModel->find('first', [
+            'conditions' => ["{$type}.uuid" => $analystData[$type]['uuid'],],
+        ]);
         if (empty($existingAnalystData)) {
             unset($analystData[$type]['id']);
             $analystModel->create();
@@ -727,6 +727,7 @@ class AnalystData extends AppModel
                 }
     
                 foreach ($chunkedAnalystData as $analystData) {
+                    $analystData = $this->updatePulledBeforeInsert($analystData, $type, $serverSync->server(), $user, $serverSync->pullRules());
                     $savedResult = $this->captureAnalystData($user, $analystData, true, $serverOrgUUID, $serverSync->server());
                     if ($savedResult['success']) {
                         $saved += $savedResult['imported'];
@@ -736,5 +737,24 @@ class AnalystData extends AppModel
         }
 
         return $saved;
+    }
+
+    private function updatePulledBeforeInsert(array $analystData, $type, array $server, array $user, array $pullRules): array
+    {
+        $analystData[$type]['locked'] = true;
+
+        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+            switch ($analystData[$type]['distribution']) {
+                case 1:
+                    // if community only, downgrade to org only after pull
+                    $analystData[$type]['distribution'] = '0';
+                    break;
+                case 2:
+                    // if connected communities downgrade to community only
+                    $analystData[$type]['distribution'] = '1';
+                    break;
+            }
+        }
+        return $analystData;
     }
 }
