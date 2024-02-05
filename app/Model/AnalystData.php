@@ -567,17 +567,27 @@ class AnalystData extends AppModel
             ];
             $analystData = $validModels[$model]->find('all', $options);
             foreach ($analystData as $entry) {
-                if (strtotime($entry[$model]['modified']) >= strtotime($incomingAnalystData[$entry[$model]['uuid']])) {
-                    unset($incomingAnalystData[$entry[$model]['uuid']]);
+                if (empty($incomingAnalystData[$entry[$model]['uuid']])) {
                     continue;
                 }
-                if ($entry[$model]['locked'] == 0) {
+                if (!$this->isCandidateValidForPush($incomingAnalystData[$entry[$model]['uuid']], $entry[$model])) {
                     unset($incomingAnalystData[$entry[$model]['uuid']]);
                 }
             }
             $allData[$model] = $incomingAnalystData;
         }
         return $allData;
+    }
+
+    private function isCandidateValidForPush($candidateModified, array $existingEntry): bool
+    {
+        if ($existingEntry['locked'] == 0) {
+            return false;
+        }
+        if (strtotime($existingEntry['modified']) >= strtotime($candidateModified)) {
+            return false;
+        }
+        return true;
     }
 
     public function indexMinimal(array $user): array
