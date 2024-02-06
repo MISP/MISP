@@ -524,6 +524,9 @@ class AnalystData extends AppModel
                 if (!$this->Event->checkDistributionForPush($analystData, $server, $type)) {
                     unset($dataForPush[$type][$i]);
                 }
+                if (!$this->isPushableForServerSyncRules($analystData[$type], $server)) {
+                    unset($dataForPush[$type][$i]);
+                }
             }
         }
         return $dataForPush;
@@ -546,6 +549,22 @@ class AnalystData extends AppModel
             $sgIDs = [-1];
         }
         return $sgIDs;
+    }
+
+    private function isPushableForServerSyncRules(array $analystData, array $server): bool
+    {
+        $push_rules = json_decode($server['Server']['push_rules'], true);
+        if (!empty($push_rules['orgs']['OR'])) {
+            if (!in_array($analystData['Orgc']['id'], $push_rules['orgs']['OR'])) {
+                return false;
+            }
+        }
+        if (!empty($push_rules['orgs']['NOT'])) {
+            if (in_array($analystData['Orgc']['id'], $push_rules['orgs']['NOT'])) {
+                return false;
+            }
+        }
+        return true;
     }
 
 
