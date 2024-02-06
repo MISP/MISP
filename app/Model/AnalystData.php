@@ -454,7 +454,7 @@ class AnalystData extends AppModel
 
         $this->log("Starting Analyst Data sync with server #{$server['Server']['id']}", LOG_INFO);
 
-        $analystData = $this->collectDataForPush($user);
+        $analystData = $this->collectDataForPush($serverSync->server());
         $keyedAnalystData = [];
         foreach ($analystData as $type => $entries) {
             foreach ($entries as $entry) {
@@ -494,15 +494,57 @@ class AnalystData extends AppModel
      * @param array $user
      * @return array
      */
-    public function collectDataForPush(array $user): array
+    public function collectDataForPush(array $server): array
     {
+        $sgIDs = $this->collectValidSharingGroupIDs($server);
         $options = [
             'recursive' => -1,
             'conditions' => [
-                $this->buildConditions($user),
+                'OR' => [
+                    [
+                        'AND' => [
+                            ['distribution >' => 0],
+                            ['distribution <' => 4],
+                        ]
+                    ],
+                    [
+                        'AND' => [
+                            'distribution' => 4,
+                            'sharing_group_id' => $sgIDs,
+                        ]
+                    ],
+                ]
             ],
         ];
-        return $this->getAllAnalystData('all', $options);
+        $dataForPush = $this->getAllAnalystData('all', $options);
+        $this->Event = ClassRegistry::init('Event');
+        foreach ($dataForPush as $type => $entries) {
+            foreach ($entries as $i => $analystData) {
+                if (!$this->Event->checkDistributionForPush($analystData, $server, $type)) {
+                    unset($dataForPush[$type][$i]);
+                }
+            }
+        }
+        return $dataForPush;
+    }
+
+    private function collectValidSharingGroupIDs(array $server): array
+    {
+        $this->SharingGroup = ClassRegistry::init('SharingGroup');
+        $sgs = $this->SharingGroup->find('all', [
+            'recursive' => -1,
+            'contain' => ['Organisation', 'SharingGroupOrg' => ['Organisation'], 'SharingGroupServer']
+        ]);
+        $sgIDs = [];
+        foreach ($sgs as $sg) {
+            if ($this->SharingGroup->checkIfServerInSG($sg, $server)) {
+                $sgIDs[] = $sg['SharingGroup']['id'];
+            }
+        }
+        if (empty($sgIDs)) {
+            $sgIDs = [-1];
+        }
+        return $sgIDs;
     }
 
 
