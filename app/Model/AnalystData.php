@@ -574,10 +574,6 @@ class AnalystData extends AppModel
                 $entry = $entry[$type];
                 if (!isset($remoteDataArray[$type][$entry['uuid']])) {
                     unset($localAnalystData[$type][$i]);
-                    // $remoteVersion = $remoteDataArray[$type][$entry['uuid']];
-                    // if (strtotime($entry['modified']) <= strtotime($remoteVersion)) {
-                    //     unset($localAnalystData[$type][$entry['uuid']]);
-                    // }
                 }
             }
         }
