@@ -54,13 +54,17 @@ class EventBlocklistsTable extends AppTable
      */
     public function removeBlockedEvents(array &$eventArray)
     {
+        if (empty($eventArray)) {
+            return;
+        }
+
         // When event array contains a lot events, it is more efficient to fetch all blocked events
-        $conditions = (count($eventArray) > 10000) ? [] : ['EventBlocklist.event_uuid IN' => array_column($eventArray, 'uuid')];
+        $conditions = (count($eventArray) > 10000) ? [] : ['event_uuid IN' => array_column($eventArray, 'uuid')];
         $blocklistHits = $this->find(
             'column',
             [
                 'conditions' => $conditions,
-                'fields' => ['EventBlocklist.event_uuid'],
+                'fields' => ['event_uuid'],
             ]
         );
         if (empty($blocklistHits)) {
