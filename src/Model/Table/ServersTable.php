@@ -877,7 +877,11 @@ class ServersTable extends AppTable
         }
 
         // Save to cache for 24 hours if ETag provided
-        $etag = $response->getHeader('etag')[0];
+        $etag = null;
+        if (count($response->getHeader('etag'))) {
+            $etag = $response->getHeader('etag')[0];
+        }
+
         if ($etag) {
             $data = RedisTool::compress(RedisTool::serialize([$etag, $eventIndex]));
             $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
@@ -4276,7 +4280,6 @@ class ServersTable extends AppTable
         foreach ($submodules as $submodule) {
             if ($this->_isAcceptedSubmodule($submodule['name'])) {
                 $status[$submodule['name']] = $this->getSubmoduleGitStatus($submodule['name'], $submodule['commit']);
-                ;
             }
         }
         return $status;
