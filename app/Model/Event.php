@@ -2040,7 +2040,9 @@ class Event extends AppModel
             $params['page'] = $options['page'];
         }
         if (!empty($options['includeAnalystData'])) {
-            $params['includeAnalystData'] = $options['includeAnalystData'];
+            // $params['includeAnalystData'] = $options['includeAnalystData'];
+            $this->includeAnalystData = true;
+            $this->includeAnalystDataRecursive = true;
         }
         if (!empty($options['order'])) {
             $params['order'] = $this->findOrder(
@@ -2204,6 +2206,7 @@ class Event extends AppModel
                 }
                 if (!empty($options['includeAnalystData'])) {
                     foreach ($event['Attribute'] as $k => $attribute) {
+                        $this->Attribute->includeAnalystDataRecursive = true;
                         $analyst_data = $this->Attribute->attachAnalystData($attribute);
                         $event['Attribute'][$k] = array_merge($event['Attribute'][$k], $analyst_data);
                     }
@@ -2263,6 +2266,7 @@ class Event extends AppModel
                         $objectValue['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
                     }
                     if (!empty($options['includeAnalystData'])) {
+                        $this->Object->includeAnalystDataRecursive = true;
                         $analyst_data = $this->Object->attachAnalystData($objectValue);
                         $objectValue = array_merge($objectValue, $analyst_data);
                     }

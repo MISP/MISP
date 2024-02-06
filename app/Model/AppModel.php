@@ -48,6 +48,7 @@ class AppModel extends Model
     private $Workflow;
 
     public $includeAnalystData;
+    public $includeAnalystDataRecursive;
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout

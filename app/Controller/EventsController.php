@@ -1234,6 +1234,7 @@ class EventsController extends AppController
         }
 
         $this->Event->Attribute->includeAnalystData = true;
+        $this->Event->Attribute->includeAnalystDataRecursive = true;
 
         if (isset($filters['focus'])) {
             $this->set('focus', $filters['focus']);

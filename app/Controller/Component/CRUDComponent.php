@@ -235,6 +235,7 @@ class CRUDComponent extends Component
             throw new NotFoundException(__('Invalid %s.', $modelName));
         }
         $this->Controller->{$modelName}->includeAnalystData = true;
+        $this->Controller->{$modelName}->includeAnalystDataRecursive = true;
         $query = [
             'recursive' => -1,
             'conditions' => [$modelName . '.id' => $id],

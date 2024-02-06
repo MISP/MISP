@@ -62,6 +62,7 @@ class EventReportsController extends AppController
     public function view($reportId, $ajax=false)
     {
         $this->EventReport->includeAnalystData = true;
+        $this->EventReport->includeAnalystDataRecursive = true;
         $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($report, $this->response->type());

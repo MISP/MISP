@@ -174,6 +174,7 @@ class GalaxyClustersController extends AppController
     public function view($id)
     {
         $this->GalaxyCluster->includeAnalystData = true;
+        $this->GalaxyCluster->includeAnalystDataRecursive = true;
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
         $tag = $this->GalaxyCluster->Tag->find('first', array(
             'conditions' => array(

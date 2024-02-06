@@ -22,8 +22,6 @@ class AnalystDataBehavior extends ModelBehavior
         ];
         $type = $Model->current_type;
         if (empty($user['Role']['perm_site_admin'])) {
-            // $this->SharingGroup = ClassRegistry::init('SharingGroup');
-            // $validSharingGroups = $this->SharingGroup->authorizedIds($user, true);
             $validSharingGroups = $Model->SharingGroup->authorizedIds($user, true);
             $conditions['AND'][] = [
                 'OR' => [

@@ -11,7 +11,7 @@ class AnalystDataParentBehavior extends ModelBehavior
 
 
 
-    public function attachAnalystData(Model $Model, array $object, array $types = ['Note', 'Opinion', 'Relationship'])
+    public function attachAnalystData(Model $model, array $object, array $types = ['Note', 'Opinion', 'Relationship'])
     {
         // No uuid, nothing to attach
         if (empty($object['uuid'])) {
@@ -27,7 +27,9 @@ class AnalystDataParentBehavior extends ModelBehavior
         $data = [];
         foreach ($types as $type) {
             $this->{$type} = ClassRegistry::init($type);
-            $this->{$type}->fetchRecursive = true;
+            if ($model->includeAnalystDataRecursive) {
+                $this->{$type}->fetchRecursive = true;
+            }
             $temp = $this->{$type}->fetchForUuid($object['uuid'], $this->__currentUser);
             if (!empty($temp)) {
                 foreach ($temp as $k => $temp_element) {

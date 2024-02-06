@@ -256,14 +256,15 @@ class AnalystData extends AppModel
     {
         $this->Note = ClassRegistry::init('Note');
         $this->Opinion = ClassRegistry::init('Opinion');
+
         $paramsNote = [
             'recursive' => -1,
             'contain' => ['Org', 'Orgc'],
             'conditions' => [
                 'AND' => [
-                    $this->buildConditions($user)
+                    $this->Note->buildConditions($user)
                 ],
-                'object_type' => $this->current_type,
+                'object_type' => $analystData['note_type_name'],
                 'object_uuid' => $analystData['uuid'],
             ]
         ];
@@ -272,28 +273,28 @@ class AnalystData extends AppModel
             'contain' => ['Org', 'Orgc'],
             'conditions' => [
                 'AND' => [
-                    $this->buildConditions($user)
+                    $this->Opinion->buildConditions($user)
                 ],
-                'object_type' => $this->current_type,
+                'object_type' => $analystData['note_type_name'],
                 'object_uuid' => $analystData['uuid'],
             ]
         ];
 
         // recursively fetch and include nested notes and opinions
         $childNotes = array_map(function ($item) use ($user) {
-            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item[$this->Note->current_type]);
+            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item['Note']);
             return $expandedNotes;
         }, $this->Note->find('all', $paramsNote));
         $childOpinions = array_map(function ($item) use ($user) {
-            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item[$this->Opinion->current_type]);
+            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item['Opinion']);
             return $expandedNotes;
         }, $this->Opinion->find('all', $paramsOpinion));
 
         if (!empty($childNotes)) {
-            $analystData[$this->Note->current_type] = $childNotes;
+            $analystData['Note'] = $childNotes;
         }
         if (!empty($childOpinions)) {
-            $analystData[$this->Opinion->current_type] = $childOpinions;
+            $analystData['Opinion'] = $childOpinions;
         }
         return $analystData;
     }
