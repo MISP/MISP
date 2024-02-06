@@ -396,7 +396,7 @@ class AppTable extends Table
         }
 
         return [
-            'header' => [
+            'headers' => [
                 'Authorization' => $authkey,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
