@@ -800,7 +800,7 @@ class ServersController extends AppController
                     $jobId
                 );
 
-                $success = __('Pull queued for background execution. Job ID: %s', $jobId);
+                $success = __('Pull queued for background execution. Job ID: {0}', $jobId);
             }
         }
         if ($this->ParamHandler->isRest()) {
