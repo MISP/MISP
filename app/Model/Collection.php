@@ -40,7 +40,9 @@ class Collection extends AppModel
     ];
 
     public $hasMany = [
-        'CollectionElement'
+        'CollectionElement' => [
+            'dependent' => true
+        ]
     ];
  
     public $valid_targets = [
