@@ -73,7 +73,6 @@ class EventsTable extends AppTable
             [
                 'dependent' => true,
                 'propertyName' => 'Object',
-                'className' => 'MispObjects',
             ]
         );
         $this->hasMany(
