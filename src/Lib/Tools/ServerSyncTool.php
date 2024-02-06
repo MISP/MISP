@@ -73,10 +73,10 @@ class ServerSyncTool
         $start = microtime(true);
         $exists = $this->socket->head($url, [], $this->request);
         $this->log($start, 'HEAD', $url, $exists);
-        if ($exists->code == '404') {
+        if ($exists->getStatusCode() == '404') {
             return false;
         }
-        if ($exists->code == '200') {
+        if ($exists->getStatusCode() == '200') {
             return true;
         }
         throw new HttpSocketHttpException($exists, $url);
@@ -370,11 +370,19 @@ class ServerSyncTool
     }
 
     /**
+     * @return string
+     */
+    public function serverName()
+    {
+        return $this->server['name'];
+    }
+
+    /**
      * @return array
      */
     public function pullRules()
     {
-        return $this->decodeRule('pull_rules');
+        return $this->server['pull_rules'];
     }
 
     /**
@@ -382,7 +390,7 @@ class ServerSyncTool
      */
     public function pushRules()
     {
-        return $this->decodeRule('push_rules');
+        return $this->server['push_rules'];
     }
 
     /**
@@ -535,16 +543,6 @@ class ServerSyncTool
             throw new Exception(__("Invalid signing key. This should never happen."));
         }
         return base64_encode($signature);
-    }
-
-    /**
-     * @param string $key
-     * @return array
-     */
-    private function decodeRule($key)
-    {
-        $rules = $this->server[$key];
-        return json_decode($rules, true);
     }
 
     /**

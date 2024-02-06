@@ -767,7 +767,7 @@ class ServersController extends AppController
             if (!Configure::read('BackgroundJobs.enabled')) {
                 $result = $this->Servers->pull($this->ACL->getUser()->toArray(), $technique, $s->toArray());
                 if (is_array($result)) {
-                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
+                    $success = __('Pull completed. {0} events pulled, {1} events could not be pulled, {2} proposals pulled, {3} sightings pulled, {4} clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
                 } else {
                     $error = $result;
                 }

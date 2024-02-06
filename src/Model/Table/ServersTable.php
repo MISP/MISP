@@ -476,17 +476,17 @@ class ServersTable extends AppTable
         $existingEvent = $EventsTable->find(
             'all',
             [
-                'conditions' => ['Event.uuid' => $event['Event']['uuid']],
+                'conditions' => ['uuid' => $event['Event']['uuid']],
                 'recursive' => -1,
                 'fields' => ['id', 'locked', 'protected'],
-                'contain' => ['CryptographicKey']
+                'contain' => ['CryptographicKeys']
             ]
         )->first();
         $passAlong = $server['id'];
         if (!$existingEvent) {
             // add data for newly imported events
             if (isset($event['Event']['protected']) && $event['Event']['protected']) {
-                if (!$EventsTable->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event)) {
+                if (!$EventsTable->CryptographicKeys->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event)) {
                     $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     return false;
                 }
@@ -506,7 +506,7 @@ class ServersTable extends AppTable
                 $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
                 if ($existingEvent['Event']['protected']) {
-                    if (!$EventsTable->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $existingEvent)) {
+                    if (!$EventsTable->CryptographicKeys->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $existingEvent)) {
                         $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     }
                 }
@@ -664,12 +664,12 @@ class ServersTable extends AppTable
         }
         $pulledProposals = $pulledSightings = 0;
         if ($technique === 'full' || $technique === 'update') {
-            $pulledProposals = $EventsTable->ShadowAttribute->pullProposals($user, $serverSync);
+            $pulledProposals = $EventsTable->ShadowAttributes->pullProposals($user, $serverSync);
 
             if ($jobId) {
                 $JobsTable->saveProgress($jobId, 'Pulling sightings.', 75);
             }
-            $pulledSightings = $EventsTable->Sighting->pullSightings($user, $serverSync);
+            $pulledSightings = $EventsTable->Sightings->pullSightings($user, $serverSync);
         }
         if ($jobId) {
             $JobsTable->saveStatus($jobId, true, 'Pull completed.');
@@ -877,7 +877,7 @@ class ServersTable extends AppTable
         }
 
         // Save to cache for 24 hours if ETag provided
-        $etag = $response->getHeader('etag');
+        $etag = $response->getHeader('etag')[0];
         if ($etag) {
             $data = RedisTool::compress(RedisTool::serialize([$etag, $eventIndex]));
             $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
@@ -894,17 +894,21 @@ class ServersTable extends AppTable
      */
     private function removeOlderEvents(array &$events)
     {
-        $conditions = (count($events) > 10000) ? [] : ['Event.uuid' => array_column($events, 'uuid')];
+        if (empty($events)) {
+            return;
+        }
+
+        $conditions = (count($events) > 10000) ? [] : ['uuid IN' => array_column($events, 'uuid')];
         $EventsTable = $this->fetchTable('Events');
         $localEvents = $EventsTable->find(
             'all',
             [
                 'recursive' => -1,
                 'conditions' => $conditions,
-                'fields' => ['Event.uuid', 'Event.timestamp', 'Event.locked'],
+                'fields' => ['Events.uuid', 'Events.timestamp', 'Events.locked'],
             ]
-        );
-        $localEvents = array_column(array_column($localEvents, 'Event'), null, 'uuid');
+        )->toArray();
+        $localEvents = array_column($localEvents, null, 'uuid');
         foreach ($events as $k => $event) {
             $uuid = $event['uuid'];
             if (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) {
@@ -1164,10 +1168,10 @@ class ServersTable extends AppTable
                     ]
                 ], // array of conditions
                 'recursive' => -1, //int
-                'contain' => ['EventTag' => ['fields' => ['EventTag.tag_id']]],
-                'fields' => ['Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'], // array of field names
+                'contain' => ['EventTags' => ['fields' => ['EventTags.tag_id']]],
+                'fields' => ['Events.id', 'Events.timestamp', 'Events.sighting_timestamp', 'Events.uuid', 'Events.orgc_id'], // array of field names
             ];
-            $eventIds = $EventsTable->find('all', $findParams);
+            $eventIds = $EventsTable->find('all', $findParams)->toArray();
             $eventUUIDsFiltered = $this->getEventIdsForPush($server, $serverSync, $eventIds);
             if (!empty($eventUUIDsFiltered)) {
                 $eventCount = count($eventUUIDsFiltered);
