@@ -90,6 +90,7 @@ class RestSearchComponent extends Component
             'publish_timestamp',
             'timestamp',
             'event_timestamp', // redundant, but kept for backwards compatibility
+            'event_tags',
             'published',
             'enforceWarninglist',
             'sgReferenceOnly',
@@ -151,6 +152,8 @@ class RestSearchComponent extends Component
             'category',
             'org',
             'tags',
+            'first_seen',
+            'last_seen',
             'from',
             'to',
             'last',
@@ -183,6 +186,7 @@ class RestSearchComponent extends Component
             'context',
             'returnFormat',
             'id',
+            'uuid',
             'type',
             'from',
             'to',
@@ -190,7 +194,8 @@ class RestSearchComponent extends Component
             'org_id',
             'source',
             'includeAttribute',
-            'includeEvent'
+            'includeEvent',
+            'includeUuid',
         ],
         'GalaxyCluster' => [
             'page',
@@ -203,7 +208,7 @@ class RestSearchComponent extends Component
             'distribution',
             'org',
             'orgc',
-            'tag',
+            'tag_name',
             'custom',
             'sgReferenceOnly',
             'minimal',

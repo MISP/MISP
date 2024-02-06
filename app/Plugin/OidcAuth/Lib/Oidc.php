@@ -28,7 +28,6 @@ class Oidc
         $claims = $oidc->getVerifiedClaims();
 
         $mispUsername = $claims->email ?? $oidc->requestUserInfo('email');
-
         if (empty($mispUsername)) {
             $sub = $claims->sub ?? 'UNKNOWN';
             throw new Exception("OIDC user $sub doesn't have email address, that is required by MISP.");
@@ -66,13 +65,13 @@ class Oidc
         $roleProperty = $this->getConfig('roles_property', 'roles');
         $roles = $claims->{$roleProperty} ?? $oidc->requestUserInfo($roleProperty);
         if ($roles === null) {
-            $this->log($mispUsername, "Role property `$roleProperty` is missing in claims.", LOG_WARNING);
+            $this->log($mispUsername, "Role property `$roleProperty` is missing in claims, access prohibited.", LOG_WARNING);
             return false;
         }
 
         $roleId = $this->getUserRole($roles, $mispUsername);
         if ($roleId === null) {
-            $this->log($mispUsername, 'No role was assigned.');
+            $this->log($mispUsername, 'No role was assigned, access prohibited.', LOG_WARNING);
             if ($user) {
                 $this->block($user);
             }

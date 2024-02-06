@@ -57,7 +57,7 @@ class EcsLog implements CakeLogInterface
             'log' => [
                 'level' => $type,
             ],
-            'message' => $message,
+            'message' => JsonTool::escapeNonUnicode($message),
         ];
 
         static::writeMessage($message);
@@ -89,7 +89,7 @@ class EcsLog implements CakeLogInterface
             'message' => $message,
         ];
 
-        if (in_array($action, ['auth', 'auth_fail', 'auth_alert', 'change_pw', 'login', 'login_fail', 'logout', 'password_reset'], true)) {
+        if (in_array($action, Log::AUTH_ACTIONS, true)) {
             $message['event']['category'] = 'authentication';
 
             if (in_array($action, ['auth_fail', 'login_fail'], true)) {
@@ -338,8 +338,8 @@ class EcsLog implements CakeLogInterface
                     ];
                 }
             }
-
-        } else {
+        } else if (session_status() === PHP_SESSION_ACTIVE) {
+            // include session data just when session is active to avoid unnecessary session starting
             App::uses('AuthComponent', 'Controller/Component');
             $authUser = AuthComponent::user();
             if (!empty($authUser)) {

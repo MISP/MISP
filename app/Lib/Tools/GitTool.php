@@ -12,11 +12,7 @@ class GitTool
     public static function getLatestTags(HttpSocketExtended $HttpSocket)
     {
         $url = 'https://api.github.com/repos/MISP/MISP/tags?per_page=10';
-        $response = $HttpSocket->get($url);
-        if (!$response->isOk()) {
-            throw new HttpSocketHttpException($response, $url);
-        }
-        return $response->json();
+        return self::gitHubRequest($HttpSocket, $url);
     }
 
     /**
@@ -28,11 +24,7 @@ class GitTool
     public static function getLatestCommit(HttpSocketExtended $HttpSocket)
     {
         $url = 'https://api.github.com/repos/MISP/MISP/commits?per_page=1';
-        $response = $HttpSocket->get($url);
-        if (!$response->isOk()) {
-            throw new HttpSocketHttpException($response, $url);
-        }
-        $data = $response->json();
+        $data = self::gitHubRequest($HttpSocket, $url);
         if (!isset($data[0]['sha'])) {
             throw new Exception("Response do not contains requested data.");
         }
@@ -40,20 +32,49 @@ class GitTool
     }
 
     /**
+     * @param HttpSocketExtended $HttpSocket
+     * @param string $url
+     * @return array
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    private static function gitHubRequest(HttpSocketExtended $HttpSocket, $url)
+    {
+        $response = $HttpSocket->get($url, [], ['header' => ['User-Agent' => 'MISP']]);
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response, $url);
+        }
+        return $response->json();
+    }
+
+    /**
+     * Returns current SHA1 hash of current commit
      * `git rev-parse HEAD`
+     * @param string $repoPath
      * @return string
      * @throws Exception
      */
-    public static function currentCommit()
+    public static function currentCommit($repoPath)
     {
-        $head = rtrim(FileAccessTool::readFromFile(ROOT . '/.git/HEAD'));
+        if (is_file($repoPath . '/.git')) {
+            $fileContent = FileAccessTool::readFromFile($repoPath . '/.git');
+            if (substr($fileContent, 0, 8) === 'gitdir: ') {
+                $gitDir = $repoPath . '/' . trim(substr($fileContent, 8)) . '/';
+            } else {
+                throw new Exception("$repoPath/.git is file, but contains non expected content $fileContent");
+            }
+        } else {
+            $gitDir = $repoPath . '/.git/';
+        }
+
+        $head = rtrim(FileAccessTool::readFromFile($gitDir . 'HEAD'));
         if (substr($head, 0, 5) === 'ref: ') {
             $path = substr($head, 5);
-            return rtrim(FileAccessTool::readFromFile(ROOT . '/.git/' . $path));
+            return rtrim(FileAccessTool::readFromFile($gitDir . $path));
         }  else if (strlen($head) === 40) {
             return $head;
         } else {
-            throw new Exception("Invalid head $head");
+            throw new Exception("Invalid head '$head' in $gitDir/HEAD");
         }
     }
 
@@ -95,29 +116,17 @@ class GitTool
     }
 
     /**
-     * @param string $submodule Path to Git repo
-     * @return string|null
-     */
-    public static function submoduleCurrentCommit($submodule)
-    {
-        try {
-            $commit = ProcessTool::execute(['git', 'rev-parse', 'HEAD'], $submodule);
-        } catch (ProcessException $e) {
-            return null;
-        }
-        return rtrim($commit);
-    }
-
-    /**
      * @param string $commit
      * @param string|null $submodule Path to Git repo
      * @return int|null
+     * @throws Exception
      */
     public static function commitTimestamp($commit, $submodule = null)
     {
         try {
             $timestamp = ProcessTool::execute(['git', 'show', '-s', '--pretty=format:%ct', $commit], $submodule);
         } catch (ProcessException $e) {
+            CakeLog::notice("Could not get Git commit timestamp for $submodule: {$e->getMessage()}");
             return null;
         }
         return (int)rtrim($timestamp);

@@ -33,13 +33,11 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '157';
-    public $pyMispVersion = '2.4.182';
+    private $__queryVersion = '158';
+    public $pyMispVersion = '2.4.184';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
-    public $pythonmin = '3.6';
-    public $pythonrec = '3.7';
     private $isApiAuthed = false;
 
     public $baseurl = '';
@@ -101,9 +99,7 @@ class AppController extends Controller
     {
         $controller = $this->request->params['controller'];
         $action = $this->request->params['action'];
-        if (empty($this->Session->read('creation_timestamp'))) {
-            $this->Session->write('creation_timestamp', time());
-        }
+
         if (Configure::read('MISP.system_setting_db')) {
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
@@ -234,6 +230,10 @@ class AppController extends Controller
                 $this->Security->csrfCheck = false;
                 $loginByAuthKeyResult = $this->__loginByAuthKey();
                 if ($loginByAuthKeyResult === false || $this->Auth->user() === null) {
+                    if ($this->IndexFilter->isXhr()) {
+                        throw new ForbiddenException('Authentication failed.');
+                    }
+
                     if ($loginByAuthKeyResult === null) {
                         $this->loadModel('Log');
                         $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.");
@@ -545,13 +545,18 @@ class AppController extends Controller
             }
         }
 
+        $sessionCreationTime = $this->Session->read('creation_timestamp');
+        if (empty($sessionCreationTime)) {
+            $sessionCreationTime = $_SERVER['REQUEST_TIME'] ?? time();
+            $this->Session->write('creation_timestamp', $sessionCreationTime);
+        }
+
         // kill existing sessions for a user if the admin/instance decides so
         // exclude API authentication as it doesn't make sense
-        if (!$this->isApiAuthed && $this->User->checkForSessionDestruction($user['id'])) {
+        if (!$this->isApiAuthed && $this->User->checkForSessionDestruction($user['id'], $sessionCreationTime)) {
             $this->Auth->logout();
             $this->Session->destroy();
-            $message = __('User deauthenticated on administrator request. Please reauthenticate.');
-            $this->Flash->warning($message);
+            $this->Flash->warning(__('User deauthenticated on administrator request. Please reauthenticate.'));
             $this->_redirectToLogin();
             return false;
         }
@@ -599,7 +604,7 @@ class AppController extends Controller
         if (!empty($user['allowed_ips'])) {
             App::uses('CidrTool', 'Tools');
             $cidrTool = new CidrTool($user['allowed_ips']);
-            $remoteIp = $this->_remoteIp();
+            $remoteIp = $this->User->_remoteIp();
             if ($remoteIp === null) {
                 $this->Auth->logout();
                 throw new ForbiddenException('Auth key is limited to IP address, but IP address not found');
@@ -692,7 +697,7 @@ class AppController extends Controller
             return;
         }
 
-        $remoteAddress = $this->_remoteIp();
+        $remoteAddress = $this->User->_remoteIp();
 
         $pipe = $redis->pipeline();
         // keep for 30 days
@@ -735,7 +740,7 @@ class AppController extends Controller
             $includeRequestBody = !empty(Configure::read('MISP.log_paranoid_include_post_body')) || $userMonitoringEnabled;
             /** @var AccessLog $accessLog */
             $accessLog = ClassRegistry::init('AccessLog');
-            $accessLog->logRequest($user, $this->_remoteIp(), $this->request, $includeRequestBody);
+            $accessLog->logRequest($user, $this->User->_remoteIp(), $this->request, $includeRequestBody);
         }
 
         if (
@@ -826,29 +831,34 @@ class AppController extends Controller
 
     private function __rateLimitCheck(array $user)
     {
-        $info = array();
         $rateLimitCheck = $this->RateLimit->check(
             $user,
             $this->request->params['controller'],
-            $this->request->action,
-            $info,
-            $this->response->type()
+            $this->request->params['action'],
         );
-        if (!empty($info)) {
-            $this->RestResponse->setHeader('X-Rate-Limit-Limit', $info['limit']);
-            $this->RestResponse->setHeader('X-Rate-Limit-Remaining', $info['remaining']);
-            $this->RestResponse->setHeader('X-Rate-Limit-Reset', $info['reset']);
+
+        if ($rateLimitCheck) {
+            $headers = [
+                'X-Rate-Limit-Limit' => $rateLimitCheck['limit'],
+                'X-Rate-Limit-Remaining' => $rateLimitCheck['remaining'],
+                'X-Rate-Limit-Reset' => $rateLimitCheck['reset'],
+            ];
+
+            if ($rateLimitCheck['exceeded']) {
+                $response = $this->RestResponse->throwException(
+                    429,
+                    __('Rate limit exceeded.'),
+                    '/' . $this->request->params['controller'] . '/' . $this->request->params['action'],
+                    false,
+                    false,
+                    $headers
+                );
+                $response->send();
+                $this->_stop();
+            } else {
+                $this->RestResponse->headers = array_merge($this->RestResponse->headers, $headers);
+            }
         }
-        if ($rateLimitCheck !== true) {
-            $this->response->header('X-Rate-Limit-Limit', $info['limit']);
-            $this->response->header('X-Rate-Limit-Remaining', $info['remaining']);
-            $this->response->header('X-Rate-Limit-Reset', $info['reset']);
-            $this->response->body($rateLimitCheck);
-            $this->response->statusCode(429);
-            $this->response->send();
-            $this->_stop();
-        }
-        return true;
     }
 
     public function afterFilter()
@@ -993,6 +1003,14 @@ class AppController extends Controller
      */
     protected function _harvestParameters($options, &$exception = null, $data = [])
     {
+        if (!empty($options['paramArray'])) {
+            if (!in_array('page', $options['paramArray'])) {
+                $options['paramArray'][] = 'page';
+            }
+            if (!in_array('limit', $options['paramArray'])) {
+                $options['paramArray'][] = 'limit';
+            }
+        }
         $request = $options['request'] ?? $this->request;
         if ($request->is('post')) {
             if (empty($request->data)) {
@@ -1133,14 +1151,14 @@ class AppController extends Controller
                 $headerNamespace = '';
             }
             if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
-                if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $this->_remoteIp()) {
+                if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $this->User->_remoteIp()) {
                     $this->Log = ClassRegistry::init('Log');
                     $this->Log->createLogEntry(
                         'SYSTEM',
                         'auth_fail',
                         'User',
                         0,
-                        'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->_remoteIp(),
+                        'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->User->_remoteIp(),
                         null);
                     $this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
                 }
@@ -1300,7 +1318,7 @@ class AppController extends Controller
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception, $this->_legacyParams);
         if (empty($filters) && $this->request->is('get')) {
-            throw new InvalidArgumentException(__('Restsearch queries using GET and no parameters are not allowed. If you have passed parameters via a JSON body, make sure you use POST requests.'));
+            throw new BadRequestException(__('Restsearch queries using GET and no parameters are not allowed. If you have passed parameters via a JSON body, make sure you use POST requests.'));
         }
         if (empty($filters['returnFormat'])) {
             $filters['returnFormat'] = 'json';

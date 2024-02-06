@@ -8,14 +8,14 @@ class ProcessException extends Exception
     private $stdout;
 
     /**
-     * @param string|array $command
+     * @param array $command
      * @param int $returnCode
      * @param string $stderr
      * @param string $stdout
      */
-    public function __construct($command, $returnCode, $stderr, $stdout)
+    public function __construct(array $command, $returnCode, $stderr, $stdout)
     {
-        $commandForException = is_array($command) ? implode(' ', $command) : $command;
+        $commandForException = implode(' ', $command);
         $message = "Command '$commandForException' finished with error code $returnCode.\nSTDERR: '$stderr'\nSTDOUT: '$stdout'";
         $this->stderr = $stderr;
         $this->stdout = $stdout;
@@ -56,11 +56,6 @@ class ProcessTool
             self::logMessage('Running command ' . implode(' ', $command));
         }
 
-        // PHP older than 7.4 do not support proc_open with array, so we need to convert values to string manually
-        if (PHP_VERSION_ID < 70400) {
-            $command = array_map('escapeshellarg', $command);
-            $command = implode(' ', $command);
-        }
         $process = proc_open($command, $descriptorSpec, $pipes, $cwd);
         if (!$process) {
             $commandForException = self::commandFormat($command);
@@ -136,8 +131,8 @@ class ProcessTool
      * @param array|string $command
      * @return string
      */
-    private static function commandFormat($command)
+    private static function commandFormat(array $command)
     {
-        return  is_array($command) ? implode(' ', $command) : $command;
+        return implode(' ', $command);
     }
 }

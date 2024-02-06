@@ -659,21 +659,18 @@ class User extends AppModel
     public function getUserById($id)
     {
         if (empty($id)) {
-            throw new NotFoundException('Invalid user ID.');
+            throw new InvalidArgumentException('Invalid user ID.');
         }
-        return $this->find(
-            'first',
-            array(
-                'conditions' => array('User.id' => $id),
-                'recursive' => -1,
-                'contain' => array(
-                    'Organisation',
-                    'Role',
-                    'Server',
-                    'UserSetting',
-                )
-            )
-        );
+        return $this->find('first', [
+            'conditions' => ['User.id' => $id],
+            'recursive' => -1,
+            'contain' => [
+                'Organisation',
+                'Role',
+                'Server',
+                'UserSetting',
+            ]
+        ]);
     }
 
     /**
@@ -740,7 +737,7 @@ class User extends AppModel
             ],
         ]);
         if (empty($user)) {
-            return $user;
+            return null;
         }
         return $this->rearrangeToAuthForm($user);
     }
@@ -861,6 +858,10 @@ class User extends AppModel
             return true;
         }
 
+        if (!isset($user['User'])) {
+            throw new InvalidArgumentException("Invalid user model provided.");
+        }
+
         if ($user['User']['disabled'] || !$this->checkIfUserIsValid($user['User'])) {
             return true;
         }
@@ -937,6 +938,11 @@ class User extends AppModel
      */
     public function describeAuthFields()
     {
+        static $fields; // generate array just once
+        if ($fields) {
+            return $fields;
+        }
+
         $fields = $this->schema();
         // Do not include keys, because they are big and usually not necessary
         unset($fields['gpgkey']);
@@ -1032,18 +1038,18 @@ class User extends AppModel
     }
 
     /**
-     * @param int $org_id
+     * @param int $orgId
      * @param int|false $excludeUserId
-     * @return array
+     * @return array User ID => Email
      */
-    public function getOrgAdminsForOrg($org_id, $excludeUserId = false)
+    public function getOrgAdminsForOrg($orgId, $excludeUserId = false)
     {
         $adminRoles = $this->Role->find('column', array(
             'conditions' => array('perm_admin' => 1),
             'fields' => array('Role.id')
         ));
         $conditions = array(
-            'User.org_id' => $org_id,
+            'User.org_id' => $orgId,
             'User.disabled' => 0,
             'User.role_id' => $adminRoles
         );
@@ -1059,7 +1065,12 @@ class User extends AppModel
         ));
     }
 
-    public function getSiteAdmins($excludeUserId = false) {
+    /**
+     * @param int|false $excludeUserId
+     * @return array User ID => Email
+     */
+    public function getSiteAdmins($excludeUserId = false)
+    {
         $adminRoles = $this->Role->find('column', array(
             'conditions' => array('perm_site_admin' => 1),
             'fields' => array('Role.id')
@@ -1100,13 +1111,18 @@ class User extends AppModel
         return $hashed;
     }
 
-    public function createInitialUser($org_id)
+    /**
+     * @param int $orgId
+     * @return string User auth key
+     * @throws Exception
+     */
+    public function createInitialUser($orgId)
     {
         $authKey = $this->generateAuthKey();
         $admin = array('User' => array(
             'id' => 1,
             'email' => 'admin@admin.test',
-            'org_id' => $org_id,
+            'org_id' => $orgId,
             'password' => 'admin',
             'confirm_password' => 'admin',
             'authkey' => $authKey,
@@ -1118,7 +1134,6 @@ class User extends AppModel
         $this->validator()->remove('password'); // password is too simple, remove validation
         $this->save($admin);
         if (!empty(Configure::read("Security.advanced_authkeys"))) {
-            $this->AuthKey = ClassRegistry::init('AuthKey');
             $newKey = [
                 'authkey' => $authKey,
                 'user_id' => 1,
@@ -2049,29 +2064,34 @@ class User extends AppModel
         return $users;
     }
 
-    public function checkForSessionDestruction($id)
+    /**
+     * @param int $id
+     * @param int $sessionCreationTimestamp
+     * @return bool
+     * @throws RedisException
+     */
+    public function checkForSessionDestruction($id, $sessionCreationTimestamp)
     {
-        if (empty(CakeSession::read('creation_timestamp'))) {
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
             return false;
         }
-        $redis = $this->setupRedis();
-        if ($redis) {
-            $cutoff = $redis->get('misp:session_destroy:' . $id);
-            $allcutoff = $redis->get('misp:session_destroy:all');
-            if (
-                empty($cutoff) || 
-                (
-                    !empty($cutoff) &&
-                    !empty($allcutoff) &&
-                    $allcutoff < $cutoff
-                ) 
-            ) {
-                $cutoff = $allcutoff;
-            }
-            if ($cutoff && CakeSession::read('creation_timestamp') < $cutoff) {
-                return true;
-            }
+
+        list($cutoff, $allcutoff) = $redis->mGet(['misp:session_destroy:' . $id, 'misp:session_destroy:all']);
+        if (
+            empty($cutoff) ||
+            (
+                !empty($allcutoff) &&
+                $allcutoff < $cutoff
+            )
+        ) {
+            $cutoff = $allcutoff;
         }
+        if ($cutoff && $sessionCreationTimestamp < $cutoff) {
+            return true;
+        }
+
         return false;
     }
 
@@ -2144,7 +2164,7 @@ class User extends AppModel
         if (!ctype_alnum($token)) {
             return false;
         }
-        $redis = $this->setupRedis();
+        $redis = RedisTool::init();
         $userId = $redis->get('misp:forgot:' . $token);
         if (empty($userId)) {
             return false;
@@ -2155,8 +2175,78 @@ class User extends AppModel
 
     public function purgeForgetToken($token)
     {
-        $redis = $this->setupRedis();
-        $userId = $redis->del('misp:forgot:' . $token);
+        $redis = RedisTool::init();
+        $redis->del('misp:forgot:' . $token);
         return true;
+    }
+
+    /**
+     * Create default Role, Organisation and User
+     * @return string|null Created user auth key
+     * @throws Exception
+     */
+    public function init()
+    {
+        if (!$this->Role->hasAny()) {
+            $siteAdmin = ['Role' => [
+                'id' => 1,
+                'name' => 'Site Admin',
+                'permission' => 3,
+                'perm_add' => 1,
+                'perm_modify' => 1,
+                'perm_modify_org' => 1,
+                'perm_publish' => 1,
+                'perm_sync' => 1,
+                'perm_admin' => 1,
+                'perm_audit' => 1,
+                'perm_auth' => 1,
+                'perm_site_admin' => 1,
+                'perm_regexp_access' => 1,
+                'perm_sharing_group' => 1,
+                'perm_template' => 1,
+                'perm_tagger' => 1,
+            ]];
+            $this->Role->save($siteAdmin);
+            // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+            if (!$this->isMysql()) {
+                $sql = "SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));";
+                $this->Role->query($sql);
+            }
+        }
+
+        if (!$this->Organisation->hasAny(['Organisation.local' => true])) {
+            $this->runUpdates();
+            $org = ['Organisation' => [
+                'id' => 1,
+                'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
+                'description' => 'Automatically generated admin organisation',
+                'type' => 'ADMIN',
+                'date_created' => date('Y-m-d H:i:s'),
+                'local' => 1,
+            ]];
+            $this->Organisation->save($org);
+            // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+            if (!$this->isMysql()) {
+                $sql = "SELECT setval('organisations_id_seq', (SELECT MAX(id) FROM organisations));";
+                $this->Organisation->query($sql);
+            }
+            $orgId = $this->Organisation->id;
+        }
+
+        if (!$this->hasAny()) {
+            if (!isset($orgId)) {
+                $hostOrg = $this->Organisation->find('first', array('conditions' => array('Organisation.name' => Configure::read('MISP.org'), 'Organisation.local' => true), 'recursive' => -1));
+                if (!empty($hostOrg)) {
+                    $orgId = $hostOrg['Organisation']['id'];
+                } else {
+                    $firstOrg = $this->Organisation->find('first', array('conditions' => array('Organisation.local' => true), 'order' => 'Organisation.id ASC'));
+                    $orgId = $firstOrg['Organisation']['id'];
+                }
+            }
+            $this->runUpdates();
+            return $this->createInitialUser($orgId);
+        }
+
+        return null;
     }
 }

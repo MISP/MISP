@@ -10,9 +10,10 @@ if (!isset($argv[2])) {
 if (!in_array($argv[1], ['modify', 'replace'], true)) {
     fail(1, "Invalid argument '{$argv[1]}', it must be 'modify' or 'replace'.");
 }
-$newConfig = json_decode($argv[2], true);
-if ($newConfig === null) {
-    fail(2, "Could not decode new config, it is not JSON: " . json_last_error_msg());
+try {
+    $newConfig = json_decode($argv[2], true, JSON_THROW_ON_ERROR);
+} catch (Exception $e) {
+    fail(2, "Could not decode new config, it is not JSON: " . $e->getMessage());
 }
 if (!is_array($newConfig)) {
     fail(2, "Provided new config is not array, `" . gettype($newConfig) . "` given.");
@@ -41,4 +42,4 @@ if ($argv[1] === 'modify') {
 file_put_contents($configFile, "<?php\n\$config = " . var_export($merged, true) . ';', LOCK_EX);
 
 // Returns config file before modification
-echo json_encode($config);
+echo json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

@@ -189,6 +189,7 @@ class AttachmentScan extends AppModel
         /** @var Job $job */
         $job = ClassRegistry::init('Job');
         if ($jobId && !$job->exists($jobId)) {
+            $this->log("Job with ID $jobId not found in database", LOG_NOTICE);
             $jobId = null;
         }
 
@@ -252,12 +253,12 @@ class AttachmentScan extends AppModel
                 $infected = $this->scanAttachment($type, $attribute[$type], $moduleInfo);
                 if ($infected === true) {
                     $virusFound++;
+                    $scanned++;
+                } else if ($infected === false) {
+                    $scanned++;
                 }
-                $scanned++;
-            } catch (NotFoundException $e) {
-                // skip
             } catch (Exception $e) {
-                $this->logException("Could not scan attachment for $type {$attribute['Attribute']['id']}", $e);
+                $this->logException("Could not scan attachment for $type {$attribute['Attribute']['id']}", $e, LOG_WARNING);
                 $fails++;
             }
 
@@ -297,14 +298,14 @@ class AttachmentScan extends AppModel
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob(
                 'SYSTEM',
-                Job::WORKER_DEFAULT,
+                Job::WORKER_PRIO,
                 'virus_scan',
                 ($type === self::TYPE_ATTRIBUTE ? 'Attribute: ' : 'Shadow attribute: ') . $attribute['id'],
                 'Scanning...'
             );
 
             $this->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::PRIO_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [
                     'scanAttachment',
@@ -319,10 +320,12 @@ class AttachmentScan extends AppModel
     }
 
     /**
+     * Return true if attachment is infected, null if attachment was not scanned and false if attachment is OK
+     *
      * @param string $type
      * @param array $attribute
      * @param array $moduleInfo
-     * @return bool|null Return true if attachment is infected.
+     * @return bool|null
      * @throws Exception
      */
     private function scanAttachment($type, array $attribute, array $moduleInfo)
@@ -341,15 +344,24 @@ class AttachmentScan extends AppModel
             $file = $this->attachmentTool()->getShadowFile($attribute['event_id'], $attribute['id']);
         }
 
-        if (in_array('attachment', $moduleInfo['types'])) {
-            /* if ($file->size() > 50 * 1024 * 1024) {
-             $this->log("File '$file->path' is bigger than 50 MB, will be not scanned.", LOG_NOTICE);
-             return false;
-         }*/
+        if (in_array('attachment', $moduleInfo['types'], true)) {
+            $fileSize = $file->size();
+            if ($fileSize === false) {
+                throw new Exception("Could not read size of file '$file->path'.");
+            }
+
+            if ($fileSize === 0) {
+                return false; // empty file is automatically considered as not infected
+            }
+
+            if ($fileSize > 25 * 1024 * 1024) {
+                $this->log("File '$file->path' is bigger than 25 MB, will be not scanned.", LOG_NOTICE);
+                return null;
+            }
 
             $fileContent = $file->read();
             if ($fileContent === false) {
-                throw new Exception("Could not read content of  file '$file->path'.");
+                throw new Exception("Could not read content of file '$file->path'.");
             }
             $attribute['data'] = base64_encode($fileContent);
         } else {
