@@ -256,7 +256,24 @@ class AnalystDataController extends AppController
         if ($this->request->is('post')) {
             $filters = $this->request->data;
         }
-        $allData = $this->AnalystData->indexMinimal($this->Auth->user(), $filters);
+        $options = [];
+        $acceptedFilters = ['orgc_uuid', ];
+        foreach ($acceptedFilters as $filterName) {
+            if (!empty($filters[$filterName])) {
+                $filterValue = $filters[$filterName];
+                if (!is_array($filterValue)) {
+                    $filterValue = [$filterValue];
+                }
+                foreach ($filterValue as $entry) {
+                    if ($entry[0] === '!') {
+                        $options[]['AND'][] = ["{$filterName} !=" => substr($entry, 1)];
+                    } else {
+                        $options['OR'][] = [$filterName => $entry];
+                    }
+                }
+            }
+        }
+        $allData = $this->AnalystData->indexMinimal($this->Auth->user(), $options);
 
         return $this->RestResponse->viewData($allData, $this->response->type());
     }

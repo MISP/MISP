@@ -780,9 +780,25 @@ class AnalystData extends AppModel
         $this->Server = ClassRegistry::init('Server');
         $this->AnalystData = ClassRegistry::init('AnalystData');
         try {
-            $filterRules = $this->Server->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
-            if (!empty($filterRules['org']) && !$serverSync->isSupported(ServerSyncTool::FEATURE_ORG_RULE)) {
-                $filterRules['org'] = implode('|', $filterRules['org']);
+            $filterRules = ['orgc_uuid' => []];
+            $pullRules = $this->jsonDecode($serverSync->server()['Server']['pull_rules']);
+            if (!empty($pullRules['orgs']['OR'])) {
+                $orgsOR = $this->AnalystData->Orgc->find('column', [
+                    'recursive' => -1,
+                    'conditions' => ['name' => $pullRules['orgs']['OR']],
+                    'fields' => ['uuid'],
+                ]);
+                $filterRules['orgc_uuid'] = $orgsOR;
+            }
+            if (!empty($pullRules['orgs']['NOT'])) {
+                $orgsNOT = $this->AnalystData->Orgc->find('column', [
+                    'recursive' => -1,
+                    'conditions' => ['name' => $pullRules['orgs']['NOT']],
+                    'fields' => ['uuid'],
+                ]);
+                $filterRules['orgc_uuid'] = array_merge($filterRules['orgc_uuid'], array_map(function($orgUUID) {
+                    return '!' . $orgUUID;
+                }, $orgsNOT));
             }
             $remoteData = $serverSync->fetchIndexMinimal($filterRules);
         } catch (Exception $e) {
