@@ -760,7 +760,6 @@ class Server extends AppModel
     {
         $filterRules = $conditions;
         $dataArray = $serverSync->fetchIndexMinimal($filterRules)->json();
-        // $dataArray = $serverSync->filterAnalystDataForPush($filterRules)->json();
         if (isset($dataArray['response'])) {
             $dataArray = $dataArray['response'];
         }

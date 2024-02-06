@@ -648,14 +648,15 @@ class AnalystData extends AppModel
         return true;
     }
 
-    public function indexMinimal(array $user): array
+    public function indexMinimal(array $user, $filters = []): array
     {
         $options = [
             'recursive' => -1,
             'conditions' => [
                 'AND' => [
                     $this->buildConditions($user),
-                ]
+                    'AND' => [$filters],
+                ],
             ],
             'fields' => ['uuid', 'modified', 'locked']
         ];
@@ -779,7 +780,11 @@ class AnalystData extends AppModel
         $this->Server = ClassRegistry::init('Server');
         $this->AnalystData = ClassRegistry::init('AnalystData');
         try {
-            $remoteData = $this->Server->fetchIndexMinimal($serverSync, $filterRules ?? []);
+            $filterRules = $this->Server->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
+            if (!empty($filterRules['org']) && !$serverSync->isSupported(ServerSyncTool::FEATURE_ORG_RULE)) {
+                $filterRules['org'] = implode('|', $filterRules['org']);
+            }
+            $remoteData = $serverSync->fetchIndexMinimal($filterRules);
         } catch (Exception $e) {
             $this->logException("Could not fetch analyst data IDs from server {$serverSync->server()['Server']['name']}", $e);
             return 0;

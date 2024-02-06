@@ -252,7 +252,11 @@ class AnalystDataController extends AppController
     public function indexMinimal()
     {
         $this->loadModel('AnalystData');
-        $allData = $this->AnalystData->indexMinimal($this->Auth->user());
+        $filters = [];
+        if ($this->request->is('post')) {
+            $filters = $this->request->data;
+        }
+        $allData = $this->AnalystData->indexMinimal($this->Auth->user(), $filters);
 
         return $this->RestResponse->viewData($allData, $this->response->type());
     }
