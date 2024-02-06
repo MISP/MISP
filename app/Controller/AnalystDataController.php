@@ -67,6 +67,10 @@ class AnalystDataController extends AppController
     public function edit($type = 'Note', $id)
     {
         $this->__typeSelector($type);
+        if (!is_numeric($id) && Validation::uuid($id)) {
+            $id = $this->getIDFromUUID($type, $id);
+        }
+
         $this->set('id', $id);
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $params = [
@@ -98,6 +102,10 @@ class AnalystDataController extends AppController
     public function delete($type = 'Note', $id, $hard=true)
     {
         $this->__typeSelector($type);
+        if (!is_numeric($id) && Validation::uuid($id)) {
+            $id = $this->getIDFromUUID($type, $id);
+        }
+
         $params = [
             'afterFind' => function(array $analystData) {
                 $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
@@ -147,6 +155,9 @@ class AnalystDataController extends AppController
     public function view($type = 'Note', $id)
     {
         $this->__typeSelector($type);
+        if (!is_numeric($id) && Validation::uuid($id)) {
+            $id = $this->getIDFromUUID($type, $id);
+        }
 
         $this->AnalystData->fetchRecursive = true;
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
@@ -200,6 +211,21 @@ class AnalystDataController extends AppController
         }
         $this->_setViewElements();
         $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'index'));
+    }
+
+    private function getIDFromUUID($type, $id): int
+    {
+        $tmpForID = $this->AnalystData->find('first', [
+            'conditions' => [
+                'uuid' => $id,
+            ],
+            'fields' => ['id', 'uuid',],
+        ]);
+        $id = -1;
+        if (!empty($tmpForID)) {
+            $id = $tmpForID[$type]['id'];
+        }
+        return $id;
     }
 
     public function getRelatedElement($type, $uuid)
