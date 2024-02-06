@@ -2704,7 +2704,7 @@ class ServersTable extends AppTable
      */
     private function runPOSTtest(ServerSyncTool $serverSync)
     {
-        $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
+        $testFile = file_get_contents(APP . '../tests/Files/test_payload.txt');
         if (!$testFile) {
             throw new Exception("Could not load payload for POST test.");
         }

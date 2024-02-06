@@ -1,0 +1,49 @@
+7 Gate Immortal All-In (vs. Zerg)
+
+Overview
+This 2 base all-in aims to kill the Zerg opponent's third base before they are able to Tech towards Mutalisks or Infestors. It relies on 2 or 3 Immortals and a high number of Sentries that will be used to cut the opponent's army into pieces with Force Fields. Also of importance is a Warp Prism that will be used both for reinforcing your army and moving back injured units, as demonstrated by Squirtle in this game against BBoongBBoong.
+
+9 Pylon
+17 Nexus
+17 Forge
+17 Pylon
+18 Gateway
+18 Photon Cannon
+20 Assimilator x2 (1)(2)
+@100% Gateway: Cybernetics Core, Zealot.
+@100% Gas: +1 Ground Weapons
+@100% Cybernetics Core: Warpgate Research, Stalker
+38 Robotics Facility
+@100% Robotics Facility: Constant chrono boosted Immortal production (until 3)
+Assimilator x2 (3)(4)
+@~7:30: 3 Gateways (2)(3)(4)
+@100% Warpgate Research: Gateway x3 (5)(6)(7)
+
+Notes
+Stop Probe production at ~45. You want optimal saturation (16 Probes) at both mineral lines and 3 Probes in all 4 Assimilators.
+As your last Immortals finishes, queue up a Warp Prism and push out immediately. Your last three Gateways should finish shortly afterwards. If you have a proxy Pylon you should start warping-in there, if you do not then warp-in one round of units at home before waiting for the Warp Prism to arrive for further warp-ins. If you do not have a proxy Pylon then you should bring a Probe to build one so that your Warp Prism can focus on protecting your Immortals.
+When you push out, your army should consist of 3 Immortals, 1 Zealot, 1 Stalker and 7 Sentries.
+After the Warp Prism, you should build an Observer to be on the safe side against Burrow micro.
+
+Scouting
+Ideally you want to make sure your opponent is not going for a 2 base all-in because your Gateways will not finish in time to defend against this. To scout for this, use your first Zealot to check whether or not they have a third base in production. If they are going for a 2 base opening then build 2 or 3 more Photon Cannons whilst continuing producing Sentries. After you're safe, continue with the build as best you can; if they opened with a 2 base build and you managed to defend their pressure, your Immortal timing-attack will be devastating as they will not have the economy nor the Tech to defend against it.
+
+Execution
+Squirtle positions his units in a small choke and builds a Pylon next to it, making it easier to Force Field efficiently.
+
+A classic base-trade situation at the Protoss player's base.
+
+A classic base-trade situation at the Zerg player's base.
+Push when you have your 3rd Immortal and close your wall behind you. While you are pushing, you should have a Probe on the map building proxy Pylons as close as possible to your opponent's 3rd base. As soon as the Warp Prism joins your army, you can be more aggressive. Always try to fight in small chokes near some kind of natural wall to avoid being surrounded and to minimize the amount of Force Fields that you need to create a full wall. This is of importance as your push relies entirely on Force Fields and Immortals, so not having either one of them makes this push nearly impossible to execute successfully.
+
+If your opponent builds a high number of Zerglings then you should respond by warping-in Zealots. If they build a high number of Roaches you will need more Stalkers. If you run out of Force Fields, you will need more Sentries.
+
+Place your Force Fields to avoid fighting against your opponent's whole army and to prevent being attacked from multiple sides. If your Immortals are targeted or low on hitpoints, or if your Sentries are surrounded or low on hitpoints, use your Warp Prism to save them by loading them in. Drop them as fast as possible in a safer position since you will need all the damage output possible. The Warp Prism's main role here is this kind of micro, that is why having proxy Pylons is important as using the Warp Prism for both warp-ins and micro is not viable. This is because when the Warp Prism takes 2 seconds to switch between phasing and transport mode. Be careful not to let your Warp Prism get sniped by Zerg anti-air (usually Queens, rarely Hydralisks).
+
+If you can get close enough to the Zerg player's third base (or any other non-defensive structure) then you should treat it as a large, natural Force Field.
+
+If the Zerg chooses to avoid your army and instead goes for the base trade, it can be incredibly difficult to defend your natural expansion. This is why it's necessary to completely wall off behind you when you push out. If you are on a map with a wide ramp in the natural (>2 Force Fields required to block it off) then do not try to defend it and instead move all your Probes into your main base. Constant Force Fields will prevent the Zerg player from getting up the ramp whilst you destroy their third base and natural expansion with your army. To not let the Zerg have a better economy than you, you will have to kill their 3rd base and second base quickly before they can build too many Spine Crawlers. Do not try to fight them up their main ramp if they've built a lot of Spine Crawlers in their main to defend; instead come home and kill their main army since your army should be stronger with appropriate micro. Take your natural back if you lost it, take 3rd if you didn't, and then try going back into a normal game. Use an Observer to scout what the Zerg is going to try to do to get back into the game; research Blink and get High Templar if they are going for Mutalisks, get Colossi if they are going for Infestors.
+
+Follow Up
+If your opponent successfully stops your push then you will be in a very difficult spot. To be able to defend any counter-attack, you will have to start producing Immortals again and re-build your Sentries. With your Observer you will have to scout if they are transitioning into Mutalisks or Infestors. If they go for Mutalisks, build a Twilight Council and start researching Blink. If they go for Infestors, you will need to build Colossi. You should also be looking to take a 3rd base, although this can be hard against a Zerg opponent who didn't lose their own 3rd base during your push; for this reason, it might be better to max out on two bases and go for a Colossus-based all-in.
+
