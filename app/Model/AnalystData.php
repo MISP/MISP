@@ -782,7 +782,7 @@ class AnalystData extends AppModel
         $this->AnalystData = ClassRegistry::init('AnalystData');
         try {
             $filterRules = $this->buildPullFilterRules($serverSync->server());
-            $remoteData = $serverSync->fetchIndexMinimal($filterRules);
+            $remoteData = $serverSync->fetchIndexMinimal($filterRules)->json();
         } catch (Exception $e) {
             $this->logException("Could not fetch analyst data IDs from server {$serverSync->server()['Server']['name']}", $e);
             return 0;
