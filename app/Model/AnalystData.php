@@ -158,18 +158,19 @@ class AnalystData extends AppModel
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
             $alias = $this->alias;
+            $prefix = $alias != 'AnalystData' ? "{$alias}." : '';
             $conditions['AND']['OR'] = [
-                "{$alias}.org_uuid" => $user['Organisation']['uuid'],
+                "{$prefix}org_uuid" => $user['Organisation']['uuid'],
                 [
                     'AND' => [
-                        "{$alias}.distribution >" => 0,
-                        "{$alias}.distribution <" => 4
+                        "{$prefix}distribution >" => 0,
+                        "{$prefix}distribution <" => 4
                     ],
                 ],
                 [
                     'AND' => [
-                        "{$alias}.sharing_group_id" => $sgids,
-                        "{$alias}.distribution" => 4
+                        "{$prefix}sharing_group_id" => $sgids,
+                        "{$prefix}distribution" => 4
                     ]
                 ]
             ];
@@ -780,26 +781,7 @@ class AnalystData extends AppModel
         $this->Server = ClassRegistry::init('Server');
         $this->AnalystData = ClassRegistry::init('AnalystData');
         try {
-            $filterRules = ['orgc_uuid' => []];
-            $pullRules = $this->jsonDecode($serverSync->server()['Server']['pull_rules']);
-            if (!empty($pullRules['orgs']['OR'])) {
-                $orgsOR = $this->AnalystData->Orgc->find('column', [
-                    'recursive' => -1,
-                    'conditions' => ['name' => $pullRules['orgs']['OR']],
-                    'fields' => ['uuid'],
-                ]);
-                $filterRules['orgc_uuid'] = $orgsOR;
-            }
-            if (!empty($pullRules['orgs']['NOT'])) {
-                $orgsNOT = $this->AnalystData->Orgc->find('column', [
-                    'recursive' => -1,
-                    'conditions' => ['name' => $pullRules['orgs']['NOT']],
-                    'fields' => ['uuid'],
-                ]);
-                $filterRules['orgc_uuid'] = array_merge($filterRules['orgc_uuid'], array_map(function($orgUUID) {
-                    return '!' . $orgUUID;
-                }, $orgsNOT));
-            }
+            $filterRules = $this->buildPullFilterRules($serverSync->server());
             $remoteData = $serverSync->fetchIndexMinimal($filterRules);
         } catch (Exception $e) {
             $this->logException("Could not fetch analyst data IDs from server {$serverSync->server()['Server']['name']}", $e);
@@ -891,5 +873,30 @@ class AnalystData extends AppModel
             }
         }
         return $analystData;
+    }
+
+    private function buildPullFilterRules(array $server): array
+    {
+        $filterRules = ['orgc_uuid' => []];
+        $pullRules = $this->jsonDecode($server['Server']['pull_rules']);
+        if (!empty($pullRules['orgs']['OR'])) {
+            $orgsOR = $this->AnalystData->Orgc->find('column', [
+                'recursive' => -1,
+                'conditions' => ['name' => $pullRules['orgs']['OR']],
+                'fields' => ['uuid'],
+            ]);
+            $filterRules['orgc_uuid'] = $orgsOR;
+        }
+        if (!empty($pullRules['orgs']['NOT'])) {
+            $orgsNOT = $this->AnalystData->Orgc->find('column', [
+                'recursive' => -1,
+                'conditions' => ['name' => $pullRules['orgs']['NOT']],
+                'fields' => ['uuid'],
+            ]);
+            $filterRules['orgc_uuid'] = array_merge($filterRules['orgc_uuid'], array_map(function($orgUUID) {
+                return '!' . $orgUUID;
+            }, $orgsNOT));
+        }
+        return $filterRules;
     }
 }
