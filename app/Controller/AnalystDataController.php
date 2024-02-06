@@ -257,19 +257,25 @@ class AnalystDataController extends AppController
             $filters = $this->request->data;
         }
         $options = [];
-        $acceptedFilters = ['orgc_uuid', ];
-        foreach ($acceptedFilters as $filterName) {
-            if (!empty($filters[$filterName])) {
-                $filterValue = $filters[$filterName];
-                if (!is_array($filterValue)) {
-                    $filterValue = [$filterValue];
-                }
-                foreach ($filterValue as $entry) {
-                    if ($entry[0] === '!') {
-                        $options[]['AND'][] = ["{$filterName} !=" => substr($entry, 1)];
-                    } else {
-                        $options['OR'][] = [$filterName => $entry];
+        if (!empty($filters['orgc_name'])) {
+            $orgcNames = $filters['orgc_name'];
+            if (!is_array($orgcNames)) {
+                $orgcName = [$orgcNames];
+            }
+            $filterName = 'orgc_uuid';
+            foreach ($orgcNames as $orgcName) {
+                if ($orgcName[0] === '!') {
+                    $orgc = $this->AnalystData->Orgc->fetchOrg(substr($orgcName, 1));
+                    if ($orgc === false) {
+                        continue;
                     }
+                    $options[]['AND'][] = ["{$filterName} !=" => $orgc['uuid']];
+                } else {
+                    $orgc = $this->AnalystData->Orgc->fetchOrg($orgcName);
+                    if ($orgc === false) {
+                        continue;
+                    }
+                    $options['OR'][] = [$filterName => $orgc['uuid']];
                 }
             }
         }

@@ -877,25 +877,15 @@ class AnalystData extends AppModel
 
     private function buildPullFilterRules(array $server): array
     {
-        $filterRules = ['orgc_uuid' => []];
+        $filterRules = ['orgc_name' => []];
         $pullRules = $this->jsonDecode($server['Server']['pull_rules']);
         if (!empty($pullRules['orgs']['OR'])) {
-            $orgsOR = $this->AnalystData->Orgc->find('column', [
-                'recursive' => -1,
-                'conditions' => ['name' => $pullRules['orgs']['OR']],
-                'fields' => ['uuid'],
-            ]);
-            $filterRules['orgc_uuid'] = $orgsOR;
+            $filterRules['orgc_name'] = $pullRules['orgs']['OR'];
         }
         if (!empty($pullRules['orgs']['NOT'])) {
-            $orgsNOT = $this->AnalystData->Orgc->find('column', [
-                'recursive' => -1,
-                'conditions' => ['name' => $pullRules['orgs']['NOT']],
-                'fields' => ['uuid'],
-            ]);
-            $filterRules['orgc_uuid'] = array_merge($filterRules['orgc_uuid'], array_map(function($orgUUID) {
-                return '!' . $orgUUID;
-            }, $orgsNOT));
+            $filterRules['orgc_name'] = array_merge($filterRules['orgc_name'], array_map(function($orgName) {
+                return '!' . $orgName;
+            }, $pullRules['orgs']['NOT']));
         }
         return $filterRules;
     }
