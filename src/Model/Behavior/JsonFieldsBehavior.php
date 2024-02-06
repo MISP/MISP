@@ -28,7 +28,7 @@ class JsonFieldsBehavior extends Behavior
             if (!isset($data[$field]) && array_key_exists('default', $fieldConfig)) {
                 $entity->set($field, $fieldConfig['default']);
             } else {
-                $entity->set($field, $data[$field]);
+                $entity->set($field, $data[$field] ?? []);
             }
         }
     }
