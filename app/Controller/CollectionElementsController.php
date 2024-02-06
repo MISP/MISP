@@ -85,6 +85,9 @@ class CollectionElementsController extends AppController
                 'conditions' => ['Collection.orgc_id' => $this->Auth->user('org_id')]
             ]);
             if (empty($validCollections)) {
+                if ($this->request->is('ajax')) {
+                    return $this->redirect(['controller' => 'collections', 'action' => 'add']);
+                }
                 throw new NotFoundException(__('You don\'t have any collections yet. Make sure you create one first before you can start adding elements.'));
             }
             $dropdownData = [
