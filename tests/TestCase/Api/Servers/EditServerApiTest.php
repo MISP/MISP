@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Test\TestCase\Api\Servers;
 
 use App\Test\Fixture\AuthKeysFixture;
-use App\Test\Fixture\FeedsFixture;
 use App\Test\Fixture\ServersFixture;
 use App\Test\Helper\ApiTestTrait;
 use Cake\TestSuite\TestCase;
@@ -32,8 +31,7 @@ class EditServerApiTest extends TestCase
 
         $url = sprintf('%s/%s', self::ENDPOINT, ServersFixture::SERVER_A_ID);
 
-        $faker = \Faker\Factory::create();
-        $newUrl = $faker->url;
+        $newUrl = 'http://new-url.local';
 
         $this->put(
             $url,
