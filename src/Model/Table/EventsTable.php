@@ -19,17 +19,93 @@ class EventsTable extends AppTable
         $this->addBehavior('AuditLog');
 
         $this->belongsTo(
+            'User',
+            [
+                'className' => 'Users',
+                'foreignKey' => 'user_id'
+            ]
+        );
+        $this->belongsTo(
+            'ThreatLevel',
+            [
+                'className' => 'ThreatLevels',
+                'foreignKey' => 'threat_level_id'
+            ]
+        );
+        $this->belongsTo(
+            'Org',
+            [
+                'className' => 'Organisations',
+                'foreignKey' => 'org_id'
+            ]
+        );
+        $this->belongsTo(
+            'Orgc',
+            [
+                'className' => 'Organisations',
+                'foreignKey' => 'orgc_id'
+            ]
+        );
+        $this->belongsTo(
             'SharingGroup',
             [
                 'className' => 'SharingGroups',
                 'foreignKey' => 'sharing_group_id'
             ]
         );
+
         $this->hasMany(
             'Attributes',
             [
                 'dependent' => true,
                 'propertyName' => 'Attribute'
+            ]
+        );
+        $this->hasMany(
+            'ShadowAttributes',
+            [
+                'dependent' => true,
+                'propertyName' => 'ShadowAttribute'
+            ]
+        );
+        $this->hasMany(
+            'Objects',
+            [
+                'dependent' => true,
+                'propertyName' => 'Object',
+                'className' => 'MispObjects',
+            ]
+        );
+        $this->hasMany(
+            'EventTags',
+            [
+                'dependent' => true,
+                'propertyName' => 'EventTag',
+            ]
+        );
+        $this->hasMany(
+            'Sightings',
+            [
+                'dependent' => true,
+                'propertyName' => 'Sighting',
+            ]
+        );
+        $this->hasMany(
+            'EventReports',
+            [
+                'dependent' => true,
+                'propertyName' => 'EventReport',
+            ]
+        );
+        $this->hasMany(
+            'CryptographicKeys',
+            [
+                'dependent' => true,
+                'propertyName' => 'CryptographicKey',
+                'foreignKey' => 'parent_id',
+                'conditions' => [
+                    'parent_type' => 'Events'
+                ],
             ]
         );
         $this->setDisplayField('title');
