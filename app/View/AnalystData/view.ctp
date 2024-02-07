@@ -56,6 +56,10 @@ $fields = [
         'sg_path' => $modelSelection . '.SharingGroup',
         'type' => 'distribution'
     ],
+    [
+        'key' => __('Authors'),
+        'path' => $modelSelection . '.authors'
+    ],
 ];
 
 if ($modelSelection === 'Note') {

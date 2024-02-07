@@ -30,7 +30,13 @@ $fields = [
         'options' => $dropdownData['sgs'],
         'label' => __("Sharing Group"),
         'type' => 'dropdown'
-    ]
+    ],
+    [
+        'field' => 'authors',
+        'class' => 'span3',
+        'stayInLine' => $modelSelection === 'Note',
+        'default' => $me['email'],
+    ],
 ];
 
 if ($modelSelection === 'Note') {
@@ -38,12 +44,12 @@ if ($modelSelection === 'Note') {
         [
             [
                 'field' => 'language',
-                'class' => 'span3'
+                'class' => 'span3',
             ],
             [
                 'field' => 'note',
                 'type' => 'textarea',
-                'class' => 'input span6'
+                'class' => 'input span6',
             ]
         ]
     );
@@ -53,12 +59,12 @@ if ($modelSelection === 'Note') {
             [
                 'field' => 'opinion',
                 'class' => '',
-                'type' => 'opinion'
+                'type' => 'opinion',
             ],
             [
                 'field' => 'comment',
                 'type' => 'textarea',
-                'class' => 'input span6'
+                'class' => 'input span6',
             ]
         ]
     );
