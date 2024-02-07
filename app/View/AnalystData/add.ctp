@@ -72,14 +72,21 @@ if ($modelSelection === 'Note') {
     $fields = array_merge($fields,
         [
             [
-                'field' => 'related_object_type',
+                'field' => 'relationship_type',
                 'class' => 'span4',
-                'options' => $dropdownData['valid_targets'],
+                'options' => $existingRelations,
                 'type' => 'text',
                 'picker' => array(
-                    'text' => __('Pick type'),
-                    'function' => 'pickerTypes',
+                    'text' => __('Pick Relationship'),
+                    'function' => 'pickerRelationshipTypes',
                 )
+            ],
+            [
+                'field' => 'related_object_type',
+                'class' => 'span2',
+                'options' => $dropdownData['valid_targets'],
+                'type' => 'dropdown',
+                'stayInLine' => 1,
             ],
             [
                 'field' => 'related_object_uuid',
@@ -183,9 +190,9 @@ if (!$ajax) {
     })
 
 <?php if ($modelSelection === 'Relationship'): ?>
-    function pickerTypes() {
+    function pickerRelationshipTypes() {
         var existingRelationTypes = <?= json_encode(array_values($existingRelations)) ?> ;
-        var $select = $('<select id="pickerTypeSelect"/>');
+        var $select = $('<select id="pickerRelationshipTypeSelect"/>');
         existingRelationTypes.forEach(function(type) {
             $select.append($('<option/>').val(type).text(type))
         })
@@ -195,7 +202,7 @@ if (!$ajax) {
             $popover.find('select').chosen({
                 width: '300px',
             }).on('change', function(evt, param) {
-                $('#RelationshipRelatedObjectType').val($('#pickerTypeSelect').val());
+                $('#RelationshipRelationshipType').val($('#pickerRelationshipTypeSelect').val());
                 $(that).popover('hide')
             });
         });
