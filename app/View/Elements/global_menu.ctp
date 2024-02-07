@@ -38,6 +38,13 @@
                     [
                         'type' => 'separator'
                     ],
+                    [
+                        'text' => __('List Analyst Data'),
+                        'url' => $baseurl . '/analyst_data/index'
+                    ],
+                    [
+                        'type' => 'separator'
+                    ],
                     array(
                         'text' => __('View Proposals'),
                         'url' => $baseurl . '/shadow_attributes/index/all:0'
