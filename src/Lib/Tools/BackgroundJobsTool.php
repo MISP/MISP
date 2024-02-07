@@ -72,7 +72,7 @@ class BackgroundJobsTool
 
     public const
         CMD_EVENT = 'event',
-        CMD_SERVER = 'server',
+        CMD_SERVER = 'servers',
         CMD_ADMIN = 'admin',
         CMD_WORKFLOW = 'workflow';
 
@@ -750,7 +750,7 @@ class BackgroundJobsTool
         }
     }
 
-    static function getInstance()
+    public static function getInstance()
     {
         if (!self::$instance) {
             self::$instance = new BackgroundJobsTool(Configure::read('BackgroundJobs'));
