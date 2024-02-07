@@ -66,6 +66,10 @@ class AnalystDataController extends AppController
 
     public function edit($type = 'Note', $id)
     {
+        if ($type === 'all' && Validation::uuid($id)) {
+            $this->loadModel('AnalystData');
+            $type = $this->AnalystData->deduceType($id);
+        }
         $this->__typeSelector($type);
         if (!is_numeric($id) && Validation::uuid($id)) {
             $id = $this->getIDFromUUID($type, $id);
@@ -101,6 +105,10 @@ class AnalystDataController extends AppController
 
     public function delete($type = 'Note', $id, $hard=true)
     {
+        if ($type === 'all' && Validation::uuid($id)) {
+            $this->loadModel('AnalystData');
+            $type = $this->AnalystData->deduceType($id);
+        }
         $this->__typeSelector($type);
         if (!is_numeric($id) && Validation::uuid($id)) {
             $id = $this->getIDFromUUID($type, $id);
@@ -154,6 +162,10 @@ class AnalystDataController extends AppController
 
     public function view($type = 'Note', $id)
     {
+        if ($type === 'all' && Validation::uuid($id)) {
+            $this->loadModel('AnalystData');
+            $type = $this->AnalystData->deduceType($id);
+        }
         $this->__typeSelector($type);
         if (!is_numeric($id) && Validation::uuid($id)) {
             $id = $this->getIDFromUUID($type, $id);
