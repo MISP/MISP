@@ -30,9 +30,6 @@ class CurlClient extends HttpSocketExtended
     /** @var array */
     private $proxy = [];
 
-    /** @var array */
-    private $defaultOptions;
-
     /**
      * @param array $params
      * @noinspection PhpMissingParentConstructorInspection
@@ -60,7 +57,6 @@ class CurlClient extends HttpSocketExtended
         if (isset($params['ssl_verify_peer'])) {
             $this->verifyPeer = $params['ssl_verify_peer'];
         }
-        $this->defaultOptions = $this->generateDefaultOptions();
     }
 
     /**
@@ -198,7 +194,7 @@ class CurlClient extends HttpSocketExtended
             $url .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
         }
 
-        $options = $this->defaultOptions;
+        $options = $this->generateOptions();
         $options[CURLOPT_URL] = $url;
         $options[CURLOPT_CUSTOMREQUEST] = $method;
 
@@ -312,7 +308,7 @@ class CurlClient extends HttpSocketExtended
     /**
      * @return array
      */
-    private function generateDefaultOptions()
+    private function generateOptions()
     {
         $options = [
             CURLOPT_FOLLOWLOCATION => true, // Allows to follow redirect
