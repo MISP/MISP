@@ -171,15 +171,16 @@ class AnalystDataController extends AppController
             $id = $this->getIDFromUUID($type, $id);
         }
 
-        $this->AnalystData->fetchRecursive = true;
+        if (!$this->IndexFilter->isRest()) {
+            $this->AnalystData->fetchRecursive = true;
+        }
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $this->CRUD->view($id, [
             'conditions' => $conditions,
             'contain' => ['Org', 'Orgc'],
             'afterFind' => function(array $analystData) {
-                if (!$this->IndexFilter->isRest()) {
-                    $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
-                    $analystData[$this->modelSelection]['_canEdit'] = $canEdit;
+                if (!$this->request->is('ajax')) {
+                    unset($analystData[$this->modelSelection]['_canEdit']);
                 }
                 return $analystData;
             }
@@ -207,11 +208,8 @@ class AnalystDataController extends AppController
             'conditions' => $conditions,
             'afterFind' => function(array $data) {
                 foreach ($data as $i => $analystData) {
-                    if (!$this->IndexFilter->isRest()) {
-                        $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
-                        if (!$this->IndexFilter->isRest()) {
-                            $data[$i][$this->modelSelection]['_canEdit'] = $canEdit;
-                        }
+                    if (!$this->request->is('ajax')) {
+                        unset($analystData[$this->modelSelection]['_canEdit']);
                     }
                 }
                 return $data;
