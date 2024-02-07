@@ -126,7 +126,9 @@ class AnalystData extends AppModel
                 $this->data[$this->current_type]['orgc_uuid'] = $this->current_user['Organisation']['uuid'];
             }
             $this->data[$this->current_type]['org_uuid'] = $this->current_user['Organisation']['uuid'];
-            $this->data[$this->current_type]['authors'] = $this->current_user['email'];
+            if (empty($this->data[$this->current_type]['authors'])) {
+                $this->data[$this->current_type]['authors'] = $this->current_user['email'];
+            }
         }
         return true;
     }
