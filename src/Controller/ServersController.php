@@ -820,27 +820,18 @@ class ServersController extends AppController
         }
     }
 
-    public function push($id = null, $technique = false)
+    public function push($id = null, $technique = null)
     {
-        if (!empty($id)) {
-            $this->Servers->id = $id;
-        } else if (!empty($this->request->getData()['id'])) {
-            $this->Servers->id = $this->request->getData()['id'];
-        } else {
-            throw new NotFoundException(__('Invalid server'));
-        }
-        if (!empty($this->request->getData()['technique'])) {
-            $technique = $this->request->getData()['technique'];
-        }
-        if (!$this->Servers->exists()) {
-            throw new NotFoundException(__('Invalid server'));
-        }
-        $s = $this->Servers->read(null, $id);
+        $id = $id ?? $this->request->getData('id');
+
+        $server = $this->Servers->get($id)->toArray();
+
+        $technique = $technique ?? $this->request->getData('technique');
 
         if (!Configure::read('BackgroundJobs.enabled')) {
             $HttpSocket = new HttpTool();
-            $HttpSocket->configFromServer($s);
-            $result = $this->Servers->push($id, $technique, false, $HttpSocket, $this->ACL->getUser());
+            $HttpSocket->configFromServer($server);
+            $result = $this->Servers->push($id, $technique, false, $HttpSocket, $this->ACL->getUser()->toArray());
             if ($result === false) {
                 $error = __('The remote server is too outdated to initiate a push towards it. Please notify the hosting organisation of the remote instance.');
             } elseif (!is_array($result)) {
@@ -855,7 +846,7 @@ class ServersController extends AppController
                 }
             }
             if ($this->ParamHandler->isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->getType(), __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])));
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->getType(), __('Push complete. {0} events pushed, {1} events could not be pushed.', count($result[0]), count($result[1])));
             } else {
                 $this->set('successes', $result[0]);
                 $this->set('fails', $result[1]);

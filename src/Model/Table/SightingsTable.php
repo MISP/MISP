@@ -2,8 +2,8 @@
 
 namespace App\Model\Table;
 
-use App\Model\Table\AppTable;
 use App\Lib\Tools\ServerSyncTool;
+use App\Model\Table\AppTable;
 
 class SightingsTable extends AppTable
 {
@@ -18,5 +18,19 @@ class SightingsTable extends AppTable
         // TODO: [3.x-MIGRATION] Implement pullSightings() method.
 
         return 0;
+    }
+
+    /**
+     * Push sightings to remote server.
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @return array
+     * @throws Exception
+     */
+    public function pushSightings(array $user, ServerSyncTool $serverSync)
+    {
+        // TODO: [3.x-MIGRATION] Implement pushSightings() method.
+
+        return [];
     }
 }

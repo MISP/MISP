@@ -1067,6 +1067,8 @@ class ServersTable extends AppTable
     {
         $jobId = $jobId ?? false;
 
+        $technique = $technique ?? 'full';
+
         if ($jobId) {
             $JobsTable = $this->fetchTable('Jobs');
         }
@@ -1074,12 +1076,11 @@ class ServersTable extends AppTable
         if (!$server) {
             throw new NotFoundException('Server not found');
         }
-        $server = $server->toArray();
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        $serverSync = new ServerSyncTool($server->toArray(), $this->setupSyncRequest($server->toArray()));
 
         $EventsTable = $this->fetchTable('Events');
         $url = $server['url'];
-        $push = $this->checkVersionCompatibility($server, $user, $serverSync);
+        $push = $this->checkVersionCompatibility($server->toArray(), $user, $serverSync);
         if (is_array($push) && !$push['canPush'] && !$push['canSight']) {
             $push = 'Remote instance is outdated or no permission to push.';
         }
@@ -1108,13 +1109,13 @@ class ServersTable extends AppTable
         if ($push['canPush'] && $server['push']) {
             $successes = [];
             if ("full" == $technique) {
-                $eventid_conditions_key = 'Event.id >';
+                $eventid_conditions_key = 'Events.id >';
                 $eventid_conditions_value = 0;
             } elseif ("incremental" == $technique) {
-                $eventid_conditions_key = 'Event.id >';
+                $eventid_conditions_key = 'Events.id >';
                 $eventid_conditions_value = $server['lastpushedid'];
             } elseif (intval($technique) !== 0) {
-                $eventid_conditions_key = 'Event.id';
+                $eventid_conditions_key = 'Events.id';
                 $eventid_conditions_value = intval($technique);
             } else {
                 throw new InvalidArgumentException("Technique parameter must be 'full', 'incremental' or event ID.");
@@ -1128,55 +1129,52 @@ class ServersTable extends AppTable
             }
             $successes = array_merge($successes, $clustersSuccesses);
 
-            $sgs = $$EventsTable->SharingGroup->find(
+            $sgs = $EventsTable->SharingGroup->find(
                 'all',
                 [
                     'recursive' => -1,
-                    'contain' => ['Organisation', 'SharingGroupOrg' => ['Organisation'], 'SharingGroupServer']
+                    'contain' => ['Organisations', 'SharingGroupOrgs' => ['Organisations'], 'SharingGroupServers']
                 ]
             );
             $sgIds = [];
             foreach ($sgs as $sg) {
                 if ($EventsTable->SharingGroup->checkIfServerInSG($sg, $server)) {
-                    $sgIds[] = $sg['SharingGroup']['id'];
+                    $sgIds[] = $sg['id'];
                 }
             }
             if (empty($sgIds)) {
                 $sgIds = [-1];
             }
-            $tableName = $EventsTable->EventReport->table;
-            $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
+            $eventReportQuery = 'EXISTS (SELECT id, deleted FROM event_reports WHERE event_reports.event_id = Events.id and event_reports.deleted = 0)';
             $findParams = [
                 'conditions' => [
                     $eventid_conditions_key => $eventid_conditions_value,
-                    'Event.published' => 1,
+                    'Events.published' => 1,
                     'OR' => [
                         [
-                            ['Event.attribute_count >' => 0],
+                            ['Events.attribute_count >' => 0],
                             [$eventReportQuery]
                         ],
                         [
-                            [
-                                'AND' => [
-                                    ['Event.distribution >' => 0],
-                                    ['Event.distribution <' => 4],
-                                ],
+                            'AND' => [
+                                ['Events.distribution >' => 0],
+                                ['Events.distribution <' => 4],
                             ],
-                            [
-                                'AND' => [
-                                    'Event.distribution' => 4,
-                                    'Event.sharing_group_id' => $sgIds
-                                ],
-                            ]
+                        ],
+                        [
+                            'AND' => [
+                                'Events.distribution' => 4,
+                                'Events.sharing_group_id IN' => $sgIds
+                            ],
                         ]
                     ]
                 ], // array of conditions
                 'recursive' => -1, //int
-                'contain' => ['EventTags' => ['fields' => ['EventTags.tag_id']]],
+                'contain' => ['EventTags' => ['fields' => ['EventTags.tag_id', 'EventTags.event_id']]],
                 'fields' => ['Events.id', 'Events.timestamp', 'Events.sighting_timestamp', 'Events.uuid', 'Events.orgc_id'], // array of field names
             ];
             $eventIds = $EventsTable->find('all', $findParams)->toArray();
-            $eventUUIDsFiltered = $this->getEventIdsForPush($server, $serverSync, $eventIds);
+            $eventUUIDsFiltered = $this->getEventIdsForPush($server->toArray(), $serverSync, $eventIds);
             if (!empty($eventUUIDsFiltered)) {
                 $eventCount = count($eventUUIDsFiltered);
                 // now process the $eventIds to push each of the events sequentially
@@ -1184,9 +1182,8 @@ class ServersTable extends AppTable
                 foreach ($eventUUIDsFiltered as $k => $eventUuid) {
                     $params = [];
                     if (!empty($server['push_rules'])) {
-                        $push_rules = json_decode($server['push_rules'], true);
-                        if (!empty($push_rules['tags']['NOT'])) {
-                            $params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
+                        if (!empty($server['push_rules']['tags']['NOT'])) {
+                            $params['blockedAttributeTags'] = $server['push_rules']['tags']['NOT'];
                         }
                     }
                     $params = array_merge(
@@ -1204,24 +1201,24 @@ class ServersTable extends AppTable
                     }
                     $event = $EventsTable->fetchEvent($user, $params);
                     $event = $event[0];
-                    $event['Event']['locked'] = 1;
+                    $event['locked'] = 1;
 
                     // Check if remote server supports galaxy cluster push, is set to push and if event will be pushed to
                     // server
                     $pushGalaxyClustersForEvent = $push['canEditGalaxyCluster'] &&
                         $server['push_galaxy_clusters'] &&
                         "full" !== $technique &&
-                        $EventsTable->shouldBePushedToServer($event, $server);
+                        $EventsTable->shouldBePushedToServer($event, $server->toArray());
 
                     if ($pushGalaxyClustersForEvent) {
-                        $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique = $event['Event']['id'], $event = $event);
+                        $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique = $event['id'], $event = $event);
                     }
 
-                    $result = $EventsTable->uploadEventToServer($event, $server, $serverSync);
+                    $result = $EventsTable->uploadEventToServer($event, $server->toArray(), $serverSync);
                     if ('Success' === $result) {
-                        $successes[] = $event['Event']['id'];
+                        $successes[] = $event['id'];
                     } else {
-                        $fails[$event['Event']['id']] = $result;
+                        $fails[$event['id']] = $result;
                     }
                     if ($jobId && $k % 10 == 0) {
                         $JobsTable->saveProgress($jobId, null, 100 * $k / $eventCount);
@@ -1239,7 +1236,7 @@ class ServersTable extends AppTable
                 $server['lastpushedid'] = $lastpushedid;
                 $this->save($server);
             }
-            $this->syncProposals($HttpSocket, $server, null, null, $EventsTable);
+            $this->syncProposals($HttpSocket, $server->toArray(), null, null, $EventsTable);
         }
 
         if ($push['canPush'] || $push['canSight']) {
@@ -1294,8 +1291,8 @@ class ServersTable extends AppTable
             }
             $request[] = [
                 'Event' => [
-                    'uuid' => $event['Event']['uuid'],
-                    'timestamp' => $event['Event']['timestamp'],
+                    'uuid' => $event['uuid'],
+                    'timestamp' => $event['timestamp'],
                 ]
 
             ];
@@ -1381,7 +1378,10 @@ class ServersTable extends AppTable
         $event_id = $event_id ?? null;
 
         $ShadowAttributesTable = $this->fetchTable('ShadowAttributes');
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+
+        $HttpSocket = new HttpTool();
+        $HttpSocket->configFromServer($server);
+
         if ($sa_id == null) {
             if ($event_id == null) {
                 // event_id is null when we are doing a push
@@ -1392,7 +1392,7 @@ class ServersTable extends AppTable
                     $this->logException("Could not fetch event IDs from server {$server['name']}", $e);
                     return false;
                 }
-                $conditions = ['uuid' => $ids];
+                $conditions = ['uuid IN' => $ids];
             } else {
                 $conditions = ['id' => $event_id];
                 // event_id is not null when we are doing a publish
@@ -1402,10 +1402,10 @@ class ServersTable extends AppTable
                 [
                     'conditions' => $conditions,
                     'recursive' => 1,
-                    'contain' => 'ShadowAttribute',
-                    'fields' => ['Event.uuid']
+                    'contain' => 'ShadowAttributes',
+                    'fields' => ['uuid']
                 ]
-            );
+            )->toArray();
 
             $fails = 0;
             $success = 0;
@@ -4038,26 +4038,25 @@ class ServersTable extends AppTable
             $eventTags[] = $tag['tag_id'];
         }
         foreach ($servers as $server) {
-            $push_rules = json_decode($server['push_rules'], true);
-            if (!empty($push_rules['tags']['OR'])) {
-                $intersection = array_intersect($push_rules['tags']['OR'], $eventTags);
+            if (!empty($server['push_rules']['tags']['OR'])) {
+                $intersection = array_intersect($server['push_rules']['tags']['OR'], $eventTags);
                 if (empty($intersection)) {
                     continue;
                 }
             }
-            if (!empty($push_rules['tags']['NOT'])) {
-                $intersection = array_intersect($push_rules['tags']['NOT'], $eventTags);
+            if (!empty($server['push_rules']['tags']['NOT'])) {
+                $intersection = array_intersect($server['push_rules']['tags']['NOT'], $eventTags);
                 if (!empty($intersection)) {
                     continue;
                 }
             }
-            if (!empty($push_rules['orgs']['OR'])) {
-                if (!in_array($event['Event']['orgc_id'], $push_rules['orgs']['OR'])) {
+            if (!empty($server['push_rules']['orgs']['OR'])) {
+                if (!in_array($event['orgc_id'], $server['push_rules']['orgs']['OR'])) {
                     continue;
                 }
             }
-            if (!empty($push_rules['orgs']['NOT'])) {
-                if (in_array($event['Event']['orgc_id'], $push_rules['orgs']['NOT'])) {
+            if (!empty($server['push_rules']['orgs']['NOT'])) {
+                if (in_array($event['orgc_id'], $server['push_rules']['orgs']['NOT'])) {
                     continue;
                 }
             }

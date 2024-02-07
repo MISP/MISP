@@ -2,6 +2,7 @@
 
 namespace App\Model\Table;
 
+use App\Lib\Tools\ServerSyncTool;
 use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Core\Configure;
@@ -199,6 +200,8 @@ class EventsTable extends AppTable
     public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = [])
     {
         // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
+
+        // THIS IS A PLACEHOLDER !
         $data['Event']['user_id'] = $user['id'];
         if ($fromPull) {
             $data['Event']['org_id'] = $org_id;
@@ -218,6 +221,44 @@ class EventsTable extends AppTable
     public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false, $fast_update = false)
     {
         // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
+
+        // THIS IS A PLACEHOLDER !
         return true;
+    }
+
+    public function fetchEvent($user, $options = [], $useCache = false)
+    {
+        // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
+
+        // THIS IS A PLACEHOLDER !
+        if (isset($options['event_uuid'])) {
+            return $this->find(
+                'all',
+                [
+                    'conditions' => [
+                        'uuid' => $options['event_uuid']
+                    ]
+                ]
+            )->disableHydration()->toArray();
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array $event
+     * @param array $server
+     * @param ServerSyncTool $serverSync
+     * @return false|string
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     * @throws Exception
+     */
+    public function uploadEventToServer(array $event, array $server, ServerSyncTool $serverSync)
+    {
+        // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
+
+        // THIS IS A PLACEHOLDER !
+        return 'Success';
     }
 }
