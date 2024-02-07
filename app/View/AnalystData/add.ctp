@@ -157,6 +157,9 @@ if (!$ajax) {
     }
 
     function fetchAndDisplayRelatedObject(type, uuid) {
+        if (!type || !uuid) {
+            return
+        }
         var url = baseurl + '/analystData/getRelatedElement/' + type + '/' + uuid
         $.ajax({
             type: "get",
@@ -187,6 +190,7 @@ if (!$ajax) {
                 fetchAndDisplayRelatedObject($('#RelationshipRelatedObjectType').val(),$('#RelationshipRelatedObjectUuid').val())
             }
         })
+        fetchAndDisplayRelatedObject($('#RelationshipRelatedObjectType').val(),$('#RelationshipRelatedObjectUuid').val())
     })
 
 <?php if ($modelSelection === 'Relationship'): ?>
