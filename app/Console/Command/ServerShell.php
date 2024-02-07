@@ -85,6 +85,7 @@ class ServerShell extends AppShell
 
         $userId = $this->args[0];
         $user = $this->getUser($userId);
+        Configure::write('CurrentUserId', $userId);
 
         if (!empty($this->args[1])) {
             $technique = $this->args[1];
@@ -129,6 +130,7 @@ class ServerShell extends AppShell
         $user = $this->getUser($userId);
         $serverId = $this->args[1];
         $server = $this->getServer($serverId);
+        Configure::write('CurrentUserId', $userId);
         if (!empty($this->args[2])) {
             $technique = $this->args[2];
         } else {
@@ -169,6 +171,7 @@ class ServerShell extends AppShell
         $user = $this->getUser($userId);
         $serverId = $this->args[1];
         $server = $this->getServer($serverId);
+        Configure::write('CurrentUserId', $userId);
         $technique = empty($this->args[2]) ? 'full' : $this->args[2];
         if (!empty($this->args[3])) {
             $jobId = $this->args[3];
@@ -203,6 +206,7 @@ class ServerShell extends AppShell
         $userId = $this->args[0];
         $user = $this->getUser($userId);
 
+        Configure::write('CurrentUserId', $userId);
         $technique = isset($this->args[1]) ? $this->args[1] : 'full';
 
         $servers = $this->Server->find('list', array(
