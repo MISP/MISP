@@ -207,9 +207,9 @@ class ServersController extends AppController
         try {
             $event = $this->Servers->previewEvent($server, $eventId);
         } catch (NotFoundException $e) {
-            throw new NotFoundException(__("Event '%s' not found.", $eventId));
+            throw new NotFoundException(__("Event '{0}' not found.", $eventId));
         } catch (Exception $e) {
-            $this->Flash->error(__('Download failed. %s', $e->getMessage()));
+            $this->Flash->error(__('Download failed. {0}', $e->getMessage()));
             $this->redirect(['action' => 'previewIndex', $serverId]);
         }
 
@@ -876,7 +876,7 @@ class ServersController extends AppController
                 $jobId
             );
 
-            $message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
+            $message = sprintf(__('Push queued for background execution. Job ID: {0}'), $jobId);
 
             if ($this->ParamHandler->isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->getType());
@@ -1458,7 +1458,7 @@ class ServersController extends AppController
     {
         $setting = $this->Servers->getSettingData($settingName);
         if (!$setting) {
-            throw new NotFoundException(__('Setting %s is invalid.', $settingName));
+            throw new NotFoundException(__('Setting {0} is invalid.', $settingName));
         }
         if (!empty($setting["redacted"])) {
             throw new ForbiddenException(__('This setting is redacted.'));
@@ -1479,7 +1479,7 @@ class ServersController extends AppController
         }
         $setting = $this->Servers->getSettingData($settingName);
         if ($setting === false) {
-            throw new NotFoundException(__('Setting %s is invalid.', $settingName));
+            throw new NotFoundException(__('Setting {0} is invalid.', $settingName));
         }
         if (!empty($setting['cli_only'])) {
             throw new MethodNotAllowedException(__('This setting can only be edited via the CLI.'));
@@ -2056,7 +2056,7 @@ class ServersController extends AppController
         }
         if (Configure::read('Security.advanced_authkeys')) {
             $AuthKeysTable = $this->fetchTable('AuthKeys');
-            $authkey = $AuthKeysTable->createnewkey($this->ACL->getUser()->id, null, __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
+            $authkey = $AuthKeysTable->createnewkey($this->ACL->getUser()->id, null, __('Auto generated sync key - {0}', date('Y-m-d H:i:s')));
         } else {
             $UsersTable = $this->fetchTable('Users');
             $authkey = $UsersTable->find(
@@ -2128,7 +2128,7 @@ class ServersController extends AppController
                 if ($this->ParamHandler->isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'addFromJson', false, $this->Servers->validationErrors, $this->response->getType());
                 } else {
-                    $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Servers->validationErrors)));
+                    $this->Flash->error(__('Could not save the server. Error: {0}', json_encode($this->Servers->validationErrors)));
                     $this->redirect(['action' => 'index']);
                 }
             }
@@ -2273,7 +2273,7 @@ class ServersController extends AppController
     public function removeOrphanedCorrelations()
     {
         $count = $this->Servers->removeOrphanedCorrelations();
-        $message = __('%s orphaned correlation removed', $count);
+        $message = __('{0} orphaned correlation removed', $count);
         if ($this->ParamHandler->isRest()) {
             return $this->RestResponse->viewData($message, $this->response->getType());
         } else {
