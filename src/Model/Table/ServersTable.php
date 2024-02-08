@@ -4588,16 +4588,15 @@ class ServersTable extends AppTable
 
     public function cacheServerInitiator($user, $id = 'all', $jobId = false)
     {
-        $redis = $this->setupRedis();
+        $redis = RedisTool::init();
         if ($redis === false) {
             return 'Redis not reachable.';
         }
         $params = [
             'conditions' => ['caching_enabled' => 1],
-            'recursive' => -1
         ];
         if ($id !== 'all') {
-            $params['conditions']['Server.id'] = $id;
+            $params['conditions']['id'] = $id;
         } else {
             $redis->del('misp:server_cache:combined');
             $redis->del($redis->keys('misp:server_cache:event_uuid_lookup:*'));
@@ -4611,7 +4610,7 @@ class ServersTable extends AppTable
             }
         }
         foreach ($servers as $k => $server) {
-            $this->__cacheInstance($server, $redis, $jobId);
+            $this->__cacheInstance($server->toArray(), $redis, $jobId);
             if ($jobId) {
                 $job->progress = 100 * $k / $servers->count();
                 $job->message =  'Server ' . $server['id'] . ' cached.';
@@ -4645,7 +4644,7 @@ class ServersTable extends AppTable
                 'limit' => $chunk_size,
             ];
             try {
-                $data = $serverSync->attributeSearch($rules)->body();
+                $data = $serverSync->attributeSearch($rules)->getStringBody();
             } catch (Exception $e) {
                 $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
                 break;

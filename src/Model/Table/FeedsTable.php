@@ -228,12 +228,12 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param HttpClient|null $HttpSocket Null can be for local feed
      * @return Generator<string>
      * @throws Exception
      */
-    public function getCache(array $feed, HttpClient $HttpSocket = null)
+    public function getCache(Feed $feed, HttpClient $HttpSocket = null)
     {
         $uri = $feed['url'] . '/hashes.csv';
         $data = $this->feedGetUri($feed, $uri, $HttpSocket);
@@ -1511,7 +1511,7 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param Redis $redis
      * @param int|false $jobId
      * @return bool
@@ -1535,13 +1535,13 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param Redis $redis
      * @param HttpClient|null $HttpSocket
      * @param int|false $jobId
      * @return bool
      */
-    private function __cacheFreetextFeed(array $feed, $redis, HttpClient $HttpSocket = null, $jobId = false)
+    private function __cacheFreetextFeed(Feed $feed, $redis, HttpClient $HttpSocket = null, $jobId = false)
     {
         $feedId = $feed['id'];
 
@@ -2136,14 +2136,14 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param string $uri
      * @param HttpClient $HttpSocket
      * @param string|null $etag
      * @return false|HttpClientResponse
      * @throws HttpException
      */
-    private function feedGetUriRemote(array $feed, $uri, HttpClient $HttpSocket, $etag = null)
+    private function feedGetUriRemote(Feed $feed, $uri, HttpClient $HttpSocket, $etag = null)
     {
         $request = $this->__createFeedRequest($feed['headers']);
         if ($etag) {
