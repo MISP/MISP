@@ -3,6 +3,7 @@
 namespace App\Model\Table;
 
 use App\Lib\Tools\BackgroundJobsTool;
+use App\Lib\Tools\LogExtendedTrait;
 use App\Model\Entity\Job;
 use App\Model\Table\AppTable;
 use ArrayObject;
@@ -12,6 +13,8 @@ use Exception;
 
 class JobsTable extends AppTable
 {
+    use LogExtendedTrait;
+
     public function initialize(array $config): void
     {
         parent::initialize($config);
