@@ -51,6 +51,8 @@ class AnalystData extends AppModel
     public $Orgc;
     /** @var object|null */
     public $SharingGroup;
+    /** @var array */
+    protected $fetchedUUIDFromRecursion = [];
 
     public $current_user = null;
 
@@ -257,9 +259,10 @@ class AnalystData extends AppModel
 
     public function fetchChildNotesAndOpinions(array $user, array $analystData, $depth = 2): array
     {
-        if ($depth == 0) {
+        if ($depth == 0 || !empty($this->fetchedUUIDFromRecursion[$analystData['uuid']])) {
             return $analystData;
         }
+        $this->fetchedUUIDFromRecursion[$analystData['uuid']] = true;
 
         $this->Note = ClassRegistry::init('Note');
         $this->Opinion = ClassRegistry::init('Opinion');
@@ -298,9 +301,15 @@ class AnalystData extends AppModel
         }, $this->Opinion->find('all', $paramsOpinion));
 
         if (!empty($childNotes)) {
+            foreach ($childNotes as $childNote) {
+                $this->fetchedUUIDFromRecursion[$childNote['uuid']] = true;
+            }
             $analystData['Note'] = $childNotes;
         }
         if (!empty($childOpinions)) {
+            foreach ($childNotes as $childNote) {
+                $this->fetchedUUIDFromRecursion[$childNote['uuid']] = true;
+            }
             $analystData['Opinion'] = $childOpinions;
         }
         return $analystData;

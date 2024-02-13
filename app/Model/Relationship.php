@@ -59,7 +59,10 @@ class Relationship extends AnalystData
             $this->Event = ClassRegistry::init('Event');
             $params = [
             ];
+            $backup = $this->Event->includeAnalystData;
+            $this->Event->includeAnalystData = false;
             $data = $this->Event->fetchSimpleEvent($user, $uuid, $params);
+            $this->Event->includeAnalystData = $backup;
         } else if ($type == 'Attribute') {
             $this->Attribute = ClassRegistry::init('Attribute');
             $params = [
@@ -68,7 +71,10 @@ class Relationship extends AnalystData
                 ],
                 'contain' => ['Event' => 'Orgc', 'Object',]
             ];
+            $backup = $this->Attribute->includeAnalystData;
+            $this->Attribute->includeAnalystData = false;
             $data = $this->Attribute->fetchAttributeSimple($user, $params);
+            $this->Attribute->includeAnalystData = $backup;
             $data = $this->rearrangeData($data, 'Attribute');
         } else if ($type == 'Object') {
             $this->Object = ClassRegistry::init('MispObject');
@@ -78,7 +84,10 @@ class Relationship extends AnalystData
                 ],
                 'contain' => ['Event' => 'Orgc',]
             ];
+            $backup = $this->Object->includeAnalystData;
+            $this->Object->includeAnalystData = false;
             $data = $this->Object->fetchObjectSimple($user, $params);
+            $this->Object->includeAnalystData = $backup;
             if (!empty($data)) {
                 $data = $data[0];
             }
@@ -88,19 +97,28 @@ class Relationship extends AnalystData
             $params = [
 
             ];
+            $backup = $this->Note->includeAnalystData;
+            $this->Note->includeAnalystData = false;
             $data = $this->Note->fetchNote();
+            $this->Note->includeAnalystData = $backup;
         } else if ($type == 'Opinion') {
             $this->Opinion = ClassRegistry::init('Opinion');
             $params = [
 
             ];
+            $backup = $this->Opinion->includeAnalystData;
+            $this->Opinion->includeAnalystData = false;
             $data = $this->Opinion->fetchOpinion();
+            $this->Opinion->includeAnalystData = $backup;
         } else if ($type == 'Relationship') {
             $this->Relationship = ClassRegistry::init('Relationship');
             $params = [
 
             ];
+            $backup = $this->Relationship->includeAnalystData;
+            $this->Relationship->includeAnalystData = false;
             $data = $this->Relationship->fetchRelationship();
+            $this->Relationship->includeAnalystData = $backup;
         }
         return $data;
     }
