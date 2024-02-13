@@ -264,6 +264,24 @@ class AnalystData extends AppModel
         throw new NotFoundException(__('Invalid or could not deduce analyst data type'));
     }
 
+    public function fetchSimple(array $user, $id): array
+    {
+        $conditions = [
+            'AND' => [
+                $this->buildConditions($user)
+            ],
+        ];
+        if (Validation::uuid($id)) {
+            $conditions[$this->alias . '.uuid'] = $id;
+        } else {
+            $conditions[$this->alias . '.id'] = $id;
+        }
+        return $this->find('first', [
+            'conditions' => $conditions,
+            'contain' => ['Org', 'Orgc'],
+        ]);
+    }
+
     public function fetchChildNotesAndOpinions(array $user, array $analystData, $depth = 2): array
     {
         if ($depth == 0 || !empty($this->fetchedUUIDFromRecursion[$analystData['uuid']])) {
@@ -366,6 +384,19 @@ class AnalystData extends AppModel
             'unique' => true,
         ]);
         return array_unique(array_merge($existingRelationships, $objectRelationships));
+    }
+
+    public function getChildren($user, $uuid, $depth=2): array
+    {
+        $analystData = $this->fetchSimple($user, $uuid);
+        if (empty($analystData)) {
+            return [];
+        }
+        $analystData = $analystData[$this->alias];
+        $this->Note = ClassRegistry::init('Note');
+        $this->Opinion = ClassRegistry::init('Opinion');
+        $analystData = $this->fetchChildNotesAndOpinions($user, $analystData, $depth);
+        return $analystData;
     }
 
     /**

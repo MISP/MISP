@@ -248,6 +248,13 @@ class AnalystDataController extends AppController
         return $this->RestResponse->viewData($data, 'json');
     }
 
+    public function getChildren($type = 'Note', $uuid, $depth=2)
+    {
+        $this->__typeSelector($type);
+        $data = $this->AnalystData->getChildren($this->Auth->user(), $uuid, $depth);
+        return $this->RestResponse->viewData($data, 'json');
+    }
+
     public function filterAnalystDataForPush()
     {
         if (!$this->request->is('post')) {

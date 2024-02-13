@@ -42,6 +42,31 @@ if (!window.shortDist) {
 }
 var renderedNotes<?= $seed ?> = null
 
+function renderNotes(notes, relationship_related_object) {
+    var renderedNotesArray = []
+    if (notes.length == 0)  {
+        var emptyHtml = '<span style="text-align: center; color: #777;"><?= __('No notes for this UUID.') ?></span>'
+        renderedNotesArray.push(emptyHtml)
+    } else {
+        notes.forEach(function(note) {
+            var noteHtml = renderNote(note, relationship_related_object)
+
+            if (note.Opinion && note.Opinion.length > 0) { // The notes has more notes attached
+                noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Opinion, relationship_related_object), })
+            }
+            if (note.Note && note.Note.length > 0) { // The notes has more notes attached
+                noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Note, relationship_related_object), })
+            }
+            if (note._max_depth_reached) {
+                noteHtml += replyNoteTemplate({notes_html: maxDepthReachedTemplate({note: note}), })
+            }
+
+            renderedNotesArray.push(noteHtml)
+        });
+    }
+    return renderedNotesArray.join('')
+}
+
 function renderNote(note, relationship_related_object) {
     note.modified_relative = note.modified ? moment(note.modified).fromNow() : note.modified
     note.created_relative = note.created ? moment(note.created).fromNow() : note.created
@@ -260,14 +285,24 @@ var replyNoteTemplate = doT.template('\
 ')
 
 var maxDepthReachedTemplate = doT.template('\
-    <div> \
-        <span style="font-weight: lighter; color: #999;"> \
-            - Max depth reached, there is at least one entry remaining - \
-            <a href="<?= $baseurl ?>/analystData/view/{{=it.note.note_type_name}}/{{=it.note.id}}" target="_blank"> \
-                <i class="<?= $this->FontAwesome->getClass('search') ?>"></i> \
-                <?= __('Click here to view more') ?> \
-            </a> \
-        </span> \
+    <div class="max-depth-container"> \
+        <div> \
+            <span style="font-weight: lighter; color: #999;"> \
+                - Max depth reached, there is at least one entry remaining - \
+                <a href="<?= $baseurl ?>/analystData/view/{{=it.note.note_type_name}}/{{=it.note.id}}" target="_blank"> \
+                    <i class="<?= $this->FontAwesome->getClass('search') ?>"></i> \
+                    <?= __('View entry') ?> \
+                </a> \
+            </span> \
+        </div> \
+        <div> \
+            <span> \
+                <a onclick="fetchMoreNotes(this, \'{{=it.note.note_type_name}}\', \'{{=it.note.uuid}}\')" target="_blank" class="useCursorPointer"> \
+                    <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> \
+                    <?= __('Load more notes') ?> \
+                </a> \
+            </span> \
+        </div> \
     </div> \
 ')
 
@@ -305,6 +340,31 @@ function filterNotes(clicked, filter) {
     }).hide()
 }
 
+function fetchMoreNotes(clicked, noteType, uuid) {
+    var depth = 3
+    var $maxDepthContainer = $(clicked).closest('.max-depth-container')
+    var url = '<?= $baseurl ?>/analystData/getChildren/' + noteType + '/' + uuid + '/' + depth + '.json'
+    $.ajax({
+        beforeSend: function () {
+            $maxDepthContainer.css('filter', 'blur(2px)')
+        },
+        cache: false,
+        success:function (data, textStatus) {
+            var notesOpinions = [].concat(data.Note ?? [], data.Opinion ?? [])
+            var renderedAdditionalNotes = renderNotes(notesOpinions, [])
+            $maxDepthContainer[0].outerHTML = renderedAdditionalNotes
+        },
+        error:function(xhr) {
+            showMessage('fail', 'Could not fetch additional analyst data.');
+        },
+        complete: function() {
+            $maxDepthContainer.css('filter', 'unset')
+        },
+        url: url
+    });
+
+}
+
 
 (function() {
     var notes = <?= json_encode($notesOpinions) ?>;
@@ -321,7 +381,7 @@ function filterNotes(clicked, filter) {
                 <li class="active"><a href="#notes-<?= $seed ?>" data-toggle="tab"><?= __('Notes & Opinions') ?></a></li> \
                 <li><a href="#relationships-<?= $seed ?>" data-toggle="tab"><?= __('Relationships') ?></a></li> \
             </ul> \
-            <div class="tab-content" style="padding: 0.25rem; max-width: 992px; min-width: 400px;"> \
+            <div class="tab-content" style="padding: 0.25rem; max-width: 1200px; min-width: 400px;"> \
                 <div id="notes-<?= $seed ?>" class="tab-pane active"> \
                     ' + noteFilteringTemplate + ' \
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;" class="all-notes">{{=it.content_notes}}</div>\
@@ -332,31 +392,6 @@ function filterNotes(clicked, filter) {
             </div> \
         </div> \
     ')
-
-    function renderNotes(notes, relationship_related_object) {
-        var renderedNotesArray = []
-        if (notes.length == 0)  {
-            var emptyHtml = '<span style="text-align: center; color: #777;"><?= __('No notes for this UUID.') ?></span>'
-            renderedNotesArray.push(emptyHtml)
-        } else {
-            notes.forEach(function(note) {
-                var noteHtml = renderNote(note, relationship_related_object)
-    
-                if (note.Opinion && note.Opinion.length > 0) { // The notes has more notes attached
-                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Opinion, relationship_related_object), })
-                }
-                if (note.Note && note.Note.length > 0) { // The notes has more notes attached
-                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Note, relationship_related_object), })
-                }
-                if (note._max_depth_reached) {
-                    noteHtml += maxDepthReachedTemplate({note: note})
-                }
-
-                renderedNotesArray.push(noteHtml)
-            });
-        }
-        return renderedNotesArray.join('')
-    }
 
     function renderAllNotesWithForm(relationship_related_object) {
         var buttonContainer = '<div id="add-button-container" style="margin-top: 0.5rem;">' + addNoteButton + addOpinionButton + '</div>'

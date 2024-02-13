@@ -24,6 +24,7 @@ class ACLComponent extends Component
                 'delete' => ['AND' => ['perm_add', 'perm_analyst_data']],
                 'edit' => ['AND' => ['perm_add', 'perm_analyst_data']],
                 'filterAnalystDataForPush' => ['perm_sync'],
+                'getChildren' => ['*'],
                 'getRelatedElement' => ['*'],
                 'index' => ['*'],
                 'indexMinimal' => ['*'],
