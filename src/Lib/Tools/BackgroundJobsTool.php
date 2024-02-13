@@ -387,7 +387,7 @@ class BackgroundJobsTool
         foreach ($procs as $proc) {
             if ($proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP) {
                 $name = explode("_", $proc->offsetGet('name'))[0];
-                if ($name === $queue && $proc->offsetGet('state') != \Supervisor\Process::RUNNING) {
+                if ($name === $queue && $proc->offsetGet('state') != \Supervisor\ProcessStates::Running) {
                     return $this->getSupervisor()->startProcess(
                         sprintf(
                             '%s:%s',
@@ -514,7 +514,7 @@ class BackgroundJobsTool
      */
     public function getSupervisorStatus(): bool
     {
-        return $this->getSupervisor()->getState()['statecode'] === \Supervisor\Supervisor::RUNNING;
+        return $this->getSupervisor()->getState()['statecode'] === \Supervisor\ProcessStates::Running;
     }
 
     /**
@@ -664,12 +664,6 @@ class BackgroundJobsTool
             )
         );
 
-        if (class_exists('Supervisor\Connector\XmlRpc')) {
-            // for compatibility with older versions of supervisor
-            $connector = new \Supervisor\Connector\XmlRpc($client);
-            return new \Supervisor\Supervisor($connector);
-        }
-
         return new \Supervisor\Supervisor($client);
     }
 
@@ -727,9 +721,9 @@ class BackgroundJobsTool
     private function convertProcessStatus(int $stateId): int
     {
         switch ($stateId) {
-            case \Supervisor\Process::RUNNING:
+            case \Supervisor\ProcessStates::Running:
                 return Worker::STATUS_RUNNING;
-            case \Supervisor\Process::UNKNOWN:
+            case \Supervisor\ProcessStates::Unknown:
                 return Worker::STATUS_UNKNOWN;
             default:
                 return Worker::STATUS_FAILED;
