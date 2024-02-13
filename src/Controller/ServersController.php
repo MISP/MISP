@@ -800,7 +800,7 @@ class ServersController extends AppController
                     $jobId
                 );
 
-                $success = __('Pull queued for background execution. Job ID: {0}', $jobId);
+                $success = __("Pull queued for background execution. Job ID: {0}", $jobId);
             }
         }
         if ($this->ParamHandler->isRest()) {
@@ -820,7 +820,7 @@ class ServersController extends AppController
         }
     }
 
-    public function push($id = null, $technique = null)
+    public function push($id = null, $technique = 'full')
     {
         $id = $id ?? $this->request->getData('id');
 
@@ -876,7 +876,7 @@ class ServersController extends AppController
                 $jobId
             );
 
-            $message = sprintf(__('Push queued for background execution. Job ID: {0}'), $jobId);
+            $message = __('Push queued for background execution. Job ID: {0}', $jobId);
 
             if ($this->ParamHandler->isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->getType());
@@ -2111,18 +2111,17 @@ class ServersController extends AppController
                 'remote_org_id' => $org_id,
                 'name' => empty($server['name']) ? $server['url'] : $server['name'],
                 'url' => $server['url'],
-                'uuid' => $server['uuid'],
                 'authkey' => $server['authkey']
             ];
-            $this->Servers->create();
-            $result = $this->Servers->save($toSave);
+            $serverEntity = $this->Servers->newEntity($toSave);
+            $result = $this->Servers->save($serverEntity);
             if ($result) {
                 if ($this->ParamHandler->isRest()) {
-                    $server = $this->Servers->get($this->Servers->id);
+                    $server = $this->Servers->get($serverEntity->id);
                     return $this->RestResponse->viewData($server, $this->response->getType());
                 } else {
                     $this->Flash->success(__('The server has been saved'));
-                    $this->redirect(['action' => 'index', $this->Servers->id]);
+                    $this->redirect(['action' => 'index', $serverEntity->id]);
                 }
             } else {
                 if ($this->ParamHandler->isRest()) {

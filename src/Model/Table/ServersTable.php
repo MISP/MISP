@@ -1122,7 +1122,7 @@ class ServersTable extends AppTable
 
             // sync custom galaxy clusters if user is capable
             if ($push['canEditGalaxyCluster'] && $server['push_galaxy_clusters'] && "full" == $technique) {
-                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique = 'full');
+                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $server->toArray(), $user, $technique = 'full');
             } else {
                 $clustersSuccesses = [];
             }
@@ -1396,6 +1396,11 @@ class ServersTable extends AppTable
                 $conditions = ['id' => $event_id];
                 // event_id is not null when we are doing a publish
             }
+
+            if (empty($ids)) {
+                return true;
+            }
+
             $events = $EventsTable->find(
                 'all',
                 [

@@ -139,7 +139,6 @@ class PullServerApiTest extends TestCase
 
         // mock the event [uuid].json request
         $this->mockClientGet(
-            // ServersFixture::SERVER_A_URL . '/events/view/6b4cf2f8-b960-41af-86fc-dceb614c6b58/deleted[]:0/deleted[]:1/excludeGalaxy:1/includeEventCorrelations:0/includeFeedCorrelations:0/includeWarninglistHits:0/excludeLocalTags:1',
             'http://aaa.local/events/view/56bf399d-c46c-4fdb-a9cf-d9bb02de0b81/deleted%5B%5D:0/deleted%5B%5D:1/excludeGalaxy:1/includeEventCorrelations:0/includeFeedCorrelations:0/includeWarninglistHits:0/excludeLocalTags:1',
             $this->newClientResponse(200, $headers, $eventBody)
         );

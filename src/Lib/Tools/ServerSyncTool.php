@@ -69,7 +69,7 @@ class ServerSyncTool
      */
     public function eventExists(array $event)
     {
-        $url = $this->server['url'] . '/events/view/' . $event['Event']['uuid'];
+        $url = $this->server['url'] . '/events/view/' . $event['uuid'];
         $start = microtime(true);
         $exists = $this->socket->head($url, [], $this->request);
         $this->log($start, 'HEAD', $url, $exists);
@@ -162,7 +162,7 @@ class ServerSyncTool
      */
     public function createEvent(array $event)
     {
-        $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
+        $logMessage = "Pushing Event #{$event['id']} to Server #{$this->serverId()}";
         return $this->post("/events/add/metadata:1", $event, $logMessage);
     }
 
@@ -176,9 +176,9 @@ class ServerSyncTool
     public function updateEvent(array $event, $eventId = null)
     {
         if ($eventId === null) {
-            $eventId = $event['Event']['uuid'];
+            $eventId = $event['uuid'];
         }
-        $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
+        $logMessage = "Pushing Event #{$event['id']} to Server #{$this->serverId()}";
         return $this->post("/events/edit/$eventId/metadata:1", $event, $logMessage);
     }
 
@@ -272,7 +272,7 @@ class ServerSyncTool
             return [];
         }
 
-        $response = $this->post('/sightings/filterSightingUuidsForPush/' . $event['Event']['uuid'], $sightingUuids);
+        $response = $this->post('/sightings/filterSightingUuidsForPush/' . $event['uuid'], $sightingUuids);
         return $response->getJson();
     }
 
@@ -473,7 +473,7 @@ class ServerSyncTool
      */
     private function post($url, $data, $logMessage = null, $etag = null)
     {
-        $protectedMode = !empty($data['Event']['protected']);
+        $protectedMode = !empty($data['protected']);
         $data = JsonTool::encode($data);
 
         if ($logMessage && !empty(Configure::read('Security.sync_audit'))) {

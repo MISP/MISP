@@ -257,8 +257,10 @@ class EventsTable extends AppTable
     public function uploadEventToServer(array $event, array $server, ServerSyncTool $serverSync)
     {
         // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
-
         // THIS IS A PLACEHOLDER !
+
+        $serverSync->pushEvent($event)->getJson();
+
         return 'Success';
     }
 }
