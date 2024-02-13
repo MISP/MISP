@@ -36,6 +36,8 @@ class AnalystDataController extends AppController
         $this->set(compact('dropdownData'));
         $this->set('modelSelection', $this->modelSelection);
         $this->set('distributionLevels', $this->Event->distributionLevels);
+        App::uses('LanguageRFC5646Tool', 'Tools');
+        $this->set('languageRFC5646', ['' => __('- No language -'), LanguageRFC5646Tool::getLanguages()]);
     }
     
     public function add($type = 'Note', $object_uuid = null, $object_type = null)
@@ -57,10 +59,7 @@ class AnalystDataController extends AppController
             return $this->restResponsePayload;
         }
         $this->_setViewElements();
-        if ($type == 'Note') {
-            App::uses('LanguageRFC5646Tool', 'Tools');
-            $this->set('languageRFC5646', LanguageRFC5646Tool::getLanguages());
-        } else if ($type == 'Relationship') {
+        if ($type == 'Relationship') {
             $this->set('existingRelations', $this->AnalystData->getExistingRelationships());
         }
         $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'add_' . strtolower($type)));
