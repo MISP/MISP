@@ -45,6 +45,8 @@ if ($modelSelection === 'Note') {
             [
                 'field' => 'language',
                 'class' => 'span3',
+                'options' => $languageRFC5646,
+                'type' => 'dropdown',
             ],
             [
                 'field' => 'note',
@@ -203,6 +205,7 @@ if (!$ajax) {
         var html = '<div>' + $select[0].outerHTML + '</div>';
         var that = this
         openPopover(this, html, false, 'right', function($popover) {
+            $popover.css('z-index', 1060)
             $popover.find('select').chosen({
                 width: '300px',
             }).on('change', function(evt, param) {

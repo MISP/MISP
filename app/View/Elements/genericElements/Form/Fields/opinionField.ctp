@@ -16,7 +16,7 @@ echo $this->element('genericElements/assetLoader', [
         <div class="opinion-gradient-container" style="width: 10rem; height: 6px; position: relative;">\
             <div class="opinion-gradient opinion-gradient-negative"></div> \
             <div class="opinion-gradient opinion-gradient-positive"></div> \
-            <input type="range" min="0" max="100" value="50" class="slider" id="opinion-slider">\
+            <input type="range" min="0" max="100" value="50" step="10" class="slider" id="opinion-slider">\
         </div> \
     '
     var opinionTemplate<?= $seed ?> = '\

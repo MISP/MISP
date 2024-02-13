@@ -231,7 +231,13 @@ var relationshipDefaultEntryTemplate = doT.template('\
     <div style="max-width: 40vw; margin: 0.5rem 0 0.5rem 0.25rem;"> \
         <div style="display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap;"> \
             <i class="<?= $this->FontAwesome->getClass('minus') ?>" style="font-size: 1.5em; color: #555"></i> \
-            <span style="text-wrap: nowrap; padding: 0 0.25rem; border: 2px solid #555; border-radius: 0.25rem;">{{=it.relationship_type}}</span> \
+            <span style="text-wrap: nowrap; padding: 0 0.25rem; border: 2px solid #555; border-radius: 0.25rem; max-width: 20rem; overflow-x: hidden; text-overflow: ellipsis;"> \
+                {{? it.relationship_type }} \
+                    {{=it.relationship_type}} \
+                {{??}} \
+                    <i style="font-weight: lighter; color: #999;"> - empty -</i> \
+                {{?}} \
+            </span> \
             <i class="<?= $this->FontAwesome->getClass('long-arrow-alt-right') ?>" style="font-size: 1.5em; color: #555"></i> \
             <div style="margin-left: 0.5rem;">{{=it.content}}</div> \
         </div> \
@@ -253,10 +259,28 @@ var replyNoteTemplate = doT.template('\
     </div> \
 ')
 
+var maxDepthReachedTemplate = doT.template('\
+    <div> \
+        <span style="font-weight: lighter; color: #999;"> \
+            - Max depth reached, there is at least one entry remaining - \
+            <a href="<?= $baseurl ?>/analystData/view/{{=it.note.note_type_name}}/{{=it.note.id}}" target="_blank"> \
+                <i class="<?= $this->FontAwesome->getClass('search') ?>"></i> \
+                <?= __('Click here to view more') ?> \
+            </a> \
+        </span> \
+    </div> \
+')
+
 function filterNotes(clicked, filter) {
     $(clicked).closest('.notes-filtering-container').find('.btn').addClass('btn-inverse').removeClass('btn-primary')
     $(clicked).removeClass('btn-inverse').addClass('btn-primary')
     var $container = $(clicked).parent().parent().find('.all-notes')
+    var $addButtonContainer = $('#add-button-container');
+    if (filter == 'notorg') {
+        $addButtonContainer.hide()
+    } else {
+        $addButtonContainer.show()
+    }
     $container.find('.analyst-note').show()
     $container.find('.reply-to-group').show()
     $container.find('.analyst-note').filter(function() {
@@ -274,6 +298,7 @@ function filterNotes(clicked, filter) {
             var shouldHide = $note.data('org-uuid') == '<?= $me['Organisation']['uuid'] ?>'
             if (shouldHide && $note.next().hasClass('reply-to-group')) { // Also hide reply to button and container
                 $note.next().hide().next().hide()
+                
             }
             return shouldHide
         }
@@ -318,10 +343,13 @@ function filterNotes(clicked, filter) {
                 var noteHtml = renderNote(note, relationship_related_object)
     
                 if (note.Opinion && note.Opinion.length > 0) { // The notes has more notes attached
-                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Opinion, relationship_related_object)})
+                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Opinion, relationship_related_object), })
                 }
                 if (note.Note && note.Note.length > 0) { // The notes has more notes attached
-                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Note, relationship_related_object)})
+                    noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Note, relationship_related_object), })
+                }
+                if (note._max_depth_reached) {
+                    noteHtml += maxDepthReachedTemplate({note: note})
                 }
 
                 renderedNotesArray.push(noteHtml)
@@ -331,7 +359,7 @@ function filterNotes(clicked, filter) {
     }
 
     function renderAllNotesWithForm(relationship_related_object) {
-        var buttonContainer = '<div style="margin-top: 0.5rem">' + addNoteButton + addOpinionButton + '</div>'
+        var buttonContainer = '<div id="add-button-container" style="margin-top: 0.5rem;">' + addNoteButton + addOpinionButton + '</div>'
         renderedNotes<?= $seed ?> = nodeContainerTemplate({
             content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2}), relationship_related_object) + buttonContainer,
             content_relationships: renderNotes(relationships, relationship_related_object) + addRelationshipButton,

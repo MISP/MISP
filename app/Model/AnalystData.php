@@ -8,7 +8,8 @@ class AnalystData extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
-            'Containable'
+        'AuditLog',
+        'Containable'
     );
 
     public $valid_targets = [
@@ -111,7 +112,13 @@ class AnalystData extends AppModel
             $results[$i][$this->alias]['_canEdit'] = $this->canEditAnalystData($this->current_user, $v, $this->alias);
 
             if (!empty($this->fetchRecursive) && !empty($results[$i][$this->alias]['uuid'])) {
+                $this->Note = ClassRegistry::init('Note');
+                $this->Opinion = ClassRegistry::init('Opinion');
+                $this->Note->fetchRecursive = false;
+                $this->Opinion->fetchRecursive = false;
                 $results[$i][$this->alias] = $this->fetchChildNotesAndOpinions($this->current_user, $results[$i][$this->alias]);
+                $this->Note->fetchRecursive = true;
+                $this->Opinion->fetchRecursive = true;
             }
         }
         return $results;
@@ -260,12 +267,11 @@ class AnalystData extends AppModel
     public function fetchChildNotesAndOpinions(array $user, array $analystData, $depth = 2): array
     {
         if ($depth == 0 || !empty($this->fetchedUUIDFromRecursion[$analystData['uuid']])) {
+            $hasMoreNotesOrOpinions =  $this->hasMoreNotesOrOpinions($analystData, $user);
+            $analystData['_max_depth_reached'] = $hasMoreNotesOrOpinions;
             return $analystData;
         }
         $this->fetchedUUIDFromRecursion[$analystData['uuid']] = true;
-
-        $this->Note = ClassRegistry::init('Note');
-        $this->Opinion = ClassRegistry::init('Opinion');
 
         $paramsNote = [
             'recursive' => -1,
@@ -313,6 +319,37 @@ class AnalystData extends AppModel
             $analystData['Opinion'] = $childOpinions;
         }
         return $analystData;
+    }
+
+    protected function hasMoreNotesOrOpinions($analystData, array $user): bool
+    {
+        $hasMoreNotes = $this->Note->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'AND' => [
+                    $this->Note->buildConditions($user)
+                ],
+                'object_type' => $analystData['note_type_name'],
+                'object_uuid' => $analystData['uuid'],
+            ]
+        ]);
+        if (!empty($hasMoreNotes)) {
+            return true;
+        }
+        $hasMoreOpinions = $this->Note->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'AND' => [
+                    $this->Opinion->buildConditions($user)
+                ],
+                'object_type' => $analystData['note_type_name'],
+                'object_uuid' => $analystData['uuid'],
+            ]
+        ]);
+        if (!empty($hasMoreOpinions)) {
+            return true;
+        }
+        return false;
     }
 
     public function getExistingRelationships()

@@ -7,8 +7,9 @@ class Opinion extends AnalystData
     public $recursive = -1;
 
     public $actsAs = array(
-            'Containable',
-            'AnalystData'
+        'AuditLog',
+        'Containable',
+        'AnalystData',
     );
 
     public $current_type = 'Opinion';

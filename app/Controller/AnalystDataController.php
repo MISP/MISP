@@ -57,7 +57,10 @@ class AnalystDataController extends AppController
             return $this->restResponsePayload;
         }
         $this->_setViewElements();
-        if ($type == 'Relationship') {
+        if ($type == 'Note') {
+            App::uses('LanguageRFC5646Tool', 'Tools');
+            $this->set('languageRFC5646', LanguageRFC5646Tool::getLanguages());
+        } else if ($type == 'Relationship') {
             $this->set('existingRelations', $this->AnalystData->getExistingRelationships());
         }
         $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'add_' . strtolower($type)));
