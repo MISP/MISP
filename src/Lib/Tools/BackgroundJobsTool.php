@@ -73,12 +73,14 @@ class BackgroundJobsTool
     public const
         CMD_EVENT = 'event',
         CMD_SERVER = 'servers',
+        CMD_FEEDS = 'feeds',
         CMD_ADMIN = 'admin',
         CMD_WORKFLOW = 'workflow';
 
     public const ALLOWED_COMMANDS = [
         self::CMD_EVENT,
         self::CMD_SERVER,
+        self::CMD_FEEDS,
         self::CMD_ADMIN,
         self::CMD_WORKFLOW
     ];

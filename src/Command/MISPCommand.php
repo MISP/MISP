@@ -2,10 +2,10 @@
 
 namespace App\Command;
 
-use Cake\Command\Command;
-use Cake\Console\ConsoleIo;
-use Cake\Console\Arguments;
 use App\Lib\Tools\BackgroundJobsTool;
+use Cake\Command\Command;
+use Cake\Console\Arguments;
+use Cake\Console\ConsoleIo;
 use Cake\Core\Configure;
 
 class MISPCommand extends Command
@@ -75,9 +75,27 @@ class MISPCommand extends Command
     public function getBackgroundJobsTool(): BackgroundJobsTool
     {
         if (!self::$loadedBackgroundJobsTool) {
-            self::$loadedBackgroundJobsTool = new BackgroundJobsTool(Configure::read('BackgroundJobs'));;
+            self::$loadedBackgroundJobsTool = new BackgroundJobsTool(Configure::read('BackgroundJobs'));
+            ;
         }
 
         return self::$loadedBackgroundJobsTool;
+    }
+
+    /**
+     * @param int $userId
+     * @return array
+     */
+    protected function getUser($userId): array
+    {
+        $UsersTable = $this->fetchTable('Users');
+        $user = $UsersTable->getAuthUser($userId, true);
+
+        if (empty($user)) {
+            $this->io->error('User ID do not match an existing user.');
+            die();
+        }
+
+        return $user->toArray();
     }
 }

@@ -8,8 +8,6 @@ use App\Lib\Tools\LogExtendedTrait;
 use App\Lib\Tools\ServerSyncTool;
 use App\Model\Entity\Job;
 use Cake\Chronos\Chronos;
-use Cake\Console\ConsoleIo;
-use Cake\Core\Configure;
 use Exception;
 
 class ServersCommand extends MISPCommand
@@ -249,211 +247,7 @@ class ServersCommand extends MISPCommand
         }
     }
 
-    public function listFeeds($outputStyle = 'json')
-    {
-        $fields = [
-            'id' => 3,
-            'source_format' => 10,
-            'provider' => 15,
-            'url' => 50,
-            'enabled' => 8,
-            'caching_enabled' => 7
-        ];
 
-        $FeedsTable = $this->fetchTable('Feeds');
-
-        $feeds = $FeedsTable->find(
-            'all',
-            [
-                'recursive' => -1,
-                'fields' => array_keys($fields)
-            ]
-        );
-        if ($outputStyle === 'table') {
-            $this->io->out(str_repeat('=', 114));
-            $this->io->out(
-                sprintf(
-                    '| %s | %s | %s | %s | %s | %s |',
-                    str_pad('ID', $fields['id'], ' ', STR_PAD_RIGHT),
-                    str_pad('Format', $fields['source_format'], ' ', STR_PAD_RIGHT),
-                    str_pad('Provider', $fields['provider'], ' ', STR_PAD_RIGHT),
-                    str_pad('Url', $fields['url'], ' ', STR_PAD_RIGHT),
-                    str_pad('Fetching', $fields['enabled'], ' ', STR_PAD_RIGHT),
-                    str_pad('Caching', $fields['caching_enabled'], ' ', STR_PAD_RIGHT)
-                ),
-                1,
-                ConsoleIo::NORMAL
-            );
-            $this->io->out(str_repeat('=', 114));
-            foreach ($feeds as $feed) {
-                $this->io->out(
-                    sprintf(
-                        '| %s | %s | %s | %s | %s | %s |',
-                        str_pad($feed['id'], $fields['id'], ' ', STR_PAD_RIGHT),
-                        str_pad($feed['source_format'], $fields['source_format'], ' ', STR_PAD_RIGHT),
-                        str_pad(mb_substr($feed['provider'], 0, 13), $fields['provider'], ' ', STR_PAD_RIGHT),
-                        str_pad(
-                            mb_substr($feed['url'], 0, 48),
-                            $fields['url'],
-                            ' ',
-                            STR_PAD_RIGHT
-                        ),
-                        $feed['enabled'] ?
-                            '<info>' . str_pad(__('Yes'), $fields['enabled'], ' ', STR_PAD_RIGHT) . '</info>' :
-                            str_pad(__('No'), $fields['enabled'], ' ', STR_PAD_RIGHT),
-                        $feed['caching_enabled'] ?
-                            '<info>' . str_pad(__('Yes'), $fields['caching_enabled'], ' ', STR_PAD_RIGHT) . '</info>' :
-                            str_pad(__('No'), $fields['caching_enabled'], ' ', STR_PAD_RIGHT)
-                    ),
-                    1,
-                    ConsoleIo::NORMAL
-                );
-            }
-            $this->io->out(str_repeat('=', 114));
-        } else {
-            $this->outputJson($feeds);
-        }
-    }
-
-    public function viewFeed($feedId = null, $outputStyle = 'json')
-    {
-        if (empty($feedId)) {
-            $this->showActionUsageAndExit();
-        }
-
-        $FeedsTable = $this->fetchTable('Feeds');
-
-        $feed = $FeedsTable->get($feedId)->toArray();
-
-        if (empty($feed)) {
-            throw new Exception(__('Invalid feed.'));
-        }
-        if ($outputStyle === 'table') {
-            $this->io->out(str_repeat('=', 114));
-            foreach ($feed as $field => $value) {
-                if (is_array($value)) {
-                    $value = json_encode($value, JSON_PRETTY_PRINT);
-                }
-                $this->io->out(
-                    sprintf(
-                        '| %s | %s |',
-                        str_pad($field, 20, ' ', STR_PAD_RIGHT),
-                        str_pad($value ?? '', 87)
-                    ),
-                    1,
-                    ConsoleIo::NORMAL
-                );
-            }
-            $this->io->out(str_repeat('=', 114));
-        } else {
-            $this->outputJson($feed);
-        }
-    }
-
-    public function toggleFeed($feedId = null)
-    {
-        if (empty($feedId)) {
-            $this->showActionUsageAndExit();
-        }
-
-        $FeedsTable = $this->fetchTable('Feeds');
-        $feed = $FeedsTable->get($feedId);
-
-        $feed['enabled'] = ($feed['enabled']) ? 0 : 1;
-        if ($FeedsTable->save($feed)) {
-            $this->io->out(__('Feed fetching {0} for feed {1}', ($feed['enabled'] ? __('enabled') : __('disabled')), $feed['id']));
-        } else {
-            $this->io->out(__('Could not toggle fetching for feed {0}', $feed['id']));
-        }
-    }
-
-
-    public function toggleFeedCaching($feedId = null)
-    {
-        if (empty($feedId)) {
-            $this->showActionUsageAndExit();
-        }
-
-        $FeedsTable = $this->fetchTable('Feeds');
-        $feed = $FeedsTable->get($feedId);
-
-        $feed['caching_enabled'] = ($feed['caching_enabled']) ? 0 : 1;
-        if ($FeedsTable->save($feed)) {
-            $this->io->out(__('Feed caching {0} for feed {1}', ($feed['caching_enabled'] ? __('enabled') : __('disabled')), $feed['id']));
-        } else {
-            $this->io->out(__('Could not toggle caching for feed {0}', $feed['id']));
-        }
-    }
-
-    public function loadDefaultFeeds()
-    {
-        $FeedsTable = $this->fetchTable('Feeds');
-        $FeedsTable->load_default_feeds();
-        $this->io->out(__('Default feed metadata loaded.'));
-    }
-
-    public function fetchFeed($userId, $feedId, $jobId = null)
-    {
-        if (empty($userId) || empty($feedId)) {
-            $this->showActionUsageAndExit();
-        }
-
-        $UsersTable = $this->fetchTable('Users');
-        $user = $UsersTable->getAuthUser($userId, true);
-
-        Configure::write('CurrentUserId', $userId);
-
-        $FeedsTable = $this->fetchTable('Feeds');
-        $JobsTable = $this->fetchTable('Jobs');
-
-        if (empty($jobId)) {
-            $jobId = $JobsTable->createJob($user->toArray(), Job::WORKER_DEFAULT, 'fetch_feeds', 'Feed: ' . $feedId, 'Starting fetch from Feed.');
-        }
-        if ($feedId === 'all') {
-            $feedIds = $FeedsTable->find(
-                'column',
-                [
-                    'fields' => ['id'],
-                    'conditions' => ['enabled' => 1]
-                ]
-            )->toArray();
-            $successes = 0;
-            $fails = 0;
-            foreach ($feedIds as $k => $feedId) {
-                $JobsTable->saveProgress($jobId, 'Fetching feed: ' . $feedId, 100 * $k / count($feedIds));
-                $result = $FeedsTable->downloadFromFeedInitiator($feedId, $user);
-                if ($result) {
-                    $successes++;
-                } else {
-                    $fails++;
-                }
-            }
-            $message = 'Job done. ' . $successes . ' feeds pulled successfully, ' . $fails . ' feeds could not be pulled.';
-            $JobsTable->saveStatus($jobId, true, $message);
-            $this->io->out($message);
-        } else {
-            $feedEnabled = $FeedsTable->exists(
-                [
-                    'enabled' => 1,
-                    'id' => $feedId,
-                ]
-            );
-            if ($feedEnabled) {
-                $result = $FeedsTable->downloadFromFeedInitiator($feedId, $user, $jobId);
-                if (!$result) {
-                    $JobsTable->saveStatus($jobId, false, 'Job failed. See error log for more details.');
-                    $this->io->error('Job failed.');
-                } else {
-                    $JobsTable->saveStatus($jobId, true);
-                    $this->io->out('Job done.');
-                }
-            } else {
-                $message = "Feed with ID $feedId not found or not enabled.";
-                $JobsTable->saveStatus($jobId, false, $message);
-                $this->io->error($message);
-            }
-        }
-    }
 
     public function cacheServer($userId = null, $scope = null, $jobId = null)
     {
@@ -522,45 +316,7 @@ class ServersCommand extends MISPCommand
         }
     }
 
-    public function cacheFeed($userId = null, $scope = null, $jobId = null)
-    {
-        if (empty($userId) || empty($scope)) {
-            $this->showActionUsageAndExit();
-        }
 
-        $user = $this->getUser($userId);
-
-        $FeedsTable = $this->fetchTable('Feeds');
-        $JobsTable = $this->fetchTable('Jobs');
-
-        if (!empty($jobId)) {
-            $jobId = $JobsTable->createJob($user, Job::WORKER_DEFAULT, 'cache_feeds', 'Feed: ' . $scope, 'Starting feed caching.');
-        }
-        try {
-            $result = $FeedsTable->cacheFeedInitiator($user, $jobId, $scope);
-        } catch (Exception $e) {
-            $this->logException("Failed caching Feed: $scope", $e);
-            $result = false;
-        }
-
-        if ($result === false) {
-            $message = __('Job failed. See error logs for more details.');
-            $JobsTable->saveStatus($jobId, false, $message);
-        } else {
-            $total = $result['successes'] + $result['fails'];
-            $message = __(
-                '{0} feed from {1} cached. Failed: {2}',
-                $result['successes'],
-                $total,
-                $result['fails']
-            );
-            if ($result['fails'] > 0) {
-                $message .= ' ' . __('See error logs for more details.');
-            }
-            $JobsTable->saveStatus($jobId, true, $message);
-        }
-        $this->io->out($message);
-    }
 
     public function sendPeriodicSummaryToUsers()
     {
@@ -595,23 +351,6 @@ class ServersCommand extends MISPCommand
             $periods[] = 'weekly';
         }
         return $periods;
-    }
-
-    /**
-     * @param int $userId
-     * @return array
-     */
-    private function getUser($userId): array
-    {
-        $UsersTable = $this->fetchTable('Users');
-        $user = $UsersTable->getAuthUser($userId, true);
-
-        if (empty($user)) {
-            $this->io->error('User ID do not match an existing user.');
-            die();
-        }
-
-        return $user->toArray();
     }
 
     /**

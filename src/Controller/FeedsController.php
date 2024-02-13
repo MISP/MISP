@@ -522,7 +522,7 @@ class FeedsController extends AppController
 
             $this->Feeds->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_SERVER,
+                BackgroundJobsTool::CMD_FEEDS,
                 [
                     'fetchFeed',
                     $this->ACL->getUser()->id,
@@ -593,7 +593,7 @@ class FeedsController extends AppController
 
                 $this->Feeds->getBackgroundJobsTool()->enqueue(
                     BackgroundJobsTool::DEFAULT_QUEUE,
-                    BackgroundJobsTool::CMD_SERVER,
+                    BackgroundJobsTool::CMD_FEEDS,
                     [
                         'fetchFeed',
                         $this->Auth->user('id'),
@@ -969,7 +969,7 @@ class FeedsController extends AppController
 
             $this->Feeds->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_SERVER,
+                BackgroundJobsTool::CMD_FEEDS,
                 [
                     'cacheFeed',
                     $this->Auth->user('id'),
