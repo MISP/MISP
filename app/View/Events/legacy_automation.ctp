@@ -312,7 +312,7 @@
     <b>timestamp</b>: <?php echo __('Restrict the results by the timestamp (of the attribute). Any attributes with a timestamp newer than the given timestamp will be returned.');?><br />
     <b>enforceWarninglist</b>: <?php echo __('Remove any attributes from the result that would cause a hit on a warninglist entry.');?><br />
     <b>to_ids</b>: <?php echo __('By default (0) all attributes are returned that match the other filter parameters, irregardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special "exclude" setting to only return attributes that have the to_ids flag disabled.'); ?> <br />
-    <b>deleted</b>: <?php echo __('If this parameter is set to 1, it will return soft-deleted attributes along with active ones. By using "only" as a parameter it will limit the returned data set to soft-deleted data only.'); ?> <br />
+    <b>deleted</b>: <?php echo __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes wil be returned.'); ?> <br />
     <b>includeEventUuid</b>: <?php echo __('Instead of just including the event ID, also include the event UUID in each of the attributes.'); ?> <br />
     <b>event_timestamp</b>: <?php echo __('Only return attributes from events that have received a modification after the given timestamp.'); ?> <br /><br />
     <p>For example, to get all attributes of events modified after a given timestamp, simply POST to:</p>
