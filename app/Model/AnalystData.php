@@ -255,8 +255,12 @@ class AnalystData extends AppModel
         throw new NotFoundException(__('Invalid or could not deduce analyst data type'));
     }
 
-    public function fetchChildNotesAndOpinions(array $user, array $analystData): array
+    public function fetchChildNotesAndOpinions(array $user, array $analystData, $depth = 2): array
     {
+        if ($depth == 0) {
+            return $analystData;
+        }
+
         $this->Note = ClassRegistry::init('Note');
         $this->Opinion = ClassRegistry::init('Opinion');
 
@@ -284,12 +288,12 @@ class AnalystData extends AppModel
         ];
 
         // recursively fetch and include nested notes and opinions
-        $childNotes = array_map(function ($item) use ($user) {
-            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item['Note']);
+        $childNotes = array_map(function ($item) use ($user, $depth) {
+            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item['Note'], $depth-1);
             return $expandedNotes;
         }, $this->Note->find('all', $paramsNote));
-        $childOpinions = array_map(function ($item) use ($user) {
-            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item['Opinion']);
+        $childOpinions = array_map(function ($item) use ($user, $depth) {
+            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item['Opinion'], $depth-1);
             return $expandedNotes;
         }, $this->Opinion->find('all', $paramsOpinion));
 
