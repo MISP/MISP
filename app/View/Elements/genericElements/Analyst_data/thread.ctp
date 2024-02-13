@@ -1,9 +1,4 @@
 <?php
-    echo $this->element('genericElements/assetLoader', [
-        'js' => ['doT', 'moment.min'],
-        'css' => ['analyst-data',],
-    ]);
-
     $URL_ADD = '/analystData/add/';
     $URL_EDIT = '/analystData/edit/';
     $URL_DELETE = '/analystData/delete/';

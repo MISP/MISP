@@ -152,7 +152,7 @@ class AnalystData extends AppModel
     public function canEditAnalystData(array $user, array $analystData, $modelType): bool
     {
         if (!isset($analystData[$modelType])) {
-            throw new InvalidArgumentException('Passed object does not contain a(n) ' . $modelType);
+            return false; // This can happen when using find('count')
         }
         if ($user['Role']['perm_site_admin']) {
             return true;

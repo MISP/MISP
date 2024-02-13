@@ -174,6 +174,10 @@ $options = [
     'relationships' => $cluster['GalaxyCluster']['Relationship'] ?? [],
 ];
 
+echo $this->element('genericElements/assetLoader', [
+    'js' => ['doT', 'moment.min'],
+    'css' => ['analyst-data',],
+]);
 echo $this->element('genericElements/Analyst_data/thread', $options);
 
 ?>
