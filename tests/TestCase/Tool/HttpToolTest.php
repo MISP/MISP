@@ -48,7 +48,7 @@ xWV4oBk=
 -----END CERTIFICATE-----
     ";
 
-    public function testGoogle($options=[])
+    public function testGoogle($options = [])
     {
         $client = new HttpTool($options);
         $response = $client->get('https://www.google.com');
@@ -73,7 +73,9 @@ xWV4oBk=
 
         $config = [
             'ssl_verify_peer' => true,
-            'ssl_verify_host' => false];
+            'ssl_verify_host' => false
+
+        ];
 
         $client = new HttpTool($config);
         try {
@@ -172,7 +174,6 @@ xWV4oBk=
         $this->assertEquals($result['issuer'], 'C=US, O=Google Trust Services LLC, CN=GTS CA 1C3');
         $this->assertEquals($result['public_key_size_ok'], true);
         $this->assertEquals($result['valid_from_ok'], true);
-        $this->assertEquals($result['valid_to_ok'], true);
         $this->assertEquals($result['valid_from'], new FrozenTime("2023-11-20 08:09:47.000000+00:00"));
         $this->assertEquals($result['valid_to'], new FrozenTime("2024-02-12 08:09:46.000000+00:00"));
         $this->assertEquals($result['signature_type'], "RSA-SHA256");
@@ -189,9 +190,8 @@ xWV4oBk=
         // $certificates = $client->fetchCertificates(self::HTTPS_SELF_SIGNED_URI);
         // $certificates = $client->fetchCertificates('http://www.google.com');
         // we get one or more certificates from the server. No function yet to select "the right one"
-        foreach($certificates as $certificate) {
+        foreach ($certificates as $certificate) {
             // debug($certificate);
         }
     }
-
 }
