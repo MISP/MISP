@@ -181,7 +181,10 @@ class RestSearchComponent extends Component
             'attackGalaxy',
             'object_relation',
             'metadata',
-            'includeAllTags'
+            'includeAllTags',
+            'object_name',
+            'object_template_uuid',
+            'object_template_version'
         ],
         'Sighting' => [
             'context',
